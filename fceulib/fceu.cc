@@ -92,8 +92,6 @@ static void FCEU_CloseGame() {
 
     GameInterface(GI_CLOSE);
 
-    FCEUI_StopMovie();
-
     ResetExState(0,0);
 
     //clear screen when game is closed
@@ -354,7 +352,6 @@ FCEUGI *FCEUI_LoadGameVirtual(const char *name, int OverwriteVidMode) {
   FCEU_LoadGamePalette();
 
   FCEU_ResetPalette();
-  FCEU_ResetMessages();	// Save state, status messages, etc.
 
   return GameInfo;
 }
@@ -496,7 +493,7 @@ void ResetNES() {
   extern uint8 *XBackBuf;
   memset(XBackBuf,0,256*256);
 
-  FCEU_DispMessage("Reset", 0);
+  fprintf(stderr, "Reset", 0);
 }
 
 void FCEU_MemoryRand(uint8 *ptr, uint32 size) {
@@ -556,7 +553,7 @@ void PowerNES() {
   extern uint8 *XBackBuf;
   memset(XBackBuf,0,256*256);
 
-  FCEU_DispMessage("Power on", 0);
+  fprintf(stderr, "Power on", 0);
 }
 
 void FCEU_ResetVidSys() {

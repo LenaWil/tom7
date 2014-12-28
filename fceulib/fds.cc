@@ -148,17 +148,17 @@ void FCEU_FDSInsert(void)
 
 	if(TotalSides==0)
 	{
-		FCEU_DispMessage("Not FDS; can't eject disk.",0);
+		fprintf(stderr, "Not FDS; can't eject disk.");
 		return;
 	}
 	if(InDisk==255)
 	{
-		FCEU_DispMessage("Disk %d Side %s Inserted",0,SelectDisk>>1,(SelectDisk&1)?"B":"A");
+		fprintf(stderr, "Disk %d Side %s Inserted",SelectDisk>>1,(SelectDisk&1)?"B":"A");
 		InDisk=SelectDisk;
 	}
 	else
 	{
-		FCEU_DispMessage("Disk %d Side %s Ejected",0,SelectDisk>>1,(SelectDisk&1)?"B":"A");
+		fprintf(stderr, "Disk %d Side %s Ejected",SelectDisk>>1,(SelectDisk&1)?"B":"A");
 		InDisk=255;
 	}
 }
@@ -167,16 +167,16 @@ void FCEU_FDSSelect(void) {
   if(FCEUI_EmulationPaused()) EmulationPaused |= 2;
 
   if(TotalSides==0) {
-    FCEU_DispMessage("Not FDS; can't select disk.",0);
+    fprintf(stderr, "Not FDS; can't select disk.");
     return;
   }
 
   if(InDisk!=255) {
-    FCEU_DispMessage("Eject disk before selecting.",0);
+    fprintf(stderr, "Eject disk before selecting.");
     return;
   }
   SelectDisk=((SelectDisk+1)%TotalSides)&3;
-  FCEU_DispMessage("Disk %d Side %c Selected",0,SelectDisk>>1,(SelectDisk&1)?'B':'A');
+  fprintf(stderr, "Disk %d Side %c Selected",SelectDisk>>1,(SelectDisk&1)?'B':'A');
 }
 
 static void FDSFix(int a)

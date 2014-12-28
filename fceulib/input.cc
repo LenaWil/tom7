@@ -52,6 +52,7 @@
 #define FCEUNPCMD_LOADCHEATS	0x82
 #define FCEUNPCMD_TEXT		0x90
 
+static constexpr EMOVIEMODE movieMode = MOVIEMODE_INACTIVE;
 
 void FCEU_DoSimpleCommand(int cmd);
 void FCEU_QSimpleCommand(int cmd);
@@ -469,7 +470,7 @@ void FCEUI_FDSSelect(void) {
   if (!FCEU_IsValidUI(FCEUI_SWITCH_DISK))
     return;
 
-  FCEU_DispMessage("Command: Switch disk side", 0);
+  fprintf(stderr, "Command: Switch disk side");
   FCEU_QSimpleCommand(FCEUNPCMD_FDSSELECT);
 }
 
@@ -477,7 +478,7 @@ void FCEUI_FDSInsert(void) {
   if (!FCEU_IsValidUI(FCEUI_EJECT_DISK))
     return;
 
-  FCEU_DispMessage("Command: Insert/Eject disk", 0);
+  fprintf(stderr, "Command: Insert/Eject disk");
   FCEU_QSimpleCommand(FCEUNPCMD_FDSINSERT);
 }
 
@@ -491,7 +492,6 @@ void FCEUI_VSUniCoin(void) {
 
 //Resets the frame counter if movie inactive and rom is reset or power-cycle
 static void ResetFrameCounter() {
-  extern EMOVIEMODE movieMode;
   if (movieMode == MOVIEMODE_INACTIVE)
     currFrameCounter = 0;
 }
@@ -501,7 +501,7 @@ void FCEUI_ResetNES(void) {
   if (!FCEU_IsValidUI(FCEUI_RESET))
     return;
 
-  FCEU_DispMessage("Command: Soft reset", 0);
+  fprintf(stderr, "Command: Soft reset");
   FCEU_QSimpleCommand(FCEUNPCMD_RESET);
   ResetFrameCounter();
 }
@@ -511,7 +511,7 @@ void FCEUI_PowerNES(void) {
   if (!FCEU_IsValidUI(FCEUI_POWER))
     return;
 
-  FCEU_DispMessage("Command: Power switch", 0);
+  fprintf(stderr, "Command: Power switch");
   FCEU_QSimpleCommand(FCEUNPCMD_POWER);
   ResetFrameCounter();
 }

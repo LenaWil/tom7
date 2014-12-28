@@ -50,7 +50,6 @@ int FCEUI_GetLagCount(void);
 bool FCEUI_GetLagged(void);
 void FCEUI_SetLagFlag(bool value);
 
-int FCEUMOV_WriteState(EMUFILE* os);
 bool FCEUMOV_ReadState(EMUFILE* is, uint32 size);
 void FCEUMOV_PreLoad();
 bool FCEUMOV_PostLoad();
@@ -114,7 +113,7 @@ public:
 
 	void parse(MovieData* md, EMUFILE* is);
 	bool parseBinary(MovieData* md, EMUFILE* is);
-	void dump(MovieData* md, EMUFILE* os, int index);
+
 	void dumpBinary(MovieData* md, EMUFILE* os, int index);
 	void parseJoy(EMUFILE* is, uint8& joystate);
 	void dumpJoy(EMUFILE* os, uint8 joystate);
@@ -191,7 +190,7 @@ public:
 
 	void truncateAt(int frame);
 	void installValue(std::string& key, std::string& val);
-	int dump(EMUFILE* os, bool binary);
+  // int dump(EMUFILE* os, bool binary);
 
 	void clearRecordRange(int start, int len);
 	void insertEmpty(int at, int frames);
@@ -215,14 +214,11 @@ private:
 extern MovieData currMovieData;
 extern int currFrameCounter;
 extern char curMovieFilename[512];
-extern bool subtitlesOnAVI;
 extern bool freshMovie;
 extern bool movie_readonly;
 extern bool autoMovieBackup;
 extern bool fullSaveStateLoads;
 //--------------------------------------------------
-void FCEUI_MakeBackupMovie(bool dispMessage);
-void FCEUI_CreateMovieFile(std::string fn);
 void FCEUI_StopMovie(void);
 
 #endif //__MOVIE_H_

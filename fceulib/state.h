@@ -31,33 +31,32 @@ enum ENUM_SSLOADPARAMS
         SSLOADPARAM_BACKUP,
 };
 
-void FCEUSS_Save(const char *);
+// void FCEUSS_Save(const char *);
 bool FCEUSS_Load(const char *);
 
  //zlib values: 0 (none) through 9 (max) or -1 (default)
-bool FCEUSS_SaveMS(EMUFILE* outstream, int compressionLevel, std::vector<uint8> *basis);
+bool FCEUSS_SaveMS(EMUFILE* outstream, int compressionLevel);
 
-bool FCEUSS_LoadFP(EMUFILE* is, ENUM_SSLOADPARAMS params, std::vector<uint8> *basis);
+bool FCEUSS_LoadFP(EMUFILE* is, ENUM_SSLOADPARAMS params);
 
 extern int CurrentState;
-void FCEUSS_CheckStates(void);
 
-struct SFORMAT
-{
-        //a void* to the data or a void** to the data
-        void *v;
+struct SFORMAT {
+  //a void* to the data or a void** to the data
+  void *v;
 
-        //size, plus flags
-        uint32 s;
-
-        //a string description of the element
-        char *desc;
+  //size, plus flags
+  uint32 s;
+  
+  //a string description of the element
+  char *desc;
 };
 
 // Tom 7's simplified versions. These should only be used for in-memory saves!
 bool FCEUSS_SaveRAW(std::vector<uint8> *out);
 bool FCEUSS_LoadRAW(std::vector<uint8> *in);
 
+// I think these add additional locations to the set of saved memories.
 void ResetExState(void (*PreSave)(void),void (*PostSave)(void));
 void AddExState(void *v, uint32 s, int type, char *desc);
 
@@ -69,8 +68,6 @@ void AddExState(void *v, uint32 s, int type, char *desc);
 
 //all FCEUSTATE flags together so that we can mask them out and get the size
 #define FCEUSTATE_FLAGS (FCEUSTATE_RLSB|FCEUSTATE_INDIRECT)
-
-void FCEU_DrawSaveStates(uint8 *XBuf);
 
 void CreateBackupSaveState(const char *fname); //backsup a savestate before overwriting it with a new one
 void BackupLoadState();                          //Makes a backup savestate before any loadstate
