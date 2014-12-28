@@ -59,6 +59,9 @@ bool justLagged = false;
 // (i.e. it will emulate 2 frames instead of 1)
 static constexpr bool frameAdvanceLagSkip = false;
 
+// Used by some boards to do delayed memory writes, etc.
+uint64 timestampbase = 0ULL;
+
 FCEUGI::FCEUGI() { }
 
 FCEUGI::~FCEUGI() {
@@ -103,21 +106,8 @@ static void FCEU_CloseGame() {
     GameInfo = nullptr;
 
     currFrameCounter = 0;
-
-    //Reset flags for Undo/Redo/Auto Savestating 
-    //adelikat: TODO: maybe this stuff would be cleaner as a struct or class
-    lastSavestateMade[0] = 0;
-    undoSS = false;
-    redoSS = false;
-    lastLoadstateMade[0] = 0;
-    undoLS = false;
-    redoLS = false;
   }
 }
-
-
-uint64 timestampbase;
-
 
 FCEUGI *GameInfo = NULL;
 
@@ -135,74 +125,61 @@ static int RWWrap=0;
 //bit1 indicates whether emulation is in frame step mode
 int EmulationPaused=0;
 
-static int *AutosaveStatus; //is it safe to load Auto-savestate
-static int AutosaveIndex = 0; //which Auto-savestate we're on
-int AutosaveQty = 4; // Number of Autosaves to store
-int AutosaveFrequency = 256; // Number of frames between autosaves
-
-static DECLFW(BNull)
-{
-
+static DECLFW(BNull) {
 }
 
-static DECLFR(ANull)
-{
-	return(X.DB);
+static DECLFR(ANull) {
+  return X.DB;
 }
 
-readfunc GetReadHandler(int32 a)
-{
-	if (a>=0x8000 && RWWrap)
-		return AReadG[a-0x8000];
-	else
-		return ARead[a];
-}
-void SetReadHandler(int32 start, int32 end, readfunc func)
-{
-	int32 x;
-	if (!func)
-		func=ANull;
-
-	if (RWWrap)
-		for(x=end;x>=start;x--)
-		{
-			if (x>=0x8000)
-				AReadG[x-0x8000]=func;
-			else
-				ARead[x]=func;
-		}
-	else
-
-		for(x=end;x>=start;x--)
-			ARead[x]=func;
+readfunc GetReadHandler(int32 a) {
+  if (a>=0x8000 && RWWrap)
+    return AReadG[a-0x8000];
+  else
+    return ARead[a];
 }
 
-writefunc GetWriteHandler(int32 a)
-{
-	if (RWWrap && a>=0x8000)
-		return BWriteG[a-0x8000];
-	else
-		return BWrite[a];
+void SetReadHandler(int32 start, int32 end, readfunc func) {
+  if (!func)
+    func = ANull;
+
+  if (RWWrap) {
+    for(int32 x = end; x >= start; x--) {
+      if (x >= 0x8000)
+	AReadG[x - 0x8000] = func;
+      else
+	ARead[x]=func;
+    }
+  } else {
+    for(int x = end; x >= start; x--) {
+      ARead[x] = func;
+    }
+  }
 }
 
-void SetWriteHandler(int32 start, int32 end, writefunc func)
-{
-	int32 x;
+writefunc GetWriteHandler(int32 a) {
+  if (RWWrap && a >= 0x8000)
+    return BWriteG[a - 0x8000];
+  else
+    return BWrite[a];
+}
 
-	if (!func)
-		func=BNull;
+void SetWriteHandler(int32 start, int32 end, writefunc func) {
+  if (!func)
+    func = BNull;
 
-	if (RWWrap)
-		for(x=end;x>=start;x--)
-		{
-			if (x>=0x8000)
-				BWriteG[x-0x8000]=func;
-			else
-				BWrite[x]=func;
-		}
-	else
-		for(x=end;x>=start;x--)
-			BWrite[x]=func;
+  if (RWWrap) {
+    for(int32 x = end; x >= start; x--) {
+      if (x>=0x8000)
+	BWriteG[x-0x8000]=func;
+      else
+	BWrite[x]=func;
+    } 
+  } else {
+    for(int32 x = end; x >= start; x--) {
+      BWrite[x]=func;
+    }
+  }
 }
 
 uint8 *GameMemBlock;
@@ -211,58 +188,51 @@ uint8 *RAM;
 //---------
 //windows might need to allocate these differently, so we have some special code
 
-static void AllocBuffers()
-{
-	GameMemBlock = (uint8*)FCEU_gmalloc(GAME_MEM_BLOCK_SIZE);
-	RAM = (uint8*)FCEU_gmalloc(0x800);
+static void AllocBuffers() {
+  GameMemBlock = (uint8*)FCEU_gmalloc(GAME_MEM_BLOCK_SIZE);
+  RAM = (uint8*)FCEU_gmalloc(0x800);
 }
 
-static void FreeBuffers()
-{
-	free(GameMemBlock);
-	free(RAM);
+static void FreeBuffers() {
+  free(GameMemBlock);
+  free(RAM);
 }
 //------
 
 uint8 PAL=0;
 
-static DECLFW(BRAML)
-{
-	RAM[A]=V;
+static DECLFW(BRAML) {
+  RAM[A]=V;
 }
 
-static DECLFW(BRAMH)
-{
-	RAM[A&0x7FF]=V;
+static DECLFW(BRAMH) {
+  RAM[A&0x7FF]=V;
 }
 
-static DECLFR(ARAML)
-{
-	return RAM[A];
+static DECLFR(ARAML) {
+  return RAM[A];
 }
 
-static DECLFR(ARAMH)
-{
-	return RAM[A&0x7FF];
+static DECLFR(ARAMH) {
+  return RAM[A&0x7FF];
 }
 
 
-void ResetGameLoaded()
-{
-	if (GameInfo) FCEU_CloseGame();
-	EmulationPaused = 0; //mbg 5/8/08 - loading games while paused was bad news. maybe this fixes it
-	GameStateRestore=0;
-	PPU_hook=0;
-	GameHBIRQHook=0;
-	FFCEUX_PPURead = 0;
-	FFCEUX_PPUWrite = 0;
-	if (GameExpSound.Kill)
-		GameExpSound.Kill();
-	memset(&GameExpSound,0,sizeof(GameExpSound));
-	MapIRQHook=0;
-	MMC5Hack=0;
-	PAL&=1;
-	pale=0;
+static void ResetGameLoaded() {
+  if (GameInfo) FCEU_CloseGame();
+  EmulationPaused = 0; //mbg 5/8/08 - loading games while paused was bad news. maybe this fixes it
+  GameStateRestore=0;
+  PPU_hook=0;
+  GameHBIRQHook=0;
+  FFCEUX_PPURead = 0;
+  FFCEUX_PPUWrite = 0;
+  if (GameExpSound.Kill)
+    GameExpSound.Kill();
+  memset(&GameExpSound,0,sizeof(GameExpSound));
+  MapIRQHook=0;
+  MMC5Hack=0;
+  PAL&=1;
+  pale=0;
 }
 
 int UNIFLoad(const char *name, FCEUFILE *fp);
@@ -298,11 +268,6 @@ FCEUGI *FCEUI_LoadGameVirtual(const char *name, int OverwriteVidMode) {
   // reset parameters so theyre cleared just in case a format's loader
   // doesnt know to do the clearing
   MasterRomInfoParams = TMasterRomInfoParams();
-
-  if (!AutosaveStatus)
-    AutosaveStatus = (int*)malloc(sizeof(int)*AutosaveQty);
-  for (AutosaveIndex=0; AutosaveIndex<AutosaveQty; ++AutosaveIndex)
-    AutosaveStatus[AutosaveIndex] = 0;
 
   FCEU_CloseGame();
   GameInfo = new FCEUGI();
@@ -341,7 +306,7 @@ FCEUGI *FCEUI_LoadGameVirtual(const char *name, int OverwriteVidMode) {
 
   return 0;
 
- endlseq:
+endlseq:
 
   FCEU_fclose(fp);
 
@@ -356,46 +321,43 @@ FCEUGI *FCEUI_LoadGameVirtual(const char *name, int OverwriteVidMode) {
   return GameInfo;
 }
 
-FCEUGI *FCEUI_LoadGame(const char *name, int OverwriteVidMode)
-{
-	return FCEUI_LoadGameVirtual(name,OverwriteVidMode);
+FCEUGI *FCEUI_LoadGame(const char *name, int OverwriteVidMode) {
+  return FCEUI_LoadGameVirtual(name,OverwriteVidMode);
 }
 
 
 //Return: Flag that indicates whether the function was succesful or not.
-bool FCEUI_Initialize()
-{
-	srand(time(0));
+bool FCEUI_Initialize() {
+  srand(time(0));
 
-	if (!FCEU_InitVirtualVideo())
-	{
-		return false;
-	}
+  if (!FCEU_InitVirtualVideo()) {
+      return false;
+    }
 
-	AllocBuffers();
+  AllocBuffers();
 
-	// Initialize some parts of the settings structure
-	//mbg 5/7/08 - I changed the ntsc settings to match pal.
-	//this is more for precision emulation, instead of entertainment, which is what fceux is all about nowadays
-	memset(&FSettings,0,sizeof(FSettings));
-	//FSettings.UsrFirstSLine[0]=8;
-	FSettings.UsrFirstSLine[0]=0;
-	FSettings.UsrFirstSLine[1]=0;
-	//FSettings.UsrLastSLine[0]=231;
-	FSettings.UsrLastSLine[0]=239;
-	FSettings.UsrLastSLine[1]=239;
-	FSettings.SoundVolume=150;		//0-150 scale
-	FSettings.TriangleVolume=256;	//0-256 scale (256 is max volume)
-	FSettings.Square1Volume=256;	//0-256 scale (256 is max volume)
-	FSettings.Square2Volume=256;	//0-256 scale (256 is max volume)
-	FSettings.NoiseVolume=256;		//0-256 scale (256 is max volume)
-	FSettings.PCMVolume=256;		//0-256 scale (256 is max volume)
+  // Initialize some parts of the settings structure
+  //mbg 5/7/08 - I changed the ntsc settings to match pal.
+  //this is more for precision emulation, instead of entertainment, which is what fceux is all about nowadays
+  memset(&FSettings,0,sizeof(FSettings));
+  //FSettings.UsrFirstSLine[0]=8;
+  FSettings.UsrFirstSLine[0]=0;
+  FSettings.UsrFirstSLine[1]=0;
+  //FSettings.UsrLastSLine[0]=231;
+  FSettings.UsrLastSLine[0]=239;
+  FSettings.UsrLastSLine[1]=239;
+  FSettings.SoundVolume=150;		//0-150 scale
+  FSettings.TriangleVolume=256;	//0-256 scale (256 is max volume)
+  FSettings.Square1Volume=256;	//0-256 scale (256 is max volume)
+  FSettings.Square2Volume=256;	//0-256 scale (256 is max volume)
+  FSettings.NoiseVolume=256;		//0-256 scale (256 is max volume)
+  FSettings.PCMVolume=256;		//0-256 scale (256 is max volume)
 
-	FCEUPPU_Init();
+  FCEUPPU_Init();
 
-	X6502_Init();
+  X6502_Init();
 
-	return true;
+  return true;
 }
 
 void FCEUI_Kill() {
@@ -443,7 +405,6 @@ void FCEUI_Emulate(uint8 **pXBuf, int32 **SoundBuf, int32 *SoundBufSize, int ski
 
 
   // This is where cheat list stuff happened.
-
   timestampbase += timestamp;
   timestamp = 0;
 
@@ -493,7 +454,7 @@ void ResetNES() {
   extern uint8 *XBackBuf;
   memset(XBackBuf,0,256*256);
 
-  fprintf(stderr, "Reset", 0);
+  fprintf(stderr, "Reset\n");
 }
 
 void FCEU_MemoryRand(uint8 *ptr, uint32 size) {
@@ -506,13 +467,9 @@ void FCEU_MemoryRand(uint8 *ptr, uint32 size) {
   }
 }
 
-//int suppressAddPowerCommand=0; // hack... yeah, I know...
 void PowerNES() {
   //void MapperInit();
   //MapperInit();
-
-  //if (!suppressAddPowerCommand)
-  // FCEUMOV_AddCommand(FCEUNPCMD_POWER);
 
   if (!GameInfo) return;
 
@@ -545,7 +502,7 @@ void PowerNES() {
   if (disableBatteryLoading)
     GameInterface(GI_RESETSAVE);
 
-  timestampbase = 0;
+  timestampbase = 0ULL;
   X6502_Power();
 
   LagCounterReset();
@@ -553,7 +510,7 @@ void PowerNES() {
   extern uint8 *XBackBuf;
   memset(XBackBuf,0,256*256);
 
-  fprintf(stderr, "Power on", 0);
+  fprintf(stderr, "Power on\n");
 }
 
 void FCEU_ResetVidSys() {
@@ -573,30 +530,28 @@ void FCEU_ResetVidSys() {
 
 FCEUS FSettings;
 
-void FCEU_printf(char *format, ...)
-{
-	char temp[2048];
+void FCEU_printf(char *format, ...) {
+  char temp[2048];
 
-	va_list ap;
+  va_list ap;
 
-	va_start(ap,format);
-	vsnprintf(temp,sizeof(temp),format,ap);
-	FCEUD_Message(temp);
+  va_start(ap,format);
+  vsnprintf(temp,sizeof(temp),format,ap);
+  FCEUD_Message(temp);
 
-	va_end(ap);
+  va_end(ap);
 }
 
-void FCEU_PrintError(char *format, ...)
-{
-	char temp[2048];
+void FCEU_PrintError(char *format, ...) {
+  char temp[2048];
 
-	va_list ap;
+  va_list ap;
 
-	va_start(ap,format);
-	vsnprintf(temp,sizeof(temp),format,ap);
-	FCEUD_PrintError(temp);
+  va_start(ap,format);
+  vsnprintf(temp,sizeof(temp),format,ap);
+  FCEUD_PrintError(temp);
 
-	va_end(ap);
+  va_end(ap);
 }
 
 void FCEUI_SetRenderedLines(int ntscf, int ntscl, int palf, int pall) {
@@ -622,83 +577,71 @@ void FCEUI_SetVidSystem(int a) {
   }
 }
 
-int FCEUI_GetCurrentVidSystem(int *slstart, int *slend)
-{
-	if (slstart)
-		*slstart=FSettings.FirstSLine;
-	if (slend)
-		*slend=FSettings.LastSLine;
-	return(PAL);
+int FCEUI_GetCurrentVidSystem(int *slstart, int *slend) {
+  if (slstart)
+    *slstart=FSettings.FirstSLine;
+  if (slend)
+    *slend=FSettings.LastSLine;
+  return(PAL);
 }
 
-//this variable isn't used at all, snap is always name-based
-//void FCEUI_SetSnapName(bool a)
-//{
-//	FSettings.SnapName = a;
-//}
-
-int FCEUI_EmulationPaused()
-{
-	return (EmulationPaused&1);
+int FCEUI_EmulationPaused() {
+  return EmulationPaused & 1;
 }
 
-int FCEUI_EmulationFrameStepped()
-{
-	return (EmulationPaused&2);
+int FCEUI_EmulationFrameStepped() {
+  return EmulationPaused & 2;
 }
 
-void FCEUI_ClearEmulationFrameStepped()
-{
-	EmulationPaused &=~2;
+void FCEUI_ClearEmulationFrameStepped() {
+  EmulationPaused &=~2;
 }
 
 void FCEUI_ToggleEmulationPause() {
   EmulationPaused = (EmulationPaused&1)^1;
 }
 
-bool FCEU_IsValidUI(EFCEUI ui)
-{
-	switch(ui)
-	{
-	case FCEUI_OPENGAME:
-	case FCEUI_CLOSEGAME:
-		if (FCEUMOV_Mode(MOVIEMODE_TASEDITOR)) return false;
-		break;
-	case FCEUI_RECORDMOVIE:
-	case FCEUI_PLAYMOVIE:
-	case FCEUI_QUICKSAVE:
-	case FCEUI_QUICKLOAD:
-	case FCEUI_SAVESTATE:
-	case FCEUI_LOADSTATE:
-	case FCEUI_NEXTSAVESTATE:
-	case FCEUI_PREVIOUSSAVESTATE:
-	case FCEUI_VIEWSLOTS:
-		if (!GameInfo) return false;
-		if (FCEUMOV_Mode(MOVIEMODE_TASEDITOR)) return false;
-		break;
+bool FCEU_IsValidUI(EFCEUI ui) {
+  switch(ui) {
+    case FCEUI_OPENGAME:
+    case FCEUI_CLOSEGAME:
+      if (FCEUMOV_Mode(MOVIEMODE_TASEDITOR)) return false;
+      break;
+    case FCEUI_RECORDMOVIE:
+    case FCEUI_PLAYMOVIE:
+    case FCEUI_QUICKSAVE:
+    case FCEUI_QUICKLOAD:
+    case FCEUI_SAVESTATE:
+    case FCEUI_LOADSTATE:
+    case FCEUI_NEXTSAVESTATE:
+    case FCEUI_PREVIOUSSAVESTATE:
+    case FCEUI_VIEWSLOTS:
+      if (!GameInfo) return false;
+      if (FCEUMOV_Mode(MOVIEMODE_TASEDITOR)) return false;
+      break;
 
-	case FCEUI_STOPMOVIE:
-		return (FCEUMOV_Mode(MOVIEMODE_PLAY|MOVIEMODE_RECORD|MOVIEMODE_FINISHED));
+    case FCEUI_STOPMOVIE:
+      return (FCEUMOV_Mode(MOVIEMODE_PLAY|MOVIEMODE_RECORD|MOVIEMODE_FINISHED));
 
-	case FCEUI_PLAYFROMBEGINNING:
-		return (FCEUMOV_Mode(MOVIEMODE_PLAY|MOVIEMODE_RECORD|MOVIEMODE_TASEDITOR|MOVIEMODE_FINISHED));
+    case FCEUI_PLAYFROMBEGINNING:
+      return (FCEUMOV_Mode(MOVIEMODE_PLAY|MOVIEMODE_RECORD|MOVIEMODE_TASEDITOR|MOVIEMODE_FINISHED));
 
-	case FCEUI_STOPAVI:
-		return FCEUI_AviIsRecording();
+    case FCEUI_STOPAVI:
+      return FCEUI_AviIsRecording();
 
-	case FCEUI_TASEDITOR:
-		if (!GameInfo) return false;
-		break;
+    case FCEUI_TASEDITOR:
+      if (!GameInfo) return false;
+      break;
 
-	case FCEUI_RESET:
-	case FCEUI_POWER:
-	case FCEUI_EJECT_DISK:
-	case FCEUI_SWITCH_DISK:
-		if (!GameInfo) return false;
-		if (FCEUMOV_Mode(MOVIEMODE_RECORD)) return true;
-		if (!FCEUMOV_Mode(MOVIEMODE_INACTIVE)) return false;
-		break;
+    case FCEUI_RESET:
+    case FCEUI_POWER:
+    case FCEUI_EJECT_DISK:
+    case FCEUI_SWITCH_DISK:
+      if (!GameInfo) return false;
+      if (FCEUMOV_Mode(MOVIEMODE_RECORD)) return true;
+      if (!FCEUMOV_Mode(MOVIEMODE_INACTIVE)) return false;
+      break;
 
-	}
-	return true;
+    }
+  return true;
 }

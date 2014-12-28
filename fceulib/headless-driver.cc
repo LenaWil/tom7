@@ -119,10 +119,6 @@ ArchiveScanRecord FCEUD_ScanArchive(std::string fname) {
 // tom7 dummy
 
 // for movie playback?
-void FCEUD_SetInput (bool fourscore, bool microphone,
-		     ESI port0, ESI port1, ESIFC fcexp) {
-  abort();
-}
 
 int FCEUDnetplay=0;
 

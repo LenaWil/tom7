@@ -126,7 +126,7 @@ void FCEUI_SetPCMVolume(uint32 volume);
 
 // at the minimum, you should call FCEUI_SetInput, FCEUI_SetInputFC, and FCEUI_SetInputFourscore
 // you may also need to maintain your own internal state
-void FCEUD_SetInput(bool fourscore, bool microphone, ESI port0, ESI port1, ESIFC fcexp);
+// void FCEUD_SetInput(bool fourscore, bool microphone, ESI port0, ESI port1, ESIFC fcexp);
 
 
 void FCEUD_MovieReplayFrom(void);
