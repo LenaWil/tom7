@@ -53,17 +53,6 @@ bool StringToBytes(const std::string& str, void* data, int len);
 std::vector<std::string> tokenize_str(const std::string & str,const std::string & delims);
 void splitpath(const char* path, char* drv, char* dir, char* name, char* ext);
 
-uint16 FastStrToU16(char* s, bool& valid);
-char *U16ToDecStr(uint16 a);
-char *U32ToDecStr(uint32 a);
-char *U32ToDecStr(char* buf, uint32 a);
-char *U32ToDecStr(char* buf, uint32 a, int digits);
-char *U8ToDecStr(uint8 a);
-char *U8ToHexStr(uint8 a);
-char *U16ToHexStr(uint16 a);
-
-std::string stditoa(int n);
-
 std::string readNullTerminatedAscii(EMUFILE* is);
 
 //extracts a decimal uint from an istream
@@ -120,13 +109,5 @@ template<typename T, int DIGITS, bool PAD> void putdec(EMUFILE* os, T dec)
 
 std::string mass_replace(const std::string &source, const std::string &victim, const std::string &replacement);
 
-// std::wstring mbstowcs(std::string str);
-// std::string wcstombs(std::wstring str);
-
-
-
 //TODO - dont we already have another  function that can do this
 std::string getExtension(const char* input);
-
-std::string StripExtension(std::string filename);
-std::string StripPath(std::string filename);
