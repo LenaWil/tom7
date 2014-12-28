@@ -41,6 +41,8 @@ extern bool emulator_must_run_taseditor;
 
 using namespace std;
 
+static constexpr bool backupSavestates = true;
+
 #define MOVIE_VERSION 3
 
 enum EMOVIE_FLAG {
@@ -348,50 +350,6 @@ void MovieRecord::dumpBinary(MovieData* md, EMUFILE* os, int index)
 		}
 	}
 }
-
-#if 0
-void MovieRecord::dump(MovieData* md, EMUFILE* os, int index)
-{
-	//dump the misc commands
-	//*os << '|' << setw(1) << (int)commands;
-	os->fputc('|');
-	putdec<uint8,1,true>(os,commands);
-
-	//a special case: if fourscore is enabled, dump four gamepads
-	if(md->fourscore)
-	{
-		os->fputc('|');
-		dumpJoy(os,joysticks[0]); os->fputc('|');
-		dumpJoy(os,joysticks[1]); os->fputc('|');
-		dumpJoy(os,joysticks[2]); os->fputc('|');
-		dumpJoy(os,joysticks[3]); os->fputc('|');
-	}
-	else
-	{
-		for(int port=0;port<2;port++)
-		{
-			os->fputc('|');
-			if(md->ports[port] == SI_GAMEPAD)
-				dumpJoy(os, joysticks[port]);
-			else if(md->ports[port] == SI_ZAPPER)
-			{
-				putdec<uint8,3,true>(os,zappers[port].x); os->fputc(' ');
-				putdec<uint8,3,true>(os,zappers[port].y); os->fputc(' ');
-				putdec<uint8,1,true>(os,zappers[port].b); os->fputc(' ');
-				putdec<uint8,1,true>(os,zappers[port].bogo); os->fputc(' ');
-				putdec<uint64,20,false>(os,zappers[port].zaphit);
-			}
-		}
-		os->fputc('|');
-	}
-
-	//(no fcexp data is logged right now)
-	os->fputc('|');
-
-	//each frame is on a new line
-	os->fputc('\n');
-}
-#endif
 
 MovieData::MovieData()
 	: version(MOVIE_VERSION)
@@ -704,8 +662,7 @@ void poweron(bool shouldDisableBatteryLoading)
 	disableBatteryLoading = 0;
 }
 
-void FCEUMOV_CreateCleanMovie()
-{
+void FCEUMOV_CreateCleanMovie() {
 	currMovieData = MovieData();
 	currMovieData.palFlag = FCEUI_GetCurrentVidSystem(0,0)!=0;
 	currMovieData.romFilename = FileBase;
@@ -719,25 +676,12 @@ void FCEUMOV_CreateCleanMovie()
 	currMovieData.fds = isFDS;
 	currMovieData.PPUflag = (newppu != 0);
 }
-void FCEUMOV_ClearCommands()
-{
+void FCEUMOV_ClearCommands() {
 	_currCommand = 0;
 }
 
-bool FCEUMOV_FromPoweron()
-{
+bool FCEUMOV_FromPoweron() {
 	return movieFromPoweron;
-}
-bool MovieData::loadSavestateFrom(std::vector<uint8>* buf)
-{
-  EMUFILE_MEMORY ms(buf);
-  return FCEUSS_LoadFP(&ms,SSLOADPARAM_BACKUP);
-}
-
-void MovieData::dumpSavestateTo(std::vector<uint8>* buf, int compressionLevel) {
-  EMUFILE_MEMORY ms(buf);
-  FCEUSS_SaveMS(&ms, compressionLevel);
-  ms.trim();
 }
 
 //the main interaction point between the emulator and the movie system.

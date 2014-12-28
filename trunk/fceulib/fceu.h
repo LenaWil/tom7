@@ -1,9 +1,8 @@
 #ifndef _FCEUH
 #define _FCEUH
 
-extern int fceuindbg;
+static constexpr bool fceuindbg = false;
 extern int newppu;
-void ResetGameLoaded(void);
 
 #define DECLFR(x) uint8 x (uint32 A)
 #define DECLFW(x) void x (uint32 A, uint8 V)
@@ -23,9 +22,6 @@ bool FCEUI_Initialize();
 void ResetMapping(void);
 void ResetNES(void);
 void PowerNES(void);
-
-void AutoFire(void);
-void FCEUI_Autosave(void);
 
 char *FCEUI_GetAboutString();
 
@@ -89,8 +85,6 @@ struct FCEUS {
   int UsrFirstSLine[2];
   int UsrLastSLine[2];
 
-  //this variable isn't used at all, snap is always name-based
-  //bool SnapName;
   uint32 SndRate;
   int soundq;
   int lowpass;
@@ -112,8 +106,6 @@ void FCEU_PutImageDummy(void);
 extern uint8 Exit;
 extern uint8 pale;
 extern uint8 vsdip;
-
-//#define FCEUDEF_DEBUGGER //mbg merge 7/17/06 - cleaning out conditional compiles
 
 #define JOY_A   1
 #define JOY_B   2

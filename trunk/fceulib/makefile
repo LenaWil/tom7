@@ -20,15 +20,20 @@ WINCFLAGS= -D__MINGW32__
 WINLINK=-Wl,--subsystem,console -static
 endif
 
+# Suppress compilation commands, but show some indication of progress.
+%.o : %.cc
+	@$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $<
+	@echo -n "."
+
 # If you don't have SDL, you can leave these out, and maybe it still works.
 LINKSDL= -mno-cygwin -lm -luser32 -lgdi32 -lwinmm -ldxguid
 
-# XXX probably don't need this
+# Emulator uses city, yeah? See if we can make this work with no deps.
 INCLUDES=-I "../cc-lib" -I "../cc-lib/city"
 
 CPPFLAGS=-DPSS_STYLE=1 -DDUMMY_UI -Wno-write-strings -m64 $(OPT) $(WINCFLAGS) -DHAVE_ALLOCA -DNOWINSTUFF $(INCLUDES) $(PROFILE) $(FLTO) --std=c++11
 
-# Probably shouldn't need...
+# Should just be used for testing.
 CCLIBOBJECTS=../cc-lib/util.o ../cc-lib/arcfour.o ../cc-lib/base/logging.o ../cc-lib/base/stringprintf.o ../cc-lib/city/city.o ../cc-lib/textsvg.o ../cc-lib/rle.o
 
 MAPPEROBJECTS=mappers/24and26.o mappers/51.o mappers/69.o mappers/77.o mappers/40.o mappers/6.o mappers/71.o mappers/79.o mappers/41.o mappers/61.o mappers/72.o mappers/80.o mappers/42.o mappers/62.o mappers/73.o mappers/85.o mappers/46.o mappers/65.o mappers/75.o mappers/emu2413.o mappers/50.o mappers/67.o mappers/76.o mappers/mmc2and4.o
@@ -71,3 +76,4 @@ test : emulator_test.exe
 
 clean :
 	rm -f *_test.exe *.o $(EMUOBJECTS) $(CCLIBOBJECTS) gmon.out
+

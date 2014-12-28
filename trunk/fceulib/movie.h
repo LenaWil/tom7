@@ -124,10 +124,9 @@ private:
 	int mask(int bit) { return 1<<bit; }
 };
 
-class MovieData
-{
-public:
-	MovieData();
+class MovieData {
+ public:
+  MovieData();
 	// Default Values: MovieData::MovieData()
 
 	int version;
@@ -190,25 +189,19 @@ public:
 
 	void truncateAt(int frame);
 	void installValue(std::string& key, std::string& val);
-  // int dump(EMUFILE* os, bool binary);
 
 	void clearRecordRange(int start, int len);
 	void insertEmpty(int at, int frames);
 	void cloneRegion(int at, int frames);
 
-	static bool loadSavestateFrom(std::vector<uint8>* buf);
-	static void dumpSavestateTo(std::vector<uint8>* buf, int compressionLevel);
-
 private:
-	void installInt(std::string& val, int& var)
-	{
-		var = atoi(val.c_str());
-	}
+  void installInt(std::string& val, int& var) {
+    var = atoi(val.c_str());
+  }
 
-	void installBool(std::string& val, bool& var)
-	{
-		var = atoi(val.c_str())!=0;
-	}
+  void installBool(std::string& val, bool& var) {
+    var = atoi(val.c_str())!=0;
+  }
 };
 
 extern MovieData currMovieData;
