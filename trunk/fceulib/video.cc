@@ -41,20 +41,10 @@
 #include "vsuni.h"
 #include "driver.h"
 
-#ifdef WIN32
-#ifndef NOWINSTUFF
-#include "drivers/win/common.h" //For DirectX constants
-#include "drivers/win/input.h"
-#endif
-#endif
-
 uint8 *XBuf=NULL;
 uint8 *XBackBuf=NULL;
 int ClipSidesOffset=0;	//Used to move displayed messages when Clips left and right sides is checked
 static uint8 *xbsave=NULL;
-
-GUIMESSAGE guiMessage;
-GUIMESSAGE subtitleMessage;
 
 //for input display
 extern int input_display;
@@ -114,32 +104,3 @@ int FCEU_InitVirtualVideo(void)
 
 		return 1;
 }
-
-void FCEU_DispMessage(char *format, int disppos=0, ...)
-{
-	va_list ap;
-
-	va_start(ap,disppos);
-	vsnprintf(guiMessage.errmsg,sizeof(guiMessage.errmsg),format,ap);
-	va_end(ap);
-	// also log messages
-	char temp[2048];
-	va_start(ap,disppos);
-	vsnprintf(temp,sizeof(temp),format,ap);
-	va_end(ap);
-	strcat(temp, "\n");
-	FCEU_printf(temp);
-
-	guiMessage.howlong = 180;
-	guiMessage.isMovieMessage = false;
-
-	guiMessage.linesFromBottom = disppos;
-}
-
-void FCEU_ResetMessages()
-{
-	guiMessage.howlong = 0;
-	guiMessage.isMovieMessage = false;
-	guiMessage.linesFromBottom = 0;
-}
-
