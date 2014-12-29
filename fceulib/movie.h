@@ -57,7 +57,6 @@ bool FCEUMOV_PostLoad();
 bool FCEUMOV_FromPoweron();
 
 void FCEUMOV_CreateCleanMovie();
-void FCEUMOV_ClearCommands();
 
 class MovieData;
 class MovieRecord

@@ -98,7 +98,4 @@ void setntamem(uint8 *p, int ram, uint32 b);
 #define MI_0 2
 #define MI_1 3
 
-// TODO remove
-static constexpr int geniestage = 0;
-
 #endif

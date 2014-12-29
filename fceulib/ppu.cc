@@ -63,12 +63,12 @@
 
 #define Pal     (PALRAM)
 
-static void FetchSpriteData(void);
+static void FetchSpriteData();
 static void RefreshLine(int lastpixel);
-static void RefreshSprites(void);
+static void RefreshSprites();
 static void CopySprites(uint8 *target);
 
-static void Fixit1(void);
+static void Fixit1();
 
 static void FFCEUX_PPUWrite_Default(uint32 A, uint8 V);
 
@@ -298,7 +298,7 @@ struct PPUREGS {
 } ppur;
 
 
-static void makeppulut(void)
+static void makeppulut()
 {
 	int x;
 	int y;
@@ -363,7 +363,7 @@ uint8 PPUCHRRAM=0;
 static uint8 deemp=0;
 static int deempcnt[8];
 
-void (*GameHBIRQHook)(void), (*GameHBIRQHook2)(void);
+void (*GameHBIRQHook)(), (*GameHBIRQHook2)();
 void (*PPU_hook)(uint32 A);
 
 uint8 vtoggle=0;
@@ -1034,7 +1034,7 @@ static void ResetRL(uint8 *target)
 
 static uint8 sprlinebuf[256+8];
 
-void FCEUPPU_LineUpdate(void)
+void FCEUPPU_LineUpdate()
 {
 	if (newppu)
 		return;
@@ -1089,7 +1089,7 @@ static void CheckSpriteHit(int p)
 	}
 }
 
-static void EndRL(void) {
+static void EndRL() {
 	RefreshLine(272);
 	if (tofix)
 		Fixit1();
@@ -1177,7 +1177,7 @@ static void RefreshLine(int lastpixel) {
 	//It's probably not totally correct for carts in "SL" mode.
 
 #define PPUT_MMC5
-	if (MMC5Hack && geniestage!=1)
+	if (MMC5Hack)
 	{
 		if (MMC5HackCHRMode==0 && (MMC5HackSPMode&0x80))
 		{
@@ -1305,7 +1305,7 @@ static void RefreshLine(int lastpixel) {
 	firsttile=lasttile;
 }
 
-static INLINE void Fixit2(void)
+static INLINE void Fixit2()
 {
 	if (ScreenON || SpriteON)
 	{
@@ -1318,7 +1318,7 @@ static INLINE void Fixit2(void)
 	}
 }
 
-static void Fixit1(void)
+static void Fixit1()
 {
 	if (ScreenON || SpriteON)
 	{
@@ -1341,7 +1341,7 @@ static void Fixit1(void)
 }
 
 void MMC5_hb(int);     //Ugh ugh ugh.
-static void DoLine(void) {
+static void DoLine() {
   uint8 *target = XBuf + (scanline << 8);
 
   if (MMC5Hack && (ScreenON || SpriteON)) MMC5_hb(scanline);
@@ -1451,7 +1451,7 @@ void FCEUI_DisableSpriteLimitation(int a) {
 // http://wiki.nesdev.com/w/index.php/PPU_OAM
 // where the PPU is looking for sprites for the NEXT scanline.
 static uint8 numsprites,SpriteBlurp;
-static void FetchSpriteData(void)
+static void FetchSpriteData()
 {
 	int n;
 	int vofs;
@@ -1490,23 +1490,18 @@ static void FetchSpriteData(void)
 					else
 						vadr = (spr->no<<4)+vofs;
 
-					if (spr->atr&V_FLIP)
-					{
+					if (spr->atr & V_FLIP) {
 						vadr+=7;
 						vadr-=t;
 						vadr+=(P0&0x20)>>1;
 						vadr-=t&8;
-					}
-					else
-					{
+					} else {
 						vadr+=t;
 						vadr+=t&8;
 					}
 
-					/* Fix this geniestage hack */
-					if (MMC5Hack && geniestage!=1) C = MMC5SPRVRAMADR(vadr);
+					if (MMC5Hack) C = MMC5SPRVRAMADR(vadr);
 					else C = VRAMADR(vadr);
-
 
 					dst.ca[0]=C[0];
 					dst.ca[1]=C[8];
@@ -1607,160 +1602,152 @@ static void FetchSpriteData(void)
 		SpriteBlurp=sb;
 }
 
-static void RefreshSprites(void)
-{
-	int n;
-	SPRB *spr;
+static void RefreshSprites() {
+  SPRB *spr;
 
-	any_sprites_on_line=0;
-	if (!numsprites) return;
+  any_sprites_on_line=0;
+  if (!numsprites) return;
 
-	// Initialize the line buffer to 0x80, meaning "no pixel here."
-	FCEU_dwmemset(sprlinebuf,0x80808080,256);
-	numsprites--;
-	spr = (SPRB*)SPRBUF+numsprites;
+  // Initialize the line buffer to 0x80, meaning "no pixel here."
+  FCEU_dwmemset(sprlinebuf,0x80808080,256);
+  numsprites--;
+  spr = (SPRB*)SPRBUF+numsprites;
 
-	DEBUGF(stderr, "RefreshSprites @%d with numsprites = %d\n", 
-		scanline, numsprites);
-	for (n=numsprites;n>=0;n--,spr--)
-	{
-		int x=spr->x;
-		uint8 *C;
-		uint8 *VB;
+  DEBUGF(stderr, "RefreshSprites @%d with numsprites = %d\n", 
+	 scanline, numsprites);
+  for (int n = numsprites; n>=0; n--,spr--) {
+    int x=spr->x;
+    uint8 *C;
+    uint8 *VB;
 
-		// I think the lookup table basically gets the 4 bytes
-		// of sprite data for this scanline. Since ppulut2 is
-		// ppulut1 shifted up a bit, I think we're getting
-		// 2-bit color data from the two planes ca[0] and
-		// ca[1], and that's why this is an OR. I don't
-		// understand why ca[0] and ca[1] are (can be)
-		// different though. 32 bits is 16 pixels, as expected.
+    // I think the lookup table basically gets the 4 bytes
+    // of sprite data for this scanline. Since ppulut2 is
+    // ppulut1 shifted up a bit, I think we're getting
+    // 2-bit color data from the two planes ca[0] and
+    // ca[1], and that's why this is an OR. I don't
+    // understand why ca[0] and ca[1] are (can be)
+    // different though. 32 bits is 16 pixels, as expected.
 		
-		uint32 pixdata = ppulut1[spr->ca[0]] | ppulut2[spr->ca[1]];
-		// treat all sprites as checkerboard!
-		// uint32 pixdata = (scanline & 1) ? 0xCCCC : 0x3333;
-		// uint32 pixdata = 0xFFFF;
+    uint32 pixdata = ppulut1[spr->ca[0]] | ppulut2[spr->ca[1]];
+    // treat all sprites as checkerboard!
+    // uint32 pixdata = (scanline & 1) ? 0xCCCC : 0x3333;
+    // uint32 pixdata = 0xFFFF;
 
-		// So then J is like the 1-bit mask of non-zero pixels.
-		uint8 J = spr->ca[0] | spr->ca[1];
-		// uint8 J = (scanline & 1) ? 0xAA : 0x55;
-		// uint8 J = 0xFF;
+    // So then J is like the 1-bit mask of non-zero pixels.
+    uint8 J = spr->ca[0] | spr->ca[1];
+    // uint8 J = (scanline & 1) ? 0xAA : 0x55;
+    // uint8 J = 0xFF;
 
-		uint8 atr = spr->atr;
+    uint8 atr = spr->atr;
 
-		DEBUGF(stderr, "   sp %2d: x=%d ca[%d,%d] attr %s\n",
-			n, spr->x, spr->ca[0], spr->ca[1], attrbits(spr->atr));
+    DEBUGF(stderr, "   sp %2d: x=%d ca[%d,%d] attr %s\n",
+	   n, spr->x, spr->ca[0], spr->ca[1], attrbits(spr->atr));
 
-		if (J)
-		{
-			if (n==0 && SpriteBlurp && !(PPU_status&0x40))
-			{
-				sphitx=x;
-				sphitdata=J;
-				// reverses the mask
-				if (atr&H_FLIP)
-					sphitdata=    ((J<<7)&0x80) |
-					((J<<5)&0x40) |
-					((J<<3)&0x20) |
-					((J<<1)&0x10) |
-					((J>>1)&0x08) |
-					((J>>3)&0x04) |
-					((J>>5)&0x02) |
-					((J>>7)&0x01);
-			}
+    if (J) {
+      if (n==0 && SpriteBlurp && !(PPU_status&0x40)) {
+	sphitx=x;
+	sphitdata=J;
+	// reverses the mask
+	if (atr & H_FLIP)
+	  sphitdata = ((J<<7)&0x80) |
+	    ((J<<5)&0x40) |
+	    ((J<<3)&0x20) |
+	    ((J<<1)&0x10) |
+	    ((J>>1)&0x08) |
+	    ((J>>3)&0x04) |
+	    ((J>>5)&0x02) |
+	    ((J>>7)&0x01);
+      }
 
-			// C is destination for the 8 pixels we'll write
-			// on this scanline.
-			// C is an array of bytes, each corresponding to
-			// a pixel. The bit 0x40 is set if the pixel should
-			// show behind the background. The rest of the pixels
-			// come from VB (probably just the lowest two?)
-			C = sprlinebuf+x;
-			// pixdata is abstract color values 0,1,2,3.
-			// VB gives us an index into the palette data
-			// based on the palette selector in this sprite's
-			// attributes.
-			VB = (PALRAM+0x10)+((atr&3)<<2);
+      // C is destination for the 8 pixels we'll write
+      // on this scanline.
+      // C is an array of bytes, each corresponding to
+      // a pixel. The bit 0x40 is set if the pixel should
+      // show behind the background. The rest of the pixels
+      // come from VB (probably just the lowest two?)
+      C = sprlinebuf+x;
+      // pixdata is abstract color values 0,1,2,3.
+      // VB gives us an index into the palette data
+      // based on the palette selector in this sprite's
+      // attributes.
+      VB = (PALRAM+0x10)+((atr&3)<<2);
 
-			// In back or in front of background?
-			if (atr&SP_BACK)
-			{
-			  // back...
+      // In back or in front of background?
+      if (atr & SP_BACK) {
+	// back...
 
-			  if (atr&H_FLIP)
-				{
-					if (J&0x80) C[7]=VB[pixdata&3]|0x40;
-					pixdata>>=4;
-					if (J&0x40) C[6]=VB[pixdata&3]|0x40;
-					pixdata>>=4;
-					if (J&0x20) C[5]=VB[pixdata&3]|0x40;
-					pixdata>>=4;
-					if (J&0x10) C[4]=VB[pixdata&3]|0x40;
-					pixdata>>=4;
-					if (J&0x08) C[3]=VB[pixdata&3]|0x40;
-					pixdata>>=4;
-					if (J&0x04) C[2]=VB[pixdata&3]|0x40;
-					pixdata>>=4;
-					if (J&0x02) C[1]=VB[pixdata&3]|0x40;
-					pixdata>>=4;
-					if (J&0x01) C[0]=VB[pixdata]|0x40;
-				} else  {
-					if (J&0x80) C[0]=VB[pixdata&3]|0x40;
-					pixdata>>=4;
-					if (J&0x40) C[1]=VB[pixdata&3]|0x40;
-					pixdata>>=4;
-					if (J&0x20) C[2]=VB[pixdata&3]|0x40;
-					pixdata>>=4;
-					if (J&0x10) C[3]=VB[pixdata&3]|0x40;
-					pixdata>>=4;
-					if (J&0x08) C[4]=VB[pixdata&3]|0x40;
-					pixdata>>=4;
-					if (J&0x04) C[5]=VB[pixdata&3]|0x40;
-					pixdata>>=4;
-					if (J&0x02) C[6]=VB[pixdata&3]|0x40;
-					pixdata>>=4;
-					if (J&0x01) C[7]=VB[pixdata]|0x40;
-				}
-			} else {
-			  if (atr&H_FLIP)
-				{
-					if (J&0x80) C[7]=VB[pixdata&3];
-					pixdata>>=4;
-					if (J&0x40) C[6]=VB[pixdata&3];
-					pixdata>>=4;
-					if (J&0x20) C[5]=VB[pixdata&3];
-					pixdata>>=4;
-					if (J&0x10) C[4]=VB[pixdata&3];
-					pixdata>>=4;
-					if (J&0x08) C[3]=VB[pixdata&3];
-					pixdata>>=4;
-					if (J&0x04) C[2]=VB[pixdata&3];
-					pixdata>>=4;
-					if (J&0x02) C[1]=VB[pixdata&3];
-					pixdata>>=4;
-					if (J&0x01) C[0]=VB[pixdata];
-				}else{
-					if (J&0x80) C[0]=VB[pixdata&3];
-					pixdata>>=4;
-					if (J&0x40) C[1]=VB[pixdata&3];
-					pixdata>>=4;
-					if (J&0x20) C[2]=VB[pixdata&3];
-					pixdata>>=4;
-					if (J&0x10) C[3]=VB[pixdata&3];
-					pixdata>>=4;
-					if (J&0x08) C[4]=VB[pixdata&3];
-					pixdata>>=4;
-					if (J&0x04) C[5]=VB[pixdata&3];
-					pixdata>>=4;
-					if (J&0x02) C[6]=VB[pixdata&3];
-					pixdata>>=4;
-					if (J&0x01) C[7]=VB[pixdata];
-				}
-			}
-		}
+	if (atr&H_FLIP) {
+	  if (J&0x80) C[7]=VB[pixdata&3]|0x40;
+	  pixdata>>=4;
+	  if (J&0x40) C[6]=VB[pixdata&3]|0x40;
+	  pixdata>>=4;
+	  if (J&0x20) C[5]=VB[pixdata&3]|0x40;
+	  pixdata>>=4;
+	  if (J&0x10) C[4]=VB[pixdata&3]|0x40;
+	  pixdata>>=4;
+	  if (J&0x08) C[3]=VB[pixdata&3]|0x40;
+	  pixdata>>=4;
+	  if (J&0x04) C[2]=VB[pixdata&3]|0x40;
+	  pixdata>>=4;
+	  if (J&0x02) C[1]=VB[pixdata&3]|0x40;
+	  pixdata>>=4;
+	  if (J&0x01) C[0]=VB[pixdata]|0x40;
+	} else {
+	  if (J&0x80) C[0]=VB[pixdata&3]|0x40;
+	  pixdata>>=4;
+	  if (J&0x40) C[1]=VB[pixdata&3]|0x40;
+	  pixdata>>=4;
+	  if (J&0x20) C[2]=VB[pixdata&3]|0x40;
+	  pixdata>>=4;
+	  if (J&0x10) C[3]=VB[pixdata&3]|0x40;
+	  pixdata>>=4;
+	  if (J&0x08) C[4]=VB[pixdata&3]|0x40;
+	  pixdata>>=4;
+	  if (J&0x04) C[5]=VB[pixdata&3]|0x40;
+	  pixdata>>=4;
+	  if (J&0x02) C[6]=VB[pixdata&3]|0x40;
+	  pixdata>>=4;
+	  if (J&0x01) C[7]=VB[pixdata]|0x40;
 	}
-	SpriteBlurp=0;
-	any_sprites_on_line=1;
+      } else {
+	if (atr&H_FLIP) {
+	  if (J&0x80) C[7]=VB[pixdata&3];
+	  pixdata>>=4;
+	  if (J&0x40) C[6]=VB[pixdata&3];
+	  pixdata>>=4;
+	  if (J&0x20) C[5]=VB[pixdata&3];
+	  pixdata>>=4;
+	  if (J&0x10) C[4]=VB[pixdata&3];
+	  pixdata>>=4;
+	  if (J&0x08) C[3]=VB[pixdata&3];
+	  pixdata>>=4;
+	  if (J&0x04) C[2]=VB[pixdata&3];
+	  pixdata>>=4;
+	  if (J&0x02) C[1]=VB[pixdata&3];
+	  pixdata>>=4;
+	  if (J&0x01) C[0]=VB[pixdata];
+	} else {
+	  if (J&0x80) C[0]=VB[pixdata&3];
+	  pixdata>>=4;
+	  if (J&0x40) C[1]=VB[pixdata&3];
+	  pixdata>>=4;
+	  if (J&0x20) C[2]=VB[pixdata&3];
+	  pixdata>>=4;
+	  if (J&0x10) C[3]=VB[pixdata&3];
+	  pixdata>>=4;
+	  if (J&0x08) C[4]=VB[pixdata&3];
+	  pixdata>>=4;
+	  if (J&0x04) C[5]=VB[pixdata&3];
+	  pixdata>>=4;
+	  if (J&0x02) C[6]=VB[pixdata&3];
+	  pixdata>>=4;
+	  if (J&0x01) C[7]=VB[pixdata];
+	}
+      }
+    }
+  }
+  SpriteBlurp = 0;
+  any_sprites_on_line = 1;
 }
 
 // Actually writes sprites to the pixel buffer for a particular scanline.
@@ -1777,8 +1764,7 @@ static void CopySprites(uint8 *target) {
 
   // looping until n overflows to 0. This is the whole scanline, I think,
   // 4 pixels at a time.
- loopskie:
-  {
+  do {
     uint32 t=*(uint32 *)(sprlinebuf+n);
 
     // I think we're testing to see if the pixel should not be drawn
@@ -1855,9 +1841,9 @@ static void CopySprites(uint8 *target) {
 	  }
 #endif
       }
-  }
-  n+=4;
-  if (n) goto loopskie;
+    n+=4;
+  } while (n);
+
 }
 
 void FCEUPPU_SetVideoSystem(int w) {
@@ -1873,7 +1859,7 @@ void FCEUPPU_SetVideoSystem(int w) {
 }
 
 //Initializes the PPU
-void FCEUPPU_Init(void) {
+void FCEUPPU_Init() {
   makeppulut();
 }
 
@@ -1881,7 +1867,7 @@ void PPU_ResetHooks() {
   FFCEUX_PPURead = FFCEUX_PPURead_Default;
 }
 
-void FCEUPPU_Reset(void) {
+void FCEUPPU_Reset() {
   VRAMBuffer=PPU[0]=PPU[1]=PPU_status=PPU[3]=0;
   PPUSPL=0;
   PPUGenLatch=0;
@@ -1896,7 +1882,7 @@ void FCEUPPU_Reset(void) {
   spr_read.reset();
 }
 
-void FCEUPPU_Power(void) {
+void FCEUPPU_Power() {
   memset(NTARAM,0x00,0x800);
   memset(PALRAM,0x00,0x20);
   memset(UPALRAM,0x00,0x03);
@@ -1924,132 +1910,119 @@ void FCEUPPU_Power(void) {
   BWrite[0x4014]=B4014;
 }
 
-int FCEUPPU_Loop(int skip)
-{
-	if ((newppu)) {
-		int FCEUX_PPU_Loop(int skip);
-		return FCEUX_PPU_Loop(skip);
-	}
+int FCEUPPU_Loop(int skip) {
+  if (newppu) {
+    int FCEUX_PPU_Loop(int skip);
+    return FCEUX_PPU_Loop(skip);
+  }
 
-	//Needed for Knight Rider, possibly others.
-	if (ppudead)
-	{
-		memset(XBuf, 0x80, 256*240);
-		X6502_Run(scanlines_per_frame*(256+85));
-		ppudead--;
-	}
-	else
-	{
-		X6502_Run(256+85);
-		PPU_status |= 0x80;
+  //Needed for Knight Rider, possibly others.
+  if (ppudead) {
+    memset(XBuf, 0x80, 256*240);
+    X6502_Run(scanlines_per_frame*(256+85));
+    ppudead--;
+  } else {
+    X6502_Run(256+85);
+    PPU_status |= 0x80;
 
-		//Not sure if this is correct.  According to Matt Conte and my own tests, it is.
-		//Timing is probably off, though.
-		//NOTE:  Not having this here breaks a Super Donkey Kong game.
-		PPU[3]=PPUSPL=0;
+    //Not sure if this is correct.  According to Matt Conte and my own tests, it is.
+    //Timing is probably off, though.
+    //NOTE:  Not having this here breaks a Super Donkey Kong game.
+    PPU[3]=PPUSPL=0;
 
-		//I need to figure out the true nature and length of this delay.
-		X6502_Run(12);
+    //I need to figure out the true nature and length of this delay.
+    X6502_Run(12);
 
-		if (VBlankON)
-		  TriggerNMI();
+    if (VBlankON)
+      TriggerNMI();
 
-		X6502_Run((scanlines_per_frame-242)*(256+85)-12); //-12);
-		PPU_status&=0x1f;
-		X6502_Run(256);
+    X6502_Run((scanlines_per_frame-242)*(256+85)-12);
+    PPU_status&=0x1f;
+    X6502_Run(256);
 
-		{
-			int x;
+    {
+      if (ScreenON || SpriteON) {
+	if (GameHBIRQHook && ((PPU[0]&0x38)!=0x18))
+	  GameHBIRQHook();
+	if (PPU_hook)
+	  for (int x=0;x<42;x++) {PPU_hook(0x2000); PPU_hook(0);}
+	if (GameHBIRQHook2)
+	  GameHBIRQHook2();
+      }
+      X6502_Run(85-16);
+      if (ScreenON || SpriteON) {
+	RefreshAddr=TempAddr;
+	if (PPU_hook) PPU_hook(RefreshAddr&0x3fff);
+      }
 
-			if (ScreenON || SpriteON)
-			{
-				if (GameHBIRQHook && ((PPU[0]&0x38)!=0x18))
-					GameHBIRQHook();
-				if (PPU_hook)
-					for (x=0;x<42;x++) {PPU_hook(0x2000); PPU_hook(0);}
-					if (GameHBIRQHook2)
-						GameHBIRQHook2();
-			}
-			X6502_Run(85-16);
-			if (ScreenON || SpriteON)
-			{
-				RefreshAddr=TempAddr;
-				if (PPU_hook) PPU_hook(RefreshAddr&0x3fff);
-			}
+      //Clean this stuff up later.
+      any_sprites_on_line = numsprites = 0;
+      ResetRL(XBuf);
 
-			//Clean this stuff up later.
-			any_sprites_on_line=numsprites=0;
-			ResetRL(XBuf);
+      X6502_Run(16-kook);
+      kook ^= 1;
+    }
 
-			X6502_Run(16-kook);
-			kook ^= 1;
-		}
-
-		// n.b. FRAMESKIP results in different behavior in memory, so don't do it.
-		if (0) { /* used to be nsf playing code here -tom7 */ }
+    // n.b. FRAMESKIP results in different behavior in memory, so don't do it.
+    if (0) { /* used to be nsf playing code here -tom7 */ }
 #ifdef FRAMESKIP
-		else if (skip)
-		{
-			int y;
+    else if (skip) {
+      int y;
 
-			y=SPRAM[0];
-			y++;
+      y=SPRAM[0];
+      y++;
 
-			PPU_status|=0x20;       // Fixes "Bee 52".  Does it break anything?
-			if (GameHBIRQHook)
-			{
-				X6502_Run(256);
-				for (scanline=0;scanline<240;scanline++)
-				{
-					if (ScreenON || SpriteON)
-						GameHBIRQHook();
-					if (scanline==y && SpriteON) PPU_status|=0x40;
-					X6502_Run((scanline==239)?85:(256+85));
-				}
-			}
-			else if (y<240)
-			{
-				X6502_Run((256+85)*y);
-				if (SpriteON) PPU_status|=0x40; // Quick and very dirty hack.
-				X6502_Run((256+85)*(240-y));
-			}
-			else
-				X6502_Run((256+85)*240);
-		}
+      PPU_status|=0x20;       // Fixes "Bee 52".  Does it break anything?
+      if (GameHBIRQHook)
+	{
+	  X6502_Run(256);
+	  for (scanline=0;scanline<240;scanline++)
+	    {
+	      if (ScreenON || SpriteON)
+		GameHBIRQHook();
+	      if (scanline==y && SpriteON) PPU_status|=0x40;
+	      X6502_Run((scanline==239)?85:(256+85));
+	    }
+	}
+      else if (y<240)
+	{
+	  X6502_Run((256+85)*y);
+	  if (SpriteON) PPU_status|=0x40; // Quick and very dirty hack.
+	  X6502_Run((256+85)*(240-y));
+	}
+      else
+	X6502_Run((256+85)*240);
+    }
 #endif
-		else
-		{
-			int x,max,maxref;
+    else {
+      deemp=PPU[1]>>5;
+      for (scanline=0;scanline<240;) {
+	//scanline is incremented in  DoLine.  Evil. :/
+	deempcnt[deemp]++;
+	DoLine();
+      }
 
-			deemp=PPU[1]>>5;
-			for (scanline=0;scanline<240;) {
-			  //scanline is incremented in  DoLine.  Evil. :/
-			  deempcnt[deemp]++;
-			  DoLine();
-			}
+      if (MMC5Hack && (ScreenON || SpriteON)) MMC5_hb(scanline);
+      int max = 0, maxref = 0;
+      for (int x = 0; x < 7; x++) {
 
-			if (MMC5Hack && (ScreenON || SpriteON)) MMC5_hb(scanline);
-			for (x=1,max=0,maxref=0;x<7;x++)
-			{
+	if (deempcnt[x]>max) {
+	  max=deempcnt[x];
+	  maxref=x;
+	}
+	deempcnt[x]=0;
+      }
+      //FCEU_DispMessage("%2x:%2x:%2x:%2x:%2x:%2x:%2x:%2x %d",0,deempcnt[0],deempcnt[1],deempcnt[2],deempcnt[3],deempcnt[4],deempcnt[5],deempcnt[6],deempcnt[7],maxref);
+      //memset(deempcnt,0,sizeof(deempcnt));
+      SetNESDeemph(maxref,0);
+    }
+  } //else... to if (ppudead)
 
-				if (deempcnt[x]>max)
-				{
-					max=deempcnt[x];
-					maxref=x;
-				}
-				deempcnt[x]=0;
-			}
-			//FCEU_DispMessage("%2x:%2x:%2x:%2x:%2x:%2x:%2x:%2x %d",0,deempcnt[0],deempcnt[1],deempcnt[2],deempcnt[3],deempcnt[4],deempcnt[5],deempcnt[6],deempcnt[7],maxref);
-			//memset(deempcnt,0,sizeof(deempcnt));
-			SetNESDeemph(maxref,0);
-		}
-	} //else... to if (ppudead)
-
-	#ifdef FRAMESKIP
-	return !skip;
-	#else
-	return 1;
-	#endif
+#ifdef FRAMESKIP
+  return !skip;
+#else
+  return 1;
+#endif
 }
 
 int (*PPU_MASTER)(int skip) = FCEUPPU_Loop;
@@ -2114,80 +2087,71 @@ SFORMAT FCEU_NEWPPU_STATEINFO[] = {
 	{ 0 }
 };
 
-void FCEUPPU_SaveState(void)
-{
-	TempAddrT=TempAddr;
-	RefreshAddrT=RefreshAddr;
+void FCEUPPU_SaveState() {
+  TempAddrT = TempAddr;
+  RefreshAddrT = RefreshAddr;
 }
 
 
 //---------------------
 int pputime=0;
 int totpputime=0;
-const int kLineTime=341;
-const int kFetchTime=2;
+static constexpr int kLineTime = 341;
+static constexpr int kFetchTime = 2;
 
 void runppu(int x) {
-	//pputime+=x;
-	//if (cputodo<200) return;
-
-    ppur.status.cycle = (ppur.status.cycle + x) %
-                           ppur.status.end_cycle;
-
-	X6502_Run(x);
-	//pputime -= cputodo<<2;
+  ppur.status.cycle = (ppur.status.cycle + x) % ppur.status.end_cycle;
+  X6502_Run(x);
 }
 
 //todo - consider making this a 3 or 4 slot fifo to keep from touching so much memory
 struct BGData {
-		struct Record {
-			uint8 nt, at, pt[2];
+  struct Record {
+    uint8 nt, at, pt[2];
 
-			INLINE void Read() {
-				RefreshAddr = ppur.get_ntread();
-				nt = FFCEUX_PPURead(RefreshAddr);
-				runppu(kFetchTime);
+    INLINE void Read() {
+      RefreshAddr = ppur.get_ntread();
+      nt = FFCEUX_PPURead(RefreshAddr);
+      runppu(kFetchTime);
+      
+      RefreshAddr = ppur.get_atread();
+      at = FFCEUX_PPURead(RefreshAddr);
 
-				RefreshAddr = ppur.get_atread();
-				at = FFCEUX_PPURead(RefreshAddr);
+      //modify at to get appropriate palette shift
+      if (ppur.vt&2) at >>= 4;
+      if (ppur.ht&2) at >>= 2;
+      at &= 0x03;
+      at <<= 2;
+      //horizontal scroll clocked at cycle 3 and then
+      //vertical scroll at 251
+      runppu(1);
+      if (PPUON) {
+	ppur.increment_hsc();
+	if (ppur.status.cycle == 251)
+	  ppur.increment_vs();
+      }
+      runppu(1);
+      
+      ppur.par = nt;
+      RefreshAddr = ppur.get_ptread();
+      pt[0] = FFCEUX_PPURead(RefreshAddr);
+      runppu(kFetchTime);
+      RefreshAddr |= 8;
+      pt[1] = FFCEUX_PPURead(RefreshAddr);
+      runppu(kFetchTime);
+    }
+  };
+  
+  Record main[34]; //one at the end is junk, it can never be rendered
+} bgdata;
 
-				//modify at to get appropriate palette shift
-				if (ppur.vt&2) at >>= 4;
-				if (ppur.ht&2) at >>= 2;
-				at &= 0x03;
-				at <<= 2;
-                //horizontal scroll clocked at cycle 3 and then
-                //vertical scroll at 251
-                runppu(1);
-                if (PPUON)
-                {
-			        ppur.increment_hsc();
-                    if (ppur.status.cycle == 251)
-                        ppur.increment_vs();
-                }
-                runppu(1);
-
-                ppur.par = nt;
-				RefreshAddr = ppur.get_ptread();
-				pt[0] = FFCEUX_PPURead(RefreshAddr);
-				runppu(kFetchTime);
-				RefreshAddr |= 8;
-				pt[1] = FFCEUX_PPURead(RefreshAddr);
-				runppu(kFetchTime);
-			}
-		};
-
-		Record main[34]; //one at the end is junk, it can never be rendered
-	} bgdata;
-
-static inline int PaletteAdjustPixel(int pixel)
-{
-	if ((PPU[1]>>5)==0x7)
-		return (pixel&0x3f)|0xc0;
-	else if (PPU[1]&0xE0)
-		return pixel | 0x40;
-	else
-		return (pixel&0x3F)|0x80;
+static inline int PaletteAdjustPixel(int pixel) {
+  if ((PPU[1]>>5)==0x7)
+    return (pixel&0x3f)|0xc0;
+  else if (PPU[1]&0xE0)
+    return pixel | 0x40;
+  else
+    return (pixel&0x3F)|0x80;
 }
 
 int framectr=0;
