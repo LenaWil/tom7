@@ -12,36 +12,36 @@ inline uint64 double_to_u64(double d) {
   union {
     uint64 a;
     double b;
-  } fuxor;
-  fuxor.b = d;
-  return fuxor.a;
+  } cast;
+  cast.b = d;
+  return cast.a;
 }
 
 inline double u64_to_double(uint64 u) {
   union {
     uint64 a;
     double b;
-  } fuxor;
-  fuxor.a = u;
-  return fuxor.b;
+  } cast;
+  cast.a = u;
+  return cast.b;
 }
 
 inline uint32 float_to_u32(float f) {
   union {
     uint32 a;
     float b;
-  } fuxor;
-  fuxor.b = f;
-  return fuxor.a;
+  } cast;
+  cast.b = f;
+  return cast.a;
 }
 
 inline float u32_to_float(uint32 u) {
   union {
     uint32 a;
     float b;
-  } fuxor;
-  fuxor.a = u;
-  return fuxor.b;
+  } cast;
+  cast.a = u;
+  return cast.b;
 }
 
 
@@ -112,5 +112,6 @@ int writele(T *Bufo, EMUFILE*os) {
   }
 }
 
-#endif //__FCEU_ENDIAN
+#endif
+
 

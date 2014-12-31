@@ -297,8 +297,6 @@ bool FCEUSS_LoadRAW(std::vector<uint8> *in) {
   // Assume current version; memory only.
   int stateversion = FCEU_VERSION_NUMERIC;
 
-  FCEUMOV_PreLoad();
-
   bool success = (ReadStateChunks(&is, totalsize) != 0);
 
   if (GameStateRestore) {
@@ -308,7 +306,7 @@ bool FCEUSS_LoadRAW(std::vector<uint8> *in) {
   if (success) {
     FCEUPPU_LoadState(stateversion);
     FCEUSND_LoadState(stateversion);
-    return FCEUMOV_PostLoad();
+    return true;
   } else {
     return false;
   }
