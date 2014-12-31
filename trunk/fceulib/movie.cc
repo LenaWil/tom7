@@ -113,7 +113,7 @@ int pauseframe = -1;
 bool movie_readonly = true;
 bool fullSaveStateLoads = false;	//Option for loading a savestates full contents in read+write mode instead of up to the frame count in the savestate (useful as a recovery option)
 
-SFORMAT FCEUMOV_STATEINFO[] = {
+const SFORMAT FCEUMOV_STATEINFO[] = {
   { &currFrameCounter, 4|FCEUSTATE_RLSB, "FCNT" },
   { 0 }
 };

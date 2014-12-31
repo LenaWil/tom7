@@ -1230,7 +1230,7 @@ void FCEUI_SetPCMVolume(uint32 volume) {
   FSettings.PCMVolume=volume;
 }
 
-SFORMAT FCEUSND_STATEINFO[] = {
+const SFORMAT FCEUSND_STATEINFO[] = {
  { &fhcnt, 4|FCEUSTATE_RLSB,"FHCN"},
  { &fcnt, 1, "FCNT"},
  { PSG, 0x10, "PSG"},

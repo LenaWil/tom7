@@ -52,10 +52,7 @@
 #define FCEUNPCMD_LOADCHEATS	0x82
 #define FCEUNPCMD_TEXT		0x90
 
-static constexpr EMOVIEMODE movieMode = MOVIEMODE_INACTIVE;
-
 void FCEU_DoSimpleCommand(int cmd);
-void FCEU_QSimpleCommand(int cmd);
 
 //it is easier to declare these input drivers extern here than include a bunch of files
 //-------------
@@ -64,18 +61,18 @@ extern INPUTC *FCEU_InitPowerpadA(int w);
 extern INPUTC *FCEU_InitPowerpadB(int w);
 extern INPUTC *FCEU_InitArkanoid(int w);
 
-extern INPUTCFC *FCEU_InitArkanoidFC(void);
-extern INPUTCFC *FCEU_InitSpaceShadow(void);
-extern INPUTCFC *FCEU_InitFKB(void);
-extern INPUTCFC *FCEU_InitSuborKB(void);
-extern INPUTCFC *FCEU_InitHS(void);
-extern INPUTCFC *FCEU_InitMahjong(void);
-extern INPUTCFC *FCEU_InitQuizKing(void);
-extern INPUTCFC *FCEU_InitFamilyTrainerA(void);
-extern INPUTCFC *FCEU_InitFamilyTrainerB(void);
-extern INPUTCFC *FCEU_InitOekaKids(void);
-extern INPUTCFC *FCEU_InitTopRider(void);
-extern INPUTCFC *FCEU_InitBarcodeWorld(void);
+extern INPUTCFC *FCEU_InitArkanoidFC();
+extern INPUTCFC *FCEU_InitSpaceShadow();
+extern INPUTCFC *FCEU_InitFKB();
+extern INPUTCFC *FCEU_InitSuborKB();
+extern INPUTCFC *FCEU_InitHS();
+extern INPUTCFC *FCEU_InitMahjong();
+extern INPUTCFC *FCEU_InitQuizKing();
+extern INPUTCFC *FCEU_InitFamilyTrainerA();
+extern INPUTCFC *FCEU_InitFamilyTrainerB();
+extern INPUTCFC *FCEU_InitOekaKids();
+extern INPUTCFC *FCEU_InitTopRider();
+extern INPUTCFC *FCEU_InitBarcodeWorld();
 //---------------
 
 // global lag variables
@@ -89,7 +86,7 @@ static uint8 LastStrobe;
 bool replaceP2StartWithMicrophone = false;
 
 //This function is a quick hack to get the NSF player to use emulated gamepad input.
-uint8 FCEU_GetJoyJoy(void) {
+uint8 FCEU_GetJoyJoy() {
   return joy[0] | joy[1] | joy[2] | joy[3];
 }
 
@@ -149,7 +146,7 @@ static DECLFW(B4016) {
   if (portFC.driver)
     portFC.driver->Write(V&7);
 
-  for(int i=0;i<2;i++)
+  for (int i=0;i<2;i++)
     joyports[i].driver->Write(V & 1);
 
   if ((LastStrobe & 1) && !(V & 1)) {
@@ -162,7 +159,7 @@ static DECLFW(B4016) {
 
     //mbg 6/7/08 - I guess he means that the input drivers could track the strobing themselves
     //I dont see why it is unreasonable here.
-    for(int i=0;i<2;i++)
+    for (int i=0;i<2;i++)
       joyports[i].driver->Strobe(i);
     if (portFC.driver)
       portFC.driver->Strobe();
@@ -178,7 +175,7 @@ static INPUTCFC DummyPortFC={0,0,0,0,0,0};
 
 //--------4 player driver for expansion port--------
 static uint8 F4ReadBit[2];
-static void StrobeFami4(void) {
+static void StrobeFami4() {
   F4ReadBit[0] = F4ReadBit[1] = 0;
 }
 
@@ -268,20 +265,20 @@ static void StrobeGP(int w) {
 //^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^6
 
 
-static INPUTC GPC={ReadGP,0,StrobeGP,UpdateGP,0,0,LogGP,LoadGP};
-static INPUTC GPCVS={ReadGPVS,0,StrobeGP,UpdateGP,0,0,LogGP,LoadGP};
+static INPUTC GPC = {ReadGP,0,StrobeGP,UpdateGP,0,0,LogGP,LoadGP};
+static INPUTC GPCVS = {ReadGPVS,0,StrobeGP,UpdateGP,0,0,LogGP,LoadGP};
 
 void FCEU_DrawInput(uint8 *buf) {
-  for(int pad=0; pad < 2; pad++)
+  for (int pad=0; pad < 2; pad++)
     joyports[pad].driver->Draw(pad,buf,joyports[pad].attrib);
   if (portFC.driver)
     portFC.driver->Draw(buf,portFC.attrib);
 }
 
-void FCEU_UpdateInput(void) {
+void FCEU_UpdateInput() {
   //tell all drivers to poll input and set up their logical states
   if (!FCEUMOV_Mode(MOVIEMODE_PLAY)) {
-    for(int port=0;port<2;port++)
+    for (int port=0;port<2;port++)
       joyports[port].driver->Update(port,joyports[port].ptr,joyports[port].attrib);
     portFC.driver->Update(portFC.ptr,portFC.attrib);
   }
@@ -320,7 +317,7 @@ static DECLFR(VSUNIRead1) {
 // calls from the ppu;
 // calls the SLHook for any driver that needs it
 void InputScanlineHook(uint8 *bg, uint8 *spr, uint32 linets, int final) {
-  for(int port = 0; port < 2; port++)
+  for (int port = 0; port < 2; port++)
     joyports[port].driver->SLHook(port,bg,spr,linets,final);
   portFC.driver->SLHook(bg,spr,linets,final);
 }
@@ -418,7 +415,7 @@ void FCEUI_SetInputFC(ESIFC type, void *ptr, int attrib) {
 
 
 //initializes the input system to power-on state
-void InitializeInput(void) {
+void InitializeInput() {
   memset(joy_readbit,0,sizeof(joy_readbit));
   memset(joy,0,sizeof(joy));
   LastStrobe = 0;
@@ -453,7 +450,7 @@ void FCEUI_SetInputFourscore(bool attachFourscore) {
 
 //mbg 6/18/08 HACK
 extern ZAPPER ZD[2];
-SFORMAT FCEUCTRL_STATEINFO[] = {
+const SFORMAT FCEUINPUT_STATEINFO[] = {
   { joy_readbit,	2, "JYRB"},
   { joy,		4, "JOYS"},
   { &LastStrobe,	1, "LSTS"},
@@ -466,53 +463,52 @@ SFORMAT FCEUCTRL_STATEINFO[] = {
 };
 
 
-void FCEUI_FDSSelect(void) {
+void FCEUI_FDSSelect() {
   if (!FCEU_IsValidUI(FCEUI_SWITCH_DISK))
     return;
 
   fprintf(stderr, "Command: Switch disk side");
-  FCEU_QSimpleCommand(FCEUNPCMD_FDSSELECT);
+  FCEU_DoSimpleCommand(FCEUNPCMD_FDSSELECT);
 }
 
-void FCEUI_FDSInsert(void) {
+void FCEUI_FDSInsert() {
   if (!FCEU_IsValidUI(FCEUI_EJECT_DISK))
     return;
 
   fprintf(stderr, "Command: Insert/Eject disk");
-  FCEU_QSimpleCommand(FCEUNPCMD_FDSINSERT);
+  FCEU_DoSimpleCommand(FCEUNPCMD_FDSINSERT);
 }
 
 void FCEUI_VSUniToggleDIP(int w) {
-  FCEU_QSimpleCommand(FCEUNPCMD_VSUNIDIP0 + w);
+  FCEU_DoSimpleCommand(FCEUNPCMD_VSUNIDIP0 + w);
 }
 
-void FCEUI_VSUniCoin(void) {
-  FCEU_QSimpleCommand(FCEUNPCMD_VSUNICOIN);
+void FCEUI_VSUniCoin() {
+  FCEU_DoSimpleCommand(FCEUNPCMD_VSUNICOIN);
 }
 
 //Resets the frame counter if movie inactive and rom is reset or power-cycle
 static void ResetFrameCounter() {
-  if (movieMode == MOVIEMODE_INACTIVE)
-    currFrameCounter = 0;
+  currFrameCounter = 0;
 }
 
 // Resets the NES
-void FCEUI_ResetNES(void) {
+void FCEUI_ResetNES() {
   if (!FCEU_IsValidUI(FCEUI_RESET))
     return;
 
   fprintf(stderr, "Command: Soft reset");
-  FCEU_QSimpleCommand(FCEUNPCMD_RESET);
+  FCEU_DoSimpleCommand(FCEUNPCMD_RESET);
   ResetFrameCounter();
 }
 
 // Powers off the NES
-void FCEUI_PowerNES(void) {
+void FCEUI_PowerNES() {
   if (!FCEU_IsValidUI(FCEUI_POWER))
     return;
 
   fprintf(stderr, "Command: Power switch");
-  FCEU_QSimpleCommand(FCEUNPCMD_POWER);
+  FCEU_DoSimpleCommand(FCEUNPCMD_POWER);
   ResetFrameCounter();
 }
 
@@ -531,16 +527,5 @@ void FCEU_DoSimpleCommand(int cmd) {
   case FCEUNPCMD_VSUNIDIP0+7:	FCEU_VSUniToggleDIP(cmd - FCEUNPCMD_VSUNIDIP0);break;
   case FCEUNPCMD_POWER: PowerNES();break;
   case FCEUNPCMD_RESET: ResetNES();break;
-  }
-}
-
-void FCEU_QSimpleCommand(int cmd) {
-  if (!FCEUMOV_Mode(MOVIEMODE_TASEDITOR)) {
-    // TAS Editor will do the command himself
-    FCEU_DoSimpleCommand(cmd);
-  }
-  if (FCEUMOV_Mode(MOVIEMODE_RECORD|MOVIEMODE_TASEDITOR)) {
-    // I broke this function btw -tom7
-    FCEUMOV_AddCommand(cmd);
   }
 }

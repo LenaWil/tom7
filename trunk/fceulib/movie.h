@@ -7,6 +7,7 @@
 #include <ostream>
 #include <stdlib.h>
 
+#include "state.h"
 #include "input/zapper.h"
 #include "utils/guid.h"
 #include "utils/md5.h"
@@ -19,8 +20,8 @@ void FCEUMOV_AddCommand(int cmd);
 void FCEU_DrawMovies(uint8 *);
 void FCEU_DrawLagCounter(uint8 *);
 
-enum EMOVIEMODE
-{
+// XXX moviemode is always inactive now. simplify -tom7
+enum EMOVIEMODE {
 	MOVIEMODE_INACTIVE = 1,
 	MOVIEMODE_RECORD = 2,
 	MOVIEMODE_PLAY = 4,
@@ -28,8 +29,7 @@ enum EMOVIEMODE
 	MOVIEMODE_FINISHED = 16
 };
 
-enum EMOVIECMD
-{
+enum EMOVIECMD {
 	MOVIECMD_RESET = 1,
 	MOVIECMD_POWER = 2,
 	MOVIECMD_FDS_INSERT = 4,
@@ -59,9 +59,7 @@ bool FCEUMOV_FromPoweron();
 void FCEUMOV_CreateCleanMovie();
 
 class MovieData;
-class MovieRecord
-{
-
+class MovieRecord {
 public:
 	MovieRecord();
 	FixedArray<uint8,4> joysticks;
@@ -126,72 +124,67 @@ private:
 class MovieData {
  public:
   MovieData();
-	// Default Values: MovieData::MovieData()
+  // Default Values: MovieData::MovieData()
 
-	int version;
-	int emuVersion;
-	int fds;
-	//todo - somehow force mutual exclusion for poweron and reset (with an error in the parser)
-	bool palFlag;
-	bool PPUflag;
-	MD5DATA romChecksum;
-	std::string romFilename;
-	std::vector<uint8> savestate;
-	std::vector<MovieRecord> records;
+  int version;
+  int emuVersion;
+  int fds;
+  //todo - somehow force mutual exclusion for poweron and reset (with an error in the parser)
+  bool palFlag;
+  bool PPUflag;
+  MD5DATA romChecksum;
+  std::string romFilename;
+  std::vector<uint8> savestate;
+  std::vector<MovieRecord> records;
   // Always empty now -tom7
-	std::vector<std::string> comments;
-	std::vector<std::string> subtitles;
-	int rerecordCount;
-	FCEU_Guid guid;
+  std::vector<std::string> comments;
+  std::vector<std::string> subtitles;
+  int rerecordCount;
+  FCEU_Guid guid;
 
-	//was the frame data stored in binary?
-	bool binaryFlag;
-	// TAS Editor project files contain additional data after input
-	int loadFrameCount;
+  //was the frame data stored in binary?
+  bool binaryFlag;
+  // TAS Editor project files contain additional data after input
+  int loadFrameCount;
 
-	//which ports are defined for the movie
-	int ports[3];
-	//whether fourscore is enabled
-	bool fourscore;
-	//whether microphone is enabled
-	bool microphone;
+  //which ports are defined for the movie
+  int ports[3];
+  //whether fourscore is enabled
+  bool fourscore;
+  //whether microphone is enabled
+  bool microphone;
 
-	int getNumRecords() { return records.size(); }
+  int getNumRecords() { return records.size(); }
 
-	class TDictionary : public std::map<std::string,std::string>
-	{
-	public:
-		bool containsKey(std::string key)
-		{
-			return find(key) != end();
-		}
+  class TDictionary : public std::map<std::string,std::string> {
+  public:
+    bool containsKey(std::string key) {
+      return find(key) != end();
+    }
 
-		void tryInstallBool(std::string key, bool& val)
-		{
-			if(containsKey(key))
-				val = atoi(operator [](key).c_str())!=0;
-		}
+    void tryInstallBool(std::string key, bool& val) {
+      if(containsKey(key))
+	val = atoi(operator [](key).c_str())!=0;
+    }
 
-		void tryInstallString(std::string key, std::string& val)
-		{
-			if(containsKey(key))
-				val = operator [](key);
-		}
+    void tryInstallString(std::string key, std::string& val) {
+      if(containsKey(key))
+	val = operator [](key);
+    }
 
-		void tryInstallInt(std::string key, int& val)
-		{
-			if(containsKey(key))
-				val = atoi(operator [](key).c_str());
-		}
+    void tryInstallInt(std::string key, int& val) {
+      if(containsKey(key))
+	val = atoi(operator [](key).c_str());
+    }
 
-	};
+  };
 
-	void truncateAt(int frame);
-	void installValue(std::string& key, std::string& val);
+  void truncateAt(int frame);
+  void installValue(std::string& key, std::string& val);
 
-	void clearRecordRange(int start, int len);
-	void insertEmpty(int at, int frames);
-	void cloneRegion(int at, int frames);
+  void clearRecordRange(int start, int len);
+  void insertEmpty(int at, int frames);
+  void cloneRegion(int at, int frames);
 
 private:
   void installInt(std::string& val, int& var) {
@@ -213,4 +206,6 @@ extern bool fullSaveStateLoads;
 //--------------------------------------------------
 void FCEUI_StopMovie(void);
 
-#endif //__MOVIE_H_
+extern const SFORMAT FCEUMOV_STATEINFO[];
+
+#endif

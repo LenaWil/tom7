@@ -21,6 +21,8 @@
 #ifndef _SOUND_H_
 #define _SOUND_H_
 
+#include "state.h"
+
 struct EXPSOUND {
   void (*Fill)(int Count);	/* Low quality ext sound. */
   
@@ -70,5 +72,7 @@ struct ENVUNIT {
   uint8 decvolume;
   int reloaddec;
 };
+
+extern const SFORMAT FCEUSND_STATEINFO[];
 
 #endif
