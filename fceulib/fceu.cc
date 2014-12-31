@@ -104,8 +104,6 @@ static void FCEU_CloseGame() {
 
     delete GameInfo;
     GameInfo = nullptr;
-
-    currFrameCounter = 0;
   }
 }
 
@@ -443,7 +441,6 @@ void FCEUI_CloseGame() {
 }
 
 void ResetNES() {
-  // FCEUMOV_AddCommand(FCEUNPCMD_RESET);
   if (!GameInfo) return;
   GameInterface(GI_RESETM2);
   FCEUSND_Reset();

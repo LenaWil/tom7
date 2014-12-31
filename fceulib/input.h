@@ -108,6 +108,8 @@ extern char lagFlag;
 extern bool turbo;
 void LagCounterReset();
 
+extern int input_display;
+
 extern const SFORMAT FCEUINPUT_STATEINFO[];
 
 #endif //_INPUT_H_

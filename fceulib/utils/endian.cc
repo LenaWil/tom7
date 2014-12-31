@@ -53,9 +53,9 @@ void FlipByteOrder(uint8 *src, uint32 count) {
   uint8 *start=src;
   uint8 *end=src+count-1;
 
-  if((count&1) || !count)        return;         /* This shouldn't happen. */
+  if ((count&1) || !count)        return;         /* This shouldn't happen. */
 
-  while(count--) {
+  while (count--) {
     uint8 tmp;
 
     tmp=*end;
@@ -117,7 +117,7 @@ int write64le(uint64 b, std::ostream* os)
 int read32le(uint32 *Bufo, FILE *fp)
 {
 	uint32 buf;
-	if(fread(&buf,1,4,fp)<4)
+	if (fread(&buf,1,4,fp)<4)
 		return 0;
 #ifdef LSB_FIRST
 	*(uint32*)Bufo=buf;
@@ -130,7 +130,7 @@ int read32le(uint32 *Bufo, FILE *fp)
 int read16le(uint16 *Bufo, std::istream *is)
 {
 	uint16 buf;
-	if(is->read((char*)&buf,2).gcount() != 2)
+	if (is->read((char*)&buf,2).gcount() != 2)
 		return 0;
 #ifdef LSB_FIRST
 	*Bufo=buf;
@@ -144,7 +144,7 @@ int read16le(uint16 *Bufo, std::istream *is)
 int read64le(uint64 *Bufo, std::istream *is)
 {
 	uint64 buf;
-	if(is->read((char*)&buf,8).gcount() != 8)
+	if (is->read((char*)&buf,8).gcount() != 8)
 		return 0;
 #ifdef LSB_FIRST
 	*Bufo=buf;
@@ -158,7 +158,7 @@ int read64le(uint64 *Bufo, std::istream *is)
 int read32le(uint32 *Bufo, std::istream *is)
 {
 	uint32 buf;
-	if(is->read((char*)&buf,4).gcount() != 4)
+	if (is->read((char*)&buf,4).gcount() != 4)
 		return 0;
 #ifdef LSB_FIRST
 	*(uint32*)Bufo=buf;
@@ -225,7 +225,7 @@ int write8le(uint8 b, EMUFILE*os)
 //well. just for the sake of consistency
 int read8le(uint8 *Bufo, EMUFILE*is)
 {
-	if(is->_fread((char*)Bufo,1) != 1)
+	if (is->_fread((char*)Bufo,1) != 1)
 		return 0;
 	return 1;
 }
@@ -274,7 +274,7 @@ int write64le(uint64 b, EMUFILE* os)
 int read32le(uint32 *Bufo, EMUFILE *fp)
 {
 	uint32 buf;
-	if(fp->_fread(&buf,4)<4)
+	if (fp->_fread(&buf,4)<4)
 		return 0;
 #ifdef LOCAL_LE
 	*(uint32*)Bufo=buf;
@@ -287,7 +287,7 @@ int read32le(uint32 *Bufo, EMUFILE *fp)
 int read16le(uint16 *Bufo, EMUFILE *is)
 {
 	uint16 buf;
-	if(is->_fread((char*)&buf,2) != 2)
+	if (is->_fread((char*)&buf,2) != 2)
 		return 0;
 #ifdef LOCAL_LE
 	*Bufo=buf;
@@ -300,7 +300,7 @@ int read16le(uint16 *Bufo, EMUFILE *is)
 int read64le(uint64 *Bufo, EMUFILE *is)
 {
 	uint64 buf;
-	if(is->_fread((char*)&buf,8) != 8)
+	if (is->_fread((char*)&buf,8) != 8)
 		return 0;
 #ifdef LOCAL_LE
 	*Bufo=buf;

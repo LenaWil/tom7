@@ -2,7 +2,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
-#include <zlib.h>
 #include <iomanip>
 #include <fstream>
 #include <limits.h>
@@ -28,6 +27,8 @@
 #include <sstream>
 
 using namespace std;
+
+
 
 extern MovieData currMovieData;
 
@@ -68,16 +69,6 @@ struct MOVIE_INFO {
   std::vector<std::string> subtitles;
 };
 
-
-// Not used in here (used to be set to 0-4 by some UI function) but several
-// other modules import it.
-int input_display = 0;
-
-extern char FileBase[];
-
-// Function declarations------------------------
-static void poweron(bool shouldDisableBatteryLoading);
-
 //TODO - remove the synchack stuff from the replay gui and require it to be put into the fm2 file
 //which the user would have already converted from fcm
 //also cleanup the whole emulator version bullshit in replay. we dont support that old stuff anymore
@@ -95,14 +86,14 @@ static constexpr EMOVIEMODE movieMode = MOVIEMODE_INACTIVE;
 
 //this should not be set unless we are in MOVIEMODE_RECORD!
 
-int currFrameCounter;
 uint32 cur_input_display = 0;
 int pauseframe = -1;
 
+#if 0
 const SFORMAT FCEUMOV_STATEINFO[] = {
-  { &currFrameCounter, 4|FCEUSTATE_RLSB, "FCNT" },
   { 0 }
 };
+#endif
 
 char curMovieFilename[512] = {0};
 MovieData currMovieData;
@@ -297,111 +288,10 @@ void MovieData::truncateAt(int frame) {
   records.resize(frame);
 }
 
-void MovieData::installValue(std::string& key, std::string& val) {
-  // todo - use another config system, or drive this from a little data
-  // structure. because this is gross
-  if (key == "FDS")
-    installInt(val,fds);
-  else if (key == "NewPPU")
-    installBool(val,PPUflag);
-  else if (key == "version")
-    installInt(val,version);
-  else if (key == "emuVersion")
-    installInt(val,emuVersion);
-  else if (key == "rerecordCount")
-    installInt(val,rerecordCount);
-  else if (key == "palFlag")
-    installBool(val,palFlag);
-  else if (key == "romFilename")
-    romFilename = val;
-  else if (key == "romChecksum")
-    StringToBytes(val,&romChecksum,MD5DATA::size);
-  else if (key == "guid")
-    guid = FCEU_Guid::fromString(val);
-  else if (key == "fourscore")
-    installBool(val,fourscore);
-  else if (key == "microphone")
-    installBool(val,microphone);
-  else if (key == "port0")
-    installInt(val,ports[0]);
-  else if (key == "port1")
-    installInt(val,ports[1]);
-  else if (key == "port2")
-    installInt(val,ports[2]);
-  else if (key == "binary")
-    installBool(val,binaryFlag);
-  else if (key == "comment")
-    (void)0; // stripped -tom7
-  else if (key == "subtitle")
-    (void)0; // stripped -tom7
-  else if (key == "savestate")
-    {
-      int len = Base64StringToBytesLength(val);
-      if (len == -1) len = HexStringToBytesLength(val); // wasn't base64, try hex
-      if (len >= 1)
-	{
-	  savestate.resize(len);
-	  StringToBytes(val,&savestate[0],len); // decodes either base64 or hex
-	}
-    }
-  else if (key == "length")
-    {
-      installInt(val, loadFrameCount);
-    }
-}
-
-static void poweron(bool shouldDisableBatteryLoading) {
-  //// make a for-movie-recording power-on clear the game's save data, too
-  //extern char lastLoadedGameName [2048];
-  //extern int disableBatteryLoading, suppressAddPowerCommand;
-  //suppressAddPowerCommand=1;
-  //if (shouldDisableBatteryLoading) disableBatteryLoading=1;
-  //suppressMovieStop=true;
-  //{
-  //	//we need to save the pause state through this process
-  //	int oldPaused = EmulationPaused;
-
-  //	// NOTE:  this will NOT write an FCEUNPCMD_POWER into the movie file
-  //	FCEUGI* gi = FCEUI_LoadGame(lastLoadedGameName, 0);
-  //	assert(gi);
-  //	PowerNES();
-
-  //	EmulationPaused = oldPaused;
-  //}
-  //suppressMovieStop=false;
-  //if (shouldDisableBatteryLoading) disableBatteryLoading=0;
-  //suppressAddPowerCommand=0;
-
-  extern int disableBatteryLoading;
-  disableBatteryLoading = 1;
-  PowerNES();
-  disableBatteryLoading = 0;
-}
-
 // the main interaction point between the emulator and the movie system.
 // either dumps the current joystick state or loads one state from the movie
 // TODO - just do this at the call site.
 void FCEUMOV_AddInputState() {
-  currFrameCounter++;
-
   extern uint8 joy[4];
   memcpy(&cur_input_display,joy,4);
 }
-
-
-//TODO
-void FCEUMOV_AddCommand(int cmd) {
-  return;
-}
-
-static bool load_successful;
-
-void FCEUMOV_PreLoad(void) {
-  load_successful=0;
-}
-
-bool FCEUMOV_PostLoad(void) {
-  // Movie mode always inactive now; simplified:
-  return true;
-}
-

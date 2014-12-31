@@ -13,12 +13,7 @@
 #include "utils/md5.h"
 #include "utils/fixedarray.h"
 
-struct FCEUFILE;
-
 void FCEUMOV_AddInputState();
-void FCEUMOV_AddCommand(int cmd);
-void FCEU_DrawMovies(uint8 *);
-void FCEU_DrawLagCounter(uint8 *);
 
 // XXX moviemode is always inactive now. simplify -tom7
 enum EMOVIEMODE {
@@ -35,9 +30,6 @@ enum EMOVIECMD {
   MOVIECMD_FDS_INSERT = 4,
   MOVIECMD_FDS_SELECT = 8
 };
-
-void FCEUMOV_PreLoad();
-bool FCEUMOV_PostLoad();
 
 class MovieData;
 class MovieRecord {
@@ -161,7 +153,6 @@ class MovieData {
   };
 
   void truncateAt(int frame);
-  void installValue(std::string& key, std::string& val);
 
   void clearRecordRange(int start, int len);
   void insertEmpty(int at, int frames);
@@ -177,10 +168,10 @@ private:
   }
 };
 
-extern int currFrameCounter;
+
 extern char curMovieFilename[512];
 //--------------------------------------------------
 
-extern const SFORMAT FCEUMOV_STATEINFO[];
+// extern const SFORMAT FCEUMOV_STATEINFO[];
 
 #endif
