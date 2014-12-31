@@ -277,11 +277,9 @@ void FCEU_DrawInput(uint8 *buf) {
 
 void FCEU_UpdateInput() {
   //tell all drivers to poll input and set up their logical states
-  if (!FCEUMOV_Mode(MOVIEMODE_PLAY)) {
-    for (int port=0;port<2;port++)
-      joyports[port].driver->Update(port,joyports[port].ptr,joyports[port].attrib);
-    portFC.driver->Update(portFC.ptr,portFC.attrib);
-  }
+  for (int port=0;port<2;port++)
+    joyports[port].driver->Update(port,joyports[port].ptr,joyports[port].attrib);
+  portFC.driver->Update(portFC.ptr,portFC.attrib);
 
   if (GameInfo->type==GIT_VSUNI)
     if (coinon) coinon--;

@@ -22,41 +22,22 @@ void FCEU_DrawLagCounter(uint8 *);
 
 // XXX moviemode is always inactive now. simplify -tom7
 enum EMOVIEMODE {
-	MOVIEMODE_INACTIVE = 1,
-	MOVIEMODE_RECORD = 2,
-	MOVIEMODE_PLAY = 4,
-	MOVIEMODE_TASEDITOR = 8,
-	MOVIEMODE_FINISHED = 16
+  MOVIEMODE_INACTIVE = 1,
+  MOVIEMODE_RECORD = 2,
+  MOVIEMODE_PLAY = 4,
+  MOVIEMODE_TASEDITOR = 8,
+  MOVIEMODE_FINISHED = 16
 };
 
 enum EMOVIECMD {
-	MOVIECMD_RESET = 1,
-	MOVIECMD_POWER = 2,
-	MOVIECMD_FDS_INSERT = 4,
-	MOVIECMD_FDS_SELECT = 8
+  MOVIECMD_RESET = 1,
+  MOVIECMD_POWER = 2,
+  MOVIECMD_FDS_INSERT = 4,
+  MOVIECMD_FDS_SELECT = 8
 };
 
-EMOVIEMODE FCEUMOV_Mode();
-bool FCEUMOV_Mode(EMOVIEMODE modemask);
-bool FCEUMOV_Mode(int modemask);
-inline bool FCEUMOV_IsPlaying() { return (FCEUMOV_Mode(MOVIEMODE_PLAY|MOVIEMODE_FINISHED)); }
-inline bool FCEUMOV_IsRecording() { return FCEUMOV_Mode(MOVIEMODE_RECORD); }
-inline bool FCEUMOV_IsFinished() { return FCEUMOV_Mode(MOVIEMODE_FINISHED);}
-inline bool FCEUMOV_IsLoaded() { return (FCEUMOV_Mode(MOVIEMODE_PLAY|MOVIEMODE_RECORD|MOVIEMODE_FINISHED)); }
-
-bool FCEUMOV_ShouldPause(void);
-int FCEUMOV_GetFrame(void);
-int FCEUI_GetLagCount(void);
-bool FCEUI_GetLagged(void);
-void FCEUI_SetLagFlag(bool value);
-
-bool FCEUMOV_ReadState(EMUFILE* is, uint32 size);
 void FCEUMOV_PreLoad();
 bool FCEUMOV_PostLoad();
-
-bool FCEUMOV_FromPoweron();
-
-void FCEUMOV_CreateCleanMovie();
 
 class MovieData;
 class MovieRecord {
@@ -196,15 +177,9 @@ private:
   }
 };
 
-extern MovieData currMovieData;
 extern int currFrameCounter;
 extern char curMovieFilename[512];
-extern bool freshMovie;
-extern bool movie_readonly;
-extern bool autoMovieBackup;
-extern bool fullSaveStateLoads;
 //--------------------------------------------------
-void FCEUI_StopMovie(void);
 
 extern const SFORMAT FCEUMOV_STATEINFO[];
 

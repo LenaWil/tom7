@@ -203,9 +203,8 @@ static bool ReadStateChunks(EMUFILE* is, int32 totalsize) {
     case 31:if (!ReadStateChunk(is,FCEU_NEWPPU_STATEINFO,size)) ret=false;break;
     case 4:if (!ReadStateChunk(is,FCEUINPUT_STATEINFO,size)) ret=false;break;
     case 7:
-      if (!FCEUMOV_ReadState(is,size)) {
-	ret = false;
-      }
+      fprintf(stderr, "This used to be mid-movie recording. -tom7.\n");
+      abort();
       break;
     case 0x10:if (!ReadStateChunk(is,SFMDATA,size)) ret=false; break;
 
@@ -217,11 +216,8 @@ static bool ReadStateChunks(EMUFILE* is, int32 totalsize) {
 	read_snd=1;
       break;
     case 6:
-      if (FCEUMOV_Mode(MOVIEMODE_PLAY|MOVIEMODE_RECORD|MOVIEMODE_FINISHED)) {
-	if (!ReadStateChunk(is,FCEUMOV_STATEINFO,size)) ret=false;
-      } else {
-	is->fseek(size,SEEK_CUR);
-      }
+      is->fseek(size,SEEK_CUR);
+
       break;
     case 8:
       // load back buffer
