@@ -603,45 +603,40 @@ void FCEUI_ToggleEmulationPause() {
 
 bool FCEU_IsValidUI(EFCEUI ui) {
   switch(ui) {
-    case FCEUI_OPENGAME:
-    case FCEUI_CLOSEGAME:
-      if (FCEUMOV_Mode(MOVIEMODE_TASEDITOR)) return false;
-      break;
-    case FCEUI_RECORDMOVIE:
-    case FCEUI_PLAYMOVIE:
-    case FCEUI_QUICKSAVE:
-    case FCEUI_QUICKLOAD:
-    case FCEUI_SAVESTATE:
-    case FCEUI_LOADSTATE:
-    case FCEUI_NEXTSAVESTATE:
-    case FCEUI_PREVIOUSSAVESTATE:
-    case FCEUI_VIEWSLOTS:
-      if (!GameInfo) return false;
-      if (FCEUMOV_Mode(MOVIEMODE_TASEDITOR)) return false;
-      break;
+  case FCEUI_OPENGAME:
+  case FCEUI_CLOSEGAME:
+    break;
+  case FCEUI_RECORDMOVIE:
+  case FCEUI_PLAYMOVIE:
+  case FCEUI_QUICKSAVE:
+  case FCEUI_QUICKLOAD:
+  case FCEUI_SAVESTATE:
+  case FCEUI_LOADSTATE:
+  case FCEUI_NEXTSAVESTATE:
+  case FCEUI_PREVIOUSSAVESTATE:
+  case FCEUI_VIEWSLOTS:
+    if (!GameInfo) return false;
+    break;
 
-    case FCEUI_STOPMOVIE:
-      return (FCEUMOV_Mode(MOVIEMODE_PLAY|MOVIEMODE_RECORD|MOVIEMODE_FINISHED));
+  case FCEUI_STOPMOVIE:
+    return false;
 
-    case FCEUI_PLAYFROMBEGINNING:
-      return (FCEUMOV_Mode(MOVIEMODE_PLAY|MOVIEMODE_RECORD|MOVIEMODE_TASEDITOR|MOVIEMODE_FINISHED));
+  case FCEUI_PLAYFROMBEGINNING:
+    return false;
 
-    case FCEUI_STOPAVI:
-      return FCEUI_AviIsRecording();
+  case FCEUI_STOPAVI:
+    return FCEUI_AviIsRecording();
 
-    case FCEUI_TASEDITOR:
-      if (!GameInfo) return false;
-      break;
+  case FCEUI_TASEDITOR:
+    if (!GameInfo) return false;
+    break;
 
-    case FCEUI_RESET:
-    case FCEUI_POWER:
-    case FCEUI_EJECT_DISK:
-    case FCEUI_SWITCH_DISK:
-      if (!GameInfo) return false;
-      if (FCEUMOV_Mode(MOVIEMODE_RECORD)) return true;
-      if (!FCEUMOV_Mode(MOVIEMODE_INACTIVE)) return false;
-      break;
-
-    }
+  case FCEUI_RESET:
+  case FCEUI_POWER:
+  case FCEUI_EJECT_DISK:
+  case FCEUI_SWITCH_DISK:
+    if (!GameInfo) return false;
+    break;
+  }
   return true;
 }
