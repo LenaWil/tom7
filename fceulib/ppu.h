@@ -1,6 +1,8 @@
 #ifndef __PPU_H
 #define __PPU_H
 
+#include "state.h"
+
 void FCEUPPU_Init(void);
 void FCEUPPU_Reset(void);
 void FCEUPPU_Power(void);
@@ -41,5 +43,8 @@ enum PPUPHASE {
 };
 
 extern PPUPHASE ppuphase;
+
+extern const SFORMAT FCEUPPU_STATEINFO[];
+extern const SFORMAT FCEU_NEWPPU_STATEINFO[];
 
 #endif

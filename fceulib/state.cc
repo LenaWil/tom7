@@ -57,14 +57,6 @@ static int SFEXINDEX;
 
 #define RLSB FCEUSTATE_RLSB	//0x80000000
 
-
-extern const SFORMAT FCEUPPU_STATEINFO[];
-extern const SFORMAT FCEU_NEWPPU_STATEINFO[];
-extern const SFORMAT FCEUSND_STATEINFO[];
-extern const SFORMAT FCEUCTRL_STATEINFO[];
-extern SFORMAT FCEUMOV_STATEINFO[];
-
-
 static constexpr SFORMAT SFCPU[] = {
   { &X.PC, 2|RLSB, "PC\0"},
   { &X.A, 1, "A\0\0"},
@@ -209,7 +201,7 @@ static bool ReadStateChunks(EMUFILE* is, int32 totalsize) {
     case 1:if (!ReadStateChunk(is,SFCPU,size)) ret=false;break;
     case 3:if (!ReadStateChunk(is,FCEUPPU_STATEINFO,size)) ret=false;break;
     case 31:if (!ReadStateChunk(is,FCEU_NEWPPU_STATEINFO,size)) ret=false;break;
-    case 4:if (!ReadStateChunk(is,FCEUCTRL_STATEINFO,size)) ret=false;break;
+    case 4:if (!ReadStateChunk(is,FCEUINPUT_STATEINFO,size)) ret=false;break;
     case 7:
       if (!FCEUMOV_ReadState(is,size)) {
 	ret = false;
@@ -279,7 +271,7 @@ bool FCEUSS_SaveRAW(std::vector<uint8> *out) {
   // PERF: I think not. PPU data is large; should definitely try
   // removing this (or even removing code support for new ppu)
   totalsize += WriteStateChunk(&os,31,FCEU_NEWPPU_STATEINFO);
-  totalsize += WriteStateChunk(&os,4,FCEUCTRL_STATEINFO);
+  totalsize += WriteStateChunk(&os,4,FCEUINPUT_STATEINFO);
   totalsize += WriteStateChunk(&os,5,FCEUSND_STATEINFO);
 
   if (SPreSave) SPreSave();
