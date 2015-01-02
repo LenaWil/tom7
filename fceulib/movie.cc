@@ -65,16 +65,6 @@ void MovieRecord::Clone(MovieRecord& sourceRec) {
   this->commands = sourceRec.commands;
 }
 
-MovieData::MovieData()
-	: emuVersion(FCEU_VERSION_NUMERIC)
-	, palFlag(false)
-	, PPUflag(false)
-	, rerecordCount(0)
-	, binaryFlag(false)
-	, loadFrameCount(-1) {
-  memset(&romChecksum,0,sizeof(MD5DATA));
-}
-
 // the main interaction point between the emulator and the movie system.
 // either dumps the current joystick state or loads one state from the movie
 // TODO - just do this at the call site.
