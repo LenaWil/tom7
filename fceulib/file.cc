@@ -53,28 +53,24 @@ char FileBase[2048];
 static char FileBaseDirectory[2048];
 
 string FCEU_MakeIpsFilename(FileBaseInfo fbi) {
-	char ret[FILENAME_MAX] = "";
-	sprintf(ret,"%s" PSS "%s%s.ips",fbi.filebasedirectory.c_str(),fbi.filebase.c_str(),fbi.ext.c_str());
-	return ret;
+  char ret[FILENAME_MAX] = "";
+  sprintf(ret,"%s" PSS "%s%s.ips",fbi.filebasedirectory.c_str(),fbi.filebase.c_str(),fbi.ext.c_str());
+  return ret;
 }
 
 // Can probably go. -tom7
 static void FCEU_SplitArchiveFilename(string src, string& archive, 
-				      string& file, string& fileToOpen)
-{
-	size_t pipe = src.find_first_of('|');
-	if(pipe == string::npos)
-	{
-		archive = "";
-		file = src;
-		fileToOpen = src;
-	}
-	else
-	{
-		archive = src.substr(0,pipe);
-		file = src.substr(pipe+1);
-		fileToOpen = archive;
-	}
+				      string& file, string& fileToOpen) {
+  size_t pipe = src.find_first_of('|');
+  if (pipe == string::npos) {
+    archive = "";
+    file = src;
+    fileToOpen = src;
+  } else {
+    archive = src.substr(0,pipe);
+    file = src.substr(pipe+1);
+    fileToOpen = archive;
+  }
 }
 
 FileBaseInfo CurrentFileBase() {
@@ -86,7 +82,7 @@ FileBaseInfo DetermineFileBase(const char *f) {
 	char drv[PATH_MAX], dir[PATH_MAX], name[PATH_MAX], ext[PATH_MAX];
 	splitpath(f,drv,dir,name,ext);
 
-        if(dir[0] == 0) strcpy(dir,".");
+        if (dir[0] == 0) strcpy(dir,".");
 
 	return FileBaseInfo((string)drv + dir,name,ext);
 
@@ -100,7 +96,7 @@ FCEUFILE *FCEU_fopen(const char *path, char *mode, char *ext, int index,
 
   bool read = (string)mode == "rb";
   bool write = (string)mode == "wb";
-  if((read&&write) || (!read&&!write)) {
+  if ((read&&write) || (!read&&!write)) {
     FCEU_PrintError("invalid file open mode specified (only wb and rb are supported)");
     return 0;
   }
@@ -116,14 +112,14 @@ FCEUFILE *FCEU_fopen(const char *path, char *mode, char *ext, int index,
 
   ArchiveScanRecord asr = FCEUD_ScanArchive(fileToOpen);
   asr.files.FilterByExtension(extensions);
-  if(asr.isArchive()) {
+  if (asr.isArchive()) {
     // Archive files are no longer supported. -tom7
     return nullptr;
   }
 
   //if the archive contained no files, try to open it the old fashioned way
   EMUFILE_FILE* fp = FCEUD_UTF8_fstream(fileToOpen,mode);
-  if(!fp || (fp->get_fp() == NULL)) {
+  if (!fp || (fp->get_fp() == NULL)) {
     return 0;
   }
 
@@ -139,7 +135,6 @@ FCEUFILE *FCEU_fopen(const char *path, char *mode, char *ext, int index,
     magic|=fp->fgetc()<<8;
     magic|=fp->fgetc()<<16;
     fp->fseek(0,SEEK_SET);
-
   }
 
   // open a plain old file
@@ -208,299 +203,249 @@ uint64 FCEU_fgetsize(FCEUFILE *fp)
 
 int FCEU_fisarchive(FCEUFILE *fp)
 {
-	if(fp->archiveIndex==0) return 0;
+	if (fp->archiveIndex==0) return 0;
 	else return 1;
 }
 
-string GetMfn() //Retrieves the movie filename from curMovieFilename (for adding to savestate and auto-save files)
-{
-	string movieFilenamePart;
-	extern char curMovieFilename[512];
-	if(*curMovieFilename)
-		{
-		char drv[PATH_MAX], dir[PATH_MAX], name[PATH_MAX], ext[PATH_MAX];
-		splitpath(curMovieFilename,drv,dir,name,ext);
-		movieFilenamePart = string(".") + name;
-		}
-	return movieFilenamePart;
+// Retrieves the movie filename from curMovieFilename (for adding to
+// savestate and auto-save files)
+static string GetMfn() {
+  string movieFilenamePart;
+  extern char curMovieFilename[512];
+  if (*curMovieFilename) {
+    char drv[PATH_MAX], dir[PATH_MAX], name[PATH_MAX], ext[PATH_MAX];
+    splitpath(curMovieFilename,drv,dir,name,ext);
+    movieFilenamePart = string(".") + name;
+  }
+  return movieFilenamePart;
 }
 
 /// Updates the base directory
-void FCEUI_SetBaseDirectory(string const & dir)
-{
-	BaseDirectory = dir;
+void FCEUI_SetBaseDirectory(string const & dir) {
+  BaseDirectory = dir;
 }
 
 // Default directories for various things. Should be able to get
 // rid of this -tom7
 static char *odirs[FCEUIOD__COUNT]={0,};
 
-void FCEUI_SetDirOverride(int which, char *n)
-{
-	//	FCEU_PrintError("odirs[%d]=%s->%s", which, odirs[which], n);
-	if (which < FCEUIOD__COUNT)
-	{
-		odirs[which] = n;
-	}
+void FCEUI_SetDirOverride(int which, char *n) {
+  //	FCEU_PrintError("odirs[%d]=%s->%s", which, odirs[which], n);
+  if (which < FCEUIOD__COUNT) {
+    odirs[which] = n;
+  }
 }
 
 string FCEU_GetPath(int type) {
-	char ret[FILENAME_MAX];
-	switch(type) {
-		case FCEUMKF_STATE:
-			if(odirs[FCEUIOD_STATES])
-				return (odirs[FCEUIOD_STATES]);
-			else
-				return BaseDirectory + PSS + "fcs";
-			break;
-		case FCEUMKF_MOVIE:
-			if(odirs[FCEUIOD_MOVIES])
-				return (odirs[FCEUIOD_MOVIES]);
-			else
-				return BaseDirectory + PSS + "movies";
-			break;
-		case FCEUMKF_MEMW:
-			if(odirs[FCEUIOD_MEMW])
-				return (odirs[FCEUIOD_MEMW]);
-			else
-				return "";	//adelikat: 03/02/09 - return null so it defaults to last directory used
+  char ret[FILENAME_MAX];
+  switch(type) {
+  case FCEUMKF_STATE:
+    if (odirs[FCEUIOD_STATES])
+      return (odirs[FCEUIOD_STATES]);
+    else
+      return BaseDirectory + PSS + "fcs";
+    break;
+  case FCEUMKF_MEMW:
+    if (odirs[FCEUIOD_MEMW])
+      return (odirs[FCEUIOD_MEMW]);
+    else
+      return "";	//adelikat: 03/02/09 - return null so it defaults to last directory used
+    //return BaseDirectory + PSS + "tools";
+    break;
+    //adelikat: TODO: this no longer exist and could be removed (but that would require changing a lot of other directory arrays
+  case FCEUMKF_BBOT:
+    if (odirs[FCEUIOD_BBOT])
+      return (odirs[FCEUIOD_BBOT]);
+    else
+      return BaseDirectory + PSS + "tools";
+    break;
+  case FCEUMKF_ROMS:
+    if (odirs[FCEUIOD_ROMS])
+      return (odirs[FCEUIOD_ROMS]);
+    else
+      return "";	//adelikat: removing base directory return, should return null it goes to last used directory
+    break;
+  case FCEUMKF_INPUT:
+    if (odirs[FCEUIOD_INPUT])
+      return (odirs[FCEUIOD_INPUT]);
+    else
+      return BaseDirectory + PSS + "tools";
+    break;
+  case FCEUMKF_AVI:
+    if (odirs[FCEUIOD_AVI])
+      return (odirs[FCEUIOD_AVI]);
+    else
+      return "";		//adelikat - 03/02/09 - if no override, should return null and allow the last directory to be used intead
 				//return BaseDirectory + PSS + "tools";
-			break;
-		//adelikat: TODO: this no longer exist and could be removed (but that would require changing a lot of other directory arrays
-		case FCEUMKF_BBOT:
-			if(odirs[FCEUIOD_BBOT])
-				return (odirs[FCEUIOD_BBOT]);
-			else
-				return BaseDirectory + PSS + "tools";
-			break;
-		case FCEUMKF_ROMS:
-			if(odirs[FCEUIOD_ROMS])
-				return (odirs[FCEUIOD_ROMS]);
-			else
-				return "";	//adelikat: removing base directory return, should return null it goes to last used directory
-			break;
-		case FCEUMKF_INPUT:
-			if(odirs[FCEUIOD_INPUT])
-				return (odirs[FCEUIOD_INPUT]);
-			else
-				return BaseDirectory + PSS + "tools";
-			break;
-		case FCEUMKF_AVI:
-			if(odirs[FCEUIOD_AVI])
-				return (odirs[FCEUIOD_AVI]);
-			else
-				return "";		//adelikat - 03/02/09 - if no override, should return null and allow the last directory to be used intead
-				//return BaseDirectory + PSS + "tools";
-			break;
-		case FCEUMKF_TASEDITOR:
-			return BaseDirectory + PSS + "tools";
+    break;
+  case FCEUMKF_TASEDITOR:
+    return BaseDirectory + PSS + "tools";
 
-	}
+  }
 
-	return ret;
+  return ret;
 }
 
 string FCEU_MakePath(int type, const char* filebase) {
-	char ret[FILENAME_MAX];
+  char ret[FILENAME_MAX];
 
-	switch(type) {
-		case FCEUMKF_MOVIE:
-			if(odirs[FCEUIOD_MOVIES])
-				return (string)odirs[FCEUIOD_MOVIES] + PSS + filebase;
-			else
-				return BaseDirectory + PSS + "movies" + PSS + filebase;
-			break;
-		case FCEUMKF_STATE:
-			if(odirs[FCEUIOD_STATES])
-				return (string)odirs[FCEUIOD_STATES] + PSS + filebase;
-			else
-				return BaseDirectory + PSS + "fcs" + PSS + filebase;
-			break;
-	}
-	return ret;
+  switch(type) {
+  case FCEUMKF_STATE:
+    if (odirs[FCEUIOD_STATES])
+      return (string)odirs[FCEUIOD_STATES] + PSS + filebase;
+    else
+      return BaseDirectory + PSS + "fcs" + PSS + filebase;
+    break;
+  }
+  return ret;
 }
 
 string FCEU_MakeFName(int type, int id1, const char *cd1) {
-	char ret[FILENAME_MAX] = "";
-	struct stat tmpstat;
-	string mfnString;
-	const char* mfn;	// the movie filename
+  char ret[FILENAME_MAX] = "";
+  struct stat tmpstat;
+  string mfnString;
+  const char* mfn;	// the movie filename
 
-	switch(type) {
-		case FCEUMKF_MOVIE:
-			struct stat fileInfo;
-			do {
-				if(odirs[FCEUIOD_MOVIES])
-					sprintf(ret,"%s" PSS "%s-%d.fm2",
-						odirs[FCEUIOD_MOVIES],
-						FileBase, id1);
-				else
-					sprintf(ret,"%s" PSS "movies" PSS 
-						"%s-%d.fm2",
-						BaseDirectory.c_str(),
-						FileBase, id1);
-				id1++;
-			} while (stat(ret, &fileInfo) == 0);
-			break;
-		case FCEUMKF_STATE:
-			{
-				if (bindSavestate)
-					mfnString = GetMfn();
-				else
-					mfnString = "";
+  switch(type) {
+  case FCEUMKF_STATE:
+    {
+      if (bindSavestate)
+	mfnString = GetMfn();
+      else
+	mfnString = "";
 
-				if (mfnString.length() <= MAX_MOVIEFILENAME_LEN)
-				{
-					mfn = mfnString.c_str();
-				} else
-				{
-					//This caps the movie filename length before adding it to the savestate filename.
-					//This helps prevent possible crashes from savestate filenames of excessive length.
-					mfnString = mfnString.substr(0, MAX_MOVIEFILENAME_LEN);
-					mfn = mfnString.c_str();
-				}
+      if (mfnString.length() <= MAX_MOVIEFILENAME_LEN) {
+	mfn = mfnString.c_str();
+      } else {
+	//This caps the movie filename length before adding it to the savestate filename.
+	//This helps prevent possible crashes from savestate filenames of excessive length.
+	mfnString = mfnString.substr(0, MAX_MOVIEFILENAME_LEN);
+	mfn = mfnString.c_str();
+      }
 
-				if(odirs[FCEUIOD_STATES])
-				{
-					sprintf(ret,"%s" PSS "%s%s.fc%d",
-						odirs[FCEUIOD_STATES],
-						FileBase,mfn,id1);
-				}
-				else
-				{
-					sprintf(ret,"%s" PSS "fcs" PSS 
-						"%s%s.fc%d",
-						BaseDirectory.c_str(),
-						FileBase,mfn,id1);
-				}
-				if(stat(ret,&tmpstat)==-1)
-				{
-					if(odirs[FCEUIOD_STATES])
-					{
-						sprintf(ret,"%s" PSS "%s%s.fc%d",odirs[FCEUIOD_STATES],FileBase,mfn,id1);
-					}
-					else
-					{
-						sprintf(ret,"%s" PSS "fcs" PSS "%s%s.fc%d",BaseDirectory.c_str(),FileBase,mfn,id1);
-					}
-				}
-			}
-			break;
-		case FCEUMKF_SNAP:
-			if(odirs[FCEUIOD_SNAPS])
-				sprintf(ret,"%s" PSS "%s-%d.%s",odirs[FCEUIOD_SNAPS],FileBase,id1,cd1);
-			else
-				sprintf(ret,"%s" PSS "snaps" PSS "%s-%d.%s",BaseDirectory.c_str(),FileBase,id1,cd1);
-			break;
-		case FCEUMKF_FDS:
-			if(odirs[FCEUIOD_NV])
-				sprintf(ret,"%s" PSS "%s.fds",odirs[FCEUIOD_NV],FileBase);
-			else
-				sprintf(ret,"%s" PSS "sav" PSS "%s.fds",BaseDirectory.c_str(),FileBase);
-			break;
-		case FCEUMKF_SAV:
-			if(odirs[FCEUIOD_NV])
-				sprintf(ret,"%s" PSS "%s.%s",odirs[FCEUIOD_NV],FileBase,cd1);
-			else
-				sprintf(ret,"%s" PSS "sav" PSS "%s.%s",BaseDirectory.c_str(),FileBase,cd1);
-			if(stat(ret,&tmpstat)==-1)
-			{
-				if(odirs[FCEUIOD_NV])
-					sprintf(ret,"%s" PSS "%s.%s",odirs[FCEUIOD_NV],FileBase,cd1);
-				else
-					sprintf(ret,"%s" PSS "sav" PSS "%s.%s",BaseDirectory.c_str(),FileBase,cd1);
-			}
-			break;
-		case FCEUMKF_AUTOSTATE:
-			mfnString = GetMfn();
-			mfn = mfnString.c_str();
-			if(odirs[FCEUIOD_STATES])
-			{
-				sprintf(ret,"%s" PSS "%s%s-autosave%d.fcs",odirs[FCEUIOD_STATES],FileBase,mfn,id1);
-			}
-			else
-			{
-				sprintf(ret,"%s" PSS "fcs" PSS "%s%s-autosave%d.fcs",BaseDirectory.c_str(),FileBase,mfn,id1);
-			}
-			if(stat(ret,&tmpstat)==-1)
-			{
-				if(odirs[FCEUIOD_STATES])
-				{
-					sprintf(ret,"%s" PSS "%s%s-autosave%d.fcs",odirs[FCEUIOD_STATES],FileBase,mfn,id1);
-				}
-				else
-				{
-					sprintf(ret,"%s" PSS "fcs" PSS "%s%s-autosave%d.fcs",BaseDirectory.c_str(),FileBase,mfn,id1);
-				}
-			}
-			break;
-		case FCEUMKF_CHEAT:
-			if(odirs[FCEUIOD_CHEATS])
-				sprintf(ret,"%s" PSS "%s.cht",odirs[FCEUIOD_CHEATS],FileBase);
-			else
-				sprintf(ret,"%s" PSS "cheats" PSS "%s.cht",BaseDirectory.c_str(),FileBase);
-			break;
-		case FCEUMKF_GGROM:sprintf(ret,"%s" PSS "gg.rom",BaseDirectory.c_str());break;
-		case FCEUMKF_FDSROM:
-			if(odirs[FCEUIOD_FDSROM])
-				sprintf(ret,"%s" PSS "disksys.rom",odirs[FCEUIOD_FDSROM]);
-			else
-				sprintf(ret,"%s" PSS "disksys.rom",BaseDirectory.c_str());
-			break;
-		case FCEUMKF_PALETTE:sprintf(ret,"%s" PSS "%s.pal",BaseDirectory.c_str(),FileBase);break;
-		case FCEUMKF_MOVIEGLOB:
-			//these globs use ??? because we can load multiple formats
-			if(odirs[FCEUIOD_MOVIES])
-				sprintf(ret,"%s" PSS "*.???",odirs[FCEUIOD_MOVIES]);
-			else
-				sprintf(ret,"%s" PSS "movies" PSS "*.???",BaseDirectory.c_str());
-			break;
-		case FCEUMKF_MOVIEGLOB2:sprintf(ret,"%s" PSS "*.???",BaseDirectory.c_str());break;
-		case FCEUMKF_STATEGLOB:
-			if(odirs[FCEUIOD_STATES])
-				sprintf(ret,"%s" PSS "%s*.fc?",odirs[FCEUIOD_STATES],FileBase);
-			else
-				sprintf(ret,"%s" PSS "fcs" PSS "%s*.fc?",BaseDirectory.c_str(),FileBase);
-			break;
+      if (odirs[FCEUIOD_STATES]) {
+	sprintf(ret,"%s" PSS "%s%s.fc%d",
+		odirs[FCEUIOD_STATES],
+		FileBase,mfn,id1);
+      } else {
+	sprintf(ret,"%s" PSS "fcs" PSS 
+		"%s%s.fc%d",
+		BaseDirectory.c_str(),
+		FileBase,mfn,id1);
+      }
+      if (stat(ret,&tmpstat)==-1) {
+	if (odirs[FCEUIOD_STATES]) {
+	  sprintf(ret,"%s" PSS "%s%s.fc%d",odirs[FCEUIOD_STATES],FileBase,mfn,id1);
+	} else {
+	  sprintf(ret,"%s" PSS "fcs" PSS "%s%s.fc%d",BaseDirectory.c_str(),FileBase,mfn,id1);
 	}
+      }
+    }
+    break;
+  case FCEUMKF_SNAP:
+    if (odirs[FCEUIOD_SNAPS])
+      sprintf(ret,"%s" PSS "%s-%d.%s",odirs[FCEUIOD_SNAPS],FileBase,id1,cd1);
+    else
+      sprintf(ret,"%s" PSS "snaps" PSS "%s-%d.%s",BaseDirectory.c_str(),FileBase,id1,cd1);
+    break;
+  case FCEUMKF_FDS:
+    if (odirs[FCEUIOD_NV])
+      sprintf(ret,"%s" PSS "%s.fds",odirs[FCEUIOD_NV],FileBase);
+    else
+      sprintf(ret,"%s" PSS "sav" PSS "%s.fds",BaseDirectory.c_str(),FileBase);
+    break;
+  case FCEUMKF_SAV:
+    if (odirs[FCEUIOD_NV])
+      sprintf(ret,"%s" PSS "%s.%s",odirs[FCEUIOD_NV],FileBase,cd1);
+    else
+      sprintf(ret,"%s" PSS "sav" PSS "%s.%s",BaseDirectory.c_str(),FileBase,cd1);
+    if (stat(ret,&tmpstat)==-1)
+      {
+	if (odirs[FCEUIOD_NV])
+	  sprintf(ret,"%s" PSS "%s.%s",odirs[FCEUIOD_NV],FileBase,cd1);
+	else
+	  sprintf(ret,"%s" PSS "sav" PSS "%s.%s",BaseDirectory.c_str(),FileBase,cd1);
+      }
+    break;
+  case FCEUMKF_AUTOSTATE:
+    mfnString = GetMfn();
+    mfn = mfnString.c_str();
+    if (odirs[FCEUIOD_STATES])
+      {
+	sprintf(ret,"%s" PSS "%s%s-autosave%d.fcs",odirs[FCEUIOD_STATES],FileBase,mfn,id1);
+      }
+    else
+      {
+	sprintf(ret,"%s" PSS "fcs" PSS "%s%s-autosave%d.fcs",BaseDirectory.c_str(),FileBase,mfn,id1);
+      }
+    if (stat(ret,&tmpstat)==-1)
+      {
+	if (odirs[FCEUIOD_STATES])
+	  {
+	    sprintf(ret,"%s" PSS "%s%s-autosave%d.fcs",odirs[FCEUIOD_STATES],FileBase,mfn,id1);
+	  }
+	else
+	  {
+	    sprintf(ret,"%s" PSS "fcs" PSS "%s%s-autosave%d.fcs",BaseDirectory.c_str(),FileBase,mfn,id1);
+	  }
+      }
+    break;
+  case FCEUMKF_CHEAT:
+    if (odirs[FCEUIOD_CHEATS])
+      sprintf(ret,"%s" PSS "%s.cht",odirs[FCEUIOD_CHEATS],FileBase);
+    else
+      sprintf(ret,"%s" PSS "cheats" PSS "%s.cht",BaseDirectory.c_str(),FileBase);
+    break;
+  case FCEUMKF_GGROM:sprintf(ret,"%s" PSS "gg.rom",BaseDirectory.c_str());break;
+  case FCEUMKF_FDSROM:
+    if (odirs[FCEUIOD_FDSROM])
+      sprintf(ret,"%s" PSS "disksys.rom",odirs[FCEUIOD_FDSROM]);
+    else
+      sprintf(ret,"%s" PSS "disksys.rom",BaseDirectory.c_str());
+    break;
+  case FCEUMKF_PALETTE:sprintf(ret,"%s" PSS "%s.pal",BaseDirectory.c_str(),FileBase);break;
+  case FCEUMKF_STATEGLOB:
+    if (odirs[FCEUIOD_STATES])
+      sprintf(ret,"%s" PSS "%s*.fc?",odirs[FCEUIOD_STATES],FileBase);
+    else
+      sprintf(ret,"%s" PSS "fcs" PSS "%s*.fc?",BaseDirectory.c_str(),FileBase);
+    break;
+  }
 
-	//convert | to . for archive filenames.
-	return mass_replace(ret,"|",".");
+  //convert | to . for archive filenames.
+  return mass_replace(ret,"|",".");
 }
 
-void GetFileBase(const char *f)
-{
-	FileBaseInfo fbi = DetermineFileBase(f);
-	strcpy(FileBase,fbi.filebase.c_str());
-	strcpy(FileBaseDirectory,fbi.filebasedirectory.c_str());
+void GetFileBase(const char *f) {
+  FileBaseInfo fbi = DetermineFileBase(f);
+  strcpy(FileBase,fbi.filebase.c_str());
+  strcpy(FileBaseDirectory,fbi.filebasedirectory.c_str());
 }
 
-bool FCEU_isFileInArchive(const char *path)
-{
-	bool isarchive = false;
-	FCEUFILE* fp = FCEU_fopen(path,"rb",0,0);
-	if(fp) {
-		isarchive = fp->isArchive();
-		delete fp;
-	}
-	return isarchive;
+bool FCEU_isFileInArchive(const char *path) {
+  bool isarchive = false;
+  FCEUFILE* fp = FCEU_fopen(path,"rb",0,0);
+  if (fp) {
+    isarchive = fp->isArchive();
+    delete fp;
+  }
+  return isarchive;
 }
 
 
 
-void FCEUARCHIVEFILEINFO::FilterByExtension(const char** ext)
-{
-	if(!ext) return;
-	int count = size();
-	for(int i=count-1;i>=0;i--) {
-		string fext = getExtension((*this)[i].name.c_str());
-		const char** currext = ext;
-		while(*currext) {
-			if(fext == *currext)
-				goto ok;
-			currext++;
-		}
-		this->erase(begin()+i);
-	ok: ;
-	}
+void FCEUARCHIVEFILEINFO::FilterByExtension(const char** ext) {
+  if (!ext) return;
+  int count = size();
+  for (int i=count-1;i>=0;i--) {
+    string fext = getExtension((*this)[i].name.c_str());
+    const char** currext = ext;
+    while (*currext) {
+      if (fext == *currext)
+	goto ok;
+      currext++;
+    }
+    this->erase(begin()+i);
+  ok:;
+  }
 }

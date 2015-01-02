@@ -142,7 +142,6 @@ void GetFileBase(const char *f);
 std::string FCEU_GetPath(int type);
 std::string FCEU_MakePath(int type, const char* filebase);
 std::string FCEU_MakeFName(int type, int id1, const char *cd1);
-std::string GetMfn();
 
 #define FCEUMKF_STATE        1
 #define FCEUMKF_SNAP         2
@@ -151,13 +150,8 @@ std::string GetMfn();
 #define FCEUMKF_FDSROM       5
 #define FCEUMKF_PALETTE      6
 #define FCEUMKF_GGROM        7
-// #define FCEUMKF_IPS          8
 #define FCEUMKF_FDS          9
-#define FCEUMKF_MOVIE        10
-//#define FCEUMKF_NPTEMP       11 //mbg 6/21/08 - who needs this..?
-#define FCEUMKF_MOVIEGLOB    12
 #define FCEUMKF_STATEGLOB    13
-#define FCEUMKF_MOVIEGLOB2   14
 #define FCEUMKF_AUTOSTATE	 15
 #define FCEUMKF_MEMW         16
 #define FCEUMKF_BBOT         17
