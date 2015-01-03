@@ -1,4 +1,4 @@
-#define SQ2NCOEFFS 1024
+#include "fcoeff-constants.h"
 
 static constexpr int32 SQ2C44100NTSC[SQ2NCOEFFS/2]=
 {
@@ -29,8 +29,6 @@ static constexpr int32 SQ2C96000PAL[SQ2NCOEFFS/2]=
 {
  #include "fir/c96000pal.h"
 };
-
-#define NCOEFFS 484
 
 /* 96000hz filter could probably be improved. */
 

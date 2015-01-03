@@ -189,8 +189,6 @@ static bool ReadStateChunks(EMUFILE* is, int32 totalsize) {
   bool ret=true;
   bool warned=false;
 
-  int read_snd=0;
-
   while (totalsize > 0) {
     int t = is->fgetc();
     if (t==EOF) break;
@@ -198,26 +196,36 @@ static bool ReadStateChunks(EMUFILE* is, int32 totalsize) {
     totalsize -= size + 5;
 
     switch (t) {
-    case 1:if (!ReadStateChunk(is,SFCPU,size)) ret=false;break;
-    case 3:if (!ReadStateChunk(is,FCEUPPU_STATEINFO,size)) ret=false;break;
-    case 31:if (!ReadStateChunk(is,FCEU_NEWPPU_STATEINFO,size)) ret=false;break;
-    case 4:if (!ReadStateChunk(is,FCEUINPUT_STATEINFO,size)) ret=false;break;
+    case 1:
+      if (!ReadStateChunk(is,SFCPU,size))
+	ret=false;
+      break;
+    case 3:
+      if (!ReadStateChunk(is,FCEUPPU_STATEINFO,size))
+	ret=false;
+      break;
+    case 31:
+      if (!ReadStateChunk(is,FCEU_NEWPPU_STATEINFO,size))
+	ret=false;
+      break;
+    case 4:
+      if (!ReadStateChunk(is,FCEUINPUT_STATEINFO,size))
+	ret=false;
+      break;
     case 7:
       fprintf(stderr, "This used to be mid-movie recording. -tom7.\n");
       abort();
       break;
-    case 0x10:if (!ReadStateChunk(is,SFMDATA,size)) ret=false; break;
-
-      // now it gets hackier:
+    case 0x10:
+      if (!ReadStateChunk(is,SFMDATA,size))
+	ret=false;
+      break;
     case 5:
       if (!ReadStateChunk(is,FCEUSND_STATEINFO,size))
 	ret=false;
-      else
-	read_snd=1;
       break;
     case 6:
       is->fseek(size,SEEK_CUR);
-
       break;
     case 8:
       // load back buffer
@@ -233,6 +241,8 @@ static bool ReadStateChunks(EMUFILE* is, int32 totalsize) {
       break;
     default:
       // for somebody's sanity's sake, at least warn about it:
+      // XXX should probably just abort here since we don't try to provide
+      // save-state compatibility. -tom7
       if (!warned) {
 	char str [256];
 	sprintf(str, "Warning: Found unknown save chunk of type %d.\n"
@@ -245,9 +255,6 @@ static bool ReadStateChunks(EMUFILE* is, int32 totalsize) {
       is->fseek(size,SEEK_CUR);
     }
   }
-
-  extern int resetDMCacc;
-  resetDMCacc = !!read_snd;
 
   return ret;
 }

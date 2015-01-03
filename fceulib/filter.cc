@@ -9,18 +9,10 @@
 #include "fceu.h"
 #include "filter.h"
 
+// Maybe should be called "fcoeffs.inc" -tom7
 #include "fcoeffs.h"
 
-static int32 sq2coeffs[SQ2NCOEFFS];
-static int32 coeffs[NCOEFFS];
-
-static uint32 mrindex;
-static uint32 mrratio;
-
-static int64 sexyfilter2_acc = 0;
-static int64 sexyfilter_acc1 = 0, sexyfilter_acc2 = 0;
-
-static void SexyFilter2(int32 *in, int32 count) {
+void Filter::SexyFilter2(int32 *in, int32 count) {
   while (count--) {
     const int64 dropcurrent = ((*in<<16)-sexyfilter2_acc)>>3;
 
@@ -30,7 +22,7 @@ static void SexyFilter2(int32 *in, int32 count) {
   }
 }
 
-void SexyFilter(int32 *in, int32 *out, int32 count) {
+void Filter::SexyFilter(int32 *in, int32 *out, int32 count) {
   int32 mul1,mul2,vmul;
 
   mul1=(94<<16)/FSettings.SndRate;
@@ -68,7 +60,7 @@ void SexyFilter(int32 *in, int32 *out, int32 count) {
    code to be higher, or you *might* overflow the FIR code.
 */
 
-int32 NeoFilterSound(int32 *in, int32 *out, uint32 inlen, int32 *leftover) {
+int32 Filter::NeoFilterSound(int32 *in, int32 *out, uint32 inlen, int32 *leftover) {
   // Used outside loops -tom7
   uint32 x;
   int32 *outsave=out;
@@ -131,7 +123,7 @@ int32 NeoFilterSound(int32 *in, int32 *out, uint32 inlen, int32 *leftover) {
   return count;
 }
 
-void MakeFilters(int32 rate) {
+void Filter::MakeFilters(int32 rate) {
   const int32 *tabs[6]={C44100NTSC,C44100PAL,C48000NTSC,C48000PAL,C96000NTSC,
 			C96000PAL};
   const int32 *sq2tabs[6]={SQ2C44100NTSC,SQ2C44100PAL,SQ2C48000NTSC,SQ2C48000PAL,
@@ -152,3 +144,5 @@ void MakeFilters(int32 rate) {
     for (int32 x = 0; x < NCOEFFS>>1; x++)
       coeffs[x]=coeffs[NCOEFFS-1-x]=tmp[x];
 }
+
+Filter fceulib__filter;
