@@ -143,6 +143,8 @@ std::string FCEU_GetPath(int type);
 std::string FCEU_MakePath(int type, const char* filebase);
 std::string FCEU_MakeFName(int type, int id1, const char *cd1);
 
+extern char curMovieFilename[512];
+
 #define FCEUMKF_STATE        1
 #define FCEUMKF_SNAP         2
 #define FCEUMKF_SAV          3

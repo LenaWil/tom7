@@ -40,11 +40,13 @@
 #include "types.h"
 #include "fceu.h"
 #include "state.h"
-#include "movie.h"
 #include "driver.h"
 #include "utils/xstring.h"
 
 using namespace std;
+
+// From movie. Get rid of it. -tom7
+char curMovieFilename[512] = {0};
 
 bool bindSavestate = true;	//Toggle that determines if a savestate filename will include the movie filename
 static string BaseDirectory;

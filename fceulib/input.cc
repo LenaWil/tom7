@@ -28,7 +28,6 @@
 
 #include "fceu.h"
 #include "sound.h"
-#include "movie.h"
 #include "state.h"
 #include "input/zapper.h"
 #include "input.h"
@@ -288,7 +287,9 @@ void FCEU_UpdateInput() {
   if (GameInfo->type==GIT_VSUNI)
     if (coinon) coinon--;
 
-  FCEUMOV_AddInputState();
+  // This saved it for display, and copied it from the movie if playing. Don't
+  // need that any more as it's driven externally. -tom7
+  // FCEUMOV_AddInputState();
 
   //TODO - should this apply to the movie data? should this be displayed in the input hud?
   if (GameInfo->type==GIT_VSUNI)
@@ -460,7 +461,6 @@ const SFORMAT FCEUINPUT_STATEINFO[] = {
   { &ZD[1].bogo,	1, "ZBG1"},
   { &lagFlag,		1, "LAGF"},
   { &lagCounter,	4, "LAGC"},
-  // { &currFrameCounter,  4, "FRAM"},
   { 0 }
 };
 
