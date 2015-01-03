@@ -40,17 +40,17 @@ static int ntsctint=46+10;
 static int ntschue=72;
 
 /* These are dynamically filled/generated palettes: */
-pal palettei[64];       // Custom palette for an individual game.
-pal palettec[64];       // Custom "global" palette.
-pal paletten[64];       // Mathematically generated palette.
+PaletteEntry palettei[64];       // Custom palette for an individual game.
+PaletteEntry palettec[64];       // Custom "global" palette.
+PaletteEntry paletten[64];       // Mathematically generated palette.
 
 static void CalculatePalette();
 static void ChoosePalette();
 static void WritePalette();
 uint8 pale = 0;
 
-const pal *palo = nullptr;
-static const pal *palpoint[8]= {
+const PaletteEntry *palo = nullptr;
+static const PaletteEntry *palpoint[8]= {
   palette,
   rp2c04001,
   rp2c04002,

@@ -3,11 +3,11 @@
 
 // struct Palette {
 
-struct pal {
+struct PaletteEntry {
   uint8 r,g,b;
 };
 
-extern const pal *palo;
+extern const PaletteEntry *palo;
 extern uint8 pale;
 void FCEU_ResetPalette(void);
 

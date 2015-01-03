@@ -1,19 +1,19 @@
-static constexpr pal rp2c04001[64] = {
+static constexpr PaletteEntry rp2c04001[64] = {
  #include "rp2c04001.h"
 };
 
-static constexpr pal rp2c04002[64] = {
+static constexpr PaletteEntry rp2c04002[64] = {
  #include "rp2c04002.h"
 };
 
-static constexpr pal rp2c04003[64] = {
+static constexpr PaletteEntry rp2c04003[64] = {
  #include "rp2c04003.h"
 };
-static constexpr pal rp2c05004[64] = {
+static constexpr PaletteEntry rp2c05004[64] = {
  #include "rp2c05004.h"
 };
 
-static constexpr pal unvpalette[7] = {
+static constexpr PaletteEntry unvpalette[7] = {
   { 0x00<<2,0x00<<2,0x00<<2}, // Black
   { 0x3F<<2,0x3F<<2,0x34<<2}, // White
   { 0x00<<2,0x00<<2,0x00<<2}, // Black
@@ -24,7 +24,7 @@ static constexpr pal unvpalette[7] = {
 };
 
 // Default palette 
-static constexpr pal palette[64] = {
+static constexpr PaletteEntry palette[64] = {
   { 0x1D<<2, 0x1D<<2, 0x1D<<2 }, /* Value 0 */
   { 0x09<<2, 0x06<<2, 0x23<<2 }, /* Value 1 */
   { 0x00<<2, 0x00<<2, 0x2A<<2 }, /* Value 2 */
