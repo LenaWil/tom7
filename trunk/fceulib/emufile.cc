@@ -24,6 +24,7 @@ THE SOFTWARE.
 #include "emufile.h"
 #include "utils/xstring.h"
 
+#if 0
 bool EMUFILE::readAllBytes(std::vector<uint8>* dstbuf, const std::string& fname)
 {
 	EMUFILE_FILE file(fname.c_str(),"rb");
@@ -33,6 +34,7 @@ bool EMUFILE::readAllBytes(std::vector<uint8>* dstbuf, const std::string& fname)
 	file.fread(&dstbuf->at(0),size);
 	return true;
 }
+#endif
 
 size_t EMUFILE_MEMORY::_fread(const void *ptr, size_t bytes){
 	uint32 remain = len-pos;
@@ -90,7 +92,7 @@ void EMUFILE_FILE::truncate(int32 length)
 	open(fname.c_str(),mode);
 }
 
-
+#if 0
 EMUFILE* EMUFILE_FILE::memwrap()
 {
 	EMUFILE_MEMORY* mem = new EMUFILE_MEMORY(size());
@@ -103,6 +105,7 @@ EMUFILE* EMUFILE_MEMORY::memwrap()
 {
 	return this;
 }
+#endif
 
 void EMUFILE::write64le(uint64* val)
 {

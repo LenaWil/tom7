@@ -75,7 +75,6 @@ struct ArchiveScanRecord {
   bool isArchive() { return type != -1; }
 };
 
-
 FCEUFILE *FCEU_fopen(const char *path, char *mode, char *ext, int index=-1,
 		     const char** extensions = 0);
 int FCEU_fclose(FCEUFILE*);
