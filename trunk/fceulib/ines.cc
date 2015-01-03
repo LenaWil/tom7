@@ -772,7 +772,7 @@ static uint32 uppow2(uint32 n) {
   return n;
 }
 
-int iNESLoad(const char *name, FCEUFILE *fp, int OverwriteVidMode) {
+int iNESLoad(const char *name, FceuFile *fp, int OverwriteVidMode) {
   struct md5_context md5;
 
   if (FCEU_fread(&head,1,16,fp)!=16)

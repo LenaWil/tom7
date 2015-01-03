@@ -18,11 +18,14 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-struct FCEUFILE;
-int UNIFLoad(const char *name, FCEUFILE *fp);
+#ifndef __UNIF_H
+#define __UNIF_H
 
+struct FceuFile;
+int UNIFLoad(const char *name, FceuFile *fp);
 
 // Meh.  So I can stop CHR RAM
 // bank switcherooing with certain boards...
 extern uint8 *UNIFchrrama;
 			
+#endif

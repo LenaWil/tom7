@@ -25,6 +25,9 @@
 #include <string.h>
 #include <map>
 
+class FceuFile;
+int iNESLoad(const char *name, FceuFile *fp, int OverwriteVidMode);
+
 // These are allowed to be accessed by mappers. -tom7
 #ifdef INESPRIV
 

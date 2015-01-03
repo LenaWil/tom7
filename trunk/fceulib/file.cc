@@ -51,7 +51,7 @@ static string BaseDirectory;
 static char FileBase[2048];
 static char FileBaseDirectory[2048];
 
-static uint64 FCEU_ftell(FCEUFILE *fp) {
+static uint64 FCEU_ftell(FceuFile *fp) {
   return fp->stream->ftell();
 }
 
@@ -99,9 +99,9 @@ inline FileBaseInfo DetermineFileBase(const string& str) {
   return DetermineFileBase(str.c_str());
 }
 
-FCEUFILE *FCEU_fopen(const char *path, char *mode, char *ext, int index, 
+FceuFile *FCEU_fopen(const char *path, char *mode, char *ext, int index, 
 		     const char **extensions) {
-  FCEUFILE *fceufp=0;
+  FceuFile *fceufp=0;
 
   bool read = (string)mode == "rb";
   bool write = (string)mode == "wb";
@@ -147,7 +147,7 @@ FCEUFILE *FCEU_fopen(const char *path, char *mode, char *ext, int index,
   }
 
   // open a plain old file
-  fceufp = new FCEUFILE();
+  fceufp = new FceuFile();
   fceufp->filename = fileToOpen;
   fceufp->logicalPath = fileToOpen;
   fceufp->fullFilename = fileToOpen;
@@ -160,29 +160,29 @@ FCEUFILE *FCEU_fopen(const char *path, char *mode, char *ext, int index,
   return fceufp;
 }
 
-int FCEU_fclose(FCEUFILE *fp) {
+int FCEU_fclose(FceuFile *fp) {
   delete fp;
   return 1;
 }
 
-uint64 FCEU_fread(void *ptr, size_t size, size_t nmemb, FCEUFILE *fp) {
+uint64 FCEU_fread(void *ptr, size_t size, size_t nmemb, FceuFile *fp) {
   return fp->stream->fread((char*)ptr,size*nmemb);
 }
 
-int FCEU_fseek(FCEUFILE *fp, long offset, int whence) {
+int FCEU_fseek(FceuFile *fp, long offset, int whence) {
   fp->stream->fseek(offset,whence);
   return FCEU_ftell(fp);
 }
 
-int FCEU_read32le(uint32 *Bufo, FCEUFILE *fp) {
+int FCEU_read32le(uint32 *Bufo, FceuFile *fp) {
   return read32le(Bufo, fp->stream);
 }
 
-int FCEU_fgetc(FCEUFILE *fp) {
+int FCEU_fgetc(FceuFile *fp) {
   return fp->stream->fgetc();
 }
 
-uint64 FCEU_fgetsize(FCEUFILE *fp) {
+uint64 FCEU_fgetsize(FceuFile *fp) {
   return fp->size;
 }
 

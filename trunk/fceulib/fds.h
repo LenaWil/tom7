@@ -1,6 +1,11 @@
-extern bool isFDS;
-void FDSSoundReset(void);
+#ifndef __FDS_H
+#define __FDS_H
 
-void FCEU_FDSInsert(void);
-//void FCEU_FDSEject(void);
-void FCEU_FDSSelect(void);
+class FceuFile;
+
+void FCEU_FDSInsert();
+void FCEU_FDSSelect();
+
+int FDSLoad(const char *name, FceuFile *fp);
+
+#endif

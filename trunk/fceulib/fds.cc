@@ -56,7 +56,7 @@ static DECLFW(FDSSWrite);
 static DECLFR(FDSBIOSRead);
 static DECLFR(FDSRAMRead);
 static DECLFW(FDSRAMWrite);
-static void FDSInit(void);
+static void FDSInit();
 static void FDSFix(int a);
 
 #define FDSRAM GameMemBlock
@@ -65,7 +65,7 @@ static void FDSFix(int a);
 static uint8 FDSRegs[6];
 static int32 IRQLatch,IRQCount;
 static uint8 IRQa;
-static void FDSClose(void);
+static void FDSClose();
 
 static uint8 FDSBIOS[8192];
 
@@ -104,12 +104,12 @@ static void FDSStateRestore(int version) {
 }
 
 void FDSSound();
-void FDSSoundReset(void);
-void FDSSoundStateAdd(void);
-static void RenderSound(void);
-static void RenderSoundHQ(void);
+static void FDSSoundReset();
+void FDSSoundStateAdd();
+static void RenderSound();
+static void RenderSoundHQ();
 
-static void FDSInit(void)
+static void FDSInit()
 {
 	memset(FDSRegs,0,sizeof(FDSRegs));
 	writeskip=DiskPtr=DiskSeekIRQ=0;
@@ -139,7 +139,7 @@ static void FDSInit(void)
 	SelectDisk=0;
 }
 
-void FCEU_FDSInsert(void)
+void FCEU_FDSInsert()
 {
 	if (FCEUI_EmulationPaused()) EmulationPaused |= 2;
 
@@ -160,7 +160,7 @@ void FCEU_FDSInsert(void)
 	}
 }
 
-void FCEU_FDSSelect(void) {
+void FCEU_FDSSelect() {
   if (FCEUI_EmulationPaused()) EmulationPaused |= 2;
 
   if (TotalSides==0) {
@@ -308,7 +308,7 @@ static FDSSOUND fdso;
 #define amplitude  fdso.amplitude
 #define speedo    fdso.speedo
 
-void FDSSoundStateAdd(void)
+void FDSSoundStateAdd()
 {
 	AddExState(fdso.cwave,64,0,"WAVE");
 	AddExState(fdso.mwave,32,0,"MWAV");
@@ -421,7 +421,7 @@ static DECLFW(FDSWaveWrite)
 }
 
 static int ta;
-static INLINE void ClockRise(void)
+static INLINE void ClockRise()
 {
 	if (!clockcount)
 	{
@@ -463,7 +463,7 @@ static INLINE void ClockRise(void)
 	b24adder66=(b24latch68+b19shiftreg60)&0x1FFFFFF;
 }
 
-static INLINE void ClockFall(void)
+static INLINE void ClockFall()
 {
 	//if (!(SPSG[0x7]&0x80))
 	{
@@ -473,7 +473,7 @@ static INLINE void ClockFall(void)
 	clockcount=(clockcount+1)&7;
 }
 
-static INLINE int32 FDSDoSound(void)
+static INLINE int32 FDSDoSound()
 {
 	fdso.count+=fdso.cycles;
 	if (fdso.count>=((int64)1<<40))
@@ -501,7 +501,7 @@ dogk:
 
 static int32 FBC=0;
 
-static void RenderSound(void)
+static void RenderSound()
 {
 	int32 end, start;
 	int32 x;
@@ -522,7 +522,7 @@ static void RenderSound(void)
 		}
 }
 
-static void RenderSoundHQ(void)
+static void RenderSoundHQ()
 {
 	uint32 x; //mbg merge 7/17/06 - made this unsigned
 
@@ -565,7 +565,7 @@ return(0x58);
 }
 */
 
-static void FDS_ESI(void)
+static void FDS_ESI()
 {
 	if (FSettings.SndRate)
 	{
@@ -588,8 +588,7 @@ static void FDS_ESI(void)
 	//SetReadHandler(0xE7A3,0xE7A3,FDSBIOSPatch);
 }
 
-void FDSSoundReset(void)
-{
+static void FDSSoundReset() {
 	memset(&fdso,0,sizeof(fdso));
 	FDS_ESI();
 	GameExpSound.HiSync=HQSync;
@@ -660,20 +659,15 @@ static DECLFW(FDSWrite)
 	FDSRegs[A&7]=V;
 }
 
-static void FreeFDSMemory(void)
-{
-	int x;
-
-	for (x=0;x<TotalSides;x++)
-		if (diskdata[x])
-		{
-			free(diskdata[x]);
-			diskdata[x]=0;
-		}
+static void FreeFDSMemory() {
+  for (int x=0;x<TotalSides;x++)
+    if (diskdata[x]) {
+      free(diskdata[x]);
+      diskdata[x]=0;
+    }
 }
 
-static int SubLoad(FCEUFILE *fp)
-{
+static int SubLoad(FceuFile *fp) {
 	struct md5_context md5;
 	uint8 header[16];
 	int x;
@@ -719,7 +713,7 @@ static int SubLoad(FCEUFILE *fp)
 	return(1);
 }
 
-static void PreSave(void) {
+static void PreSave() {
   //if (DiskWritten)
   for (int x=0;x<TotalSides;x++) {
     for (int b=0; b<65500; b++)
@@ -727,7 +721,7 @@ static void PreSave(void) {
   }
 }
 
-static void PostSave(void) {
+static void PostSave() {
 
   //if (DiskWritten)
   for (int x=0;x<TotalSides;x++) {
@@ -738,7 +732,7 @@ static void PostSave(void) {
 
 }
 
-int FDSLoad(const char *name, FCEUFILE *fp) {
+int FDSLoad(const char *name, FceuFile *fp) {
   FILE *zp;
   char *fn;
 
@@ -781,7 +775,7 @@ int FDSLoad(const char *name, FCEUFILE *fp) {
   fclose(zp);
 
   if (!disableBatteryLoading) {
-    FCEUFILE *tp;
+    FceuFile *tp;
     char *fn=strdup(FCEU_MakeFDSFilename().c_str());
 
     for (int x=0;x<TotalSides;x++) {
@@ -843,7 +837,7 @@ int FDSLoad(const char *name, FCEUFILE *fp) {
   return 1;
 }
 
-void FDSClose(void) {
+void FDSClose() {
   FILE *fp;
 
   if (!DiskWritten) return;
