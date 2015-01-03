@@ -70,7 +70,9 @@ static void ZapperFrapper(uint8 *bg, uint8 *spr, uint32  linets, int final)
      }
      a1&=63;
  
-     sum=palo[a1].r+palo[a1].g+palo[a1].b;
+     sum = fceulib__palette.palo[a1].r + 
+       fceulib__palette.palo[a1].g + 
+       fceulib__palette.palo[a1].b;
      if(sum>=100*3)
      {
       ZD.zaphit=((uint64)linets+(xs+16)*(PAL?15:16))/48+timestampbase;

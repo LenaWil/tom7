@@ -24,7 +24,7 @@ static constexpr PaletteEntry unvpalette[7] = {
 };
 
 // Default palette 
-static constexpr PaletteEntry palette[64] = {
+static constexpr PaletteEntry default_palette[64] = {
   { 0x1D<<2, 0x1D<<2, 0x1D<<2 }, /* Value 0 */
   { 0x09<<2, 0x06<<2, 0x23<<2 }, /* Value 1 */
   { 0x00<<2, 0x00<<2, 0x2A<<2 }, /* Value 2 */

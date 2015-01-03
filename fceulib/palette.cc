@@ -23,7 +23,6 @@
 #include <math.h>
 #include <string.h>
 
-
 #include "types.h"
 #include "file.h"
 #include "fceu.h"
@@ -35,38 +34,25 @@
 
 static constexpr double PALETTE_PI = 3.14159265358979323846;
 
-static int ntsccol=0;
-static int ntsctint=46+10;
-static int ntschue=72;
-
-/* These are dynamically filled/generated palettes: */
-PaletteEntry palettei[64];       // Custom palette for an individual game.
-PaletteEntry palettec[64];       // Custom "global" palette.
-PaletteEntry paletten[64];       // Mathematically generated palette.
-
-static void CalculatePalette();
-static void ChoosePalette();
-static void WritePalette();
-uint8 pale = 0;
-
-const PaletteEntry *palo = nullptr;
-static const PaletteEntry *palpoint[8]= {
-  palette,
+static constexpr PaletteEntry const *palpoint[]= {
+  default_palette,
   rp2c04001,
   rp2c04002,
   rp2c04003,
   rp2c05004,
 };
 
-void FCEUI_SetNTSCTH(int n, int tint, int hue) {
-  ntsctint=tint;
-  ntschue=hue;
-  ntsccol=n;
-  FCEU_ResetPalette();
+// TODO: We certainly don't need to be able to change NTSC hues at
+// runtime, and maybe they should just be compile-time constants. Some
+// of this stuff then doesn't need to be per-instance. -tom7
+void Palette::FCEUI_SetNTSCTH(int n, int tint, int hue) {
+  ntsctint = tint;
+  ntschue = hue;
+  ntsccol = n;
+  ResetPalette();
 }
 
-static uint8 lastd=0;
-void SetNESDeemph(uint8 d, int force) {
+void Palette::SetNESDeemph(uint8 d, int force) {
   static constexpr uint16 rtmul[7]={
     (uint16)(32768*1.239),
     (uint16)(32768*.794),
@@ -94,9 +80,9 @@ void SetNESDeemph(uint8 d, int force) {
 
   uint32 r,g,b;
 
-  /* If it's not forced(only forced when the palette changes),
-     don't waste cpu time if the same deemphasis bits are set as the last call.
-  */
+  /* If it's not forced (only forced when the palette changes), don't
+     waste cpu time if the same deemphasis bits are set as the last
+     call. */
   if (!force) {
     if (d==lastd)
       return;
@@ -126,7 +112,7 @@ void SetNESDeemph(uint8 d, int force) {
   g=gtmul[d-1];
   b=btmul[d-1];
 
-  for (int x=0;x<0x40;x++) {
+  for (int x = 0; x < 0x40; x++) {
     uint32 m,n,o;
 
     m=palo[x].r;
@@ -146,13 +132,13 @@ void SetNESDeemph(uint8 d, int force) {
 }
 
 // Converted from Kevin Horton's qbasic palette generator.
-static void CalculatePalette() {
+void Palette::CalculatePalette() {
   int r,g,b;
   double s,luma,theta;
-  static uint8 cols[16]={0,24,21,18,15,12,9,6,3,0,33,30,27,0,0,0};
-  static uint8 br1[4]={6,9,12,12};
-  static double br2[4]={.29,.45,.73,.9};
-  static double br3[4]={0,.24,.47,.77};
+  static constexpr uint8 cols[16]={0,24,21,18,15,12,9,6,3,0,33,30,27,0,0,0};
+  static constexpr uint8 br1[4]={6,9,12,12};
+  static constexpr double br2[4]={.29,.45,.73,.9};
+  static constexpr double br3[4]={0,.24,.47,.77};
 
   for (int x=0;x<=3;x++) {
     for (int z=0;z<16;z++) {
@@ -176,7 +162,6 @@ static void CalculatePalette() {
       g=(int)((luma-(double)27/53*s*sin(theta)+(double)10/53*s*cos(theta))*256);
       b=(int)((luma-s*cos(theta))*256);
 
-
       if (r>255) r=255;
       if (g>255) g=255;
       if (b>255) b=255;
@@ -192,9 +177,7 @@ static void CalculatePalette() {
   WritePalette();
 }
 
-static int ipalette=0;
-
-void FCEU_LoadGamePalette() {
+void Palette::LoadGamePalette() {
   uint8 ptmp[192];
   FILE *fp;
 
@@ -215,14 +198,14 @@ void FCEU_LoadGamePalette() {
   free(fn);
 }
 
-void FCEU_ResetPalette() {
+void Palette::ResetPalette() {
   if (GameInfo) {
     ChoosePalette();
     WritePalette();
   }
 }
 
-static void ChoosePalette() {
+void Palette::ChoosePalette() {
   if (ipalette) {
     palo=palettei;
   } else if (ntsccol && !PAL && GameInfo->type!=GIT_VSUNI) {
@@ -233,7 +216,7 @@ static void ChoosePalette() {
   }
 }
 
-void WritePalette() {
+void Palette::WritePalette() {
   for (int x=0;x<7;x++)
     FCEUD_SetPalette(x,unvpalette[x].r,unvpalette[x].g,unvpalette[x].b);
 
@@ -242,62 +225,9 @@ void WritePalette() {
   SetNESDeemph(lastd,1);
 }
 
-void FCEUI_GetNTSCTH(int *tint, int *hue) {
+void Palette::FCEUI_GetNTSCTH(int *tint, int *hue) {
   *tint = ntsctint;
   *hue = ntschue;
 }
 
-static int controlselect=0;
-static int controllength=0;
-
-void FCEUI_NTSCDEC() {
-  if (ntsccol && GameInfo->type!=GIT_VSUNI && !PAL) {
-    int which;
-    if (controlselect) {
-      if (controllength) {
-	which=controlselect==1?ntschue:ntsctint;
-	which--;
-	if (which<0) which=0;
-	if (controlselect==1)
-	  ntschue=which;
-	else ntsctint=which;
-	CalculatePalette();
-      }
-      controllength=360;
-    }
-  }
-}
-
-void FCEUI_NTSCINC() {
-  if (ntsccol && GameInfo->type!=GIT_VSUNI && !PAL && controlselect) {
-    if (controllength) {
-      switch(controlselect) {
-      case 1:
-	ntschue++;
-	if (ntschue>128) ntschue=128;
-	CalculatePalette();
-	break;
-      case 2:
-	ntsctint++;
-	if (ntsctint>128) ntsctint=128;
-	CalculatePalette();
-	break;
-      }
-    }
-    controllength=360;
-  }
-}
-
-void FCEUI_NTSCSELHUE() {
-  if (ntsccol && GameInfo->type!=GIT_VSUNI && !PAL) {
-    controlselect=1;
-    controllength=360;
-  }
-}
-
-void FCEUI_NTSCSELTINT() {
-  if (ntsccol && GameInfo->type!=GIT_VSUNI && !PAL) {
-    controlselect=2;
-    controllength=360;
-  }
-}
+Palette fceulib__palette;

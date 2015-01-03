@@ -59,7 +59,10 @@ static void ZapperFrapper(int w, uint8 *bg, uint8 *spr, uint32 linets, int final
 	}
 	a1&=63;
 
-	sum=palo[a1].r+palo[a1].g+palo[a1].b;
+	sum = 
+	  fceulib__palette.palo[a1].r + 
+	  fceulib__palette.palo[a1].g + 
+	  fceulib__palette.palo[a1].b;
 	if (sum>=100*3) {
 	  ZD[w].zaphit=((uint64)linets+(xs+16)*(PAL?15:16))/48+timestampbase; 
 	  goto endo;
@@ -94,7 +97,10 @@ static INLINE int CheckColor(int w) {
       uint8 *pix = XBuf+(ZD[w].mzy<<8);
       uint8 a1 = pix[ZD[w].mzx];
       a1&=63;
-      uint32 sum=palo[a1].r+palo[a1].g+palo[a1].b;
+      uint32 sum = 
+	fceulib__palette.palo[a1].r + 
+	fceulib__palette.palo[a1].g + 
+	fceulib__palette.palo[a1].b;
       //return ZD[w].zaphit = sum != 0;
       ZD[w].zaphit = (sum>=100*3)?1:0;
     } else {

@@ -33,10 +33,6 @@ void FCEUD_Message(const char *s);
 void FCEUI_ResetNES();
 void FCEUI_PowerNES();
 
-void FCEUI_NTSCSELHUE();
-void FCEUI_NTSCSELTINT();
-void FCEUI_NTSCDEC();
-void FCEUI_NTSCINC();
 void FCEUI_GetNTSCTH(int *tint, int *hue);
 void FCEUI_SetNTSCTH(int n, int tint, int hue);
 
