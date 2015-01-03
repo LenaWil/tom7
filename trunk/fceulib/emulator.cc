@@ -14,6 +14,7 @@
 #include "version.h"
 #include "state.h"
 #include "sound.h"
+#include "palette.h"
 
 // PERF: Consider the implications of using a high/low sample rate.
 // This must be set for StepFull and GetSound to function.
@@ -138,8 +139,10 @@ Emulator *Emulator::Create(const string &romfile) {
   //   and FCEUI_SetInputFourscore ((eoptions & EO_FOURSCORE) != 0);
 
   // defaults
+  // TODO(tom7): Make these compile-time constants inside of Palette rather
+  // than state.
   constexpr int ntsccol = 0, ntsctint = 56, ntschue = 72;
-  FCEUI_SetNTSCTH(ntsccol, ntsctint, ntschue);
+  fceulib__palette.FCEUI_SetNTSCTH(ntsccol, ntsctint, ntschue);
 
   // Set NTSC (1 = pal)
   FCEUI_SetVidSystem(GIV_NTSC);

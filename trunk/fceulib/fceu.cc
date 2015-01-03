@@ -224,7 +224,7 @@ static void ResetGameLoaded() {
   MapIRQHook=0;
   MMC5Hack=0;
   PAL&=1;
-  pale=0;
+  fceulib__palette.pale = 0;
 }
 
 FCEUGI *FCEUI_LoadGameVirtual(const char *name, int OverwriteVidMode) {
@@ -295,9 +295,8 @@ endlseq:
 
   PowerNES();
 
-  FCEU_LoadGamePalette();
-
-  FCEU_ResetPalette();
+  fceulib__palette.LoadGamePalette();
+  fceulib__palette.ResetPalette();
 
   return GameInfo;
 }
@@ -549,7 +548,7 @@ void FCEUI_SetVidSystem(int a) {
   FSettings.PAL=a?1:0;
   if (GameInfo) {
     FCEU_ResetVidSys();
-    FCEU_ResetPalette();
+    fceulib__palette.ResetPalette();
   }
 }
 
