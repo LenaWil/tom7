@@ -34,7 +34,6 @@
 #include "file.h"
 #include "cart.h"
 #include "driver.h"
-#include "movie.h"
 
 //  TODO:  Add code to put a delay in between the time a disk is inserted
 //	and the when it can be successfully read/written to.  This should

@@ -5,6 +5,11 @@
 template<typename T, int N>
 struct FixedArray {
   T data[N];
+  FixedArray() {}
+  explicit FixedArray(const T &value) {
+    for (int i = 0; i < N; i++)
+      data[i] = value;
+  }
   T &operator[](int index) {
     return data[index]; 
   }

@@ -27,6 +27,7 @@
 
 #include <vector>
 #include <fstream>
+#include <map>
 
 #include "version.h"
 #include "types.h"
@@ -39,7 +40,6 @@
 #include "file.h"
 #include "fds.h"
 #include "state.h"
-#include "movie.h"
 #include "ppu.h"
 #include "video.h"
 #include "input.h"
@@ -330,9 +330,9 @@ void ResetExState(void (*PreSave)(), void (*PostSave)()) {
 
 void AddExState(void *v, uint32 s, int type, char *desc) {
 
-  if (s==~0) {
+  if (s == ~0) {
     const SFORMAT* sf = (const SFORMAT*)v;
-    std::map<std::string,bool> names;
+    map<string,bool> names;
     while(sf->v) {
       char tmp[5] = {0};
       memcpy(tmp,sf->desc,4);

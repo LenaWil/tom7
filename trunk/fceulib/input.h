@@ -6,7 +6,18 @@
 #include "git.h"
 #include "state.h"
 
-class MovieRecord;
+// Movied from movie.h. This is just used for logging and loading using the
+// old state saving approach; we should get rid of that and expose it some
+// other way (right now the emulator client calls Step with the joypad inputs
+// for that step, which precludes zapper and other exotic inputs). -tom7
+struct MovieRecord {
+  FixedArray<uint8,4> joysticks{0};
+
+  struct {
+    uint8 x = 0, y = 0, b = 0, bogo = 0;
+    uint64 zaphit = 0ULL;
+  } zappers[2];
+};
 
 //MBG TODO - COMBINE THESE INPUTC AND INPUTCFC
 
@@ -111,5 +122,6 @@ void LagCounterReset();
 extern int input_display;
 
 extern const SFORMAT FCEUINPUT_STATEINFO[];
+
 
 #endif //_INPUT_H_

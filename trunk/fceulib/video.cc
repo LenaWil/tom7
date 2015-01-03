@@ -35,7 +35,6 @@
 #include "utils/memory.h"
 #include "utils/crc32.h"
 #include "state.h"
-#include "movie.h"
 #include "palette.h"
 #include "input.h"
 #include "vsuni.h"

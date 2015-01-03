@@ -40,7 +40,6 @@
 #include "unif.h"
 #include "palette.h"
 #include "state.h"
-#include "movie.h"
 #include "video.h"
 #include "input.h"
 #include "file.h"
