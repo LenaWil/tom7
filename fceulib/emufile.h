@@ -20,6 +20,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
+// These are thread compatible. -tom7
+
 // don't use emufile for files bigger than 2GB! you have been warned!
 // some day this will be fixed.
 
@@ -38,10 +40,10 @@ THE SOFTWARE.
 #include "types.h"
 
 class EMUFILE {
-protected:
+ protected:
   bool failbit = false;
 
-public:
+ public:
   EMUFILE() {}
 
   virtual ~EMUFILE() {}

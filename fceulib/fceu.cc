@@ -227,15 +227,10 @@ static void ResetGameLoaded() {
   pale=0;
 }
 
-int UNIFLoad(const char *name, FCEUFILE *fp);
-int iNESLoad(const char *name, FCEUFILE *fp, int OverwriteVidMode);
-int FDSLoad(const char *name, FCEUFILE *fp);
-int NSFLoad(const char *name, FCEUFILE *fp);
-
 FCEUGI *FCEUI_LoadGameVirtual(const char *name, int OverwriteVidMode) {
   //----------
   //attempt to open the files
-  FCEUFILE *fp;
+  FceuFile *fp;
 
   FCEU_printf("Loading %s...\n\n",name);
 
@@ -277,9 +272,6 @@ FCEUGI *FCEUI_LoadGameVirtual(const char *name, int OverwriteVidMode) {
   GameInfo->cspecial=SIS_NONE;
 
   //try to load each different format
-  bool FCEUXLoad(const char *name, FCEUFILE *fp);
-  /*if (FCEUXLoad(name,fp))
-    goto endlseq;*/
   if (iNESLoad(name,fp,OverwriteVidMode))
     goto endlseq;
   if (UNIFLoad(name,fp))

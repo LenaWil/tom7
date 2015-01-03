@@ -6,7 +6,7 @@
 #include "types.h"
 #include "emufile.h"
 
-struct FCEUFILE {
+struct FceuFile {
   //the stream you can use to access the data
   //std::iostream *stream;
   EMUFILE *stream = nullptr;
@@ -37,9 +37,9 @@ struct FCEUFILE {
   //whether the file is contained in an archive
   bool isArchive() { return archiveCount > 0; }
 
-  FCEUFILE() {}
+  FceuFile() {}
 
-  ~FCEUFILE() {
+  ~FceuFile() {
     delete stream;
   }
 
@@ -75,14 +75,14 @@ struct ArchiveScanRecord {
   bool isArchive() { return type != -1; }
 };
 
-FCEUFILE *FCEU_fopen(const char *path, char *mode, char *ext, int index=-1,
+FceuFile *FCEU_fopen(const char *path, char *mode, char *ext, int index=-1,
 		     const char** extensions = 0);
-int FCEU_fclose(FCEUFILE*);
-uint64 FCEU_fread(void *ptr, size_t size, size_t nmemb, FCEUFILE*);
-int FCEU_fseek(FCEUFILE*, long offset, int whence);
-int FCEU_read32le(uint32 *Bufo, FCEUFILE*);
-int FCEU_fgetc(FCEUFILE*);
-uint64 FCEU_fgetsize(FCEUFILE*);
+int FCEU_fclose(FceuFile*);
+uint64 FCEU_fread(void *ptr, size_t size, size_t nmemb, FceuFile*);
+int FCEU_fseek(FceuFile*, long offset, int whence);
+int FCEU_read32le(uint32 *Bufo, FceuFile*);
+int FCEU_fgetc(FceuFile*);
+uint64 FCEU_fgetsize(FceuFile*);
 
 // Initializes the local base name, from which we derive .sav and .pal, etc.
 void GetFileBase(const char *f);

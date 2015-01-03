@@ -54,7 +54,7 @@ struct BMAPPING {
 
 struct BFMAPPING {
   char *name;
-  int (*init)(FCEUFILE *fp);
+  int (*init)(FceuFile *fp);
 };
 
 static CartInfo UNIFCart;
@@ -125,7 +125,7 @@ static void MooMirroring(void)
 		SetupCartMirroring(0,0,0);
 }
 
-static int DoMirroring(FCEUFILE *fp)
+static int DoMirroring(FceuFile *fp)
 {
 	uint8 t;
 	t=FCEU_fgetc(fp);
@@ -139,7 +139,7 @@ static int DoMirroring(FCEUFILE *fp)
 	return(1);
 }
 
-static int NAME(FCEUFILE *fp)
+static int NAME(FceuFile *fp)
 {
 	char namebuf[100];
 	int index;
@@ -161,7 +161,7 @@ static int NAME(FCEUFILE *fp)
 	}
 	return(1);
 }
-static int DINF(FCEUFILE *fp)
+static int DINF(FceuFile *fp)
 {
 	char name[100], method[100];
 	uint8 d, m;
@@ -191,7 +191,7 @@ static int DINF(FCEUFILE *fp)
 	return(1);
 }
 
-static int CTRL(FCEUFILE *fp)
+static int CTRL(FceuFile *fp)
 {
 	int t;
 
@@ -210,7 +210,7 @@ static int CTRL(FCEUFILE *fp)
 	return(1);
 }
 
-static int TVCI(FCEUFILE *fp)
+static int TVCI(FceuFile *fp)
 {
 	int t;
 	if( (t=FCEU_fgetc(fp)) ==EOF)
@@ -233,7 +233,7 @@ static int TVCI(FCEUFILE *fp)
 	return(1);
 }
 
-static int EnableBattery(FCEUFILE *fp)
+static int EnableBattery(FceuFile *fp)
 {
 	FCEU_printf(" Battery-backed.\n");
 	if(FCEU_fgetc(fp)==EOF)
@@ -242,7 +242,7 @@ static int EnableBattery(FCEUFILE *fp)
 	return(1);
 }
 
-static int LoadPRG(FCEUFILE *fp)
+static int LoadPRG(FceuFile *fp)
 {
 	int z,t;
 	z=uchead.ID[3]-'0';
@@ -269,7 +269,7 @@ static int LoadPRG(FCEUFILE *fp)
 	return(1);
 }
 
-static int SetBoardName(FCEUFILE *fp)
+static int SetBoardName(FceuFile *fp)
 {
 	if(!(boardname=(uint8 *)FCEU_malloc(uchead.info+1)))
 		return(0);
@@ -282,7 +282,7 @@ static int SetBoardName(FCEUFILE *fp)
 	return(1);
 }
 
-static int LoadCHR(FCEUFILE *fp)
+static int LoadCHR(FceuFile *fp)
 {
 	int z,t;
 	z=uchead.ID[3]-'0';
@@ -465,7 +465,7 @@ static constexpr BFMAPPING bfunc[] = {
 	{ 0, 0 }
 };
 
-int LoadUNIFChunks(FCEUFILE *fp)
+int LoadUNIFChunks(FceuFile *fp)
 {
 	int x;
 	int t;
@@ -564,7 +564,7 @@ static void UNIFGI(GI h) {
   }
 }
 
-int UNIFLoad(const char *name, FCEUFILE *fp) {
+int UNIFLoad(const char *name, FceuFile *fp) {
   FCEU_fseek(fp,0,SEEK_SET);
   FCEU_fread(&unhead,1,4,fp);
   if(memcmp(&unhead,"UNIF",4))

@@ -13,8 +13,6 @@ FILE *FCEUD_UTF8fopen(const char *fn, const char *mode);
 inline FILE *FCEUD_UTF8fopen(const std::string &n, const char *mode) { return FCEUD_UTF8fopen(n.c_str(),mode); }
 EMUFILE_FILE* FCEUD_UTF8_fstream(const char *n, const char *m);
 inline EMUFILE_FILE* FCEUD_UTF8_fstream(const std::string &n, const char *m) { return FCEUD_UTF8_fstream(n.c_str(),m); }
-FCEUFILE* FCEUD_OpenArchiveIndex(ArchiveScanRecord& asr, std::string& fname, int innerIndex);
-FCEUFILE* FCEUD_OpenArchive(ArchiveScanRecord& asr, std::string& fname, std::string* innerFilename);
 ArchiveScanRecord FCEUD_ScanArchive(std::string fname);
 
 //mbg 7/23/06
@@ -32,16 +30,13 @@ void FCEUD_GetPalette(uint8 i,uint8 *r, uint8 *g, uint8 *b);
 void FCEUD_PrintError(const char *s);
 void FCEUD_Message(const char *s);
 
-bool FCEUI_BeginWaveRecord(const char *fn);
-int FCEUI_EndWaveRecord(void);
+void FCEUI_ResetNES();
+void FCEUI_PowerNES();
 
-void FCEUI_ResetNES(void);
-void FCEUI_PowerNES(void);
-
-void FCEUI_NTSCSELHUE(void);
-void FCEUI_NTSCSELTINT(void);
-void FCEUI_NTSCDEC(void);
-void FCEUI_NTSCINC(void);
+void FCEUI_NTSCSELHUE();
+void FCEUI_NTSCSELTINT();
+void FCEUI_NTSCDEC();
+void FCEUI_NTSCINC();
 void FCEUI_GetNTSCTH(int *tint, int *hue);
 void FCEUI_SetNTSCTH(int n, int tint, int hue);
 
@@ -55,38 +50,30 @@ bool FCEUI_GetInputFourscore();
 //tells whether the microphone is used
 bool FCEUI_GetInputMicrophone();
 
-//New interface functions
-
-//0 to order screen snapshots numerically(0.png), 1 to order them file base-numerically(smb3-0.png).
-//this variable isn't used at all, snap is always name-based
-//void FCEUI_SetSnapName(bool a);
-
-//0 to keep 8-sprites limitation, 1 to remove it
+// 0 to keep 8-sprites limitation, 1 to remove it
 void FCEUI_DisableSpriteLimitation(int a);
 
 void FCEUI_SetRenderPlanes(bool sprites, bool bg);
 void FCEUI_GetRenderPlanes(bool& sprites, bool& bg);
 
 //name=path and file to load.  returns null if it failed
+// These are exactly the same; make just one. -tom7
 FCEUGI *FCEUI_LoadGame(const char *name, int OverwriteVidMode);
-
-//same as FCEUI_LoadGame, except that it can load from a tempfile.
-//name is the logical path to open; archiveFilename is the archive which contains name
 FCEUGI *FCEUI_LoadGameVirtual(const char *name, int OverwriteVidMode);
 
-//general purpose emulator initialization. returns true if successful
+// general purpose emulator initialization. returns true if successful
 bool FCEUI_Initialize();
 
-//Emulates a frame.
+// Emulates a frame.
 void FCEUI_Emulate(uint8 **, int32 **, int32 *, int);
 
-//Closes currently loaded game
-void FCEUI_CloseGame(void);
+// Closes currently loaded game
+void FCEUI_CloseGame();
 
-//Deallocates all allocated memory.  Call after FCEUI_Emulate() returns.
-void FCEUI_Kill(void);
+// Deallocates all allocated memory.  Call after FCEUI_Emulate() returns.
+void FCEUI_Kill();
 
-//Set video system a=0 NTSC, a=1 PAL
+// Set video system a=0 NTSC, a=1 PAL
 void FCEUI_SetVidSystem(int a);
 
 //Convenience function; returns currently emulated video system(0=NTSC, 1=PAL).
@@ -144,23 +131,23 @@ void FCEU_DispMessage(char *format, int disppos, ...);
 #define FCEUIOD__COUNT  12      //base directory override?
 */
 
-void FCEUI_NMI(void);
-void FCEUI_IRQ(void);
+void FCEUI_NMI();
+void FCEUI_IRQ();
 // void FCEUI_GetIVectors(uint16 *reset, uint16 *irq, uint16 *nmi);
 
 // uint32 FCEUI_CRC32(uint32 crc, uint8 *buf, uint32 len);
 
 void FCEUI_SetLowPass(int q);
 
-void FCEUI_VSUniToggleDIPView(void);
+void FCEUI_VSUniToggleDIPView();
 void FCEUI_VSUniToggleDIP(int w);
-uint8 FCEUI_VSUniGetDIPs(void);
+uint8 FCEUI_VSUniGetDIPs();
 void FCEUI_VSUniSetDIP(int w, int state);
-void FCEUI_VSUniCoin(void);
+void FCEUI_VSUniCoin();
 
-void FCEUI_FDSInsert(void); //mbg merge 7/17/06 changed to void fn(void) to make it an EMUCMDFN
-//int FCEUI_FDSEject(void);
-void FCEUI_FDSSelect(void);
+void FCEUI_FDSInsert(); //mbg merge 7/17/06 changed to void fn() to make it an EMUCMDFN
+//int FCEUI_FDSEject();
+void FCEUI_FDSSelect();
 
 int FCEUI_DatachSet(const uint8 *rcode);
 
@@ -168,16 +155,16 @@ int FCEUI_DatachSet(const uint8 *rcode);
 void FCEUI_ToggleEmulationPause();
 
 ///called when the emulator closes a game
-void FCEUD_OnCloseGame(void);
+void FCEUD_OnCloseGame();
 
-void FCEUI_FrameAdvance(void);
-void FCEUI_FrameAdvanceEnd(void);
+void FCEUI_FrameAdvance();
+void FCEUI_FrameAdvanceEnd();
 
 ///A callback that the emu core uses to poll the state of a given emulator command key
 typedef int TestCommandState(int cmd);
 
 ///signals the driver to perform a file open GUI operation
-void FCEUD_CmdOpen(void);
+void FCEUD_CmdOpen();
 
 //new merge-era driver routines here:
 
