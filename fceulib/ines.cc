@@ -34,7 +34,6 @@
 #include "unif.h"
 #include "state.h"
 #include "file.h"
-#include "utils/general.h"
 #include "utils/memory.h"
 #include "utils/crc32.h"
 #include "utils/md5.h"
@@ -760,6 +759,18 @@ static constexpr BMAPPINGLocal bmap[] = {
 	{"",					0, nullptr}
 };
 
+// moved from utils/general -tom7
+static uint32 uppow2(uint32 n) {
+  for (int x=31;x>=0;x--) {
+    if (n&(1<<x)) {
+      if ((1<<x)!=n) {
+	return 1<<(x+1);
+      }
+      break;
+    }
+  }
+  return n;
+}
 
 int iNESLoad(const char *name, FCEUFILE *fp, int OverwriteVidMode) {
   struct md5_context md5;

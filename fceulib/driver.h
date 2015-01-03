@@ -55,9 +55,6 @@ bool FCEUI_GetInputFourscore();
 //tells whether the microphone is used
 bool FCEUI_GetInputMicrophone();
 
-void FCEUI_UseInputPreset(int preset);
-
-
 //New interface functions
 
 //0 to order screen snapshots numerically(0.png), 1 to order them file base-numerically(smb3-0.png).
@@ -126,15 +123,12 @@ void FCEUI_SetPCMVolume(uint32 volume);
 // void FCEUD_SetInput(bool fourscore, bool microphone, ESI port0, ESI port1, ESIFC fcexp);
 
 
-void FCEUD_MovieReplayFrom(void);
-
-void FCEUI_SaveSnapshot(void);
-void FCEUI_SaveSnapshotAs(void);
 void FCEU_DispMessage(char *format, int disppos, ...);
 #define FCEUI_DispMessage FCEU_DispMessage
 
 //.rom
 // These are file types for FCEU_GetPath. Probably don't need it. -tom7
+/*
 #define FCEUIOD_ROMS    0       //Roms
 #define FCEUIOD_NV      1       //NV = nonvolatile. save data.
 #define FCEUIOD_STATES  2       //savestates
@@ -148,6 +142,7 @@ void FCEU_DispMessage(char *format, int disppos, ...);
 #define FCEUIOD_INPUT   10      //input presets
 #define FCEUIOD_AVI             11      //default file for avi output
 #define FCEUIOD__COUNT  12      //base directory override?
+*/
 
 void FCEUI_NMI(void);
 void FCEUI_IRQ(void);
@@ -169,14 +164,8 @@ void FCEUI_FDSSelect(void);
 
 int FCEUI_DatachSet(const uint8 *rcode);
 
-///returns a flag indicating whether a one frame step has been requested
-int FCEUI_EmulationFrameStepped();
-
 ///toggles the paused bit (bit0) for EmulationPaused. caused FCEUD_DebugUpdate() to fire if the emulation pauses
 void FCEUI_ToggleEmulationPause();
-
-//indicates whether input aids should be drawn (such as crosshairs, etc; usually in fullscreen mode)
-bool FCEUD_ShouldDrawInputAids();
 
 ///called when the emulator closes a game
 void FCEUD_OnCloseGame(void);
@@ -184,25 +173,8 @@ void FCEUD_OnCloseGame(void);
 void FCEUI_FrameAdvance(void);
 void FCEUI_FrameAdvanceEnd(void);
 
-//AVI Output
-int FCEUI_AviBegin(const char* fname);
-void FCEUI_AviEnd(void);
-void FCEUI_AviVideoUpdate(const unsigned char* buffer);
-void FCEUI_AviSoundUpdate(void* soundData, int soundLen);
-bool FCEUI_AviIsRecording();
-void FCEUI_SetAviEnableHUDrecording(bool enable);
-bool FCEUI_AviDisableMovieMessages();
-void FCEUI_SetAviDisableMovieMessages(bool disable);
-
-void FCEUD_AviRecordTo(void);
-void FCEUD_AviStop(void);
-
 ///A callback that the emu core uses to poll the state of a given emulator command key
 typedef int TestCommandState(int cmd);
-
-int FCEUD_ShowStatusIcon(void);
-void FCEUD_ToggleStatusIcon(void);
-void FCEUD_HideMenuToggle(void);
 
 ///signals the driver to perform a file open GUI operation
 void FCEUD_CmdOpen(void);

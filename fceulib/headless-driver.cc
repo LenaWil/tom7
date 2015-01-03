@@ -20,15 +20,11 @@
 
 #include "types.h"
 
-int CloseGame(void);
-
 // external dependencies
 bool turbo = false;
-static int closeFinishedMovie = 0;
-
-static int gametype = 0;
 
 // Not clear who owns this; input/movie/fceu? But we need a decl somewhere.
+// Is it used for anything other than (degenerate) display? -tom7
 unsigned int lagCounter = 0;
 void LagCounterReset() {
   lagCounter = 0;
@@ -83,9 +79,6 @@ const char *FCEUD_GetCompilerString() {
   return "g++ " __VERSION__;
 }
 
-void FCEUD_DebugBreakpoint() {}
-void FCEUD_TraceInstruction() {}
-
 // Prints a textual message without adding a newline at the end.
 void FCEUD_Message(const char *text) {
   fputs(text, stdout);
@@ -96,28 +89,11 @@ void FCEUD_PrintError(const char *errormsg) {
   fprintf(stderr, "%s\n", errormsg);
 }
 
-// dummy functions
-
-#define DUMMY(__f) void __f(void) {printf("%s\n", #__f); fprintf(stderr, "Not implemented.");}
-DUMMY(FCEUD_HideMenuToggle)
-DUMMY(FCEUD_MovieReplayFrom)
-DUMMY(FCEUD_ToggleStatusIcon)
-DUMMY(FCEUD_AviRecordTo)
-DUMMY(FCEUD_AviStop)
-void FCEUI_AviVideoUpdate(const unsigned char* buffer) { }
-int FCEUD_ShowStatusIcon(void) {return 0;}
-bool FCEUI_AviIsRecording(void) {return false;}
-void FCEUI_UseInputPreset(int preset) { }
-
+// I think this means that all archives appear empty, and this can be
+// simplified away?
 ArchiveScanRecord FCEUD_ScanArchive(std::string fname) {
   return ArchiveScanRecord(); 
 }
-
-// tom7 dummy
-
-// for movie playback?
-
-static int FCEUDnetplay=0;
 
 namespace {
 struct Color {
@@ -141,21 +117,7 @@ void FCEUD_GetPalette(uint8 index, uint8 *r, uint8 *g, uint8 *b) {
   *b = s_psdl[index].b;
 }
 
-void FCEUI_SetAviEnableHUDrecording(bool enable) {}
-
-// ?
-bool FCEUI_AviDisableMovieMessages() { return false; }
-void FCEUI_SetAviDisableMovieMessages(bool disable) {}
-
-bool FCEUD_ShouldDrawInputAids() { return false; }
-
 // morally FCEUD_
 unsigned int *GetKeyboard() {
   abort();
 }
-
-/**
- * Update the video, audio, and input subsystems with the provided
- * video (XBuf) and audio (Buffer) information.
- */
-void FCEUD_Update(uint8 *XBuf, int32 *Buffer, int Count) {}
