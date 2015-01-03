@@ -38,14 +38,14 @@ enum ESI {
 
 inline const char* ESI_Name(ESI esi) {
   static constexpr char * const names[] = {
-      "<none>",
-      "Gamepad",
-      "Zapper",
-      "Power Pad A",
-      "Power Pad B",
-      "Arkanoid Paddle",
-      "Mouse"
-    };
+    "<none>",
+    "Gamepad",
+    "Zapper",
+    "Power Pad A",
+    "Power Pad B",
+    "Arkanoid Paddle",
+    "Mouse"
+  };
 
   if(esi >= SI_NONE && esi <= SI_COUNT)
     return names[esi];
@@ -75,21 +75,21 @@ enum ESIFC {
 
 inline const char* ESIFC_Name(ESIFC esifc) {
   static constexpr char * const names[] = {
-      "<none>",
-      "Arkanoid Paddle",
-      "Hyper Shot gun",
-      "4-Player Adapter",
-      "Family Keyboard",
-      "Subor Keyboard",
-      "HyperShot Pads",
-      "Mahjong",
-      "Quiz King Buzzers",
-      "Family Trainer A",
-      "Family Trainer B",
-      "Oeka Kids Tablet",
-      "Barcode World",
-      "Top Rider"
-    };
+    "<none>",
+    "Arkanoid Paddle",
+    "Hyper Shot gun",
+    "4-Player Adapter",
+    "Family Keyboard",
+    "Subor Keyboard",
+    "HyperShot Pads",
+    "Mahjong",
+    "Quiz King Buzzers",
+    "Family Trainer A",
+    "Family Trainer B",
+    "Oeka Kids Tablet",
+    "Barcode World",
+    "Top Rider"
+  };
 
   if (esifc >= SIFC_NONE && esifc <= SIFC_COUNT)
     return names[esifc];

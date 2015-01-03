@@ -104,7 +104,6 @@ void FCEU_PutImageDummy(void);
 #endif
 
 extern uint8 Exit;
-extern uint8 pale;
 extern uint8 vsdip;
 
 #define JOY_A   1

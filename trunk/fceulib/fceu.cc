@@ -303,7 +303,7 @@ endlseq:
 }
 
 FCEUGI *FCEUI_LoadGame(const char *name, int OverwriteVidMode) {
-  return FCEUI_LoadGameVirtual(name,OverwriteVidMode);
+  return FCEUI_LoadGameVirtual(name, OverwriteVidMode);
 }
 
 
