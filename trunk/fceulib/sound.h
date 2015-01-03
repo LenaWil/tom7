@@ -56,8 +56,6 @@ extern uint32 soundtsinc;
 extern uint32 soundtsoffs;
 #define SOUNDTS (timestamp + soundtsoffs)
 
-void FrameSoundUpdate();
-
 void FCEUSND_Power();
 void FCEUSND_Reset();
 void FCEUSND_SaveState();
