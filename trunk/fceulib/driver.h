@@ -90,10 +90,6 @@ void FCEUI_FrameSkip(int x);
 //First and last scanlines to render, for ntsc and pal emulation.
 void FCEUI_SetRenderedLines(int ntscf, int ntscl, int palf, int pall);
 
-//Tells FCE Ultra to copy the palette data pointed to by pal and use it.
-//Data pointed to by pal needs to be 64*3 bytes in length.
-void FCEUI_SetPaletteArray(uint8 *pal);
-
 //Sets up sound code to render sound at the specified rate, in samples
 //per second.  Only sample rates of 44100, 48000, and 96000 are currently supported.
 //If "Rate" equals 0, sound is disabled.

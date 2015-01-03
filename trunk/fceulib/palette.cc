@@ -47,30 +47,16 @@ pal paletten[64];       // Mathematically generated palette.
 static void CalculatePalette();
 static void ChoosePalette();
 static void WritePalette();
-uint8 pale=0;
+uint8 pale = 0;
 
-pal *palo;
-static pal *palpoint[8]= {
+const pal *palo = nullptr;
+static const pal *palpoint[8]= {
   palette,
   rp2c04001,
   rp2c04002,
   rp2c04003,
   rp2c05004,
 };
-
-void FCEUI_SetPaletteArray(uint8 *pal) {
-  if (!pal) {
-    palpoint[0]=palette;
-  } else {
-    palpoint[0]=palettec;
-    for (int x=0;x<64;x++) {
-      palpoint[0][x].r=*((uint8 *)pal+x+x+x);
-      palpoint[0][x].g=*((uint8 *)pal+x+x+x+1);
-      palpoint[0][x].b=*((uint8 *)pal+x+x+x+2);
-    }
-  }
-  FCEU_ResetPalette();
-}
 
 void FCEUI_SetNTSCTH(int n, int tint, int hue) {
   ntsctint=tint;
