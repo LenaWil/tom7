@@ -16,20 +16,17 @@
 #include "driver.h"
 
 #include "fceu.h"
-#include "movie.h"
 #include "version.h"
 
 #include "types.h"
-
-extern double g_fpsScale;
 
 int CloseGame(void);
 
 // external dependencies
 bool turbo = false;
-int closeFinishedMovie = 0;
+static int closeFinishedMovie = 0;
 
-int gametype = 0;
+static int gametype = 0;
 
 // Not clear who owns this; input/movie/fceu? But we need a decl somewhere.
 unsigned int lagCounter = 0;
@@ -120,7 +117,7 @@ ArchiveScanRecord FCEUD_ScanArchive(std::string fname) {
 
 // for movie playback?
 
-int FCEUDnetplay=0;
+static int FCEUDnetplay=0;
 
 namespace {
 struct Color {
@@ -144,7 +141,6 @@ void FCEUD_GetPalette(uint8 index, uint8 *r, uint8 *g, uint8 *b) {
   *b = s_psdl[index].b;
 }
 
-bool FCEUI_AviEnableHUDrecording() { return false; }
 void FCEUI_SetAviEnableHUDrecording(bool enable) {}
 
 // ?

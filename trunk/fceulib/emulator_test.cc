@@ -274,6 +274,9 @@ int main() {
       6310604747032322204ULL,
       };
 
+  // XXX Note: Something must be preventing this from loading the save state,
+  // since kirby has battery-backed NVROM and I think is successfully writing
+  // it at the end (maybe we never 'save' the game in this movie?)
   Game kirby{
     "kirby.nes",
       RLE::Decompress({

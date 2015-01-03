@@ -41,8 +41,6 @@
 //	when the virtual motor is on(mmm...virtual motor).
 extern int disableBatteryLoading;
 
-bool isFDS = false;	//flag for determining if a FDS game is loaded, movie.cpp needs this
-
 static DECLFR(FDSRead4030);
 static DECLFR(FDSRead4031);
 static DECLFR(FDSRead4032);
@@ -96,9 +94,9 @@ void FDSGI(GI h) {
 static void FDSStateRestore(int version) {
   setmirror(((FDSRegs[5]&8)>>3)^1);
 
-  if(version >= 9810) {
-    for(int x=0;x<TotalSides;x++) {
-      for(int b=0; b<65500; b++) {
+  if (version >= 9810) {
+    for (int x=0;x<TotalSides;x++) {
+      for (int b=0; b<65500; b++) {
 	diskdata[x][b] ^= diskdatao[x][b];
       }
     }
@@ -143,14 +141,14 @@ static void FDSInit(void)
 
 void FCEU_FDSInsert(void)
 {
-	if(FCEUI_EmulationPaused()) EmulationPaused |= 2;
+	if (FCEUI_EmulationPaused()) EmulationPaused |= 2;
 
-	if(TotalSides==0)
+	if (TotalSides==0)
 	{
 		fprintf(stderr, "Not FDS; can't eject disk.");
 		return;
 	}
-	if(InDisk==255)
+	if (InDisk==255)
 	{
 		fprintf(stderr, "Disk %d Side %s Inserted",SelectDisk>>1,(SelectDisk&1)?"B":"A");
 		InDisk=SelectDisk;
@@ -163,14 +161,14 @@ void FCEU_FDSInsert(void)
 }
 
 void FCEU_FDSSelect(void) {
-  if(FCEUI_EmulationPaused()) EmulationPaused |= 2;
+  if (FCEUI_EmulationPaused()) EmulationPaused |= 2;
 
-  if(TotalSides==0) {
+  if (TotalSides==0) {
     fprintf(stderr, "Not FDS; can't select disk.");
     return;
   }
 
-  if(InDisk!=255) {
+  if (InDisk!=255) {
     fprintf(stderr, "Eject disk before selecting.");
     return;
   }
@@ -180,12 +178,12 @@ void FCEU_FDSSelect(void) {
 
 static void FDSFix(int a)
 {
-	if((IRQa&2) && IRQCount)
+	if ((IRQa&2) && IRQCount)
 	{
 		IRQCount-=a;
-		if(IRQCount<=0)
+		if (IRQCount<=0)
 		{
-			if(!(IRQa&1))
+			if (!(IRQa&1))
 			{
 				IRQa&=~2;
 				IRQCount=IRQLatch=0;
@@ -198,12 +196,12 @@ static void FDSFix(int a)
 			//   printf("IRQ: %d\n",scanline);
 		}
 	}
-	if(DiskSeekIRQ>0)
+	if (DiskSeekIRQ>0)
 	{
 		DiskSeekIRQ-=a;
-		if(DiskSeekIRQ<=0)
+		if (DiskSeekIRQ<=0)
 		{
-			if(FDSRegs[5]&0x80)
+			if (FDSRegs[5]&0x80)
 			{
 				X6502_IRQBegin(FCEU_IQEXT2);
 			}
@@ -216,10 +214,10 @@ static DECLFR(FDSRead4030)
 	uint8 ret=0;
 
 	/* Cheap hack. */
-	if(X.IRQlow&FCEU_IQEXT) ret|=1;
-	if(X.IRQlow&FCEU_IQEXT2) ret|=2;
+	if (X.IRQlow&FCEU_IQEXT) ret|=1;
+	if (X.IRQlow&FCEU_IQEXT2) ret|=2;
 
-	if(!fceuindbg)
+	if (!fceuindbg)
 	{
 		X6502_IRQEnd(FCEU_IQEXT);
 		X6502_IRQEnd(FCEU_IQEXT2);
@@ -230,12 +228,12 @@ static DECLFR(FDSRead4030)
 static DECLFR(FDSRead4031)
 {
 	static uint8 z=0;
-	if(InDisk!=255)
+	if (InDisk!=255)
 	{
 		z=diskdata[InDisk][DiskPtr];
-		if(!fceuindbg)
+		if (!fceuindbg)
 		{
-			if(DiskPtr<64999) DiskPtr++;
+			if (DiskPtr<64999) DiskPtr++;
 			DiskSeekIRQ=150;
 			X6502_IRQEnd(FCEU_IQEXT2);
 		}
@@ -247,10 +245,10 @@ static DECLFR(FDSRead4032)
 	uint8 ret;
 
 	ret=X.DB&~7;
-	if(InDisk==255)
+	if (InDisk==255)
 		ret|=5;
 
-	if(InDisk==255 || !(FDSRegs[5]&1) || (FDSRegs[5]&2))
+	if (InDisk==255 || !(FDSRegs[5]&1) || (FDSRegs[5]&2))
 		ret|=2;
 	return ret;
 }
@@ -339,9 +337,9 @@ static DECLFR(FDSSRead)
 
 static DECLFW(FDSSWrite)
 {
-	if(FSettings.SndRate)
+	if (FSettings.SndRate)
 	{
-		if(FSettings.soundq>=1)
+		if (FSettings.soundq>=1)
 			RenderSoundHQ();
 		else
 			RenderSound();
@@ -350,7 +348,7 @@ static DECLFW(FDSSWrite)
 	switch(A)
 	{
 	case 0x0:
-	case 0x4: if(V&0x80)
+	case 0x4: if (V&0x80)
 				  amplitude[(A&0xF)>>2]=V&0x3F; //)>0x20?0x20:(V&0x3F);
 		break;
 	case 0x5://printf("$%04x:$%02x\n",A,V);
@@ -364,8 +362,8 @@ static DECLFW(FDSSWrite)
 		SPSG[0x5]=(SPSG[0x5]+1)&0x1F;
 		break;
 	}
-	//if(A>=0x7 && A!=0x8 && A<=0xF)
-	//if(A==0xA || A==0x9)
+	//if (A>=0x7 && A!=0x8 && A<=0xF)
+	//if (A==0xA || A==0x9)
 	//printf("$%04x:$%02x\n",A,V);
 	SPSG[A]=V;
 }
@@ -383,23 +381,23 @@ static void DoEnv()
 {
 	int x;
 
-	for(x=0;x<2;x++)
-		if(!(SPSG[x<<2]&0x80) && !(SPSG[0x3]&0x40))
+	for (x=0;x<2;x++)
+		if (!(SPSG[x<<2]&0x80) && !(SPSG[0x3]&0x40))
 		{
 			static int counto[2]={0,0};
 
-			if(counto[x]<=0)
+			if (counto[x]<=0)
 			{
-				if(!(SPSG[x<<2]&0x80))
+				if (!(SPSG[x<<2]&0x80))
 				{
-					if(SPSG[x<<2]&0x40)
+					if (SPSG[x<<2]&0x40)
 					{
-						if(amplitude[x]<0x3F)
+						if (amplitude[x]<0x3F)
 							amplitude[x]++;
 					}
 					else
 					{
-						if(amplitude[x]>0)
+						if (amplitude[x]>0)
 							amplitude[x]--;
 					}
 				}
@@ -418,37 +416,37 @@ static DECLFR(FDSWaveRead)
 static DECLFW(FDSWaveWrite)
 {
 	//printf("$%04x:$%02x, %d\n",A,V,SPSG[0x9]&0x80);
-	if(SPSG[0x9]&0x80)
+	if (SPSG[0x9]&0x80)
 		fdso.cwave[A&0x3f]=V&0x3F;
 }
 
 static int ta;
 static INLINE void ClockRise(void)
 {
-	if(!clockcount)
+	if (!clockcount)
 	{
 		ta++;
 
 		b19shiftreg60=(SPSG[0x2]|((SPSG[0x3]&0xF)<<8));
 		b17latch76=(SPSG[0x6]|((SPSG[0x07]&0xF)<<8))+b17latch76;
 
-		if(!(SPSG[0x7]&0x80))
+		if (!(SPSG[0x7]&0x80))
 		{
 			int t=fdso.mwave[(b17latch76>>13)&0x1F]&7;
 			int t2=amplitude[1];
 			int adj = 0;
 
-			if((t&3))
+			if ((t&3))
 			{
-				if((t&4))
+				if ((t&4))
 					adj -= (t2 * ((4 - (t&3) ) ));
 				else
 					adj += (t2 * ( (t&3) ));
 			}
 			adj *= 2;
-			if(adj > 0x7F) adj = 0x7F;
-			if(adj < -0x80) adj = -0x80;
-			//if(adj) printf("%d ",adj);
+			if (adj > 0x7F) adj = 0x7F;
+			if (adj < -0x80) adj = -0x80;
+			//if (adj) printf("%d ",adj);
 			b8shiftreg88=0x80 + adj;
 		}
 		else
@@ -467,9 +465,9 @@ static INLINE void ClockRise(void)
 
 static INLINE void ClockFall(void)
 {
-	//if(!(SPSG[0x7]&0x80))
+	//if (!(SPSG[0x7]&0x80))
 	{
-		if((b8shiftreg88&1)) // || clockcount==7)
+		if ((b8shiftreg88&1)) // || clockcount==7)
 			b24latch68=b24adder66;
 	}
 	clockcount=(clockcount+1)&7;
@@ -478,25 +476,25 @@ static INLINE void ClockFall(void)
 static INLINE int32 FDSDoSound(void)
 {
 	fdso.count+=fdso.cycles;
-	if(fdso.count>=((int64)1<<40))
+	if (fdso.count>=((int64)1<<40))
 	{
 dogk:
 		fdso.count-=(int64)1<<40;
 		ClockRise();
 		ClockFall();
 		fdso.envcount--;
-		if(fdso.envcount<=0)
+		if (fdso.envcount<=0)
 		{
 			fdso.envcount+=SPSG[0xA]*3;
 			DoEnv();
 		}
 	}
-	if(fdso.count>=32768) goto dogk;
+	if (fdso.count>=32768) goto dogk;
 
 	// Might need to emulate applying the amplitude to the waveform a bit better...
 	{
 		int k=amplitude[0];
-		if(k>0x20) k=0x20;
+		if (k>0x20) k=0x20;
 		return (fdso.cwave[b24latch68>>19]*k)*4/((SPSG[0x9]&0x3)+2);
 	}
 }
@@ -510,12 +508,12 @@ static void RenderSound(void)
 
 	start=FBC;
 	end=(SOUNDTS<<16)/soundtsinc;
-	if(end<=start)
+	if (end<=start)
 		return;
 	FBC=end;
 
-	if(!(SPSG[0x9]&0x80))
-		for(x=start;x<end;x++)
+	if (!(SPSG[0x9]&0x80))
+		for (x=start;x<end;x++)
 		{
 			uint32 t=FDSDoSound();
 			t+=t>>1;
@@ -528,8 +526,8 @@ static void RenderSoundHQ(void)
 {
 	uint32 x; //mbg merge 7/17/06 - made this unsigned
 
-	if(!(SPSG[0x9]&0x80))
-		for(x=FBC;x<SOUNDTS;x++)
+	if (!(SPSG[0x9]&0x80))
+		for (x=FBC;x<SOUNDTS;x++)
 		{
 			uint32 t=FDSDoSound();
 			t+=t>>1;
@@ -552,7 +550,7 @@ void FDSSound(int c)
 /*
 static DECLFR(FDSBIOSPatch)
 {
-if(FDSRegs[5]&0x4)
+if (FDSRegs[5]&0x4)
 {
 X.X=FDSRead4031(0x4031);
 FDSWrite(0x4024,X.A);
@@ -569,9 +567,9 @@ return(0x58);
 
 static void FDS_ESI(void)
 {
-	if(FSettings.SndRate)
+	if (FSettings.SndRate)
 	{
-		if(FSettings.soundq>=1)
+		if (FSettings.soundq>=1)
 		{
 			fdso.cycles=(int64)1<<39;
 		}
@@ -626,12 +624,12 @@ static DECLFW(FDSWrite)
 		break;
 	case 0x4023:break;
 	case 0x4024:
-		if(InDisk!=255 && !(FDSRegs[5]&0x4) && (FDSRegs[3]&0x1))
+		if (InDisk!=255 && !(FDSRegs[5]&0x4) && (FDSRegs[3]&0x1))
 		{
-			if(DiskPtr>=0 && DiskPtr<65500)
+			if (DiskPtr>=0 && DiskPtr<65500)
 			{
-				if(writeskip) writeskip--;
-				else if(DiskPtr>=2)
+				if (writeskip) writeskip--;
+				else if (DiskPtr>=2)
 				{
 					DiskWritten=1;
 					diskdata[InDisk][DiskPtr-2]=V;
@@ -641,20 +639,20 @@ static DECLFW(FDSWrite)
 		break;
 	case 0x4025:
 		X6502_IRQEnd(FCEU_IQEXT2);
-		if(InDisk!=255)
+		if (InDisk!=255)
 		{
-			if(!(V&0x40))
+			if (!(V&0x40))
 			{
-				if(FDSRegs[5]&0x40 && !(V&0x10))
+				if (FDSRegs[5]&0x40 && !(V&0x10))
 				{
 					DiskSeekIRQ=200;
 					DiskPtr-=2;
 				}
-				if(DiskPtr<0) DiskPtr=0;
+				if (DiskPtr<0) DiskPtr=0;
 			}
-			if(!(V&0x4)) writeskip=2;
-			if(V&2) {DiskPtr=0;DiskSeekIRQ=200;}
-			if(V&0x40) DiskSeekIRQ=200;
+			if (!(V&0x4)) writeskip=2;
+			if (V&2) {DiskPtr=0;DiskSeekIRQ=200;}
+			if (V&0x40) DiskSeekIRQ=200;
 		}
 		setmirror(((V>>3)&1)^1);
 		break;
@@ -666,8 +664,8 @@ static void FreeFDSMemory(void)
 {
 	int x;
 
-	for(x=0;x<TotalSides;x++)
-		if(diskdata[x])
+	for (x=0;x<TotalSides;x++)
+		if (diskdata[x])
 		{
 			free(diskdata[x]);
 			diskdata[x]=0;
@@ -682,13 +680,13 @@ static int SubLoad(FCEUFILE *fp)
 
 	FCEU_fread(header,16,1,fp);
 
-	if(memcmp(header,"FDS\x1a",4))
+	if (memcmp(header,"FDS\x1a",4))
 	{
-		if(!(memcmp(header+1,"*NINTENDO-HVC*",14)))
+		if (!(memcmp(header+1,"*NINTENDO-HVC*",14)))
 		{
 			long t;
 			t=FCEU_fgetsize(fp);
-			if(t<65500)
+			if (t<65500)
 				t=65500;
 			TotalSides=t/65500;
 			FCEU_fseek(fp,0,SEEK_SET);
@@ -701,16 +699,16 @@ static int SubLoad(FCEUFILE *fp)
 
 	md5_starts(&md5);
 
-	if(TotalSides>8) TotalSides=8;
-	if(TotalSides<1) TotalSides=1;
+	if (TotalSides>8) TotalSides=8;
+	if (TotalSides<1) TotalSides=1;
 
-	for(x=0;x<TotalSides;x++)
+	for (x=0;x<TotalSides;x++)
 	{
 		diskdata[x]=(uint8 *)FCEU_malloc(65500);
-		if(!diskdata[x])
+		if (!diskdata[x])
 		{
 			int zol;
-			for(zol=0;zol<x;zol++)
+			for (zol=0;zol<x;zol++)
 				free(diskdata[zol]);
 			return 0;
 		}
@@ -721,170 +719,147 @@ static int SubLoad(FCEUFILE *fp)
 	return(1);
 }
 
-static void PreSave(void)
-{
-	int x;
-
-	//if(DiskWritten)
-	for(x=0;x<TotalSides;x++)
-	{
-		int b;
-		for(b=0; b<65500; b++)
-			diskdata[x][b] ^= diskdatao[x][b];
-	}
+static void PreSave(void) {
+  //if (DiskWritten)
+  for (int x=0;x<TotalSides;x++) {
+    for (int b=0; b<65500; b++)
+      diskdata[x][b] ^= diskdatao[x][b];
+  }
 }
 
-static void PostSave(void)
-{
-	int x;
+static void PostSave(void) {
 
-	//if(DiskWritten)
-	for(x=0;x<TotalSides;x++)
-	{
-		int b;
+  //if (DiskWritten)
+  for (int x=0;x<TotalSides;x++) {
 
-		for(b=0; b<65500; b++)
-			diskdata[x][b] ^= diskdatao[x][b];
-	}
+    for (int b=0; b<65500; b++)
+      diskdata[x][b] ^= diskdatao[x][b];
+  }
 
 }
 
-int FDSLoad(const char *name, FCEUFILE *fp)
-{
-	FILE *zp;
-	int x;
-	char *fn;
+int FDSLoad(const char *name, FCEUFILE *fp) {
+  FILE *zp;
+  char *fn;
 
-	FCEU_fseek(fp,0,SEEK_SET);
+  FCEU_fseek(fp,0,SEEK_SET);
 
-	if(!SubLoad(fp))
-		return(0);
+  if (!SubLoad(fp))
+    return(0);
 
 
-	fn = strdup(FCEU_MakeFName(FCEUMKF_FDSROM,0,0).c_str());
+  // XXX use std::string -tom7
+  fn = strdup(FCEU_MakeFDSFilename().c_str());
 
-	if(!(zp=FCEUD_UTF8fopen(fn,"rb")))
-	{
-		FCEU_PrintError("FDS BIOS ROM image missing: %s", FCEU_MakeFName(FCEUMKF_FDSROM,0,0).c_str());
-		FreeFDSMemory();
-		free(fn);
-		return 0;
-	}
+  if (!(zp=FCEUD_UTF8fopen(fn,"rb"))) {
+    FCEU_PrintError("FDS BIOS ROM image missing: %s", 
+		    FCEU_MakeFDSFilename().c_str());
+    FreeFDSMemory();
+    free(fn);
+    return 0;
+  }
 
+  free(fn);
+
+  fseek( zp, 0L, SEEK_END );
+  if (ftell( zp ) != 8192 ) {
+    fclose(zp);
+    FreeFDSMemory();
+    FCEU_PrintError("FDS BIOS ROM image incompatible: %s", 
+		    FCEU_MakeFDSROMFilename().c_str());
+    return 0;
+  }
+  fseek( zp, 0L, SEEK_SET );
+
+  if (fread(FDSBIOS,1,8192,zp)!=8192) {
+    fclose(zp);
+    FreeFDSMemory();
+    FCEU_PrintError("Error reading FDS BIOS ROM image.");
+    return 0;
+  }
+
+  fclose(zp);
+
+  if (!disableBatteryLoading) {
+    FCEUFILE *tp;
+    char *fn=strdup(FCEU_MakeFDSFilename().c_str());
+
+    for (int x=0;x<TotalSides;x++) {
+      diskdatao[x]=(uint8 *)FCEU_malloc(65500);
+      memcpy(diskdatao[x],diskdata[x],65500);
+    }
+
+    if ((tp=FCEU_fopen(fn,"wb",0))) {
+      FreeFDSMemory();
+      if (!SubLoad(tp)) {
+	FCEU_PrintError("Error reading auxillary FDS file.");
 	free(fn);
+	return(0);
+      }
+      FCEU_fclose(tp);
+      DiskWritten=1;  /* For save state handling. */
+    }
+    free(fn);
+  }
 
-	fseek( zp, 0L, SEEK_END );
-	if (ftell( zp ) != 8192 ) {
-		fclose(zp);
-		FreeFDSMemory();
-		FCEU_PrintError("FDS BIOS ROM image incompatible: %s", FCEU_MakeFName(FCEUMKF_FDSROM,0,0).c_str());
-		return 0;
-	}
-	fseek( zp, 0L, SEEK_SET );
+  GameInfo->type=GIT_FDS;
+  GameInterface=FDSGI;
 
-	if(fread(FDSBIOS,1,8192,zp)!=8192)
-	{
-		fclose(zp);
-		FreeFDSMemory();
-		FCEU_PrintError("Error reading FDS BIOS ROM image.");
-		return 0;
-	}
+  SelectDisk=0;
+  InDisk=255;
 
-	fclose(zp);
+  ResetExState(PreSave,PostSave);
+  FDSSoundStateAdd();
 
-	if (!disableBatteryLoading)
-	{
-		FCEUFILE *tp;
-		char *fn=strdup(FCEU_MakeFName(FCEUMKF_FDS,0,0).c_str());
+  for (int x=0;x<TotalSides;x++) {
+    char temp[5];
+    sprintf(temp,"DDT%d",x);
+    AddExState(diskdata[x],65500,0,temp);
+  }
 
-		int x;
-		for(x=0;x<TotalSides;x++)
-		{
-			diskdatao[x]=(uint8 *)FCEU_malloc(65500);
-			memcpy(diskdatao[x],diskdata[x],65500);
-		}
+  AddExState(FDSRAM,32768,0,"FDSR");
+  AddExState(FDSRegs,sizeof(FDSRegs),0,"FREG");
+  AddExState(CHRRAM,8192,0,"CHRR");
+  AddExState(&IRQCount, 4, 1, "IRQC");
+  AddExState(&IRQLatch, 4, 1, "IQL1");
+  AddExState(&IRQa, 1, 0, "IRQA");
+  AddExState(&writeskip,1,0,"WSKI");
+  AddExState(&DiskPtr,4,1,"DPTR");
+  AddExState(&DiskSeekIRQ,4,1,"DSIR");
+  AddExState(&SelectDisk,1,0,"SELD");
+  AddExState(&InDisk,1,0,"INDI");
+  AddExState(&DiskWritten,1,0,"DSKW");
 
-		if((tp=FCEU_fopen(fn,"wb",0)))
-		{
-			FreeFDSMemory();
-			if(!SubLoad(tp))
-			{
-				FCEU_PrintError("Error reading auxillary FDS file.");
-				free(fn);
-				return(0);
-			}
-			FCEU_fclose(tp);
-			DiskWritten=1;  /* For save state handling. */
-		}
-		free(fn);
-	}
+  ResetCartMapping();
+  SetupCartCHRMapping(0,CHRRAM,8192,1);
+  SetupCartMirroring(0,0,0);
+  memset(CHRRAM,0,8192);
+  memset(FDSRAM,0,32768);
 
-	GameInfo->type=GIT_FDS;
-	GameInterface=FDSGI;
-	isFDS = true;
+  FCEU_printf(" Sides: %d\n\n",TotalSides);
 
-	SelectDisk=0;
-	InDisk=255;
+  FCEUI_SetVidSystem(0);
 
-	ResetExState(PreSave,PostSave);
-	FDSSoundStateAdd();
-
-	for(x=0;x<TotalSides;x++)
-	{
-		char temp[5];
-		sprintf(temp,"DDT%d",x);
-		AddExState(diskdata[x],65500,0,temp);
-	}
-
-	AddExState(FDSRAM,32768,0,"FDSR");
-	AddExState(FDSRegs,sizeof(FDSRegs),0,"FREG");
-	AddExState(CHRRAM,8192,0,"CHRR");
-	AddExState(&IRQCount, 4, 1, "IRQC");
-	AddExState(&IRQLatch, 4, 1, "IQL1");
-	AddExState(&IRQa, 1, 0, "IRQA");
-	AddExState(&writeskip,1,0,"WSKI");
-	AddExState(&DiskPtr,4,1,"DPTR");
-	AddExState(&DiskSeekIRQ,4,1,"DSIR");
-	AddExState(&SelectDisk,1,0,"SELD");
-	AddExState(&InDisk,1,0,"INDI");
-	AddExState(&DiskWritten,1,0,"DSKW");
-
-	ResetCartMapping();
-	SetupCartCHRMapping(0,CHRRAM,8192,1);
-	SetupCartMirroring(0,0,0);
-	memset(CHRRAM,0,8192);
-	memset(FDSRAM,0,32768);
-
-	FCEU_printf(" Sides: %d\n\n",TotalSides);
-
-	FCEUI_SetVidSystem(0);
-
-	return 1;
+  return 1;
 }
 
-void FDSClose(void)
-{
-	FILE *fp;
-	int x;
-	isFDS = false;
+void FDSClose(void) {
+  FILE *fp;
 
-	if(!DiskWritten) return;
+  if (!DiskWritten) return;
 
-	const std::string &fn = FCEU_MakeFName(FCEUMKF_FDS,0,0);
-	if(!(fp=FCEUD_UTF8fopen(fn.c_str(),"wb")))
-	{
-		return;
-	}
+  const std::string fn = FCEU_MakeFDSFilename();
+  if (!(fp=FCEUD_UTF8fopen(fn.c_str(),"wb"))) {
+    return;
+  }
 
-	for(x=0;x<TotalSides;x++)
-	{
-		if(fwrite(diskdata[x],1,65500,fp)!=65500)
-		{
-			FCEU_PrintError("Error saving FDS image!");
-			fclose(fp);
-			return;
-		}
-	}
-	FreeFDSMemory();
-	fclose(fp);
+  for (int x=0;x<TotalSides;x++) {
+    if (fwrite(diskdata[x],1,65500,fp)!=65500) {
+      FCEU_PrintError("Error saving FDS image!");
+      fclose(fp);
+      return;
+    }
+  }
+  FreeFDSMemory();
+  fclose(fp);
 }
