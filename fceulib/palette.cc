@@ -33,195 +33,182 @@
 #include "palette.h"
 #include "palettes/palettes.h"
 
-
-
-#ifndef M_PI
-#define M_PI 3.14159265358979323846
-#endif
+static constexpr double PALETTE_PI = 3.14159265358979323846;
 
 static int ntsccol=0;
 static int ntsctint=46+10;
 static int ntschue=72;
-
-bool force_grayscale = false;
 
 /* These are dynamically filled/generated palettes: */
 pal palettei[64];       // Custom palette for an individual game.
 pal palettec[64];       // Custom "global" palette.
 pal paletten[64];       // Mathematically generated palette.
 
-static void CalculatePalette(void);
-static void ChoosePalette(void);
-static void WritePalette(void);
+static void CalculatePalette();
+static void ChoosePalette();
+static void WritePalette();
 uint8 pale=0;
 
 pal *palo;
-static pal *palpoint[8]=
-{
-	palette,
-	rp2c04001,
-	rp2c04002,
-	rp2c04003,
-	rp2c05004,
+static pal *palpoint[8]= {
+  palette,
+  rp2c04001,
+  rp2c04002,
+  rp2c04003,
+  rp2c05004,
 };
 
-void FCEUI_SetPaletteArray(uint8 *pal)
-{
-	if(!pal)
-		palpoint[0]=palette;
-	else
-	{
-		int x;
-		palpoint[0]=palettec;
-		for(x=0;x<64;x++)
-		{
-			palpoint[0][x].r=*((uint8 *)pal+x+x+x);
-			palpoint[0][x].g=*((uint8 *)pal+x+x+x+1);
-			palpoint[0][x].b=*((uint8 *)pal+x+x+x+2);
-		}
-	}
-	FCEU_ResetPalette();
+void FCEUI_SetPaletteArray(uint8 *pal) {
+  if (!pal) {
+    palpoint[0]=palette;
+  } else {
+    palpoint[0]=palettec;
+    for (int x=0;x<64;x++) {
+      palpoint[0][x].r=*((uint8 *)pal+x+x+x);
+      palpoint[0][x].g=*((uint8 *)pal+x+x+x+1);
+      palpoint[0][x].b=*((uint8 *)pal+x+x+x+2);
+    }
+  }
+  FCEU_ResetPalette();
 }
 
-
-void FCEUI_SetNTSCTH(int n, int tint, int hue)
-{
-	ntsctint=tint;
-	ntschue=hue;
-	ntsccol=n;
-	FCEU_ResetPalette();
+void FCEUI_SetNTSCTH(int n, int tint, int hue) {
+  ntsctint=tint;
+  ntschue=hue;
+  ntsccol=n;
+  FCEU_ResetPalette();
 }
 
 static uint8 lastd=0;
-void SetNESDeemph(uint8 d, int force)
-{
-  static uint16 rtmul[7]={(uint16)(32768*1.239),
-			  (uint16)(32768*.794),
-			  (uint16)(32768*1.019),
-			  (uint16)(32768*.905),
-			  (uint16)(32768*1.023),
-			  (uint16)(32768*.741),
-			  (uint16)(32768*.75)};
-  static uint16 gtmul[7]={(uint16)(32768*.915),
-			  (uint16)(32768*1.086),
-			  (uint16)(32768*.98),
-			  (uint16)(32768*1.026),
-			  (uint16)(32768*.908),
-			  (uint16)(32768*.987),
-			  (uint16)(32768*.75)};
-  static uint16 btmul[7]={(uint16)(32768*.743),
-			  (uint16)(32768*.882),
-			  (uint16)(32768*.653),
-			  (uint16)(32768*1.277),
-			  (uint16)(32768*.979),
-			  (uint16)(32768*.101),
-			  (uint16)(32768*.75)};
-	uint32 r,g,b;
-	int x;
+void SetNESDeemph(uint8 d, int force) {
+  static constexpr uint16 rtmul[7]={
+    (uint16)(32768*1.239),
+    (uint16)(32768*.794),
+    (uint16)(32768*1.019),
+    (uint16)(32768*.905),
+    (uint16)(32768*1.023),
+    (uint16)(32768*.741),
+    (uint16)(32768*.75)};
+  static constexpr uint16 gtmul[7]={
+    (uint16)(32768*.915),
+    (uint16)(32768*1.086),
+    (uint16)(32768*.98),
+    (uint16)(32768*1.026),
+    (uint16)(32768*.908),
+    (uint16)(32768*.987),
+    (uint16)(32768*.75)};
+  static constexpr uint16 btmul[7]={
+    (uint16)(32768*.743),
+    (uint16)(32768*.882),
+    (uint16)(32768*.653),
+    (uint16)(32768*1.277),
+    (uint16)(32768*.979),
+    (uint16)(32768*.101),
+    (uint16)(32768*.75)};
 
-	/* If it's not forced(only forced when the palette changes),
-	don't waste cpu time if the same deemphasis bits are set as the last call.
-	*/
-	if(!force)
-	{
-		if(d==lastd)
-			return;
-	}
-	else   /* Only set this when palette has changed. */
-	{
-		r=rtmul[6];
-		g=rtmul[6];
-		b=rtmul[6];
+  uint32 r,g,b;
 
-		for(x=0;x<0x40;x++)
-		{
-			uint32 m,n,o;
-			m=palo[x].r;
-			n=palo[x].g;
-			o=palo[x].b;
-			m=(m*r)>>15;
-			n=(n*g)>>15;
-			o=(o*b)>>15;
-			if(m>0xff) m=0xff;
-			if(n>0xff) n=0xff;
-			if(o>0xff) o=0xff;
-			FCEUD_SetPalette(x|0xC0,m,n,o);
-		}
-	}
-	if(!d) return; /* No deemphasis, so return. */
+  /* If it's not forced(only forced when the palette changes),
+     don't waste cpu time if the same deemphasis bits are set as the last call.
+  */
+  if (!force) {
+    if (d==lastd)
+      return;
+  } else {
+    /* Only set this when palette has changed. */
+    r=rtmul[6];
+    g=rtmul[6];
+    b=rtmul[6];
 
-	r=rtmul[d-1];
-	g=gtmul[d-1];
-	b=btmul[d-1];
+    for (int x=0;x<0x40;x++) {
+      uint32 m,n,o;
+      m=palo[x].r;
+      n=palo[x].g;
+      o=palo[x].b;
+      m=(m*r)>>15;
+      n=(n*g)>>15;
+      o=(o*b)>>15;
+      if (m>0xff) m=0xff;
+      if (n>0xff) n=0xff;
+      if (o>0xff) o=0xff;
+      FCEUD_SetPalette(x|0xC0,m,n,o);
+    }
+  }
+  if (!d) return; /* No deemphasis, so return. */
 
-	for(x=0;x<0x40;x++)
-	{
-		uint32 m,n,o;
+  r=rtmul[d-1];
+  g=gtmul[d-1];
+  b=btmul[d-1];
 
-		m=palo[x].r;
-		n=palo[x].g;
-		o=palo[x].b;
-		m=(m*r)>>15;
-		n=(n*g)>>15;
-		o=(o*b)>>15;
-		if(m>0xff) m=0xff;
-		if(n>0xff) n=0xff;
-		if(o>0xff) o=0xff;
+  for (int x=0;x<0x40;x++) {
+    uint32 m,n,o;
 
-		FCEUD_SetPalette(x|0x40,m,n,o);
-	}
+    m=palo[x].r;
+    n=palo[x].g;
+    o=palo[x].b;
+    m=(m*r)>>15;
+    n=(n*g)>>15;
+    o=(o*b)>>15;
+    if (m>0xff) m=0xff;
+    if (n>0xff) n=0xff;
+    if (o>0xff) o=0xff;
 
-	lastd=d;
+    FCEUD_SetPalette(x|0x40,m,n,o);
+  }
+
+  lastd=d;
 }
 
 // Converted from Kevin Horton's qbasic palette generator.
-static void CalculatePalette(void)
-{
-	int x,z;
-	int r,g,b;
-	double s,luma,theta;
-	static uint8 cols[16]={0,24,21,18,15,12,9,6,3,0,33,30,27,0,0,0};
-	static uint8 br1[4]={6,9,12,12};
-	static double br2[4]={.29,.45,.73,.9};
-	static double br3[4]={0,.24,.47,.77};
+static void CalculatePalette() {
+  int r,g,b;
+  double s,luma,theta;
+  static uint8 cols[16]={0,24,21,18,15,12,9,6,3,0,33,30,27,0,0,0};
+  static uint8 br1[4]={6,9,12,12};
+  static double br2[4]={.29,.45,.73,.9};
+  static double br3[4]={0,.24,.47,.77};
 
-	for(x=0;x<=3;x++)
-		for(z=0;z<16;z++)
-		{
-			s=(double)ntsctint/128;
-			luma=br2[x];
-			if(z==0)  {s=0;luma=((double)br1[x])/12;}
+  for (int x=0;x<=3;x++) {
+    for (int z=0;z<16;z++) {
+      s=(double)ntsctint/128;
+      luma=br2[x];
+      if (z==0) { 
+	s=0;
+	luma=((double)br1[x])/12;
+      }
 
-			if(z>=13)
-			{
-				s=luma=0;
-				if(z==13)
-					luma=br3[x];
-			}
+      if (z>=13) {
+	s=luma=0;
+	if (z==13)
+	  luma=br3[x];
+      }
 
-			theta=(double)M_PI*(double)(((double)cols[z]*10+ (((double)ntschue/2)+300) )/(double)180);
-			r=(int)((luma+s*sin(theta))*256);
-			g=(int)((luma-(double)27/53*s*sin(theta)+(double)10/53*s*cos(theta))*256);
-			b=(int)((luma-s*cos(theta))*256);
+      theta = 
+	PALETTE_PI *
+	(double)(((double)cols[z]*10+ (((double)ntschue/2)+300) )/(double)180);
+      r=(int)((luma+s*sin(theta))*256);
+      g=(int)((luma-(double)27/53*s*sin(theta)+(double)10/53*s*cos(theta))*256);
+      b=(int)((luma-s*cos(theta))*256);
 
 
-			if(r>255) r=255;
-			if(g>255) g=255;
-			if(b>255) b=255;
-			if(r<0) r=0;
-			if(g<0) g=0;
-			if(b<0) b=0;
+      if (r>255) r=255;
+      if (g>255) g=255;
+      if (b>255) b=255;
+      if (r<0) r=0;
+      if (g<0) g=0;
+      if (b<0) b=0;
 
-			paletten[(x<<4)+z].r=r;
-			paletten[(x<<4)+z].g=g;
-			paletten[(x<<4)+z].b=b;
-		}
-		WritePalette();
+      paletten[(x<<4)+z].r=r;
+      paletten[(x<<4)+z].g=g;
+      paletten[(x<<4)+z].b=b;
+    }
+  }
+  WritePalette();
 }
 
 static int ipalette=0;
 
-void FCEU_LoadGamePalette(void) {
+void FCEU_LoadGamePalette() {
   uint8 ptmp[192];
   FILE *fp;
 
@@ -229,10 +216,10 @@ void FCEU_LoadGamePalette(void) {
 
   char *fn=strdup(FCEU_MakePaletteFilename().c_str());
 
-  if((fp=FCEUD_UTF8fopen(fn,"rb"))) {
+  if ((fp=FCEUD_UTF8fopen(fn,"rb"))) {
     fread(ptmp,1,192,fp);
     fclose(fp);
-    for(int x=0;x<64;x++) {
+    for (int x=0;x<64;x++) {
       palettei[x].r=ptmp[x+x+x];
       palettei[x].g=ptmp[x+x+x+1];
       palettei[x].b=ptmp[x+x+x+2];
@@ -242,19 +229,17 @@ void FCEU_LoadGamePalette(void) {
   free(fn);
 }
 
-void FCEU_ResetPalette(void)
-{
-	if(GameInfo)
-	{
-		ChoosePalette();
-		WritePalette();
-	}
+void FCEU_ResetPalette() {
+  if (GameInfo) {
+    ChoosePalette();
+    WritePalette();
+  }
 }
 
-static void ChoosePalette(void) {
-  if(ipalette) {
+static void ChoosePalette() {
+  if (ipalette) {
     palo=palettei;
-  } else if(ntsccol && !PAL && GameInfo->type!=GIT_VSUNI) {
+  } else if (ntsccol && !PAL && GameInfo->type!=GIT_VSUNI) {
     palo=paletten;
     CalculatePalette();
   } else {
@@ -262,77 +247,70 @@ static void ChoosePalette(void) {
   }
 }
 
-void WritePalette(void) {
-  int x;
-
-  for(x=0;x<7;x++)
+void WritePalette() {
+  for (int x=0;x<7;x++)
     FCEUD_SetPalette(x,unvpalette[x].r,unvpalette[x].g,unvpalette[x].b);
 
-  for(x=0;x<64;x++)
+  for (int x=0;x<64;x++)
     FCEUD_SetPalette(128+x,palo[x].r,palo[x].g,palo[x].b);
   SetNESDeemph(lastd,1);
 }
 
-void FCEUI_GetNTSCTH(int *tint, int *hue)
-{
-	*tint = ntsctint;
-	*hue = ntschue;
+void FCEUI_GetNTSCTH(int *tint, int *hue) {
+  *tint = ntsctint;
+  *hue = ntschue;
 }
 
 static int controlselect=0;
 static int controllength=0;
 
-void FCEUI_NTSCDEC(void)
-{
-	if(ntsccol && GameInfo->type!=GIT_VSUNI && !PAL) {
-		int which;
-		if(controlselect)
-		{
-			if(controllength)
-			{
-				which=controlselect==1?ntschue:ntsctint;
-				which--;
-				if(which<0) which=0;
-				if(controlselect==1)
-					ntschue=which;
-				else ntsctint=which;
-				CalculatePalette();
-			}
-			controllength=360;
-		}
-	}
+void FCEUI_NTSCDEC() {
+  if (ntsccol && GameInfo->type!=GIT_VSUNI && !PAL) {
+    int which;
+    if (controlselect) {
+      if (controllength) {
+	which=controlselect==1?ntschue:ntsctint;
+	which--;
+	if (which<0) which=0;
+	if (controlselect==1)
+	  ntschue=which;
+	else ntsctint=which;
+	CalculatePalette();
+      }
+      controllength=360;
+    }
+  }
 }
 
-void FCEUI_NTSCINC(void)
-{
-  if(ntsccol && GameInfo->type!=GIT_VSUNI && !PAL && controlselect) {
-    if(controllength)
-      {
-	switch(controlselect)
-	  {
-	  case 1:ntschue++;
-	    if(ntschue>128) ntschue=128;
-	    CalculatePalette();
-	    break;
-	  case 2:ntsctint++;
-	    if(ntsctint>128) ntsctint=128;
-	    CalculatePalette();
-	    break;
-	  }
+void FCEUI_NTSCINC() {
+  if (ntsccol && GameInfo->type!=GIT_VSUNI && !PAL && controlselect) {
+    if (controllength) {
+      switch(controlselect) {
+      case 1:
+	ntschue++;
+	if (ntschue>128) ntschue=128;
+	CalculatePalette();
+	break;
+      case 2:
+	ntsctint++;
+	if (ntsctint>128) ntsctint=128;
+	CalculatePalette();
+	break;
       }
+    }
     controllength=360;
   }
 }
 
-void FCEUI_NTSCSELHUE(void) {
-  if(ntsccol && GameInfo->type!=GIT_VSUNI && !PAL) {
+void FCEUI_NTSCSELHUE() {
+  if (ntsccol && GameInfo->type!=GIT_VSUNI && !PAL) {
     controlselect=1;
     controllength=360;
   }
 }
 
-void FCEUI_NTSCSELTINT(void) {
-  if(ntsccol && GameInfo->type!=GIT_VSUNI && !PAL) {
+void FCEUI_NTSCSELTINT() {
+  if (ntsccol && GameInfo->type!=GIT_VSUNI && !PAL) {
     controlselect=2;
     controllength=360;
   }

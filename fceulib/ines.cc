@@ -41,8 +41,6 @@
 #include "vsuni.h"
 #include "driver.h"
 
-extern SFORMAT FCEUVSUNI_STATEINFO[];
-
 //mbg merge 6/29/06 - these need to be global
 uint8 *trainerpoo = nullptr;
 uint8 *ROM = nullptr;

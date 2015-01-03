@@ -105,37 +105,11 @@ void FCEUI_SetSquare2Volume(uint32 volume);
 void FCEUI_SetNoiseVolume(uint32 volume);
 void FCEUI_SetPCMVolume(uint32 volume);
 
-// at the minimum, you should call FCEUI_SetInput, FCEUI_SetInputFC, and FCEUI_SetInputFourscore
-// you may also need to maintain your own internal state
-// void FCEUD_SetInput(bool fourscore, bool microphone, ESI port0, ESI port1, ESIFC fcexp);
-
-
 void FCEU_DispMessage(char *format, int disppos, ...);
 #define FCEUI_DispMessage FCEU_DispMessage
 
-//.rom
-// These are file types for FCEU_GetPath. Probably don't need it. -tom7
-/*
-#define FCEUIOD_ROMS    0       //Roms
-#define FCEUIOD_NV      1       //NV = nonvolatile. save data.
-#define FCEUIOD_STATES  2       //savestates
-#define FCEUIOD_FDSROM  3       //disksys.rom
-#define FCEUIOD_SNAPS   4       //screenshots
-#define FCEUIOD_CHEATS  5       //cheats
-#define FCEUIOD_MOVIES  6       //.fm2 files
-#define FCEUIOD_MEMW    7       //memory watch fiels
-#define FCEUIOD_BBOT    8       //basicbot, obsolete
-#define FCEUIOD_MACRO   9       //macro files - old TASEdit v0.1 paradigm, not implemented, probably obsolete
-#define FCEUIOD_INPUT   10      //input presets
-#define FCEUIOD_AVI             11      //default file for avi output
-#define FCEUIOD__COUNT  12      //base directory override?
-*/
-
 void FCEUI_NMI();
 void FCEUI_IRQ();
-// void FCEUI_GetIVectors(uint16 *reset, uint16 *irq, uint16 *nmi);
-
-// uint32 FCEUI_CRC32(uint32 crc, uint8 *buf, uint32 len);
 
 void FCEUI_SetLowPass(int q);
 
@@ -145,13 +119,13 @@ uint8 FCEUI_VSUniGetDIPs();
 void FCEUI_VSUniSetDIP(int w, int state);
 void FCEUI_VSUniCoin();
 
-void FCEUI_FDSInsert(); //mbg merge 7/17/06 changed to void fn() to make it an EMUCMDFN
-//int FCEUI_FDSEject();
+void FCEUI_FDSInsert();
 void FCEUI_FDSSelect();
 
 int FCEUI_DatachSet(const uint8 *rcode);
 
-///toggles the paused bit (bit0) for EmulationPaused. caused FCEUD_DebugUpdate() to fire if the emulation pauses
+// toggles the paused bit (bit0) for EmulationPaused. caused
+// FCEUD_DebugUpdate() to fire if the emulation pauses
 void FCEUI_ToggleEmulationPause();
 
 ///called when the emulator closes a game
@@ -180,4 +154,5 @@ enum EFCEUI {
 // checks whether an EFCEUI is valid right now
 bool FCEU_IsValidUI(EFCEUI ui);
 
-#endif //__DRIVER_H_
+#endif
+
