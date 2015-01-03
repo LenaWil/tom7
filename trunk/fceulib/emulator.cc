@@ -136,12 +136,6 @@ Emulator *Emulator::Create(const string &romfile) {
   // and FCEUD_SetInput
   // Calling FCEUI_SetInputFC ((ESIFC) CurInputType[2], InputDPtr, attrib);
   //   and FCEUI_SetInputFourscore ((eoptions & EO_FOURSCORE) != 0);
-	
-  // No HUD recording to AVI.
-  FCEUI_SetAviEnableHUDrecording(false);
-
-  // No Movie messages.
-  FCEUI_SetAviDisableMovieMessages(false);
 
   // defaults
   constexpr int ntsccol = 0, ntsctint = 56, ntschue = 72;

@@ -621,7 +621,7 @@ bool FCEU_IsValidUI(EFCEUI ui) {
     return false;
 
   case FCEUI_STOPAVI:
-    return FCEUI_AviIsRecording();
+    return false; // never recording now -tom7
 
   case FCEUI_TASEDITOR:
     if (!GameInfo) return false;
