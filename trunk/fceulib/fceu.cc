@@ -53,11 +53,6 @@
 
 using namespace std;
 
-bool justLagged = false;
-// If this is true, frame advance will skip over lag frame
-// (i.e. it will emulate 2 frames instead of 1)
-static constexpr bool frameAdvanceLagSkip = false;
-
 // Used by some boards to do delayed memory writes, etc.
 uint64 timestampbase = 0ULL;
 
@@ -236,9 +231,6 @@ int UNIFLoad(const char *name, FCEUFILE *fp);
 int iNESLoad(const char *name, FCEUFILE *fp, int OverwriteVidMode);
 int FDSLoad(const char *name, FCEUFILE *fp);
 int NSFLoad(const char *name, FCEUFILE *fp);
-
-//char lastLoadedGameName [2048] = {0,}; // hack for movie WRAM clearing on record from poweron
-
 
 FCEUGI *FCEUI_LoadGameVirtual(const char *name, int OverwriteVidMode) {
   //----------
@@ -425,11 +417,7 @@ void FCEUI_Emulate(uint8 **pXBuf, int32 **SoundBuf, int32 *SoundBufSize, int ski
 
   if (lagFlag) {
     lagCounter++;
-    justLagged = true;
   }
-  else justLagged = false;
-
-  // fprintf(stderr, "ppu end..\n");
 }
 
 void FCEUI_CloseGame() {
@@ -578,7 +566,7 @@ int FCEUI_GetCurrentVidSystem(int *slstart, int *slend) {
     *slstart=FSettings.FirstSLine;
   if (slend)
     *slend=FSettings.LastSLine;
-  return(PAL);
+  return PAL;
 }
 
 int FCEUI_EmulationPaused() {
