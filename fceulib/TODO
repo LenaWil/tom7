@@ -1,18 +1,13 @@
 Stuff I should be able to get rid of:
 
  - ines.cpp "trainerpoo"
- - file wrappers
+ - file wrappers can be massively simplified
+ - file archive support
  - new ppu?
  - auto-fire
- - movie recording
- - Got rid of a lot of LUA, but still:
-      grep LUA `find . -type f`
- - movie.*
  - video.cc can probably go?
- - archives
  - autosave (fceu.cc mostly)
  - fceu.cc EmulationPaused
- - fceudbg
 
 Surprisingly necessary:
  - crc32 since ines.cc has a table of games and their CRCs.
@@ -40,14 +35,16 @@ Helper snippets:
 alias files='find . -type f | grep -v .svn | grep -v ".o$"'
 (defun find-mentions () 
  (interactive "")
- (let* ((sym (thing-at-point 'symbol))
-        (cmd (concat "bash -c \"grep '"
-	             sym 
-		     "' `/bin/find . -type f | grep -v .svn | grep -v '.o$'`\""))
-        (res (shell-command-to-string cmd))
-       )    
-   (message (concat cmd "\n" res))
-;   (message res)
+ (let ((sym (thing-at-point 'symbol)))
+    (message sym)
+    (let ((cmd (concat "bash -c \"grep '"
+	                sym 
+	   	        "' `/bin/find . -type f | grep -v .svn | grep -v '.o$'`\"")))
+      (message "%s" cmd)
+        (let ((res (shell-command-to-string cmd)))
+           (message "%s" (concat cmd "\n" res))
+        )
+    )    
  )
 )
 

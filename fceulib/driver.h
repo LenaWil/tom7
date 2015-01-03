@@ -106,9 +106,6 @@ void FCEUI_FrameSkip(int x);
 //First and last scanlines to render, for ntsc and pal emulation.
 void FCEUI_SetRenderedLines(int ntscf, int ntscl, int palf, int pall);
 
-//Sets the base directory(save states, snapshots, etc. are saved in directories below this directory.
-void FCEUI_SetBaseDirectory(std::string const & dir);
-
 //Tells FCE Ultra to copy the palette data pointed to by pal and use it.
 //Data pointed to by pal needs to be 64*3 bytes in length.
 void FCEUI_SetPaletteArray(uint8 *pal);
@@ -152,8 +149,6 @@ void FCEU_DispMessage(char *format, int disppos, ...);
 #define FCEUIOD_AVI             11      //default file for avi output
 #define FCEUIOD__COUNT  12      //base directory override?
 
-void FCEUI_SetDirOverride(int which, char *n);
-
 void FCEUI_NMI(void);
 void FCEUI_IRQ(void);
 // void FCEUI_GetIVectors(uint16 *reset, uint16 *irq, uint16 *nmi);
@@ -195,7 +190,6 @@ void FCEUI_AviEnd(void);
 void FCEUI_AviVideoUpdate(const unsigned char* buffer);
 void FCEUI_AviSoundUpdate(void* soundData, int soundLen);
 bool FCEUI_AviIsRecording();
-bool FCEUI_AviEnableHUDrecording();
 void FCEUI_SetAviEnableHUDrecording(bool enable);
 bool FCEUI_AviDisableMovieMessages();
 void FCEUI_SetAviDisableMovieMessages(bool disable);
