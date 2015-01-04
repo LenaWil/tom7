@@ -95,8 +95,9 @@ static int SubWrite(EMUFILE* os, const SFORMAT *sf) {
       continue;
     }
 
-    acc+=8;			//Description + size
-    acc+=sf->s&(~FCEUSTATE_FLAGS);
+    // 8 bytes for description + size
+    acc += 8;
+    acc += sf->s&(~FCEUSTATE_FLAGS);
 
     //Are we writing or calculating the size of this block?
     if (os) {
@@ -221,7 +222,7 @@ static bool ReadStateChunks(EMUFILE* is, int32 totalsize) {
 	ret=false;
       break;
     case 5:
-      if (!ReadStateChunk(is,FCEUSND_STATEINFO,size))
+      if (!ReadStateChunk(is,fceulib__sound.FCEUSND_STATEINFO(),size))
 	ret=false;
       break;
     case 6:
@@ -266,7 +267,7 @@ bool FCEUSS_SaveRAW(std::vector<uint8> *out) {
   uint32 totalsize = 0;
 
   FCEUPPU_SaveState();
-  FCEUSND_SaveState();
+  fceulib__sound.FCEUSND_SaveState();
   totalsize = WriteStateChunk(&os,1,SFCPU);
   totalsize += WriteStateChunk(&os,2,SFCPUC);
   totalsize += WriteStateChunk(&os,3,FCEUPPU_STATEINFO);
@@ -275,7 +276,7 @@ bool FCEUSS_SaveRAW(std::vector<uint8> *out) {
   // removing this (or even removing code support for new ppu)
   totalsize += WriteStateChunk(&os,31,FCEU_NEWPPU_STATEINFO);
   totalsize += WriteStateChunk(&os,4,FCEUINPUT_STATEINFO);
-  totalsize += WriteStateChunk(&os,5,FCEUSND_STATEINFO);
+  totalsize += WriteStateChunk(&os,5,fceulib__sound.FCEUSND_STATEINFO());
 
   if (SPreSave) SPreSave();
   // This allows other parts of the system to hook into things to be
@@ -312,7 +313,7 @@ bool FCEUSS_LoadRAW(std::vector<uint8> *in) {
 
   if (success) {
     FCEUPPU_LoadState(stateversion);
-    FCEUSND_LoadState(stateversion);
+    fceulib__sound.FCEUSND_LoadState(stateversion);
     return true;
   } else {
     return false;

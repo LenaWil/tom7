@@ -507,7 +507,7 @@ static void RenderSound()
 	int32 x;
 
 	start=FBC;
-	end=(SOUNDTS<<16)/soundtsinc;
+	end=(SOUNDTS<<16)/fceulib__sound.soundtsinc;
 	if (end<=start)
 		return;
 	FBC=end;
@@ -518,7 +518,7 @@ static void RenderSound()
 			uint32 t=FDSDoSound();
 			t+=t>>1;
 			t>>=4;
-			Wave[x>>4]+=t; //(t>>2)-(t>>3); //>>3;
+			fceulib__sound.Wave[x>>4]+=t; //(t>>2)-(t>>3); //>>3;
 		}
 }
 
@@ -531,7 +531,7 @@ static void RenderSoundHQ()
 		{
 			uint32 t=FDSDoSound();
 			t+=t>>1;
-			WaveHi[x]+=t; //(t<<2)-(t<<1);
+			fceulib__sound.WaveHi[x]+=t; //(t<<2)-(t<<1);
 		}
 		FBC=SOUNDTS;
 }
@@ -591,10 +591,10 @@ static void FDS_ESI()
 static void FDSSoundReset() {
 	memset(&fdso,0,sizeof(fdso));
 	FDS_ESI();
-	GameExpSound.HiSync=HQSync;
-	GameExpSound.HiFill=RenderSoundHQ;
-	GameExpSound.Fill=FDSSound;
-	GameExpSound.RChange=FDS_ESI;
+	fceulib__sound.GameExpSound.HiSync=HQSync;
+	fceulib__sound.GameExpSound.HiFill=RenderSoundHQ;
+	fceulib__sound.GameExpSound.Fill=FDSSound;
+	fceulib__sound.GameExpSound.RChange=FDS_ESI;
 }
 
 static DECLFW(FDSWrite)

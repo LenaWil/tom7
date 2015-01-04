@@ -9,6 +9,10 @@ Stuff I should be able to get rid of:
  - autosave (fceu.cc mostly)
  - fceu.cc EmulationPaused
 
+Cleanup to do:
+ - loads of unnecesary gotos in sound.cc
+ - for loops with shared index variable in sound.cc
+
 Surprisingly necessary:
  - crc32 since ines.cc has a table of games and their CRCs.
  - cart md5ing

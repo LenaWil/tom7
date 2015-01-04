@@ -484,7 +484,7 @@ void X6502_Run(int32 cycles) {
     temp=_tcount;
     _tcount=0;
     if (MapIRQHook) MapIRQHook(temp);
-    FCEU_SoundCPUHook(temp);
+    fceulib__sound.FCEU_SoundCPUHook(temp);
     _PC++;
     switch (b1) {
     case 0x00:  /* BRK */

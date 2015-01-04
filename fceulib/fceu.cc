@@ -56,6 +56,8 @@ using namespace std;
 // Used by some boards to do delayed memory writes, etc.
 uint64 timestampbase = 0ULL;
 
+FCEUS FSettings;
+
 FCEUGI::FCEUGI() { }
 
 FCEUGI::~FCEUGI() {
@@ -218,9 +220,12 @@ static void ResetGameLoaded() {
   GameHBIRQHook=0;
   FFCEUX_PPURead = 0;
   FFCEUX_PPUWrite = 0;
-  if (GameExpSound.Kill)
-    GameExpSound.Kill();
-  memset(&GameExpSound,0,sizeof(GameExpSound));
+  // Probably this should happen within sound itself.
+  if (fceulib__sound.GameExpSound.Kill)
+    fceulib__sound.GameExpSound.Kill();
+  memset(&fceulib__sound.GameExpSound,0,
+	 sizeof (fceulib__sound.GameExpSound));
+
   MapIRQHook=0;
   MMC5Hack=0;
   PAL&=1;
@@ -363,7 +368,7 @@ void FCEUI_Emulate(uint8 **pXBuf, int32 **SoundBuf, int32 *SoundBufSize, int ski
 
       *pXBuf=XBuf;
     }
-    *SoundBuf=WaveFinal;
+    *SoundBuf=fceulib__sound.WaveFinal;
     *SoundBufSize=0;
 
     return;
@@ -381,8 +386,9 @@ void FCEUI_Emulate(uint8 **pXBuf, int32 **SoundBuf, int32 *SoundBufSize, int ski
 
   // fprintf(stderr, "sound thing loop skip=%d..\n", skip);
 
-  if (skip != 2) ssize=FlushEmulateSound(); //If skip = 2 we are skipping sound processing
-
+  // If skip = 2 we are skipping sound processing
+  if (skip != 2)
+    ssize = fceulib__sound.FlushEmulateSound();
 
   // This is where cheat list stuff happened.
   timestampbase += timestamp;
@@ -392,12 +398,12 @@ void FCEUI_Emulate(uint8 **pXBuf, int32 **SoundBuf, int32 *SoundBufSize, int ski
     *pXBuf=skip?0:XBuf;
   }
 
+  // If skip = 2, then bypass sound.
   if (skip == 2) {
-    //If skip = 2, then bypass sound
     *SoundBuf=0;
     *SoundBufSize=0;
   } else {
-    *SoundBuf=WaveFinal;
+    *SoundBuf=fceulib__sound.WaveFinal;
     *SoundBufSize=ssize;
   }
 
@@ -421,7 +427,7 @@ void FCEUI_CloseGame() {
 void ResetNES() {
   if (!GameInfo) return;
   GameInterface(GI_RESETM2);
-  FCEUSND_Reset();
+  fceulib__sound.FCEUSND_Reset();
   FCEUPPU_Reset();
   X6502_Reset();
 
@@ -463,7 +469,7 @@ void PowerNES() {
   SetWriteHandler(0x800,0x1FFF,BRAMH); //hack for a small speed boost.
 
   InitializeInput();
-  FCEUSND_Power();
+  fceulib__sound.FCEUSND_Power();
   FCEUPPU_Power();
 
   // Have the external game hardware "powered" after the internal NES
@@ -500,10 +506,8 @@ void FCEU_ResetVidSys() {
 
   PAL = !!w;
   FCEUPPU_SetVideoSystem(w);
-  SetSoundVariables();
+  fceulib__sound.SetSoundVariables();
 }
-
-FCEUS FSettings;
 
 void FCEU_printf(char *format, ...) {
   char temp[2048];

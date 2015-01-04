@@ -180,9 +180,9 @@ static DECLFW(Mapper19_write)
            if(FSettings.SndRate)
            {
              NamcoSoundHack();
-             GameExpSound.Fill=NamcoSound;
-             GameExpSound.HiFill=DoNamcoSoundHQ;
-             GameExpSound.HiSync=SyncHQ;
+             fceulib__sound.GameExpSound.Fill=NamcoSound;
+             fceulib__sound.GameExpSound.HiFill=DoNamcoSoundHQ;
+             fceulib__sound.GameExpSound.HiSync=SyncHQ;
            }
            FixCache(dopol,V);
          }
@@ -227,18 +227,18 @@ static void NamcoSoundHack(void)
     DoNamcoSoundHQ();
     return;
   }
-  z=((SOUNDTS<<16)/soundtsinc)>>4;
+  z=((SOUNDTS<<16)/fceulib__sound.soundtsinc)>>4;
   a=z-dwave;
-  if(a) DoNamcoSound(&Wave[dwave], a);
+  if(a) DoNamcoSound(&fceulib__sound.Wave[dwave], a);
   dwave+=a;
 }
 
 static void NamcoSound(int Count)
 {
   int32 z,a;
-  z=((SOUNDTS<<16)/soundtsinc)>>4;
+  z=((SOUNDTS<<16)/fceulib__sound.soundtsinc)>>4;
   a=z-dwave;
-  if(a) DoNamcoSound(&Wave[dwave], a);
+  if(a) DoNamcoSound(&fceulib__sound.Wave[dwave], a);
   dwave=0;
 }
 
@@ -296,7 +296,7 @@ static void DoNamcoSoundHQ(void)
       duff2=FetchDuff(P,envelope);
       for(V=CVBC<<1;V<SOUNDTS<<1;V++)
       {
-        WaveHi[V>>1]+=duff2;
+        fceulib__sound.WaveHi[V>>1]+=duff2;
         if(!vco)
         {
           PlayIndex[P]+=freq;
@@ -382,7 +382,7 @@ static void M19SC(void)
 
 void Mapper19_ESI(void)
 {
-  GameExpSound.RChange=M19SC;
+  fceulib__sound.GameExpSound.RChange=M19SC;
   memset(vcount,0,sizeof(vcount));
   memset(PlayIndex,0,sizeof(PlayIndex));
   CVBC=0;
@@ -439,7 +439,7 @@ void Mapper19_Init(CartInfo *info)
 
   MapIRQHook=NamcoIRQHook;
   GameStateRestore=Mapper19_StateRestore;
-  GameExpSound.RChange=M19SC;
+  fceulib__sound.GameExpSound.RChange=M19SC;
 
   if(FSettings.SndRate)
     Mapper19_ESI();

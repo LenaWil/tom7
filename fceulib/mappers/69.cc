@@ -47,29 +47,26 @@ static DECLFW(Mapper69_SWL)
   sunindex=V%14;
 }
 
-static DECLFW(Mapper69_SWH)
-{
-             int x;
-             GameExpSound.Fill=AYSound;
-             GameExpSound.HiFill=AYSoundHQ;
-             if(FSettings.SndRate)
-             switch(sunindex)
-             {
-              case 0:
-              case 1:
-              case 8:if(FSettings.soundq>=1) DoAYSQHQ(0); else DoAYSQ(0);break;
-              case 2:
-              case 3:
-              case 9:if(FSettings.soundq>=1) DoAYSQHQ(1); else DoAYSQ(1);break;
-              case 4:
-              case 5:
-              case 10:if(FSettings.soundq>=1) DoAYSQHQ(2); else DoAYSQ(2);break;
-              case 7:
-                     for(x=0;x<2;x++)
-                        if(FSettings.soundq>=1) DoAYSQHQ(x); else DoAYSQ(x);
-                     break;
-             }
-             MapperExRAM[sunindex]=V;
+static DECLFW(Mapper69_SWH) {
+  fceulib__sound.GameExpSound.Fill=AYSound;
+  fceulib__sound.GameExpSound.HiFill=AYSoundHQ;
+  if(FSettings.SndRate)
+    switch(sunindex) {
+    case 0:
+    case 1:
+    case 8:if(FSettings.soundq>=1) DoAYSQHQ(0); else DoAYSQ(0);break;
+    case 2:
+    case 3:
+    case 9:if(FSettings.soundq>=1) DoAYSQHQ(1); else DoAYSQ(1);break;
+    case 4:
+    case 5:
+    case 10:if(FSettings.soundq>=1) DoAYSQHQ(2); else DoAYSQ(2);break;
+    case 7:
+      for(int x=0;x<2;x++)
+	if(FSettings.soundq>=1) DoAYSQHQ(x); else DoAYSQ(x);
+      break;
+    }
+  MapperExRAM[sunindex]=V;
 }
 
 static DECLFW(Mapper69_write)
@@ -128,7 +125,7 @@ static void DoAYSQ(int x)
     amp+=amp>>1;
 
     start=CAYBC[x];
-    end=(SOUNDTS<<16)/soundtsinc;
+    end=(SOUNDTS<<16)/fceulib__sound.soundtsinc;
     if(end<=start) return;
     CAYBC[x]=end;
 
@@ -136,8 +133,8 @@ static void DoAYSQ(int x)
     for(V=start;V<end;V++)
     {
      if(dcount[x])
-      Wave[V>>4]+=amp;
-     vcount[x]-=nesincsize;
+      fceulib__sound.Wave[V>>4]+=amp;
+     vcount[x]-=fceulib__sound.nesincsize;
      while(vcount[x]<=0)
      {
       dcount[x]^=1;
@@ -159,7 +156,7 @@ static void DoAYSQHQ(int x)
   for(V=CAYBC[x];V<SOUNDTS;V++)
   {
    if(dcount[x])
-    WaveHi[V]+=amp;
+    fceulib__sound.WaveHi[V]+=amp;
    vcount[x]--;
    if(vcount[x]<=0)
    {
@@ -219,8 +216,8 @@ void Mapper69_StateRestore(int version)
 
 void Mapper69_ESI(void)
 {
- GameExpSound.RChange=Mapper69_ESI;
- GameExpSound.HiSync=AYHiSync;
+ fceulib__sound.GameExpSound.RChange=Mapper69_ESI;
+ fceulib__sound.GameExpSound.HiSync=AYHiSync;
  memset(dcount,0,sizeof(dcount));
  memset(vcount,0,sizeof(vcount));
  memset(CAYBC,0,sizeof(CAYBC));

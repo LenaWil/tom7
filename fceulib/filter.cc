@@ -115,8 +115,8 @@ int32 Filter::NeoFilterSound(int32 *in, int32 *out, uint32 inlen, int32 *leftove
     *leftover=NCOEFFS+1;
   }
 
-  if (GameExpSound.NeoFill)
-    GameExpSound.NeoFill(outsave,count);
+  if (fceulib__sound.GameExpSound.NeoFill)
+    fceulib__sound.GameExpSound.NeoFill(outsave,count);
 
   SexyFilter(outsave,outsave,count);
   if (FSettings.lowpass)

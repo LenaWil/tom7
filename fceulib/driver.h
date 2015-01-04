@@ -86,24 +86,11 @@ void FCEUI_FrameSkip(int x);
 //First and last scanlines to render, for ntsc and pal emulation.
 void FCEUI_SetRenderedLines(int ntscf, int ntscl, int palf, int pall);
 
-//Sets up sound code to render sound at the specified rate, in samples
-//per second.  Only sample rates of 44100, 48000, and 96000 are currently supported.
-//If "Rate" equals 0, sound is disabled.
-void FCEUI_Sound(int Rate);
-void FCEUI_SetSoundVolume(uint32 volume);
-void FCEUI_SetTriangleVolume(uint32 volume);
-void FCEUI_SetSquare1Volume(uint32 volume);
-void FCEUI_SetSquare2Volume(uint32 volume);
-void FCEUI_SetNoiseVolume(uint32 volume);
-void FCEUI_SetPCMVolume(uint32 volume);
-
 void FCEU_DispMessage(char *format, int disppos, ...);
 #define FCEUI_DispMessage FCEU_DispMessage
 
 void FCEUI_NMI();
 void FCEUI_IRQ();
-
-void FCEUI_SetLowPass(int q);
 
 void FCEUI_VSUniToggleDIPView();
 void FCEUI_VSUniToggleDIP(int w);

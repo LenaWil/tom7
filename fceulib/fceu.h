@@ -4,8 +4,15 @@
 static constexpr bool fceuindbg = false;
 extern int newppu;
 
+// TODO(tom7): Fix this junk. These have to take a Fceulib object.
 #define DECLFR(x) uint8 x (uint32 A)
+#define DECLFR_FORWARD A
+#define DECLFR_RET uint8
+#define DECLFR_ARGS uint32 A
+
 #define DECLFW(x) void x (uint32 A, uint8 V)
+#define DECLFW_FORWARD A, V
+#define DECLFW_ARGS uint32 A, uint8 V
 
 void FCEU_MemoryRand(uint8 *ptr, uint32 size);
 void SetReadHandler(int32 start, int32 end, readfunc func);
@@ -25,6 +32,7 @@ void PowerNES(void);
 
 char *FCEUI_GetAboutString();
 
+// TODO(tom7): Move these to the modules where they're defined.
 extern uint64 timestampbase;
 extern uint32 MMC5HackVROMMask;
 extern uint8 *MMC5HackExNTARAMPtr;
