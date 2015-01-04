@@ -569,13 +569,13 @@ static void Do5PCM()
   int32 start,end;
 
   start=MMC5Sound.BC[2];
-  end=(SOUNDTS<<16)/soundtsinc;
+  end=(SOUNDTS<<16)/fceulib__sound.soundtsinc;
   if(end<=start) return;
   MMC5Sound.BC[2]=end;
 
   if(!(MMC5Sound.rawcontrol&0x40) && MMC5Sound.raw)
     for(V=start;V<end;V++)
-       Wave[V>>4]+=MMC5Sound.raw<<1;
+       fceulib__sound.Wave[V>>4]+=MMC5Sound.raw<<1;
 }
 
 static void Do5PCMHQ()
@@ -583,17 +583,16 @@ static void Do5PCMHQ()
   uint32 V; //mbg merge 7/17/06 made uint32
   if(!(MMC5Sound.rawcontrol&0x40) && MMC5Sound.raw)
     for(V=MMC5Sound.BC[2];V<SOUNDTS;V++)
-       WaveHi[V]+=MMC5Sound.raw<<5;
+       fceulib__sound.WaveHi[V]+=MMC5Sound.raw<<5;
   MMC5Sound.BC[2]=SOUNDTS;
 }
 
 
-static DECLFW(Mapper5_SW)
-{
+static DECLFW(Mapper5_SW) {
   A&=0x1F;
 
-  GameExpSound.Fill=MMC5RunSound;
-  GameExpSound.HiFill=MMC5RunSoundHQ;
+  fceulib__sound.GameExpSound.Fill=MMC5RunSound;
+  fceulib__sound.GameExpSound.HiFill=MMC5RunSoundHQ;
 
   switch(A)
   {
@@ -635,7 +634,7 @@ static void Do5SQ(int P)
  int32 start,end;
 
  start=MMC5Sound.BC[P];
- end=(SOUNDTS<<16)/soundtsinc;
+ end=(SOUNDTS<<16)/fceulib__sound.soundtsinc;
  if(end<=start) return;
  MMC5Sound.BC[P]=end;
 
@@ -654,8 +653,8 @@ static void Do5SQ(int P)
   for(V=start;V<end;V++)
   {
     if(dc<rthresh)
-     Wave[V>>4]+=amp;
-    vc-=nesincsize;
+     fceulib__sound.Wave[V>>4]+=amp;
+    vc-=fceulib__sound.nesincsize;
     while(vc<=0)
     {
      vc+=wl;
@@ -685,10 +684,9 @@ static void Do5SQHQ(int P)
 
   dc=MMC5Sound.dcount[P];
   vc=MMC5Sound.vcount[P];
-  for(V=MMC5Sound.BC[P];V<SOUNDTS;V++)
-  {
+  for(V=MMC5Sound.BC[P];V<SOUNDTS;V++) {
     if(dc<rthresh)
-     WaveHi[V]+=amp;
+     fceulib__sound.WaveHi[V]+=amp;
     vc--;
     if(vc<=0)   /* Less than zero when first started. */
     {
@@ -725,30 +723,23 @@ void MMC5RunSound(int Count)
    MMC5Sound.BC[x]=Count;
 }
 
-void Mapper5_ESI(void)
-{
- GameExpSound.RChange=Mapper5_ESI;
- if(FSettings.SndRate)
- {
-  if(FSettings.soundq>=1)
-  {
-   sfun=Do5SQHQ;
-   psfun=Do5PCMHQ;
+void Mapper5_ESI(void) {
+  fceulib__sound.GameExpSound.RChange=Mapper5_ESI;
+  if(FSettings.SndRate) {
+    if(FSettings.soundq>=1) {
+      sfun=Do5SQHQ;
+      psfun=Do5PCMHQ;
+    } else {
+      sfun=Do5SQ;
+      psfun=Do5PCM;
+    }
+  } else {
+    sfun=0;
+    psfun=0;
   }
-  else
-  {
-   sfun=Do5SQ;
-   psfun=Do5PCM;
-  }
- }
- else
- {
-  sfun=0;
-  psfun=0;
- }
- memset(MMC5Sound.BC,0,sizeof(MMC5Sound.BC));
- memset(MMC5Sound.vcount,0,sizeof(MMC5Sound.vcount));
- GameExpSound.HiSync=MMC5HiSync;
+  memset(MMC5Sound.BC,0,sizeof(MMC5Sound.BC));
+  memset(MMC5Sound.vcount,0,sizeof(MMC5Sound.vcount));
+  fceulib__sound.GameExpSound.HiSync=MMC5HiSync;
 }
 
 void NSFMMC5_Init(void)

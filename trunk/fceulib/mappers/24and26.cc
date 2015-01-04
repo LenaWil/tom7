@@ -131,39 +131,35 @@ static int32 dcount[2];
 
 static INLINE void DoSQV(int x)
 {
- int32 V;
- int32 amp=(((VPSG[x<<2]&15)<<8)*6/8)>>4;
- int32 start,end;
+  int32 V;
+  int32 amp=(((VPSG[x<<2]&15)<<8)*6/8)>>4;
+  int32 start,end;
 
- start=CVBC[x];
- end=(SOUNDTS<<16)/soundtsinc;
- if(end<=start) return;
- CVBC[x]=end;
+  start=CVBC[x];
+  end=(SOUNDTS<<16)/fceulib__sound.soundtsinc;
+  if(end<=start) return;
+  CVBC[x]=end;
 
- if(VPSG[(x<<2)|0x2]&0x80)
- {
-  if(VPSG[x<<2]&0x80)
-  {
-   for(V=start;V<end;V++)
-    Wave[V>>4]+=amp;
-  }
-  else
-  {
-   int32 thresh=(VPSG[x<<2]>>4)&7;
-   int32 freq=((VPSG[(x<<2)|0x1]|((VPSG[(x<<2)|0x2]&15)<<8))+1)<<17;
-   for(V=start;V<end;V++)
-   {
-    if(dcount[x]>thresh)        /* Greater than, not >=.  Important. */
-     Wave[V>>4]+=amp;
-    vcount[x]-=nesincsize;
-    while(vcount[x]<=0)            /* Should only be <0 in a few circumstances. */
-    {
-     vcount[x]+=freq;
-     dcount[x]=(dcount[x]+1)&15;
+  if(VPSG[(x<<2)|0x2]&0x80) {
+    if(VPSG[x<<2]&0x80) {
+      for(V=start;V<end;V++)
+	fceulib__sound.Wave[V>>4]+=amp;
+    } else {
+      int32 thresh=(VPSG[x<<2]>>4)&7;
+      int32 freq=((VPSG[(x<<2)|0x1]|((VPSG[(x<<2)|0x2]&15)<<8))+1)<<17;
+      for(V=start;V<end;V++) {
+	/* Greater than, not >=.  Important. */
+	if(dcount[x]>thresh)
+	  fceulib__sound.Wave[V>>4]+=amp;
+	vcount[x]-=fceulib__sound.nesincsize;
+	/* Should only be <0 in a few circumstances. */
+	while(vcount[x]<=0) {
+	  vcount[x]+=freq;
+	  dcount[x]=(dcount[x]+1)&15;
+	}
+      }
     }
-   }
   }
- }
 }
 
 static void DoSQV1(void)
@@ -182,7 +178,7 @@ static void DoSawV(void)
     int32 start,end;
 
     start=CVBC[2];
-    end=(SOUNDTS<<16)/soundtsinc;
+    end=(SOUNDTS<<16)/fceulib__sound.soundtsinc;
     if(end<=start) return;
     CVBC[2]=end;
 
@@ -196,11 +192,9 @@ static void DoSawV(void)
 
     freq3=(VPSG2[1]+((VPSG2[2]&15)<<8)+1);
 
-    for(V=start;V<end;V++)
-    {
-     saw1phaseacc-=nesincsize;
-     if(saw1phaseacc<=0)
-     {
+    for(V=start;V<end;V++) {
+     saw1phaseacc-=fceulib__sound.nesincsize;
+     if(saw1phaseacc<=0) {
       int32 t;
       rea:
       t=freq3;
@@ -217,7 +211,7 @@ static void DoSawV(void)
        goto rea;
       duff=(((phaseacc>>3)&0x1f)<<4)*6/8;
       }
-     Wave[V>>4]+=duff;
+     fceulib__sound.Wave[V>>4]+=duff;
     }
    }
 }
@@ -232,7 +226,7 @@ static INLINE void DoSQVHQ(int x)
   if(VPSG[x<<2]&0x80)
   {
    for(V=CVBC[x];V<SOUNDTS;V++)
-    WaveHi[V]+=amp;
+    fceulib__sound.WaveHi[V]+=amp;
   }
   else
   {
@@ -240,7 +234,7 @@ static INLINE void DoSQVHQ(int x)
    for(V=CVBC[x];V<SOUNDTS;V++)
    {
     if(dcount[x]>thresh)        /* Greater than, not >=.  Important. */
-     WaveHi[V]+=amp;
+     fceulib__sound.WaveHi[V]+=amp;
     vcount[x]--;
     if(vcount[x]<=0)            /* Should only be <0 in a few circumstances. */
     {
@@ -273,7 +267,7 @@ static void DoSawVHQ(void)
  {
   for(V=CVBC[2];V<SOUNDTS;V++)
   {
-   WaveHi[V]+=(((phaseacc>>3)&0x1f)<<8)*6/8;
+   fceulib__sound.WaveHi[V]+=(((phaseacc>>3)&0x1f)<<8)*6/8;
    vcount[2]--;
    if(vcount[2]<=0)
    {
@@ -311,18 +305,16 @@ void VRC6SoundHQ(void)
     DoSawVHQ();
 }
 
-void VRC6SyncHQ(int32 ts)
-{
- int x;
- for(x=0;x<3;x++) CVBC[x]=ts;
+void VRC6SyncHQ(int32 ts) {
+ for(int x=0;x<3;x++) CVBC[x]=ts;
 }
 
 static void VRC6_ESI(void)
 {
-        GameExpSound.RChange=VRC6_ESI;
-        GameExpSound.Fill=VRC6Sound;
-        GameExpSound.HiFill=VRC6SoundHQ;
-        GameExpSound.HiSync=VRC6SyncHQ;
+        fceulib__sound.GameExpSound.RChange=VRC6_ESI;
+        fceulib__sound.GameExpSound.Fill=VRC6Sound;
+        fceulib__sound.GameExpSound.HiFill=VRC6SoundHQ;
+        fceulib__sound.GameExpSound.HiSync=VRC6SyncHQ;
 
         memset(CVBC,0,sizeof(CVBC));
         memset(vcount,0,sizeof(vcount));

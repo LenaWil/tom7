@@ -60,7 +60,7 @@ static int DriverInitialize(FCEUGI *gi) {
   // No fourscore support.
   // eoptions &= ~EO_FOURSCORE;
 
-  FCEUI_Sound(SAMPLE_RATE);
+  fceulib__sound.FCEUI_Sound(SAMPLE_RATE);
 
   // Why do both point to the same joydata? -tom
   FCEUI_SetInput(0, SI_GAMEPAD, &joydata, 0);
@@ -148,14 +148,10 @@ Emulator *Emulator::Create(const string &romfile) {
   FCEUI_SetVidSystem(GIV_NTSC);
 
   // Default. Sound thing.
-  FCEUI_SetLowPass(0);
+  fceulib__sound.FCEUI_SetLowPass(0);
 
   // Default.
   FCEUI_DisableSpriteLimitation(1);
-
-
-  // int srendlinev[2]={8,0};
-  // int erendlinev[2]={231,239};
 
   // Defaults.
   constexpr int scanlinestart = 0, scanlineend = 239;
@@ -234,7 +230,7 @@ void Emulator::GetImage(vector<uint8> *rgba) {
 void Emulator::GetSound(vector<int16> *wav) {
   wav->clear();
   int32 *buffer = nullptr;
-  int samples = GetSoundBuffer(&buffer);
+  int samples = fceulib__sound.GetSoundBuffer(&buffer);
   if (buffer == nullptr) {
     fprintf(stderr, "No sound buffer?\n");
     abort();
