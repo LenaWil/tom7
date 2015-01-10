@@ -62,7 +62,7 @@ FCEUGI::FCEUGI() { }
 
 FCEUGI::~FCEUGI() { }
 
-bool CheckFileExists(const char* filename) {
+static bool CheckFileExists(const char* filename) {
   //This function simply checks to see if the given filename exists
   if (!filename) return false;
   fstream test;
@@ -77,7 +77,7 @@ bool CheckFileExists(const char* filename) {
   }
 }
 
-static void FCEU_CloseGame() {
+void FCEU_CloseGame() {
   if (GameInfo) {
     GameInterface(GI_CLOSE);
 
@@ -102,12 +102,7 @@ readfunc ARead[0x10000];
 writefunc BWrite[0x10000];
 static readfunc *AReadG;
 static writefunc *BWriteG;
-static int RWWrap=0;
-
-//mbg merge 7/18/06 docs
-//bit0 indicates whether emulation is paused
-//bit1 indicates whether emulation is in frame step mode
-int EmulationPaused=0;
+static constexpr int RWWrap = 0;
 
 static DECLFW(BNull) {
 }
@@ -204,7 +199,6 @@ static DECLFR(ARAMH) {
 
 static void ResetGameLoaded() {
   if (GameInfo) FCEU_CloseGame();
-  EmulationPaused = 0; //mbg 5/8/08 - loading games while paused was bad news. maybe this fixes it
   GameStateRestore=0;
   PPU_hook=0;
   GameHBIRQHook=0;
@@ -294,8 +288,8 @@ bool FCEUI_Initialize() {
   srand(time(0));
 
   if (!FCEU_InitVirtualVideo()) {
-      return false;
-    }
+    return false;
+  }
 
   AllocBuffers();
 
@@ -331,30 +325,9 @@ void FCEUI_Kill() {
 // Emulates a single frame.
 // Skip may be passed in, if FRAMESKIP is #defined, to cause this to
 // emulate more than one frame
-void FCEUI_Emulate(uint8 **pXBuf, int32 **SoundBuf, int32 *SoundBufSize, int skip) {
-  //skip initiates frame skip if 1, or frame skip and sound skip if 2
-  int ssize = 0;
-
-  if (EmulationPaused & 2) {
-    EmulationPaused &= ~1;        // clear paused flag temporarily (frame advance)
-  } else if (EmulationPaused & 1) {
-    if (pXBuf != nullptr) {
-      memcpy(XBuf, XBackBuf, 256*256);
-
-      // Here we used to call PutImage to draw messages on-screen,
-      // as well as trigger PNG saving and stuff like that.
-
-      *pXBuf=XBuf;
-    }
-    *SoundBuf=fceulib__sound.WaveFinal;
-    *SoundBufSize=0;
-
-    return;
-  }
-
-  // AutoFire();
-  // Used to autosave here.
-
+// skip initiates frame skip if 1, or frame skip and sound skip if 2
+void FCEUI_Emulate(uint8 **pXBuf, int32 **SoundBuf, int32 *SoundBufSize, 
+		   int skip) {
   FCEU_UpdateInput();
   lagFlag = 1;
 
@@ -364,6 +337,7 @@ void FCEUI_Emulate(uint8 **pXBuf, int32 **SoundBuf, int32 *SoundBufSize, int ski
 
   // fprintf(stderr, "sound thing loop skip=%d..\n", skip);
 
+  int ssize = 0;
   // If skip = 2 we are skipping sound processing
   if (skip != 2)
     ssize = fceulib__sound.FlushEmulateSound();
@@ -385,21 +359,9 @@ void FCEUI_Emulate(uint8 **pXBuf, int32 **SoundBuf, int32 *SoundBufSize, int ski
     *SoundBufSize=ssize;
   }
 
-  // This logic has become basically degenerate -tom7
-  if (EmulationPaused & 2) {
-    EmulationPaused = 1;		   // restore paused flag
-  }
-
   if (lagFlag) {
     lagCounter++;
   }
-}
-
-void FCEUI_CloseGame() {
-  if (!FCEU_IsValidUI(FCEUI_CLOSEGAME))
-    return;
-
-  FCEU_CloseGame();
 }
 
 void ResetNES() {
@@ -431,9 +393,6 @@ void PowerNES() {
   //MapperInit();
 
   if (!GameInfo) return;
-
-  // FCEU_CheatResetRAM();
-  // FCEU_CheatAddRAM(2,0,RAM);
 
   FCEU_MemoryRand(RAM,0x800);
 
@@ -542,51 +501,10 @@ int FCEUI_GetCurrentVidSystem(int *slstart, int *slend) {
   return PAL;
 }
 
-int FCEUI_EmulationPaused() {
-  return EmulationPaused & 1;
-}
-
-int FCEUI_EmulationFrameStepped() {
-  return EmulationPaused & 2;
-}
-
-void FCEUI_ClearEmulationFrameStepped() {
-  EmulationPaused &=~2;
-}
-
-void FCEUI_ToggleEmulationPause() {
-  EmulationPaused = (EmulationPaused&1)^1;
-}
-
 bool FCEU_IsValidUI(EFCEUI ui) {
   switch(ui) {
-  case FCEUI_OPENGAME:
-  case FCEUI_CLOSEGAME:
-    break;
-  case FCEUI_RECORDMOVIE:
-  case FCEUI_PLAYMOVIE:
-  case FCEUI_QUICKSAVE:
-  case FCEUI_QUICKLOAD:
-  case FCEUI_SAVESTATE:
-  case FCEUI_LOADSTATE:
-  case FCEUI_NEXTSAVESTATE:
-  case FCEUI_PREVIOUSSAVESTATE:
-  case FCEUI_VIEWSLOTS:
-    if (!GameInfo) return false;
-    break;
-
-  case FCEUI_STOPMOVIE:
-    return false;
-
   case FCEUI_PLAYFROMBEGINNING:
     return false;
-
-  case FCEUI_STOPAVI:
-    return false; // never recording now -tom7
-
-  case FCEUI_TASEDITOR:
-    if (!GameInfo) return false;
-    break;
 
   case FCEUI_RESET:
   case FCEUI_POWER:

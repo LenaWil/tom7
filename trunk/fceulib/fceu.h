@@ -20,12 +20,13 @@ void SetWriteHandler(int32 start, int32 end, writefunc func);
 writefunc GetWriteHandler(int32 a);
 readfunc GetReadHandler(int32 a);
 
-void FCEU_ResetVidSys(void);
+void FCEU_CloseGame();
+void FCEU_ResetVidSys();
 bool FCEUI_Initialize();
 
-void ResetMapping(void);
-void ResetNES(void);
-void PowerNES(void);
+void ResetMapping();
+void ResetNES();
+void PowerNES();
 
 char *FCEUI_GetAboutString();
 
@@ -46,8 +47,6 @@ extern uint8 MMC5HackSPPage;
 
 extern uint8 *RAM;            //shared memory modifications
 extern uint8 *GameMemBlock;   //shared memory modifications
-// TODO: Get rid of this.
-extern int EmulationPaused;
 
 extern readfunc ARead[0x10000];
 extern writefunc BWrite[0x10000];
@@ -96,16 +95,13 @@ struct FCEUS {
 
 extern FCEUS FSettings;
 
-// Receives a filename (fullpath) and checks to see if that file exists
-bool CheckFileExists(const char* filename);
-
 void FCEU_PrintError(char *format, ...);
 void FCEU_printf(char *format, ...);
 
 void SetNESDeemph(uint8 d, int force);
-void FCEU_PutImage(void);
+void FCEU_PutImage();
 #ifdef FRAMESKIP
-void FCEU_PutImageDummy(void);
+void FCEU_PutImageDummy();
 #endif
 
 extern uint8 Exit;

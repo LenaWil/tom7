@@ -62,9 +62,6 @@ bool FCEUI_Initialize();
 // Emulates a frame.
 void FCEUI_Emulate(uint8 **, int32 **, int32 *, int);
 
-// Closes currently loaded game
-void FCEUI_CloseGame();
-
 // Deallocates all allocated memory.  Call after FCEUI_Emulate() returns.
 void FCEUI_Kill();
 
@@ -121,12 +118,8 @@ void FCEUD_CmdOpen();
 //new merge-era driver routines here:
 
 enum EFCEUI {
-  FCEUI_STOPAVI, FCEUI_QUICKSAVE, FCEUI_QUICKLOAD, FCEUI_SAVESTATE, FCEUI_LOADSTATE,
-  FCEUI_NEXTSAVESTATE,FCEUI_PREVIOUSSAVESTATE,FCEUI_VIEWSLOTS,
-  FCEUI_STOPMOVIE, FCEUI_RECORDMOVIE, FCEUI_PLAYMOVIE,
-  FCEUI_OPENGAME, FCEUI_CLOSEGAME,
-  FCEUI_TASEDITOR,
-  FCEUI_RESET, FCEUI_POWER, FCEUI_PLAYFROMBEGINNING, FCEUI_EJECT_DISK, FCEUI_SWITCH_DISK
+  FCEUI_RESET, FCEUI_POWER, FCEUI_PLAYFROMBEGINNING, 
+  FCEUI_EJECT_DISK, FCEUI_SWITCH_DISK
 };
 
 // checks whether an EFCEUI is valid right now
