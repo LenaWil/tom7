@@ -25,17 +25,8 @@ struct FceuFile {
   // a the path to the filename, possibly using | to get into the archive
   std::string fullFilename;
 
-  // the number of files that were in the archive
-  int archiveCount = -1;
-
-  // the index of the file within the archive
-  int archiveIndex;
-
   // the size of the file
   int size;
-
-  // whether the file is contained in an archive
-  bool isArchive() { return archiveCount > 0; }
 
   FceuFile() {}
 
@@ -48,8 +39,7 @@ struct FceuFile {
   } mode;
 };
 
-FceuFile *FCEU_fopen(const char *path, char *mode, char *ext, int index=-1,
-		     const char** extensions = 0);
+FceuFile *FCEU_fopen(const std::string &path, char *mode, char *ext);
 int FCEU_fclose(FceuFile*);
 uint64 FCEU_fread(void *ptr, size_t size, size_t nmemb, FceuFile*);
 int FCEU_fseek(FceuFile*, long offset, int whence);
