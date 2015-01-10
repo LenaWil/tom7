@@ -45,43 +45,9 @@
 
 using namespace std;
 
-// Probably should be false since there are no movies any more -tom7
-static constexpr bool bindSavestate = true;	//Toggle that determines if a savestate filename will include the movie filename
 static string BaseDirectory;
 static char FileBase[2048];
 static char FileBaseDirectory[2048];
-
-
-// XXX I think these can go --tom7
-namespace {
-struct FCEUARCHIVEFILEINFO_ITEM {
-  std::string name;
-  uint32 size, index;
-};
-
-class FCEUARCHIVEFILEINFO : public std::vector<FCEUARCHIVEFILEINFO_ITEM> {
-public:
-  void FilterByExtension(const char** ext);
-};
-
-struct ArchiveScanRecord {
-  ArchiveScanRecord() {}
-  ArchiveScanRecord(int _type, int _numFiles) {
-    type = _type;
-    numFilesInArchive = _numFiles;
-  }
-  int type = -1;
-
-  //be careful: this is the number of files in the archive.
-  //the size of the files variable might be different.
-  int numFilesInArchive = 0;
-
-  FCEUARCHIVEFILEINFO files;
-
-  bool isArchive() { return type != -1; }
-};
-}
-
 
 static uint64 FCEU_ftell(FceuFile *fp) {
   return fp->stream->ftell();
@@ -101,22 +67,7 @@ struct FileBaseInfo {
 };
 }
 
-// Can probably go. -tom7
-static void FCEU_SplitArchiveFilename(string src, string& archive, 
-				      string& file, string& fileToOpen) {
-  size_t pipe = src.find_first_of('|');
-  if (pipe == string::npos) {
-    archive = "";
-    file = src;
-    fileToOpen = src;
-  } else {
-    archive = src.substr(0,pipe);
-    file = src.substr(pipe+1);
-    fileToOpen = archive;
-  }
-}
-
-FileBaseInfo DetermineFileBase(const char *f) {
+static FileBaseInfo DetermineFileBase(const char *f) {
   char drv[PATH_MAX], dir[PATH_MAX], name[PATH_MAX], ext[PATH_MAX];
   splitpath(f,drv,dir,name,ext);
 
@@ -125,47 +76,32 @@ FileBaseInfo DetermineFileBase(const char *f) {
   return FileBaseInfo((string)drv + dir,name,ext);
 }
 
-inline FileBaseInfo DetermineFileBase(const string& str) { 
+static inline FileBaseInfo DetermineFileBase(const string& str) { 
   return DetermineFileBase(str.c_str());
 }
 
-
-// I think this means that all archives appear empty, and this can be
-// simplified away?
-static ArchiveScanRecord FCEUD_ScanArchive(const std::string &fname) {
-  return ArchiveScanRecord(); 
-}
-
-
-FceuFile *FCEU_fopen(const char *path, char *mode, char *ext, int index, 
-		     const char **extensions) {
+FceuFile *FCEU_fopen(const std::string &path, char *mode, char *ext) {
   FceuFile *fceufp=0;
 
+  // XXX simplify away; see below
   bool read = (string)mode == "rb";
   bool write = (string)mode == "wb";
-  if ((read&&write) || (!read&&!write)) {
-    FCEU_PrintError("invalid file open mode specified (only wb and rb are supported)");
+  if (!read && !write) {
+    FCEU_PrintError("invalid file open mode specified "
+		    "(only wb and rb are supported)");
     return 0;
   }
 
-  string archive,fname,fileToOpen;
-  FCEU_SplitArchiveFilename(path,archive,fname,fileToOpen);
-
   // This is weird -- the only supported mode is read, and write always fails?
+  // (Probably because of archives? But that means we can probably just get
+  // rid of mode at all call sites. But FDS tries "wb"...)
   // -tom7
   if (!read) {
     return nullptr;
   }
 
-  ArchiveScanRecord asr = FCEUD_ScanArchive(fileToOpen);
-  asr.files.FilterByExtension(extensions);
-  if (asr.isArchive()) {
-    // Archive files are no longer supported. -tom7
-    return nullptr;
-  }
-
-  //if the archive contained no files, try to open it the old fashioned way
-  EMUFILE_FILE* fp = FCEUD_UTF8_fstream(fileToOpen,mode);
+  // if the archive contained no files, try to open it the old fashioned way
+  EMUFILE_FILE* fp = FCEUD_UTF8_fstream(path,mode);
   if (!fp || (fp->get_fp() == NULL)) {
     return 0;
   }
@@ -186,10 +122,9 @@ FceuFile *FCEU_fopen(const char *path, char *mode, char *ext, int index,
 
   // open a plain old file
   fceufp = new FceuFile();
-  fceufp->filename = fileToOpen;
-  fceufp->logicalPath = fileToOpen;
-  fceufp->fullFilename = fileToOpen;
-  fceufp->archiveIndex = -1;
+  fceufp->filename = path;
+  fceufp->logicalPath = path;
+  fceufp->fullFilename = path;
   fceufp->stream = fp;
   FCEU_fseek(fceufp,0,SEEK_END);
   fceufp->size = FCEU_ftell(fceufp);
@@ -246,20 +181,4 @@ void GetFileBase(const char *f) {
   FileBaseInfo fbi = DetermineFileBase(f);
   strcpy(FileBase,fbi.filebase.c_str());
   strcpy(FileBaseDirectory,fbi.filebasedirectory.c_str());
-}
-
-void FCEUARCHIVEFILEINFO::FilterByExtension(const char** ext) {
-  if (!ext) return;
-  int count = size();
-  for (int i=count-1;i>=0;i--) {
-    string fext = getExtension((*this)[i].name.c_str());
-    const char** currext = ext;
-    while (*currext) {
-      if (fext == *currext)
-	goto ok;
-      currext++;
-    }
-    this->erase(begin()+i);
-  ok:;
-  }
 }

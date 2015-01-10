@@ -100,24 +100,31 @@ struct FCEUGI {
   FCEUGI();
   ~FCEUGI();
 
-  uint8 *name = nullptr;    //Game name, UTF8 encoding
+  //Game name, UTF8 encoding
+  uint8 *name = nullptr;
   int mappernum;
 
   EGIT type;
-  EGIV vidsys;     //Current emulated video system;
-  ESI input[2];   //Desired input for emulated input ports 1 and 2; -1 for unknown desired input.
-  ESIFC inputfc;  //Desired Famicom expansion port device. -1 for unknown desired input.
-  ESIS cspecial;  //Special cart expansion: DIP switches, barcode reader, etc.
+  // Current emulated video system;
+  EGIV vidsys;
+  // Desired input for emulated input ports 1 and 2; -1 for unknown
+  // desired input.
+  ESI input[2];
+  // Desired Famicom expansion port device. -1 for unknown desired
+  // input.
+  ESIFC inputfc;
+  // Special cart expansion: DIP switches, barcode reader, etc.
+  ESIS cspecial;
 
   MD5DATA MD5;
 
-  //mbg 6/8/08 - ???
-  int soundrate;  //For Ogg Vorbis expansion sound wacky support.  0 for default.
-  int soundchan;  //Number of sound channels.
+  // mbg 6/8/08 - ???
+  // For Ogg Vorbis expansion sound wacky support.  0 for default.
+  int soundrate;
+  // Number of sound channels.
+  int soundchan;
 
   char* filename = nullptr;
-  char* archiveFilename = nullptr;
-  int archiveCount;
 };
 
 #endif

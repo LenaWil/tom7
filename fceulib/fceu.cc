@@ -62,7 +62,6 @@ FCEUGI::FCEUGI() { }
 
 FCEUGI::~FCEUGI() {
   delete filename;
-  delete archiveFilename;
 }
 
 bool CheckFileExists(const char* filename) {
@@ -235,12 +234,9 @@ static void ResetGameLoaded() {
 FCEUGI *FCEUI_LoadGameVirtual(const char *name, int OverwriteVidMode) {
   //----------
   //attempt to open the files
-  FceuFile *fp;
-
   FCEU_printf("Loading %s...\n\n",name);
 
-  const char* romextensions[] = {"nes","fds",0};
-  fp=FCEU_fopen(name,"rb",0,-1,romextensions);
+  FceuFile *fp = FCEU_fopen(name,"rb",0);
 
   if (!fp) {
     FCEU_PrintError("Error opening \"%s\"!",name);
@@ -248,9 +244,8 @@ FCEUGI *FCEUI_LoadGameVirtual(const char *name, int OverwriteVidMode) {
   }
 
   GetFileBase(fp->filename.c_str());
-  //---------
 
-  //file opened ok. start loading.
+  // file opened ok. start loading.
 
   ResetGameLoaded();
 
@@ -263,18 +258,15 @@ FCEUGI *FCEUI_LoadGameVirtual(const char *name, int OverwriteVidMode) {
   memset(GameInfo, 0, sizeof(FCEUGI));
 
   GameInfo->filename = strdup(fp->filename.c_str());
-  if (fp->archiveFilename != "")
-    GameInfo->archiveFilename = strdup(fp->archiveFilename.c_str());
-  GameInfo->archiveCount = fp->archiveCount;
 
   GameInfo->soundchan = 0;
   GameInfo->soundrate = 0;
-  GameInfo->name=0;
-  GameInfo->type=GIT_CART;
-  GameInfo->vidsys=GIV_USER;
-  GameInfo->input[0]=GameInfo->input[1]=SI_UNSET;
-  GameInfo->inputfc=SIFC_UNSET;
-  GameInfo->cspecial=SIS_NONE;
+  GameInfo->name = 0;
+  GameInfo->type = GIT_CART;
+  GameInfo->vidsys = GIV_USER;
+  GameInfo->input[0] = GameInfo->input[1] = SI_UNSET;
+  GameInfo->inputfc = SIFC_UNSET;
+  GameInfo->cspecial = SIS_NONE;
 
   //try to load each different format
   if (iNESLoad(name,fp,OverwriteVidMode))
