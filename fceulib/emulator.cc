@@ -299,7 +299,7 @@ void Emulator::SaveEx(vector<uint8> *state, const vector<uint8> *basis) {
   // Make sure there is contiguous space. Need room for header too.
   state->resize(4 + comprlen);
 
-  if (Z_OK != compress2(&(*state)[4], &comprlen, &raw[0], len, 
+  if (Z_OK != compress2(&(*state)[4], &comprlen, raw.data(), len, 
 			Z_DEFAULT_COMPRESSION)) {
     fprintf(stderr, "Couldn't compress.\n");
     abort();
@@ -308,9 +308,8 @@ void Emulator::SaveEx(vector<uint8> *state, const vector<uint8> *basis) {
   *(uint32*)&(*state)[0] = len;
 
   // Trim to what we actually needed.
-  // PERF: This almost certainly does not actually free the memory. 
-  // Might need to copy.
   state->resize(4 + comprlen);
+  state->shrink_to_fit();
 }
 
 void Emulator::LoadEx(vector<uint8> *state, const vector<uint8> *basis) {
@@ -319,7 +318,7 @@ void Emulator::LoadEx(vector<uint8> *state, const vector<uint8> *basis) {
   vector<uint8> uncompressed;
   uncompressed.resize(uncomprlen);
  
-  switch (uncompress(&uncompressed[0], (uLongf*)&uncomprlen,
+  switch (uncompress(uncompressed.data(), (uLongf*)&uncomprlen,
 		     &(*state)[4], state->size() - 4)) {
   case Z_OK: break;
   case Z_BUF_ERROR:

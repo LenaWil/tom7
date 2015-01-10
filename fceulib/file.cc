@@ -51,6 +51,38 @@ static string BaseDirectory;
 static char FileBase[2048];
 static char FileBaseDirectory[2048];
 
+
+// XXX I think these can go --tom7
+namespace {
+struct FCEUARCHIVEFILEINFO_ITEM {
+  std::string name;
+  uint32 size, index;
+};
+
+class FCEUARCHIVEFILEINFO : public std::vector<FCEUARCHIVEFILEINFO_ITEM> {
+public:
+  void FilterByExtension(const char** ext);
+};
+
+struct ArchiveScanRecord {
+  ArchiveScanRecord() {}
+  ArchiveScanRecord(int _type, int _numFiles) {
+    type = _type;
+    numFilesInArchive = _numFiles;
+  }
+  int type = -1;
+
+  //be careful: this is the number of files in the archive.
+  //the size of the files variable might be different.
+  int numFilesInArchive = 0;
+
+  FCEUARCHIVEFILEINFO files;
+
+  bool isArchive() { return type != -1; }
+};
+}
+
+
 static uint64 FCEU_ftell(FceuFile *fp) {
   return fp->stream->ftell();
 }
@@ -85,19 +117,25 @@ static void FCEU_SplitArchiveFilename(string src, string& archive,
 }
 
 FileBaseInfo DetermineFileBase(const char *f) {
+  char drv[PATH_MAX], dir[PATH_MAX], name[PATH_MAX], ext[PATH_MAX];
+  splitpath(f,drv,dir,name,ext);
 
-	char drv[PATH_MAX], dir[PATH_MAX], name[PATH_MAX], ext[PATH_MAX];
-	splitpath(f,drv,dir,name,ext);
+  if (dir[0] == 0) strcpy(dir,".");
 
-        if (dir[0] == 0) strcpy(dir,".");
-
-	return FileBaseInfo((string)drv + dir,name,ext);
-
+  return FileBaseInfo((string)drv + dir,name,ext);
 }
 
 inline FileBaseInfo DetermineFileBase(const string& str) { 
   return DetermineFileBase(str.c_str());
 }
+
+
+// I think this means that all archives appear empty, and this can be
+// simplified away?
+static ArchiveScanRecord FCEUD_ScanArchive(const std::string &fname) {
+  return ArchiveScanRecord(); 
+}
+
 
 FceuFile *FCEU_fopen(const char *path, char *mode, char *ext, int index, 
 		     const char **extensions) {
