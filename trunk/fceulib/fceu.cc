@@ -60,9 +60,7 @@ FCEUS FSettings;
 
 FCEUGI::FCEUGI() { }
 
-FCEUGI::~FCEUGI() {
-  delete filename;
-}
+FCEUGI::~FCEUGI() { }
 
 bool CheckFileExists(const char* filename) {
   //This function simply checks to see if the given filename exists
@@ -81,13 +79,6 @@ bool CheckFileExists(const char* filename) {
 
 static void FCEU_CloseGame() {
   if (GameInfo) {
-
-    if (GameInfo->name) {
-      free(GameInfo->name);
-      GameInfo->name=0;
-    }
-
-
     GameInterface(GI_CLOSE);
 
     ResetExState(0,0);
@@ -243,8 +234,6 @@ FCEUGI *FCEUI_LoadGameVirtual(const char *name, int OverwriteVidMode) {
     return 0;
   }
 
-  GetFileBase(fp->filename.c_str());
-
   // file opened ok. start loading.
 
   ResetGameLoaded();
@@ -257,11 +246,8 @@ FCEUGI *FCEUI_LoadGameVirtual(const char *name, int OverwriteVidMode) {
   GameInfo = new FCEUGI();
   memset(GameInfo, 0, sizeof(FCEUGI));
 
-  GameInfo->filename = strdup(fp->filename.c_str());
-
   GameInfo->soundchan = 0;
   GameInfo->soundrate = 0;
-  GameInfo->name = 0;
   GameInfo->type = GIT_CART;
   GameInfo->vidsys = GIV_USER;
   GameInfo->input[0] = GameInfo->input[1] = SI_UNSET;
