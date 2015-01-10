@@ -7,11 +7,11 @@
 #include "emufile.h"
 
 struct FceuFile {
-  //the stream you can use to access the data
-  //std::iostream *stream;
+  // the stream you can use to access the data
+  // std::iostream *stream;
   EMUFILE *stream = nullptr;
 
-  //the name of the file, or the logical name of the file within the archive
+  // the name of the file, or the logical name of the file within the archive
   std::string filename;
 
   // a weirdly derived value.. maybe a path to a file, or maybe
@@ -19,22 +19,22 @@ struct FceuFile {
   // archive in the same directory
   std::string logicalPath;
 
-  //the filename of the archive (maybe "" if it is not in an archive)
+  // the filename of the archive (maybe "" if it is not in an archive)
   std::string archiveFilename;
 
-  //a the path to the filename, possibly using | to get into the archive
+  // a the path to the filename, possibly using | to get into the archive
   std::string fullFilename;
 
-  //the number of files that were in the archive
+  // the number of files that were in the archive
   int archiveCount = -1;
 
-  //the index of the file within the archive
+  // the index of the file within the archive
   int archiveIndex;
 
-  //the size of the file
+  // the size of the file
   int size;
 
-  //whether the file is contained in an archive
+  // whether the file is contained in an archive
   bool isArchive() { return archiveCount > 0; }
 
   FceuFile() {}
@@ -46,33 +46,6 @@ struct FceuFile {
   enum {
     READ, WRITE, READWRITE
   } mode;
-};
-
-struct FCEUARCHIVEFILEINFO_ITEM {
-  std::string name;
-  uint32 size, index;
-};
-
-class FCEUARCHIVEFILEINFO : public std::vector<FCEUARCHIVEFILEINFO_ITEM> {
-public:
-  void FilterByExtension(const char** ext);
-};
-
-struct ArchiveScanRecord {
-  ArchiveScanRecord() {}
-  ArchiveScanRecord(int _type, int _numFiles) {
-    type = _type;
-    numFilesInArchive = _numFiles;
-  }
-  int type = -1;
-
-  //be careful: this is the number of files in the archive.
-  //the size of the files variable might be different.
-  int numFilesInArchive = 0;
-
-  FCEUARCHIVEFILEINFO files;
-
-  bool isArchive() { return type != -1; }
 };
 
 FceuFile *FCEU_fopen(const char *path, char *mode, char *ext, int index=-1,

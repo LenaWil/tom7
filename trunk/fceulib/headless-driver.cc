@@ -89,12 +89,6 @@ void FCEUD_PrintError(const char *errormsg) {
   fprintf(stderr, "%s\n", errormsg);
 }
 
-// I think this means that all archives appear empty, and this can be
-// simplified away?
-ArchiveScanRecord FCEUD_ScanArchive(std::string fname) {
-  return ArchiveScanRecord(); 
-}
-
 namespace {
 struct Color {
   Color() : r(0), g(0), b(0) {}

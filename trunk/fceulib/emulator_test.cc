@@ -12,6 +12,9 @@
 #include "rle.h"
 #include "simplefm2.h"
 
+// Set by command-line --full.
+static bool FULL = false;
+
 struct Game {
   string cart;
   vector<uint8> inputs;
@@ -104,18 +107,28 @@ static void RunGameSerially(const Game &game) {
   // input[i] is issued. Note we don't have save/checksum for
   // the final state.
   vector<vector<uint8>> saves;
+  vector<vector<uint8>> compressed_saves;
   vector<uint64> checksums;
   vector<uint8> inputs;
   std::unique_ptr<Emulator> emu{Emulator::Create(game.cart)};
   CHECK(emu.get() != nullptr) << game.cart.c_str();
   CHECK_RAM(game.after_load);
 
-  auto SaveAndStep = [&game, &emu, &saves, &inputs, &checksums](uint8 b) {
+  vector<uint8> basis;
+  emu->GetBasis(&basis);
+
+  auto SaveAndStep = [&game, &emu, &saves, &inputs, &checksums,
+		      &compressed_saves, &basis](uint8 b) {
     vector<uint8> save;
     emu->SaveUncompressed(&save);
     saves.push_back(std::move(save));
+    if (FULL) {
+      vector<uint8> compressed_save;
+      emu->SaveEx(&compressed_save, &basis);
+      compressed_saves.push_back(compressed_save);
+    }
     inputs.push_back(b);
-    uint64 csum = emu->RamChecksum();
+    const uint64 csum = emu->RamChecksum();
     CHECK(csum != 0ULL) << checksums.size() << " " << game.cart;
     checksums.push_back(csum);
     emu->StepFull(b);
@@ -156,10 +169,36 @@ static void RunGameSerially(const Game &game) {
       }
     }
   }
+
+  if (FULL) {
+    fprintf(stderr, "Random seeks (compressed):\n");
+    for (int i = 0; i < 500; i++) {
+      const int seekto = Rand(saves.size());
+      // printf("iter %d seekto %d\n", i, seekto);
+      emu->LoadEx(&compressed_saves[seekto], &basis);
+      CHECK_RAM(checksums[seekto]);
+      const int dist = Rand(5) + 1;
+      for (int j = 0; j < dist; j++) {
+	if (seekto + j + 1 < saves.size()) {
+	  emu->StepFull(inputs[seekto + j]);
+	  CHECK_RAM(checksums[seekto + j + 1]);
+	}
+      }
+    }
+  }
+
   fprintf(stderr, "OK.\n");
 }
 
-int main() {
+int main(int argc, char **argv) {
+  if (argc >= 2 && 
+      (0 == strcmp(argv[1], "--full") ||
+       0 == strcmp(argv[1], "-full"))) {
+    fprintf(stderr, "Running FULL tests.\n");
+    FULL = true;
+  } else {
+    fprintf(stderr, "Running 'fast' tests.\n");
+  }
 
   // First, ensure that we have preserved the single-threaded
   // behavior.

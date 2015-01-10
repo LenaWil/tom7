@@ -28,7 +28,8 @@ Possible performance improvements:
  - Is it possible to remove the indirection when reading/writing memory,
    perhaps in a special case? Currently ARead is populated with a bunch
    of function pointers (including special regions installed by various
-   mappers and cart types.)
+   mappers and cart types.) Could maybe be replaced with a single function
+   (inlined into x6502) per mapper configuration.
 
 
 Notes:
