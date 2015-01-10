@@ -139,30 +139,21 @@ static void FDSInit()
 	SelectDisk=0;
 }
 
-void FCEU_FDSInsert()
-{
-	if (FCEUI_EmulationPaused()) EmulationPaused |= 2;
-
-	if (TotalSides==0)
-	{
-		fprintf(stderr, "Not FDS; can't eject disk.");
-		return;
-	}
-	if (InDisk==255)
-	{
-		fprintf(stderr, "Disk %d Side %s Inserted",SelectDisk>>1,(SelectDisk&1)?"B":"A");
-		InDisk=SelectDisk;
-	}
-	else
-	{
-		fprintf(stderr, "Disk %d Side %s Ejected",SelectDisk>>1,(SelectDisk&1)?"B":"A");
-		InDisk=255;
-	}
+void FCEU_FDSInsert() {
+  if (TotalSides==0) {
+    fprintf(stderr, "Not FDS; can't eject disk.");
+    return;
+  }
+  if (InDisk==255) {
+    fprintf(stderr, "Disk %d Side %s Inserted",SelectDisk>>1,(SelectDisk&1)?"B":"A");
+    InDisk=SelectDisk;
+  } else {
+    fprintf(stderr, "Disk %d Side %s Ejected",SelectDisk>>1,(SelectDisk&1)?"B":"A");
+    InDisk=255;
+  }
 }
 
 void FCEU_FDSSelect() {
-  if (FCEUI_EmulationPaused()) EmulationPaused |= 2;
-
   if (TotalSides==0) {
     fprintf(stderr, "Not FDS; can't select disk.");
     return;

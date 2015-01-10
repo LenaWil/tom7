@@ -77,8 +77,8 @@ static int DriverInitialize(FCEUGI *gi) {
  * render, what virtual input devices to use, etc.).
  */
 static int LoadGame(const char *path) {
-  FCEUI_CloseGame();
-  GameInfo = 0;
+  FCEU_CloseGame();
+  GameInfo = nullptr;
 
   if (!FCEUI_LoadGame(path, 1)) {
     return 0;
@@ -102,8 +102,8 @@ static int LoadGame(const char *path) {
 }
 
 Emulator::~Emulator() {
-  FCEUI_CloseGame();
-  GameInfo = 0;
+  FCEU_CloseGame();
+  GameInfo = nullptr;
 }
 
 Emulator::Emulator() {
