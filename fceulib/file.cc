@@ -81,8 +81,6 @@ static inline FileBaseInfo DetermineFileBase(const string& str) {
 }
 
 FceuFile *FCEU_fopen(const std::string &path, char *mode, char *ext) {
-  FceuFile *fceufp=0;
-
   // XXX simplify away; see below
   bool read = (string)mode == "rb";
   bool write = (string)mode == "wb";
@@ -109,7 +107,7 @@ FceuFile *FCEU_fopen(const std::string &path, char *mode, char *ext) {
   // Here we used to try zip files. -tom7
 
   // And here we used to try gzip. -tom7
-  {
+  if (false) {
     uint32 magic;
 
     // XXX can just skip these gets right? fseek
@@ -121,7 +119,7 @@ FceuFile *FCEU_fopen(const std::string &path, char *mode, char *ext) {
   }
 
   // open a plain old file
-  fceufp = new FceuFile();
+  FceuFile *fceufp = new FceuFile();
   fceufp->filename = path;
   fceufp->logicalPath = path;
   fceufp->fullFilename = path;

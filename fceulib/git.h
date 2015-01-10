@@ -100,8 +100,6 @@ struct FCEUGI {
   FCEUGI();
   ~FCEUGI();
 
-  //Game name, UTF8 encoding
-  uint8 *name = nullptr;
   int mappernum;
 
   EGIT type;
@@ -123,8 +121,6 @@ struct FCEUGI {
   int soundrate;
   // Number of sound channels.
   int soundchan;
-
-  char* filename = nullptr;
 };
 
 #endif

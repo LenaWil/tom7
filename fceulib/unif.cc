@@ -136,59 +136,57 @@ static int DoMirroring(FceuFile *fp)
 		if(t<6)
 			FCEU_printf(" Name/Attribute Table Mirroring: %s\n",stuffo[t]);
 	}
-	return(1);
+	return 1;
 }
 
-static int NAME(FceuFile *fp)
-{
-	char namebuf[100];
-	int index;
-	int t;
+// Note: This used to fill in the unused name field in GameInfo, but
+// now all it does is print it out.
+static int NAME(FceuFile *fp) {
+  char namebuf[100];
+  int index;
+  int t;
 
-	FCEU_printf(" Name: ");
-	index=0;
+  FCEU_printf(" Name: ");
+  index=0;
 
-	while((t=FCEU_fgetc(fp))>0)
-		if(index<99)
-			namebuf[index++]=t;
+  while((t=FCEU_fgetc(fp))>0)
+    if(index<99)
+      namebuf[index++]=t;
 
-	namebuf[index]=0;
-	FCEU_printf("%s\n",namebuf);
+  namebuf[index]=0;
+  FCEU_printf("%s\n",namebuf);
 
-	if(!GameInfo->name) {
-	  GameInfo->name=(uint8*)malloc(strlen(namebuf)+1);
-	  strcpy((char*)GameInfo->name,namebuf);
-	}
-	return(1);
+  return 1;
 }
+
 static int DINF(FceuFile *fp)
 {
-	char name[100], method[100];
-	uint8 d, m;
-	uint16 y;
-	int t;
+  char name[100], method[100];
+  uint8 d, m;
+  uint16 y;
+  int t;
 
-	if(FCEU_fread(name,1,100,fp)!=100)
-		return(0);
-	if((t=FCEU_fgetc(fp))==EOF) return(0);
-	d=t;
-	if((t=FCEU_fgetc(fp))==EOF) return(0);
-	m=t;
-	if((t=FCEU_fgetc(fp))==EOF) return(0);
-	y=t;
-	if((t=FCEU_fgetc(fp))==EOF) return(0);
-	y|=t<<8;
-	if(FCEU_fread(method,1,100,fp)!=100)
-		return(0);
-	name[99]=method[99]=0;
-	FCEU_printf(" Dumped by: %s\n",name);
-	FCEU_printf(" Dumped with: %s\n",method);
-	{
-		char *months[12]={"January","February","March","April","May","June","July",
-			"August","September","October","November","December"};
-		FCEU_printf(" Dumped on: %s %d, %d\n",months[(m-1)%12],d,y);
-	}
-	return(1);
+  if(FCEU_fread(name,1,100,fp)!=100)
+    return 0;
+  if((t=FCEU_fgetc(fp))==EOF) return 0;
+  d=t;
+  if((t=FCEU_fgetc(fp))==EOF) return 0;
+  m=t;
+  if((t=FCEU_fgetc(fp))==EOF) return 0;
+  y=t;
+  if((t=FCEU_fgetc(fp))==EOF) return 0;
+  y|=t<<8;
+  if(FCEU_fread(method,1,100,fp)!=100)
+    return 0;
+  name[99]=method[99]=0;
+  FCEU_printf(" Dumped by: %s\n",name);
+  FCEU_printf(" Dumped with: %s\n",method);
+
+  static constexpr const char *months[] = 
+    {"January","February","March","April","May","June","July",
+     "August","September","October","November","December"};
+  FCEU_printf(" Dumped on: %s %d, %d\n",months[(m-1)%12],d,y);
+  return 1;
 }
 
 static int CTRL(FceuFile *fp)
@@ -196,7 +194,7 @@ static int CTRL(FceuFile *fp)
 	int t;
 
 	if((t=FCEU_fgetc(fp))==EOF)
-		return(0);
+		return 0;
 	/* The information stored in this byte isn't very helpful, but it's
 	better than nothing...maybe.
 	*/
@@ -207,14 +205,14 @@ static int CTRL(FceuFile *fp)
 	if(t&2) GameInfo->input[1]=SI_ZAPPER;
 	//else if(t&0x10) GameInfo->input[1]=SI_POWERPAD;
 
-	return(1);
+	return 1;
 }
 
 static int TVCI(FceuFile *fp)
 {
 	int t;
 	if( (t=FCEU_fgetc(fp)) ==EOF)
-		return(0);
+		return 0;
 	if(t<=2)
 	{
 		char *stuffo[3]={"NTSC","PAL","NTSC and PAL"};
@@ -230,16 +228,16 @@ static int TVCI(FceuFile *fp)
 		}
 		FCEU_printf(" TV Standard Compatibility: %s\n",stuffo[t]);
 	}
-	return(1);
+	return 1;
 }
 
 static int EnableBattery(FceuFile *fp)
 {
 	FCEU_printf(" Battery-backed.\n");
 	if(FCEU_fgetc(fp)==EOF)
-		return(0);
+		return 0;
 	UNIFCart.battery=1;
-	return(1);
+	return 1;
 }
 
 static int LoadPRG(FceuFile *fp)
@@ -248,38 +246,38 @@ static int LoadPRG(FceuFile *fp)
 	z=uchead.ID[3]-'0';
 
 	if(z<0 || z>15)
-		return(0);
+		return 0;
 	FCEU_printf(" PRG ROM %d size: %d",z,(int) uchead.info);
 	if(malloced[z])
 		free(malloced[z]);
 	t=FixRomSize(uchead.info,2048);
 	if(!(malloced[z]=(uint8 *)FCEU_malloc(t)))
-		return(0);
+		return 0;
 	mallocedsizes[z]=t;
 	memset(malloced[z]+uchead.info,0xFF,t-uchead.info);
 	if(FCEU_fread(malloced[z],1,uchead.info,fp)!=uchead.info)
 	{
 		FCEU_printf("Read Error!\n");
-		return(0);
+		return 0;
 	}
 	else
 		FCEU_printf("\n");
 
 	SetupCartPRGMapping(z,malloced[z],t,0);
-	return(1);
+	return 1;
 }
 
 static int SetBoardName(FceuFile *fp)
 {
 	if(!(boardname=(uint8 *)FCEU_malloc(uchead.info+1)))
-		return(0);
+		return 0;
 	FCEU_fread(boardname,1,uchead.info,fp);
 	boardname[uchead.info]=0;
 	FCEU_printf(" Board name: %s\n",boardname);
 	sboardname=boardname;
 	if(!memcmp(boardname,"NES-",4) || !memcmp(boardname,"UNL-",4) || !memcmp(boardname,"HVC-",4) || !memcmp(boardname,"BTL-",4) || !memcmp(boardname,"BMC-",4))
 		sboardname+=4;
-	return(1);
+	return 1;
 }
 
 static int LoadCHR(FceuFile *fp)
@@ -287,31 +285,31 @@ static int LoadCHR(FceuFile *fp)
 	int z,t;
 	z=uchead.ID[3]-'0';
 	if(z<0 || z>15)
-		return(0);
+		return 0;
 	FCEU_printf(" CHR ROM %d size: %d",z,(int) uchead.info);
 	if(malloced[16+z])
 		free(malloced[16+z]);
 	t=FixRomSize(uchead.info,8192);
 	if(!(malloced[16+z]=(uint8 *)FCEU_malloc(t)))
-		return(0);
+		return 0;
 	mallocedsizes[16+z]=t;
 	memset(malloced[16+z]+uchead.info,0xFF,t-uchead.info);
 	if(FCEU_fread(malloced[16+z],1,uchead.info,fp)!=uchead.info)
 	{
 		FCEU_printf("Read Error!\n");
-		return(0);
+		return 0;
 	}
 	else
 		FCEU_printf("\n");
 
 	SetupCartCHRMapping(z,malloced[16+z],t,0);
-	return(1);
+	return 1;
 }
 
 
 #define BMCFLAG_FORCE4 1
-#define BMCFLAG_16KCHRR  2
-#define BMCFLAG_32KCHRR  4
+#define BMCFLAG_16KCHRR 2
+#define BMCFLAG_32KCHRR 4
 #define BMCFLAG_EXPCHRR 8
 
 static constexpr BMAPPING bmap[] = {
@@ -465,13 +463,11 @@ static constexpr BFMAPPING bfunc[] = {
 	{ 0, 0 }
 };
 
-int LoadUNIFChunks(FceuFile *fp)
-{
+int LoadUNIFChunks(FceuFile *fp) {
 	int x;
-	int t;
 	for(;;)
 	{
-		t=FCEU_fread(&uchead,1,4,fp);
+	  int t=FCEU_fread(&uchead,1,4,fp);
 		if(t<4)
 		{
 			if(t>0)
@@ -496,48 +492,42 @@ int LoadUNIFChunks(FceuFile *fp)
 		}
 		if(!t)
 			if(FCEU_fseek(fp,uchead.info,SEEK_CUR)<0)
-				return(0);
+				return 0;
 	}
 }
 
-static int InitializeBoard(void)
-{
-	int x=0;
+static int InitializeBoard(void) {
 
-	if(!sboardname) return(0);
+  if(!sboardname) return 0;
 
-	while(bmap[x].name)
-	{
-		if(!strcmp((char *)sboardname,(char *)bmap[x].name))
-		{
-			if(!malloced[16])
-			{
-      if(bmap[x].flags & BMCFLAG_16KCHRR)
-        CHRRAMSize = 16384;
-      else if(bmap[x].flags & BMCFLAG_32KCHRR)
-        CHRRAMSize = 32768;
-      else if(bmap[x].flags & BMCFLAG_EXPCHRR)
-        CHRRAMSize = 128 * 1024;
-      else
-        CHRRAMSize = 8192;
-				if((UNIFchrrama=(uint8 *)FCEU_malloc(CHRRAMSize)))
-				{
-					SetupCartCHRMapping(0,UNIFchrrama,CHRRAMSize,1);
-					AddExState(UNIFchrrama, CHRRAMSize, 0,"CHRR");
-				}
-				else
-					return(-1);
-			}
-			if(bmap[x].flags&BMCFLAG_FORCE4)
-				mirrortodo=4;
-			MooMirroring();
-			bmap[x].init(&UNIFCart);
-			return(1);
-		}
-		x++;
+  for (int x = 0; bmap[x].name; x++) {
+    if(!strcmp((char *)sboardname,(char *)bmap[x].name)) {
+      if(!malloced[16]) {
+	if(bmap[x].flags & BMCFLAG_16KCHRR)
+	  CHRRAMSize = 16384;
+	else if(bmap[x].flags & BMCFLAG_32KCHRR)
+	  CHRRAMSize = 32768;
+	else if(bmap[x].flags & BMCFLAG_EXPCHRR)
+	  CHRRAMSize = 128 * 1024;
+	else
+	  CHRRAMSize = 8192;
+	if((UNIFchrrama=(uint8 *)FCEU_malloc(CHRRAMSize))) {
+	  SetupCartCHRMapping(0,UNIFchrrama,CHRRAMSize,1);
+	  AddExState(UNIFchrrama, CHRRAMSize, 0,"CHRR");
+	} else {
+	  return -1;
 	}
-	FCEU_PrintError("Board type not supported.");
-	return(0);
+      }
+      if(bmap[x].flags&BMCFLAG_FORCE4)
+	mirrortodo=4;
+      MooMirroring();
+      bmap[x].init(&UNIFCart);
+      return 1;
+    }
+
+  }
+  FCEU_PrintError("Board type not supported.");
+  return 0;
 }
 
 static void UNIFGI(GI h) {
@@ -580,15 +570,17 @@ int UNIFLoad(const char *name, FceuFile *fp) {
     goto aborto;
   if(!LoadUNIFChunks(fp))
     goto aborto;
+
   {
     struct md5_context md5;
 
     md5_starts(&md5);
 
-    for(int x=0;x<32;x++)
+    for(int x=0;x<32;x++) {
       if(malloced[x]) {
 	md5_update(&md5,malloced[x],mallocedsizes[x]);
       }
+    }
     md5_finish(&md5,UNIFCart.MD5);
     FCEU_printf(" ROM MD5:  0x");
     for(int x=0; x < 16; x++)
