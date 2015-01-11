@@ -24,11 +24,13 @@
 #include <vector>
 #include "types.h"
 
+#if 0
 enum ENUM_SSLOADPARAMS {
   // PERF no need for backups!
   SSLOADPARAM_NOBACKUP,
   SSLOADPARAM_BACKUP,
 };
+#endif
 
 struct SFORMAT {
   // a void* to the data or a void** to the data

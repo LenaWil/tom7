@@ -78,8 +78,6 @@ static constexpr SFORMAT SFCPUC[] = {
   { 0 }
 };
 
-// void foo(uint8* test) { (void)test; }
-
 static int SubWrite(EMUFILE* os, const SFORMAT *sf) {
   uint32 acc=0;
 

@@ -104,6 +104,22 @@ struct FCPORT {
 extern JOYPORT joyports[2];
 extern FCPORT portFC;
 
+void FCEUI_ResetNES();
+void FCEUI_PowerNES();
+
+void FCEUI_FDSInsert();
+void FCEUI_FDSSelect();
+
+// tells the emulator whether a fourscore is attached
+void FCEUI_SetInputFourscore(bool attachFourscore);
+// tells whether a fourscore is attached
+bool FCEUI_GetInputFourscore();
+// tells whether the microphone is used
+bool FCEUI_GetInputMicrophone();
+
+void FCEUI_SetInput(int port, ESI type, void *ptr, int attrib);
+void FCEUI_SetInputFC(ESIFC type, void *ptr, int attrib);
+
 void FCEU_DrawInput(uint8 *buf);
 void FCEU_UpdateInput(void);
 void InitializeInput(void);
@@ -116,7 +132,6 @@ extern void InputScanlineHook(uint8 *bg, uint8 *spr, uint32 linets, int final);
 extern unsigned int lagCounter;
 extern bool lagCounterDisplay;
 extern char lagFlag;
-extern bool turbo;
 void LagCounterReset();
 
 extern int input_display;

@@ -6,10 +6,7 @@
 extern uint8 *XBuf;
 extern uint8 *XBackBuf;
 
-
 int FCEU_InitVirtualVideo(void);
 void FCEU_KillVirtualVideo(void);
-
-extern int ClipSidesOffset;
 
 #endif

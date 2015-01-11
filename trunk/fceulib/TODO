@@ -7,7 +7,28 @@ Stuff I should be able to get rid of:
  - auto-fire
  - video.cc can probably go?
  - autosave (fceu.cc mostly)
- - fceu.cc EmulationPaused
+
+      Still to objectify:
+
+      cart.cc
+      config.cc
+      emufile.cc
+      emulator.cc
+      fceu.cc
+      fds.cc
+      file.cc
+      filter.cc
+      fm2tocc.cc
+      headless-driver.cc
+      ines.cc
+      input.cc
+      ppu.cc
+      state.cc
+      unif.cc
+      video.cc
+      vsuni.cc
+      x6502.cc
+
 
 Cleanup to do:
  - loads of unnecesary gotos in sound.cc
@@ -57,7 +78,7 @@ alias files='find . -type f | grep -v .svn | grep -v ".o$"'
 
 (defun insert-cart ()
   (interactive "")
-  (insert "fceulib__cart.")
+  (save-excursion  (insert "fceulib__cart."))
 )
 
 (global-set-key "\C-xx" 'insert-cart)

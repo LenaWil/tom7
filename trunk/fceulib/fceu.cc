@@ -267,7 +267,7 @@ FCEUGI *FCEUI_LoadGame(const char *name, int OverwriteVidMode) {
 }
 
 
-//Return: Flag that indicates whether the function was succesful or not.
+// Return: Flag that indicates whether the function was succesful or not.
 bool FCEUI_Initialize() {
   srand(time(0));
 
@@ -279,7 +279,8 @@ bool FCEUI_Initialize() {
 
   // Initialize some parts of the settings structure
   //mbg 5/7/08 - I changed the ntsc settings to match pal.
-  //this is more for precision emulation, instead of entertainment, which is what fceux is all about nowadays
+  // this is more for precision emulation, instead of entertainment,
+  // which is what fceux is all about nowadays
   memset(&FSettings,0,sizeof(FSettings));
   //FSettings.UsrFirstSLine[0]=8;
   FSettings.UsrFirstSLine[0]=0;
@@ -429,6 +430,9 @@ void FCEU_ResetVidSys() {
   fceulib__sound.SetSoundVariables();
 }
 
+// This is kind of silly since it just eta-expands printf with
+// a limit of 2k. Probably nothing should be printing in fceulib
+// unless there's an error, though.
 void FCEU_printf(char *format, ...) {
   char temp[2048];
 
@@ -436,7 +440,8 @@ void FCEU_printf(char *format, ...) {
 
   va_start(ap,format);
   vsnprintf(temp,sizeof(temp),format,ap);
-  FCEUD_Message(temp);
+
+  printf("%s", temp);
 
   va_end(ap);
 }
@@ -486,9 +491,6 @@ int FCEUI_GetCurrentVidSystem(int *slstart, int *slend) {
 
 bool FCEU_IsValidUI(EFCEUI ui) {
   switch(ui) {
-  case FCEUI_PLAYFROMBEGINNING:
-    return false;
-
   case FCEUI_RESET:
   case FCEUI_POWER:
   case FCEUI_EJECT_DISK:

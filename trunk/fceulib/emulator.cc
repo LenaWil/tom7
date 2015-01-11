@@ -15,6 +15,8 @@
 #include "state.h"
 #include "sound.h"
 #include "palette.h"
+#include "input.h"
+#include "ppu.h"
 
 // PERF: Consider the implications of using a high/low sample rate.
 // This must be set for StepFull and GetSound to function.

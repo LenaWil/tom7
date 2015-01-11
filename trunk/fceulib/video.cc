@@ -18,38 +18,18 @@
 * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-#ifndef WIN32
-#include <stdint.h>
-#endif
-
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdarg.h>
-#include <zlib.h>
 
 #include "types.h"
 #include "video.h"
 #include "fceu.h"
-#include "file.h"
 #include "utils/memory.h"
-#include "utils/crc32.h"
-#include "state.h"
-#include "palette.h"
-#include "input.h"
-#include "vsuni.h"
 #include "driver.h"
 
-uint8 *XBuf=NULL;
-uint8 *XBackBuf=NULL;
-int ClipSidesOffset=0;	//Used to move displayed messages when Clips left and right sides is checked
-static uint8 *xbsave=NULL;
-
-//for input display
-extern int input_display;
-extern uint32 cur_input_display;
-
-bool oldInputDisplay = false;
+uint8 *XBuf = nullptr;
+uint8 *XBackBuf = nullptr;
 
 void FCEU_KillVirtualVideo(void)
 {
@@ -63,7 +43,7 @@ void FCEU_KillVirtualVideo(void)
 	//{
 	//UnmapViewOfFile(XBuf);
 	//CloseHandle(mapXBuf);
-	//mapXBuf=NULL;
+	//mapXBuf=nullptr;
 	//}
 	//if(XBackBuf)
 	//{
@@ -77,29 +57,27 @@ void FCEU_KillVirtualVideo(void)
 *
 * TODO: This function is Windows-only. It should probably be moved.
 **/
-int FCEU_InitVirtualVideo(void)
-{
-	if(!XBuf)		/* Some driver code may allocate XBuf externally. */
-		/* 256 bytes per scanline, * 240 scanline maximum, +16 for alignment,
-		*/
+int FCEU_InitVirtualVideo(void) {
+  /* Some driver code may allocate XBuf externally. */
+  /* 256 bytes per scanline, * 240 scanline maximum, +16 for alignment,
+   */
+  if(!XBuf)
 
-		if(!(XBuf= (uint8*) (FCEU_malloc(256 * 256 + 16))) ||
-			!(XBackBuf= (uint8*) (FCEU_malloc(256 * 256 + 16))))
-		{
-			return 0;
-		}
+    if(!(XBuf= (uint8*) (FCEU_malloc(256 * 256 + 16))) ||
+       !(XBackBuf= (uint8*) (FCEU_malloc(256 * 256 + 16)))) {
+      return 0;
+    }
 
-		xbsave = XBuf;
+  // I guess try to make sure it's word32 aligned? But then you
+  // can't free it, so I guess that's what xbsave was about. -tom7
+  if( sizeof(uint8*) == 4 ) {
+    uintptr_t m = (uintptr_t)XBuf;
+    m = ( 8 - m) & 7;
+    XBuf+=m;
+  }
 
-		if( sizeof(uint8*) == 4 )
-		{
-			uintptr_t m = (uintptr_t)XBuf;
-			m = ( 8 - m) & 7;
-			XBuf+=m;
-		}
+  memset(XBuf,128,256*256); //*240);
+  memset(XBackBuf,128,256*256);
 
-		memset(XBuf,128,256*256); //*240);
-		memset(XBackBuf,128,256*256);
-
-		return 1;
+  return 1;
 }
