@@ -441,7 +441,7 @@ void FCEU_printf(char *format, ...) {
   va_start(ap,format);
   vsnprintf(temp,sizeof(temp),format,ap);
 
-  printf("%s", temp);
+  fputs(temp, stdout);
 
   va_end(ap);
 }

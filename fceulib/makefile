@@ -54,7 +54,7 @@ EMUOBJECTS=$(FCEUOBJECTS) $(MAPPEROBJECTS) $(UTILSOBJECTS) $(PALLETESOBJECTS) $(
 # included in all tests, etc.
 BASEOBJECTS=$(CCLIBOBJECTS)
 
-FCEULIB_OBJECTS=emulator.o headless-driver.o
+FCEULIB_OBJECTS=emulator.o headless-driver.o trace.o tracing.o
 # simplefm2.o emulator.o util.o
 
 OBJECTS=$(BASEOBJECTS) $(EMUOBJECTS) $(FCEULIB_OBJECTS)
@@ -68,7 +68,7 @@ LFLAGS= -m64 $(WINLINK) $(LINKNETWORKING) -lz $(OPT) $(FLTO) $(PROFILE)
 fm2tocc.exe : $(OBJECTS) fm2tocc.o simplefm2.o
 	$(CXX) $^ -o $@ $(LFLAGS)
 
-emulator_test.exe : $(OBJECTS) test-util.o emulator_test.o
+emulator_test.exe : $(OBJECTS) test-util.o emulator_test.o simplefm2.o
 	$(CXX) $^ -o $@ $(LFLAGS)
 
 test : emulator_test.exe

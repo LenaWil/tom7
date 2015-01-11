@@ -10,14 +10,11 @@ Stuff I should be able to get rid of:
 
       Still to objectify:
 
-      cart.cc
       config.cc
-      emufile.cc
       emulator.cc
       fceu.cc
       fds.cc
       file.cc
-      filter.cc
       fm2tocc.cc
       headless-driver.cc
       ines.cc
@@ -28,7 +25,8 @@ Stuff I should be able to get rid of:
       video.cc
       vsuni.cc
       x6502.cc
-
+      boards/*
+      mappers/*
 
 Cleanup to do:
  - loads of unnecesary gotos in sound.cc
