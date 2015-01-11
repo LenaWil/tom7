@@ -4,12 +4,6 @@ struct
   exception Recession of string
   datatype entry = datatype MySQL.entry
 
-(*
-  val configfile = Params.param "" (* XXX default location? *)
-    (SOME("-config",
-          "The file containing recession configuration.")) "configfile"
-*)
-
   val aphconfig = Params.param "/var/www/aphid.conf"
     (SOME("-aphconfig",
           "The file containing Aphasia configuration.")) "aphconfig"
@@ -23,15 +17,15 @@ struct
       val res = case MySQL.query mysql
           ("select id, url, lastpost, algorithm, logof from " ^
            "rss.subscription where enabled='t'") of
-          NONE => raise Recession ("Failed to get subscriptions: " ^ 
+          NONE => raise Recession ("Failed to get subscriptions: " ^
                                    getOpt (MySQL.error mysql, "??"))
         | SOME r => r
 
       fun row [SOME (Int id), SOME (String url), SOME (Int lastpost),
                SOME (String algorithm), SOME (Int logof)] =
-          { id = id, url = url, lastpost = lastpost, 
+          { id = id, url = url, lastpost = lastpost,
             algorithm = algorithm, logof = logof }
-        | row r = raise Recession ("Unexpected row type: " ^ 
+        | row r = raise Recession ("Unexpected row type: " ^
                                    MySQL.rowtos r)
 
       val configs = map row (MySQL.readall mysql res)
@@ -54,13 +48,13 @@ struct
     | monthnum Date.Dec = 12
 
   fun query_check mysql query =
-      case MySQL.query mysql query of 
-          NONE => raise Recession ("Query failed: " ^ 
+      case MySQL.query mysql query of
+          NONE => raise Recession ("Query failed: " ^
                                    getOpt (MySQL.error mysql, "??"))
         | SOME r => MySQL.free r
 
   fun query_noresult mysql query =
-      case MySQL.query mysql query of 
+      case MySQL.query mysql query of
           NONE => ()
         | SOME r => (MySQL.free r;
                      raise Recession "Wasn't expecting response from query!")
@@ -78,7 +72,7 @@ struct
 
       val configs = getconfigs mysql
       val () = app (fn { id, url, lastpost, algorithm, logof } =>
-                    print (Int.toString id ^ ". " ^ url ^ " (" ^ algorithm ^ ")\n")) 
+                    print (Int.toString id ^ ". " ^ url ^ " (" ^ algorithm ^ ")\n"))
                    configs
 
       fun process (raw, config as { id, url, lastpost, algorithm, logof }) =
@@ -128,7 +122,7 @@ struct
                        query_noresult mysql
                        ("update rss.subscription set lastpost = " ^ new_newest_s ^
                         " where id = " ^ Int.toString id);
-                       
+
                        (* Now, insert each of the items. *)
                        app (fn ({ date, guid, ... }, { url, title }) =>
                             let in
@@ -138,8 +132,8 @@ struct
                                  "(subscriptionof, logof, postdate, postmonth, postyear, " ^
                                  "url, title, guid) values " ^
                                  MySQL.escapevalues mysql [Int id, Int logof,
-                                                           Int (IntInf.toInt 
-                                                                (Time.toSeconds 
+                                                           Int (IntInf.toInt
+                                                                (Time.toSeconds
                                                                  (Date.toTime
                                                                   date))),
                                                            Int (monthnum (Date.month date)),
