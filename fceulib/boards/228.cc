@@ -32,16 +32,16 @@ static SFORMAT StateRegs[] =
 };
 
 static void Sync(void) {
-	uint32 prgl, prgh, page = (areg >> 7) & 0x3F;
-	if ((page & 0x30) == 0x30)
-		page -= 0x10;
-	prgl = prgh = (page << 1) + (((areg >> 6) & 1) & ((areg >> 5) & 1));
-	prgh += ((areg >> 5) & 1) ^ 1;
+  uint32 prgl, prgh, page = (areg >> 7) & 0x3F;
+  if ((page & 0x30) == 0x30)
+    page -= 0x10;
+  prgl = prgh = (page << 1) + (((areg >> 6) & 1) & ((areg >> 5) & 1));
+  prgh += ((areg >> 5) & 1) ^ 1;
 
-	setmirror(((areg >> 13) & 1) ^ 1);
-	setprg16(0x8000,prgl);
-	setprg16(0xc000,prgh);
-	setchr8(((vreg & 0x3) | ((areg & 0xF) << 2)));
+  fceulib__cart.setmirror(((areg >> 13) & 1) ^ 1);
+  fceulib__cart.setprg16(0x8000,prgl);
+  fceulib__cart.setprg16(0xc000,prgh);
+  fceulib__cart.setchr8(((vreg & 0x3) | ((areg & 0xF) << 2)));
 }
 
 static DECLFW(M228RamWrite) {
@@ -65,11 +65,11 @@ static void M228Reset(void) {
 }
 
 static void M228Power(void) {
-	M228Reset();
-	SetReadHandler(0x5000,0x5FFF,M228RamRead);
-	SetWriteHandler(0x5000,0x5FFF,M228RamWrite);
-	SetReadHandler(0x8000, 0xFFFF, CartBR);
-	SetWriteHandler(0x8000, 0xFFFF, M228Write);
+  M228Reset();
+  SetReadHandler(0x5000,0x5FFF,M228RamRead);
+  SetWriteHandler(0x5000,0x5FFF,M228RamWrite);
+  SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
+  SetWriteHandler(0x8000, 0xFFFF, M228Write);
 }
 
 static void StateRestore(int version) {

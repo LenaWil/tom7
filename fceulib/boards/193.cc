@@ -34,14 +34,14 @@ static SFORMAT StateRegs[]=
 
 static void Sync(void)
 {
-  setmirror(mirror^1);
-  setprg8(0x8000,reg[3]);
-  setprg8(0xA000,0xD);
-  setprg8(0xC000,0xE);
-  setprg8(0xE000,0xF);
-  setchr4(0x0000,reg[0]>>2);
-  setchr2(0x1000,reg[1]>>1);
-  setchr2(0x1800,reg[2]>>1);
+  fceulib__cart.setmirror(mirror^1);
+  fceulib__cart.setprg8(0x8000,reg[3]);
+  fceulib__cart.setprg8(0xA000,0xD);
+  fceulib__cart.setprg8(0xC000,0xE);
+  fceulib__cart.setprg8(0xE000,0xF);
+  fceulib__cart.setchr4(0x0000,reg[0]>>2);
+  fceulib__cart.setchr2(0x1000,reg[1]>>1);
+  fceulib__cart.setchr2(0x1800,reg[2]>>1);
 }
 
 static DECLFW(M193Write)
@@ -55,8 +55,8 @@ static void M193Power(void)
   bank=0;
   Sync();
   SetWriteHandler(0x6000,0x6003,M193Write);
-  SetReadHandler(0x8000,0xFFFF,CartBR);
-  SetWriteHandler(0x8000,0xFFFF,CartBW);
+  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  SetWriteHandler(0x8000,0xFFFF,Cart::CartBW);
 }
 
 static void M193Reset(void)

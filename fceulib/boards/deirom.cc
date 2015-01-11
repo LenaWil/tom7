@@ -32,13 +32,12 @@ static SFORMAT DEI_StateRegs[]=
 
 static void Sync(void)
 {
-  int x;
-  setchr2(0x0000,DRegs[0]);
-  setchr2(0x0800,DRegs[1]);
-  for(x=0;x<4;x++)
-     setchr1(0x1000+(x<<10),DRegs[2+x]);
-  setprg8(0x8000,DRegs[6]);
-  setprg8(0xa000,DRegs[7]);
+  fceulib__cart.setchr2(0x0000,DRegs[0]);
+  fceulib__cart.setchr2(0x0800,DRegs[1]);
+  for(int x=0;x<4;x++)
+    fceulib__cart.setchr1(0x1000+(x<<10),DRegs[2+x]);
+  fceulib__cart.setprg8(0x8000,DRegs[6]);
+  fceulib__cart.setprg8(0xa000,DRegs[7]);
 }
 
 static void StateRestore(int version)
@@ -64,12 +63,12 @@ static DECLFW(DEIWrite)
 
 static void DEIPower(void)
 {
-  setprg8(0xc000,0xE);
-  setprg8(0xe000,0xF);
+  fceulib__cart.setprg8(0xc000,0xE);
+  fceulib__cart.setprg8(0xe000,0xF);
   cmd=0;
   memset(DRegs,0,8);
   Sync();
-  SetReadHandler(0x8000,0xFFFF,CartBR);
+  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
   SetWriteHandler(0x8000,0xFFFF,DEIWrite);
 }
 

@@ -29,11 +29,10 @@ static SFORMAT StateRegs[]=
   {0}
 };
 
-static void Sync(void)
-{
-  setprg8(0x6000,reg&3);
-  setprg32(0x8000,~0);
-  setchr8(chr&3);
+static void Sync(void) {
+  fceulib__cart.setprg8(0x6000,reg&3);
+  fceulib__cart.setprg32(0x8000,~0);
+  fceulib__cart.setchr8(chr&3);
 }
 
 static DECLFW(UNLBBWrite)
@@ -50,8 +49,8 @@ static void UNLBBPower(void)
   chr = 0;
   reg = ~0;
   Sync();
-  SetReadHandler(0x6000,0x7FFF,CartBR);
-  SetReadHandler(0x8000,0xFFFF,CartBR);
+  SetReadHandler(0x6000,0x7FFF,Cart::CartBR);
+  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
   SetWriteHandler(0x8000,0xFFFF,UNLBBWrite);
 }
 

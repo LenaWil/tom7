@@ -31,32 +31,31 @@ static SFORMAT StateRegs[]=
   {0}
 };
 
-static void Sync(void)
-{
-  setprg2(0x6000,reg[0]);
-  setprg2(0x6800,reg[1]);
-  setprg2(0x7000,reg[2]);
-  setprg2(0x7800,reg[3]);
+static void Sync(void) {
+  fceulib__cart.setprg2(0x6000,reg[0]);
+  fceulib__cart.setprg2(0x6800,reg[1]);
+  fceulib__cart.setprg2(0x7000,reg[2]);
+  fceulib__cart.setprg2(0x7800,reg[3]);
 
-  setprg2(0x8000,15);
-  setprg2(0x8800,14);
-  setprg2(0x9000,13);
-  setprg2(0x9800,12);
-  setprg2(0xa000,11);
-  setprg2(0xa800,10);
-  setprg2(0xb000,9);
-  setprg2(0xb800,8);
+  fceulib__cart.setprg2(0x8000,15);
+  fceulib__cart.setprg2(0x8800,14);
+  fceulib__cart.setprg2(0x9000,13);
+  fceulib__cart.setprg2(0x9800,12);
+  fceulib__cart.setprg2(0xa000,11);
+  fceulib__cart.setprg2(0xa800,10);
+  fceulib__cart.setprg2(0xb000,9);
+  fceulib__cart.setprg2(0xb800,8);
 
-  setprg2(0xc000,7);
-  setprg2(0xc800,6);
-  setprg2(0xd000,5);
-  setprg2(0xd800,4);
-  setprg2(0xe000,3);
-  setprg2(0xe800,2);
-  setprg2(0xf000,1);
-  setprg2(0xf800,0);
+  fceulib__cart.setprg2(0xc000,7);
+  fceulib__cart.setprg2(0xc800,6);
+  fceulib__cart.setprg2(0xd000,5);
+  fceulib__cart.setprg2(0xd800,4);
+  fceulib__cart.setprg2(0xe000,3);
+  fceulib__cart.setprg2(0xe800,2);
+  fceulib__cart.setprg2(0xf000,1);
+  fceulib__cart.setprg2(0xf800,0);
 
-  setchr8(0);
+  fceulib__cart.setchr8(0);
 }
 
 static DECLFW(UNLKS7031Write)
@@ -65,10 +64,9 @@ static DECLFW(UNLKS7031Write)
   Sync();
 }
 
-static void UNLKS7031Power(void)
-{
+static void UNLKS7031Power(void) {
   Sync();
-  SetReadHandler(0x6000,0xFFFF,CartBR);
+  SetReadHandler(0x6000,0xFFFF,Cart::CartBR);
   SetWriteHandler(0x8000,0xffff,UNLKS7031Write);
 }
 

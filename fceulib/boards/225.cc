@@ -32,17 +32,15 @@ static SFORMAT StateRegs[]=
   {0}
 };
 
-static void Sync(void)
-{
-  if(mode)
-  {
-    setprg16(0x8000,prg);
-    setprg16(0xC000,prg);
+static void Sync(void) {
+  if(mode) {
+    fceulib__cart.setprg16(0x8000,prg);
+    fceulib__cart.setprg16(0xC000,prg);
+  } else {
+    fceulib__cart.setprg32(0x8000,prg>>1);
   }
-  else
-    setprg32(0x8000,prg>>1);
-  setchr8(chr);
-  setmirror(mirr);
+  fceulib__cart.setchr8(chr);
+  fceulib__cart.setmirror(mirr);
 }
 
 static DECLFW(M225Write)
@@ -71,7 +69,7 @@ static void M225Power(void)
   Sync();
   SetReadHandler(0x5000,0x5fff,M225LoRead);
   SetWriteHandler(0x5000,0x5fff,M225LoWrite);
-  SetReadHandler(0x8000,0xFFFF,CartBR);
+  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
   SetWriteHandler(0x8000,0xFFFF,M225Write);
 }
 

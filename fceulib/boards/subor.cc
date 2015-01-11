@@ -38,31 +38,25 @@ static void Sync(void)
   if(DRegs[1]&0x08)
   {
     bank &= 0xfe;
-    if(mode==0)
-    {
-      setprg16(0x8000,base+bank+1);
-      setprg16(0xC000,base+bank+0);
-    }
-    else
-    {
-      setprg16(0x8000,base+bank+0);
-      setprg16(0xC000,base+bank+1);
+    if(mode==0) {
+      fceulib__cart.setprg16(0x8000,base+bank+1);
+      fceulib__cart.setprg16(0xC000,base+bank+0);
+    } else {
+      fceulib__cart.setprg16(0x8000,base+bank+0);
+      fceulib__cart.setprg16(0xC000,base+bank+1);
     }
   }
   else
   {
-    if(DRegs[1]&0x04)
-    {
-      setprg16(0x8000,0x1f);
-      setprg16(0xC000,base+bank);
-    }
-    else
-    {
-      setprg16(0x8000,base+bank);
+    if(DRegs[1]&0x04) {
+      fceulib__cart.setprg16(0x8000,0x1f);
+      fceulib__cart.setprg16(0xC000,base+bank);
+    } else {
+      fceulib__cart.setprg16(0x8000,base+bank);
       if(mode==0)
-         setprg16(0xC000,0x20);
+         fceulib__cart.setprg16(0xC000,0x20);
       else
-         setprg16(0xC000,0x07);
+         fceulib__cart.setprg16(0xC000,0x07);
     }
   }
 }

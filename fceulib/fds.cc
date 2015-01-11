@@ -39,7 +39,6 @@
 //	and the when it can be successfully read/written to.  This should
 //	prevent writes to wrong places OR add code to prevent disk ejects
 //	when the virtual motor is on(mmm...virtual motor).
-extern int disableBatteryLoading;
 
 static DECLFR(FDSRead4030);
 static DECLFR(FDSRead4031);
@@ -92,7 +91,7 @@ void FDSGI(GI h) {
 }
 
 static void FDSStateRestore(int version) {
-  setmirror(((FDSRegs[5]&8)>>3)^1);
+  fceulib__cart.setmirror(((FDSRegs[5]&8)>>3)^1);
 
   if (version >= 9810) {
     for (int x=0;x<TotalSides;x++) {
@@ -109,34 +108,33 @@ void FDSSoundStateAdd();
 static void RenderSound();
 static void RenderSoundHQ();
 
-static void FDSInit()
-{
-	memset(FDSRegs,0,sizeof(FDSRegs));
-	writeskip=DiskPtr=DiskSeekIRQ=0;
-	setmirror(1);
+static void FDSInit() {
+  memset(FDSRegs,0,sizeof(FDSRegs));
+  writeskip=DiskPtr=DiskSeekIRQ=0;
+  fceulib__cart.setmirror(1);
 
-	setprg8r(0,0xe000,0);    // BIOS
-	setprg32r(1,0x6000,0);   // 32KB RAM
-	setchr8(0);     // 8KB CHR RAM
+  fceulib__cart.setprg8r(0,0xe000,0);    // BIOS
+  fceulib__cart.setprg32r(1,0x6000,0);   // 32KB RAM
+  fceulib__cart.setchr8(0);     // 8KB CHR RAM
 
-	MapIRQHook=FDSFix;
-	GameStateRestore=FDSStateRestore;
+  MapIRQHook=FDSFix;
+  GameStateRestore=FDSStateRestore;
 
-	SetReadHandler(0x4030,0x4030,FDSRead4030);
-	SetReadHandler(0x4031,0x4031,FDSRead4031);
-	SetReadHandler(0x4032,0x4032,FDSRead4032);
-	SetReadHandler(0x4033,0x4033,FDSRead4033);
+  SetReadHandler(0x4030,0x4030,FDSRead4030);
+  SetReadHandler(0x4031,0x4031,FDSRead4031);
+  SetReadHandler(0x4032,0x4032,FDSRead4032);
+  SetReadHandler(0x4033,0x4033,FDSRead4033);
 
-	SetWriteHandler(0x4020,0x4025,FDSWrite);
+  SetWriteHandler(0x4020,0x4025,FDSWrite);
 
-	SetWriteHandler(0x6000,0xdfff,FDSRAMWrite);
-	SetReadHandler(0x6000,0xdfff,FDSRAMRead);
-	SetReadHandler(0xE000,0xFFFF,FDSBIOSRead);
-	IRQCount=IRQLatch=IRQa=0;
+  SetWriteHandler(0x6000,0xdfff,FDSRAMWrite);
+  SetReadHandler(0x6000,0xdfff,FDSRAMRead);
+  SetReadHandler(0xE000,0xFFFF,FDSBIOSRead);
+  IRQCount=IRQLatch=IRQa=0;
 
-	FDSSoundReset();
-	InDisk=0;
-	SelectDisk=0;
+  FDSSoundReset();
+  InDisk=0;
+  SelectDisk=0;
 }
 
 void FCEU_FDSInsert() {
@@ -644,7 +642,7 @@ static DECLFW(FDSWrite)
 			if (V&2) {DiskPtr=0;DiskSeekIRQ=200;}
 			if (V&0x40) DiskSeekIRQ=200;
 		}
-		setmirror(((V>>3)&1)^1);
+		fceulib__cart.setmirror(((V>>3)&1)^1);
 		break;
 	}
 	FDSRegs[A&7]=V;
@@ -765,7 +763,7 @@ int FDSLoad(const char *name, FceuFile *fp) {
 
   fclose(zp);
 
-  if (!disableBatteryLoading) {
+  if (!fceulib__cart.disableBatteryLoading) {
     FceuFile *tp;
     char *fn=strdup(FCEU_MakeFDSFilename().c_str());
 
@@ -815,9 +813,9 @@ int FDSLoad(const char *name, FceuFile *fp) {
   AddExState(&InDisk,1,0,"INDI");
   AddExState(&DiskWritten,1,0,"DSKW");
 
-  ResetCartMapping();
-  SetupCartCHRMapping(0,CHRRAM,8192,1);
-  SetupCartMirroring(0,0,0);
+  fceulib__cart.ResetCartMapping();
+  fceulib__cart.SetupCartCHRMapping(0,CHRRAM,8192,1);
+  fceulib__cart.SetupCartMirroring(0,0,0);
   memset(CHRRAM,0,8192);
   memset(FDSRAM,0,32768);
 

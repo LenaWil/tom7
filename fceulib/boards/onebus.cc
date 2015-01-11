@@ -83,18 +83,18 @@ static void PSync(void)
   uint8 bank3  = ~0;
 
 //  FCEU_printf(" PRG: %04x [%02x]",0x8000^pswap,block | (bank0 & mask));
-  setprg8(0x8000^pswap, block | (bank0 & mask));
+  fceulib__cart.setprg8(0x8000^pswap, block | (bank0 & mask));
 //  FCEU_printf(" %04x [%02x]",0xa000^pswap,block | (bank1 & mask));
-  setprg8(0xa000,       block | (bank1 & mask));
+  fceulib__cart.setprg8(0xa000,       block | (bank1 & mask));
 //  FCEU_printf(" %04x [%02x]",0xc000^pswap,block | (bank2 & mask));
-  setprg8(0xc000^pswap, block | (bank2 & mask));
+  fceulib__cart.setprg8(0xc000^pswap, block | (bank2 & mask));
 //  FCEU_printf(" %04x [%02x]\n",0xe000^pswap,block | (bank3 & mask));
-  setprg8(0xe000,       block | (bank3 & mask));
+  fceulib__cart.setprg8(0xe000,       block | (bank3 & mask));
 }
 
 static void CSync(void)
 {
-  static const uint8 midx[8] = {0, 1, 2, 0, 3, 4, 5, 0 };
+  static constexpr uint8 midx[8] = {0, 1, 2, 0, 3, 4, 5, 0 };
   uint8  mask  = 0xff >> midx[ppu201x[0xa] & 7];
   uint32 block = ((cpu410x[0x0] & 0x0f) << 11) + ((ppu201x[0x8] & 0x70) << 4) + (ppu201x[0xa] & (~mask));
   uint32 cswap = (mmc3cmd & 0x80) << 5;
@@ -108,16 +108,16 @@ static void CSync(void)
   uint8 bank6  = ppu201x[0x4];
   uint8 bank7  = ppu201x[0x5];
 
-  setchr1(0x0000^cswap, block | (bank0 & mask));
-  setchr1(0x0400^cswap, block | (bank1 & mask));
-  setchr1(0x0800^cswap, block | (bank2 & mask));
-  setchr1(0x0c00^cswap, block | (bank3 & mask));
-  setchr1(0x1000^cswap, block | (bank4 & mask));
-  setchr1(0x1400^cswap, block | (bank5 & mask));
-  setchr1(0x1800^cswap, block | (bank6 & mask));
-  setchr1(0x1c00^cswap, block | (bank7 & mask));
+  fceulib__cart.setchr1(0x0000^cswap, block | (bank0 & mask));
+  fceulib__cart.setchr1(0x0400^cswap, block | (bank1 & mask));
+  fceulib__cart.setchr1(0x0800^cswap, block | (bank2 & mask));
+  fceulib__cart.setchr1(0x0c00^cswap, block | (bank3 & mask));
+  fceulib__cart.setchr1(0x1000^cswap, block | (bank4 & mask));
+  fceulib__cart.setchr1(0x1400^cswap, block | (bank5 & mask));
+  fceulib__cart.setchr1(0x1800^cswap, block | (bank6 & mask));
+  fceulib__cart.setchr1(0x1c00^cswap, block | (bank7 & mask));
 
-  setmirror((mirror & 1) ^ 1);
+  fceulib__cart.setmirror((mirror & 1) ^ 1);
 }
 
 static void Sync(void)
@@ -277,7 +277,8 @@ static void UNLOneBusPower(void)
   memset(ppu201x, 0x00, sizeof(ppu201x));
   memset(apu40xx, 0x00, sizeof(apu40xx));
 
-  SetupCartCHRMapping(0, PRGptr[0], PRGsize[0], 0);
+  fceulib__cart.SetupCartCHRMapping(0, fceulib__cart.PRGptr[0], 
+				    fceulib__cart.PRGsize[0], 0);
 
   for(i=0; i<64; i++)
   {
@@ -287,7 +288,7 @@ static void UNLOneBusPower(void)
   SetReadHandler(0x4000,0x403f,UNLOneBusReadAPU40XX);
   SetWriteHandler(0x4000,0x403f,UNLOneBusWriteAPU40XX);
 
-  SetReadHandler(0x8000,0xFFFF,CartBR);
+  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
   SetWriteHandler(0x2010,0x201f,UNLOneBusWritePPU201X);
   SetWriteHandler(0x4100,0x410f,UNLOneBusWriteCPU410X);
   SetWriteHandler(0x8000,0xffff,UNLOneBusWriteMMC3);

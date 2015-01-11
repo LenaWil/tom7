@@ -38,13 +38,12 @@ static SFORMAT StateRegs[]=
 
 static void Sync(void)
 {
-  int i;
-  setprg8(0x8000,reg[0]);
-  setprg8(0xA000,reg[1]);
-  setprg8(0xC000,reg[2]);
-  for(i=0; i<8; i++)
-    setchr1(i << 10,chr[i]);
-  setmirror(reg[3]^1);
+  fceulib__cart.setprg8(0x8000,reg[0]);
+  fceulib__cart.setprg8(0xA000,reg[1]);
+  fceulib__cart.setprg8(0xC000,reg[2]);
+  for(int i=0; i<8; i++)
+    fceulib__cart.setchr1(i << 10,chr[i]);
+  fceulib__cart.setmirror(reg[3]^1);
 }
 
 static DECLFW(UNLSC127Write)
@@ -73,11 +72,11 @@ static DECLFW(UNLSC127Write)
 static void UNLSC127Power(void)
 {
   Sync();
-  setprg8r(0x10,0x6000,0);
-  setprg8(0xE000,~0);
-  SetReadHandler(0x6000,0x7fff,CartBR);
-  SetWriteHandler(0x6000,0x7fff,CartBW);
-  SetReadHandler(0x8000,0xFFFF,CartBR);
+  fceulib__cart.setprg8r(0x10,0x6000,0);
+  fceulib__cart.setprg8(0xE000,~0);
+  SetReadHandler(0x6000,0x7fff,Cart::CartBR);
+  SetWriteHandler(0x6000,0x7fff,Cart::CartBW);
+  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
   SetWriteHandler(0x8000,0xFFFF,UNLSC127Write);
 }
 
@@ -119,7 +118,7 @@ void UNLSC127_Init(CartInfo *info)
   GameStateRestore=StateRestore;
   WRAMSIZE=8192;
   WRAM=(uint8*)FCEU_gmalloc(WRAMSIZE);
-  SetupCartPRGMapping(0x10,WRAM,WRAMSIZE,1);
+  fceulib__cart.SetupCartPRGMapping(0x10,WRAM,WRAMSIZE,1);
   AddExState(WRAM, WRAMSIZE, 0, "WRAM");
   AddExState(&StateRegs, ~0, 0, 0);
 }

@@ -34,19 +34,20 @@ static SFORMAT StateRegs[] =
 };
 
 static void Sync(void) {
-	uint8 bank;
-	if (isresetbased)
-		bank = (latche[0] & 0x1f) | (reset << 5) | ((latche[1] & 1) << 6);
-	else
-		bank = (latche[0] & 0x1f) | ((latche[0] & 0x80) >> 2) | ((latche[1] & 1) << 6);
-	if (!(latche[0] & 0x20))
-		setprg32(0x8000, bank >> 1);
-	else{
-		setprg16(0x8000, bank);
-		setprg16(0xC000, bank);
-	}
-	setmirror((latche[0] >> 6) & 1);
-	setchr8(0);
+  uint8 bank;
+  if (isresetbased) {
+    bank = (latche[0] & 0x1f) | (reset << 5) | ((latche[1] & 1) << 6);
+  } else {
+    bank = (latche[0] & 0x1f) | ((latche[0] & 0x80) >> 2) | ((latche[1] & 1) << 6);
+  }
+  if (!(latche[0] & 0x20)) {
+    fceulib__cart.setprg32(0x8000, bank >> 1);
+  } else {
+    fceulib__cart.setprg16(0x8000, bank);
+    fceulib__cart.setprg16(0xC000, bank);
+  }
+  fceulib__cart.setmirror((latche[0] >> 6) & 1);
+  fceulib__cart.setchr8(0);
 }
 
 static DECLFW(M226Write) {
@@ -58,7 +59,7 @@ static void M226Power(void) {
 	latche[0] = latche[1] = reset = 0;
 	Sync();
 	SetWriteHandler(0x8000, 0xFFFF, M226Write);
-	SetReadHandler(0x8000, 0xFFFF, CartBR);
+	SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
 }
 
 static void StateRestore(int version) {

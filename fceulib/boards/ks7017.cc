@@ -38,11 +38,10 @@ static SFORMAT StateRegs[]=
   {0}
 };
 
-static void Sync(void)
-{
-  setprg16(0x8000,reg);
-  setprg16(0xC000,2);
-  setmirror(mirr);
+static void Sync(void) {
+  fceulib__cart.setprg16(0x8000,reg);
+  fceulib__cart.setprg16(0xC000,2);
+  fceulib__cart.setmirror(mirr);
 }
 
 static DECLFW(UNLKS7017Write)
@@ -94,14 +93,13 @@ static void UNL7017IRQ(int a)
  }
 }
 
-static void UNLKS7017Power(void)
-{
+static void UNLKS7017Power(void) {
   Sync();
-  setchr8(0);
-  setprg8r(0x10,0x6000,0);
-  SetReadHandler(0x6000,0x7FFF,CartBR);
-  SetWriteHandler(0x6000,0x7FFF,CartBW);
-  SetReadHandler(0x8000,0xFFFF,CartBR);
+  fceulib__cart.setchr8(0);
+  fceulib__cart.setprg8r(0x10,0x6000,0);
+  SetReadHandler(0x6000,0x7FFF,Cart::CartBR);
+  SetWriteHandler(0x6000,0x7FFF,Cart::CartBW);
+  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
   SetReadHandler(0x4030,0x4030,FDSRead4030);
   SetWriteHandler(0x4020,0x5FFF,UNLKS7017Write);
 }
@@ -118,15 +116,14 @@ static void StateRestore(int version)
   Sync();
 }
 
-void UNLKS7017_Init(CartInfo *info)
-{
+void UNLKS7017_Init(CartInfo *info) {
   info->Power=UNLKS7017Power;
   info->Close=UNLKS7017Close;
   MapIRQHook=UNL7017IRQ;
 
   WRAMSIZE=8192;
   WRAM=(uint8*)FCEU_gmalloc(WRAMSIZE);
-  SetupCartPRGMapping(0x10,WRAM,WRAMSIZE,1);
+  fceulib__cart.SetupCartPRGMapping(0x10,WRAM,WRAMSIZE,1);
   AddExState(WRAM, WRAMSIZE, 0, "WRAM");
 
   GameStateRestore=StateRestore;

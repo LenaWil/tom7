@@ -64,11 +64,18 @@ using namespace std;
 #endif
 #endif
 
+string ReadFile(const string &s);
+vector<string> ReadFileToLines(const string &s);
+vector<string> SplitToLines(const string &s);
+string Chop(string &s);
+string LoseWhiteL(const string &s);
+
 // Generally we just want reliable and portable names for specific
 // word sizes. C++11 actually gives these to us now; no more
 // "well, long long is at least big enough to hold 64 bits, and
 // chars might actually be 9 bits, etc.". 
 
+typedef int8_t   int8;
 typedef uint8_t  uint8;
 typedef int16_t  int16;
 typedef uint16_t uint16;

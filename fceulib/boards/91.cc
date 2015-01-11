@@ -34,14 +34,14 @@ static SFORMAT StateRegs[]=
 
 static void Sync(void)
 {
-  setprg8(0x8000,pregs[0]);
-  setprg8(0xa000,pregs[1]);
-  setprg8(0xc000,~1);
-  setprg8(0xe000,~0);
-  setchr2(0x0000,cregs[0]);
-  setchr2(0x0800,cregs[1]);
-  setchr2(0x1000,cregs[2]);
-  setchr2(0x1800,cregs[3]);
+  fceulib__cart.setprg8(0x8000,pregs[0]);
+  fceulib__cart.setprg8(0xa000,pregs[1]);
+  fceulib__cart.setprg8(0xc000,~1);
+  fceulib__cart.setprg8(0xe000,~0);
+  fceulib__cart.setchr2(0x0000,cregs[0]);
+  fceulib__cart.setchr2(0x0800,cregs[1]);
+  fceulib__cart.setchr2(0x1000,cregs[2]);
+  fceulib__cart.setchr2(0x1800,cregs[3]);
 }
 
 static DECLFW(M91Write0)
@@ -66,7 +66,7 @@ static void M91Power(void)
   Sync();
   SetWriteHandler(0x6000,0x6fff,M91Write0);
   SetWriteHandler(0x7000,0x7fff,M91Write1);
-  SetReadHandler(0x8000,0xffff,CartBR);
+  SetReadHandler(0x8000,0xffff,Cart::CartBR);
 }
 
 static void M91IRQHook(void)

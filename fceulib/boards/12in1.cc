@@ -27,21 +27,17 @@ static SFORMAT StateRegs[]=
   {0}
 };
 
-static void Sync(void)
-{
-    uint8 bank = (reg[3]&3)<<3;
-    setchr4(0x0000, (reg[1]>>3)|(bank<<2));
-    setchr4(0x1000, (reg[2]>>3)|(bank<<2));
-    if(reg[3]&8)
-    {
-      setprg32(0x8000,((reg[2]&7)>>1)|bank);
-    }
-    else
-    {
-      setprg16(0x8000, (reg[1]&7)|bank);
-      setprg16(0xc000, 7|bank);
-    }
-    setmirror(((reg[3]&4)>>2)^1);
+static void Sync(void) {
+  uint8 bank = (reg[3]&3)<<3;
+  fceulib__cart.setchr4(0x0000, (reg[1]>>3)|(bank<<2));
+  fceulib__cart.setchr4(0x1000, (reg[2]>>3)|(bank<<2));
+  if(reg[3]&8) {
+    fceulib__cart.setprg32(0x8000,((reg[2]&7)>>1)|bank);
+  } else {
+    fceulib__cart.setprg16(0x8000, (reg[1]&7)|bank);
+    fceulib__cart.setprg16(0xc000, 7|bank);
+  }
+  fceulib__cart.setmirror(((reg[3]&4)>>2)^1);
 }
 
 static DECLFW(BMC12IN1Write)
@@ -60,7 +56,7 @@ static void BMC12IN1Power(void)
 {
   reg[0]=reg[1]=reg[2]=reg[3]=0;
   Sync();
-  SetReadHandler(0x8000,0xFFFF,CartBR);
+  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
   SetWriteHandler(0x8000,0xFFFF,BMC12IN1Write);
 }
 

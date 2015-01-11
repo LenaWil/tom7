@@ -32,29 +32,25 @@ static SFORMAT StateRegs[]=
   {0}
 };
 
-static void Sync(void)
-{
-  setchr8(0);
-  setprg8(0x8000,0xc);
-  setprg8(0xe000,0xf);
-  if(reg2&0x10)
-  {
-    setprg8(0x6000,reg0);
-    setprg8(0xa000,0xd);
-    setprg8(0xc000,0xe);
+static void Sync(void) {
+  fceulib__cart.setchr8(0);
+  fceulib__cart.setprg8(0x8000,0xc);
+  fceulib__cart.setprg8(0xe000,0xf);
+  if(reg2&0x10) {
+    fceulib__cart.setprg8(0x6000,reg0);
+    fceulib__cart.setprg8(0xa000,0xd);
+    fceulib__cart.setprg8(0xc000,0xe);
+  } else {
+    fceulib__cart.setprg8r(0x10,0x6000,0);
+    fceulib__cart.setprg4(0xa000,(0xd<<1));
+    fceulib__cart.setprg2(0xb000,(0xd<<2)+2);
+    fceulib__cart.setprg2r(0x10,0xb800,4);
+    fceulib__cart.setprg2r(0x10,0xc000,5);
+    fceulib__cart.setprg2r(0x10,0xc800,6);
+    fceulib__cart.setprg2r(0x10,0xd000,7);
+    fceulib__cart.setprg2(0xd800,(0xe<<2)+3);
   }
-  else
-  {
-    setprg8r(0x10,0x6000,0);
-    setprg4(0xa000,(0xd<<1));
-    setprg2(0xb000,(0xd<<2)+2);
-    setprg2r(0x10,0xb800,4);
-    setprg2r(0x10,0xc000,5);
-    setprg2r(0x10,0xc800,6);
-    setprg2r(0x10,0xd000,7);
-    setprg2(0xd800,(0xe<<2)+3);
-  }
-  setmirror(reg1^1);
+  fceulib__cart.setmirror(reg1^1);
 }
 
 static DECLFW(M103RamWrite0)
@@ -89,9 +85,9 @@ static void M103Power(void)
 {
   reg0=reg1=0; reg2=0;
   Sync();
-  SetReadHandler(0x6000,0x7FFF,CartBR);
+  SetReadHandler(0x6000,0x7FFF,Cart::CartBR);
   SetWriteHandler(0x6000,0x7FFF,M103RamWrite0);
-  SetReadHandler(0x8000,0xFFFF,CartBR);
+  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
   SetWriteHandler(0xB800,0xD7FF,M103RamWrite1);
   SetWriteHandler(0x8000,0x8FFF,M103Write0);
   SetWriteHandler(0xE000,0xEFFF,M103Write1);
@@ -118,7 +114,7 @@ void Mapper103_Init(CartInfo *info)
 
   WRAMSIZE=16384;
   WRAM=(uint8*)FCEU_gmalloc(WRAMSIZE);
-  SetupCartPRGMapping(0x10,WRAM,WRAMSIZE,1);
+  fceulib__cart.SetupCartPRGMapping(0x10,WRAM,WRAMSIZE,1);
   AddExState(WRAM, WRAMSIZE, 0, "WRAM");
 
   AddExState(&StateRegs, ~0, 0, 0);

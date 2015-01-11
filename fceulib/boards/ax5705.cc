@@ -52,16 +52,14 @@ static void UNLAX5705IRQ(void)
   }
 }*/
 
-static void Sync(void)
-{
-  int i;
-  setprg8(0x8000,prg_reg[0]);
-  setprg8(0xA000,prg_reg[1]);
-  setprg8(0xC000,~1);
-  setprg8(0xE000,~0);
-  for(i=0; i<8; i++)
-     setchr1(i<<10,chr_reg[i]);
-  setmirror(mirr^1);
+static void Sync(void) {
+  fceulib__cart.setprg8(0x8000,prg_reg[0]);
+  fceulib__cart.setprg8(0xA000,prg_reg[1]);
+  fceulib__cart.setprg8(0xC000,~1);
+  fceulib__cart.setprg8(0xE000,~0);
+  for(int i=0; i<8; i++)
+     fceulib__cart.setchr1(i<<10,chr_reg[i]);
+  fceulib__cart.setmirror(mirr^1);
 }
 
 static DECLFW(UNLAX5705Write)
@@ -104,7 +102,7 @@ static DECLFW(UNLAX5705Write)
 static void UNLAX5705Power(void)
 {
   Sync();
-  SetReadHandler(0x8000,0xFFFF,CartBR);
+  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
   SetWriteHandler(0x8000,0xFFFF,UNLAX5705Write);
 }
 

@@ -33,22 +33,21 @@ static SFORMAT StateRegs[]=
   {0}
 };
 
-static void Sync(void)
-{
-  setchr1(0x0000,reg[0]&0xfe);
-  setchr1(0x0400,reg[1]|1);
-  setchr1(0x0800,reg[2]&0xfe);
-  setchr1(0x0c00,reg[3]|1);
-  setchr1(0x1000,reg[4]);
-  setchr1(0x1400,reg[5]);
-  setchr1(0x1800,reg[6]);
-  setchr1(0x1c00,reg[7]);
-  setprg8r(0x10,0x6000,0);
-  setprg8(0x8000,(reg[0x8]&0xf)|0x10);
-  setprg8(0xA000,(reg[0x9]&0x1f));
-  setprg8(0xC000,(reg[0xa]&0x1f));
-  setprg8(0xE000,(reg[0xb]&0xf)|0x10);
-  setmirror((reg[0xc]&1)^1);
+static void Sync(void) {
+  fceulib__cart.setchr1(0x0000,reg[0]&0xfe);
+  fceulib__cart.setchr1(0x0400,reg[1]|1);
+  fceulib__cart.setchr1(0x0800,reg[2]&0xfe);
+  fceulib__cart.setchr1(0x0c00,reg[3]|1);
+  fceulib__cart.setchr1(0x1000,reg[4]);
+  fceulib__cart.setchr1(0x1400,reg[5]);
+  fceulib__cart.setchr1(0x1800,reg[6]);
+  fceulib__cart.setchr1(0x1c00,reg[7]);
+  fceulib__cart.setprg8r(0x10,0x6000,0);
+  fceulib__cart.setprg8(0x8000,(reg[0x8]&0xf)|0x10);
+  fceulib__cart.setprg8(0xA000,(reg[0x9]&0x1f));
+  fceulib__cart.setprg8(0xC000,(reg[0xa]&0x1f));
+  fceulib__cart.setprg8(0xE000,(reg[0xb]&0xf)|0x10);
+  fceulib__cart.setmirror((reg[0xc]&1)^1);
 }
 
 static DECLFW(M106Write)
@@ -67,9 +66,9 @@ static void M106Power(void)
 {
   reg[8]=reg[9]=reg[0xa]=reg[0xb]=-1;
   Sync();
-  SetReadHandler(0x6000,0x7FFF,CartBR);
-  SetReadHandler(0x8000,0xFFFF,CartBR);
-  SetWriteHandler(0x6000,0x7FFF,CartBW);
+  SetReadHandler(0x6000,0x7FFF,Cart::CartBR);
+  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  SetWriteHandler(0x6000,0x7FFF,Cart::CartBW);
   SetWriteHandler(0x8000,0xFFFF,M106Write);
 }
 
@@ -102,8 +101,7 @@ static void StateRestore(int version)
   Sync();
 }
 
-void Mapper106_Init(CartInfo *info)
-{
+void Mapper106_Init(CartInfo *info) {
   info->Reset=M106Reset;
   info->Power=M106Power;
   info->Close=M106Close;
@@ -112,7 +110,7 @@ void Mapper106_Init(CartInfo *info)
 
   WRAMSIZE=8192;
   WRAM=(uint8*)FCEU_gmalloc(WRAMSIZE);
-  SetupCartPRGMapping(0x10,WRAM,WRAMSIZE,1);
+  fceulib__cart.SetupCartPRGMapping(0x10,WRAM,WRAMSIZE,1);
   AddExState(WRAM, WRAMSIZE, 0, "WRAM");
 
   AddExState(&StateRegs, ~0, 0, 0);

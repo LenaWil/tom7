@@ -71,35 +71,30 @@ static SFORMAT Tek_StateRegs[]={
   {0}
 };
 
-static void mira(void)
-{
-  if((tkcom[0]&0x20&&is209)||is211)
-  {
+static void mira(void) {
+  if((tkcom[0]&0x20&&is209)||is211) {
     int x;
     if(tkcom[0]&0x40)        // Name tables are ROM-only
-    {
-      for(x=0;x<4;x++)
-         setntamem(CHRptr[0]+(((names[x])&CHRmask1[0])<<10),0,x);
-    }
-    else                        // Name tables can be RAM or ROM.
-    {
-      for(x=0;x<4;x++)
       {
-        if((tkcom[1]&0x80)==(names[x]&0x80))        // RAM selected.
-          setntamem(NTARAM+((names[x]&0x1)<<10),1,x);
-        else
-          setntamem(CHRptr[0]+(((names[x])&CHRmask1[0])<<10),0,x);
+	for(x=0;x<4;x++)
+	  fceulib__cart.setntamem(fceulib__cart.CHRptr[0]+(((names[x])&fceulib__cart.CHRmask1[0])<<10),0,x);
       }
-    }
-  }
-  else
-  {
-    switch(tkcom[1]&3)
-    {
-      case 0: setmirror(MI_V); break;
-      case 1: setmirror(MI_H); break;
-      case 2: setmirror(MI_0); break;
-      case 3: setmirror(MI_1); break;
+    else                        // Name tables can be RAM or ROM.
+      {
+	for(x=0;x<4;x++)
+	  {
+	    if((tkcom[1]&0x80)==(names[x]&0x80))        // RAM selected.
+	      fceulib__cart.setntamem(NTARAM+((names[x]&0x1)<<10),1,x);
+	    else
+	      fceulib__cart.setntamem(fceulib__cart.CHRptr[0]+(((names[x])&fceulib__cart.CHRmask1[0])<<10),0,x);
+	  }
+      }
+  } else {
+    switch(tkcom[1]&3) {
+    case 0: fceulib__cart.setmirror(MI_V); break;
+    case 1: fceulib__cart.setmirror(MI_H); break;
+    case 2: fceulib__cart.setmirror(MI_0); break;
+    case 3: fceulib__cart.setmirror(MI_1); break;
     }
   }
 }
@@ -110,38 +105,38 @@ static void tekprom(void)
   switch(tkcom[0]&7)
   {
     case 00: if(tkcom[0]&0x80)
-               setprg8(0x6000,(((prgb[3]<<2)+3)&0x3F)|bankmode);
-             setprg32(0x8000,0x0F|((tkcom[3]&6)<<3));
+               fceulib__cart.setprg8(0x6000,(((prgb[3]<<2)+3)&0x3F)|bankmode);
+             fceulib__cart.setprg32(0x8000,0x0F|((tkcom[3]&6)<<3));
              break;
     case 01: if(tkcom[0]&0x80)
-               setprg8(0x6000,(((prgb[3]<<1)+1)&0x3F)|bankmode);
-             setprg16(0x8000,(prgb[1]&0x1F)|((tkcom[3]&6)<<4));
-             setprg16(0xC000,0x1F|((tkcom[3]&6)<<4));
+               fceulib__cart.setprg8(0x6000,(((prgb[3]<<1)+1)&0x3F)|bankmode);
+             fceulib__cart.setprg16(0x8000,(prgb[1]&0x1F)|((tkcom[3]&6)<<4));
+             fceulib__cart.setprg16(0xC000,0x1F|((tkcom[3]&6)<<4));
              break;
     case 03: // bit reversion
     case 02: if(tkcom[0]&0x80)
-               setprg8(0x6000,(prgb[3]&0x3F)|bankmode);
-             setprg8(0x8000,(prgb[0]&0x3F)|bankmode);
-             setprg8(0xa000,(prgb[1]&0x3F)|bankmode);
-             setprg8(0xc000,(prgb[2]&0x3F)|bankmode);
-             setprg8(0xe000,0x3F|bankmode);
+               fceulib__cart.setprg8(0x6000,(prgb[3]&0x3F)|bankmode);
+             fceulib__cart.setprg8(0x8000,(prgb[0]&0x3F)|bankmode);
+             fceulib__cart.setprg8(0xa000,(prgb[1]&0x3F)|bankmode);
+             fceulib__cart.setprg8(0xc000,(prgb[2]&0x3F)|bankmode);
+             fceulib__cart.setprg8(0xe000,0x3F|bankmode);
              break;
     case 04: if(tkcom[0]&0x80)
-               setprg8(0x6000,(((prgb[3]<<2)+3)&0x3F)|bankmode);
-             setprg32(0x8000,(prgb[3]&0x0F)|((tkcom[3]&6)<<3));
+               fceulib__cart.setprg8(0x6000,(((prgb[3]<<2)+3)&0x3F)|bankmode);
+             fceulib__cart.setprg32(0x8000,(prgb[3]&0x0F)|((tkcom[3]&6)<<3));
              break;
     case 05: if(tkcom[0]&0x80)
-               setprg8(0x6000,(((prgb[3]<<1)+1)&0x3F)|bankmode);
-             setprg16(0x8000,(prgb[1]&0x1F)|((tkcom[3]&6)<<4));
-             setprg16(0xC000,(prgb[3]&0x1F)|((tkcom[3]&6)<<4));
+               fceulib__cart.setprg8(0x6000,(((prgb[3]<<1)+1)&0x3F)|bankmode);
+             fceulib__cart.setprg16(0x8000,(prgb[1]&0x1F)|((tkcom[3]&6)<<4));
+             fceulib__cart.setprg16(0xC000,(prgb[3]&0x1F)|((tkcom[3]&6)<<4));
              break;
     case 07: // bit reversion
     case 06: if(tkcom[0]&0x80)
-               setprg8(0x6000,(prgb[3]&0x3F)|bankmode);
-             setprg8(0x8000,(prgb[0]&0x3F)|bankmode);
-             setprg8(0xa000,(prgb[1]&0x3F)|bankmode);
-             setprg8(0xc000,(prgb[2]&0x3F)|bankmode);
-             setprg8(0xe000,(prgb[3]&0x3F)|bankmode);
+               fceulib__cart.setprg8(0x6000,(prgb[3]&0x3F)|bankmode);
+             fceulib__cart.setprg8(0x8000,(prgb[0]&0x3F)|bankmode);
+             fceulib__cart.setprg8(0xa000,(prgb[1]&0x3F)|bankmode);
+             fceulib__cart.setprg8(0xc000,(prgb[2]&0x3F)|bankmode);
+             fceulib__cart.setprg8(0xe000,(prgb[3]&0x3F)|bankmode);
              break;
   }
 }
@@ -163,21 +158,21 @@ static void tekvrom(void)
   switch(tkcom[0]&0x18)
   {
     case 0x00:      // 8KB
-         setchr8(((chrlow[0]|(chrhigh[0]<<8))&mask)|bank);
+         fceulib__cart.setchr8(((chrlow[0]|(chrhigh[0]<<8))&mask)|bank);
          break;
     case 0x08:      // 4KB
 //         for(x=0;x<8;x+=4)
-//            setchr4(x<<10,((chrlow[x]|(chrhigh[x]<<8))&mask)|bank);
-         setchr4(0x0000,((chrlow[chr[0]]|(chrhigh[chr[0]]<<8))&mask)|bank);
-         setchr4(0x1000,((chrlow[chr[1]]|(chrhigh[chr[1]]<<8))&mask)|bank);
+//            fceulib__cart.setchr4(x<<10,((chrlow[x]|(chrhigh[x]<<8))&mask)|bank);
+         fceulib__cart.setchr4(0x0000,((chrlow[chr[0]]|(chrhigh[chr[0]]<<8))&mask)|bank);
+         fceulib__cart.setchr4(0x1000,((chrlow[chr[1]]|(chrhigh[chr[1]]<<8))&mask)|bank);
          break;
     case 0x10:      // 2KB
          for(x=0;x<8;x+=2)
-            setchr2(x<<10,((chrlow[x]|(chrhigh[x]<<8))&mask)|bank);
+            fceulib__cart.setchr2(x<<10,((chrlow[x]|(chrhigh[x]<<8))&mask)|bank);
          break;
     case 0x18:      // 1KB
          for(x=0;x<8;x++)
-            setchr1(x<<10,((chrlow[x]|(chrhigh[x]<<8))&mask)|bank);
+            fceulib__cart.setchr1(x<<10,((chrlow[x]|(chrhigh[x]<<8))&mask)|bank);
          break;
   }
 }
@@ -448,7 +443,7 @@ static void M90Power(void)
 
 
   SetReadHandler(0x5000,0x5fff,M90TekRead);
-  SetReadHandler(0x6000,0xffff,CartBR);
+  SetReadHandler(0x6000,0xffff,Cart::CartBR);
 
   mul[0]=mul[1]=regie=0xFF;
 

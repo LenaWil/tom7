@@ -5,6 +5,7 @@
 #include <vector>
 #include <memory>
 #include <sys/time.h>
+#include <sstream>
 
 #include "base/logging.h"
 #include "test-util.h"
@@ -12,8 +13,12 @@
 #include "rle.h"
 #include "simplefm2.h"
 
+static constexpr uint64 kEveryGameUponLoad =
+  204558985997460734ULL;
+
 // Set by command-line --full.
 static bool FULL = false;
+static bool COMPREHENSIVE = false;
 
 struct Game {
   string cart;
@@ -94,7 +99,13 @@ struct InputStream {
   decltype(v.end()) end() { return v.end(); }
 };
 
-static void RunGameSerially(const Game &game) {
+// XXXXXXX
+// #undef CHECK
+// #undef CHECK_EQ
+// #define CHECK(exp) if (true) { (void)(exp); } else cerr
+// #define CHECK_EQ(a, b) if (true) { (void)(a); (void)(b); } else cerr
+
+static pair<uint64, uint64> RunGameSerially(const Game &game) {
   printf("Testing %s...\n" , game.cart.c_str());
 # define CHECK_RAM(field) do {			     \
     const uint64 cx = emu->RamChecksum();	     \
@@ -136,10 +147,12 @@ static void RunGameSerially(const Game &game) {
 
   for (uint8 b : game.inputs) SaveAndStep(b);
   CHECK_RAM(game.after_inputs);
+  const uint64 ret1 = emu->RamChecksum();
 
   fprintf(stderr, "Random inputs:\n");
   for (uint8 b : InputStream(game.cart, 10000)) SaveAndStep(b);
   CHECK_RAM(game.after_random);
+  const uint64 ret2 = emu->RamChecksum();
 
   // Now jump around and make sure that we are able to save and
   // restore state correctly (at least, such that the behavior is
@@ -188,14 +201,23 @@ static void RunGameSerially(const Game &game) {
   }
 
   fprintf(stderr, "OK.\n");
+  return {ret1, ret2};
 }
 
 int main(int argc, char **argv) {
-  if (argc >= 2 && 
-      (0 == strcmp(argv[1], "--full") ||
-       0 == strcmp(argv[1], "-full"))) {
+  for (int i = 1; i < argc; i++) {
+    string arg = argv[i];
+    if (arg == "--full" || arg == "-full") {
+      FULL = true;
+    } else if (arg == "--comprehensive" || arg == "-comprehensive") {
+      FULL = true;
+      COMPREHENSIVE = true;
+    }
+  }
+  if (COMPREHENSIVE) { 
+    fprintf(stderr, "Running COMPREHENSIVE tests!\n");
+  } else if (FULL) {
     fprintf(stderr, "Running FULL tests.\n");
-    FULL = true;
   } else {
     fprintf(stderr, "Running 'fast' tests.\n");
   }
@@ -212,7 +234,7 @@ int main(int argc, char **argv) {
       0, 128, 0, 128, 0, 27, 0, 27, 128, 23, 130, 12, 128, 8, 0, 4, 128, 21,
       129, 11, 64, 14, 128, 16, 130, 23, 128, 16, 64, 2, 0, 8, 128, 24, 130,
 	13, 128, 25, 2, 128, 0, 128, 0, 128, 0, 2, 0, 28, 128, 0, 0}),
-    204558985997460734ULL,
+    kEveryGameUponLoad,
     6838541238215755706ULL,
     14453325089239387428ULL,
     };
@@ -226,7 +248,7 @@ int main(int argc, char **argv) {
       0, 128, 0, 128, 0, 27, 0, 27, 128, 23, 130, 12, 128, 8, 0, 4, 128, 21,
       129, 11, 64, 14, 128, 16, 130, 23, 128, 16, 64, 2, 0, 8, 128, 24, 130,
       13, 128, 25, 2, 128, 0, 128, 0, 128, 0, 2, 0, 28, 128, 0, 0}),
-      0x2d6bd505ffe24feULL,
+      kEveryGameUponLoad,
       0x38cff7186cda146fULL,
       0x8ae8299e61234c95ULL,
       };
@@ -256,7 +278,7 @@ int main(int argc, char **argv) {
       128, 5, 130, 36, 131, 25, 130, 27, 131, 32, 130, 6, 2, 0, 130,
       23, 131, 17, 130, 69, 2, 18, 130, 14, 131, 45, 130, 49, 2, 92,
       0}),
-      204558985997460734ULL,
+      kEveryGameUponLoad,
       187992912212093401ULL,
       16444816755826868158ULL,
       };
@@ -308,7 +330,7 @@ int main(int argc, char **argv) {
       28, 0, 12, 128, 9, 0, 6, 128, 3, 0, 5, 128, 128, 0, 26, 0, 6, 64, 47, 0,
       4, 64, 63, 0, 2, 128, 14, 0, 30, 64, 9, 0, 17, 128, 4, 0, 7, 128, 24, 0,
       29, 64, 3, 0, 41, 128, 22, 0, 7, 128, 38, 0, }),
-      204558985997460734ULL,
+      kEveryGameUponLoad,
       17404343783895927036ULL,
       6310604747032322204ULL,
       };
@@ -351,13 +373,14 @@ int main(int argc, char **argv) {
       2, 128, 6, 144, 1, 146, 4, 130, 1, 2, 26, 0, 1, 18, 6, 146, 9, 144, 2,
       128, 12, 0, 4, 2, 7, 130, 26, 128, 1, 130, 38, 2, 3, 130, 22, 128, 4,
       160, 18, 32, 2, 160, 80, 128, 7, 0, }),
-      204558985997460734ULL,
+      kEveryGameUponLoad,
       5937014762881028957ULL,
       4633358520100955945ULL,
       };
 
   const int64 start_us = TimeUsec();
 
+#if 1
   RunGameSerially(kirby);
 
   RunGameSerially(arkanoid);
@@ -370,6 +393,39 @@ int main(int argc, char **argv) {
   RunGameSerially(karate);
   RunGameSerially(karate);
   RunGameSerially(escape);
+#endif
+
+  if (COMPREHENSIVE) {
+    printf("Now COMPREHENSIVE tests.\n");
+    vector<string> romlines = ReadFileToLines("roms/roms.txt");
+    FILE *out = fopen("all-roms.txt", "wb");
+    if (!out) abort();
+    int nlines = 0;
+    for (string line : romlines) {
+      string a = Chop(line);
+      string b = Chop(line);
+      string filename = LoseWhiteL(line);
+
+      if (!filename.empty()) {
+	Game game{
+	  (string)"roms/" + filename,
+	    RLE::Decompress({ 101, 0, 4, 2, 3, 3, 2, 1, 50, 0, }),
+	    kEveryGameUponLoad,
+	    0ULL,
+	    0ULL,
+	    };
+	const pair<uint64, uint64> p = RunGameSerially(game);
+	fprintf(out, "%llu %llu %s\n", p.first, p.second,
+		filename.c_str());
+	fflush(out);
+	nlines++;
+	fprintf(stderr, "Did %d/%lld = %.1f%%.\n",
+		nlines, romlines.size(),
+		nlines * 100. / romlines.size());
+      }
+    }
+    fclose(out);
+  }
 
   const int64 end_us = TimeUsec();
   const int64 elapsed_us = end_us - start_us;

@@ -25,12 +25,11 @@
 
 static void UNLA9711PW(uint32 A, uint8 V)
 {
-  if((EXPREGS[0]&0xFF) == 0x37)
-  {
-    setprg8(0x8000, 0x13);
-    setprg8(0xA000, 0x13);
-    setprg8(0xC000, 0x13);
-    setprg8(0xE000, 0x0);
+  if((EXPREGS[0]&0xFF) == 0x37) {
+    fceulib__cart.setprg8(0x8000, 0x13);
+    fceulib__cart.setprg8(0xA000, 0x13);
+    fceulib__cart.setprg8(0xC000, 0x13);
+    fceulib__cart.setprg8(0xE000, 0x0);
 //	  uint8 bank=EXPREGS[0]&0x1F;
 //	 if(EXPREGS[0]&0x20)
 //	    setprg32(0x8000,bank>>2);
@@ -39,9 +38,9 @@ static void UNLA9711PW(uint32 A, uint8 V)
 //	    setprg16(0x8000,bank);
 //	    setprg16(0xC000,bank);
 //	  }
+  } else {
+    fceulib__cart.setprg8(A,V&0x3F);
   }
-  else
-    setprg8(A,V&0x3F);
 }
 
 //static DECLFW(UNLA9711Write8000)

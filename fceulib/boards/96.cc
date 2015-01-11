@@ -33,10 +33,10 @@ static SFORMAT StateRegs[]=
 
 static void Sync(void)
 {
-  setmirror(MI_0);
-  setprg32(0x8000,reg & 3);
-  setchr4(0x0000,(reg & 4) | ppulatch);
-  setchr4(0x1000,(reg & 4) | 3);
+  fceulib__cart.setmirror(MI_0);
+  fceulib__cart.setprg32(0x8000,reg & 3);
+  fceulib__cart.setchr4(0x0000,(reg & 4) | ppulatch);
+  fceulib__cart.setchr4(0x1000,(reg & 4) | 3);
 }
 
 static DECLFW(M96Write)
@@ -58,7 +58,7 @@ static void M96Power(void)
 {
   reg = ppulatch = 0;
   Sync();
-  SetReadHandler(0x8000,0xffff,CartBR);
+  SetReadHandler(0x8000,0xffff,Cart::CartBR);
   SetWriteHandler(0x8000,0xffff,M96Write);
 }
 

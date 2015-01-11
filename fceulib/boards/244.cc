@@ -28,14 +28,14 @@ static SFORMAT StateRegs[] =
 	{ 0 }
 };
 
-static uint8 prg_perm[4][4] = {
+static constexpr uint8 prg_perm[4][4] = {
 	{ 0, 1, 2, 3, },
 	{ 3, 2, 1, 0, },
 	{ 0, 2, 1, 3, },
 	{ 3, 1, 2, 0, },
 };
 
-static uint8 chr_perm[8][8] = {
+static constexpr uint8 chr_perm[8][8] = {
 	{ 0, 1, 2, 3, 4, 5, 6, 7, },
 	{ 0, 2, 1, 3, 4, 6, 5, 7, },
 	{ 0, 1, 4, 5, 2, 3, 6, 7, },
@@ -47,8 +47,8 @@ static uint8 chr_perm[8][8] = {
 };
 
 static void Sync(void) {
-	setprg32(0x8000, preg);
-	setchr8(creg);
+	fceulib__cart.setprg32(0x8000, preg);
+	fceulib__cart.setchr8(creg);
 }
 
 static DECLFW(M244Write) {
@@ -63,7 +63,7 @@ static void M244Power(void) {
 	preg = creg = 0;
 	Sync();
 	SetWriteHandler(0x8000, 0xFFFF, M244Write);
-	SetReadHandler(0x8000, 0xFFFF, CartBR);
+	SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
 }
 
 static void StateRestore(int version) {

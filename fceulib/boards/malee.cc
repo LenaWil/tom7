@@ -24,19 +24,19 @@ static uint8 WRAM[2048];
 
 static void MALEEPower(void)
 {
-  setprg2r(0x10,0x7000,0);
-  SetReadHandler(0x8000,0xFFFF,CartBR);
-  SetReadHandler(0x6000,0x67FF,CartBR);
-  SetReadHandler(0x7000,0x77FF,CartBR);
-  SetWriteHandler(0x7000,0x77FF,CartBW);
-  setprg2r(1,0x6000,0);
-  setprg32(0x8000,0);
-  setchr8(0);
+  fceulib__cart.setprg2r(0x10,0x7000,0);
+  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  SetReadHandler(0x6000,0x67FF,Cart::CartBR);
+  SetReadHandler(0x7000,0x77FF,Cart::CartBR);
+  SetWriteHandler(0x7000,0x77FF,Cart::CartBW);
+  fceulib__cart.setprg2r(1,0x6000,0);
+  fceulib__cart.setprg32(0x8000,0);
+  fceulib__cart.setchr8(0);
 }
 
 void MALEE_Init(CartInfo *info)
 {
   info->Power=MALEEPower;
-  SetupCartPRGMapping(0x10, WRAM, 2048, 1);
+  fceulib__cart.SetupCartPRGMapping(0x10, WRAM, 2048, 1);
   AddExState(WRAM, 2048, 0,"WRAM");
 }

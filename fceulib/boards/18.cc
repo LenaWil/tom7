@@ -35,18 +35,16 @@ static SFORMAT StateRegs[]=
   {0}
 };
 
-static void Sync(void)
-{
-  int i;
-  for(i=0; i<8; i++) setchr1(i<<10,creg[i]);
-  setprg8(0x8000,preg[0]);
-  setprg8(0xA000,preg[1]);
-  setprg8(0xC000,preg[2]);
-  setprg8(0xE000,~0);
+static void Sync(void) {
+  for(int i=0; i<8; i++) fceulib__cart.setchr1(i<<10,creg[i]);
+  fceulib__cart.setprg8(0x8000,preg[0]);
+  fceulib__cart.setprg8(0xA000,preg[1]);
+  fceulib__cart.setprg8(0xC000,preg[2]);
+  fceulib__cart.setprg8(0xE000,~0);
   if(mirr & 2)
-    setmirror(MI_0);
+    fceulib__cart.setmirror(MI_0);
   else
-    setmirror(mirr & 1);
+    fceulib__cart.setmirror(mirr & 1);
 }
 
 static DECLFW(M18WriteIRQ)
@@ -85,7 +83,7 @@ static void M18Power(void)
   preg[2] = ~1;
   preg[3] = ~0;
   Sync();
-  SetReadHandler(0x8000,0xFFFF,CartBR);
+  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
   SetWriteHandler(0x8000,0x9FFF,M18WritePrg);
   SetWriteHandler(0xA000,0xDFFF,M18WriteChr);
   SetWriteHandler(0xE000,0xFFFF,M18WriteIRQ);

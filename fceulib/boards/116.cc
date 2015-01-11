@@ -64,40 +64,36 @@ static SFORMAT StateRegs[]=
 static void SyncPRG(void)
 {
   switch(mode & 3) {
-   case 0:
-     setprg8(0x8000, vrc2_prg[0]);
-     setprg8(0xA000, vrc2_prg[1]);
-     setprg8(0xC000, ~1);
-     setprg8(0xE000, ~0);
-     break;
-   case 1: {
-     uint32 swap = (mmc3_ctrl >> 5) & 2;
-     setprg8(0x8000, mmc3_regs[6 + swap]);
-     setprg8(0xA000, mmc3_regs[7]);
-     setprg8(0xC000, mmc3_regs[6 + (swap ^ 2)]);
-     setprg8(0xE000, mmc3_regs[9]);
-     break;
-   }
-   case 2:
-   case 3: {
-     uint8 bank = mmc1_regs[3] & 0xF;
- 	 if(mmc1_regs[0] & 8)
-     {
-       if(mmc1_regs[0] & 4)
-       {
-         setprg16(0x8000, bank);
-         setprg16(0xC000, 0x0F);
-       }
-       else
-       {
-         setprg16(0x8000, 0);
-         setprg16(0xC000, bank);
-       }
-     }
-	 else
-	   setprg32(0x8000, bank >> 1);
-     break;
-   }
+  case 0:
+    fceulib__cart.setprg8(0x8000, vrc2_prg[0]);
+    fceulib__cart.setprg8(0xA000, vrc2_prg[1]);
+    fceulib__cart.setprg8(0xC000, ~1);
+    fceulib__cart.setprg8(0xE000, ~0);
+    break;
+  case 1: {
+    uint32 swap = (mmc3_ctrl >> 5) & 2;
+    fceulib__cart.setprg8(0x8000, mmc3_regs[6 + swap]);
+    fceulib__cart.setprg8(0xA000, mmc3_regs[7]);
+    fceulib__cart.setprg8(0xC000, mmc3_regs[6 + (swap ^ 2)]);
+    fceulib__cart.setprg8(0xE000, mmc3_regs[9]);
+    break;
+  }
+  case 2:
+  case 3: {
+    uint8 bank = mmc1_regs[3] & 0xF;
+    if(mmc1_regs[0] & 8) {
+      if(mmc1_regs[0] & 4) {
+	fceulib__cart.setprg16(0x8000, bank);
+	fceulib__cart.setprg16(0xC000, 0x0F);
+      } else {
+	fceulib__cart.setprg16(0x8000, 0);
+	fceulib__cart.setprg16(0xC000, bank);
+      }
+    } else {
+      fceulib__cart.setprg32(0x8000, bank >> 1);
+    }
+    break;
+  }
   }
 }
 
@@ -105,38 +101,37 @@ static void SyncCHR(void)
 {
   uint32 base = (mode & 4) << 6;
   switch(mode & 3) {
-   case 0:
-     setchr1(0x0000, base|vrc2_chr[0]);
-     setchr1(0x0400, base|vrc2_chr[1]);
-     setchr1(0x0800, base|vrc2_chr[2]);
-     setchr1(0x0c00, base|vrc2_chr[3]);
-     setchr1(0x1000, base|vrc2_chr[4]);
-     setchr1(0x1400, base|vrc2_chr[5]);
-     setchr1(0x1800, base|vrc2_chr[6]);
-     setchr1(0x1c00, base|vrc2_chr[7]);
-     break;
-   case 1: {
-     uint32 swap = (mmc3_ctrl & 0x80) << 5;
-     setchr1(0x0000 ^ swap, base|((mmc3_regs[0])&0xFE));
-     setchr1(0x0400 ^ swap, base|(mmc3_regs[0]|1));
-     setchr1(0x0800 ^ swap, base|((mmc3_regs[1])&0xFE));
-     setchr1(0x0c00 ^ swap, base|(mmc3_regs[1]|1));
-     setchr1(0x1000 ^ swap, base|mmc3_regs[2]);
-     setchr1(0x1400 ^ swap, base|mmc3_regs[3]);
-     setchr1(0x1800 ^ swap, base|mmc3_regs[4]);
-     setchr1(0x1c00 ^ swap, base|mmc3_regs[5]);
-     break;
-   }
-   case 2:
-   case 3:
-     if(mmc1_regs[0]&0x10)
-     {
-       setchr4(0x0000, mmc1_regs[1]);
-       setchr4(0x1000, mmc1_regs[2]);
-     }
-     else
-       setchr8(mmc1_regs[1] >> 1);
-     break;
+  case 0:
+    fceulib__cart.setchr1(0x0000, base|vrc2_chr[0]);
+    fceulib__cart.setchr1(0x0400, base|vrc2_chr[1]);
+    fceulib__cart.setchr1(0x0800, base|vrc2_chr[2]);
+    fceulib__cart.setchr1(0x0c00, base|vrc2_chr[3]);
+    fceulib__cart.setchr1(0x1000, base|vrc2_chr[4]);
+    fceulib__cart.setchr1(0x1400, base|vrc2_chr[5]);
+    fceulib__cart.setchr1(0x1800, base|vrc2_chr[6]);
+    fceulib__cart.setchr1(0x1c00, base|vrc2_chr[7]);
+    break;
+  case 1: {
+    uint32 swap = (mmc3_ctrl & 0x80) << 5;
+    fceulib__cart.setchr1(0x0000 ^ swap, base|((mmc3_regs[0])&0xFE));
+    fceulib__cart.setchr1(0x0400 ^ swap, base|(mmc3_regs[0]|1));
+    fceulib__cart.setchr1(0x0800 ^ swap, base|((mmc3_regs[1])&0xFE));
+    fceulib__cart.setchr1(0x0c00 ^ swap, base|(mmc3_regs[1]|1));
+    fceulib__cart.setchr1(0x1000 ^ swap, base|mmc3_regs[2]);
+    fceulib__cart.setchr1(0x1400 ^ swap, base|mmc3_regs[3]);
+    fceulib__cart.setchr1(0x1800 ^ swap, base|mmc3_regs[4]);
+    fceulib__cart.setchr1(0x1c00 ^ swap, base|mmc3_regs[5]);
+    break;
+  }
+  case 2:
+  case 3:
+    if(mmc1_regs[0]&0x10) {
+      fceulib__cart.setchr4(0x0000, mmc1_regs[1]);
+      fceulib__cart.setchr4(0x1000, mmc1_regs[2]);
+    }
+    else
+      fceulib__cart.setchr8(mmc1_regs[1] >> 1);
+    break;
   }
 }
 
@@ -144,20 +139,20 @@ static void SyncMIR(void)
 {
   switch(mode & 3) {
    case 0: {
-     setmirror((vrc2_mirr&1)^1);
+     fceulib__cart.setmirror((vrc2_mirr&1)^1);
      break;
    }
    case 1: {
-     setmirror((mmc3_mirr&1)^1);
+     fceulib__cart.setmirror((mmc3_mirr&1)^1);
      break;
    }
    case 2:
    case 3: {
      switch(mmc1_regs[0]&3) {
-       case 0: setmirror(MI_0); break;
-       case 1: setmirror(MI_1); break;
-       case 2: setmirror(MI_V); break;
-       case 3: setmirror(MI_H); break;
+       case 0: fceulib__cart.setmirror(MI_0); break;
+       case 1: fceulib__cart.setmirror(MI_1); break;
+       case 2: fceulib__cart.setmirror(MI_V); break;
+       case 3: fceulib__cart.setmirror(MI_H); break;
      }
      break;
    }
@@ -322,7 +317,7 @@ static void UNLSL12Power(void) {
   mmc1_buffer = 0;
   mmc1_shift = 0;
   Sync();
-  SetReadHandler(0x8000,0xFFFF,CartBR);
+  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
   SetWriteHandler(0x4100,0x7FFF,UNLSL12ModeWrite);
   SetWriteHandler(0x8000,0xFFFF,UNLSL12Write);
 }

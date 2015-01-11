@@ -31,29 +31,27 @@ static uint32 CHRRAMSIZE;
 
 static void M199PW(uint32 A, uint8 V)
 {
-  setprg8(A,V);
-  setprg8(0xC000,EXPREGS[0]);
-  setprg8(0xE000,EXPREGS[1]);
+  fceulib__cart.setprg8(A,V);
+  fceulib__cart.setprg8(0xC000,EXPREGS[0]);
+  fceulib__cart.setprg8(0xE000,EXPREGS[1]);
 }
 
 static void M199CW(uint32 A, uint8 V)
 {
-  setchr1r((V<8)?0x10:0x00,A,V);
-  setchr1r((DRegBuf[0]<8)?0x10:0x00,0x0000,DRegBuf[0]);
-  setchr1r((EXPREGS[2]<8)?0x10:0x00,0x0400,EXPREGS[2]);
-  setchr1r((DRegBuf[1]<8)?0x10:0x00,0x0800,DRegBuf[1]);
-  setchr1r((EXPREGS[3]<8)?0x10:0x00,0x0c00,EXPREGS[3]);
+  fceulib__cart.setchr1r((V<8)?0x10:0x00,A,V);
+  fceulib__cart.setchr1r((DRegBuf[0]<8)?0x10:0x00,0x0000,DRegBuf[0]);
+  fceulib__cart.setchr1r((EXPREGS[2]<8)?0x10:0x00,0x0400,EXPREGS[2]);
+  fceulib__cart.setchr1r((DRegBuf[1]<8)?0x10:0x00,0x0800,DRegBuf[1]);
+  fceulib__cart.setchr1r((EXPREGS[3]<8)?0x10:0x00,0x0c00,EXPREGS[3]);
 }
 
-static void M199MW(uint8 V)
-{
+static void M199MW(uint8 V) {
 //    FCEU_printf("%02x\n",V);
-  switch(V&3)
-  {
-    case 0: setmirror(MI_V); break;
-    case 1: setmirror(MI_H); break;
-    case 2: setmirror(MI_0); break;
-    case 3: setmirror(MI_1); break;
+  switch(V&3) {
+    case 0: fceulib__cart.setmirror(MI_V); break;
+    case 1: fceulib__cart.setmirror(MI_H); break;
+    case 2: fceulib__cart.setmirror(MI_0); break;
+    case 3: fceulib__cart.setmirror(MI_1); break;
   }
 }
 
@@ -100,7 +98,7 @@ void Mapper199_Init(CartInfo *info)
 
   CHRRAMSIZE=8192;
   CHRRAM=(uint8*)FCEU_gmalloc(CHRRAMSIZE);
-  SetupCartCHRMapping(0x10, CHRRAM, CHRRAMSIZE, 1);
+  fceulib__cart.SetupCartCHRMapping(0x10, CHRRAM, CHRRAMSIZE, 1);
   AddExState(CHRRAM, CHRRAMSIZE, 0, "CHRR");
 
   AddExState(EXPREGS, 4, 0, "EXPR");

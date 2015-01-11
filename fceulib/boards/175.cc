@@ -31,14 +31,13 @@ static SFORMAT StateRegs[]=
 
 static void Sync(void)
 {
-  setchr8(reg);
-  if(!delay)
-  {
-  setprg16(0x8000,reg);
-  setprg8(0xC000,reg << 1);
+  fceulib__cart.setchr8(reg);
+  if(!delay) {
+  fceulib__cart.setprg16(0x8000,reg);
+  fceulib__cart.setprg8(0xC000,reg << 1);
   }
-  setprg8(0xE000,(reg << 1) + 1);
-  setmirror(((mirr&4)>>2)^1);
+  fceulib__cart.setprg8(0xE000,(reg << 1) + 1);
+  fceulib__cart.setmirror(((mirr&4)>>2)^1);
 }
 
 static DECLFW(M175Write1)
@@ -62,7 +61,7 @@ static DECLFR(M175Read)
     delay = 0;
     Sync();
   }
-  return CartBR(A);
+  return Cart::CartBR(A);
 }
 
 static void M175Power(void)

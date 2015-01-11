@@ -39,7 +39,7 @@ static DECLFR(SUN5AWRAM)
 {
  if((sungah&0xC0)==0x40)
   return X.DB;
- return CartBROB(A);
+ return Cart::CartBROB(A);
 }
 
 static DECLFW(Mapper69_SWL)
@@ -69,46 +69,44 @@ static DECLFW(Mapper69_SWH) {
   MapperExRAM[sunindex]=V;
 }
 
-static DECLFW(Mapper69_write)
-{
- switch(A&0xE000)
- {
+static DECLFW(Mapper69_write) {
+  switch(A&0xE000) {
   case 0x8000:sunselect=V;break;
   case 0xa000:
-              sunselect&=0xF;
-              if(sunselect<=7)
-               VROM_BANK1(sunselect<<10,V);
-              else
-               switch(sunselect&0x0f)
-               {
-                case 8:
-                       sungah=V;
-                       if(V&0x40)
-                        {
-                         if(V&0x80) // Select WRAM
-                          setprg8r(0x10,0x6000,0);
-                        }
-                        else
-                         setprg8(0x6000,V);
-                        break;
-                case 9:ROM_BANK8(0x8000,V);break;
-                case 0xa:ROM_BANK8(0xa000,V);break;
-                case 0xb:ROM_BANK8(0xc000,V);break;
-                case 0xc:
-                         switch(V&3)
-                         {
-                          case 0:MIRROR_SET2(1);break;
-                          case 1:MIRROR_SET2(0);break;
-                          case 2:onemir(0);break;
-                          case 3:onemir(1);break;
-                         }
-                         break;
-             case 0xd:IRQa=V;X6502_IRQEnd(FCEU_IQEXT);break;
-             case 0xe:IRQCount&=0xFF00;IRQCount|=V;X6502_IRQEnd(FCEU_IQEXT);break;
-             case 0xf:IRQCount&=0x00FF;IRQCount|=V<<8;X6502_IRQEnd(FCEU_IQEXT);break;
-             }
-             break;
- }
+    sunselect&=0xF;
+    if(sunselect<=7)
+      VROM_BANK1(sunselect<<10,V);
+    else
+      switch(sunselect&0x0f) {
+      case 8:
+	sungah=V;
+	if(V&0x40) {
+	  if(V&0x80) {
+	    // Select WRAM
+	    fceulib__cart.setprg8r(0x10,0x6000,0);
+	  }
+	} else {
+	  fceulib__cart.setprg8(0x6000,V);
+	}
+	break;
+      case 9:ROM_BANK8(0x8000,V);break;
+      case 0xa:ROM_BANK8(0xa000,V);break;
+      case 0xb:ROM_BANK8(0xc000,V);break;
+      case 0xc:
+	switch(V&3)
+	  {
+	  case 0:MIRROR_SET2(1);break;
+	  case 1:MIRROR_SET2(0);break;
+	  case 2:onemir(0);break;
+	  case 3:onemir(1);break;
+	  }
+	break;
+      case 0xd:IRQa=V;X6502_IRQEnd(FCEU_IQEXT);break;
+      case 0xe:IRQCount&=0xFF00;IRQCount|=V;X6502_IRQEnd(FCEU_IQEXT);break;
+      case 0xf:IRQCount&=0x00FF;IRQCount|=V<<8;X6502_IRQEnd(FCEU_IQEXT);break;
+      }
+    break;
+  }
 }
 
 static int32 vcount[3];
@@ -203,15 +201,13 @@ static void SunIRQHook(int a)
   }
 }
 
-void Mapper69_StateRestore(int version)
-{
-   if(mapbyte1[1]&0x40)
-   {
+void Mapper69_StateRestore(int version) {
+  if(mapbyte1[1]&0x40) {
     if(mapbyte1[1]&0x80) // Select WRAM
-     setprg8r(0x10,0x6000,0);
-   }
-   else
-    setprg8(0x6000,mapbyte1[1]);
+      fceulib__cart.setprg8r(0x10,0x6000,0);
+  } else {
+    fceulib__cart.setprg8(0x6000,mapbyte1[1]);
+  }
 }
 
 void Mapper69_ESI(void)
@@ -231,11 +227,10 @@ void NSFAY_Init(void)
  Mapper69_ESI();
 }
 
-void Mapper69_init(void)
-{
+void Mapper69_init(void) {
  sunindex=0;
 
- SetupCartPRGMapping(0x10,WRAM,8192,1);
+ fceulib__cart.SetupCartPRGMapping(0x10,WRAM,8192,1);
 
  SetWriteHandler(0x8000,0xbfff,Mapper69_write);
  SetWriteHandler(0xc000,0xdfff,Mapper69_SWL);

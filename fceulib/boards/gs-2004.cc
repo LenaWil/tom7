@@ -30,9 +30,9 @@ static SFORMAT StateRegs[]=
 
 static void Sync(void)
 {
-  setprg8r(1,0x6000,0);
-  setprg32(0x8000,reg);
-  setchr8(0);
+  fceulib__cart.setprg8r(1,0x6000,0);
+  fceulib__cart.setprg32(0x8000,reg);
+  fceulib__cart.setchr8(0);
 }
 
 static DECLFW(BMCGS2004Write)
@@ -45,8 +45,8 @@ static void BMCGS2004Power(void)
 {
   reg=~0;
   Sync();
-  SetReadHandler(0x6000,0x7FFF,CartBR);
-  SetReadHandler(0x8000,0xFFFF,CartBR);
+  SetReadHandler(0x6000,0x7FFF,Cart::CartBR);
+  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
   SetWriteHandler(0x8000,0xFFFF,BMCGS2004Write);
 }
 

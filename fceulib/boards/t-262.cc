@@ -34,9 +34,9 @@ static SFORMAT StateRegs[]=
 static void Sync(void)
 {
   uint16 base=((addrreg&0x60)>>2)|((addrreg&0x100)>>3);
-  setprg16(0x8000,(datareg&7)|base);
-  setprg16(0xC000,7|base);
-  setmirror(((addrreg&2)>>1)^1);
+  fceulib__cart.setprg16(0x8000,(datareg&7)|base);
+  fceulib__cart.setprg16(0xC000,7|base);
+  fceulib__cart.setmirror(((addrreg&2)>>1)^1);
 }
 
 static DECLFW(BMCT262Write)
@@ -53,9 +53,9 @@ static DECLFW(BMCT262Write)
 
 static void BMCT262Power(void)
 {
-  setchr8(0);
+  fceulib__cart.setchr8(0);
   SetWriteHandler(0x8000,0xFFFF,BMCT262Write);
-  SetReadHandler(0x8000,0xFFFF,CartBR);
+  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
   busy=0;
   addrreg=0;
   datareg=0xff;

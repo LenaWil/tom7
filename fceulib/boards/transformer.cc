@@ -23,7 +23,9 @@
 static uint8 *WRAM=NULL;
 static uint32 WRAMSIZE;
 
-unsigned int *GetKeyboard(void);	// FIXME: 10/28 - now implemented in SDL as well.  should we rename this to a FCEUI_* function?
+// FIXME: 10/28 - now implemented in SDL as well. 
+// should we rename this to a FCEUI_* function?
+unsigned int *GetKeyboard(void);
 
 static unsigned int *TransformerKeys, oldkeys[256];
 static int TransformerCycleCount, TransformerChar = 0;
@@ -64,17 +66,16 @@ static DECLFR(TransformerRead)
   return ret;
 }
 
-static void TransformerPower(void)
-{
-  setprg8r(0x10,0x6000,0);
-  setprg16(0x8000,0);
-  setprg16(0xC000,~0);
-  setchr8(0);
+static void TransformerPower(void) {
+  fceulib__cart.setprg8r(0x10,0x6000,0);
+  fceulib__cart.setprg16(0x8000,0);
+  fceulib__cart.setprg16(0xC000,~0);
+  fceulib__cart.setchr8(0);
 
   SetReadHandler(0x5000,0x5004,TransformerRead);
-  SetReadHandler(0x6000,0x7FFF,CartBR);
-  SetWriteHandler(0x6000,0x7FFF,CartBW);
-  SetReadHandler(0x8000,0xFFFF,CartBR);
+  SetReadHandler(0x6000,0x7FFF,Cart::CartBR);
+  SetWriteHandler(0x6000,0x7FFF,Cart::CartBW);
+  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
 
   MapIRQHook=TransformerIRQHook;
 }
@@ -93,9 +94,8 @@ void Transformer_Init(CartInfo *info)
 
   WRAMSIZE=8192;
   WRAM=(uint8*)FCEU_gmalloc(WRAMSIZE);
-  SetupCartPRGMapping(0x10,WRAM,WRAMSIZE,1);
-  if(info->battery)
-  {
+  fceulib__cart.SetupCartPRGMapping(0x10,WRAM,WRAMSIZE,1);
+  if(info->battery) {
     info->SaveGame[0]=WRAM;
     info->SaveGameLen[0]=WRAMSIZE;
   }

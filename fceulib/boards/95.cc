@@ -47,14 +47,14 @@ static void toot(void)
 
 static void Sync()
 {
-  setchr2(0x0000,DRegs[0]&0x1F);
-  setchr2(0x0800,DRegs[1]&0x1F);
-  setchr1(0x1000,DRegs[2]&0x1F);
-  setchr1(0x1400,DRegs[3]&0x1F);
-  setchr1(0x1800,DRegs[4]&0x1F);
-  setchr1(0x1C00,DRegs[5]&0x1F);
-  setprg8(0x8000,DRegs[6]&0x1F);
-  setprg8(0xa000,DRegs[7]&0x1F);
+  fceulib__cart.setchr2(0x0000,DRegs[0]&0x1F);
+  fceulib__cart.setchr2(0x0800,DRegs[1]&0x1F);
+  fceulib__cart.setchr1(0x1000,DRegs[2]&0x1F);
+  fceulib__cart.setchr1(0x1400,DRegs[3]&0x1F);
+  fceulib__cart.setchr1(0x1800,DRegs[4]&0x1F);
+  fceulib__cart.setchr1(0x1C00,DRegs[5]&0x1F);
+  fceulib__cart.setprg8(0x8000,DRegs[6]&0x1F);
+  fceulib__cart.setprg8(0xa000,DRegs[7]&0x1F);
   toot();
 }
 
@@ -103,10 +103,10 @@ static void DBPower(void)
 
   Sync();
 
-  setprg8(0xc000,0x3E);
-  setprg8(0xe000,0x3F);
+  fceulib__cart.setprg8(0xc000,0x3E);
+  fceulib__cart.setprg8(0xe000,0x3F);
 
-  SetReadHandler(0x8000,0xffff,CartBR);
+  SetReadHandler(0x8000,0xffff,Cart::CartBR);
   SetWriteHandler(0x8000,0xffff,Mapper95_write);
 }
 

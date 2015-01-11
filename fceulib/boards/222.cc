@@ -50,14 +50,12 @@ static void M222IRQ(void)
   }
 }
 
-static void Sync(void)
-{
-  int i;
-  setprg8(0x8000,prg_reg[0]);
-  setprg8(0xA000,prg_reg[1]);
-  for(i=0; i<8; i++)
-     setchr1(i<<10,chr_reg[i]);
-  setmirror(mirr^1);
+static void Sync(void) {
+  fceulib__cart.setprg8(0x8000,prg_reg[0]);
+  fceulib__cart.setprg8(0xA000,prg_reg[1]);
+  for(int i=0; i<8; i++)
+    fceulib__cart.setchr1(i<<10,chr_reg[i]);
+  fceulib__cart.setmirror(mirr^1);
 }
 
 static DECLFW(M222Write)
@@ -87,8 +85,8 @@ static DECLFW(M222Write)
 
 static void M222Power(void)
 {
-  setprg16(0xC000,~0);
-  SetReadHandler(0x8000,0xFFFF,CartBR);
+  fceulib__cart.setprg16(0xC000,~0);
+  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
   SetWriteHandler(0x8000,0xFFFF,M222Write);
 }
 

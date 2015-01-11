@@ -48,8 +48,8 @@ static DECLFW(MNNNWrite) {
 static void MNNNPower(void) {
 //	SetReadHandler(0x6000,0x7fff,CartBR);
 //	SetWriteHandler(0x6000,0x7fff,CartBW);
-	SetReadHandler(0x8000, 0xFFFF, CartBR);
-	SetWriteHandler(0x8000, 0xFFFF, MNNNWrite);
+  SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
+  SetWriteHandler(0x8000, 0xFFFF, MNNNWrite);
 }
 
 static void MNNNReset(void) {

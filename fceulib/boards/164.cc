@@ -39,9 +39,9 @@ static SFORMAT StateRegs[]= {
 };
 
 static void Sync(void) {
-  setprg8r(0x10,0x6000,0);
-  setprg32(0x8000,(reg[0]<<4)|(reg[1]&0xF));
-  setchr8(0);
+  fceulib__cart.setprg8r(0x10,0x6000,0);
+  fceulib__cart.setprg32(0x8000,(reg[0]<<4)|(reg[1]&0xF));
+  fceulib__cart.setchr8(0);
 }
 
 static void StateRestore(int version) {
@@ -64,11 +64,11 @@ static DECLFR(ReadLow) {
 static void M163HB(void) {
   if(reg[1]&0x80) {
     if(scanline==239) {
-      setchr4(0x0000,0);
-      setchr4(0x1000,0);
+      fceulib__cart.setchr4(0x0000,0);
+      fceulib__cart.setchr4(0x1000,0);
     } else if(scanline==127) {
-      setchr4(0x0000,1);
-      setchr4(0x1000,1);
+      fceulib__cart.setchr4(0x0000,1);
+      fceulib__cart.setchr4(0x1000,1);
     }
     /*
       if(scanline>=127)	// Hu Lu Jin Gang (NJ039) (Ch) [!] don't like it
@@ -101,8 +101,8 @@ static void Power(void)
 	memset(reg,0,8);
 	reg[1]=0xFF;
 	SetWriteHandler(0x5000,0x5FFF,Write);
-	SetReadHandler(0x6000,0xFFFF,CartBR);
-	SetWriteHandler(0x6000,0x7FFF,CartBW);
+	SetReadHandler(0x6000,0xFFFF,Cart::CartBR);
+	SetWriteHandler(0x6000,0x7FFF,Cart::CartBW);
 	WSync();
 }
 
@@ -121,7 +121,7 @@ void Mapper164_Init(CartInfo *info)
 
 	WRAMSIZE = 8192;
 	WRAM=(uint8*)FCEU_gmalloc(WRAMSIZE);
-	SetupCartPRGMapping(0x10,WRAM,WRAMSIZE,1);
+	fceulib__cart.SetupCartPRGMapping(0x10,WRAM,WRAMSIZE,1);
 	AddExState(WRAM, WRAMSIZE, 0, "WRAM");
 
 	if(info->battery)
@@ -141,13 +141,13 @@ static DECLFW(Write2)
 		if(laststrobe&&!V)
 			trigger^=1;
 		laststrobe=V;
-	}else if(A==0x5100&&V==6) //damn thoose protected games
-		setprg32(0x8000,3);
+	} else if(A==0x5100&&V==6) //damn thoose protected games
+		fceulib__cart.setprg32(0x8000,3);
 	else
 	switch (A&0x7300)
 	{
 		case 0x5200: reg[0]=V; WSync(); break;
-		case 0x5000: reg[1]=V; WSync(); if(!(reg[1]&0x80)&&(scanline<128)) setchr8(0); /* setchr8(0); */ break;
+		case 0x5000: reg[1]=V; WSync(); if(!(reg[1]&0x80)&&(scanline<128)) fceulib__cart.setchr8(0); /* fceulib__cart.setchr8(0); */ break;
 		case 0x5300: reg[2]=V; break;
 		case 0x5100: reg[3]=V; WSync(); break;
 	}
@@ -159,46 +159,45 @@ static void Power2(void)
 	laststrobe=1;
 	SetReadHandler(0x5000,0x5FFF,ReadLow);
 	SetWriteHandler(0x5000,0x5FFF,Write2);
-	SetReadHandler(0x6000,0xFFFF,CartBR);
-	SetWriteHandler(0x6000,0x7FFF,CartBW);
+	SetReadHandler(0x6000,0xFFFF,Cart::CartBR);
+	SetWriteHandler(0x6000,0x7FFF,Cart::CartBW);
 	WSync();
 }
 
 void Mapper163_Init(CartInfo *info)
 {
-	info->Power=Power2;
-	info->Close=Close;
-	WSync = Sync;
-	GameHBIRQHook=M163HB;
+  info->Power=Power2;
+  info->Close=Close;
+  WSync = Sync;
+  GameHBIRQHook=M163HB;
 
-	WRAMSIZE = 8192;
-	WRAM=(uint8*)FCEU_gmalloc(WRAMSIZE);
-	SetupCartPRGMapping(0x10,WRAM,WRAMSIZE,1);
-	AddExState(WRAM, WRAMSIZE, 0, "WRAM");
+  WRAMSIZE = 8192;
+  WRAM=(uint8*)FCEU_gmalloc(WRAMSIZE);
+  fceulib__cart.SetupCartPRGMapping(0x10,WRAM,WRAMSIZE,1);
+  AddExState(WRAM, WRAMSIZE, 0, "WRAM");
 
-	if(info->battery)
-	{
-		info->SaveGame[0]=WRAM;
-		info->SaveGameLen[0]=WRAMSIZE;
-	}
-	GameStateRestore=StateRestore;
-	AddExState(&StateRegs, ~0, 0, 0);
+  if(info->battery) {
+    info->SaveGame[0]=WRAM;
+    info->SaveGameLen[0]=WRAMSIZE;
+  }
+  GameStateRestore=StateRestore;
+  AddExState(&StateRegs, ~0, 0, 0);
 }
 
 static void Sync3(void)
 {
-	setchr8(0);
-	setprg8r(0x10,0x6000,0);
-	switch(reg[3]&7){
-		case 0:
-		case 2: setprg32(0x8000,(reg[0]&0xc)|(reg[1]&2)|((reg[2]&0xf)<<4)); break;
-		case 1:
-		case 3: setprg32(0x8000,(reg[0]&0xc)|(reg[2]&0xf)<<4); break;
-		case 4:
-		case 6: setprg32(0x8000,(reg[0]&0xe)|((reg[1]>>1)&1)|((reg[2]&0xf)<<4)); break;
-		case 5:
-		case 7: setprg32(0x8000,(reg[0]&0xf)|((reg[2]&0xf)<<4)); break;
-	}
+  fceulib__cart.setchr8(0);
+  fceulib__cart.setprg8r(0x10,0x6000,0);
+  switch(reg[3]&7){
+  case 0:
+  case 2: fceulib__cart.setprg32(0x8000,(reg[0]&0xc)|(reg[1]&2)|((reg[2]&0xf)<<4)); break;
+  case 1:
+  case 3: fceulib__cart.setprg32(0x8000,(reg[0]&0xc)|(reg[2]&0xf)<<4); break;
+  case 4:
+  case 6: fceulib__cart.setprg32(0x8000,(reg[0]&0xe)|((reg[1]>>1)&1)|((reg[2]&0xf)<<4)); break;
+  case 5:
+  case 7: fceulib__cart.setprg32(0x8000,(reg[0]&0xf)|((reg[2]&0xf)<<4)); break;
+  }
 }
 
 static DECLFW(Write3)
@@ -214,28 +213,27 @@ static void Power3(void)
 	reg[2]=0;
 	reg[3]=7;
 	SetWriteHandler(0x5000,0x5FFF,Write3);
-	SetReadHandler(0x6000,0xFFFF,CartBR);
-	SetWriteHandler(0x6000,0x7FFF,CartBW);
+	SetReadHandler(0x6000,0xFFFF,Cart::CartBR);
+	SetWriteHandler(0x6000,0x7FFF,Cart::CartBW);
 	WSync();
 }
 
 void UNLFS304_Init(CartInfo *info)
 {
-	info->Power=Power3;
-	info->Close=Close;
-	WSync = Sync3;
+  info->Power=Power3;
+  info->Close=Close;
+  WSync = Sync3;
 
-	WRAMSIZE = 8192;
-	WRAM=(uint8*)FCEU_gmalloc(WRAMSIZE);
-	SetupCartPRGMapping(0x10,WRAM,WRAMSIZE,1);
-	AddExState(WRAM, WRAMSIZE, 0, "WRAM");
+  WRAMSIZE = 8192;
+  WRAM=(uint8*)FCEU_gmalloc(WRAMSIZE);
+  fceulib__cart.SetupCartPRGMapping(0x10,WRAM,WRAMSIZE,1);
+  AddExState(WRAM, WRAMSIZE, 0, "WRAM");
 
-	if(info->battery)
-	{
-		info->SaveGame[0]=WRAM;
-		info->SaveGameLen[0]=WRAMSIZE;
-	}
+  if(info->battery) {
+    info->SaveGame[0]=WRAM;
+    info->SaveGameLen[0]=WRAMSIZE;
+  }
 
-	GameStateRestore=StateRestore;
-	AddExState(&StateRegs, ~0, 0, 0);
+  GameStateRestore=StateRestore;
+  AddExState(&StateRegs, ~0, 0, 0);
 }

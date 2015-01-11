@@ -36,31 +36,31 @@ static SFORMAT StateRegs[] =
 };
 
 static void Sync(void) {
-	setmirror(mirr);
-	setprg8(0x8000, regs[0]);
-	setprg8(0xA000, regs[1]);
-	setprg8(0xC000, ~1);
-	setprg8(0xE000, ~0);
-	setchr2(0x0000, regs[2]);
-	setchr2(0x0800, regs[3]);
-	setchr1(0x1000, regs[4]);
-	setchr1(0x1400, regs[5]);
-	setchr1(0x1800, regs[6]);
-	setchr1(0x1C00, regs[7]);
+  fceulib__cart.setmirror(mirr);
+  fceulib__cart.setprg8(0x8000, regs[0]);
+  fceulib__cart.setprg8(0xA000, regs[1]);
+  fceulib__cart.setprg8(0xC000, ~1);
+  fceulib__cart.setprg8(0xE000, ~0);
+  fceulib__cart.setchr2(0x0000, regs[2]);
+  fceulib__cart.setchr2(0x0800, regs[3]);
+  fceulib__cart.setchr1(0x1000, regs[4]);
+  fceulib__cart.setchr1(0x1400, regs[5]);
+  fceulib__cart.setchr1(0x1800, regs[6]);
+  fceulib__cart.setchr1(0x1C00, regs[7]);
 }
 
 static DECLFW(M33Write) {
-	A &= 0xF003;
-	switch(A) {
-	case 0x8000: regs[0] = V & 0x3F; if(!is48) mirr = ((V >> 6) & 1) ^ 1; Sync(); break;
-	case 0x8001: regs[1] = V & 0x3F; Sync(); break;
-	case 0x8002: regs[2] = V; Sync(); break;
-	case 0x8003: regs[3] = V; Sync(); break;
-	case 0xA000: regs[4] = V; Sync(); break;
-	case 0xA001: regs[5] = V; Sync(); break;
-	case 0xA002: regs[6] = V; Sync(); break;
-	case 0xA003: regs[7] = V; Sync(); break;
-	}
+  A &= 0xF003;
+  switch(A) {
+  case 0x8000: regs[0] = V & 0x3F; if(!is48) mirr = ((V >> 6) & 1) ^ 1; Sync(); break;
+  case 0x8001: regs[1] = V & 0x3F; Sync(); break;
+  case 0x8002: regs[2] = V; Sync(); break;
+  case 0x8003: regs[3] = V; Sync(); break;
+  case 0xA000: regs[4] = V; Sync(); break;
+  case 0xA001: regs[5] = V; Sync(); break;
+  case 0xA002: regs[6] = V; Sync(); break;
+  case 0xA003: regs[7] = V; Sync(); break;
+  }
 }
 
 static DECLFW(M48Write) {
@@ -75,13 +75,13 @@ static DECLFW(M48Write) {
 
 static void M33Power(void) {
 	Sync();
-	SetReadHandler(0x8000, 0xFFFF, CartBR);
+	SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
 	SetWriteHandler(0x8000, 0xFFFF, M33Write);
 }
 
 static void M48Power(void) {
 	Sync();
-	SetReadHandler(0x8000, 0xFFFF, CartBR);
+	SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
 	SetWriteHandler(0x8000, 0xBFFF, M33Write);
 	SetWriteHandler(0xC000, 0xFFFF, M48Write);
 }

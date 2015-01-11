@@ -24,8 +24,8 @@ static uint8 latch;
 
 static void DoNovel(void)
 {
-  setprg32(0x8000,latch&3);
-  setchr8(latch&7);
+  fceulib__cart.setprg32(0x8000,latch&3);
+  fceulib__cart.setchr8(latch&7);
 }
 
 static DECLFW(NovelWrite)
@@ -37,9 +37,9 @@ static DECLFW(NovelWrite)
 static void NovelReset(void)
 {
   SetWriteHandler(0x8000,0xFFFF,NovelWrite);
-  SetReadHandler(0x8000,0xFFFF,CartBR);
-  setprg32(0x8000,0);
-  setchr8(0);
+  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__cart.setprg32(0x8000,0);
+  fceulib__cart.setchr8(0);
 }
 
 static void NovelRestore(int version)

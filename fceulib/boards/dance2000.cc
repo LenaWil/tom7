@@ -34,14 +34,14 @@ static SFORMAT StateRegs[]=
 
 static void Sync(void)
 {
-  setmirror(mirr);
-  setprg8r(0x10,0x6000,0);
-  setchr8(0);
-  if(prgmode)
-    setprg32(0x8000,prg&7);
-  else {
-    setprg16(0x8000,prg&0x0f);
-    setprg16(0xC000,0);
+  fceulib__cart.setmirror(mirr);
+  fceulib__cart.setprg8r(0x10,0x6000,0);
+  fceulib__cart.setchr8(0);
+  if(prgmode) {
+    fceulib__cart.setprg32(0x8000,prg&7);
+  } else {
+    fceulib__cart.setprg16(0x8000,prg&0x0f);
+    fceulib__cart.setprg16(0xC000,0);
   }
 }
 
@@ -60,23 +60,23 @@ static DECLFR(UNLD2000Read)
   if(prg & 0x40)
     return X.DB;
   else
-    return CartBR(A);
+    return Cart::CartBR(A);
 }
 
 static void UNLD2000Power(void)
 {
   prg = prgmode = 0;
   Sync();
-  SetReadHandler(0x6000,0x7FFF,CartBR);
-  SetWriteHandler(0x6000,0x7FFF,CartBW);
+  SetReadHandler(0x6000,0x7FFF,Cart::CartBR);
+  SetWriteHandler(0x6000,0x7FFF,Cart::CartBW);
   SetReadHandler(0x8000,0xFFFF,UNLD2000Read);
   SetWriteHandler(0x4020,0x5FFF,UNLD2000Write);
 }
 
 static void UNLAX5705IRQ(void)
 {
-  if(scanline > 174) setchr4(0x0000,1);
-  else setchr4(0x0000,0);
+  if(scanline > 174) fceulib__cart.setchr4(0x0000,1);
+  else fceulib__cart.setchr4(0x0000,0);
 }
 
 static void UNLD2000Close(void)
@@ -101,7 +101,7 @@ void UNLD2000_Init(CartInfo *info)
 
   WRAMSIZE=8192;
   WRAM=(uint8*)FCEU_gmalloc(WRAMSIZE);
-  SetupCartPRGMapping(0x10,WRAM,WRAMSIZE,1);
+  fceulib__cart.SetupCartPRGMapping(0x10,WRAM,WRAMSIZE,1);
   AddExState(WRAM, WRAMSIZE, 0, "WRAM");
 
   AddExState(&StateRegs, ~0, 0, 0);

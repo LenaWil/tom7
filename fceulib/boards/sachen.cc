@@ -27,17 +27,17 @@ static void S74LS374MSync(uint8 mirr)
 {
   switch(mirr&3)
   {
-    case 0:setmirror(MI_V);break;
-    case 1:setmirror(MI_H);break;
-    case 2:setmirrorw(0,1,1,1);break;
-    case 3:setmirror(MI_0);break;
+    case 0:fceulib__cart.setmirror(MI_V);break;
+    case 1:fceulib__cart.setmirror(MI_H);break;
+    case 2:fceulib__cart.setmirrorw(0,1,1,1);break;
+    case 3:fceulib__cart.setmirror(MI_0);break;
   }
 }
 
 static void S74LS374NSynco(void)
 {
-  setprg32(0x8000,latch[0]);
-  setchr8(latch[1]|latch[3]|latch[4]);
+  fceulib__cart.setprg32(0x8000,latch[0]);
+  fceulib__cart.setchr8(latch[1]|latch[3]|latch[4]);
   S74LS374MSync(latch[2]);
 }
 
@@ -76,7 +76,7 @@ static void S74LS374NPower(void)
    dip=0;
    latch[0]=latch[1]=latch[2]=latch[3]=latch[4]=0;
    S74LS374NSynco();
-   SetReadHandler(0x8000,0xFFFF,CartBR);
+   SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
    SetWriteHandler(0x4100,0x7FFF,S74LS374NWrite);
    SetReadHandler(0x4100,0x5fff,S74LS374NRead);
 }
@@ -105,8 +105,8 @@ void S74LS374N_Init(CartInfo *info)
 
 static void S74LS374NASynco(void)
 {
-  setprg32(0x8000,latch[0]);
-  setchr8(latch[1]);
+  fceulib__cart.setprg32(0x8000,latch[0]);
+  fceulib__cart.setchr8(latch[1]);
   S74LS374MSync(latch[2]);
 }
 
@@ -135,7 +135,7 @@ static void S74LS374NAPower(void)
    latch[0]=latch[2]=latch[3]=latch[4]=0;
    latch[1]=3;
    S74LS374NASynco();
-   SetReadHandler(0x8000,0xFFFF,CartBR);
+   SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
    SetWriteHandler(0x4100,0x7FFF,S74LS374NAWrite);
 }
 
@@ -150,40 +150,36 @@ void S74LS374NA_Init(CartInfo *info)
 static int type;
 static void S8259Synco(void)
 {
-  int x;
-  setprg32(0x8000,latch[5]&7);
+  fceulib__cart.setprg32(0x8000,latch[5]&7);
 
-  if(!UNIFchrrama)        // No CHR RAM?  Then BS'ing is ok.
-  {
-    for(x=0;x<4;x++)
-    {
+  if(!UNIFchrrama) {
+    // No CHR RAM?  Then BS'ing is ok.
+    for(int x=0;x<4;x++) {
       int bank;
       if(latch[7]&1)
-        bank=(latch[0]&0x7)|((latch[4]&7)<<3);
+	bank=(latch[0]&0x7)|((latch[4]&7)<<3);
       else
-        bank=(latch[x]&0x7)|((latch[4]&7)<<3);
-      switch (type)
-      {
-        case 00: bank=(bank<<1)|(x&1); setchr2(0x800*x,bank); break;
-        case 01: setchr2(0x800*x,bank); break;
-        case 02: bank=(bank<<2)|(x&3); setchr2(0x800*x,bank); break;
-        case 03: bank=latch[x]&7;
-                 switch (x&3)
-                 {
-                   case 01: bank|=(latch[4]&1)<<4;break;
-                   case 02: bank|=(latch[4]&2)<<3;break;
-                   case 03: bank|=((latch[4]&4)<<2)|((latch[6]&1)<<3);break;
-                 }
-                 setchr1(0x400*x,bank);
-                 setchr4(0x1000,~0);
-                 break;
+	bank=(latch[x]&0x7)|((latch[4]&7)<<3);
+      switch (type) {
+      case 00: bank=(bank<<1)|(x&1); fceulib__cart.setchr2(0x800*x,bank); break;
+      case 01: fceulib__cart.setchr2(0x800*x,bank); break;
+      case 02: bank=(bank<<2)|(x&3); fceulib__cart.setchr2(0x800*x,bank); break;
+      case 03: bank=latch[x]&7;
+	switch (x&3) {
+	case 01: bank|=(latch[4]&1)<<4;break;
+	case 02: bank|=(latch[4]&2)<<3;break;
+	case 03: bank|=((latch[4]&4)<<2)|((latch[6]&1)<<3);break;
+	}
+	fceulib__cart.setchr1(0x400*x,bank);
+	fceulib__cart.setchr4(0x1000,~0);
+	break;
       }
     }
   }
   if(!(latch[7]&1))
     S74LS374MSync(latch[7]>>1);
   else
-    setmirror(MI_V);
+    fceulib__cart.setmirror(MI_V);
 }
 
 static DECLFW(S8259Write)
@@ -200,14 +196,13 @@ static DECLFW(S8259Write)
 
 static void S8259Reset(void)
 {
-  int x;
   cmd=0;
 
-  for(x=0;x<8;x++) latch[x]=0;
-  setchr8(0);
+  for(int x=0;x<8;x++) latch[x]=0;
+  fceulib__cart.setchr8(0);
 
   S8259Synco();
-  SetReadHandler(0x8000,0xFFFF,CartBR);
+  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
   SetWriteHandler(0x4100,0x7FFF,S8259Write);
 }
 
@@ -267,7 +262,7 @@ static void SAPower(void)
 {
   latch[0]=0;
   WSync();
-  SetReadHandler(0x8000,0xFFFF,CartBR);
+  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
   SetWriteHandler(0x4100,0x5FFF,SAWrite);
 }
 
@@ -286,32 +281,32 @@ static void SADPower(void)
 {
   latch[0]=0;
   WSync();
-  SetReadHandler(0x8000,0xFFFF,CartBR);
+  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
   SetWriteHandler(0x8000,0xFFFF,SADWrite);
 }
 
 static void SA0161MSynco()
 {
-  setprg32(0x8000,(latch[0]>>3)&1);
-  setchr8(latch[0]&7);
+  fceulib__cart.setprg32(0x8000,(latch[0]>>3)&1);
+  fceulib__cart.setchr8(latch[0]&7);
 }
 
 static void SA72007Synco()
 {
-  setprg32(0x8000,0);
-  setchr8(latch[0]>>7);
+  fceulib__cart.setprg32(0x8000,0);
+  fceulib__cart.setchr8(latch[0]>>7);
 }
 
 static void SA009Synco()
 {
-  setprg32(0x8000,0);
-  setchr8(latch[0]&1);
+  fceulib__cart.setprg32(0x8000,0);
+  fceulib__cart.setchr8(latch[0]&1);
 }
 
 static void SA72008Synco()
 {
-  setprg32(0x8000,(latch[0]>>2)&1);
-  setchr8(latch[0]&3);
+  fceulib__cart.setprg32(0x8000,(latch[0]>>2)&1);
+  fceulib__cart.setchr8(latch[0]&3);
 }
 
 void SA0161M_Init(CartInfo *info)
@@ -366,8 +361,8 @@ void SA0037_Init(CartInfo *info)
 
 static void TCU01Synco()
 {
-  setprg32(0x8000,((latch[0]&0x80)>>6)|((latch[0]>>2)&1));
-  setchr8((latch[0]>>3)&0xF);
+  fceulib__cart.setprg32(0x8000,((latch[0]&0x80)>>6)|((latch[0]>>2)&1));
+  fceulib__cart.setchr8((latch[0]>>3)&0xF);
 }
 
 static DECLFW(TCU01Write)
@@ -382,7 +377,7 @@ static DECLFW(TCU01Write)
 static void TCU01Power(void)
 {
   latch[0]=0;
-  SetReadHandler(0x8000,0xFFFF,CartBR);
+  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
   SetWriteHandler(0x4100,0xFFFF,TCU01Write);
   TCU01Synco();
 }
@@ -403,8 +398,8 @@ void TCU01_Init(CartInfo *info)
 
 static void TCU02Synco()
 {
-  setprg32(0x8000,0);
-  setchr8(latch[0]&3);
+  fceulib__cart.setprg32(0x8000,0);
+  fceulib__cart.setchr8(latch[0]&3);
 }
 
 static DECLFW(TCU02Write)
@@ -424,7 +419,7 @@ static DECLFR(TCU02Read)
 static void TCU02Power(void)
 {
   latch[0]=0;
-  SetReadHandler(0x8000,0xFFFF,CartBR);
+  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
   SetReadHandler(0x4100,0x4100,TCU02Read);
   SetWriteHandler(0x4100,0xFFFF,TCU02Write);
   TCU02Synco();
@@ -456,10 +451,10 @@ static DECLFR(TCA01Read)
 
 static void TCA01Power(void)
 {
-  setprg16(0x8000,0);
-  setprg16(0xC000,1);
-  setchr8(0);
-  SetReadHandler(0x8000,0xFFFF,CartBR);
+  fceulib__cart.setprg16(0x8000,0);
+  fceulib__cart.setprg16(0xC000,1);
+  fceulib__cart.setchr8(0);
+  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
   SetReadHandler(0x4100,0x5FFF,TCA01Read);
 }
 

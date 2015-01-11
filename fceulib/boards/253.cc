@@ -42,59 +42,59 @@ static SFORMAT StateRegs[] =
 };
 
 static void Sync(void) {
-	uint8 i;
-	setprg8r(0x10, 0x6000, 0);
-	setprg8(0x8000, prg[0]);
-	setprg8(0xa000, prg[1]);
-	setprg8(0xc000, ~1);
-	setprg8(0xe000, ~0);
-	for (i = 0; i < 8; i++) {
-		uint32 chr = chrlo[i] | (chrhi[i] << 8);
-		if (chrlo[i] == 0xc8) {
-			vlock = 0;
-			continue;
-		} else if (chrlo[i] == 0x88) {
-			vlock = 1;
-			continue;
-		}
-		if (((chrlo[i] == 4) || (chrlo[i] == 5)) && !vlock)
-			setchr1r(0x10, i << 10, chr & 1);
-		else
-			setchr1(i << 10, chr);
-	}
-	switch (mirr) {
-	case 0: setmirror(MI_V); break;
-	case 1: setmirror(MI_H); break;
-	case 2: setmirror(MI_0); break;
-	case 3: setmirror(MI_1); break;
-	}
+  uint8 i;
+  fceulib__cart.setprg8r(0x10, 0x6000, 0);
+  fceulib__cart.setprg8(0x8000, prg[0]);
+  fceulib__cart.setprg8(0xa000, prg[1]);
+  fceulib__cart.setprg8(0xc000, ~1);
+  fceulib__cart.setprg8(0xe000, ~0);
+  for (i = 0; i < 8; i++) {
+    uint32 chr = chrlo[i] | (chrhi[i] << 8);
+    if (chrlo[i] == 0xc8) {
+      vlock = 0;
+      continue;
+    } else if (chrlo[i] == 0x88) {
+      vlock = 1;
+      continue;
+    }
+    if (((chrlo[i] == 4) || (chrlo[i] == 5)) && !vlock)
+      fceulib__cart.setchr1r(0x10, i << 10, chr & 1);
+    else
+      fceulib__cart.setchr1(i << 10, chr);
+  }
+  switch (mirr) {
+  case 0: fceulib__cart.setmirror(MI_V); break;
+  case 1: fceulib__cart.setmirror(MI_H); break;
+  case 2: fceulib__cart.setmirror(MI_0); break;
+  case 3: fceulib__cart.setmirror(MI_1); break;
+  }
 }
 
 static DECLFW(M253Write) {
-	if ((A >= 0xB000) && (A <= 0xE00C)) {
-		uint8 ind = ((((A & 8) | (A >> 8)) >> 3) + 2) & 7;
-		uint8 sar = A & 4;
-		chrlo[ind] = (chrlo[ind] & (0xF0 >> sar)) | ((V & 0x0F) << sar);
-		if (A & 4)
-			chrhi[ind] = V >> 4;
-		Sync();
-	} else
-		switch (A) {
-		case 0x8010: prg[0] = V; Sync(); break;
-		case 0xA010: prg[1] = V; Sync(); break;
-		case 0x9400: mirr = V & 3; Sync(); break;
-		case 0xF000: X6502_IRQEnd(FCEU_IQEXT); IRQLatch &= 0xF0; IRQLatch |= V & 0xF; break;
-		case 0xF004: X6502_IRQEnd(FCEU_IQEXT); IRQLatch &= 0x0F; IRQLatch |= V << 4; break;
-		case 0xF008: X6502_IRQEnd(FCEU_IQEXT); IRQClock = 0; IRQCount = IRQLatch; IRQa = V & 2;break;
-		}
+  if ((A >= 0xB000) && (A <= 0xE00C)) {
+    uint8 ind = ((((A & 8) | (A >> 8)) >> 3) + 2) & 7;
+    uint8 sar = A & 4;
+    chrlo[ind] = (chrlo[ind] & (0xF0 >> sar)) | ((V & 0x0F) << sar);
+    if (A & 4)
+      chrhi[ind] = V >> 4;
+    Sync();
+  } else
+    switch (A) {
+    case 0x8010: prg[0] = V; Sync(); break;
+    case 0xA010: prg[1] = V; Sync(); break;
+    case 0x9400: mirr = V & 3; Sync(); break;
+    case 0xF000: X6502_IRQEnd(FCEU_IQEXT); IRQLatch &= 0xF0; IRQLatch |= V & 0xF; break;
+    case 0xF004: X6502_IRQEnd(FCEU_IQEXT); IRQLatch &= 0x0F; IRQLatch |= V << 4; break;
+    case 0xF008: X6502_IRQEnd(FCEU_IQEXT); IRQClock = 0; IRQCount = IRQLatch; IRQa = V & 2;break;
+    }
 }
 
 static void M253Power(void) {
-	Sync();
-	SetReadHandler(0x6000, 0x7FFF, CartBR);
-	SetWriteHandler(0x6000, 0x7FFF, CartBW);
-	SetReadHandler(0x8000, 0xFFFF, CartBR);
-	SetWriteHandler(0x8000, 0xFFFF, M253Write);
+  Sync();
+  SetReadHandler(0x6000, 0x7FFF, Cart::CartBR);
+  SetWriteHandler(0x6000, 0x7FFF, Cart::CartBW);
+  SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
+  SetWriteHandler(0x8000, 0xFFFF, M253Write);
 }
 
 static void M253Close(void) {
@@ -127,24 +127,24 @@ static void StateRestore(int version) {
 }
 
 void Mapper253_Init(CartInfo *info) {
-	info->Power = M253Power;
-	info->Close = M253Close;
-	MapIRQHook = M253IRQ;
-	GameStateRestore = StateRestore;
+  info->Power = M253Power;
+  info->Close = M253Close;
+  MapIRQHook = M253IRQ;
+  GameStateRestore = StateRestore;
 
-	CHRRAMSIZE = 2048;
-	CHRRAM = (uint8*)FCEU_gmalloc(CHRRAMSIZE);
-	SetupCartCHRMapping(0x10, CHRRAM, CHRRAMSIZE, 1);
-	AddExState(CHRRAM, CHRRAMSIZE, 0, "CRAM");
+  CHRRAMSIZE = 2048;
+  CHRRAM = (uint8*)FCEU_gmalloc(CHRRAMSIZE);
+  fceulib__cart.SetupCartCHRMapping(0x10, CHRRAM, CHRRAMSIZE, 1);
+  AddExState(CHRRAM, CHRRAMSIZE, 0, "CRAM");
 
-	WRAMSIZE = 8192;
-	WRAM = (uint8*)FCEU_gmalloc(WRAMSIZE);
-	SetupCartPRGMapping(0x10, WRAM, WRAMSIZE, 1);
-	AddExState(WRAM, WRAMSIZE, 0, "WRAM");
-	if (info->battery) {
-		info->SaveGame[0] = WRAM;
-		info->SaveGameLen[0] = WRAMSIZE;
-	}
+  WRAMSIZE = 8192;
+  WRAM = (uint8*)FCEU_gmalloc(WRAMSIZE);
+  fceulib__cart.SetupCartPRGMapping(0x10, WRAM, WRAMSIZE, 1);
+  AddExState(WRAM, WRAMSIZE, 0, "WRAM");
+  if (info->battery) {
+    info->SaveGame[0] = WRAM;
+    info->SaveGameLen[0] = WRAMSIZE;
+  }
 
-	AddExState(&StateRegs, ~0, 0, 0);
+  AddExState(&StateRegs, ~0, 0, 0);
 }

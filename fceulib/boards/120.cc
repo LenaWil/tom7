@@ -30,9 +30,9 @@ static SFORMAT StateRegs[]=
 
 static void Sync(void)
 {
-  setprg8(0x6000,reg);
-  setprg32(0x8000,2);
-  setchr8(0);
+  fceulib__cart.setprg8(0x6000,reg);
+  fceulib__cart.setprg32(0x8000,2);
+  fceulib__cart.setchr8(0);
 }
 
 static DECLFW(M120Write)
@@ -48,7 +48,7 @@ static void M120Power(void)
 {
   reg=0;
   Sync();
-  SetReadHandler(0x6000,0xFFFF,CartBR);
+  SetReadHandler(0x6000,0xFFFF,Cart::CartBR);
   SetWriteHandler(0x4100,0x5FFF,M120Write);
 }
 

@@ -32,9 +32,9 @@ static SFORMAT StateRegs[]=
 
 static void Sync(void)
 {
-  setprg8r(0x10,0x6000,0);
-  setprg32(0x8000,reg&1);
-  setchr8(0);
+  fceulib__cart.setprg8r(0x10,0x6000,0);
+  fceulib__cart.setprg32(0x8000,reg&1);
+  fceulib__cart.setchr8(0);
 }
 
 static DECLFW(UNLKS7012Write)
@@ -51,9 +51,9 @@ static void UNLKS7012Power(void)
 {
   reg = ~0;
   Sync();
-  SetReadHandler(0x6000,0x7FFF,CartBR);
-  SetWriteHandler(0x6000,0x7FFF,CartBW);
-  SetReadHandler(0x8000,0xFFFF,CartBR);
+  SetReadHandler(0x6000,0x7FFF,Cart::CartBR);
+  SetWriteHandler(0x6000,0x7FFF,Cart::CartBW);
+  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
   SetWriteHandler(0x8000,0xFFFF,UNLKS7012Write);
 }
 
@@ -75,15 +75,14 @@ static void UNLKS7012Close(void)
   WRAM=NULL;
 }
 
-void UNLKS7012_Init(CartInfo *info)
-{
+void UNLKS7012_Init(CartInfo *info) {
   info->Power=UNLKS7012Power;
   info->Reset=UNLKS7012Reset;
   info->Close=UNLKS7012Close;
 
   WRAMSIZE=8192;
   WRAM=(uint8*)FCEU_gmalloc(WRAMSIZE);
-  SetupCartPRGMapping(0x10,WRAM,WRAMSIZE,1);
+  fceulib__cart.SetupCartPRGMapping(0x10,WRAM,WRAMSIZE,1);
   AddExState(WRAM, WRAMSIZE, 0, "WRAM");
 
   GameStateRestore=StateRestore;

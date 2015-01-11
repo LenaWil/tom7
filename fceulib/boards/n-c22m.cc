@@ -32,18 +32,18 @@ static SFORMAT StateRegs[]=
 static void Sync(void)
 {
 //  FCEU_printf("(%02x, %02x)\n",reg[3],reg[4]);
-  setprg8(0x8000,reg[0]);
-  setprg8(0xA000,reg[1]);
-  setprg8(0xC000,reg[2]);
-  setprg8(0xE000,~0);
+  fceulib__cart.setprg8(0x8000,reg[0]);
+  fceulib__cart.setprg8(0xA000,reg[1]);
+  fceulib__cart.setprg8(0xC000,reg[2]);
+  fceulib__cart.setprg8(0xE000,~0);
 //  setchr2(0x0000,reg[3]);
 //  setchr2(0x0800,reg[4]);
 //  setchr2(0x1000,reg[5]);
 //  setchr2(0x1800,reg[6]);
-  setchr2(0x0000,reg[3]);
-  setchr2(0x0800,reg[4]);
-  setchr2(0x1000,reg[5]);
-  setchr2(0x1800,reg[6]);
+  fceulib__cart.setchr2(0x0000,reg[3]);
+  fceulib__cart.setchr2(0x0800,reg[4]);
+  fceulib__cart.setchr2(0x1000,reg[5]);
+  fceulib__cart.setchr2(0x1800,reg[6]);
 }
 
 static DECLFW(MCN22MWrite)
@@ -66,7 +66,7 @@ static void MCN22MPower(void)
 {
   reg[0]=reg[1]=reg[2]=0;
   Sync();
-  SetReadHandler(0x8000,0xFFFF,CartBR);
+  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
   SetWriteHandler(0x8000,0xFFFF,MCN22MWrite);
 }
 /*

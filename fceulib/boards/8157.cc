@@ -31,9 +31,9 @@ static SFORMAT StateRegs[]=
 
 static void Sync(void)
 {
-  setprg16r((cmdreg&0x060)>>5,0x8000,(cmdreg&0x01C)>>2);
-  setprg16r((cmdreg&0x060)>>5,0xC000,(cmdreg&0x200)?(~0):0);
-  setmirror(((cmdreg&2)>>1)^1);
+  fceulib__cart.setprg16r((cmdreg&0x060)>>5,0x8000,(cmdreg&0x01C)>>2);
+  fceulib__cart.setprg16r((cmdreg&0x060)>>5,0xC000,(cmdreg&0x200)?(~0):0);
+  fceulib__cart.setmirror(((cmdreg&2)>>1)^1);
 }
 
 static DECLFR(UNL8157Read)
@@ -41,7 +41,7 @@ static DECLFR(UNL8157Read)
   if(invalid_data&&cmdreg&0x100)
     return 0xFF;
   else
-    return CartBR(A);
+    return Cart::CartBR(A);
 }
 
 static DECLFW(UNL8157Write)
@@ -50,9 +50,8 @@ static DECLFW(UNL8157Write)
   Sync();
 }
 
-static void UNL8157Power(void)
-{
-  setchr8(0);
+static void UNL8157Power(void) {
+  fceulib__cart.setchr8(0);
   SetWriteHandler(0x8000,0xFFFF,UNL8157Write);
   SetReadHandler(0x8000,0xFFFF,UNL8157Read);
   cmdreg=0x200;

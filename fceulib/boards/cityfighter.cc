@@ -40,18 +40,17 @@ static SFORMAT StateRegs[] =
 };
 
 static void Sync(void) {
-	setprg32(0x8000, prg_reg >> 2);
-	if (!prg_mode)
-		setprg8(0xC000, prg_reg);
-	int i;
-	for (i = 0; i < 8; i++)
-		setchr1(i << 10, chr_reg[i]);
-	switch (mirr) {
-	case 0: setmirror(MI_V); break;
-	case 1: setmirror(MI_H); break;
-	case 2: setmirror(MI_0); break;
-	case 3: setmirror(MI_1); break;
-	}
+  fceulib__cart.setprg32(0x8000, prg_reg >> 2);
+  if (!prg_mode)
+    fceulib__cart.setprg8(0xC000, prg_reg);
+  for (int i = 0; i < 8; i++)
+    fceulib__cart.setchr1(i << 10, chr_reg[i]);
+  switch (mirr) {
+  case 0: fceulib__cart.setmirror(MI_V); break;
+  case 1: fceulib__cart.setmirror(MI_H); break;
+  case 2: fceulib__cart.setmirror(MI_0); break;
+  case 3: fceulib__cart.setmirror(MI_1); break;
+  }
 }
 
 static DECLFW(UNLCITYFIGHTWrite) {
@@ -108,7 +107,7 @@ static void UNLCITYFIGHTPower(void) {
 	prg_reg = 0;
 	Sync();
 	pcmwrite = GetWriteHandler(0x4011);
-	SetReadHandler(0x8000, 0xFFFF, CartBR);
+	SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
 	SetWriteHandler(0x8000, 0xFFFF, UNLCITYFIGHTWrite);
 }
 

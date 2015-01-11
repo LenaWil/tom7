@@ -62,21 +62,6 @@ FCEUGI::FCEUGI() { }
 
 FCEUGI::~FCEUGI() { }
 
-static bool CheckFileExists(const char* filename) {
-  //This function simply checks to see if the given filename exists
-  if (!filename) return false;
-  fstream test;
-  test.open(filename,fstream::in);
-
-  if (test.fail()) {
-    test.close();
-    return false;
-  } else {
-    test.close();
-    return true;
-  }
-}
-
 void FCEU_CloseGame() {
   if (GameInfo) {
     GameInterface(GI_CLOSE);
@@ -196,7 +181,6 @@ static DECLFR(ARAMH) {
   return RAM[A&0x7FF];
 }
 
-
 static void ResetGameLoaded() {
   if (GameInfo) FCEU_CloseGame();
   GameStateRestore=0;
@@ -248,7 +232,7 @@ FCEUGI *FCEUI_LoadGameVirtual(const char *name, int OverwriteVidMode) {
   GameInfo->inputfc = SIFC_UNSET;
   GameInfo->cspecial = SIS_NONE;
 
-  //try to load each different format
+  // Try to load each different format
   if (iNESLoad(name,fp,OverwriteVidMode))
     goto endlseq;
   if (UNIFLoad(name,fp))
@@ -416,8 +400,7 @@ void PowerNES() {
     FCEU_VSUniPower();
 
   // if we are in a movie, then reset the saveram
-  extern int disableBatteryLoading;
-  if (disableBatteryLoading)
+  if (fceulib__cart.disableBatteryLoading)
     GameInterface(GI_RESETSAVE);
 
   timestampbase = 0ULL;

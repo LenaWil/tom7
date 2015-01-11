@@ -37,34 +37,35 @@ static SFORMAT StateRegs[]=
   {0}
 };
 
-static void Sync(void)
-{
-  switch (bank_mode)
-  {
-    case 0x00:
-    case 0x10: setprg16(0x8000,large_bank|prg_bank);
-               setprg16(0xC000,large_bank|7);
-               break;
-    case 0x20: setprg32(0x8000,(large_bank|prg_bank)>>1);
-               break;
-    case 0x30: setprg16(0x8000,large_bank|prg_bank);
-               setprg16(0xC000,large_bank|prg_bank);
-               break;
+static void Sync(void) {
+  switch (bank_mode) {
+  case 0x00:
+  case 0x10: 
+    fceulib__cart.setprg16(0x8000,large_bank|prg_bank);
+    fceulib__cart.setprg16(0xC000,large_bank|7);
+    break;
+  case 0x20: 
+    fceulib__cart.setprg32(0x8000,(large_bank|prg_bank)>>1);
+    break;
+  case 0x30: 
+    fceulib__cart.setprg16(0x8000,large_bank|prg_bank);
+    fceulib__cart.setprg16(0xC000,large_bank|prg_bank);
+    break;
   }
-  setmirror(mirroring);
+  fceulib__cart.setmirror(mirroring);
   if(!is_large_banks)
-    setchr8(chr_bank);
+    fceulib__cart.setchr8(chr_bank);
 }
 
 static DECLFR(BMC70in1Read)
 {
   if(bank_mode==0x10)
 //    if(is_large_banks)
-      return CartBR((A&0xFFF0)|hw_switch);
+    return Cart::CartBR((A&0xFFF0)|hw_switch);
 //    else
 //      return CartBR((A&0xFFF0)|hw_switch);
   else
-    return CartBR(A);
+    return Cart::CartBR(A);
 }
 
 static DECLFW(BMC70in1Write)
@@ -96,7 +97,7 @@ static void BMC70in1Reset(void)
 
 static void BMC70in1Power(void)
 {
-  setchr8(0);
+  fceulib__cart.setchr8(0);
   bank_mode=0;
   large_bank=0;
   Sync();

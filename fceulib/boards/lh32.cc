@@ -35,12 +35,12 @@ static SFORMAT StateRegs[]=
 
 static void Sync(void)
 {
-  setprg8(0x6000,reg);
-  setprg8(0x8000,~3);
-  setprg8(0xa000,~2);
-  setprg8r(0x10,0xc000,0);
-  setprg8(0xe000,~0);
-  setchr8(0);
+  fceulib__cart.setprg8(0x6000,reg);
+  fceulib__cart.setprg8(0x8000,~3);
+  fceulib__cart.setprg8(0xa000,~2);
+  fceulib__cart.setprg8r(0x10,0xc000,0);
+  fceulib__cart.setprg8(0xe000,~0);
+  fceulib__cart.setchr8(0);
 }
 
 static DECLFW(LH32Write)
@@ -52,8 +52,8 @@ static DECLFW(LH32Write)
 static void LH32Power(void)
 {
   Sync();
-  SetReadHandler(0x6000,0xFFFF,CartBR);
-  SetWriteHandler(0xC000,0xDFFF,CartBW);
+  SetReadHandler(0x6000,0xFFFF,Cart::CartBR);
+  SetWriteHandler(0xC000,0xDFFF,Cart::CartBW);
   SetWriteHandler(0x6000,0x6000,LH32Write);
 }
 
@@ -76,7 +76,7 @@ void LH32_Init(CartInfo *info)
 
   WRAMSIZE=8192;
   WRAM=(uint8*)FCEU_gmalloc(WRAMSIZE);
-  SetupCartPRGMapping(0x10,WRAM,WRAMSIZE,1);
+  fceulib__cart.SetupCartPRGMapping(0x10,WRAM,WRAMSIZE,1);
   AddExState(WRAM, WRAMSIZE, 0, "WRAM");
 
   GameStateRestore=StateRestore;

@@ -72,7 +72,6 @@ static void RAMBO1_hb(void)
 
 static void Synco(void)
 {
-  int x;
 
   if(cmd&0x20)
   {
@@ -89,13 +88,13 @@ static void Synco(void)
     setchr1wrap(0x0C00,(DRegs[1]&0xFE)|1);
   }
 
-  for(x=0;x<4;x++)
+  for(int x=0;x<4;x++)
      setchr1wrap(0x1000+x*0x400,DRegs[2+x]);
 
-  setprg8(0x8000,DRegs[6]);
-  setprg8(0xA000,DRegs[7]);
+  fceulib__cart.setprg8(0x8000,DRegs[6]);
+  fceulib__cart.setprg8(0xA000,DRegs[7]);
 
-  setprg8(0xC000,DRegs[10]);
+  fceulib__cart.setprg8(0xC000,DRegs[10]);
 }
 
 
@@ -105,7 +104,7 @@ static DECLFW(RAMBO1_write)
   {
     case 0xa000: mir=V&1;
 //                 if(!nomirror)
-                   setmirror(mir^1);
+                   fceulib__cart.setmirror(mir^1);
                  break;
     case 0x8000: cmd = V;
                  break;
@@ -139,7 +138,7 @@ static void RAMBO1_Restore(int version)
 {
   Synco();
 //  if(!nomirror)
-    setmirror(mir^1);
+    fceulib__cart.setmirror(mir^1);
 }
 
 static void RAMBO1_init(void)
@@ -149,7 +148,7 @@ static void RAMBO1_init(void)
      DRegs[x]=~0;
   cmd=mir=0;
 //  if(!nomirror)
-    setmirror(1);
+    fceulib__cart.setmirror(1);
   Synco();
   GameHBIRQHook=RAMBO1_hb;
   MapIRQHook=RAMBO1_IRQHook;
@@ -160,7 +159,7 @@ static void RAMBO1_init(void)
 
 static void CHRWrap(unsigned int A, unsigned int V)
 {
-  setchr1(A,V);
+  fceulib__cart.setchr1(A,V);
 }
 
 void Mapper64_init(void)

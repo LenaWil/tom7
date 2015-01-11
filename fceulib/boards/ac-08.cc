@@ -31,10 +31,10 @@ static SFORMAT StateRegs[]=
 
 static void Sync(void)
 {
-  setprg8(0x6000, reg);
-  setprg32r(1, 0x8000, 0);
-  setchr8(0);
-  setmirror(mirr);
+  fceulib__cart.setprg8(0x6000, reg);
+  fceulib__cart.setprg32r(1, 0x8000, 0);
+  fceulib__cart.setchr8(0);
+  fceulib__cart.setmirror(mirr);
 }
 
 static DECLFW(AC08Mirr)
@@ -56,7 +56,7 @@ static void AC08Power(void)
 {
   reg = 0;
   Sync();
-  SetReadHandler(0x6000,0xFFFF,CartBR);
+  SetReadHandler(0x6000,0xFFFF,Cart::CartBR);
   SetWriteHandler(0x4025,0x4025,AC08Mirr);
   SetWriteHandler(0x8000,0xFFFF,AC08Write);
 }

@@ -11,6 +11,7 @@ extern int newppu;
 #define DECLFR_ARGS uint32 A
 
 #define DECLFW(x) void x (uint32 A, uint8 V)
+#define DECLFW_RET void
 #define DECLFW_FORWARD A, V
 #define DECLFW_ARGS uint32 A, uint8 V
 
