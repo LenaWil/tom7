@@ -1,6 +1,8 @@
 #ifndef __CONFIG_H
 #define __CONFIG_H
 
-char *FCEUI_GetAboutString();
+#include <string>
+
+std::string FCEUI_GetAboutString();
 
 #endif

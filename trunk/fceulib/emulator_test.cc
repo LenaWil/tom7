@@ -13,6 +13,8 @@
 #include "rle.h"
 #include "simplefm2.h"
 
+#include "tracing.h"
+
 static constexpr uint64 kEveryGameUponLoad =
   204558985997460734ULL;
 
@@ -114,6 +116,8 @@ static pair<uint64, uint64> RunGameSerially(const Game &game) {
       << (field) << " but got " << cx;		     \
   } while(0)
 
+  TRACEF("RunGameSerially %s.", game.cart.c_str());
+
   // save[i] and checksum[i] represent the state right before
   // input[i] is issued. Note we don't have save/checksum for
   // the final state.
@@ -124,14 +128,17 @@ static pair<uint64, uint64> RunGameSerially(const Game &game) {
   std::unique_ptr<Emulator> emu{Emulator::Create(game.cart)};
   CHECK(emu.get() != nullptr) << game.cart.c_str();
   CHECK_RAM(game.after_load);
+  TRACEF("after_load %llu.", emu->RamChecksum());
 
   vector<uint8> basis;
   emu->GetBasis(&basis);
 
   auto SaveAndStep = [&game, &emu, &saves, &inputs, &checksums,
 		      &compressed_saves, &basis](uint8 b) {
+    TRACEF("Step %s", SimpleFM2::InputToString(b).c_str());
     vector<uint8> save;
     emu->SaveUncompressed(&save);
+    TRACEV(save);
     saves.push_back(std::move(save));
     if (FULL) {
       vector<uint8> compressed_save;
@@ -148,11 +155,13 @@ static pair<uint64, uint64> RunGameSerially(const Game &game) {
   for (uint8 b : game.inputs) SaveAndStep(b);
   CHECK_RAM(game.after_inputs);
   const uint64 ret1 = emu->RamChecksum();
+  TRACEF("after_inputs %llu.", emu->RamChecksum());
 
   fprintf(stderr, "Random inputs:\n");
   for (uint8 b : InputStream(game.cart, 10000)) SaveAndStep(b);
   CHECK_RAM(game.after_random);
   const uint64 ret2 = emu->RamChecksum();
+  TRACEF("after_random %llu.", emu->RamChecksum());
 
   // Now jump around and make sure that we are able to save and
   // restore state correctly (at least, such that the behavior is
@@ -224,6 +233,15 @@ int main(int argc, char **argv) {
 
   // First, ensure that we have preserved the single-threaded
   // behavior.
+
+  // Regression.
+  Game skull{
+    "skull.nes",
+    RLE::Decompress({ 101, 0, 4, 2, 3, 3, 2, 1, 50, 0, }),
+    kEveryGameUponLoad,
+    17813153070445949947ULL,
+    13242168680766682433ULL,
+    };
 
   Game escape{
     "escape.nes",
@@ -380,11 +398,12 @@ int main(int argc, char **argv) {
 
   const int64 start_us = TimeUsec();
 
+  // RunGameSerially(skull);
+
+  RunGameSerially(mario);
   RunGameSerially(kirby);
 
   RunGameSerially(arkanoid);
-
-  RunGameSerially(mario);
 
   RunGameSerially(escape);
   RunGameSerially(escape);

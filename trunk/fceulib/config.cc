@@ -1,23 +1,16 @@
-/// \file
-/// \brief Contains methods related to the build configuration
-
-#include <string.h>
-#include <stdio.h>
-#include <stdlib.h>
+#include <string>
 
 #include "types.h"
 #include "version.h"
 #include "fceu.h"
 #include "driver.h"
-#include "utils/memory.h"
 #include "config.h"
 
-static char *aboutString = 0;
+using namespace std;
 
-///returns a string suitable for use in an aboutbox
-// TODO(tom7): Return c++ string
-char *FCEUI_GetAboutString() {
-  const char *aboutTemplate =
+// returns a string suitable for use in an about box
+string FCEUI_GetAboutString() {
+  const string about =
     "FCEULib, by Tom 7 and based on\n"
     FCEU_NAME_AND_VERSION
     R"!(
@@ -48,14 +41,7 @@ ugetab
 
 " __TIME__ " " __DATE__ "\n)!";
 
-  if(aboutString) return aboutString;
+  const string compiler = FCEUD_GetCompilerString();
 
-  const char *compilerString = FCEUD_GetCompilerString();
-
-  //allocate the string and concatenate the template with the compiler string
-  if (!(aboutString = (char*)malloc(strlen(aboutTemplate) + strlen(compilerString) + 1)))
-    return nullptr;
-
-  sprintf(aboutString,"%s%s",aboutTemplate,compilerString);
-  return aboutString;
+  return about + compiler;
 }
