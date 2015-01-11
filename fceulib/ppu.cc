@@ -79,17 +79,15 @@ static uint32 ppulut1[256];
 static uint32 ppulut2[256];
 static uint32 ppulut3[128];
 
-int test = 0;
+// These used to be options that could be controlled through the UI
+// but that's probably not a good idea for general purposes. Saved as
+// constants in case it becomes useful to make them settable in the
+// future (e.g. automapping).
+static constexpr bool rendersprites = true;
+static constexpr bool renderbg = true;
 
-#if 0
-static const char *bits8(uint8 b) {
-  static char buf[9] = {0};
-  for (int i = 0; i < 8; i ++) {
-    buf[7 - i] = (b & (1 << i))? '1' : '0';
-  }
-  return buf;
-}
-#endif
+// XXX ugh. Modified in x6502. Is it used? -tom7
+int test = 0;
 
 static const char *attrbits(uint8 b) {
   static char buf[9] = {0};
@@ -1031,20 +1029,6 @@ void FCEUPPU_LineUpdate()
 			int l=GETLASTPIXEL;
 			RefreshLine(l);
 		}
-}
-
-static bool rendersprites=true, renderbg=true;
-
-void FCEUI_SetRenderPlanes(bool sprites, bool bg)
-{
-	rendersprites = sprites;
-	renderbg = bg;
-}
-
-void FCEUI_GetRenderPlanes(bool& sprites, bool& bg)
-{
-	sprites = rendersprites;
-	bg = renderbg;
 }
 
 static int32 sphitx;

@@ -23,6 +23,10 @@ void FCEUPPU_SaveState(void);
 void FCEUPPU_LoadState(int version);
 uint8* FCEUPPU_GetCHR(uint32 vadr, uint32 refreshaddr);
 
+// 0 to keep 8-sprites limitation, 1 to remove it
+void FCEUI_DisableSpriteLimitation(int a);
+
+
 #ifdef _MSC_VER
 #define FASTCALL __fastcall
 #else

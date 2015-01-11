@@ -20,9 +20,6 @@
 
 #include "types.h"
 
-// external dependencies
-bool turbo = false;
-
 // Not clear who owns this; input/movie/fceu? But we need a decl somewhere.
 // Is it used for anything other than (degenerate) display? -tom7
 unsigned int lagCounter = 0;
@@ -35,13 +32,6 @@ void LagCounterReset() {
  */
 void FCEUD_PrintError(char *s) {
   puts(s);
-}
-
-/**
- * Prints the given string to STDOUT.
- */
-void FCEUD_Message(char *s) {
-  fputs(s, stdout);
 }
 
 /**
@@ -77,11 +67,6 @@ EMUFILE_FILE* FCEUD_UTF8_fstream(const char *fn, const char *m) {
  */
 const char *FCEUD_GetCompilerString() {
   return "g++ " __VERSION__;
-}
-
-// Prints a textual message without adding a newline at the end.
-void FCEUD_Message(const char *text) {
-  fputs(text, stdout);
 }
 
 // Print error to stderr.

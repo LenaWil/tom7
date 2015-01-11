@@ -1,6 +1,8 @@
 #ifndef _FCEUH
 #define _FCEUH
 
+#include "git.h"
+
 static constexpr bool fceuindbg = false;
 extern int newppu;
 
@@ -25,11 +27,25 @@ void FCEU_CloseGame();
 void FCEU_ResetVidSys();
 bool FCEUI_Initialize();
 
+// Emulates a frame.
+void FCEUI_Emulate(uint8 **, int32 **, int32 *, int);
+
+// Deallocates all allocated memory.  Call after FCEUI_Emulate() returns.
+void FCEUI_Kill();
+
 void ResetMapping();
 void ResetNES();
 void PowerNES();
 
-char *FCEUI_GetAboutString();
+// Set video system a=0 NTSC, a=1 PAL
+void FCEUI_SetVidSystem(int a);
+// Returns currently emulated video system(0=NTSC, 1=PAL).
+int FCEUI_GetCurrentVidSystem(int *slstart, int *slend);
+
+//name=path and file to load.  returns null if it failed
+// These are exactly the same; make just one. -tom7
+FCEUGI *FCEUI_LoadGame(const char *name, int OverwriteVidMode);
+FCEUGI *FCEUI_LoadGameVirtual(const char *name, int OverwriteVidMode);
 
 // TODO(tom7): Move these to the modules where they're defined.
 extern uint64 timestampbase;

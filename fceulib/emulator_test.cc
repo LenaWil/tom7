@@ -380,7 +380,6 @@ int main(int argc, char **argv) {
 
   const int64 start_us = TimeUsec();
 
-#if 1
   RunGameSerially(kirby);
 
   RunGameSerially(arkanoid);
@@ -393,7 +392,6 @@ int main(int argc, char **argv) {
   RunGameSerially(karate);
   RunGameSerially(karate);
   RunGameSerially(escape);
-#endif
 
   if (COMPREHENSIVE) {
     printf("Now COMPREHENSIVE tests.\n");
@@ -407,12 +405,15 @@ int main(int argc, char **argv) {
       string filename = LoseWhiteL(line);
 
       if (!filename.empty()) {
+	uint64 after_inputs, after_random;
+	stringstream(a) >> after_inputs;
+	stringstream(b) >> after_random;
 	Game game{
 	  (string)"roms/" + filename,
 	    RLE::Decompress({ 101, 0, 4, 2, 3, 3, 2, 1, 50, 0, }),
 	    kEveryGameUponLoad,
-	    0ULL,
-	    0ULL,
+	    after_inputs,
+	    after_random,
 	    };
 	const pair<uint64, uint64> p = RunGameSerially(game);
 	fprintf(out, "%llu %llu %s\n", p.first, p.second,

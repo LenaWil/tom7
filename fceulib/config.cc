@@ -10,6 +10,7 @@
 #include "fceu.h"
 #include "driver.h"
 #include "utils/memory.h"
+#include "config.h"
 
 static char *aboutString = 0;
 

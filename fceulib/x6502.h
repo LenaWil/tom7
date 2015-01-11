@@ -71,5 +71,8 @@ void X6502_DMW(uint32 A, uint8 V);
 void X6502_IRQBegin(int w);
 void X6502_IRQEnd(int w);
 
+void FCEUI_NMI();
+void FCEUI_IRQ();
+
 #define _X6502H
 #endif
