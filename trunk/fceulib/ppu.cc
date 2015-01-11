@@ -376,8 +376,8 @@ uint8 UPALRAM[0x03]; //for 0x4/0x8/0xC addresses in palette, the ones in
                      //0x20 are 0 to not break fceu rendering.
 
 
-#define MMC5SPRVRAMADR(V)      &MMC5SPRVPage[(V)>>10][(V)]
-#define VRAMADR(V)      &VPage[(V)>>10][(V)]
+#define MMC5SPRVRAMADR(V)      &fceulib__cart.MMC5SPRVPage[(V)>>10][(V)]
+#define VRAMADR(V)      &fceulib__cart.VPage[(V)>>10][(V)]
 
 //mbg 8/6/08 - fix a bug relating to
 //"When in 8x8 sprite mode, only one set is used for both BG and sprites."
@@ -388,37 +388,38 @@ uint8 * MMC5BGVRAMADR(uint32 V) {
     if (mmc5ABMode==0)
       return MMC5SPRVRAMADR(V);
     else
-      return &MMC5BGVPage[(V)>>10][(V)];
-  } else return &MMC5BGVPage[(V)>>10][(V)];
+      return &fceulib__cart.MMC5BGVPage[(V)>>10][(V)];
+  } else return &fceulib__cart.MMC5BGVPage[(V)>>10][(V)];
 }
 
-//this duplicates logic which is embedded in the ppu rendering code
-//which figures out where to get CHR data from depending on various hack modes
-//mostly involving mmc5.
-//this might be incomplete.
+// this duplicates logic which is embedded in the ppu rendering code
+// which figures out where to get CHR data from depending on various hack modes
+// mostly involving mmc5.
+// this might be incomplete.
 uint8* FCEUPPU_GetCHR(uint32 vadr, uint32 refreshaddr) {
-	if (MMC5Hack) {
-		if (MMC5HackCHRMode==1) {
-			uint8 *C = MMC5HackVROMPTR;
-			C += (((MMC5HackExNTARAMPtr[refreshaddr & 0x3ff]) & 0x3f & MMC5HackVROMMask) << 12) + (vadr & 0xfff);
-			C += (MMC50x5130&0x3)<<18; //11-jun-2009 for kuja_killer
-			return C;
-		} else {
-			return MMC5BGVRAMADR(vadr);
-		}
-	}
-	else return VRAMADR(vadr);
+  if (MMC5Hack) {
+    if (MMC5HackCHRMode==1) {
+      uint8 *C = MMC5HackVROMPTR;
+      C += (((MMC5HackExNTARAMPtr[refreshaddr & 0x3ff]) & 
+	     0x3f & MMC5HackVROMMask) << 12) + (vadr & 0xfff);
+      C += (MMC50x5130&0x3)<<18; //11-jun-2009 for kuja_killer
+      return C;
+    } else {
+      return MMC5BGVRAMADR(vadr);
+    }
+  }
+  else return VRAMADR(vadr);
 }
 
 //likewise for ATTR
 int FCEUPPU_GetAttr(int ntnum, int xt, int yt) {
-	int attraddr = 0x3C0+((yt>>2)<<3)+(xt>>2);
-	int temp = (((yt&2)<<1)+(xt&2));
-	int refreshaddr = xt+yt*32;
-	if (MMC5Hack && MMC5HackCHRMode==1)
-		return (MMC5HackExNTARAMPtr[refreshaddr & 0x3ff] & 0xC0)>>6;
-	else
-		return (vnapage[ntnum][attraddr] & (3<<temp)) >> temp;
+  int attraddr = 0x3C0+((yt>>2)<<3)+(xt>>2);
+  int temp = (((yt&2)<<1)+(xt&2));
+  int refreshaddr = xt+yt*32;
+  if (MMC5Hack && MMC5HackCHRMode==1)
+    return (MMC5HackExNTARAMPtr[refreshaddr & 0x3ff] & 0xC0)>>6;
+  else
+    return (vnapage[ntnum][attraddr] & (3<<temp)) >> temp;
 }
 
 //new ppu-----
@@ -430,7 +431,7 @@ static inline void FFCEUX_PPUWrite_Default(uint32 A, uint8 V) {
   if (tmp<0x2000)
     {
       if (PPUCHRRAM&(1<<(tmp>>10)))
-	VPage[tmp>>10][tmp]=V;
+	fceulib__cart.VPage[tmp>>10][tmp]=V;
     }
   else if (tmp<0x3F00)
     {
@@ -458,7 +459,7 @@ uint8 FASTCALL FFCEUX_PPURead_Default(uint32 A) {
   if (PPU_hook) PPU_hook(A);
 
   if (tmp<0x2000) {
-    return VPage[tmp>>10][tmp];
+    return fceulib__cart.VPage[tmp>>10][tmp];
   } else if (tmp < 0x3F00) {
     return vnapage[(tmp>>10)&0x3][tmp&0x3FF];
   } else {
@@ -775,7 +776,7 @@ static DECLFR(A2007) {
 	if (PPU_hook) PPU_hook(tmp);
 	PPUGenLatch=VRAMBuffer;
 	if (tmp<0x2000) {
-	  VRAMBuffer=VPage[tmp>>10][tmp];
+	  VRAMBuffer=fceulib__cart.VPage[tmp>>10][tmp];
 	} else if (tmp < 0x3F00) {
 	  VRAMBuffer=vnapage[(tmp>>10)&0x3][tmp&0x3FF];
 	}
@@ -952,44 +953,36 @@ static DECLFW(B2006)
 	vtoggle^=1;
 }
 
-static DECLFW(B2007)
-{
-	uint32 tmp=RefreshAddr&0x3FFF;
+static DECLFW(B2007) {
+  uint32 tmp=RefreshAddr&0x3FFF;
 
-	if (newppu) {
-		PPUGenLatch=V;
-		RefreshAddr = ppur.get_2007access() & 0x3FFF;
-		CALL_PPUWRITE(RefreshAddr,V);
-		//printf("%04x ",RefreshAddr);
-		ppur.increment2007(INC32!=0);
-		RefreshAddr = ppur.get_2007access();
-	}
-	else
-	{
-		//printf("%04x ",tmp);
-		PPUGenLatch=V;
-		if (tmp>=0x3F00)
-		{
-			// hmmm....
-			if (!(tmp&0xf))
-				PALRAM[0x00]=PALRAM[0x04]=PALRAM[0x08]=PALRAM[0x0C]=V&0x3F;
-			else if (tmp&3) PALRAM[(tmp&0x1f)]=V&0x3f;
-		}
-		else if (tmp<0x2000)
-		{
-			if (PPUCHRRAM&(1<<(tmp>>10)))
-				VPage[tmp>>10][tmp]=V;
-		}
-		else
-		{
-			if (PPUNTARAM&(1<<((tmp&0xF00)>>10)))
-				vnapage[((tmp&0xF00)>>10)][tmp&0x3FF]=V;
-		}
-		//      FCEU_printf("ppu (%04x) %04x:%04x %d, %d\n",X.PC,RefreshAddr,PPUGenLatch,scanline,timestamp);
-		if (INC32) RefreshAddr+=32;
-		else RefreshAddr++;
-		if (PPU_hook) PPU_hook(RefreshAddr&0x3fff);
-	}
+  if (newppu) {
+    PPUGenLatch=V;
+    RefreshAddr = ppur.get_2007access() & 0x3FFF;
+    CALL_PPUWRITE(RefreshAddr,V);
+    //printf("%04x ",RefreshAddr);
+    ppur.increment2007(INC32!=0);
+    RefreshAddr = ppur.get_2007access();
+  } else {
+    //printf("%04x ",tmp);
+    PPUGenLatch=V;
+    if (tmp>=0x3F00) {
+      // hmmm....
+      if (!(tmp&0xf))
+	PALRAM[0x00]=PALRAM[0x04]=PALRAM[0x08]=PALRAM[0x0C]=V&0x3F;
+      else if (tmp&3) PALRAM[(tmp&0x1f)]=V&0x3f;
+    } else if (tmp<0x2000) {
+      if (PPUCHRRAM&(1<<(tmp>>10)))
+	fceulib__cart.VPage[tmp>>10][tmp]=V;
+    } else {
+      if (PPUNTARAM&(1<<((tmp&0xF00)>>10)))
+	vnapage[((tmp&0xF00)>>10)][tmp&0x3FF]=V;
+    }
+    //      FCEU_printf("ppu (%04x) %04x:%04x %d, %d\n",X.PC,RefreshAddr,PPUGenLatch,scanline,timestamp);
+    if (INC32) RefreshAddr+=32;
+    else RefreshAddr++;
+    if (PPU_hook) PPU_hook(RefreshAddr&0x3fff);
+  }
 }
 
 static DECLFW(B4014)

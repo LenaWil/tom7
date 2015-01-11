@@ -31,44 +31,33 @@ static SFORMAT StateRegs[]=
   {0}
 };
 
-static void Sync(void)
-{
-  setmirror((cmd&1)^1);
-  setchr8(0);
-  if(cmd&2)
-  {
-    if(cmd&0x100)
-    {
-      setprg16(0x8000,((cmd&0xfc)>>2)|bank);
-      setprg16(0xC000,((cmd&0xfc)>>2)|7);
+static void Sync(void) {
+  fceulib__cart.setmirror((cmd&1)^1);
+  fceulib__cart.setchr8(0);
+  if(cmd&2) {
+    if(cmd&0x100) {
+      fceulib__cart.setprg16(0x8000,((cmd&0xfc)>>2)|bank);
+      fceulib__cart.setprg16(0xC000,((cmd&0xfc)>>2)|7);
+    } else {
+      fceulib__cart.setprg16(0x8000,((cmd&0xfc)>>2)|(bank&6));
+      fceulib__cart.setprg16(0xC000,((cmd&0xfc)>>2)|((bank&6)|1));
     }
-    else
-    {
-      setprg16(0x8000,((cmd&0xfc)>>2)|(bank&6));
-      setprg16(0xC000,((cmd&0xfc)>>2)|((bank&6)|1));
-    }
-  }
-  else
-  {
-    setprg16(0x8000,((cmd&0xfc)>>2)|bank);
-    setprg16(0xC000,((cmd&0xfc)>>2)|bank);
+  } else {
+    fceulib__cart.setprg16(0x8000,((cmd&0xfc)>>2)|bank);
+    fceulib__cart.setprg16(0xC000,((cmd&0xfc)>>2)|bank);
   }  
 }
 
 static uint16 ass = 0;
 
-static DECLFW(UNLN625092WriteCommand)
-{
+static DECLFW(UNLN625092WriteCommand) {
   cmd=A;
-  if(A==0x80F8)
-    {
-        setprg16(0x8000,ass);
-        setprg16(0xC000,ass);
-    }
-    else
-    {
-        Sync();
-    }
+  if(A==0x80F8) {
+    fceulib__cart.setprg16(0x8000,ass);
+    fceulib__cart.setprg16(0xC000,ass);
+  } else {
+    Sync();
+  }
 }
 
 static DECLFW(UNLN625092WriteBank)
@@ -82,7 +71,7 @@ static void UNLN625092Power(void)
   cmd=0;
   bank=0;
   Sync();
-  SetReadHandler(0x8000,0xFFFF,CartBR);
+  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
   SetWriteHandler(0x8000,0xBFFF,UNLN625092WriteCommand);
   SetWriteHandler(0xC000,0xFFFF,UNLN625092WriteBank);
 }

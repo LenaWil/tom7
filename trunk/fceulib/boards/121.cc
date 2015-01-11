@@ -46,43 +46,34 @@ static void Sync()
   }
 }
 
-static void M121CW(uint32 A, uint8 V)
-{
-  if(PRGsize[0] == CHRsize[0]) // A9713 multigame extension hack!
-  {
-    setchr1(A,V|((EXPREGS[3]&0x80)<<1));
-  }
-  else
-  {
+static void M121CW(uint32 A, uint8 V) {
+  // A9713 multigame extension hack!
+  if(fceulib__cart.PRGsize[0] == fceulib__cart.CHRsize[0]) {
+    fceulib__cart.setchr1(A,V|((EXPREGS[3]&0x80)<<1));
+  } else {
     if((A&0x1000)==((MMC3_cmd&0x80)<<5))
-      setchr1(A,V|0x100);
+      fceulib__cart.setchr1(A,V|0x100);
     else
-      setchr1(A,V);
+      fceulib__cart.setchr1(A,V);
   }
 }
 
-static void M121PW(uint32 A, uint8 V)
-{
-  if(EXPREGS[5]&0x3F)
-  {
+static void M121PW(uint32 A, uint8 V) {
+  if(EXPREGS[5]&0x3F) {
 //    FCEU_printf("prot banks: %02x %02x %02x %02x\n",V,EXPREGS[2],EXPREGS[1],EXPREGS[0]);
-    setprg8(A,(V&0x1F)|((EXPREGS[3]&0x80)>>2));
-    setprg8(0xE000,(EXPREGS[0])|((EXPREGS[3]&0x80)>>2));
-    setprg8(0xC000,(EXPREGS[1])|((EXPREGS[3]&0x80)>>2));
-    setprg8(0xA000,(EXPREGS[2])|((EXPREGS[3]&0x80)>>2));
-  }
-  else
-  {
+    fceulib__cart.setprg8(A,(V&0x1F)|((EXPREGS[3]&0x80)>>2));
+    fceulib__cart.setprg8(0xE000,(EXPREGS[0])|((EXPREGS[3]&0x80)>>2));
+    fceulib__cart.setprg8(0xC000,(EXPREGS[1])|((EXPREGS[3]&0x80)>>2));
+    fceulib__cart.setprg8(0xA000,(EXPREGS[2])|((EXPREGS[3]&0x80)>>2));
+  } else {
 //    FCEU_printf("gen banks: %04x %02x\n",A,V);
-    setprg8(A,(V&0x1F)|((EXPREGS[3]&0x80)>>2));
+    fceulib__cart.setprg8(A,(V&0x1F)|((EXPREGS[3]&0x80)>>2));
   }
 }
 
-static DECLFW(M121Write)
-{
+static DECLFW(M121Write) {
 //  FCEU_printf("write: %04x:%04x\n",A&0xE003,V);
-  switch(A&0xE003)
-  {
+  switch(A&0xE003) {
     case 0x8000: //EXPREGS[5] = 0;
 //                 FCEU_printf("gen: %02x\n",V);
                  MMC3_CMDWrite(A,V);

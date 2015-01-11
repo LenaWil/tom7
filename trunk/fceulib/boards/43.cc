@@ -33,23 +33,22 @@ static SFORMAT StateRegs[]=
   {0}
 };
 
-static void Sync(void)
-{
-  setprg4(0x5000,16);    // Only YS-612 advdnced version
-  setprg8(0x6000,2);
-  setprg8(0x8000,1);
-  setprg8(0xa000,0);
-  setprg8(0xc000,reg);
-  setprg8(0xe000,9);
-  setchr8(0);
+static void Sync(void) {
+  fceulib__cart.setprg4(0x5000,16);    // Only YS-612 advdnced version
+  fceulib__cart.setprg8(0x6000,2);
+  fceulib__cart.setprg8(0x8000,1);
+  fceulib__cart.setprg8(0xa000,0);
+  fceulib__cart.setprg8(0xc000,reg);
+  fceulib__cart.setprg8(0xe000,9);
+  fceulib__cart.setchr8(0);
 }
 
 static DECLFW(M43Write)
 {
 //  int transo[8]={4,3,4,4,4,7,5,6};
-  int transo[8]={4,3,5,3,6,3,7,3};  // According to hardware tests
-  switch(A&0xf1ff)
-  {
+  // According to hardware tests:
+  static constexpr int transo[8] = {4,3,5,3,6,3,7,3};
+  switch(A&0xf1ff) {
     case 0x4022: reg=transo[V&7]; Sync(); break;
     case 0x8122:                                                            // hacked version
     case 0x4122: IRQa=V&1; X6502_IRQEnd(FCEU_IQEXT); IRQCount=0; break;     // original version
@@ -60,7 +59,7 @@ static void M43Power(void)
 {
   reg=0;
   Sync();
-  SetReadHandler(0x5000,0xffff,CartBR);
+  SetReadHandler(0x5000,0xffff,Cart::CartBR);
   SetWriteHandler(0x4020,0xffff,M43Write);
 }
 

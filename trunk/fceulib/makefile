@@ -68,7 +68,7 @@ LFLAGS= -m64 $(WINLINK) $(LINKNETWORKING) -lz $(OPT) $(FLTO) $(PROFILE)
 fm2tocc.exe : $(OBJECTS) fm2tocc.o simplefm2.o
 	$(CXX) $^ -o $@ $(LFLAGS)
 
-emulator_test.exe : $(OBJECTS) emulator_test.o
+emulator_test.exe : $(OBJECTS) test-util.o emulator_test.o
 	$(CXX) $^ -o $@ $(LFLAGS)
 
 test : emulator_test.exe

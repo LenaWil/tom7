@@ -64,10 +64,10 @@ static SFORMAT N106_StateRegs[]={
 
 static void SyncPRG(void)
 {
-  setprg8(0x8000,PRG[0]);
-  setprg8(0xa000,PRG[1]);
-  setprg8(0xc000,PRG[2]);
-  setprg8(0xe000,0x3F);
+  fceulib__cart.setprg8(0x8000,PRG[0]);
+  fceulib__cart.setprg8(0xa000,PRG[1]);
+  fceulib__cart.setprg8(0xc000,PRG[2]);
+  fceulib__cart.setprg8(0xe000,0x3F);
 }
 
 static void NamcoIRQHook(int a)
@@ -110,11 +110,11 @@ static void DoNTARAMROM(int w, uint8 V)
 {
   NTAPage[w]=V;
   if(V>=0xE0)
-    setntamem(NTARAM+((V&1)<<10), 1, w);
+    fceulib__cart.setntamem(NTARAM+((V&1)<<10), 1, w);
   else
   {
-    V&=CHRmask1[0];
-    setntamem(CHRptr[0]+(V<<10), 0, w);
+    V&=fceulib__cart.CHRmask1[0];
+    fceulib__cart.setntamem(fceulib__cart.CHRptr[0]+(V<<10), 0, w);
   }
 }
 
@@ -134,7 +134,7 @@ static void DoCHRRAMROM(int x, uint8 V)
     //setchr1r(0x10,x<<10,V&7);
   }
   else
-    setchr1(x<<10,V);
+    fceulib__cart.setchr1(x<<10,V);
 }
 
 static void FixCRR(void)
@@ -401,7 +401,7 @@ static int battery=0;
 static void N106_Power(void)
 {
   int x;
-  SetReadHandler(0x8000,0xFFFF,CartBR);
+  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
   SetWriteHandler(0x8000,0xffff,Mapper19_write);
   SetWriteHandler(0x4020,0x5fff,Mapper19_write);
   if(!is210)

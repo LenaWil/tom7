@@ -33,18 +33,18 @@ static SFORMAT StateRegs[]=
 
 static void Sync(void)
 {
-  setprg2(0x6000,reg[4]);
-  setprg2(0x6800,reg[5]);
-  setprg2(0x7000,reg[6]);
-  setprg2(0x7800,reg[7]);
-  setprg2(0x8000,reg[0]);
-  setprg2(0x8800,reg[1]);
-  setprg2(0x9000,reg[2]);
-  setprg2(0x9800,reg[3]);
-  setprg8(0xA000,0xd);
-  setprg16(0xC000,7);
-  setchr8(0);
-  setmirror(mirror);
+  fceulib__cart.setprg2(0x6000,reg[4]);
+  fceulib__cart.setprg2(0x6800,reg[5]);
+  fceulib__cart.setprg2(0x7000,reg[6]);
+  fceulib__cart.setprg2(0x7800,reg[7]);
+  fceulib__cart.setprg2(0x8000,reg[0]);
+  fceulib__cart.setprg2(0x8800,reg[1]);
+  fceulib__cart.setprg2(0x9000,reg[2]);
+  fceulib__cart.setprg2(0x9800,reg[3]);
+  fceulib__cart.setprg8(0xA000,0xd);
+  fceulib__cart.setprg16(0xC000,7);
+  fceulib__cart.setchr8(0);
+  fceulib__cart.setmirror(mirror);
 }
 
 static DECLFW(UNLKS7057Write)
@@ -80,7 +80,7 @@ static DECLFW(UNLKS7057Write)
 static void UNLKS7057Power(void)
 {
   Sync();
-  SetReadHandler(0x6000,0xFFFF,CartBR);
+  SetReadHandler(0x6000,0xFFFF,Cart::CartBR);
   SetWriteHandler(0x8000,0xFFFF,UNLKS7057Write);
 }
 

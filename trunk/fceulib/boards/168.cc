@@ -32,10 +32,10 @@ static SFORMAT StateRegs[]=
 
 static void Sync(void)
 {
-  setchr4r(0x10,0x0000,0);
-  setchr4r(0x10,0x1000,reg&0x0f);
-  setprg16(0x8000,reg>>6);
-  setprg16(0xc000,~0);
+  fceulib__cart.setchr4r(0x10,0x0000,0);
+  fceulib__cart.setchr4r(0x10,0x1000,reg&0x0f);
+  fceulib__cart.setprg16(0x8000,reg>>6);
+  fceulib__cart.setprg16(0xc000,~0);
 }
 
 static DECLFW(M168Write)
@@ -56,7 +56,7 @@ static void M168Power(void)
   SetWriteHandler(0xB000,0xB000,M168Write);
   SetWriteHandler(0xF000,0xF000,M168Dummy);
   SetWriteHandler(0xF080,0xF080,M168Dummy);
-  SetReadHandler(0x8000,0xFFFF,CartBR);
+  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
 }
 
 static void MNNNClose(void)
@@ -80,7 +80,7 @@ void Mapper168_Init(CartInfo *info)
 
   CHRRAMSIZE=8192*8;
   CHRRAM=(uint8*)FCEU_gmalloc(CHRRAMSIZE);
-  SetupCartCHRMapping(0x10,CHRRAM,CHRRAMSIZE,1);
+  fceulib__cart.SetupCartCHRMapping(0x10,CHRRAM,CHRRAMSIZE,1);
   AddExState(CHRRAM, CHRRAMSIZE, 0, "CRAM");
 
 }

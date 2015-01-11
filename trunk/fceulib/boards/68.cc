@@ -45,37 +45,37 @@ static void M68NTfix(void)
     PPUNTARAM = 0;
     switch(mirr&3)
     {
-     case 0: vnapage[0]=vnapage[2]=CHRptr[0]+(((nt1|128)&CHRmask1[0])<<10);
-             vnapage[1]=vnapage[3]=CHRptr[0]+(((nt2|128)&CHRmask1[0])<<10);
+     case 0: vnapage[0]=vnapage[2]=fceulib__cart.CHRptr[0]+(((nt1|128)&fceulib__cart.CHRmask1[0])<<10);
+             vnapage[1]=vnapage[3]=fceulib__cart.CHRptr[0]+(((nt2|128)&fceulib__cart.CHRmask1[0])<<10);
              break;
-     case 1: vnapage[0]=vnapage[1]=CHRptr[0]+(((nt1|128)&CHRmask1[0])<<10);
-             vnapage[2]=vnapage[3]=CHRptr[0]+(((nt2|128)&CHRmask1[0])<<10);
+     case 1: vnapage[0]=vnapage[1]=fceulib__cart.CHRptr[0]+(((nt1|128)&fceulib__cart.CHRmask1[0])<<10);
+             vnapage[2]=vnapage[3]=fceulib__cart.CHRptr[0]+(((nt2|128)&fceulib__cart.CHRmask1[0])<<10);
              break;
-     case 2: vnapage[0]=vnapage[1]=vnapage[2]=vnapage[3]=CHRptr[0]+(((nt1|128)&CHRmask1[0])<<10);
+     case 2: vnapage[0]=vnapage[1]=vnapage[2]=vnapage[3]=fceulib__cart.CHRptr[0]+(((nt1|128)&fceulib__cart.CHRmask1[0])<<10);
              break;
-     case 3: vnapage[0]=vnapage[1]=vnapage[2]=vnapage[3]=CHRptr[0]+(((nt2|128)&CHRmask1[0])<<10);
+     case 3: vnapage[0]=vnapage[1]=vnapage[2]=vnapage[3]=fceulib__cart.CHRptr[0]+(((nt2|128)&fceulib__cart.CHRmask1[0])<<10);
              break;
     }
   }
   else
     switch(mirr&3)
     {
-      case 0: setmirror(MI_V); break;
-      case 1: setmirror(MI_H); break;
-      case 2: setmirror(MI_0); break;
-      case 3: setmirror(MI_1); break;
+      case 0: fceulib__cart.setmirror(MI_V); break;
+      case 1: fceulib__cart.setmirror(MI_H); break;
+      case 2: fceulib__cart.setmirror(MI_0); break;
+      case 3: fceulib__cart.setmirror(MI_1); break;
     }
 }
 
 static void Sync(void)
 {
-  setchr2(0x0000,chr_reg[0]);
-  setchr2(0x0800,chr_reg[1]);
-  setchr2(0x1000,chr_reg[2]);
-  setchr2(0x1800,chr_reg[3]);
-  setprg8r(0x10,0x6000,0);
-  setprg16r((PRGptr[1])?kogame:0,0x8000,prg_reg);
-  setprg16(0xC000,~0);
+  fceulib__cart.setchr2(0x0000,chr_reg[0]);
+  fceulib__cart.setchr2(0x0800,chr_reg[1]);
+  fceulib__cart.setchr2(0x1000,chr_reg[2]);
+  fceulib__cart.setchr2(0x1800,chr_reg[3]);
+  fceulib__cart.setprg8r(0x10,0x6000,0);
+  fceulib__cart.setprg16r((fceulib__cart.PRGptr[1])?kogame:0,0x8000,prg_reg);
+  fceulib__cart.setprg16(0xC000,~0);
 }
 
 static DECLFR(M68Read)
@@ -84,9 +84,9 @@ static DECLFR(M68Read)
   {
     count++;
     if(count==1784)
-      setprg16r(0,0x8000,prg_reg);
+      fceulib__cart.setprg16r(0,0x8000,prg_reg);
   }
-  return CartBR(A);
+  return Cart::CartBR(A);
 }
 
 static DECLFW(M68WriteLo)
@@ -94,7 +94,7 @@ static DECLFW(M68WriteLo)
   if(!V)
   {
     count = 0;
-    setprg16r((PRGptr[1])?kogame:0,0x8000,prg_reg);
+    fceulib__cart.setprg16r((fceulib__cart.PRGptr[1])?kogame:0,0x8000,prg_reg);
   }
 }
 
@@ -135,16 +135,16 @@ static void M68Power(void)
   kogame = 0;
   Sync();
   M68NTfix();
-  SetReadHandler(0x6000,0x7FFF,CartBR);
+  SetReadHandler(0x6000,0x7FFF,Cart::CartBR);
   SetReadHandler(0x8000,0xBFFF,M68Read);
-  SetReadHandler(0xC000,0xFFFF,CartBR);
+  SetReadHandler(0xC000,0xFFFF,Cart::CartBR);
   SetWriteHandler(0x8000,0xBFFF,M68WriteCHR);
   SetWriteHandler(0xC000,0xCFFF,M68WriteNT1);
   SetWriteHandler(0xD000,0xDFFF,M68WriteNT2);
   SetWriteHandler(0xE000,0xEFFF,M68WriteMIR);
   SetWriteHandler(0xF000,0xFFFF,M68WriteROM);
   SetWriteHandler(0x6000,0x6000,M68WriteLo);
-  SetWriteHandler(0x6001,0x7FFF,CartBW);
+  SetWriteHandler(0x6001,0x7FFF,Cart::CartBW);
 }
 
 static void M68Close(void)
@@ -160,16 +160,14 @@ static void StateRestore(int version)
   M68NTfix();
 }
 
-void Mapper68_Init(CartInfo *info)
-{
+void Mapper68_Init(CartInfo *info) {
   info->Power=M68Power;
   info->Close=M68Close;
   GameStateRestore=StateRestore;
   WRAMSIZE=8192;
   WRAM=(uint8*)FCEU_gmalloc(WRAMSIZE);
-  SetupCartPRGMapping(0x10,WRAM,WRAMSIZE,1);
-  if(info->battery)
-  {
+  fceulib__cart.SetupCartPRGMapping(0x10,WRAM,WRAMSIZE,1);
+  if(info->battery) {
     info->SaveGame[0]=WRAM;
     info->SaveGameLen[0]=WRAMSIZE;
   }

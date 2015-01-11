@@ -29,42 +29,42 @@ static SFORMAT StateRegs[] =
 };
 
 static void Sync(void) {
-	if (bank & 0x40) {
-		setprg32(0x8000, (bank & 0xE) | (preg & 1));
-		setchr8(((bank & 0xE) << 2) | ((preg >> 4) & 7));
-	} else {
-		setprg32(0x8000, bank & 0xF);
-		setchr8(((bank & 0xF) << 2) | ((preg >> 4) & 3));
-	}
-	setmirror((bank >> 7) ^ 1);
+  if (bank & 0x40) {
+    fceulib__cart.setprg32(0x8000, (bank & 0xE) | (preg & 1));
+    fceulib__cart.setchr8(((bank & 0xE) << 2) | ((preg >> 4) & 7));
+  } else {
+    fceulib__cart.setprg32(0x8000, bank & 0xF);
+    fceulib__cart.setchr8(((bank & 0xF) << 2) | ((preg >> 4) & 3));
+  }
+  fceulib__cart.setmirror((bank >> 7) ^ 1);
 }
 
 DECLFR(M234ReadBank) {
-	uint8 r = CartBR(A);
-	if (!bank) {
-		bank = r;
-		Sync();
-	}
-	return r;
+  uint8 r = Cart::CartBR(A);
+  if (!bank) {
+    bank = r;
+    Sync();
+  }
+  return r;
 }
 
 DECLFR(M234ReadPreg) {
-	uint8 r = CartBR(A);
-	preg = r;
-	Sync();
-	return r;
+  uint8 r = Cart::CartBR(A);
+  preg = r;
+  Sync();
+  return r;
 }
 
 static void M234Reset(void) {
-	bank = preg = 0;
-	Sync();
+  bank = preg = 0;
+  Sync();
 }
 
 static void M234Power(void) {
-    M234Reset();
-	SetReadHandler(0x8000, 0xFFFF, CartBR);
-	SetReadHandler(0xFF80, 0xFF9F, M234ReadBank);
-	SetReadHandler(0xFFE8, 0xFFF7, M234ReadPreg);
+  M234Reset();
+  SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
+  SetReadHandler(0xFF80, 0xFF9F, M234ReadBank);
+  SetReadHandler(0xFFE8, 0xFFF7, M234ReadPreg);
 }
 
 static void StateRestore(int version) {

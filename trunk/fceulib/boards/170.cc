@@ -30,9 +30,9 @@ static SFORMAT StateRegs[]=
 
 static void Sync(void)
 {
-  setprg16(0x8000, 0);
-  setprg16(0xc000,~0);
-  setchr8(0);
+  fceulib__cart.setprg16(0x8000, 0);
+  fceulib__cart.setprg16(0xc000,~0);
+  fceulib__cart.setchr8(0);
 }
 
 static DECLFW(M170ProtW)
@@ -52,7 +52,7 @@ static void M170Power(void)
   SetWriteHandler(0x7000,0x7000,M170ProtW);
   SetReadHandler(0x7001,0x7001,M170ProtR);
   SetReadHandler(0x7777,0x7777,M170ProtR);
-  SetReadHandler(0x8000,0xFFFF,CartBR);
+  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
 }
 
 static void StateRestore(int version)

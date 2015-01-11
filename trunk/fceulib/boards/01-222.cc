@@ -44,12 +44,16 @@ static SFORMAT StateRegs[] =
 };
 
 static void Sync(void) {
-	setprg32(0x8000, (reg[2] >> 2) & 1);
-	if (is172)
-		setchr8((((cmd ^ reg[2]) >> 3) & 2) | (((cmd ^ reg[2]) >> 5) & 1));  // 1991 DU MA Racing probably CHR bank sequence is WRONG, so it is possible to
-																			// rearrange CHR banks for normal UNIF board and mapper 172 is unneccessary
-	else
-		setchr8(reg[2] & 3);
+  fceulib__cart.setprg32(0x8000, (reg[2] >> 2) & 1);
+  if (is172) {
+    // 1991 DU MA Racing probably CHR bank sequence is WRONG, so it is
+    // possible to rearrange CHR banks for normal UNIF board and
+    // mapper 172 is unneccessary
+    fceulib__cart.setchr8((((cmd ^ reg[2]) >> 3) & 2) | 
+			  (((cmd ^ reg[2]) >> 5) & 1));
+  } else {
+    fceulib__cart.setchr8(reg[2] & 3);
+  }
 }
 
 static DECLFW(UNL22211WriteLo) {
@@ -72,11 +76,11 @@ static DECLFR(UNL22211ReadLo) {
 }
 
 static void UNL22211Power(void) {
-	Sync();
-	SetReadHandler(0x8000, 0xFFFF, CartBR);
-	SetReadHandler(0x4100, 0x4100, UNL22211ReadLo);
-	SetWriteHandler(0x4100, 0x4103, UNL22211WriteLo);
-	SetWriteHandler(0x8000, 0xFFFF, UNL22211WriteHi);
+  Sync();
+  SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
+  SetReadHandler(0x4100, 0x4100, UNL22211ReadLo);
+  SetWriteHandler(0x4100, 0x4103, UNL22211WriteLo);
+  SetWriteHandler(0x8000, 0xFFFF, UNL22211WriteHi);
 }
 
 static void StateRestore(int version) {

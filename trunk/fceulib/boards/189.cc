@@ -23,7 +23,7 @@
 
 static void M189PW(uint32 A, uint8 V)
 {
-  setprg32(0x8000,EXPREGS[0]&7);
+  fceulib__cart.setprg32(0x8000,EXPREGS[0]&7);
 }
 
 static DECLFW(M189Write)

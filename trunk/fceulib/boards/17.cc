@@ -35,19 +35,17 @@ static SFORMAT StateRegs[]=
   {0}
 };
 
-static void Sync(void)
-{
-  int i;
-  for(i=0; i<8; i++) setchr1(i<<10,creg[i]);
-  setprg8(0x8000,preg[0]);
-  setprg8(0xA000,preg[1]);
-  setprg8(0xC000,preg[2]);
-  setprg8(0xE000,preg[3]);
+static void Sync(void) {
+  for(int i=0; i<8; i++) fceulib__cart.setchr1(i<<10,creg[i]);
+  fceulib__cart.setprg8(0x8000,preg[0]);
+  fceulib__cart.setprg8(0xA000,preg[1]);
+  fceulib__cart.setprg8(0xC000,preg[2]);
+  fceulib__cart.setprg8(0xE000,preg[3]);
   switch(mirr) {
-    case 0: setmirror(MI_0); break;
-    case 1: setmirror(MI_1); break;
-    case 2: setmirror(MI_H); break;
-    case 3: setmirror(MI_V); break;
+    case 0: fceulib__cart.setmirror(MI_0); break;
+    case 1: fceulib__cart.setmirror(MI_1); break;
+    case 2: fceulib__cart.setmirror(MI_H); break;
+    case 3: fceulib__cart.setmirror(MI_V); break;
   }
 }
 
@@ -82,7 +80,7 @@ static void M17Power(void)
 {
   preg[3] = ~0;
   Sync();
-  SetReadHandler(0x8000,0xFFFF,CartBR);
+  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
   SetWriteHandler(0x42FE,0x42FF,M17WriteMirr);
   SetWriteHandler(0x4500,0x4503,M17WriteIRQ);
   SetWriteHandler(0x4504,0x4507,M17WritePrg);

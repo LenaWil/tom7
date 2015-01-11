@@ -34,16 +34,15 @@ static SFORMAT StateRegs[] =
 };
 
 static void Sync(void) {
-	uint16 swap = ((mirr & 2) << 13);
-	setmirror((mirr & 1) ^ 1);
-	setprg8r(0x10, 0x6000, 0);
-	setprg8(0x8000 ^ swap, preg[0]);
-	setprg8(0xA000, preg[1]);
-	setprg8(0xC000 ^ swap, ~1);
-	setprg8(0xE000, ~0);
-	uint8 i;
-	for (i = 0; i < 8; i++)
-		setchr1(i << 10, creg[i]);
+  uint16 swap = ((mirr & 2) << 13);
+  fceulib__cart.setmirror((mirr & 1) ^ 1);
+  fceulib__cart.setprg8r(0x10, 0x6000, 0);
+  fceulib__cart.setprg8(0x8000 ^ swap, preg[0]);
+  fceulib__cart.setprg8(0xA000, preg[1]);
+  fceulib__cart.setprg8(0xC000 ^ swap, ~1);
+  fceulib__cart.setprg8(0xE000, ~0);
+  for (uint8 i = 0; i < 8; i++)
+    fceulib__cart.setchr1(i << 10, creg[i]);
 }
 
 static DECLFW(M32Write0) {
@@ -68,9 +67,9 @@ static DECLFW(M32Write3) {
 
 static void M32Power(void) {
 	Sync();
-	SetReadHandler(0x6000,0x7fff,CartBR);
-	SetWriteHandler(0x6000,0x7fff,CartBW);
-	SetReadHandler(0x8000, 0xFFFF, CartBR);
+	SetReadHandler(0x6000,0x7fff, Cart::CartBR);
+	SetWriteHandler(0x6000,0x7fff, Cart::CartBW);
+	SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
 	SetWriteHandler(0x8000, 0x8FFF, M32Write0);
 	SetWriteHandler(0x9000, 0x9FFF, M32Write1);
 	SetWriteHandler(0xA000, 0xAFFF, M32Write2);
@@ -89,14 +88,14 @@ static void StateRestore(int version) {
 }
 
 void Mapper32_Init(CartInfo *info) {
-	info->Power = M32Power;
-	info->Close = M32Close;
-	GameStateRestore = StateRestore;
+  info->Power = M32Power;
+  info->Close = M32Close;
+  GameStateRestore = StateRestore;
 
-	WRAMSIZE = 8192;
-	WRAM = (uint8*)FCEU_gmalloc(WRAMSIZE);
-	SetupCartPRGMapping(0x10, WRAM, WRAMSIZE, 1);
-	AddExState(WRAM, WRAMSIZE, 0, "WRAM");
+  WRAMSIZE = 8192;
+  WRAM = (uint8*)FCEU_gmalloc(WRAMSIZE);
+  fceulib__cart.SetupCartPRGMapping(0x10, WRAM, WRAMSIZE, 1);
+  AddExState(WRAM, WRAMSIZE, 0, "WRAM");
 
-	AddExState(&StateRegs, ~0, 0, 0);
+  AddExState(&StateRegs, ~0, 0, 0);
 }

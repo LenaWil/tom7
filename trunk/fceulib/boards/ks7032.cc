@@ -32,14 +32,13 @@ static SFORMAT StateRegs[]=
   {0}
 };
 
-static void Sync(void)
-{
-  setprg8(0x6000,reg[4]);
-  setprg8(0x8000,reg[1]);
-  setprg8(0xA000,reg[2]);
-  setprg8(0xC000,reg[3]);
-  setprg8(0xE000,~0);
-  setchr8(0);
+static void Sync(void) {
+  fceulib__cart.setprg8(0x6000,reg[4]);
+  fceulib__cart.setprg8(0x8000,reg[1]);
+  fceulib__cart.setprg8(0xA000,reg[2]);
+  fceulib__cart.setprg8(0xC000,reg[3]);
+  fceulib__cart.setprg8(0xE000,~0);
+  fceulib__cart.setchr8(0);
 }
 
 static DECLFW(UNLKS7032Write)
@@ -75,8 +74,8 @@ static void UNLSMB2JIRQHook(int a)
 static void UNLKS7032Power(void)
 {
   Sync();
-  SetReadHandler(0x6000,0x7FFF,CartBR);
-  SetReadHandler(0x8000,0xFFFF,CartBR);
+  SetReadHandler(0x6000,0x7FFF,Cart::CartBR);
+  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
   SetWriteHandler(0x4020,0xFFFF,UNLKS7032Write);
 }
 

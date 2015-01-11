@@ -37,10 +37,10 @@ static SFORMAT StateRegs[]=
 
 static void Sync(void)
 {
-  setprg4r(1,0x5000,1);
-  setprg8r(1,0x6000,1);
-  setprg32(0x8000,prg);
-  setchr8(0);
+  fceulib__cart.setprg4r(1,0x5000,1);
+  fceulib__cart.setprg8r(1,0x6000,1);
+  fceulib__cart.setprg32(0x8000,prg);
+  fceulib__cart.setchr8(0);
 }
 
 static DECLFW(UNLSMB2JWrite)
@@ -62,8 +62,8 @@ static void UNLSMB2JPower(void)
 {
   prg=~0;
   Sync();
-  SetReadHandler(0x5000,0x7FFF,CartBR);
-  SetReadHandler(0x8000,0xFFFF,CartBR);
+  SetReadHandler(0x5000,0x7FFF,Cart::CartBR);
+  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
   SetWriteHandler(0x4020,0xffff,UNLSMB2JWrite);
 }
 

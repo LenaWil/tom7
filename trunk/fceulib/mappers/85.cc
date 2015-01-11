@@ -61,10 +61,9 @@ void UpdateOPL(int Count)
  dwave=0;
 }
 
-static INLINE void DaMirror(int V)
-{
+static INLINE void DaMirror(int V) {
  int salpo[4]={MI_V,MI_H,MI_0,MI_1};
- setmirror(salpo[V&3]);
+ fceulib__cart.setmirror(salpo[V&3]);
 }
 
 DECLFW(Mapper85_write)
@@ -77,7 +76,7 @@ DECLFW(Mapper85_write)
     {
       int x=((A>>4)&1)|((A-0xA000)>>11);
       mapbyte3[x]=V;
-      setchr1(x<<10,V);
+      fceulib__cart.setchr1(x<<10,V);
     }
   } else if(A==0x9030) {
     if(FSettings.SndRate) {
@@ -87,9 +86,9 @@ DECLFW(Mapper85_write)
     }
   } else { 
     switch(A&0xF010) {
-    case 0x8000:mapbyte2[0]=V;setprg8(0x8000,V);break;
-    case 0x8010:mapbyte2[1]=V;setprg8(0xa000,V);break;
-    case 0x9000:mapbyte2[2]=V;setprg8(0xc000,V);break;
+    case 0x8000:mapbyte2[0]=V;fceulib__cart.setprg8(0x8000,V);break;
+    case 0x8010:mapbyte2[1]=V;fceulib__cart.setprg8(0xa000,V);break;
+    case 0x9000:mapbyte2[2]=V;fceulib__cart.setprg8(0xc000,V);break;
     case 0x9010:indox=V;break;
     case 0xe000:mapbyte2[3]=V;DaMirror(V);break;
     case 0xE010:IRQLatch=V;
@@ -127,23 +126,21 @@ static void KonamiIRQHook(int a)
  }
 }
 
-void Mapper85_StateRestore(int version)
-{
- int x;
+void Mapper85_StateRestore(int version) {
 
  if(version<7200)
  {
-  for(x=0;x<8;x++)
+  for(int x=0;x<8;x++)
    mapbyte3[x]=CHRBankList[x];
-  for(x=0;x<3;x++)
+  for(int x=0;x<3;x++)
    mapbyte2[x]=PRGBankList[x];
   mapbyte2[3]=(Mirroring<0x10)?Mirroring:Mirroring-0xE;
  }
 
- for(x=0;x<8;x++)
-  setchr1(x*0x400,mapbyte3[x]);
- for(x=0;x<3;x++)
-  setprg8(0x8000+x*8192,mapbyte2[x]);
+ for(int x=0;x<8;x++)
+  fceulib__cart.setchr1(x*0x400,mapbyte3[x]);
+ for(int x=0;x<3;x++)
+  fceulib__cart.setprg8(0x8000+x*8192,mapbyte2[x]);
  DaMirror(mapbyte2[3]);
  //LoadOPL();
 }
@@ -177,13 +174,12 @@ void NSFVRC7_Init(void)
     VRC7SI();
 }
 
-void Mapper85_init(void)
-{
+void Mapper85_init(void) {
   MapIRQHook=KonamiIRQHook;
   SetWriteHandler(0x8000,0xffff,Mapper85_write);
   GameStateRestore=Mapper85_StateRestore;
   if(!VROM_size)
-   SetupCartCHRMapping(0, CHRRAM, 8192, 1);
+   fceulib__cart.SetupCartCHRMapping(0, CHRRAM, 8192, 1);
   //AddExState(VRC7Instrument, 16, 0, "VC7I");
   //AddExState(VRC7Chan, sizeof(VRC7Chan), 0, "V7CH");
   VRC7SI();

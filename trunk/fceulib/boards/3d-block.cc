@@ -33,10 +33,9 @@ static SFORMAT StateRegs[]=
   {0}
 };
 
-static void Sync(void)
-{
-  setprg32(0x8000,0);
-  setchr8(0);
+static void Sync(void) {
+  fceulib__cart.setprg32(0x8000,0);
+  fceulib__cart.setchr8(0);
 }
 
 //#define Count 0x1800
@@ -57,10 +56,9 @@ static DECLFW(UNL3DBlockWrite)
   }
 }
 
-static void UNL3DBlockPower(void)
-{
+static void UNL3DBlockPower(void) {
   Sync();
-  SetReadHandler(0x8000,0xFFFF,CartBR);
+  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
   SetWriteHandler(0x4800,0x4E00,UNL3DBlockWrite);
 }
 

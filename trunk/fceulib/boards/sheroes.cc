@@ -25,20 +25,18 @@ static uint8 *CHRRAM;		 // there is no more extern CHRRAM in mmc3.h
 							 // I need chrram here and local   static == local
 static uint8 tekker;
 
-static void MSHCW(uint32 A, uint8 V)
-{
-  if(EXPREGS[0]&0x40)
-    setchr8r(0x10,0);
-  else
-  {
+static void MSHCW(uint32 A, uint8 V) {
+  if(EXPREGS[0]&0x40) {
+    fceulib__cart.setchr8r(0x10,0);
+  } else {
     if(A<0x800)
-      setchr1(A,V|((EXPREGS[0]&8)<<5));
+      fceulib__cart.setchr1(A,V|((EXPREGS[0]&8)<<5));
     else if(A<0x1000)
-      setchr1(A,V|((EXPREGS[0]&4)<<6));
+      fceulib__cart.setchr1(A,V|((EXPREGS[0]&4)<<6));
     else if(A<0x1800)
-      setchr1(A,V|((EXPREGS[0]&1)<<8));
+      fceulib__cart.setchr1(A,V|((EXPREGS[0]&1)<<8));
     else
-      setchr1(A,V|((EXPREGS[0]&2)<<7));
+      fceulib__cart.setchr1(A,V|((EXPREGS[0]&2)<<7));
   }
 }
 
@@ -50,7 +48,7 @@ static DECLFW(MSHWrite)
 
 static DECLFR(MSHRead)
 {
-  return(tekker);
+  return tekker;
 }
 
 static void MSHReset(void)
@@ -82,7 +80,7 @@ void UNLSHeroes_Init(CartInfo *info)
   info->Reset=MSHReset;
   info->Close=MSHClose;
   CHRRAM = (uint8*)FCEU_gmalloc(8192);
-  SetupCartCHRMapping(0x10, CHRRAM, 8192, 1);
+  fceulib__cart.SetupCartCHRMapping(0x10, CHRRAM, 8192, 1);
   AddExState(EXPREGS, 4, 0, "EXPR");
   AddExState(&tekker, 1, 0, "DIPSW");
 }

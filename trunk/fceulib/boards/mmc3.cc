@@ -231,18 +231,18 @@ void GenMMC3Restore(int version)
 
 static void GENCWRAP(uint32 A, uint8 V)
 {
-   setchr1(A,V);    // Business Wars NEEDS THIS for 8K CHR-RAM
+   fceulib__cart.setchr1(A,V);    // Business Wars NEEDS THIS for 8K CHR-RAM
 }
 
 static void GENPWRAP(uint32 A, uint8 V)
 {
- setprg8(A,V&0x7F); // [NJ102] Mo Dao Jie (C) has 1024Mb MMC3 BOARD, maybe something other will be broken
+ fceulib__cart.setprg8(A,V&0x7F); // [NJ102] Mo Dao Jie (C) has 1024Mb MMC3 BOARD, maybe something other will be broken
 }
 
 static void GENMWRAP(uint8 V)
 {
  A000B=V;
- setmirror((V&1)^1);
+ fceulib__cart.setmirror((V&1)^1);
 }
 
 static void GENNOMWRAP(uint8 V)
@@ -262,34 +262,30 @@ static DECLFR(MAWRAMMMC6)
 
 void GenMMC3Power(void)
 {
- if(UNIFchrrama) setchr8(0);
+  if(UNIFchrrama) fceulib__cart.setchr8(0);
 
- SetWriteHandler(0x8000,0xBFFF,MMC3_CMDWrite);
- SetWriteHandler(0xC000,0xFFFF,MMC3_IRQWrite);
- SetReadHandler(0x8000,0xFFFF,CartBR);
- A001B=A000B=0;
- setmirror(1);
- if(mmc3opts&1)
- {
-  if(wrams==1024)
-  {
-    // FCEU_CheatAddRAM(1,0x7000,WRAM);
-   SetReadHandler(0x7000,0x7FFF,MAWRAMMMC6);
-   SetWriteHandler(0x7000,0x7FFF,MBWRAMMMC6);
+  SetWriteHandler(0x8000,0xBFFF,MMC3_CMDWrite);
+  SetWriteHandler(0xC000,0xFFFF,MMC3_IRQWrite);
+  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  A001B=A000B=0;
+  fceulib__cart.setmirror(1);
+  if(mmc3opts&1) {
+    if(wrams==1024) {
+      // FCEU_CheatAddRAM(1,0x7000,WRAM);
+      SetReadHandler(0x7000,0x7FFF,MAWRAMMMC6);
+      SetWriteHandler(0x7000,0x7FFF,MBWRAMMMC6);
+    } else {
+      // FCEU_CheatAddRAM((wrams&0x1fff)>>10,0x6000,WRAM);
+      SetWriteHandler(0x6000,0x6000 + ((wrams - 1) & 0x1fff),Cart::CartBW);
+      SetReadHandler(0x6000,0x6000 + ((wrams - 1) & 0x1fff),Cart::CartBR);
+      fceulib__cart.setprg8r(0x10,0x6000,0);
+    }
+    if(!(mmc3opts&2))
+      FCEU_dwmemset(WRAM,0,wrams);
   }
-  else
-  {
-    // FCEU_CheatAddRAM((wrams&0x1fff)>>10,0x6000,WRAM);
-   SetWriteHandler(0x6000,0x6000 + ((wrams - 1) & 0x1fff),CartBW);
-   SetReadHandler(0x6000,0x6000 + ((wrams - 1) & 0x1fff),CartBR);
-   setprg8r(0x10,0x6000,0);
-  }
-  if(!(mmc3opts&2))
-     FCEU_dwmemset(WRAM,0,wrams);
- }
- MMC3RegReset();
- if(CHRRAM)
-   FCEU_dwmemset(CHRRAM,0,CHRRAMSize);
+  MMC3RegReset();
+  if(CHRRAM)
+    FCEU_dwmemset(CHRRAM,0,CHRRAMSize);
 }
 
 static void GenMMC3Close(void)
@@ -309,15 +305,14 @@ void GenMMC3_Init(CartInfo *info, int prg, int chr, int wram, int battery)
 
  wrams=wram<<10;
 
- PRGmask8[0]&=(prg>>13)-1;
- CHRmask1[0]&=(chr>>10)-1;
- CHRmask2[0]&=(chr>>11)-1;
+ fceulib__cart.PRGmask8[0]&=(prg>>13)-1;
+ fceulib__cart.CHRmask1[0]&=(chr>>10)-1;
+ fceulib__cart.CHRmask2[0]&=(chr>>11)-1;
 
- if(wram)
- {
+ if(wram) {
   mmc3opts|=1;
   WRAM=(uint8*)FCEU_gmalloc(wrams);
-  SetupCartPRGMapping(0x10,WRAM,wrams,1);
+  fceulib__cart.SetupCartPRGMapping(0x10,WRAM,wrams,1);
   AddExState(WRAM, wrams, 0, "MRAM");
  }
 
@@ -357,7 +352,7 @@ static void M4Power(void)
 {
  GenMMC3Power();
  A000B=(hackm4^1)&1;
- setmirror(hackm4);
+ fceulib__cart.setmirror(hackm4);
 }
 
 void Mapper4_Init(CartInfo *info)
@@ -376,15 +371,13 @@ void Mapper4_Init(CartInfo *info)
 
 // ---------------------------- Mapper 12 -------------------------------
 
-static void M12CW(uint32 A, uint8 V)
-{
- setchr1(A,(EXPREGS[(A&0x1000)>>12]<<8)+V);
+static void M12CW(uint32 A, uint8 V) {
+  fceulib__cart.setchr1(A,(EXPREGS[(A&0x1000)>>12]<<8)+V);
 }
 
-static DECLFW(M12Write)
-{
- EXPREGS[0]=V&0x01;
- EXPREGS[1]=(V&0x10)>>4;
+static DECLFW(M12Write) {
+  EXPREGS[0]=V&0x01;
+  EXPREGS[1]=(V&0x10)>>4;
 }
 
 static void M12Power(void)
@@ -413,7 +406,7 @@ static void M37PW(uint32 A, uint8 V)
   else
     V&=0xF;
   V|=EXPREGS[0]<<3;
-  setprg8(A,V);
+  fceulib__cart.setprg8(A,V);
 }
 
 static void M37CW(uint32 A, uint8 V)
@@ -421,7 +414,7 @@ static void M37CW(uint32 A, uint8 V)
   uint32 NV=V;
   NV&=0x7F;
   NV|=EXPREGS[0]<<6;
-  setchr1(A,NV);
+  fceulib__cart.setchr1(A,NV);
 }
 
 static DECLFW(M37Write)
@@ -462,7 +455,7 @@ static void M44PW(uint32 A, uint8 V)
  if(EXPREGS[0]>=6) NV&=0x1F;
  else NV&=0x0F;
  NV|=EXPREGS[0]<<4;
- setprg8(A,NV);
+ fceulib__cart.setprg8(A,NV);
 }
 
 static void M44CW(uint32 A, uint8 V)
@@ -470,7 +463,7 @@ static void M44CW(uint32 A, uint8 V)
  uint32 NV=V;
  if(EXPREGS[0]<6) NV&=0x7F;
  NV|=EXPREGS[0]<<7;
- setchr1(A,NV);
+ fceulib__cart.setchr1(A,NV);
 }
 
 static DECLFW(M44Write)
@@ -514,7 +507,7 @@ static void M45CW(uint32 A, uint8 V)
       if(EXPREGS[2])
          NV&=0; // hack ;( don't know exactly how it should be
    NV|=EXPREGS[0]|((EXPREGS[2]&0xF0)<<4);
-   setchr1(A,NV);
+   fceulib__cart.setchr1(A,NV);
  }
 }
 
@@ -522,7 +515,7 @@ static void M45PW(uint32 A, uint8 V)
 {
  V&=(EXPREGS[3]&0x3F)^0x3F;
  V|=EXPREGS[1];
- setprg8(A,V);
+ fceulib__cart.setprg8(A,V);
 }
 
 static DECLFW(M45Write)
@@ -566,7 +559,7 @@ static void M45Reset(void)
 
 static void M45Power(void)
 {
- setchr8(0);
+ fceulib__cart.setchr8(0);
  GenMMC3Power();
  EXPREGS[0]=EXPREGS[1]=EXPREGS[2]=EXPREGS[3]=EXPREGS[4]=EXPREGS[5]=0;
  SetWriteHandler(0x5000,0x7FFF,M45Write);
@@ -589,7 +582,7 @@ static void M47PW(uint32 A, uint8 V)
 {
  V&=0xF;
  V|=EXPREGS[0]<<4;
- setprg8(A,V);
+ fceulib__cart.setprg8(A,V);
 }
 
 static void M47CW(uint32 A, uint8 V)
@@ -597,7 +590,7 @@ static void M47CW(uint32 A, uint8 V)
  uint32 NV=V;
  NV&=0x7F;
  NV|=EXPREGS[0]<<7;
- setchr1(A,NV);
+ fceulib__cart.setchr1(A,NV);
 }
 
 static DECLFW(M47Write)
@@ -632,10 +625,10 @@ static void M49PW(uint32 A, uint8 V)
  {
   V&=0xF;
   V|=(EXPREGS[0]&0xC0)>>2;
-  setprg8(A,V);
+  fceulib__cart.setprg8(A,V);
  }
  else
-  setprg32(0x8000,(EXPREGS[0]>>4)&3);
+  fceulib__cart.setprg32(0x8000,(EXPREGS[0]>>4)&3);
 }
 
 static void M49CW(uint32 A, uint8 V)
@@ -643,7 +636,7 @@ static void M49CW(uint32 A, uint8 V)
  uint32 NV=V;
  NV&=0x7F;
  NV|=(EXPREGS[0]&0xC0)<<1;
- setchr1(A,NV);
+ fceulib__cart.setchr1(A,NV);
 }
 
 static DECLFW(M49Write)
@@ -685,7 +678,7 @@ static void M52PW(uint32 A, uint8 V)
 {
  uint32 mask = 0x1F^((EXPREGS[0]&8)<<1);
  uint32 bank = ((EXPREGS[0]&6)|((EXPREGS[0]>>3)&EXPREGS[0]&1))<<4;
- setprg8(A, bank|(V & mask));
+ fceulib__cart.setprg8(A, bank|(V & mask));
 }
 
 static void M52CW(uint32 A, uint8 V)
@@ -693,7 +686,7 @@ static void M52CW(uint32 A, uint8 V)
  uint32 mask = 0xFF^((EXPREGS[0]&0x40)<<1);
 // uint32 bank = (((EXPREGS[0]>>3)&4)|((EXPREGS[0]>>1)&2)|((EXPREGS[0]>>6)&(EXPREGS[0]>>4)&1))<<7;
  uint32 bank = (((EXPREGS[0]>>4)&2)|(EXPREGS[0]&4)|((EXPREGS[0]>>6)&(EXPREGS[0]>>4)&1))<<7; // actually 256K CHR banks index bits is inverted!
- setchr1(A, bank|(V & mask));
+fceulib__cart.setchr1(A, bank|(V & mask));
 }
 
 static DECLFW(M52Write)
@@ -737,9 +730,9 @@ void Mapper52_Init(CartInfo *info)
 static void M74CW(uint32 A, uint8 V)
 {
   if((V==8)||(V==9)) //Di 4 Ci - Ji Qi Ren Dai Zhan (As).nes, Ji Jia Zhan Shi (As).nes
-    setchr1r(0x10,A,V);
+   fceulib__cart.setchr1r(0x10,A,V);
   else
-    setchr1r(0,A,V);
+   fceulib__cart.setchr1r(0,A,V);
 }
 
 void Mapper74_Init(CartInfo *info)
@@ -748,7 +741,7 @@ void Mapper74_Init(CartInfo *info)
  cwrap=M74CW;
  CHRRAMSize=2048;
  CHRRAM=(uint8*)FCEU_gmalloc(CHRRAMSize);
- SetupCartCHRMapping(0x10, CHRRAM, CHRRAMSize, 1);
+ fceulib__cart.SetupCartCHRMapping(0x10, CHRRAM, CHRRAMSize, 1);
  AddExState(CHRRAM, CHRRAMSize, 0, "CHRR");
 }
 
@@ -757,21 +750,17 @@ void Mapper74_Init(CartInfo *info)
 static uint8 cmdin;
 uint8 m114_perm[8] = {0, 3, 1, 5, 6, 7, 2, 4};
 
-static void M114PWRAP(uint32 A, uint8 V)
-{
-  if(EXPREGS[0]&0x80)
-  {
-    setprg16(0x8000,EXPREGS[0]&0xF);
-    setprg16(0xC000,EXPREGS[0]&0xF);
+static void M114PWRAP(uint32 A, uint8 V) {
+  if(EXPREGS[0]&0x80) {
+    fceulib__cart.setprg16(0x8000,EXPREGS[0]&0xF);
+    fceulib__cart.setprg16(0xC000,EXPREGS[0]&0xF);
+  } else {
+    fceulib__cart.setprg8(A,V&0x3F);
   }
-  else
-    setprg8(A,V&0x3F);
 }
 
-static DECLFW(M114Write)
-{
-  switch(A&0xE001)
-  {
+static DECLFW(M114Write) {
+  switch(A&0xE001) {
    case 0x8001: MMC3_CMDWrite(0xA000,V); break;
    case 0xA000: MMC3_CMDWrite(0x8000,(V&0xC0)|(m114_perm[V&7])); cmdin=1; break;
    case 0xC000: if(!cmdin) break; MMC3_CMDWrite(0x8001,V); cmdin=0; break;
@@ -822,12 +811,12 @@ static void M115PW(uint32 A, uint8 V)
 	//zero 09-apr-2012 - #3515357 - changed to support Bao Qing Tian (mapper 248) which was missing BG gfx. 115 game(s?) seem still to work OK.
 	GENPWRAP(A,V);
 	if(A==0x8000 && EXPREGS[0]&0x80)
-		setprg16(0x8000,(EXPREGS[0]&0xF));
+		fceulib__cart.setprg16(0x8000,(EXPREGS[0]&0xF));
 }
 
 static void M115CW(uint32 A, uint8 V)
 {
-  setchr1(A,(uint32)V|((EXPREGS[1]&1)<<8));
+ fceulib__cart.setchr1(A,(uint32)V|((EXPREGS[1]&1)<<8));
 }
 
 static DECLFW(M115Write)
@@ -872,22 +861,22 @@ static void TKSPPU(uint32 A)
  A&=0x1FFF;
  A>>=10;
  PPUCHRBus=A;
- setmirror(MI_0+TKSMIR[A]);
+ fceulib__cart.setmirror(MI_0+TKSMIR[A]);
 }
 
 static void TKSWRAP(uint32 A, uint8 V)
 {
  TKSMIR[A>>10]=V>>7;
- setchr1(A,V&0x7F);
+fceulib__cart.setchr1(A,V&0x7F);
  if(PPUCHRBus==(A>>10))
-    setmirror(MI_0+(V>>7));
+    fceulib__cart.setmirror(MI_0+(V>>7));
 }
 
 // ---------------------------- Mapper 119 ------------------------------
 
 static void TQWRAP(uint32 A, uint8 V)
 {
- setchr1r((V&0x40)>>2,A,V&0x3F);
+fceulib__cart.setchr1r((V&0x40)>>2,A,V&0x3F);
 }
 
 void Mapper119_Init(CartInfo *info)
@@ -896,19 +885,19 @@ void Mapper119_Init(CartInfo *info)
  cwrap=TQWRAP;
  CHRRAMSize=8192;
  CHRRAM=(uint8*)FCEU_gmalloc(CHRRAMSize);
- SetupCartCHRMapping(0x10, CHRRAM, CHRRAMSize, 1);
+ fceulib__cart.SetupCartCHRMapping(0x10, CHRRAM, CHRRAMSize, 1);
 }
 
 // ---------------------------- Mapper 134 ------------------------------
 
 static void M134PW(uint32 A, uint8 V)
 {
-  setprg8(A,(V&0x1F)|((EXPREGS[0]&2)<<4));
+  fceulib__cart.setprg8(A,(V&0x1F)|((EXPREGS[0]&2)<<4));
 }
 
 static void M134CW(uint32 A, uint8 V)
 {
-  setchr1(A,(V&0xFF)|((EXPREGS[0]&0x20)<<3));
+ fceulib__cart.setchr1(A,(V&0xFF)|((EXPREGS[0]&0x20)<<3));
 }
 
 static DECLFW(M134Write)
@@ -946,9 +935,9 @@ void Mapper134_Init(CartInfo *info)
 static void M165CW(uint32 A, uint8 V)
 {
  if(V==0)
-    setchr4r(0x10,A,0);
+   fceulib__cart.setchr4r(0x10,A,0);
  else
-    setchr4(A,V>>2);
+   fceulib__cart.setchr4(A,V>>2);
 }
 
 static void M165PPUFD(void)
@@ -1004,7 +993,7 @@ void Mapper165_Init(CartInfo *info)
  info->Power=M165Power;
  CHRRAMSize = 4096;
  CHRRAM = (uint8*)FCEU_gmalloc(CHRRAMSize);
- SetupCartCHRMapping(0x10, CHRRAM, CHRRAMSize, 1);
+ fceulib__cart.SetupCartCHRMapping(0x10, CHRRAM, CHRRAMSize, 1);
  AddExState(CHRRAM, CHRRAMSize, 0, "CHRR");
  AddExState(EXPREGS, 4, 0, "EXPR");
 }
@@ -1013,7 +1002,7 @@ void Mapper165_Init(CartInfo *info)
 
 static void M191CW(uint32 A, uint8 V)
 {
-  setchr1r((V&0x80)>>3,A,V);
+ fceulib__cart.setchr1r((V&0x80)>>3,A,V);
 }
 
 void Mapper191_Init(CartInfo *info)
@@ -1022,7 +1011,7 @@ void Mapper191_Init(CartInfo *info)
  cwrap=M191CW;
  CHRRAMSize=2048;
  CHRRAM=(uint8*)FCEU_gmalloc(CHRRAMSize);
- SetupCartCHRMapping(0x10, CHRRAM, CHRRAMSize, 1);
+ fceulib__cart.SetupCartCHRMapping(0x10, CHRRAM, CHRRAMSize, 1);
  AddExState(CHRRAM, CHRRAMSize, 0, "CHRR");
 }
 
@@ -1031,9 +1020,9 @@ void Mapper191_Init(CartInfo *info)
 static void M192CW(uint32 A, uint8 V)
 {
   if((V==8)||(V==9)||(V==0xA)||(V==0xB)) //Ying Lie Qun Xia Zhuan (Chinese),
-    setchr1r(0x10,A,V);
+   fceulib__cart.setchr1r(0x10,A,V);
   else
-    setchr1r(0,A,V);
+   fceulib__cart.setchr1r(0,A,V);
 }
 
 void Mapper192_Init(CartInfo *info)
@@ -1042,7 +1031,7 @@ void Mapper192_Init(CartInfo *info)
  cwrap=M192CW;
  CHRRAMSize=4096;
  CHRRAM=(uint8*)FCEU_gmalloc(CHRRAMSize);
- SetupCartCHRMapping(0x10, CHRRAM, CHRRAMSize, 1);
+ fceulib__cart.SetupCartCHRMapping(0x10, CHRRAM, CHRRAMSize, 1);
  AddExState(CHRRAM, CHRRAMSize, 0, "CHRR");
 }
 
@@ -1051,9 +1040,9 @@ void Mapper192_Init(CartInfo *info)
 static void M194CW(uint32 A, uint8 V)
 {
   if(V<=1) //Dai-2-Ji - Super Robot Taisen (As).nes
-    setchr1r(0x10,A,V);
+   fceulib__cart.setchr1r(0x10,A,V);
   else
-    setchr1r(0,A,V);
+   fceulib__cart.setchr1r(0,A,V);
 }
 
 void Mapper194_Init(CartInfo *info)
@@ -1062,7 +1051,7 @@ void Mapper194_Init(CartInfo *info)
  cwrap=M194CW;
  CHRRAMSize=2048;
  CHRRAM=(uint8*)FCEU_gmalloc(CHRRAMSize);
- SetupCartCHRMapping(0x10, CHRRAM, CHRRAMSize, 1);
+ fceulib__cart.SetupCartCHRMapping(0x10, CHRRAM, CHRRAMSize, 1);
  AddExState(CHRRAM, CHRRAMSize, 0, "CHRR");
 }
 
@@ -1073,17 +1062,17 @@ static uint16 wramsize;
 static void M195CW(uint32 A, uint8 V)
 {
   if(V<=3) // Crystalis (c).nes, Captain Tsubasa Vol 2 - Super Striker (C)
-    setchr1r(0x10,A,V);
+    fceulib__cart.setchr1r(0x10,A,V);
   else
-    setchr1r(0,A,V);
+    fceulib__cart.setchr1r(0,A,V);
 }
 
 static void M195Power(void)
 {
  GenMMC3Power();
- setprg4r(0x10,0x5000,0);
- SetWriteHandler(0x5000,0x5fff,CartBW);
- SetReadHandler(0x5000,0x5fff,CartBR);
+ fceulib__cart.setprg4r(0x10,0x5000,0);
+ SetWriteHandler(0x5000,0x5fff,Cart::CartBW);
+ SetReadHandler(0x5000,0x5fff,Cart::CartBR);
 }
 
 static void M195Close(void)
@@ -1101,10 +1090,10 @@ void Mapper195_Init(CartInfo *info)
  info->Close=M195Close;
  CHRRAMSize=4096;
  CHRRAM=(uint8*)FCEU_gmalloc(CHRRAMSize);
- SetupCartCHRMapping(0x10, CHRRAM, CHRRAMSize, 1);
+ fceulib__cart.SetupCartCHRMapping(0x10, CHRRAM, CHRRAMSize, 1);
  wramsize=4096;
  wramtw=(uint8*)FCEU_gmalloc(wramsize);
- SetupCartPRGMapping(0x10, wramtw, wramsize, 1);
+ fceulib__cart.SetupCartPRGMapping(0x10, wramtw, wramsize, 1);
  AddExState(CHRRAM, CHRRAMSize, 0, "CHRR");
  AddExState(wramtw, wramsize, 0, "TRAM");
 }
@@ -1118,15 +1107,15 @@ void Mapper195_Init(CartInfo *info)
 static void M196PW(uint32 A, uint8 V)
 {
   if(EXPREGS[0]) // Tenchi o Kurau II - Shokatsu Koumei Den (J) (C).nes
-    setprg32(0x8000,EXPREGS[1]);
+    fceulib__cart.setprg32(0x8000,EXPREGS[1]);
   else
-    setprg8(A,V);
+    fceulib__cart.setprg8(A,V);
 //    setprg8(A,(V&3)|((V&8)>>1)|((V&4)<<1));    // Mali Splash Bomb
 }
 
 //static void M196CW(uint32 A, uint8 V)
 //{
-//  setchr1(A,(V&0xDD)|((V&0x20)>>4)|((V&2)<<4));
+//  fceulib__cart.setchr1(A,(V&0xDD)|((V&0x20)>>4)|((V&2)<<4));
 //}
 
 static DECLFW(Mapper196Write)
@@ -1170,11 +1159,11 @@ void Mapper196_Init(CartInfo *info)
 static void M197CW(uint32 A, uint8 V)
 {
   if(A==0x0000)
-    setchr4(0x0000,V>>1);
+    fceulib__cart.setchr4(0x0000,V>>1);
   else if(A==0x1000)
-    setchr2(0x1000,V);
+    fceulib__cart.setchr2(0x1000,V);
   else if(A==0x1400)
-    setchr2(0x1800,V);
+    fceulib__cart.setchr2(0x1800,V);
 }
 
 void Mapper197_Init(CartInfo *info)
@@ -1188,9 +1177,9 @@ void Mapper197_Init(CartInfo *info)
 static void M198PW(uint32 A, uint8 V)
 {
   if(V>=0x50) // Tenchi o Kurau II - Shokatsu Koumei Den (J) (C).nes
-    setprg8(A,V&0x4F);
+    fceulib__cart.setprg8(A,V&0x4F);
   else
-    setprg8(A,V);
+    fceulib__cart.setprg8(A,V);
 }
 
 void Mapper198_Init(CartInfo *info)
@@ -1201,7 +1190,7 @@ void Mapper198_Init(CartInfo *info)
  info->Close=M195Close;
  wramsize=4096;
  wramtw=(uint8*)FCEU_gmalloc(wramsize);
- SetupCartPRGMapping(0x10, wramtw, wramsize, 1);
+ fceulib__cart.SetupCartPRGMapping(0x10, wramtw, wramsize, 1);
  AddExState(wramtw, wramsize, 0, "TRAM");
 }
 
@@ -1211,25 +1200,24 @@ void Mapper198_Init(CartInfo *info)
 static void M205PW(uint32 A, uint8 V)
 {
 // GN-30A - начальная маска должна быть 1F + аппаратный переключатель на шине адреса
- setprg8(A,(V&0x0f)|EXPREGS[0]);
+ fceulib__cart.setprg8(A,(V&0x0f)|EXPREGS[0]);
 }
 
 static void M205CW(uint32 A, uint8 V)
 {
 // GN-30A - начальная маска должна быть FF
- setchr1(A,(V&0x7F)|(EXPREGS[0]<<3));
+ fceulib__cart.setchr1(A,(V&0x7F)|(EXPREGS[0]<<3));
 }
 
-static DECLFW(M205Write)
-{
+static DECLFW(M205Write) {
  if(EXPREGS[2] == 0) {
    EXPREGS[0] = A & 0x30;
    EXPREGS[2] = A & 0x80;
    FixMMC3PRG(MMC3_cmd);
    FixMMC3CHR(MMC3_cmd);
+ } else {
+   Cart::CartBW(A,V);
  }
- else
-   CartBW(A,V);
 }
 
 static void M205Reset(void)
@@ -1259,14 +1247,14 @@ void Mapper205_Init(CartInfo *info)
 static void M245CW(uint32 A, uint8 V)
 {
  if(!UNIFchrrama) // Yong Zhe Dou E Long - Dragon Quest VI (As).nes NEEDS THIS for RAM cart
-  setchr1(A,V&7);
+  fceulib__cart.setchr1(A,V&7);
  EXPREGS[0]=V;
  FixMMC3PRG(MMC3_cmd);
 }
 
 static void M245PW(uint32 A, uint8 V)
 {
- setprg8(A,(V&0x3F)|((EXPREGS[0]&2)<<5));
+ fceulib__cart.setprg8(A,(V&0x3F)|((EXPREGS[0]&2)<<5));
 }
 
 static void M245Power(void)
@@ -1298,14 +1286,14 @@ static void M249PW(uint32 A, uint8 V)
    V=(V&3)|((V>>1)&4)|((V>>4)&8)|((V>>2)&0x10)|((V<<3)&0x20)|((V<<2)&0xC0);
   }
  }
- setprg8(A,V);
+ fceulib__cart.setprg8(A,V);
 }
 
 static void M249CW(uint32 A, uint8 V)
 {
  if(EXPREGS[0]&0x2)
     V=(V&3)|((V>>1)&4)|((V>>4)&8)|((V>>2)&0x10)|((V<<3)&0x20)|((V<<2)&0xC0);
- setchr1(A,V);
+ fceulib__cart.setchr1(A,V);
 }
 
 static DECLFW(M249Write)
@@ -1451,7 +1439,7 @@ void TQROM_Init(CartInfo *info)
  cwrap=TQWRAP;
  CHRRAMSize=8192;
  CHRRAM=(uint8*)FCEU_gmalloc(CHRRAMSize);
- SetupCartCHRMapping(0x10, CHRRAM, CHRRAMSize, 1);
+ fceulib__cart.SetupCartCHRMapping(0x10, CHRRAM, CHRRAMSize, 1);
 }
 
 void HKROM_Init(CartInfo *info)

@@ -35,15 +35,14 @@ static SFORMAT StateRegs[]=
   {0}
 };
 
-static void Sync(void)
-{
-  setprg8r(0x10,0x6000,0);
-	setprg8(0x8000,prg[0]);
-	setprg8(0xA000,prg[1]);
-	setprg8(0xC000,prg[2]);
-	setprg8(0xE000,prg[3]);
+static void Sync(void) {
+  fceulib__cart.setprg8r(0x10,0x6000,0);
+  fceulib__cart.setprg8(0x8000,prg[0]);
+  fceulib__cart.setprg8(0xA000,prg[1]);
+  fceulib__cart.setprg8(0xC000,prg[2]);
+  fceulib__cart.setprg8(0xE000,prg[3]);
 
-  setchr8(chr);
+  fceulib__cart.setchr8(chr);
 }
 
 static DECLFW(M176Write_5001)
@@ -106,27 +105,27 @@ static DECLFW(M176Write_A001)
 static DECLFW(M176Write_WriteSRAM)
 {
 //	if(we_sram)
-		CartBW(A,V);
+  Cart::CartBW(A,V);
 }
 
 static void M176Power(void)
 {
-  SetReadHandler(0x6000,0x7fff,CartBR);
+  SetReadHandler(0x6000,0x7fff,Cart::CartBR);
   SetWriteHandler(0x6000,0x7fff,M176Write_WriteSRAM);
-  SetReadHandler(0x8000,0xFFFF,CartBR);
-	SetWriteHandler(0xA001,0xA001,M176Write_A001);
-	SetWriteHandler(0x5001,0x5001,M176Write_5001);
-	SetWriteHandler(0x5010,0x5010,M176Write_5010);
-	SetWriteHandler(0x5011,0x5011,M176Write_5011);
+  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  SetWriteHandler(0xA001,0xA001,M176Write_A001);
+  SetWriteHandler(0x5001,0x5001,M176Write_5001);
+  SetWriteHandler(0x5010,0x5010,M176Write_5010);
+  SetWriteHandler(0x5011,0x5011,M176Write_5011);
   SetWriteHandler(0x5ff1,0x5ff1,M176Write_5FF1);
   SetWriteHandler(0x5ff2,0x5ff2,M176Write_5FF2);
 
-	we_sram = 0;
-	sbw = 0;
-	prg[0] = 0;
-	prg[1] = 1;
-	prg[2] = (ROM_size-2)&63;
-	prg[3] = (ROM_size-1)&63;
+  we_sram = 0;
+  sbw = 0;
+  prg[0] = 0;
+  prg[1] = 1;
+  prg[2] = (ROM_size-2)&63;
+  prg[3] = (ROM_size-1)&63;
   Sync();
 }
 
@@ -152,7 +151,7 @@ void Mapper176_Init(CartInfo *info)
 
   WRAMSIZE=8192;
   WRAM=(uint8*)FCEU_gmalloc(WRAMSIZE);
-  SetupCartPRGMapping(0x10,WRAM,WRAMSIZE,1);
+  fceulib__cart.SetupCartPRGMapping(0x10,WRAM,WRAMSIZE,1);
   AddExState(WRAM, WRAMSIZE, 0, "WRAM");
   AddExState(&StateRegs, ~0, 0, 0);
 }

@@ -22,10 +22,9 @@
 
 static uint8 latche;
 
-static void Sync(void)
-{
-  setprg16(0x8000,latche);
-  setprg16(0xC000,8);
+static void Sync(void) {
+  fceulib__cart.setprg16(0x8000,latche);
+  fceulib__cart.setprg16(0xC000,8);
 }
 
 static DECLFW(DREAMWrite)
@@ -34,12 +33,11 @@ static DECLFW(DREAMWrite)
   Sync();
 }
 
-static void DREAMPower(void)
-{
+static void DREAMPower(void) {
   latche=0;
   Sync();
-  setchr8(0);
-  SetReadHandler(0x8000,0xFFFF,CartBR);
+  fceulib__cart.setchr8(0);
+  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
   SetWriteHandler(0x5020,0x5020,DREAMWrite);
 }
 

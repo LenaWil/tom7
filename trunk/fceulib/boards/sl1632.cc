@@ -36,14 +36,13 @@ static SFORMAT StateRegs[]=
 
 static void Sync(void)
 {
-  int i;
-  setprg8(0x8000,prg0);
-  setprg8(0xA000,prg1);
-  setprg8(0xC000,~1);
-  setprg8(0xE000,~0);
-  for(i=0; i<8; i++)
-     setchr1(i<<10,chrcmd[i]);
-  setmirror(mirr^1);
+  fceulib__cart.setprg8(0x8000,prg0);
+  fceulib__cart.setprg8(0xA000,prg1);
+  fceulib__cart.setprg8(0xC000,~1);
+  fceulib__cart.setprg8(0xE000,~0);
+  for(int i=0; i<8; i++)
+     fceulib__cart.setchr1(i<<10,chrcmd[i]);
+  fceulib__cart.setmirror(mirr^1);
 }
 
 static void UNLSL1632CW(uint32 A, uint8 V)
@@ -52,14 +51,14 @@ static void UNLSL1632CW(uint32 A, uint8 V)
   int page0=(bbrk&0x08)<<5;
   int page1=(bbrk&0x20)<<3;
   int page2=(bbrk&0x80)<<1;
-  setchr1(cbase^0x0000,page0|(DRegBuf[0]&(~1)));
-  setchr1(cbase^0x0400,page0|DRegBuf[0]|1);
-  setchr1(cbase^0x0800,page0|(DRegBuf[1]&(~1)));
-  setchr1(cbase^0x0C00,page0|DRegBuf[1]|1);
-  setchr1(cbase^0x1000,page1|DRegBuf[2]);
-  setchr1(cbase^0x1400,page1|DRegBuf[3]);
-  setchr1(cbase^0x1800,page2|DRegBuf[4]);
-  setchr1(cbase^0x1c00,page2|DRegBuf[5]);
+  fceulib__cart.setchr1(cbase^0x0000,page0|(DRegBuf[0]&(~1)));
+  fceulib__cart.setchr1(cbase^0x0400,page0|DRegBuf[0]|1);
+  fceulib__cart.setchr1(cbase^0x0800,page0|(DRegBuf[1]&(~1)));
+  fceulib__cart.setchr1(cbase^0x0C00,page0|DRegBuf[1]|1);
+  fceulib__cart.setchr1(cbase^0x1000,page1|DRegBuf[2]);
+  fceulib__cart.setchr1(cbase^0x1400,page1|DRegBuf[3]);
+  fceulib__cart.setchr1(cbase^0x1800,page2|DRegBuf[4]);
+  fceulib__cart.setchr1(cbase^0x1c00,page2|DRegBuf[5]);
 }
 
 static DECLFW(UNLSL1632CMDWrite)

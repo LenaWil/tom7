@@ -32,13 +32,13 @@ static SFORMAT StateRegs[]=
 
 static void Sync(void)
 {
-  setprg2r(0x10,0x0800,0);
-  setprg2r(0x10,0x1000,1);
-  setprg2r(0x10,0x1800,2);
-  setprg8r(0x10,0x6000,1);
-  setprg16(0x8000,0);
-  setprg16(0xC000,~0);
-  setchr8(0);
+  fceulib__cart.setprg2r(0x10,0x0800,0);
+  fceulib__cart.setprg2r(0x10,0x1000,1);
+  fceulib__cart.setprg2r(0x10,0x1800,2);
+  fceulib__cart.setprg8r(0x10,0x6000,1);
+  fceulib__cart.setprg16(0x8000,0);
+  fceulib__cart.setprg16(0xC000,~0);
+  fceulib__cart.setchr8(0);
 }
 
 //static DECLFW(SSSNROMWrite)
@@ -76,13 +76,13 @@ static void SSSNROMPower(void)
   Sync();
   memset(WRAM,0x00,WRAMSIZE);
 //  SetWriteHandler(0x0000,0x1FFF,SSSNROMRamWrite);
-  SetReadHandler(0x0800,0x1FFF,CartBR);
-  SetWriteHandler(0x0800,0x1FFF,CartBW);
+  SetReadHandler(0x0800,0x1FFF,Cart::CartBR);
+  SetWriteHandler(0x0800,0x1FFF,Cart::CartBW);
   SetReadHandler(0x5000,0x5FFF,SSSNROMRead);
   SetWriteHandler(0x5000,0x5FFF,SSSNROMWrite);
-  SetReadHandler(0x6000,0x7FFF,CartBR);
-  SetWriteHandler(0x6000,0x7FFF,CartBW);
-  SetReadHandler(0x8000,0xFFFF,CartBR);
+  SetReadHandler(0x6000,0x7FFF,Cart::CartBR);
+  SetWriteHandler(0x6000,0x7FFF,Cart::CartBW);
+  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
 }
 
 static void SSSNROMReset(void)
@@ -117,7 +117,7 @@ void SSSNROM_Init(CartInfo *info)
 
   WRAMSIZE=16384;
   WRAM=(uint8*)FCEU_gmalloc(WRAMSIZE);
-  SetupCartPRGMapping(0x10,WRAM,WRAMSIZE,1);
+  fceulib__cart.SetupCartPRGMapping(0x10,WRAM,WRAMSIZE,1);
 
   AddExState(WRAM, WRAMSIZE, 0, "WRAM");
   AddExState(&StateRegs, ~0, 0, 0);

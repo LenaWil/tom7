@@ -35,25 +35,23 @@ static SFORMAT StateRegs[]=
 
 static void Sync(void)
 {
-  if(reg[0]&0x20)
-  {
-    setprg16r(banks[bank],0x8000,reg[0]&0x1F);
-    setprg16r(banks[bank],0xC000,reg[0]&0x1F);
+  if(reg[0]&0x20) {
+    fceulib__cart.setprg16r(banks[bank],0x8000,reg[0]&0x1F);
+    fceulib__cart.setprg16r(banks[bank],0xC000,reg[0]&0x1F);
+  } else {
+    fceulib__cart.setprg32r(banks[bank],0x8000,(reg[0]>>1)&0x0F);
   }
-  else
-    setprg32r(banks[bank],0x8000,(reg[0]>>1)&0x0F);
   if(reg[1]&2)
-    setchr8r(0x10,0);
+    fceulib__cart.setchr8r(0x10,0);
   else
-    setchr8(0);
-  setmirror((reg[0]&0x40)>>6);
+    fceulib__cart.setchr8(0);
+  fceulib__cart.setmirror((reg[0]&0x40)>>6);
 }
 
-static DECLFW(BMCGhostbusters63in1Write)
-{
+static DECLFW(BMCGhostbusters63in1Write) {
   reg[A&1]=V;
   bank=((reg[0]&0x80)>>7)|((reg[1]&1)<<1);
-//	FCEU_printf("reg[0]=%02x, reg[1]=%02x, bank=%02x\n",reg[0],reg[1],bank);
+  //	FCEU_printf("reg[0]=%02x, reg[1]=%02x, bank=%02x\n",reg[0],reg[1],bank);
   Sync();
 }
 
@@ -62,7 +60,7 @@ static DECLFR(BMCGhostbusters63in1Read)
   if(bank==1)
     return X.DB;
   else
-    return CartBR(A);
+    return Cart::CartBR(A);
 }
 
 static void BMCGhostbusters63in1Power(void)
@@ -98,7 +96,7 @@ void BMCGhostbusters63in1_Init(CartInfo *info)
 
   CHRROMSIZE=8192; // dummy CHRROM, VRAM disable
   CHRROM=(uint8*)FCEU_gmalloc(CHRROMSIZE);
-  SetupCartPRGMapping(0x10,CHRROM,CHRROMSIZE,0);
+  fceulib__cart.SetupCartPRGMapping(0x10,CHRROM,CHRROMSIZE,0);
   AddExState(CHRROM, CHRROMSIZE, 0, "CROM");
 
   GameStateRestore=StateRestore;

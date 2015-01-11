@@ -30,16 +30,16 @@ static SFORMAT StateRegs[]=
 static void Sync(void)
 {
   if(cmdreg&0x400)
-    setmirror(MI_0);
+    fceulib__cart.setmirror(MI_0);
   else
-    setmirror(((cmdreg>>13)&1)^1);
-  if(cmdreg&0x800)
-  {
-    setprg16(0x8000,((cmdreg&0x300)>>3)|((cmdreg&0x1F)<<1)|((cmdreg>>12)&1));
-    setprg16(0xC000,((cmdreg&0x300)>>3)|((cmdreg&0x1F)<<1)|((cmdreg>>12)&1));
+    fceulib__cart.setmirror(((cmdreg>>13)&1)^1);
+  if(cmdreg&0x800) {
+    fceulib__cart.setprg16(0x8000,((cmdreg&0x300)>>3)|((cmdreg&0x1F)<<1)|((cmdreg>>12)&1));
+    fceulib__cart.setprg16(0xC000,((cmdreg&0x300)>>3)|((cmdreg&0x1F)<<1)|((cmdreg>>12)&1));
   }
-  else
-    setprg32(0x8000,((cmdreg&0x300)>>4)|(cmdreg&0x1F));
+  else {
+    fceulib__cart.setprg32(0x8000,((cmdreg&0x300)>>4)|(cmdreg&0x1F));
+  }
 }
 
 static DECLFW(M235Write)
@@ -50,9 +50,9 @@ static DECLFW(M235Write)
 
 static void M235Power(void)
 {
-  setchr8(0);
+  fceulib__cart.setchr8(0);
   SetWriteHandler(0x8000,0xFFFF,M235Write);
-  SetReadHandler(0x8000,0xFFFF,CartBR);
+  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
   cmdreg=0;
   Sync();
 }

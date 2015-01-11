@@ -115,32 +115,31 @@ static uint8 exntar[2048];
 static void MooMirroring(void)
 {
 	if(mirrortodo<0x4)
-		SetupCartMirroring(mirrortodo,1,0);
+		fceulib__cart.SetupCartMirroring(mirrortodo,1,0);
 	else if(mirrortodo==0x4)
 	{
-		SetupCartMirroring(4,1,exntar);
+		fceulib__cart.SetupCartMirroring(4,1,exntar);
 		AddExState(exntar, 2048, 0,"EXNR");
 	}
 	else
-		SetupCartMirroring(0,0,0);
+		fceulib__cart.SetupCartMirroring(0,0,0);
 }
 
-static int DoMirroring(FceuFile *fp)
-{
-	uint8 t;
-	t=FCEU_fgetc(fp);
-	mirrortodo=t;
+static int DoMirroring(FceuFile *fp) {
+  const uint8 t = FCEU_fgetc(fp);
+  mirrortodo=t;
 
-	{
-		static char *stuffo[6]={"Horizontal","Vertical","$2000","$2400","\"Four-screen\"","Controlled by Mapper Hardware"};
-		if(t<6)
-			FCEU_printf(" Name/Attribute Table Mirroring: %s\n",stuffo[t]);
-	}
-	return 1;
+  static constexpr const char *stuffo[] = {
+    "Horizontal","Vertical","$2000","$2400",
+    "\"Four-screen\"","Controlled by Mapper Hardware"
+  };
+  if(t<6)
+    FCEU_printf(" Name/Attribute Table Mirroring: %s\n",stuffo[t]);
+  return 1;
 }
 
 // Note: This used to fill in the unused name field in GameInfo, but
-// now all it does is print it out.
+// now all it does is print it out. -tom7
 static int NAME(FceuFile *fp) {
   char namebuf[100];
   int index;
@@ -255,15 +254,14 @@ static int LoadPRG(FceuFile *fp)
 		return 0;
 	mallocedsizes[z]=t;
 	memset(malloced[z]+uchead.info,0xFF,t-uchead.info);
-	if(FCEU_fread(malloced[z],1,uchead.info,fp)!=uchead.info)
-	{
+	if(FCEU_fread(malloced[z],1,uchead.info,fp)!=uchead.info) {
 		FCEU_printf("Read Error!\n");
 		return 0;
 	}
 	else
 		FCEU_printf("\n");
 
-	SetupCartPRGMapping(z,malloced[z],t,0);
+	fceulib__cart.SetupCartPRGMapping(z,malloced[z],t,0);
 	return 1;
 }
 
@@ -294,15 +292,14 @@ static int LoadCHR(FceuFile *fp)
 		return 0;
 	mallocedsizes[16+z]=t;
 	memset(malloced[16+z]+uchead.info,0xFF,t-uchead.info);
-	if(FCEU_fread(malloced[16+z],1,uchead.info,fp)!=uchead.info)
-	{
+	if(FCEU_fread(malloced[16+z],1,uchead.info,fp)!=uchead.info) {
 		FCEU_printf("Read Error!\n");
 		return 0;
 	}
 	else
 		FCEU_printf("\n");
 
-	SetupCartCHRMapping(z,malloced[16+z],t,0);
+	fceulib__cart.SetupCartCHRMapping(z,malloced[16+z],t,0);
 	return 1;
 }
 
@@ -511,8 +508,8 @@ static int InitializeBoard(void) {
 	  CHRRAMSize = 128 * 1024;
 	else
 	  CHRRAMSize = 8192;
-	if((UNIFchrrama=(uint8 *)FCEU_malloc(CHRRAMSize))) {
-	  SetupCartCHRMapping(0,UNIFchrrama,CHRRAMSize,1);
+	if ((UNIFchrrama=(uint8 *)FCEU_malloc(CHRRAMSize))) {
+	  fceulib__cart.SetupCartCHRMapping(0,UNIFchrrama,CHRRAMSize,1);
 	  AddExState(UNIFchrrama, CHRRAMSize, 0,"CHRR");
 	} else {
 	  return -1;
@@ -533,7 +530,7 @@ static int InitializeBoard(void) {
 static void UNIFGI(GI h) {
   switch(h) {
   case GI_RESETSAVE:
-    FCEU_ClearGameSave(&UNIFCart);
+    fceulib__cart.FCEU_ClearGameSave(&UNIFCart);
     break;
 
   case GI_RESETM2:
@@ -546,7 +543,7 @@ static void UNIFGI(GI h) {
     if(UNIFchrrama) memset(UNIFchrrama,0,8192);
     break;
   case GI_CLOSE:
-    FCEU_SaveGameSave(&UNIFCart);
+    fceulib__cart.FCEU_SaveGameSave(&UNIFCart);
     if(UNIFCart.Close)
       UNIFCart.Close();
     FreeUNIF();
@@ -560,7 +557,7 @@ int UNIFLoad(const char *name, FceuFile *fp) {
   if(memcmp(&unhead,"UNIF",4))
     return 0;
 
-  ResetCartMapping();
+  fceulib__cart.ResetCartMapping();
 
   ResetExState(0,0);
   ResetUNIF();
@@ -592,7 +589,7 @@ int UNIFLoad(const char *name, FceuFile *fp) {
   if(!InitializeBoard())
     goto aborto;
 
-  FCEU_LoadGameSave(&UNIFCart);
+  fceulib__cart.FCEU_LoadGameSave(&UNIFCart);
 
   GameInterface=UNIFGI;
   return 1;

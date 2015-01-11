@@ -28,30 +28,26 @@ static SFORMAT StateRegs[]=
   {0}
 };
 
-static void Sync(void)
-{
-  setprg8(0x6000,reg);
-  setprg32(0x8000,~0);
-  setchr8(0);
+static void Sync(void) {
+  fceulib__cart.setprg8(0x6000,reg);
+  fceulib__cart.setprg32(0x8000,~0);
+  fceulib__cart.setchr8(0);
 }
 
-static DECLFW(M108Write)
-{
+static DECLFW(M108Write) {
   reg=V;
   Sync();
 }
 
-static void M108Power(void)
-{
+static void M108Power(void) {
   Sync();
-  SetReadHandler(0x6000,0x7FFF,CartBR);
-  SetReadHandler(0x8000,0xFFFF,CartBR);
+  SetReadHandler(0x6000,0x7FFF,Cart::CartBR);
+  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
   SetWriteHandler(0x8000,0x8FFF,M108Write); // regular 108
   SetWriteHandler(0xF000,0xFFFF,M108Write); // simplified Kaiser BB Hack
 }
 
-static void StateRestore(int version)
-{
+static void StateRestore(int version) {
   Sync();
 }
 

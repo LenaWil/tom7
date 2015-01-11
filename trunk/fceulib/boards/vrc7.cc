@@ -37,21 +37,18 @@ static SFORMAT StateRegs[]=
   {0}
 };
 
-static void Sync(void)
-{
-  uint8 i;
-  setprg8(0x8000,prg[0]);
-  setprg8(0xa000,prg[1]);
-  setprg8(0xc000,prg[2]);
-  setprg8(0xe000,~0);
-  for(i=0; i<8; i++)
-    setchr1(i<<10,chr[i]);
-  switch(mirr&3)
-  {
-    case 0: setmirror(MI_V); break;
-    case 1: setmirror(MI_H); break;
-    case 2: setmirror(MI_0); break;
-    case 3: setmirror(MI_1); break;
+static void Sync(void) {
+  fceulib__cart.setprg8(0x8000,prg[0]);
+  fceulib__cart.setprg8(0xa000,prg[1]);
+  fceulib__cart.setprg8(0xc000,prg[2]);
+  fceulib__cart.setprg8(0xe000,~0);
+  for(uint8 i=0; i<8; i++)
+    fceulib__cart.setchr1(i<<10,chr[i]);
+  switch(mirr&3) {
+    case 0: fceulib__cart.setmirror(MI_V); break;
+    case 1: fceulib__cart.setmirror(MI_H); break;
+    case 2: fceulib__cart.setmirror(MI_0); break;
+    case 3: fceulib__cart.setmirror(MI_1); break;
   }
 }
 
@@ -96,7 +93,7 @@ static DECLFW(UNLVRC7Write)
 static void UNLVRC7Power(void)
 {
   Sync();
-  SetReadHandler(0x8000,0xFFFF,CartBR);
+  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
   SetWriteHandler(0x8000,0xFFFF,UNLVRC7Write);
 }
 

@@ -41,28 +41,22 @@ static SFORMAT StateRegs[]=
   {0}
 };
 
-static void SyncPrg(void)
-{
-  if(swap&3)
-  {
-    setprg8(0x8000,~1);
-    setprg8(0xC000,prg0);
+static void SyncPrg(void) {
+  if(swap&3) {
+    fceulib__cart.setprg8(0x8000,~1);
+    fceulib__cart.setprg8(0xC000,prg0);
+  } else {
+    fceulib__cart.setprg8(0x8000,prg0);
+    fceulib__cart.setprg8(0xC000,~1);
   }
-  else
-  {
-    setprg8(0x8000,prg0);
-    setprg8(0xC000,~1);
-  }
-  setprg8(0xA000,prg1);
-  setprg8(0xE000,~0);
+  fceulib__cart.setprg8(0xA000,prg1);
+  fceulib__cart.setprg8(0xE000,~0);
 }
 
-static void SyncChr(void)
-{
-  int i;
-  for(i=0; i<8; i++)
-     setchr1(i<<10,chr[i]);
-  setmirror(mirr^1);
+static void SyncChr(void) {
+  for(int i=0; i<8; i++)
+     fceulib__cart.setchr1(i<<10,chr[i]);
+  fceulib__cart.setmirror(mirr^1);
 }
 
 static void StateRestore(int version)
@@ -109,7 +103,7 @@ static void UNLTF1201IRQCounter(void)
 static void UNLTF1201Power(void)
 {
   IRQPre=IRQCount=IRQa=0;
-  SetReadHandler(0x8000,0xFFFF,CartBR);
+  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
   SetWriteHandler(0x8000,0xFFFF,UNLTF1201Write);
   SyncPrg();
   SyncChr();

@@ -61,26 +61,22 @@ static void BandaiIRQHook(int a)
 
 static void BandaiSync(void)
 {
-  if(is153)
-  {
+  if(is153) {
     int base=(reg[0]&1)<<4;
-    setchr8(0);
-    setprg16(0x8000,(reg[8]&0x0F)|base);
-    setprg16(0xC000,0x0F|base);
+    fceulib__cart.setchr8(0);
+    fceulib__cart.setprg16(0x8000,(reg[8]&0x0F)|base);
+    fceulib__cart.setprg16(0xC000,0x0F|base);
+  } else {
+    for(int i=0; i<8; i++)
+      fceulib__cart.setchr1(i<<10,reg[i]);
+    fceulib__cart.setprg16(0x8000,reg[8]);
+    fceulib__cart.setprg16(0xC000,~0);
   }
-  else
-  {
-    int i;
-    for(i=0; i<8; i++) setchr1(i<<10,reg[i]);
-    setprg16(0x8000,reg[8]);
-    setprg16(0xC000,~0);
-  }
-  switch(reg[9]&3)
-  {
-    case 0: setmirror(MI_V); break;
-    case 1: setmirror(MI_H); break;
-    case 2: setmirror(MI_0); break;
-    case 3: setmirror(MI_1); break;
+  switch(reg[9]&3) {
+    case 0: fceulib__cart.setmirror(MI_V); break;
+    case 1: fceulib__cart.setmirror(MI_H); break;
+    case 2: fceulib__cart.setmirror(MI_0); break;
+    case 3: fceulib__cart.setmirror(MI_1); break;
   }
 }
 
@@ -105,7 +101,7 @@ static DECLFW(BandaiWrite)
 static void BandaiPower(void)
 {
   BandaiSync();
-  SetReadHandler(0x8000,0xFFFF,CartBR);
+  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
   SetWriteHandler(0x6000,0xFFFF,BandaiWrite);
 }
 
@@ -126,10 +122,10 @@ void Mapper16_Init(CartInfo *info)
 static void M153Power(void)
 {
   BandaiSync();
-  setprg8r(0x10,0x6000,0);
-  SetReadHandler(0x6000,0x7FFF,CartBR);
-  SetWriteHandler(0x6000,0x7FFF,CartBW);
-  SetReadHandler(0x8000,0xFFFF,CartBR);
+  fceulib__cart.setprg8r(0x10,0x6000,0);
+  SetReadHandler(0x6000,0x7FFF,Cart::CartBR);
+  SetWriteHandler(0x6000,0x7FFF,Cart::CartBW);
+  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
   SetWriteHandler(0x8000,0xFFFF,BandaiWrite);
 }
 
@@ -150,7 +146,7 @@ void Mapper153_Init(CartInfo *info)
 
   WRAMSIZE=8192;
   WRAM=(uint8*)FCEU_gmalloc(WRAMSIZE);
-  SetupCartPRGMapping(0x10,WRAM,WRAMSIZE,1);
+  fceulib__cart.SetupCartPRGMapping(0x10,WRAM,WRAMSIZE,1);
   AddExState(WRAM, WRAMSIZE, 0, "WRAM");
 
   if(info->battery)
@@ -335,7 +331,7 @@ static void M157Power(void)
 
   SetWriteHandler(0x6000,0xFFFF,BandaiWrite);
   SetReadHandler(0x6000,0x7FFF,BarcodeRead);
-  SetReadHandler(0x8000,0xFFFF,CartBR);
+  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
 }
 
 void Mapper157_Init(CartInfo *info)

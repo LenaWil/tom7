@@ -23,27 +23,22 @@
 
 extern uint8 m114_perm[8];
 
-static void H2288PW(uint32 A, uint8 V)
-{
-  if(EXPREGS[0]&0x40)
-  {
+static void H2288PW(uint32 A, uint8 V) {
+  if(EXPREGS[0]&0x40) {
     uint8 bank=(EXPREGS[0]&5)|((EXPREGS[0]&8)>>2)|((EXPREGS[0]&0x20)>>2);
-    if(EXPREGS[0]&2)
-      setprg32(0x8000,bank>>1);
-    else
-    {
-      setprg16(0x8000,bank);
-      setprg16(0xC000,bank);
+    if(EXPREGS[0]&2) {
+      fceulib__cart.setprg32(0x8000,bank>>1);
+    } else {
+      fceulib__cart.setprg16(0x8000,bank);
+      fceulib__cart.setprg16(0xC000,bank);
     }
+  } else {
+    fceulib__cart.setprg8(A,V&0x3F);
   }
-  else
-    setprg8(A,V&0x3F);
 }
 
-static DECLFW(H2288WriteHi)
-{
-  switch (A&0x8001)
-  {
+static DECLFW(H2288WriteHi) {
+  switch (A&0x8001) {
     case 0x8000: MMC3_CMDWrite(0x8000,(V&0xC0)|(m114_perm[V&7])); break;
     case 0x8001: MMC3_CMDWrite(0x8001,V); break;
   }
@@ -66,7 +61,7 @@ static void H2288Power(void)
   EXPREGS[0]=EXPREGS[1]=0;
   GenMMC3Power();
 //  SetReadHandler(0x5000,0x5FFF,H2288Read);
-  SetReadHandler(0x8000,0xFFFF,CartBR);
+  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
   SetWriteHandler(0x5000,0x5FFF,H2288WriteLo);
   SetWriteHandler(0x8000,0x9FFF,H2288WriteHi);
 }

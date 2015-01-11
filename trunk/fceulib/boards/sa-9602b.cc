@@ -23,12 +23,12 @@
 
 static void SA9602BPW(uint32 A, uint8 V)
 {
-  setprg8r(EXPREGS[1],A,V&0x3F);
+  fceulib__cart.setprg8r(EXPREGS[1],A,V&0x3F);
   if(MMC3_cmd&0x40)
-    setprg8r(0,0x8000,~(1));
+    fceulib__cart.setprg8r(0,0x8000,~(1));
   else
-    setprg8r(0,0xc000,~(1));
-  setprg8r(0,0xe000,~(0));
+    fceulib__cart.setprg8r(0,0xc000,~(1));
+  fceulib__cart.setprg8r(0,0xe000,~(0));
 }
 
 static DECLFW(SA9602BWrite)
@@ -51,7 +51,7 @@ static void SA9602BPower(void)
 {
   EXPREGS[0]=EXPREGS[1]=0;
   GenMMC3Power();
-  SetReadHandler(0x8000,0xFFFF,CartBR);
+  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
   SetWriteHandler(0x8000,0xBFFF,SA9602BWrite);
 }
 

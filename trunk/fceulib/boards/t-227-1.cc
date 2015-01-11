@@ -27,50 +27,41 @@ static uint8 reset_flag = 0x07;
 
 static void BMCT2271CW(uint32 A, uint8 V)
 {
-    uint32 va = V;
-    if(EXPREGS[0]&0x20)
-    {
-      va|=0x200;
-      va|=(EXPREGS[0]&0x10)<<4;
-    }
-    else
-    {
-      va&=0x7F;
-      va|=(EXPREGS[0]&0x18)<<4;
-    }
-    setchr1(A,va);
+  uint32 va = V;
+  if(EXPREGS[0]&0x20) {
+    va|=0x200;
+    va|=(EXPREGS[0]&0x10)<<4;
+  } else {
+    va&=0x7F;
+    va|=(EXPREGS[0]&0x18)<<4;
+  }
+  fceulib__cart.setchr1(A,va);
 }
 
 static void BMCT2271PW(uint32 A, uint8 V)
 {
-    uint32 va = V & 0x3F;
-    if(EXPREGS[0]&0x20)
-    {
-       va&=0x1F;
-       va|=0x40;
-       va|=(EXPREGS[0]&0x10)<<1;
+  uint32 va = V & 0x3F;
+  if(EXPREGS[0]&0x20) {
+    va&=0x1F;
+    va|=0x40;
+    va|=(EXPREGS[0]&0x10)<<1;
+  } else {
+    va&=0x0F;
+    va|=(EXPREGS[0]&0x18)<<1;
+  }
+  switch(EXPREGS[0]&3) {
+  case 0x00: fceulib__cart.setprg8(A,va); break;
+  case 0x02: {
+    va=(va&0xFD)|((EXPREGS[0]&4)>>1);
+    if(A<0xC000) {
+      fceulib__cart.setprg16(0x8000,va >> 1);
+      fceulib__cart.setprg16(0xC000,va >> 1);
     }
-    else
-    {
-       va&=0x0F;
-       va|=(EXPREGS[0]&0x18)<<1;
-    }
-    switch(EXPREGS[0]&3)
-    {
-      case 0x00: setprg8(A,va); break;
-      case 0x02:
-           {
-             va=(va&0xFD)|((EXPREGS[0]&4)>>1);
-             if(A<0xC000)
-             {
-               setprg16(0x8000,va >> 1);
-               setprg16(0xC000,va >> 1);
-             }
-             break;
-           }
-      case 0x01:
-      case 0x03: if(A<0xC000) setprg32(0x8000,va >> 2); break;
-    }
+    break;
+  }
+  case 0x01:
+  case 0x03: if(A<0xC000) fceulib__cart.setprg32(0x8000,va >> 2); break;
+  }
 
 }
 
@@ -86,7 +77,7 @@ static DECLFR(BMCT2271HiRead)
 {
   uint32 av = A;
   if(EXPREGS[0]&0x40) av = (av & 0xFFF0)|reset_flag;
-  return CartBR(av);
+  return Cart::CartBR(av);
 }
 
 static void BMCT2271Reset(void)

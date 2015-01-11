@@ -33,10 +33,10 @@ static SFORMAT StateRegs[]=
 
 static void Sync(void)
 {
-  setchr8(0);
-  setprg8r(0x10,0x6000,0);
-  setprg32(0x8000,reg[1]>>1);
-  setmirror((reg[0]&1)^1);
+  fceulib__cart.setchr8(0);
+  fceulib__cart.setprg8r(0x10,0x6000,0);
+  fceulib__cart.setprg32(0x8000,reg[1]>>1);
+  fceulib__cart.setmirror((reg[0]&1)^1);
 }
 
 static DECLFW(M179Write)
@@ -56,9 +56,9 @@ static void M179Power(void)
   reg[0]=reg[1]=0;
   Sync();
   SetWriteHandler(0x4020,0x5fff,M179WriteLo);
-  SetReadHandler(0x6000,0x7fff,CartBR);
-  SetWriteHandler(0x6000,0x7fff,CartBW);
-  SetReadHandler(0x8000,0xFFFF,CartBR);
+  SetReadHandler(0x6000,0x7fff,Cart::CartBR);
+  SetWriteHandler(0x6000,0x7fff,Cart::CartBW);
+  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
   SetWriteHandler(0x8000,0xFFFF,M179Write);
 }
 
@@ -82,7 +82,7 @@ void Mapper179_Init(CartInfo *info)
 
   WRAMSIZE=8192;
   WRAM=(uint8*)FCEU_gmalloc(WRAMSIZE);
-  SetupCartPRGMapping(0x10,WRAM,WRAMSIZE,1);
+  fceulib__cart.SetupCartPRGMapping(0x10,WRAM,WRAMSIZE,1);
   AddExState(WRAM, WRAMSIZE, 0, "WRAM");
   if(info->battery)
   {

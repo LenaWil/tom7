@@ -35,16 +35,16 @@ static SFORMAT StateRegs[]=
 static void Sync(void)
 {
   int i;
-  setmirror(((latched>>6)&1)^1);
+  fceulib__cart.setmirror(((latched>>6)&1)^1);
   switch(latchea)
   {
     case 0x8000:
       for(i=0;i<4;i++)
-        setprg8(0x8000+(i<<13),(((latched&0x7F)<<1)+i)^(latched>>7));
+        fceulib__cart.setprg8(0x8000+(i<<13),(((latched&0x7F)<<1)+i)^(latched>>7));
       break;
     case 0x8002:
       for(i=0;i<4;i++)
-        setprg8(0x8000+(i<<13),((latched&0x7F)<<1)+(latched>>7));
+        fceulib__cart.setprg8(0x8000+(i<<13),((latched&0x7F)<<1)+(latched>>7));
       break;
     case 0x8001:
     case 0x8003:
@@ -54,7 +54,7 @@ static void Sync(void)
         b=latched&0x7F;
         if(i>=2 && !(latchea&0x2))
           i=0x7F;
-        setprg8(0x8000+(i<<13),(i&1)+((b<<1)^(latched>>7)));
+        fceulib__cart.setprg8(0x8000+(i<<13),(i&1)+((b<<1)^(latched>>7)));
       }
       break;
   }
@@ -77,12 +77,12 @@ static void M15Power(void)
 {
   latchea=0x8000;
   latched=0;
-  setchr8(0);
-  setprg8r(0x10,0x6000,0);
-  SetReadHandler(0x6000,0x7FFF,CartBR);
-  SetWriteHandler(0x6000,0x7FFF,CartBW);
+  fceulib__cart.setchr8(0);
+  fceulib__cart.setprg8r(0x10,0x6000,0);
+  SetReadHandler(0x6000,0x7FFF,Cart::CartBR);
+  SetWriteHandler(0x6000,0x7FFF,Cart::CartBW);
   SetWriteHandler(0x8000,0xFFFF,M15Write);
-  SetReadHandler(0x8000,0xFFFF,CartBR);
+  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
   Sync();
 }
 
@@ -108,7 +108,7 @@ void Mapper15_Init(CartInfo *info)
   GameStateRestore=StateRestore;
   WRAMSIZE=8192;
   WRAM=(uint8*)FCEU_gmalloc(WRAMSIZE);
-  SetupCartPRGMapping(0x10,WRAM,WRAMSIZE,1);
+  fceulib__cart.SetupCartPRGMapping(0x10,WRAM,WRAMSIZE,1);
   if(info->battery)
   {
     info->SaveGame[0]=WRAM;

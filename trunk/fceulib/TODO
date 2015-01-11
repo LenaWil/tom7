@@ -44,7 +44,7 @@ alias files='find . -type f | grep -v .svn | grep -v ".o$"'
     (message sym)
     (let ((cmd (concat "bash -c \"grep '"
 	                sym 
-	   	        "' `/bin/find . -type f | grep -v .svn | grep -v '.o$'`\"")))
+	   	        "' `/bin/find . -type f | grep -v roms/ | grep -v roms_crash/ | grep -v .svn | grep -v '.exe$' | grep -v '.o$'`\"")))
       (message "%s" cmd)
         (let ((res (shell-command-to-string cmd)))
            (message "%s" (concat cmd "\n" res))
@@ -54,3 +54,18 @@ alias files='find . -type f | grep -v .svn | grep -v ".o$"'
 )
 
 // (global-set-key "\C-xm" 'find-mentions)
+
+(defun insert-cart ()
+  (interactive "")
+  (insert "fceulib__cart.")
+)
+
+(global-set-key "\C-xx" 'insert-cart)
+
+(defun set-cart-rectangle ()
+  (interactive "")
+  (string-rectangle (region-beginning) (region-end) "fceulib__cart.")
+)
+
+(global-set-key "\C-xw" 'set-cart-rectangle)
+

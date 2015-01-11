@@ -19,7 +19,8 @@
 */
 
 /// \file
-/// \brief This file contains all code for coordinating the mapping in of the address space external to the NES.
+/// \brief This file contains all code for coordinating the mapping in of 
+/// the address space external to the NES.
 
 #include <string.h>
 #include <stdlib.h>
@@ -36,19 +37,9 @@
 #include "file.h"
 #include "utils/memory.h"
 
+Cart fceulib__cart;
 
-uint8 *Page[32],*VPage[8];
-uint8 **VPageR=VPage;
-uint8 *VPageG[8];
-uint8 *MMC5SPRVPage[8];
-uint8 *MMC5BGVPage[8];
-
-static uint8 PRGIsRAM[32];  /* This page is/is not PRG RAM. */
-
-/* 16 are (sort of) reserved for UNIF/iNES and 16 to map other stuff. */
-static int CHRram[32];
-static int PRGram[32];
-
+#if 0
 uint8 *PRGptr[32];
 uint8 *CHRptr[32];
 
@@ -65,10 +56,9 @@ uint32 CHRmask1[32];
 uint32 CHRmask2[32];
 uint32 CHRmask4[32];
 uint32 CHRmask8[32];
+#endif
 
-int modcon;
-
-static INLINE void setpageptr(int s, uint32 A, uint8 *p, int ram) {
+void Cart::setpageptr(int s, uint32 A, uint8 *p, int ram) {
   const uint32 AB = A >> 11;
 
   if (p) {
@@ -84,13 +74,22 @@ static INLINE void setpageptr(int s, uint32 A, uint8 *p, int ram) {
   }
 }
 
-static uint8 nothing[8192];
-void ResetCartMapping(void) {
+// WTF is this? nothing - x*2048 is a pointer before nothing, like
+// into some rando spot in BSS. If it was plus x*2048, then we'd
+// need 65k for all the pointers to be in range (32 * 2048). Something
+// seems seriously amiss. Are these always just nonsense pointers that
+// are overwritten? Or maybe it relies on it pointing to some 0s in
+// BSS?
+//
+// Note that this idiom (-x * 0x400) appears in other code, like at
+// the bottom of mappers/6.cc...
+//   -tom7
+void Cart::ResetCartMapping(void) {
   PPU_ResetHooks();
 
   for (int x=0;x<32;x++) {
     Page[x]=nothing-x*2048;
-    PRGptr[x]=CHRptr[x]=0;
+    PRGptr[x]=CHRptr[x]=nullptr;
     PRGsize[x]=CHRsize[x]=0;
   }
   for (int x=0;x<8;x++) {
@@ -98,7 +97,7 @@ void ResetCartMapping(void) {
   }
 }
 
-void SetupCartPRGMapping(int chip, uint8 *p, uint32 size, int ram) {
+void Cart::SetupCartPRGMapping(int chip, uint8 *p, uint32 size, int ram) {
   PRGptr[chip]=p;
   PRGsize[chip]=size;
 
@@ -111,7 +110,7 @@ void SetupCartPRGMapping(int chip, uint8 *p, uint32 size, int ram) {
   PRGram[chip]=ram?1:0;
 }
 
-void SetupCartCHRMapping(int chip, uint8 *p, uint32 size, int ram) {
+void Cart::SetupCartCHRMapping(int chip, uint8 *p, uint32 size, int ram) {
   CHRptr[chip]=p;
   CHRsize[chip]=size;
 
@@ -123,55 +122,71 @@ void SetupCartCHRMapping(int chip, uint8 *p, uint32 size, int ram) {
   CHRram[chip]=ram;
 }
 
-DECLFR(CartBR) {
+// static 
+DECLFR_RET Cart::CartBR(DECLFR_ARGS) {
+  return fceulib__cart.CartBR_Direct(DECLFR_FORWARD);
+}
+
+DECLFR_RET Cart::CartBR_Direct(DECLFR_ARGS) {
   return Page[A>>11][A];
 }
 
-DECLFW(CartBW) {
+// static
+DECLFW_RET Cart::CartBW(DECLFW_ARGS) {
+  return fceulib__cart.CartBW_Direct(DECLFW_FORWARD);
+}
+
+DECLFW_RET Cart::CartBW_Direct(DECLFW_ARGS) {
   //printf("Ok: %04x:%02x, %d\n",A,V,PRGIsRAM[A>>11]);
   if (PRGIsRAM[A>>11] && Page[A>>11])
     Page[A>>11][A]=V;
 }
 
-DECLFR(CartBROB) {
+// static
+DECLFR_RET Cart::CartBROB(DECLFR_ARGS) {
+  return fceulib__cart.CartBROB_Direct(DECLFR_FORWARD);
+}
+
+DECLFR_RET Cart::CartBROB_Direct(DECLFR_ARGS) {
   if (!Page[A>>11]) return X.DB;
   return Page[A>>11][A];
 }
 
-void setprg2r(int r, unsigned int A, unsigned int V) {
+void Cart::setprg2r(int r, unsigned int A, unsigned int V) {
   V&=PRGmask2[r];
   setpageptr(2,A,PRGptr[r]?(&PRGptr[r][V<<11]):0,PRGram[r]);
 }
 
-void setprg2(uint32 A, uint32 V) {
+void Cart::setprg2(uint32 A, uint32 V) {
   setprg2r(0,A,V);
 }
 
-void setprg4r(int r, unsigned int A, unsigned int V) {
+void Cart::setprg4r(int r, unsigned int A, unsigned int V) {
   V&=PRGmask4[r];
   setpageptr(4,A,PRGptr[r]?(&PRGptr[r][V<<12]):0,PRGram[r]);
 }
 
-void setprg4(uint32 A, uint32 V) {
+void Cart::setprg4(uint32 A, uint32 V) {
   setprg4r(0,A,V);
 }
 
-void setprg8r(int r, unsigned int A, unsigned int V) {
+void Cart::setprg8r(int r, unsigned int A, unsigned int V) {
   if (PRGsize[r]>=8192) {
     V&=PRGmask8[r];
     setpageptr(8,A,PRGptr[r]?(&PRGptr[r][V<<13]):0,PRGram[r]);
   } else {
     const uint32 VA=V<<2;
     for (int x=0;x<4;x++)
-      setpageptr(2,A+(x<<11),PRGptr[r]?(&PRGptr[r][((VA+x)&PRGmask2[r])<<11]):0,PRGram[r]);
+      setpageptr(2,A+(x<<11),
+		 PRGptr[r]?(&PRGptr[r][((VA+x)&PRGmask2[r])<<11]):0,PRGram[r]);
   }
 }
 
-void setprg8(uint32 A, uint32 V) {
+void Cart::setprg8(uint32 A, uint32 V) {
   setprg8r(0,A,V);
 }
 
-void setprg16r(int r, unsigned int A, unsigned int V) {
+void Cart::setprg16r(int r, unsigned int A, unsigned int V) {
   if (PRGsize[r]>=16384) {
     V&=PRGmask16[r];
     setpageptr(16,A,PRGptr[r]?(&PRGptr[r][V<<14]):0,PRGram[r]);
@@ -179,15 +194,16 @@ void setprg16r(int r, unsigned int A, unsigned int V) {
     const uint32 VA=V<<3;
 
     for (int x=0;x<8;x++)
-      setpageptr(2,A+(x<<11),PRGptr[r]?(&PRGptr[r][((VA+x)&PRGmask2[r])<<11]):0,PRGram[r]);
+      setpageptr(2,A+(x<<11),
+		 PRGptr[r]?(&PRGptr[r][((VA+x)&PRGmask2[r])<<11]):0,PRGram[r]);
   }
 }
 
-void setprg16(uint32 A, uint32 V) {
+void Cart::setprg16(uint32 A, uint32 V) {
   setprg16r(0,A,V);
 }
 
-void setprg32r(int r,unsigned int A, unsigned int V) {
+void Cart::setprg32r(int r,unsigned int A, unsigned int V) {
   if (PRGsize[r]>=32768) {
     V&=PRGmask32[r];
     setpageptr(32,A,PRGptr[r]?(&PRGptr[r][V<<15]):0,PRGram[r]);
@@ -195,15 +211,16 @@ void setprg32r(int r,unsigned int A, unsigned int V) {
     uint32 VA=V<<4;
 
     for (int x=0;x<16;x++)
-      setpageptr(2,A+(x<<11),PRGptr[r]?(&PRGptr[r][((VA+x)&PRGmask2[r])<<11]):0,PRGram[r]);
+      setpageptr(2,A+(x<<11),
+		 PRGptr[r]?(&PRGptr[r][((VA+x)&PRGmask2[r])<<11]):0,PRGram[r]);
   }
 }
 
-void setprg32(uint32 A, uint32 V) {
+void Cart::setprg32(uint32 A, uint32 V) {
   setprg32r(0,A,V);
 }
 
-void setchr1r(int r, unsigned int A, unsigned int V) {
+void Cart::setchr1r(int r, unsigned int A, unsigned int V) {
   if (!CHRptr[r]) return;
   FCEUPPU_LineUpdate();
   V&=CHRmask1[r];
@@ -214,7 +231,7 @@ void setchr1r(int r, unsigned int A, unsigned int V) {
   VPageR[(A)>>10]=&CHRptr[r][(V)<<10]-(A);
 }
 
-void setchr2r(int r, unsigned int A, unsigned int V) {
+void Cart::setchr2r(int r, unsigned int A, unsigned int V) {
   if (!CHRptr[r]) return;
   FCEUPPU_LineUpdate();
   V&=CHRmask2[r];
@@ -225,7 +242,7 @@ void setchr2r(int r, unsigned int A, unsigned int V) {
     PPUCHRRAM&=~(3<<(A>>10));
 }
 
-void setchr4r(int r, unsigned int A, unsigned int V) {
+void Cart::setchr4r(int r, unsigned int A, unsigned int V) {
   if (!CHRptr[r]) return;
   FCEUPPU_LineUpdate();
   V&=CHRmask4[r];
@@ -237,7 +254,7 @@ void setchr4r(int r, unsigned int A, unsigned int V) {
     PPUCHRRAM&=~(15<<(A>>10));
 }
 
-void setchr8r(int r, unsigned int V) {
+void Cart::setchr8r(int r, unsigned int V) {
   if (!CHRptr[r]) return;
   FCEUPPU_LineUpdate();
   V&=CHRmask8[r];
@@ -249,54 +266,54 @@ void setchr8r(int r, unsigned int V) {
     PPUCHRRAM=0;
 }
 
-void setchr1(unsigned int A, unsigned int V) {
+void Cart::setchr1(unsigned int A, unsigned int V) {
   setchr1r(0,A,V);
 }
 
-void setchr2(unsigned int A, unsigned int V) {
+void Cart::setchr2(unsigned int A, unsigned int V) {
   setchr2r(0,A,V);
 }
 
-void setchr4(unsigned int A, unsigned int V) {
+void Cart::setchr4(unsigned int A, unsigned int V) {
   setchr4r(0,A,V);
 }
 
-void setchr8(unsigned int V) {
+void Cart::setchr8(unsigned int V) {
   setchr8r(0,V);
 }
 
-void setvram8(uint8 *p) {
-  for (int x=7;x>=0;x--)
+void Cart::setvram8(uint8 *p) {
+  for (int x = 7; x >= 0; x--)
     VPageR[x]=p;
   PPUCHRRAM|=255;
 }
 
-void setvram4(uint32 A, uint8 *p) {
-  for (int x=3;x>=0;x--)
+void Cart::setvram4(uint32 A, uint8 *p) {
+  for (int x=3; x >= 0; x--)
     VPageR[(A>>10)+x]=p-A;
   PPUCHRRAM|=(15<<(A>>10));
 }
 
-void setvramb1(uint8 *p, uint32 A, uint32 b) {
+void Cart::setvramb1(uint8 *p, uint32 A, uint32 b) {
   FCEUPPU_LineUpdate();
   VPageR[A>>10]=p-A+(b<<10);
   PPUCHRRAM|=(1<<(A>>10));
 }
 
-void setvramb2(uint8 *p, uint32 A, uint32 b) {
+void Cart::setvramb2(uint8 *p, uint32 A, uint32 b) {
   FCEUPPU_LineUpdate();
   VPageR[(A>>10)]=VPageR[(A>>10)+1]=p-A+(b<<11);
   PPUCHRRAM|=(3<<(A>>10));
 }
 
-void setvramb4(uint8 *p, uint32 A, uint32 b) {
+void Cart::setvramb4(uint8 *p, uint32 A, uint32 b) {
   FCEUPPU_LineUpdate();
   for (int x=3;x>=0;x--)
     VPageR[(A>>10)+x]=p-A+(b<<12);
   PPUCHRRAM|=(15<<(A>>10));
 }
 
-void setvramb8(uint8 *p, uint32 b) {
+void Cart::setvramb8(uint8 *p, uint32 b) {
   FCEUPPU_LineUpdate();
   for (int x=7;x>=0;x--)
     VPageR[x]=p+(b<<13);
@@ -305,7 +322,7 @@ void setvramb8(uint8 *p, uint32 b) {
 
 /* This function can be called without calling SetupCartMirroring(). */
 
-void setntamem(uint8 *p, int ram, uint32 b) {
+void Cart::setntamem(uint8 *p, int ram, uint32 b) {
   FCEUPPU_LineUpdate();
   vnapage[b]=p;
   PPUNTARAM&=~(1<<b);
@@ -313,8 +330,7 @@ void setntamem(uint8 *p, int ram, uint32 b) {
     PPUNTARAM|=1<<b;
 }
 
-static int mirrorhard=0;
-void setmirrorw(int a, int b, int c, int d) {
+void Cart::setmirrorw(int a, int b, int c, int d) {
   FCEUPPU_LineUpdate();
   vnapage[0]=NTARAM+a*0x400;
   vnapage[1]=NTARAM+b*0x400;
@@ -322,7 +338,7 @@ void setmirrorw(int a, int b, int c, int d) {
   vnapage[3]=NTARAM+d*0x400;
 }
 
-void setmirror(int t) {
+void Cart::setmirror(int t) {
   FCEUPPU_LineUpdate();
   if (!mirrorhard) {
     switch (t) {
@@ -343,7 +359,7 @@ void setmirror(int t) {
   }
 }
 
-void SetupCartMirroring(int m, int hard, uint8 *extra) {
+void Cart::SetupCartMirroring(int m, int hard, uint8 *extra) {
   if (m<4) {
     mirrorhard = 0;
     setmirror(m);
@@ -357,43 +373,46 @@ void SetupCartMirroring(int m, int hard, uint8 *extra) {
   mirrorhard=hard;
 }
 
-void FCEU_SaveGameSave(CartInfo *LocalHWInfo) {
+void Cart::FCEU_SaveGameSave(CartInfo *LocalHWInfo) {
   if (LocalHWInfo->battery && LocalHWInfo->SaveGame[0]) {
     FILE *sp;
 
-    std::string soot = FCEU_MakeSaveFilename();
-    if ((sp=FCEUD_UTF8fopen(soot,"wb")) == nullptr) {
-      FCEU_PrintError("WRAM file \"%s\" cannot be written to.\n",soot.c_str());
+    std::string f = FCEU_MakeSaveFilename();
+    if ((sp=FCEUD_UTF8fopen(f,"wb")) == nullptr) {
+      FCEU_PrintError("WRAM file \"%s\" cannot be written to.\n",f.c_str());
     } else {
-      for (int x=0;x<4;x++)
+      for (int x=0;x<4;x++) {
 	if (LocalHWInfo->SaveGame[x]) {
 	  fwrite(LocalHWInfo->SaveGame[x],1,
 		 LocalHWInfo->SaveGameLen[x],sp);
 	}
+      }
     }
   }
 }
 
-// hack, movie.cpp has to communicate with this function somehow
-int disableBatteryLoading=0;
-
-void FCEU_LoadGameSave(CartInfo *LocalHWInfo) {
-  if (LocalHWInfo->battery && LocalHWInfo->SaveGame[0] && !disableBatteryLoading) {
-    std::string soot = FCEU_MakeSaveFilename();
-    if (FILE *sp = FCEUD_UTF8fopen(soot,"rb")) {
-      for (int x=0;x<4;x++)
-	if (LocalHWInfo->SaveGame[x])
+void Cart::FCEU_LoadGameSave(CartInfo *LocalHWInfo) {
+  if (LocalHWInfo->battery && LocalHWInfo->SaveGame[0] && 
+      !disableBatteryLoading) {
+    std::string f = FCEU_MakeSaveFilename();
+    if (FILE *sp = FCEUD_UTF8fopen(f,"rb")) {
+      for (int x=0;x<4;x++) {
+	if (LocalHWInfo->SaveGame[x]) {
 	  fread(LocalHWInfo->SaveGame[x],1,LocalHWInfo->SaveGameLen[x],sp);
+	}
+      }
     }
   }
 }
 
 // clears all save memory. call this if you want to pretend the
 // saveram has been reset (it doesnt touch what is on disk though)
-void FCEU_ClearGameSave(CartInfo *LocalHWInfo) {
+void Cart::FCEU_ClearGameSave(CartInfo *LocalHWInfo) {
   if (LocalHWInfo->battery && LocalHWInfo->SaveGame[0]) {
-    for (int x=0;x<4;x++)
-      if (LocalHWInfo->SaveGame[x])
+    for (int x=0;x<4;x++) {
+      if (LocalHWInfo->SaveGame[x]) {
 	memset(LocalHWInfo->SaveGame[x],0,LocalHWInfo->SaveGameLen[x]);
+      }
+    }
   }
 }

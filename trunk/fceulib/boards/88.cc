@@ -33,19 +33,19 @@ static SFORMAT StateRegs[]=
 
 static void Sync(void)
 {
-  setchr2(0x0000,reg[0]>>1);
-  setchr2(0x0800,reg[1]>>1);
-  setchr1(0x1000,reg[2]|0x40);
-  setchr1(0x1400,reg[3]|0x40);
-  setchr1(0x1800,reg[4]|0x40);
-  setchr1(0x1C00,reg[5]|0x40);
-  setprg8(0x8000,reg[6]);
-  setprg8(0xA000,reg[7]);
+  fceulib__cart.setchr2(0x0000,reg[0]>>1);
+  fceulib__cart.setchr2(0x0800,reg[1]>>1);
+  fceulib__cart.setchr1(0x1000,reg[2]|0x40);
+  fceulib__cart.setchr1(0x1400,reg[3]|0x40);
+  fceulib__cart.setchr1(0x1800,reg[4]|0x40);
+  fceulib__cart.setchr1(0x1C00,reg[5]|0x40);
+  fceulib__cart.setprg8(0x8000,reg[6]);
+  fceulib__cart.setprg8(0xA000,reg[7]);
 }
 
 static void MSync(void)
 {
-  if(is154)setmirror(MI_0+(mirror&1));
+  if(is154) fceulib__cart.setmirror(MI_0+(mirror&1));
 }
 
 static DECLFW(M88Write)
@@ -57,10 +57,9 @@ static DECLFW(M88Write)
   }
 }
 
-static void M88Power(void)
-{
-  setprg16(0xC000,~0);
-  SetReadHandler(0x8000,0xFFFF,CartBR);
+static void M88Power(void) {
+  fceulib__cart.setprg16(0xC000,~0);
+  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
   SetWriteHandler(0x8000,0xFFFF,M88Write);
 }
 

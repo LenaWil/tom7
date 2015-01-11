@@ -30,12 +30,12 @@ static SFORMAT StateRegs[]=
 
 static void Sync(void)
 {
-  setprg8(0x8000,regs[0]);
-  setprg8(0xA000,regs[2]);
-  setprg8(0xC000,regs[4]);
-  setprg8(0xE000,~0);
-  setchr4(0x0000,regs[6]);
-  setchr4(0x1000,regs[7]);
+  fceulib__cart.setprg8(0x8000,regs[0]);
+  fceulib__cart.setprg8(0xA000,regs[2]);
+  fceulib__cart.setprg8(0xC000,regs[4]);
+  fceulib__cart.setprg8(0xE000,~0);
+  fceulib__cart.setchr4(0x0000,regs[6]);
+  fceulib__cart.setchr4(0x1000,regs[7]);
 }
 
 static DECLFW(M151Write)
@@ -47,7 +47,7 @@ static DECLFW(M151Write)
 static void M151Power(void)
 {
   Sync();
-  SetReadHandler(0x8000,0xFFFF,CartBR);
+  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
   SetWriteHandler(0x8000,0xFFFF,M151Write);
 }
 

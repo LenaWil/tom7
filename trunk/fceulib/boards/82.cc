@@ -34,18 +34,18 @@ static SFORMAT StateRegs[]=
 static void Sync(void)
 {
   uint32 swap = ((ctrl & 2) << 11);
-  setchr2(0x0000^swap,regs[0]>>1);
-  setchr2(0x0800^swap,regs[1]>>1);
-  setchr1(0x1000^swap,regs[2]);
-  setchr1(0x1400^swap,regs[3]);
-  setchr1(0x1800^swap,regs[4]);
-  setchr1(0x1c00^swap,regs[5]);
-  setprg8r(0x10,0x6000,0);
-  setprg8(0x8000,regs[6]);
-  setprg8(0xA000,regs[7]);
-  setprg8(0xC000,regs[8]);
-  setprg8(0xE000,~0);
-  setmirror(ctrl & 1);
+  fceulib__cart.setchr2(0x0000^swap,regs[0]>>1);
+  fceulib__cart.setchr2(0x0800^swap,regs[1]>>1);
+  fceulib__cart.setchr1(0x1000^swap,regs[2]);
+  fceulib__cart.setchr1(0x1400^swap,regs[3]);
+  fceulib__cart.setchr1(0x1800^swap,regs[4]);
+  fceulib__cart.setchr1(0x1c00^swap,regs[5]);
+  fceulib__cart.setprg8r(0x10,0x6000,0);
+  fceulib__cart.setprg8(0x8000,regs[6]);
+  fceulib__cart.setprg8(0xA000,regs[7]);
+  fceulib__cart.setprg8(0xC000,regs[8]);
+  fceulib__cart.setprg8(0xE000,~0);
+  fceulib__cart.setmirror(ctrl & 1);
 }
 
 static DECLFW(M82Write)
@@ -66,8 +66,8 @@ static DECLFW(M82Write)
 static void M82Power(void)
 {
   Sync();
-  SetReadHandler(0x6000,0xffff,CartBR);
-  SetWriteHandler(0x6000,0x7fff,CartBW);
+  SetReadHandler(0x6000,0xffff,Cart::CartBR);
+  SetWriteHandler(0x6000,0x7fff,Cart::CartBW);
   SetWriteHandler(0x7ef0,0x7efc,M82Write);  // external WRAM might end at $73FF
 }
 
@@ -90,7 +90,7 @@ void Mapper82_Init(CartInfo *info)
 
   WRAMSIZE=8192;
   WRAM=(uint8*)FCEU_gmalloc(WRAMSIZE);
-  SetupCartPRGMapping(0x10,WRAM,WRAMSIZE,1);
+  fceulib__cart.SetupCartPRGMapping(0x10,WRAM,WRAMSIZE,1);
   AddExState(WRAM, WRAMSIZE, 0, "WRAM");
   if(info->battery)
   {

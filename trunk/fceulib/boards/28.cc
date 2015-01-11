@@ -31,10 +31,10 @@ uint8 outer;
 
 void SyncMirror() {
   switch (mode & 3) {
-  case 0: setmirror(MI_0); break;
-  case 1: setmirror(MI_1); break;
-  case 2: setmirror(MI_V); break;
-  case 3: setmirror(MI_H); break;
+  case 0: fceulib__cart.setmirror(MI_0); break;
+  case 1: fceulib__cart.setmirror(MI_1); break;
+  case 2: fceulib__cart.setmirror(MI_V); break;
+  case 3: fceulib__cart.setmirror(MI_H); break;
   }
 }
 
@@ -117,9 +117,9 @@ static void Sync() {
   prglo &= prg_mask_16k;
   prghi &= prg_mask_16k;
 
-  setprg16(0x8000, prglo);
-  setprg16(0xC000, prghi);
-  setchr8(chr);
+  fceulib__cart.setprg16(0x8000, prglo);
+  fceulib__cart.setprg16(0xC000, prghi);
+  fceulib__cart.setchr8(chr);
 }
 
 static DECLFW(WriteEXP)
@@ -166,22 +166,21 @@ static void M28Reset(void)
 }
 
 
-static void M28Power(void)
-{
-	prg_mask_16k = PRGsize[0] - 1;
+static void M28Power(void) {
+  prg_mask_16k = fceulib__cart.PRGsize[0] - 1;
 
-	//EXP
-	SetWriteHandler(0x4020,0x5FFF,WriteEXP);
+  //EXP
+  SetWriteHandler(0x4020,0x5FFF,WriteEXP);
   
-	//PRG
-	SetWriteHandler(0x8000,0xFFFF,WritePRG);
-	SetReadHandler(0x8000,0xFFFF,CartBR);
+  //PRG
+  SetWriteHandler(0x8000,0xFFFF,WritePRG);
+  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
 	
-	//WRAM
-  SetReadHandler(0x6000,0x7FFF,CartBR);
-  SetWriteHandler(0x6000,0x7FFF,CartBW);
+  //WRAM
+  SetReadHandler(0x6000,0x7FFF,Cart::CartBR);
+  SetWriteHandler(0x6000,0x7FFF,Cart::CartBW);
 
-	M28Reset();
+  M28Reset();
 }
 
 static void M28Close(void)

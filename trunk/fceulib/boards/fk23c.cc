@@ -28,27 +28,23 @@ static uint32 dipswitch;
 static uint8 *CHRRAM=NULL;
 static uint32 CHRRAMSize;
 
-static void BMCFK23CCW(uint32 A, uint8 V)
-{
+static void BMCFK23CCW(uint32 A, uint8 V) {
   if(EXPREGS[0]&0x40)
-    setchr8(EXPREGS[2]|unromchr);
+    fceulib__cart.setchr8(EXPREGS[2]|unromchr);
   else if(EXPREGS[0]&0x20) {
-    setchr1r(0x10, A, V);
-  }
-  else
-  {
+    fceulib__cart.setchr1r(0x10, A, V);
+  } else {
     uint16 base=(EXPREGS[2]&0x7F)<<3;
-    if(EXPREGS[3]&2)
-    {
+    if(EXPREGS[3]&2) {
       int cbase=(MMC3_cmd&0x80)<<5;
-      setchr1(A,V|base);
-      setchr1(0x0000^cbase,DRegBuf[0]|base);
-      setchr1(0x0400^cbase,EXPREGS[6]|base);
-      setchr1(0x0800^cbase,DRegBuf[1]|base);
-      setchr1(0x0c00^cbase,EXPREGS[7]|base);
+      fceulib__cart.setchr1(A,V|base);
+      fceulib__cart.setchr1(0x0000^cbase,DRegBuf[0]|base);
+      fceulib__cart.setchr1(0x0400^cbase,EXPREGS[6]|base);
+      fceulib__cart.setchr1(0x0800^cbase,DRegBuf[1]|base);
+      fceulib__cart.setchr1(0x0c00^cbase,EXPREGS[7]|base);
+    } else {
+      fceulib__cart.setchr1(A,V|base);
     }
-    else
-      setchr1(A,V|base);
   }
 }
 
@@ -91,10 +87,10 @@ static void BMCFK23CPW(uint32 A, uint8 V) {
   // uint32 extra = (EXPREGS[3] & 2);
 
   if((EXPREGS[0]&7)==4) {
-    setprg32(0x8000,EXPREGS[1]>>1);
+    fceulib__cart.setprg32(0x8000,EXPREGS[1]>>1);
   } else if ((EXPREGS[0]&7)==3) {
-    setprg16(0x8000,EXPREGS[1]);
-    setprg16(0xC000,EXPREGS[1]);
+    fceulib__cart.setprg16(0x8000,EXPREGS[1]);
+    fceulib__cart.setprg16(0xC000,EXPREGS[1]);
   } else { 
     if(EXPREGS[0]&3) {
       uint32 blocksize = (6)-(EXPREGS[0]&3);
@@ -102,98 +98,90 @@ static void BMCFK23CPW(uint32 A, uint8 V) {
       V &= mask;
       //V &= 63; //? is this a good idea?
       V |= (EXPREGS[1]<<1);
-      setprg8(A,V);
+      fceulib__cart.setprg8(A,V);
     } else {
-      setprg8(A,V & prg_mask);
+      fceulib__cart.setprg8(A,V & prg_mask);
     }
 
     if(EXPREGS[3]&2) {
-      setprg8(0xC000,EXPREGS[4]);
-      setprg8(0xE000,EXPREGS[5]);
+      fceulib__cart.setprg8(0xC000,EXPREGS[4]);
+      fceulib__cart.setprg8(0xE000,EXPREGS[5]);
     }
   }
-  setprg8r(0x10,0x6000,A001B&3);
+  fceulib__cart.setprg8r(0x10,0x6000,A001B&3);
 }
 
 //PRG handler ($8000-$FFFF)
 static DECLFW(BMCFK23CHiWrite) {
-  if(EXPREGS[0]&0x40)
-    {
-      if(EXPREGS[0]&0x30)
-        unromchr=0;
-      else
-        {
-          unromchr=V&3;
-          FixMMC3CHR(MMC3_cmd);
-        }
+  if(EXPREGS[0]&0x40) {
+    if(EXPREGS[0]&0x30) {
+      unromchr=0;
+    } else {
+      unromchr=V&3;
+      FixMMC3CHR(MMC3_cmd);
     }
-  else
-    {
-      if((A==0x8001)&&(EXPREGS[3]&2&&MMC3_cmd&8))
-        {
-          EXPREGS[4|(MMC3_cmd&3)]=V;
-          FixMMC3PRG(MMC3_cmd);
-          FixMMC3CHR(MMC3_cmd);
-        }
-      else
-        if(A<0xC000) {
-          if(UNIFchrrama) { // hacky... strange behaviour, must be bit scramble due to pcb layot restrictions
-            // check if it not interfer with other dumps
-            if((A==0x8000)&&(V==0x46))
-              V=0x47;
-            else if((A==0x8000)&&(V==0x47))
-              V=0x46;
-          }
-          MMC3_CMDWrite(A,V);
-          FixMMC3PRG(MMC3_cmd);
-        }
-        else
-          MMC3_IRQWrite(A,V);
+  } else {
+    if((A==0x8001)&&(EXPREGS[3]&2&&MMC3_cmd&8)) {
+      EXPREGS[4|(MMC3_cmd&3)]=V;
+      FixMMC3PRG(MMC3_cmd);
+      FixMMC3CHR(MMC3_cmd);
     }
+    else
+      if(A<0xC000) {
+	if(UNIFchrrama) { // hacky... strange behaviour, must be bit scramble due to pcb layot restrictions
+	  // check if it not interfer with other dumps
+	  if((A==0x8000)&&(V==0x46))
+	    V=0x47;
+	  else if((A==0x8000)&&(V==0x47))
+	    V=0x46;
+	}
+	MMC3_CMDWrite(A,V);
+	FixMMC3PRG(MMC3_cmd);
+      }
+      else
+	MMC3_IRQWrite(A,V);
+  }
 }
 
 //EXP handler ($5000-$5FFF)
 static DECLFW(BMCFK23CWrite) {
   if(A&(1<<(dipswitch+4))) {
-      //printf("+ ");
-      EXPREGS[A&3]=V;
+    //printf("+ ");
+    EXPREGS[A&3]=V;
 
-      bool remap = false;
+    bool remap = false;
 
-      //sometimes writing to reg0 causes remappings to occur. we think the 2 signifies this. 
-      //if not, 0x24 is a value that is known to work
-      //however, the low 4 bits are known to control the mapping mode, so 0x20 is more likely to be the immediate remap flag
-      remap |= ((EXPREGS[0]&0xF0)==0x20); 
+    //sometimes writing to reg0 causes remappings to occur. we think the 2 signifies this. 
+    //if not, 0x24 is a value that is known to work
+    //however, the low 4 bits are known to control the mapping mode, so 0x20 is more likely to be the immediate remap flag
+    remap |= ((EXPREGS[0]&0xF0)==0x20); 
 
-      //this is an actual mapping reg. i think reg0 controls what happens when reg1 is written. anyway, we have to immediately remap these
-      remap |= (A&3)==1; 
-      //this too.
-      remap |= (A&3)==2; 
+    //this is an actual mapping reg. i think reg0 controls what happens when reg1 is written. anyway, we have to immediately remap these
+    remap |= (A&3)==1; 
+    //this too.
+    remap |= (A&3)==2; 
 
-      if(remap)
-        {
-          FixMMC3PRG(MMC3_cmd);
-          FixMMC3CHR(MMC3_cmd);
-        }
+    if(remap) {
+      FixMMC3PRG(MMC3_cmd);
+      FixMMC3CHR(MMC3_cmd);
     }
+  }
 
-  if(is_BMCFK23CA)
-    {
-      if(EXPREGS[3]&2)
-        EXPREGS[0] &= ~7;   // hacky hacky! if someone wants extra banking, then for sure doesn't want mode 4 for it! (allow to run A version boards on normal mapper)
-    }
+  if(is_BMCFK23CA) {
+    if(EXPREGS[3]&2)
+      EXPREGS[0] &= ~7;   // hacky hacky! if someone wants extra banking, then for sure doesn't want mode 4 for it! (allow to run A version boards on normal mapper)
+  }
 
   //printf("%04X = $%02X\n",A,V);
   //printf("%02X %02X %02X %02X\n",EXPREGS[0],EXPREGS[1],EXPREGS[2],EXPREGS[3]);
 }
 
-static void BMCFK23CReset(void)
-{
-        //NOT NECESSARY ANYMORE
-        //this little hack makes sure that we try all the dip switch settings eventually, if we reset enough
-        // dipswitch++;
-        // dipswitch&=7;
-        //printf("BMCFK23C dipswitch set to %d\n",dipswitch);
+static void BMCFK23CReset(void) {
+  //NOT NECESSARY ANYMORE
+  //this little hack makes sure that we try all the dip switch settings eventually, if we reset enough
+  // dipswitch++;
+  // dipswitch&=7;
+  //printf("BMCFK23C dipswitch set to %d\n",dipswitch);
 
   EXPREGS[0]=EXPREGS[1]=EXPREGS[2]=EXPREGS[3]=0;
   EXPREGS[4]=EXPREGS[5]=EXPREGS[6]=EXPREGS[7]=0xFF;
@@ -262,7 +250,7 @@ void BMCFK23CA_Init(CartInfo *info) {
 
   CHRRAMSize=8192;
   CHRRAM=(uint8*)FCEU_gmalloc(CHRRAMSize);
-  SetupCartCHRMapping(0x10, CHRRAM, CHRRAMSize, 1);
+  fceulib__cart.SetupCartCHRMapping(0x10, CHRRAM, CHRRAMSize, 1);
   AddExState(CHRRAM, CHRRAMSize, 0, "CRAM");
 
   AddExState(EXPREGS, 8, 0, "EXPR");

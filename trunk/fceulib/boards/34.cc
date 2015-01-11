@@ -40,10 +40,10 @@ static SFORMAT StateRegs[] =
 };
 
 static void Sync(void) {
-	setprg8r(0x10, 0x6000, 0);
-	setprg32(0x8000, regs[0]);
-	setchr4(0x0000, regs[1]);
-	setchr4(0x1000, regs[2]);
+  fceulib__cart.setprg8r(0x10, 0x6000, 0);
+  fceulib__cart.setprg32(0x8000, regs[0]);
+  fceulib__cart.setchr4(0x0000, regs[1]);
+  fceulib__cart.setchr4(0x1000, regs[2]);
 }
 
 static DECLFW(M34Write) {
@@ -62,9 +62,9 @@ static void M34Power(void) {
 	regs[0] = regs[1] = 0;
 	regs[2] = 1;
 	Sync();
-	SetReadHandler(0x6000, 0x7ffc, CartBR);
-	SetWriteHandler(0x6000, 0x7ffc, CartBW);
-	SetReadHandler(0x8000, 0xffff, CartBR);
+	SetReadHandler(0x6000, 0x7ffc, Cart::CartBR);
+	SetWriteHandler(0x6000, 0x7ffc, Cart::CartBW);
+	SetReadHandler(0x8000, 0xffff, Cart::CartBR);
 	SetWriteHandler(0x7ffd, 0xffff, M34Write);
 }
 
@@ -79,14 +79,14 @@ static void StateRestore(int version) {
 }
 
 void Mapper34_Init(CartInfo *info) {
-	info->Power = M34Power;
-	info->Close = M34Close;
-	GameStateRestore = StateRestore;
+  info->Power = M34Power;
+  info->Close = M34Close;
+  GameStateRestore = StateRestore;
 
-	WRAMSIZE = 8192;
-	WRAM = (uint8*)FCEU_gmalloc(WRAMSIZE);
-	SetupCartPRGMapping(0x10, WRAM, WRAMSIZE, 1);
-	AddExState(WRAM, WRAMSIZE, 0, "WRAM");
+  WRAMSIZE = 8192;
+  WRAM = (uint8*)FCEU_gmalloc(WRAMSIZE);
+  fceulib__cart.SetupCartPRGMapping(0x10, WRAM, WRAMSIZE, 1);
+  AddExState(WRAM, WRAMSIZE, 0, "WRAM");
 
-	AddExState(&StateRegs, ~0, 0, 0);
+  AddExState(&StateRegs, ~0, 0, 0);
 }

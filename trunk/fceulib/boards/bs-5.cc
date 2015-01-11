@@ -31,37 +31,33 @@ static SFORMAT StateRegs[]=
   {0}
 };
 
-static void Sync(void)
-{
-  setprg8(0x8000,reg_prg[0]);
-  setprg8(0xa000,reg_prg[1]);
-  setprg8(0xc000,reg_prg[2]);
-  setprg8(0xe000,reg_prg[3]);
-  setchr2(0x0000,reg_chr[0]);
-  setchr2(0x0800,reg_chr[1]);
-  setchr2(0x1000,reg_chr[2]);
-  setchr2(0x1800,reg_chr[3]);
-  setmirror(MI_V);
+static void Sync(void) {
+  fceulib__cart.setprg8(0x8000,reg_prg[0]);
+  fceulib__cart.setprg8(0xa000,reg_prg[1]);
+  fceulib__cart.setprg8(0xc000,reg_prg[2]);
+  fceulib__cart.setprg8(0xe000,reg_prg[3]);
+  fceulib__cart.setchr2(0x0000,reg_chr[0]);
+  fceulib__cart.setchr2(0x0800,reg_chr[1]);
+  fceulib__cart.setchr2(0x1000,reg_chr[2]);
+  fceulib__cart.setchr2(0x1800,reg_chr[3]);
+  fceulib__cart.setmirror(MI_V);
 }
 
-static DECLFW(MBS5Write)
-{
+static DECLFW(MBS5Write) {
   int bank_sel = (A&0xC00)>>10;
-  switch (A&0xF000)
-  {
-    case 0x8000:
-         reg_chr[bank_sel]=A&0x1F;
-         break;
-    case 0xA000:
-         if(A&(1<<(dip_switch+4)))
-          reg_prg[bank_sel]=A&0x0F;
-         break;
+  switch (A&0xF000) {
+  case 0x8000:
+    reg_chr[bank_sel]=A&0x1F;
+    break;
+  case 0xA000:
+    if(A&(1<<(dip_switch+4)))
+      reg_prg[bank_sel]=A&0x0F;
+    break;
   }
   Sync();
 }
 
-static void MBS5Reset(void)
-{
+static void MBS5Reset(void) {
   dip_switch++;
   dip_switch&=3;
   reg_prg[0]=reg_prg[1]=reg_prg[2]=reg_prg[3]=~0;
@@ -73,7 +69,7 @@ static void MBS5Power(void)
   dip_switch=0;
   reg_prg[0]=reg_prg[1]=reg_prg[2]=reg_prg[3]=~0;
   Sync();
-  SetReadHandler(0x8000,0xFFFF,CartBR);
+  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
   SetWriteHandler(0x8000,0xFFFF,MBS5Write);
 }
 

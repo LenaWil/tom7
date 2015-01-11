@@ -32,18 +32,18 @@ static SFORMAT StateRegs[]=
 
 static void Sync(void)
 {
-  setprg2r(0,0xE000,0);
-  setprg2r(0,0xE800,0);
-  setprg2r(0,0xF000,0);
-  setprg2r(0,0xF800,0);
+  fceulib__cart.setprg2r(0,0xE000,0);
+  fceulib__cart.setprg2r(0,0xE800,0);
+  fceulib__cart.setprg2r(0,0xF000,0);
+  fceulib__cart.setprg2r(0,0xF800,0);
 
-  setprg8r(1,0x6000,3);
-  setprg8r(1,0x8000,0);
-  setprg8r(1,0xA000,1);
-  setprg8r(1,0xC000,2);
+  fceulib__cart.setprg8r(1,0x6000,3);
+  fceulib__cart.setprg8r(1,0x8000,0);
+  fceulib__cart.setprg8r(1,0xA000,1);
+  fceulib__cart.setprg8r(1,0xC000,2);
 
-  setchr8(chr & 1);
-  setmirror(MI_V);
+  fceulib__cart.setchr8(chr & 1);
+  fceulib__cart.setmirror(MI_V);
 }
 
 static DECLFW(LE05Write)
@@ -55,7 +55,7 @@ static DECLFW(LE05Write)
 static void LE05Power(void)
 {
   Sync();
-  SetReadHandler(0x6000,0xFFFF,CartBR);
+  SetReadHandler(0x6000,0xFFFF,Cart::CartBR);
   SetWriteHandler(0x8000,0xFFFF,LE05Write);
 }
 

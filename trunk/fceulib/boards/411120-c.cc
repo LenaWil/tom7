@@ -25,17 +25,15 @@
 
 static uint8 reset_flag = 0;
 
-static void BMC411120CCW(uint32 A, uint8 V)
-{
-    setchr1(A,V|((EXPREGS[0]&3)<<7));
+static void BMC411120CCW(uint32 A, uint8 V) {
+    fceulib__cart.setchr1(A,V|((EXPREGS[0]&3)<<7));
 }
 
-static void BMC411120CPW(uint32 A, uint8 V)
-{
+static void BMC411120CPW(uint32 A, uint8 V) {
     if(EXPREGS[0]&(8|reset_flag))
-      setprg32(0x8000,((EXPREGS[0]>>4)&3)|(0x0C));
+      fceulib__cart.setprg32(0x8000,((EXPREGS[0]>>4)&3)|(0x0C));
     else
-      setprg8(A,(V&0x0F)|((EXPREGS[0]&3)<<4));
+      fceulib__cart.setprg8(A,(V&0x0F)|((EXPREGS[0]&3)<<4));
 }
 
 static DECLFW(BMC411120CLoWrite)

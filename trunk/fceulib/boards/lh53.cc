@@ -38,17 +38,17 @@ static SFORMAT StateRegs[]=
 
 static void Sync(void)
 {
-  setchr8(0);
-  setprg8(0x6000,reg);
-  setprg8(0x8000,0xc);
-  setprg4(0xa000,(0xd<<1));
-  setprg2(0xb000,(0xd<<2)+2);
-  setprg2r(0x10,0xb800,4);
-  setprg2r(0x10,0xc000,5);
-  setprg2r(0x10,0xc800,6);
-  setprg2r(0x10,0xd000,7);
-  setprg2(0xd800,(0xe<<2)+3);
-  setprg8(0xe000,0xf);
+  fceulib__cart.setchr8(0);
+  fceulib__cart.setprg8(0x6000,reg);
+  fceulib__cart.setprg8(0x8000,0xc);
+  fceulib__cart.setprg4(0xa000,(0xd<<1));
+  fceulib__cart.setprg2(0xb000,(0xd<<2)+2);
+  fceulib__cart.setprg2r(0x10,0xb800,4);
+  fceulib__cart.setprg2r(0x10,0xc000,5);
+  fceulib__cart.setprg2r(0x10,0xc800,6);
+  fceulib__cart.setprg2r(0x10,0xd000,7);
+  fceulib__cart.setprg2(0xd800,(0xe<<2)+3);
+  fceulib__cart.setprg8(0xe000,0xf);
 }
 
 static DECLFW(LH53RamWrite)
@@ -83,7 +83,7 @@ static void LH53IRQ(int a)
 static void LH53Power(void)
 {
   Sync();
-  SetReadHandler(0x6000,0xFFFF,CartBR);
+  SetReadHandler(0x6000,0xFFFF,Cart::CartBR);
   SetWriteHandler(0xB800,0xD7FF,LH53RamWrite);
   SetWriteHandler(0xE000,0xEFFF,LH53IRQaWrite);
   SetWriteHandler(0xF000,0xFFFF,LH53Write);
@@ -110,7 +110,7 @@ void LH53_Init(CartInfo *info)
 
   WRAMSIZE=8192;
   WRAM=(uint8*)FCEU_gmalloc(WRAMSIZE);
-  SetupCartPRGMapping(0x10,WRAM,WRAMSIZE,1);
+  fceulib__cart.SetupCartPRGMapping(0x10,WRAM,WRAMSIZE,1);
   AddExState(WRAM, WRAMSIZE, 0, "WRAM");
 
   AddExState(&StateRegs, ~0, 0, 0);

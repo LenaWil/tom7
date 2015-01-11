@@ -24,46 +24,46 @@
 
 static DECLFW(UNLA9746Write)
 {
-//   FCEU_printf("write raw %04x:%02x\n",A,V);
-   switch (A&0xE003)
-   {
-     case 0x8000: EXPREGS[1]=V; EXPREGS[0]=0; break;
-     case 0x8002: EXPREGS[0]=V; EXPREGS[1]=0; break;
-     case 0x8001: {
-                    uint8 bits_rev = ((V&0x20)>>5)|((V&0x10)>>3)|((V&0x08)>>1)|((V&0x04)<<1);
-                    switch(EXPREGS[0])
-                    {
-                      case 0x26: setprg8(0x8000, bits_rev); break;
-                      case 0x25: setprg8(0xA000, bits_rev); break;
-                      case 0x24: setprg8(0xC000, bits_rev); break;
-                      case 0x23: setprg8(0xE000, bits_rev); break;
-                    }
-                    switch(EXPREGS[1])
-                    {
-                      case 0x0a:
-                      case 0x08: EXPREGS[2] = (V << 4); break;
-                      case 0x09: setchr1(0x0000, EXPREGS[2]|(V >> 1)); break;
-                      case 0x0b: setchr1(0x0400, EXPREGS[2]|(V >> 1)|1);  break;
-                      case 0x0c:
-                      case 0x0e: EXPREGS[2] = (V << 4);  break;
-                      case 0x0d: setchr1(0x0800, EXPREGS[2]|(V >> 1));  break;
-                      case 0x0f: setchr1(0x0c00, EXPREGS[2]|(V >> 1)|1);  break;
-                      case 0x10:
-                      case 0x12: EXPREGS[2] = (V << 4);  break;
-                      case 0x11: setchr1(0x1000, EXPREGS[2]|(V >> 1)); break;
-                      case 0x14:
-                      case 0x16: EXPREGS[2] = (V << 4);  break;
-                      case 0x15: setchr1(0x1400, EXPREGS[2]|(V >> 1));  break;
-                      case 0x18:
-                      case 0x1a: EXPREGS[2] = (V << 4);  break;
-                      case 0x19: setchr1(0x1800, EXPREGS[2]|(V >> 1));  break;
-                      case 0x1c:
-                      case 0x1e: EXPREGS[2] = (V << 4);  break;
-                      case 0x1d: setchr1(0x1c00, EXPREGS[2]|(V >> 1));  break;
-                    }
-                  }
-                  break;
-   }
+  //   FCEU_printf("write raw %04x:%02x\n",A,V);
+  switch (A&0xE003)
+    {
+    case 0x8000: EXPREGS[1]=V; EXPREGS[0]=0; break;
+    case 0x8002: EXPREGS[0]=V; EXPREGS[1]=0; break;
+    case 0x8001: {
+      uint8 bits_rev = ((V&0x20)>>5)|((V&0x10)>>3)|((V&0x08)>>1)|((V&0x04)<<1);
+      switch(EXPREGS[0])
+	{
+	case 0x26: fceulib__cart.setprg8(0x8000, bits_rev); break;
+	case 0x25: fceulib__cart.setprg8(0xA000, bits_rev); break;
+	case 0x24: fceulib__cart.setprg8(0xC000, bits_rev); break;
+	case 0x23: fceulib__cart.setprg8(0xE000, bits_rev); break;
+	}
+      switch(EXPREGS[1])
+	{
+	case 0x0a:
+	case 0x08: EXPREGS[2] = (V << 4); break;
+	case 0x09: fceulib__cart.setchr1(0x0000, EXPREGS[2]|(V >> 1)); break;
+	case 0x0b: fceulib__cart.setchr1(0x0400, EXPREGS[2]|(V >> 1)|1);  break;
+	case 0x0c:
+	case 0x0e: EXPREGS[2] = (V << 4);  break;
+	case 0x0d: fceulib__cart.setchr1(0x0800, EXPREGS[2]|(V >> 1));  break;
+	case 0x0f: fceulib__cart.setchr1(0x0c00, EXPREGS[2]|(V >> 1)|1);  break;
+	case 0x10:
+	case 0x12: EXPREGS[2] = (V << 4);  break;
+	case 0x11: fceulib__cart.setchr1(0x1000, EXPREGS[2]|(V >> 1)); break;
+	case 0x14:
+	case 0x16: EXPREGS[2] = (V << 4);  break;
+	case 0x15: fceulib__cart.setchr1(0x1400, EXPREGS[2]|(V >> 1));  break;
+	case 0x18:
+	case 0x1a: EXPREGS[2] = (V << 4);  break;
+	case 0x19: fceulib__cart.setchr1(0x1800, EXPREGS[2]|(V >> 1));  break;
+	case 0x1c:
+	case 0x1e: EXPREGS[2] = (V << 4);  break;
+	case 0x1d: fceulib__cart.setchr1(0x1c00, EXPREGS[2]|(V >> 1));  break;
+	}
+    }
+      break;
+    }
 }
 
 static void UNLA9746Power(void)

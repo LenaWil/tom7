@@ -34,17 +34,16 @@ static SFORMAT StateRegs[]=
   {0}
 };
 
-static void Sync(void)
-{
-  setmirror(mirror^1);
-  setprg8(0x8000,reg[0]);
-  setprg8(0xA000,reg[1]);
-  setchr2(0x0000,(reg[2]>>1));
-  setchr2(0x0800,(reg[3]>>1));
-  setchr1(0x1000,((bank&0x10)<<4)|reg[4]);
-  setchr1(0x1400,((bank&0x20)<<3)|reg[5]);
-  setchr1(0x1800,((bank&0x40)<<2)|reg[6]);
-  setchr1(0x1C00,((bank&0x80)<<1)|reg[7]);
+static void Sync(void) {
+  fceulib__cart.setmirror(mirror^1);
+  fceulib__cart.setprg8(0x8000,reg[0]);
+  fceulib__cart.setprg8(0xA000,reg[1]);
+  fceulib__cart.setchr2(0x0000,(reg[2]>>1));
+  fceulib__cart.setchr2(0x0800,(reg[3]>>1));
+  fceulib__cart.setchr1(0x1000,((bank&0x10)<<4)|reg[4]);
+  fceulib__cart.setchr1(0x1400,((bank&0x20)<<3)|reg[5]);
+  fceulib__cart.setchr1(0x1800,((bank&0x40)<<2)|reg[6]);
+  fceulib__cart.setchr1(0x1C00,((bank&0x80)<<1)|reg[7]);
 }
 
 static DECLFW(M112Write)
@@ -65,20 +64,18 @@ static void M112Close(void)
   WRAM = NULL;
 }
 
-static void M112Power(void)
-{
+static void M112Power(void) {
   bank=0;
-  setprg16(0xC000,~0);
-  setprg8r(0x10,0x6000,0);
-  SetReadHandler(0x8000,0xFFFF,CartBR);
+  fceulib__cart.setprg16(0xC000,~0);
+  fceulib__cart.setprg8r(0x10,0x6000,0);
+  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
   SetWriteHandler(0x8000,0xFFFF,M112Write);
   SetWriteHandler(0x4020,0x5FFF,M112Write);
-  SetReadHandler(0x6000,0x7FFF,CartBR);
-  SetWriteHandler(0x6000,0x7FFF,CartBW);
+  SetReadHandler(0x6000,0x7FFF,Cart::CartBR);
+  SetWriteHandler(0x6000,0x7FFF,Cart::CartBW);
 }
 
-static void StateRestore(int version)
-{
+static void StateRestore(int version) {
   Sync();
 }
 
@@ -88,7 +85,7 @@ void Mapper112_Init(CartInfo *info)
   info->Close=M112Close;
   GameStateRestore=StateRestore;
   WRAM=(uint8*)FCEU_gmalloc(8192);
-  SetupCartPRGMapping(0x10,WRAM,8192,1);
+  fceulib__cart.SetupCartPRGMapping(0x10,WRAM,8192,1);
   AddExState(WRAM, 8192, 0, "WRAM");
   AddExState(&StateRegs, ~0, 0, 0);
 }

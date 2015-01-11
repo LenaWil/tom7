@@ -31,9 +31,9 @@ static SFORMAT StateRegs[]=
 
 static void Sync(void)
 {
-  setchr8((latch >> 2) & 1);
-  setprg32(0x8000,0);
-  setprg8(0x8000,latch & 4);        /* Special for VS Gumshoe */
+  fceulib__cart.setchr8((latch >> 2) & 1);
+  fceulib__cart.setprg32(0x8000,0);
+  fceulib__cart.setprg8(0x8000,latch & 4);        /* Special for VS Gumshoe */
 }
 
 static DECLFW(M99Write)
@@ -49,7 +49,7 @@ static void M99Power(void)
   Sync();
   old4016=GetWriteHandler(0x4016);
   SetWriteHandler(0x4016,0x4016,M99Write);
-  SetReadHandler(0x8000,0xFFFF,CartBR);
+  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
 }
 
 static void StateRestore(int version)

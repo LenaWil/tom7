@@ -39,47 +39,46 @@ static SFORMAT StateRegs[] =
 };
 
 static void Sync(void) {
-	uint8 i;
-	setprg8r(0x10, 0x6000, 0);
-	setprg8(0x8000, preg[0]);
-	setprg8(0xa000, preg[1]);
-	setprg8(0xc000, ~1);
-	setprg8(0xe000, ~0);
-	for (i = 0; i < 8; i++)
-		if ((creg[i] == 6) || (creg[i] == 7))
-			setchr1r(0x10, i << 10, creg[i] & 1);
-		else
-			setchr1(i << 10, creg[i]);
+  fceulib__cart.setprg8r(0x10, 0x6000, 0);
+  fceulib__cart.setprg8(0x8000, preg[0]);
+  fceulib__cart.setprg8(0xa000, preg[1]);
+  fceulib__cart.setprg8(0xc000, ~1);
+  fceulib__cart.setprg8(0xe000, ~0);
+  for (uint8 i = 0; i < 8; i++)
+    if ((creg[i] == 6) || (creg[i] == 7))
+      fceulib__cart.setchr1r(0x10, i << 10, creg[i] & 1);
+    else
+      fceulib__cart.setchr1(i << 10, creg[i]);
 }
 
 static DECLFW(M252Write) {
-	if ((A >= 0xB000) && (A <= 0xEFFF)) {
-		uint8 ind = ((((A & 8) | (A >> 8)) >> 3) + 2) & 7;
-		uint8 sar = A & 4;
-		creg[ind] = (creg[ind] & (0xF0 >> sar)) | ((V & 0x0F) << sar);
-		Sync();
-	} else
-		switch (A & 0xF00C) {
-		case 0x8000:
-		case 0x8004:
-		case 0x8008:
-		case 0x800C: preg[0] = V; Sync(); break;
-		case 0xA000:
-		case 0xA004:
-		case 0xA008:
-		case 0xA00C: preg[1] = V; Sync(); break;
-		case 0xF000: X6502_IRQEnd(FCEU_IQEXT); IRQLatch &= 0xF0; IRQLatch |= V & 0xF; break;
-		case 0xF004: X6502_IRQEnd(FCEU_IQEXT); IRQLatch &= 0x0F; IRQLatch |= V << 4; break;
-		case 0xF008: X6502_IRQEnd(FCEU_IQEXT); IRQClock = 0; IRQCount = IRQLatch; IRQa = V & 2; break;
-		}
+  if ((A >= 0xB000) && (A <= 0xEFFF)) {
+    uint8 ind = ((((A & 8) | (A >> 8)) >> 3) + 2) & 7;
+    uint8 sar = A & 4;
+    creg[ind] = (creg[ind] & (0xF0 >> sar)) | ((V & 0x0F) << sar);
+    Sync();
+  } else
+    switch (A & 0xF00C) {
+    case 0x8000:
+    case 0x8004:
+    case 0x8008:
+    case 0x800C: preg[0] = V; Sync(); break;
+    case 0xA000:
+    case 0xA004:
+    case 0xA008:
+    case 0xA00C: preg[1] = V; Sync(); break;
+    case 0xF000: X6502_IRQEnd(FCEU_IQEXT); IRQLatch &= 0xF0; IRQLatch |= V & 0xF; break;
+    case 0xF004: X6502_IRQEnd(FCEU_IQEXT); IRQLatch &= 0x0F; IRQLatch |= V << 4; break;
+    case 0xF008: X6502_IRQEnd(FCEU_IQEXT); IRQClock = 0; IRQCount = IRQLatch; IRQa = V & 2; break;
+    }
 }
 
 static void M252Power(void) {
-	Sync();
-	SetReadHandler(0x6000, 0x7FFF, CartBR);
-	SetWriteHandler(0x6000, 0x7FFF, CartBW);
-	SetReadHandler(0x8000, 0xFFFF, CartBR);
-	SetWriteHandler(0x8000, 0xFFFF, M252Write);
+  Sync();
+  SetReadHandler(0x6000, 0x7FFF, Cart::CartBR);
+  SetWriteHandler(0x6000, 0x7FFF, Cart::CartBW);
+  SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
+  SetWriteHandler(0x8000, 0xFFFF, M252Write);
 }
 
 static void M252IRQ(int a) {
@@ -112,23 +111,23 @@ static void StateRestore(int version) {
 }
 
 void Mapper252_Init(CartInfo *info) {
-	info->Power = M252Power;
-	info->Close = M252Close;
-	MapIRQHook = M252IRQ;
+  info->Power = M252Power;
+  info->Close = M252Close;
+  MapIRQHook = M252IRQ;
 
-	CHRRAMSIZE = 2048;
-	CHRRAM = (uint8*)FCEU_gmalloc(CHRRAMSIZE);
-	SetupCartCHRMapping(0x10, CHRRAM, CHRRAMSIZE, 1);
-	AddExState(CHRRAM, CHRRAMSIZE, 0, "CRAM");
+  CHRRAMSIZE = 2048;
+  CHRRAM = (uint8*)FCEU_gmalloc(CHRRAMSIZE);
+  fceulib__cart.SetupCartCHRMapping(0x10, CHRRAM, CHRRAMSIZE, 1);
+  AddExState(CHRRAM, CHRRAMSIZE, 0, "CRAM");
 
-	WRAMSIZE = 8192;
-	WRAM = (uint8*)FCEU_gmalloc(WRAMSIZE);
-	SetupCartPRGMapping(0x10, WRAM, WRAMSIZE, 1);
-	AddExState(WRAM, WRAMSIZE, 0, "WRAM");
-	if (info->battery) {
-		info->SaveGame[0] = WRAM;
-		info->SaveGameLen[0] = WRAMSIZE;
-	}
-	GameStateRestore = StateRestore;
-	AddExState(&StateRegs, ~0, 0, 0);
+  WRAMSIZE = 8192;
+  WRAM = (uint8*)FCEU_gmalloc(WRAMSIZE);
+  fceulib__cart.SetupCartPRGMapping(0x10, WRAM, WRAMSIZE, 1);
+  AddExState(WRAM, WRAMSIZE, 0, "WRAM");
+  if (info->battery) {
+    info->SaveGame[0] = WRAM;
+    info->SaveGameLen[0] = WRAMSIZE;
+  }
+  GameStateRestore = StateRestore;
+  AddExState(&StateRegs, ~0, 0, 0);
 }

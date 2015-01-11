@@ -31,10 +31,10 @@ static SFORMAT StateRegs[]=
 
 static void Sync(void)
 {
-  setprg16(0x8000,reg);
-  setprg16(0xc000,~0);
-  setmirror(mirr);
-  setchr8(0);
+  fceulib__cart.setprg16(0x8000,reg);
+  fceulib__cart.setprg16(0xc000,~0);
+  fceulib__cart.setmirror(mirr);
+  fceulib__cart.setchr8(0);
 }
 
 static DECLFW(UNLKS7013BLoWrite)
@@ -55,7 +55,7 @@ static void UNLKS7013BPower(void)
   mirr = 0;
   Sync();
   SetWriteHandler(0x6000,0x7FFF,UNLKS7013BLoWrite);
-  SetReadHandler(0x8000,0xFFFF,CartBR);
+  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
   SetWriteHandler(0x8000,0xFFFF,UNLKS7013BHiWrite);
 }
 

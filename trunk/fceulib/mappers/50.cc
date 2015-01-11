@@ -37,7 +37,7 @@ static void Mapper50IRQ(int a)
 
 static void M50Restore(int version)
 {
- setprg8(0xc000,mapbyte1[0]);
+ fceulib__cart.setprg8(0xc000,mapbyte1[0]);
 }
 
 static DECLFW(M50W)
@@ -54,22 +54,21 @@ static DECLFW(M50W)
   {
    V=((V&1)<<2)|((V&2)>>1)|((V&4)>>1)|(V&8);
    mapbyte1[0]=V;
-   setprg8(0xc000,V);
+   fceulib__cart.setprg8(0xc000,V);
   }
  }
 }
 
-void Mapper50_init(void)
-{
+void Mapper50_init(void) {
   SetWriteHandler(0x4020,0x5fff,M50W);
-  SetReadHandler(0x6000,0xffff,CartBR);
+  SetReadHandler(0x6000,0xffff,Cart::CartBR);
   MapStateRestore=M50Restore;
   MapIRQHook=Mapper50IRQ;
 
-  setprg8(0x6000,0xF);
-  setprg8(0x8000,0x8);
-  setprg8(0xa000,0x9);
-  setprg8(0xc000,0x0);
-  setprg8(0xe000,0xB);
+  fceulib__cart.setprg8(0x6000,0xF);
+  fceulib__cart.setprg8(0x8000,0x8);
+  fceulib__cart.setprg8(0xa000,0x9);
+  fceulib__cart.setprg8(0xc000,0x0);
+  fceulib__cart.setprg8(0xe000,0xB);
 }
 

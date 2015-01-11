@@ -80,8 +80,8 @@ byte_8CC6:           .BYTE   0,$78,  0,  0,$12
 
 static void Sync(void)
 {
-  setprg32(0x8000, prg_reg);
-  setchr8(chr_reg);
+  fceulib__cart.setprg32(0x8000, prg_reg);
+  fceulib__cart.setchr8(chr_reg);
 }
 
 static void StateRestore(int version)
@@ -112,7 +112,7 @@ static void Power(void)
   prg_reg = 0;
   chr_reg = 0;
   Sync();
-  SetReadHandler(0x8000,0xFFFF,CartBR);
+  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
   SetWriteHandler(0x8000,0xFFFF,M216WriteHi);
   SetWriteHandler(0x5000,0x5000,M216Write5000);
   SetReadHandler(0x5000,0x5000,M216Read5000);

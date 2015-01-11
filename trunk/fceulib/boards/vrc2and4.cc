@@ -48,137 +48,141 @@ static SFORMAT StateRegs[] =
 };
 
 static void Sync(void) {
-	if (regcmd & 2) {
-		setprg8(0xC000, prgreg[0] | big_bank);
-		setprg8(0x8000, ((~1) & 0x1F) | big_bank);
-	} else {
-		setprg8(0x8000, prgreg[0] | big_bank);
-		setprg8(0xC000, ((~1) & 0x1F) | big_bank);
-	}
-	setprg8(0xA000, prgreg[1] | big_bank);
-	setprg8(0xE000, ((~0) & 0x1F) | big_bank);
-	if (UNIFchrrama)
-		setchr8(0);
-	else{
-		uint8 i;
-		if(!weirdo)
-			for (i = 0; i < 8; i++)
-				setchr1(i << 10, (chrhi[i] | chrreg[i]) >> is22);
-		else {
-			setchr1(0x0000, 0xFC);
-			setchr1(0x0400, 0xFD);
-			setchr1(0x0800, 0xFF);
-			weirdo--;
-		}
-	}
-	switch (mirr & 0x3) {
-	case 0: setmirror(MI_V); break;
-	case 1: setmirror(MI_H); break;
-	case 2: setmirror(MI_0); break;
-	case 3: setmirror(MI_1); break;
-	}
+  if (regcmd & 2) {
+    fceulib__cart.setprg8(0xC000, prgreg[0] | big_bank);
+    fceulib__cart.setprg8(0x8000, ((~1) & 0x1F) | big_bank);
+  } else {
+    fceulib__cart.setprg8(0x8000, prgreg[0] | big_bank);
+    fceulib__cart.setprg8(0xC000, ((~1) & 0x1F) | big_bank);
+  }
+  fceulib__cart.setprg8(0xA000, prgreg[1] | big_bank);
+  fceulib__cart.setprg8(0xE000, ((~0) & 0x1F) | big_bank);
+  if (UNIFchrrama)
+    fceulib__cart.setchr8(0);
+  else{
+    uint8 i;
+    if(!weirdo)
+      for (i = 0; i < 8; i++)
+	fceulib__cart.setchr1(i << 10, (chrhi[i] | chrreg[i]) >> is22);
+    else {
+      fceulib__cart.setchr1(0x0000, 0xFC);
+      fceulib__cart.setchr1(0x0400, 0xFD);
+      fceulib__cart.setchr1(0x0800, 0xFF);
+      weirdo--;
+    }
+  }
+  switch (mirr & 0x3) {
+  case 0: fceulib__cart.setmirror(MI_V); break;
+  case 1: fceulib__cart.setmirror(MI_H); break;
+  case 2: fceulib__cart.setmirror(MI_0); break;
+  case 3: fceulib__cart.setmirror(MI_1); break;
+  }
 }
 
 static DECLFW(VRC24Write) {
-	A &= 0xF003;
-	if ((A >= 0xB000) && (A <= 0xE003)) {
-		if (UNIFchrrama)
-			big_bank = (V & 8) << 2;							// my personally many-in-one feature ;) just for support pirate cart 2-in-1
-		else{
-			uint16 i = ((A >> 1) & 1) | ((A - 0xB000) >> 11);
-			uint16 nibble = ((A & 1) << 2);
-			chrreg[i] &= (0xF0) >> nibble;
-			chrreg[i] |= (V & 0xF) << nibble;
-			if(nibble)
-				chrhi[i] = (V & 0x10) << 4;						// another one many in one feature from pirate carts
-		}
-		Sync();
-	} else
-		switch (A & 0xF003) {
-		case 0x8000:
-		case 0x8001:
-		case 0x8002:
-		case 0x8003:
-			if (!isPirate) {
-				prgreg[0] = V & 0x1F;
-				Sync();
-			}
-			break;
-		case 0xA000:
-		case 0xA001:
-		case 0xA002:
-		case 0xA003:
-			if (!isPirate)
-				prgreg[1] = V & 0x1F;
-			else{
-				prgreg[0] = (V & 0x1F) << 1;
-				prgreg[1] = ((V & 0x1F) << 1) | 1;
-			}
-			Sync();
-			break;
-		case 0x9000:
-		case 0x9001: if (V != 0xFF) mirr = V; Sync(); break;
-		case 0x9002:
-		case 0x9003: regcmd = V; Sync(); break;
-		case 0xF000: X6502_IRQEnd(FCEU_IQEXT); IRQLatch &= 0xF0; IRQLatch |= V & 0xF; break;
-		case 0xF001: X6502_IRQEnd(FCEU_IQEXT); IRQLatch &= 0x0F; IRQLatch |= V << 4; break;
-		case 0xF002: X6502_IRQEnd(FCEU_IQEXT); acount = 0; IRQCount = IRQLatch; IRQa = V & 2; irqcmd = V & 1; break;
-		case 0xF003: X6502_IRQEnd(FCEU_IQEXT); IRQa = irqcmd; break;
-		}
+  A &= 0xF003;
+  if ((A >= 0xB000) && (A <= 0xE003)) {
+    if (UNIFchrrama)
+      big_bank = (V & 8) << 2;							// my personally many-in-one feature ;) just for support pirate cart 2-in-1
+    else{
+      uint16 i = ((A >> 1) & 1) | ((A - 0xB000) >> 11);
+      uint16 nibble = ((A & 1) << 2);
+      chrreg[i] &= (0xF0) >> nibble;
+      chrreg[i] |= (V & 0xF) << nibble;
+      if(nibble)
+	chrhi[i] = (V & 0x10) << 4;						// another one many in one feature from pirate carts
+    }
+    Sync();
+  } else
+    switch (A & 0xF003) {
+    case 0x8000:
+    case 0x8001:
+    case 0x8002:
+    case 0x8003:
+      if (!isPirate) {
+	prgreg[0] = V & 0x1F;
+	Sync();
+      }
+      break;
+    case 0xA000:
+    case 0xA001:
+    case 0xA002:
+    case 0xA003:
+      if (!isPirate)
+	prgreg[1] = V & 0x1F;
+      else{
+	prgreg[0] = (V & 0x1F) << 1;
+	prgreg[1] = ((V & 0x1F) << 1) | 1;
+      }
+      Sync();
+      break;
+    case 0x9000:
+    case 0x9001: if (V != 0xFF) mirr = V; Sync(); break;
+    case 0x9002:
+    case 0x9003: regcmd = V; Sync(); break;
+    case 0xF000: X6502_IRQEnd(FCEU_IQEXT); IRQLatch &= 0xF0; IRQLatch |= V & 0xF; break;
+    case 0xF001: X6502_IRQEnd(FCEU_IQEXT); IRQLatch &= 0x0F; IRQLatch |= V << 4; break;
+    case 0xF002: X6502_IRQEnd(FCEU_IQEXT); acount = 0; IRQCount = IRQLatch; IRQa = V & 2; irqcmd = V & 1; break;
+    case 0xF003: X6502_IRQEnd(FCEU_IQEXT); IRQa = irqcmd; break;
+    }
 }
 
 static DECLFW(M21Write) {
-	A = (A & 0xF000) | ((A >> 1) & 0x3);						// Ganbare Goemon Gaiden 2 - Tenka no Zaihou (J) [!] isn't mapper 21 actually,
-																// it's mapper 23 by wirings
-	VRC24Write(A, V);
+  A = (A & 0xF000) | ((A >> 1) & 0x3);			
+  // Ganbare Goemon Gaiden 2 - Tenka no Zaihou (J) [!] isn't mapper 21
+  // actually, it's mapper 23 by wirings
+  VRC24Write(A, V);
 }
 
 static DECLFW(M22Write) {
-	if (A == 0xC007) {											// Ganbare Goemon Gaiden does strange things!!! at the end credits
-		weirdo = 8;												// quick dirty hack, seems there is no other games with such PCB, so
-																// we never know if it will not work for something else lol
-	}
-	A |= ((A >> 2) & 0x3);										// It's just swapped lines from 21 mapper
-																//
-	VRC24Write((A & 0xF000) | ((A >> 1) & 1) | ((A << 1) & 2), V);
+  if (A == 0xC007) {
+    // Ganbare Goemon Gaiden does strange things!!! at the end credits
+    // quick dirty hack, seems there is no other games with such PCB, so
+    // we never know if it will not work for something else lol
+    weirdo = 8;
+  }
+  A |= ((A >> 2) & 0x3);
+  // It's just swapped lines from 21 mapper
+  VRC24Write((A & 0xF000) | ((A >> 1) & 1) | ((A << 1) & 2), V);
 }
 
 static DECLFW(M23Write) {
-	A |= ((A >> 2) & 0x3) | ((A >> 4) & 0x3) | ((A >> 6) & 0x3);// actually there is many-in-one mapper source, some pirate or
-																// licensed games use various address bits for registers
-	VRC24Write(A, V);
+  A |= ((A >> 2) & 0x3) | ((A >> 4) & 0x3) | ((A >> 6) & 0x3);
+  // actually there is many-in-one mapper source, some pirate or
+  // licensed games use various address bits for registers
+  VRC24Write(A, V);
 }
 
 static void M21Power(void) {
 	Sync();
-	SetReadHandler(0x8000, 0xFFFF, CartBR);
+	SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
 	SetWriteHandler(0x8000, 0xFFFF, M21Write);
 }
 
 static void M22Power(void) {
 	Sync();
-	SetReadHandler(0x8000, 0xFFFF, CartBR);
+	SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
 	SetWriteHandler(0x8000, 0xFFFF, M22Write);
 }
 
 static void M23Power(void) {
 	big_bank = 0x20;
 	Sync();
-	setprg8r(0x10, 0x6000, 0);	// Only two Goemon games are have battery backed RAM, three more shooters
+	fceulib__cart.setprg8r(0x10, 0x6000, 0);	// Only two Goemon games are have battery backed RAM, three more shooters
 								// (Parodius Da!, Gradius 2 and Crisis Force uses 2k or SRAM at 6000-67FF only
-	SetReadHandler(0x6000, 0x7FFF, CartBR);
-	SetWriteHandler(0x6000, 0x7FFF, CartBW);
-	SetReadHandler(0x8000, 0xFFFF, CartBR);
+	SetReadHandler(0x6000, 0x7FFF, Cart::CartBR);
+	SetWriteHandler(0x6000, 0x7FFF, Cart::CartBW);
+	SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
 	SetWriteHandler(0x8000, 0xFFFF, M23Write);
 }
 
 static void M25Power(void) {
 	big_bank = 0x20;
 	Sync();
-	setprg8r(0x10, 0x6000, 0);
-	SetReadHandler(0x6000, 0x7FFF, CartBR);
-	SetWriteHandler(0x6000, 0x7FFF, CartBW);
-	SetReadHandler(0x8000, 0xFFFF, CartBR);
+	fceulib__cart.setprg8r(0x10, 0x6000, 0);
+	SetReadHandler(0x6000, 0x7FFF, Cart::CartBR);
+	SetWriteHandler(0x6000, 0x7FFF, Cart::CartBW);
+	SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
 	SetWriteHandler(0x8000, 0xFFFF, M22Write);
 }
 
@@ -235,7 +239,7 @@ void VRC24_Init(CartInfo *info) {
 
 	WRAMSIZE = 8192;
 	WRAM = (uint8*)FCEU_gmalloc(WRAMSIZE);
-	SetupCartPRGMapping(0x10, WRAM, WRAMSIZE, 1);
+	fceulib__cart.SetupCartPRGMapping(0x10, WRAM, WRAMSIZE, 1);
 	AddExState(WRAM, WRAMSIZE, 0, "WRAM");
 
 	if(info->battery) {
