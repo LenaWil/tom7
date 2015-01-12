@@ -195,6 +195,21 @@ void Traces::TraceMemory(const vector<uint8> &v) {
   Write(t);
 }
 
+void Traces::TraceArray(const uint8 *v, int size) {
+  Trace t(MEMORY);
+  t.data_memory.resize(size);
+  for (int i = 0; i < size; i++) {
+    t.data_memory[i] = v[i];
+  }
+  Write(t);
+}
+
+void Traces::TraceNumber(uint64 n) {
+  Trace t(NUMBER);
+  t.data_number = n;
+  Write(t);
+}
+
 Traces::Traces() {
   fp = fopen("trace.bin", "wb");
   if (fp == nullptr) {
@@ -214,6 +229,91 @@ bool Traces::Equal(const Trace &l, const Trace &r) {
     abort();
   }
   return false;
+}
+
+static const char *TypeString(Traces::TraceType ty) {
+  switch (ty) {
+  case Traces::STRING: return "STRING";
+  case Traces::MEMORY: return "MEMORY";
+  case Traces::NUMBER: return "NUMBER";
+  }
+  return "??";
+}
+
+#define StringPrintf FCEU_StringPrintf
+string Traces::Difference(const Trace &l, const Trace &r) {
+  if (Equal(l, r)) return "Equal.";
+  if (l.type != r.type) {
+    return StringPrintf("Types are different: %s vs %s",
+			TypeString(l.type), TypeString(r.type));
+  }
+
+  switch (l.type) {
+  case STRING:
+    return StringPrintf("%s\nvs.\n%s", 
+			l.data_string.c_str(),
+			r.data_string.c_str());
+  case MEMORY: {
+    string how =
+      l.data_memory.size() != r.data_memory.size() ? 
+      StringPrintf("Memories (different sizes: %lld vs %lld): ",
+		   l.data_memory.size(),
+		   r.data_memory.size()) :
+      "Memories (same size): ";
+
+    // Long version.
+    for (int i = 0; i < min(l.data_memory.size(),
+			    r.data_memory.size()); i++) {
+      uint8 ll = l.data_memory[i], rr = r.data_memory[i];
+      if (ll != rr) {
+	how += StringPrintf("%02x|%02x ", ll, rr);
+      } else {
+	how += StringPrintf("(%02x)  ", ll);
+      }
+      if (!i % 16) how += "\n";
+    }
+    return how;
+
+    // Short version.
+    for (int i = 0; i < min(l.data_memory.size(),
+			    r.data_memory.size()); i++) {
+      uint8 ll = l.data_memory[i], rr = r.data_memory[i];
+      if (ll != rr) {
+	if (how.length() > 70)
+	  return how + "...";
+	how += StringPrintf("@%d %02x != %02x  ", i, ll, rr);
+      }
+    }
+    return how + " (only)";
+    break;
+  }
+  case NUMBER:
+    return StringPrintf("%llu vs. %llu",
+			l.data_number,
+			r.data_number);
+  }
+  return "Bad types!";
+}
+
+string Traces::LineString(const Trace &t) {
+ switch (t.type) {
+ case STRING:
+   if (t.data_string.size() > 75) {
+     return StringPrintf("\"%s...\"",
+			 t.data_string.substr(0, 75).c_str());
+   } else {
+     return StringPrintf("\"%s\"", t.data_string.c_str());
+   }
+ case MEMORY: {
+   bool all_zero = true;
+   for (uint8 b : t.data_memory) all_zero = all_zero || b;
+   return StringPrintf("[MEMORY %d bytes (%s)]", t.data_memory.size(),
+		       all_zero ? "all zero" : "nonzero");
+ }
+ case NUMBER:
+   return StringPrintf("%llu", t.data_number);
+ }
+ return "??";
 }
 
 void Traces::Write(const Trace &t) {
@@ -325,13 +425,15 @@ vector<Traces::Trace> Traces::ReadFromFile(const string &filename) {
 	fprintf(stderr, "Incomplete memory record.\n");
 	abort();
       }
-      t.data_memory.resize(len);
+      vector<uint8> compressed;
+      compressed.resize(len);
       for (int i = 0; i < len; i++) {
-	if (!Read8(&t.data_memory[i])) {
+	if (!Read8(&compressed[i])) {
 	  fprintf(stderr, "Incomplete memory.\n");
 	  abort();
 	}
       }
+      t.data_memory = RLE::Decompress(compressed);
       break;
     }
     case NUMBER:

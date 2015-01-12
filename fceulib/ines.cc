@@ -41,6 +41,8 @@
 #include "vsuni.h"
 #include "driver.h"
 
+#include "tracing.h"
+
 //mbg merge 6/29/06 - these need to be global
 static uint8 *trainerdata = nullptr;
 uint8 *ROM = nullptr;
@@ -298,6 +300,7 @@ void MapperInit() {
   if (!NewiNES_Init(MapperNo)) {
     iNESCart.Power = iNESPower;
     if (head.ROM_type & 2) {
+      TRACEF("Set savegame %d", head.ROM_type);
       iNESCart.SaveGame[0] = WRAM;
       iNESCart.SaveGameLen[0] = 8192;
     }
@@ -791,6 +794,7 @@ static uint32 uppow2(uint32 n) {
 }
 
 int iNESLoad(const char *name, FceuFile *fp, int OverwriteVidMode) {
+  {
   struct md5_context md5;
 
   if (FCEU_fread(&head,1,16,fp)!=16)
@@ -892,7 +896,7 @@ int iNESLoad(const char *name, FceuFile *fp, int OverwriteVidMode) {
     FCEU_printf("%02x",iNESCart.MD5[x]);
   FCEU_printf("\n");
 
-  char* mappername = "Not Listed";
+  const char* mappername = "Not Listed";
 
   for (int mappertest = 0; mappertest < (sizeof bmap / sizeof bmap[0]) - 1; 
        mappertest++) {
@@ -940,7 +944,9 @@ int iNESLoad(const char *name, FceuFile *fp, int OverwriteVidMode) {
 
   GameInfo->mappernum = MapperNo;
   MapperInit();
+  
   fceulib__cart.FCEU_LoadGameSave(&iNESCart);
+  TRACEA(WRAM, 8192);
 
   // Extract Filename only. Should account for Windows/Unix this way.
   if (strrchr(name, '/')) {
@@ -965,6 +971,13 @@ int iNESLoad(const char *name, FceuFile *fp, int OverwriteVidMode) {
     else
       FCEUI_SetVidSystem(0);
   }
+
+  TRACEA(WRAM, 8192);
+  TRACEF("iNESLoad closingbrace.");
+  }
+  TRACEA(WRAM, 8192);
+  TRACEF("iNESLoad done.");
+  // TRACEF("WRAM is at %p", WRAM);
   return 1;
 }
 
@@ -1363,6 +1376,7 @@ void iNESStateRestore(int version) {
 }
 
 static void iNESPower() {
+  TRACEF("iNESPower %d", MapperNo);
   int type = MapperNo;
 
   SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
@@ -1423,6 +1437,7 @@ static void iNESPower() {
 
 static int NewiNES_Init(int num) {
   const BMAPPINGLocal *tmp = bmap;
+  TRACEF("NewiNES_Init %d", num);
 
   CHRRAMSize = -1;
 
@@ -1448,6 +1463,7 @@ static int NewiNES_Init(int num) {
       if (head.ROM_type&8)
 	AddExState(ExtraNTARAM, 2048, 0, "EXNR");
       tmp->init(&iNESCart);
+      TRACEF("NewiNES init done.");
       return 1;
     }
     tmp++;

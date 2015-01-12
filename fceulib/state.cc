@@ -46,6 +46,8 @@
 #include "zlib.h"
 #include "driver.h"
 
+#include "tracing.h"
+
 using namespace std;
 
 static void (*SPreSave)();
@@ -93,7 +95,7 @@ static int SubWrite(EMUFILE* os, const SFORMAT *sf) {
       continue;
     }
 
-    // 8 bytes for description + size
+    // 8 bytes for tag + size
     acc += 8;
     acc += sf->s&(~FCEUSTATE_FLAGS);
 
@@ -101,6 +103,14 @@ static int SubWrite(EMUFILE* os, const SFORMAT *sf) {
     if (os) {
       os->fwrite(sf->desc,4);
       write32le(sf->s&(~FCEUSTATE_FLAGS),os);
+
+      TRACEF("%s for %d", sf->desc, sf->s & ~FCEUSTATE_FLAGS);
+
+      if (sf->s&FCEUSTATE_INDIRECT)
+	TRACEA(*(uint8 **)sf->v, sf->s&(~FCEUSTATE_FLAGS));
+      else
+	TRACEA((uint8 *)sf->v, sf->s&(~FCEUSTATE_FLAGS));
+
 
 #ifndef LSB_FIRST
       if (sf->s&RLSB)
@@ -128,6 +138,7 @@ static int WriteStateChunk(EMUFILE* os, int type, const SFORMAT *sf) {
   os->fputc(type);
   int bsize = SubWrite((EMUFILE*)0,sf);
   write32le(bsize,os);
+  TRACEF("Write %s etc. sized %d", sf->desc, bsize);
 
   if (!SubWrite(os,sf)) {
     return 5;
@@ -269,23 +280,31 @@ bool FCEUSS_SaveRAW(std::vector<uint8> *out) {
   totalsize = WriteStateChunk(&os,1,SFCPU);
   totalsize += WriteStateChunk(&os,2,SFCPUC);
   totalsize += WriteStateChunk(&os,3,FCEUPPU_STATEINFO);
+  TRACEV(*out);
   // PERF: Do we need to save both old and new ppu infos?
   // PERF: I think not. PPU data is large; should definitely try
   // removing this (or even removing code support for new ppu)
+
+  TRACEF("PPU:");
   totalsize += WriteStateChunk(&os,31,FCEU_NEWPPU_STATEINFO);
+  TRACEV(*out);
   totalsize += WriteStateChunk(&os,4,FCEUINPUT_STATEINFO);
+  TRACEV(*out);
   totalsize += WriteStateChunk(&os,5,fceulib__sound.FCEUSND_STATEINFO());
+  TRACEV(*out);
 
   if (SPreSave) SPreSave();
   // This allows other parts of the system to hook into things to be
   // saved. It is indeed used for "WRAM", "LATC", "BUSC". -tom7
+  TRACEF("SFMDATA:");
   totalsize += WriteStateChunk(&os,0x10,SFMDATA);
+  TRACEV(*out);
   if (SPreSave) SPostSave();
 
   // save the length of the file
   const int len = os.size();
-
-  // PERF trim?
+  
+  // PERF shrink to fit?
   
   // sanity check: len and totalsize should be the same
   if (len != totalsize) {
