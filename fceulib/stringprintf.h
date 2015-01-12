@@ -5,6 +5,6 @@
 
 // Copyright 2002 and onwards Google Inc.
 // See stringprintf.cc for licensing information.
-std::string StringPrintf(const char *format, ...);
+std::string FCEU_StringPrintf(const char *format, ...);
 
 #endif

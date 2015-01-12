@@ -14,7 +14,7 @@
 #include "stringprintf.h"
 
 extern Traces fceulib__traces;
-#define TRACEF(...) fceulib__traces.TraceString(StringPrintf( __VA_ARGS__ ))
+#define TRACEF(...) fceulib__traces.TraceString(FCEU_StringPrintf( __VA_ARGS__ ))
 #define TRACEV(v) fceulib__traces.TraceMemory(v)
 
 #else
