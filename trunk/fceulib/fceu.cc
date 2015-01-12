@@ -48,6 +48,8 @@
 
 #include "driver.h"
 
+#include "tracing.h"
+
 #include <fstream>
 #include <sstream>
 
@@ -250,11 +252,23 @@ FCEUGI *FCEUI_LoadGameVirtual(const char *name, int OverwriteVidMode) {
 
 endlseq:
 
+  // OK, WRAM is at a different address now? hmm.
+  // Something overwrote it? How??
+  extern uint8 *WRAM;
+  // TRACEF("WRAM is at %p", WRAM);
+  TRACEF("Top:");
+  TRACEA(WRAM, 8192);
+  TRACEF("whaaa??");
   FCEU_fclose(fp);
 
   FCEU_ResetVidSys();
 
+
+  TRACEA(WRAM, 8192);
+  TRACEF("PowerNES:");
   PowerNES();
+  TRACEF("PowerNES done.");
+  TRACEA(WRAM, 8192);
 
   fceulib__palette.LoadGamePalette();
   fceulib__palette.ResetPalette();

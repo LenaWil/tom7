@@ -37,6 +37,8 @@
 #include "file.h"
 #include "utils/memory.h"
 
+#include "tracing.h"
+
 Cart fceulib__cart;
 
 #if 0
@@ -392,12 +394,15 @@ void Cart::FCEU_SaveGameSave(CartInfo *LocalHWInfo) {
 }
 
 void Cart::FCEU_LoadGameSave(CartInfo *LocalHWInfo) {
+  TRACEF("LoadSaveGame");
   if (LocalHWInfo->battery && LocalHWInfo->SaveGame[0] && 
       !disableBatteryLoading) {
     std::string f = FCEU_MakeSaveFilename();
+    TRACEF("Save file %s", f.c_str());
     if (FILE *sp = FCEUD_UTF8fopen(f,"rb")) {
       for (int x=0;x<4;x++) {
 	if (LocalHWInfo->SaveGame[x]) {
+	  TRACEF("Doing it");
 	  fread(LocalHWInfo->SaveGame[x],1,LocalHWInfo->SaveGameLen[x],sp);
 	}
       }

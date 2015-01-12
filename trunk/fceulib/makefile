@@ -8,7 +8,7 @@ all: emulator_test.exe fm2tocc.exe difftrace.exe
 # -std=c++11
 CXXFLAGS=-Wall -Wno-deprecated -Wno-sign-compare -I/usr/local/include 
 # XXX -O2
-OPT=-O2
+OPT=-g
 
 ifdef OSX
 CXX=g++
@@ -30,7 +30,7 @@ endif
 LINKSDL= -mno-cygwin -lm -luser32 -lgdi32 -lwinmm -ldxguid
 
 # Emulator uses city, yeah? See if we can make this work with no deps.
-INCLUDES=-I "../cc-lib" -I "../cc-lib/city"
+INCLUDES=-I "../cc-lib" -I "../cc-lib/city" -I "."
 
 CPPFLAGS=-DPSS_STYLE=1 -DDUMMY_UI -Wno-write-strings -m64 $(OPT) $(WINCFLAGS) -DHAVE_ALLOCA -DNOWINSTUFF $(INCLUDES) $(PROFILE) $(FLTO) --std=c++11
 

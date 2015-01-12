@@ -131,7 +131,7 @@ static pair<uint64, uint64> RunGameSerially(const Game &game) {
   TRACEF("after_load %llu.", emu->RamChecksum());
 
   vector<uint8> basis;
-  emu->GetBasis(&basis);
+  // emu->GetBasis(&basis);
 
   auto SaveAndStep = [&game, &emu, &saves, &inputs, &checksums,
 		      &compressed_saves, &basis](uint8 b) {
@@ -139,6 +139,8 @@ static pair<uint64, uint64> RunGameSerially(const Game &game) {
     vector<uint8> save;
     emu->SaveUncompressed(&save);
     TRACEV(save);
+
+    exit(0); // XXX debugging regression 2371
     saves.push_back(std::move(save));
     if (FULL) {
       vector<uint8> compressed_save;
@@ -400,8 +402,10 @@ int main(int argc, char **argv) {
 
   // RunGameSerially(skull);
 
-  RunGameSerially(mario);
+  // RunGameSerially(mario);
   RunGameSerially(kirby);
+
+  return 0;
 
   RunGameSerially(arkanoid);
 

@@ -1,6 +1,7 @@
 
 #include <vector>
 #include <string>
+#include <list>
 
 #include "trace.h"
 
@@ -34,8 +35,24 @@ int main(int argc, char **argv) {
 
     const Trace &l = left[i], &r = right[i];
     if (!Traces::Equal(l, r)) {
+      list<string> recent;
+      int countleft = 40;
+      for (int j = i - 1; j > 0 && countleft > 0; j--) {
+	recent.push_front(Traces::LineString(left[j]));
+	countleft--;
+      }
+      printf("\n"
+	     "---------------------------------------------\n"
+	     "Recent:\n");
+      for (const string &s : recent)
+	printf("%s\n", s.c_str());
+
+      printf("\n"
+	     "=============================================\n");
       printf("At index %d, traces disagree.\n", i);
-      // XXX show the diff, duh
+      printf("Diff:\n%s\n",
+	     Traces::Difference(l, r).c_str());
+
       break;
     }
   }

@@ -34,10 +34,15 @@ struct Traces {
 
   static bool Equal(const Trace &l, const Trace &r);
 
+  static std::string Difference(const Trace &l, const Trace &r);
+  static std::string LineString(const Trace &t);
+
   // Adds a trace like printf.
   // void TraceF(const char *fmt, ...);
   void TraceString(const std::string &s);
   void TraceMemory(const std::vector<uint8_t> &v);
+  void TraceArray(const uint8_t *p, int size);
+  void TraceNumber(uint64_t n);
 
   // std::vector<Trace> traces;
   FILE *fp = nullptr;
