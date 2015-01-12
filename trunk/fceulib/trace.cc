@@ -203,6 +203,19 @@ Traces::Traces() {
   }
 }
 
+bool Traces::Equal(const Trace &l, const Trace &r) {
+  if (l.type != r.type) return false;
+  switch (l.type) {
+  case STRING: return l.data_string == r.data_string;
+  case MEMORY: return l.data_memory == r.data_memory;
+  case NUMBER: return l.data_number == r.data_number;
+  default:
+    fprintf(stderr, "Bad trace.\n");
+    abort();
+  }
+  return false;
+}
+
 void Traces::Write(const Trace &t) {
   auto Write32 = [this](uint32 w) {
     for (int i = 0; i < 4; i++) {
@@ -265,10 +278,9 @@ vector<Traces::Trace> Traces::ReadFromFile(const string &filename) {
   auto Read32 = [&Read8](uint32 *w) {
     uint32 out = 0u;
     for (int i = 0; i < 4; i++) {
-      out <<= 8;
       uint8 a;
       if (!Read8(&a)) return false;
-      out |= a;
+      out |= (a << (8 * i));
     }
     *w = out;
     return true;
@@ -277,10 +289,9 @@ vector<Traces::Trace> Traces::ReadFromFile(const string &filename) {
   auto Read64 = [&Read8](uint64 *w) {
     uint64 out = 0u;
     for (int i = 0; i < 8; i++) {
-      out <<= 8;
       uint8 a;
       if (!Read8(&a)) return false;
-      out |= a;
+      out |= (a << (8 * i));
     }
     *w = out;
     return true;
@@ -298,6 +309,7 @@ vector<Traces::Trace> Traces::ReadFromFile(const string &filename) {
 	fprintf(stderr, "Incomplete string record.\n");
 	abort();
       }
+      // fprintf(stderr, "String of length %u.\n", len);
       t.data_string.resize(len);
       for (int i = 0; i < len; i++) {
 	if (!Read8((uint8*)&t.data_string[i])) {

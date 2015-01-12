@@ -32,6 +32,8 @@ struct Traces {
     uint64_t data_number = 0ULL;
   };
 
+  static bool Equal(const Trace &l, const Trace &r);
+
   // Adds a trace like printf.
   // void TraceF(const char *fmt, ...);
   void TraceString(const std::string &s);

@@ -57,7 +57,7 @@ static void StringAppendV(string* dst, const char* format, va_list ap) {
   }
 }
 
-string StringPrintf(const char* format, ...) {
+string FCEU_StringPrintf(const char* format, ...) {
   va_list ap;
   va_start(ap, format);
   string result;
