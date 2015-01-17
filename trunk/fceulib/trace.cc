@@ -171,17 +171,13 @@ bool RLE::DecompressEx(const vector<uint8> &in,
 
 }  // namespace
 
-// Doesn't work??
-#if 0
-void Traces::TraceF(const char *fmt, ...) {
-  va_list ap;
-  va_start(ap, fmt);
-  string traced = StringPrintf(fmt, ap);
-  va_end(ap);
-
-  TraceString(traced);
+void Traces::Enable() {
+  enabled = true;
 }
-#endif
+
+void Traces::Disable() {
+  enabled = false;
+}
 
 void Traces::TraceString(const string &s) {
   Trace t(STRING);
@@ -317,6 +313,10 @@ string Traces::LineString(const Trace &t) {
 }
 
 void Traces::Write(const Trace &t) {
+  // TODO: Maybe could count the number of ignored traces and only
+  // log that, once tracing is enabled again? Or checksum?
+  if (!enabled) return;
+
   auto Write32 = [this](uint32 w) {
     for (int i = 0; i < 4; i++) {
       fputc(w & 255, this->fp);

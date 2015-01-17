@@ -3,7 +3,7 @@
 set +x
 
 rm -f .sav ../fceulib2370/.sav
-cp trace.{cc,h} tracing.{cc,h} ../fceulib2370/
+cp fceu.cc emulator_test.cc trace.{cc,h} tracing.{cc,h} ../fceulib2370/
 
 cd ../fceulib2370
 make -j 20 emulator_test.exe && ./emulator_test.exe || exit -1

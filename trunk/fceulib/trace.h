@@ -37,15 +37,19 @@ struct Traces {
   static std::string Difference(const Trace &l, const Trace &r);
   static std::string LineString(const Trace &t);
 
+  // Tracing starts enabled. If temporarily disabled, traces
+  // are discarded instead of being written to disk. However,
+  // tracing can still be expensive, so globally disabling
+  // tracing is done via macros in tracing.h.
+  void Enable();
+  void Disable();
+
   // Adds a trace like printf.
   // void TraceF(const char *fmt, ...);
   void TraceString(const std::string &s);
   void TraceMemory(const std::vector<uint8_t> &v);
   void TraceArray(const uint8_t *p, int size);
   void TraceNumber(uint64_t n);
-
-  // std::vector<Trace> traces;
-  FILE *fp = nullptr;
 
   // Write to the file pointer. Not thread-safe.
   void Write(const Trace &t);
@@ -55,6 +59,10 @@ struct Traces {
 
   // To compare traces, use this.
   static std::vector<Trace> ReadFromFile(const std::string &filename);
+
+ private:
+  bool enabled = true;
+  FILE *fp = nullptr;
 };
 
 #endif  // __TRACE_H

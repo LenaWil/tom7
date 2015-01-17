@@ -315,9 +315,7 @@ void GenMMC3_Init(CartInfo *info, int prg, int chr, int wram, int battery)
   mmc3opts|=1;
   WRAM=(uint8*)FCEU_gmalloc(wrams);
   TRACEF("MMC3 Init %d %d %d %d", prg, chr, wram, battery);
-  TRACEA(WRAM, wrams);
   fceulib__cart.SetupCartPRGMapping(0x10,WRAM,wrams,1);
-  TRACEA(WRAM, wrams);
   AddExState(WRAM, wrams, 0, "MRAM");
 
   TRACEA(DRegBuf, 8);
@@ -369,13 +367,9 @@ static int hackm4=0;/* For Karnov, maybe others.  BLAH.  Stupid iNES format.*/
 static void M4Power(void)
 {
   TRACEF("M4power %d...", hackm4);
- TRACEA(WRAM, wrams);
  GenMMC3Power();
- TRACEA(WRAM, wrams);
  A000B=(hackm4^1)&1;
- TRACEA(WRAM, wrams);
  fceulib__cart.setmirror(hackm4);
- TRACEA(WRAM, wrams);
 }
 
 void Mapper4_Init(CartInfo *info)
@@ -391,7 +385,6 @@ void Mapper4_Init(CartInfo *info)
  info->Power=M4Power;
  hackm4=info->mirror;
 
- TRACEA(WRAM, wrams);
 }
 
 // ---------------------------- Mapper 12 -------------------------------
