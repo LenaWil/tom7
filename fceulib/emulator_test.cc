@@ -6,6 +6,7 @@
 #include <memory>
 #include <sys/time.h>
 #include <sstream>
+#include <unistd.h>
 
 #include "base/logging.h"
 #include "test-util.h"
@@ -118,6 +119,13 @@ static pair<uint64, uint64> RunGameSerially(const Game &game) {
 
   TRACEF("RunGameSerially %s.", game.cart.c_str());
 
+  // Save files are being successfully written and loaded now. TODO(twm):
+  // Need to make the emulator not secretly touch the filesystem. These
+  // should just be part of the savestate feature.
+  if (0 == unlink(".sav")) {
+    fprintf(stderr, "NOTE: Removed .sav file before RunGameSerially.\n");
+  }
+
   // save[i] and checksum[i] represent the state right before
   // input[i] is issued. Note we don't have save/checksum for
   // the final state.
@@ -131,7 +139,7 @@ static pair<uint64, uint64> RunGameSerially(const Game &game) {
   TRACEF("after_load %llu.", emu->RamChecksum());
 
   vector<uint8> basis;
-  // emu->GetBasis(&basis);
+  emu->GetBasis(&basis);
 
   auto SaveAndStep = [&game, &emu, &saves, &inputs, &checksums,
 		      &compressed_saves, &basis](uint8 b) {
@@ -140,7 +148,6 @@ static pair<uint64, uint64> RunGameSerially(const Game &game) {
     emu->SaveUncompressed(&save);
     TRACEV(save);
 
-    exit(0); // XXX debugging regression 2371
     saves.push_back(std::move(save));
     if (FULL) {
       vector<uint8> compressed_save;
@@ -170,7 +177,7 @@ static pair<uint64, uint64> RunGameSerially(const Game &game) {
   // the same as last time).
   ArcFour rc("retries");
   auto Rand = [&rc](int max) {
-    uint64 b = 
+    uint64 b =
       rc.Byte() << 24 |
       rc.Byte() << 16 |
       rc.Byte() << 8 |
@@ -242,7 +249,7 @@ int main(int argc, char **argv) {
     RLE::Decompress({ 101, 0, 4, 2, 3, 3, 2, 1, 50, 0, }),
     kEveryGameUponLoad,
     17813153070445949947ULL,
-    13242168680766682433ULL,
+    4919724013337299501ULL,
     };
 
   Game escape{
@@ -400,12 +407,12 @@ int main(int argc, char **argv) {
 
   const int64 start_us = TimeUsec();
 
-  // RunGameSerially(skull);
+  TRACE_DISABLE();
+  RunGameSerially(skull);
 
-  // RunGameSerially(mario);
+  RunGameSerially(mario);
+
   RunGameSerially(kirby);
-
-  return 0;
 
   RunGameSerially(arkanoid);
 

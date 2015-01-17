@@ -794,7 +794,6 @@ static uint32 uppow2(uint32 n) {
 }
 
 int iNESLoad(const char *name, FceuFile *fp, int OverwriteVidMode) {
-  {
   struct md5_context md5;
 
   if (FCEU_fread(&head,1,16,fp)!=16)
@@ -972,12 +971,6 @@ int iNESLoad(const char *name, FceuFile *fp, int OverwriteVidMode) {
       FCEUI_SetVidSystem(0);
   }
 
-  TRACEA(WRAM, 8192);
-  TRACEF("iNESLoad closingbrace.");
-  }
-  TRACEA(WRAM, 8192);
-  TRACEF("iNESLoad done.");
-  // TRACEF("WRAM is at %p", WRAM);
   return 1;
 }
 
