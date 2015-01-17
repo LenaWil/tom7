@@ -40,6 +40,7 @@ struct Emulator {
 
   // Copy the 0x800 bytes of RAM.
   void GetMemory(vector<uint8> *mem);
+  vector<uint8> GetMemory();
 
   // Fancy stuff.
 
