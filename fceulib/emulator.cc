@@ -31,7 +31,14 @@ extern uint8 *XBuf, *XBackBuf;
 
 void Emulator::GetMemory(vector<uint8> *mem) {
   mem->resize(0x800);
-  memcpy(&((*mem)[0]), RAM, 0x800);
+  memcpy(mem->data(), RAM, 0x800);
+}
+
+vector<uint8> Emulator::GetMemory() {
+  vector<uint8> mem;
+  mem.resize(0x800);
+  memcpy(mem.data(), RAM, 0x800);
+  return mem;
 }
 
 uint64 Emulator::RamChecksum() {

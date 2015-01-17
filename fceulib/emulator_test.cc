@@ -13,6 +13,7 @@
 #include "arcfour.h"
 #include "rle.h"
 #include "simplefm2.h"
+#include "base/stringprintf.h"
 
 #include "tracing.h"
 
@@ -49,48 +50,48 @@ struct InputStream {
 
     for (int i = 0; i < length; i++) {
       if (rc.Byte() < 210) {
-	// Keep b the same as last round.
+        // Keep b the same as last round.
       } else {
-	switch (rc.Byte() % 20) {
-	case 0:
-	default:
-	  b = INPUT_R;
-	  break;
-	case 1:
-	  b = INPUT_U;
-	  break;
-	case 2:
-	  b = INPUT_D;
-	  break;
-	case 3:
-	case 11:
-	  b = INPUT_R | INPUT_A;
-	  break;
-	case 4:
-	case 12:
-	  b = INPUT_R | INPUT_B;
-	  break;
-	case 5:
-	case 13:
-	  b = INPUT_R | INPUT_B | INPUT_A;
-	  break;
-	case 6:
-	case 14:
-	  b = INPUT_A;
-	  break;
-	case 7:
-	case 15:
-	  b = INPUT_B;
-	  break;
-	case 8:
-	  b = 0;
-	  break;
-	case 9:
-	  b = rc.Byte() & (~(INPUT_T | INPUT_S));
-	  break;
-	case 10:
-	  b = rc.Byte();
-	}
+        switch (rc.Byte() % 20) {
+        case 0:
+        default:
+          b = INPUT_R;
+          break;
+        case 1:
+          b = INPUT_U;
+          break;
+        case 2:
+          b = INPUT_D;
+          break;
+        case 3:
+        case 11:
+          b = INPUT_R | INPUT_A;
+          break;
+        case 4:
+        case 12:
+          b = INPUT_R | INPUT_B;
+          break;
+        case 5:
+        case 13:
+          b = INPUT_R | INPUT_B | INPUT_A;
+          break;
+        case 6:
+        case 14:
+          b = INPUT_A;
+          break;
+        case 7:
+        case 15:
+          b = INPUT_B;
+          break;
+        case 8:
+          b = 0;
+          break;
+        case 9:
+          b = rc.Byte() & (~(INPUT_T | INPUT_S));
+          break;
+        case 10:
+          b = rc.Byte();
+        }
       }
       v.push_back(b);
     }
@@ -110,13 +111,57 @@ struct InputStream {
 
 static pair<uint64, uint64> RunGameSerially(const Game &game) {
   printf("Testing %s...\n" , game.cart.c_str());
-# define CHECK_RAM(field) do {			     \
-    const uint64 cx = emu->RamChecksum();	     \
-    CHECK_EQ(cx, (field))			     \
+# define CHECK_RAM(field) do {                       \
+    const uint64 cx = emu->RamChecksum();            \
+    CHECK_EQ(cx, (field))                            \
       << "\nExpected ram to be " << #field << " = "  \
-      << (field) << " but got " << cx;		     \
+      << (field) << " but got " << cx;               \
   } while(0)
 
+  // Once we've collected the states, we have not just the checksums
+  // but the actual RAMs (in full mode), so we can print better
+  // diagnostic messages. The argument i is the index into checksums
+  // and actual_rams.
+# define CHECK_RAM_STEP(i) do {                                 \
+    const int idx = (i);                                        \
+    CHECK(idx >= 0);                                            \
+    CHECK(idx < checksums.size());                              \
+    CHECK(!FULL || idx < actual_rams.size());                   \
+    const uint64 cx = emu->RamChecksum();                       \
+    if (cx != checksums[idx]) {                                 \
+      fprintf(stderr, "Bad RAM checksum at step %d (%s). "      \
+              "Expected\n %llu but got %llu.\n", idx, #i,       \
+              checksums[idx], cx);                              \
+      if (FULL) {                                               \
+        const vector<uint8> mem = emu->GetMemory();             \
+        CHECK(mem.size() == 0x800);                             \
+        CHECK(actual_rams[idx].size() == 0x800);                \
+        vector<string> mismatches;                              \
+        for (int j = 0; j < 0x800; j++) {                       \
+          if (mem[j] != actual_rams[idx][j]) {                  \
+            mismatches.push_back(                               \
+                 StringPrintf("@%d %02x!=%02x",                 \
+                              j, mem[j],                        \
+                              actual_rams[idx][j]));            \
+          }                                                     \
+        }                                                       \
+        fprintf(stderr, "Total of %d byte mismatch(es):\n",     \
+                (int)mismatches.size());                        \
+        for (int j = 0; j < mismatches.size(); j++) {           \
+          fprintf(stderr, "%s%s", mismatches[j].c_str(),        \
+                  j < mismatches.size() - 1 ? ", " : "!");      \
+          if (j > 20) {                                         \
+            fprintf(stderr, "..."); break;                      \
+          }                                                     \
+        }                                                       \
+        fprintf(stderr, "\n");                                  \
+      } else {                                                  \
+        fprintf(stderr, "Run with --full to see details.\n");   \
+      }                                                         \
+      abort();                                                  \
+    }                                                           \
+  } while (0)
+  
   TRACEF("RunGameSerially %s.", game.cart.c_str());
 
   // Save files are being successfully written and loaded now. TODO(twm):
@@ -132,6 +177,8 @@ static pair<uint64, uint64> RunGameSerially(const Game &game) {
   vector<vector<uint8>> saves;
   vector<vector<uint8>> compressed_saves;
   vector<uint64> checksums;
+  // Only populated in FULL mode.
+  vector<vector<uint8>> actual_rams;
   vector<uint8> inputs;
   std::unique_ptr<Emulator> emu{Emulator::Create(game.cart)};
   CHECK(emu.get() != nullptr) << game.cart.c_str();
@@ -142,7 +189,7 @@ static pair<uint64, uint64> RunGameSerially(const Game &game) {
   emu->GetBasis(&basis);
 
   auto SaveAndStep = [&game, &emu, &saves, &inputs, &checksums,
-		      &compressed_saves, &basis](uint8 b) {
+                      &actual_rams, &compressed_saves, &basis](uint8 b) {
     TRACEF("Step %s", SimpleFM2::InputToString(b).c_str());
     vector<uint8> save;
     emu->SaveUncompressed(&save);
@@ -158,6 +205,9 @@ static pair<uint64, uint64> RunGameSerially(const Game &game) {
     const uint64 csum = emu->RamChecksum();
     CHECK(csum != 0ULL) << checksums.size() << " " << game.cart;
     checksums.push_back(csum);
+    if (FULL) {
+      actual_rams.push_back(emu->GetMemory());
+    }
     emu->StepFull(b);
   };
 
@@ -171,6 +221,22 @@ static pair<uint64, uint64> RunGameSerially(const Game &game) {
   CHECK_RAM(game.after_random);
   const uint64 ret2 = emu->RamChecksum();
   TRACEF("after_random %llu.", emu->RamChecksum());
+
+  if (FULL) {
+    // Go backwards to avoid just accidentally having the correct
+    // internal state on account of just replaying all the frames in
+    // order!
+    fprintf(stderr, "Running frames backwards:\n");
+    for (int i = saves.size() - 2; i >= 0; i--) {
+      fprintf(stderr, "%d -> %d:\n", i, i + 1);
+      emu->LoadUncompressed(&saves[i]);
+      CHECK_RAM_STEP(i);
+      CHECK(i + 1 < saves.size());
+      CHECK(i + 1 < inputs.size());
+      emu->StepFull(inputs[i + 1]);
+      CHECK_RAM_STEP(i + 1);
+    }
+  }
 
   // Now jump around and make sure that we are able to save and
   // restore state correctly (at least, such that the behavior is
@@ -195,8 +261,8 @@ static pair<uint64, uint64> RunGameSerially(const Game &game) {
     const int dist = Rand(5) + 1;
     for (int j = 0; j < dist; j++) {
       if (seekto + j + 1 < saves.size()) {
-	emu->StepFull(inputs[seekto + j]);
-	CHECK_RAM(checksums[seekto + j + 1]);
+        emu->StepFull(inputs[seekto + j]);
+        CHECK_RAM(checksums[seekto + j + 1]);
       }
     }
   }
@@ -210,10 +276,10 @@ static pair<uint64, uint64> RunGameSerially(const Game &game) {
       CHECK_RAM(checksums[seekto]);
       const int dist = Rand(5) + 1;
       for (int j = 0; j < dist; j++) {
-	if (seekto + j + 1 < saves.size()) {
-	  emu->StepFull(inputs[seekto + j]);
-	  CHECK_RAM(checksums[seekto + j + 1]);
-	}
+        if (seekto + j + 1 < saves.size()) {
+          emu->StepFull(inputs[seekto + j]);
+          CHECK_RAM(checksums[seekto + j + 1]);
+        }
       }
     }
   }
@@ -260,7 +326,7 @@ int main(int argc, char **argv) {
       128, 9, 129, 14, 128, 2, 0, 8, 64, 0, 0, 2, 128, 2, 0, 12, 130, 128,
       0, 128, 0, 128, 0, 27, 0, 27, 128, 23, 130, 12, 128, 8, 0, 4, 128, 21,
       129, 11, 64, 14, 128, 16, 130, 23, 128, 16, 64, 2, 0, 8, 128, 24, 130,
-	13, 128, 25, 2, 128, 0, 128, 0, 128, 0, 2, 0, 28, 128, 0, 0}),
+        13, 128, 25, 2, 128, 0, 128, 0, 128, 0, 2, 0, 28, 128, 0, 0}),
     kEveryGameUponLoad,
     6838541238215755706ULL,
     14453325089239387428ULL,
@@ -435,24 +501,24 @@ int main(int argc, char **argv) {
       string filename = LoseWhiteL(line);
 
       if (!filename.empty()) {
-	uint64 after_inputs, after_random;
-	stringstream(a) >> after_inputs;
-	stringstream(b) >> after_random;
-	Game game{
-	  (string)"roms/" + filename,
-	    RLE::Decompress({ 101, 0, 4, 2, 3, 3, 2, 1, 50, 0, }),
-	    kEveryGameUponLoad,
-	    after_inputs,
-	    after_random,
-	    };
-	const pair<uint64, uint64> p = RunGameSerially(game);
-	fprintf(out, "%llu %llu %s\n", p.first, p.second,
-		filename.c_str());
-	fflush(out);
-	nlines++;
-	fprintf(stderr, "Did %d/%lld = %.1f%%.\n",
-		nlines, romlines.size(),
-		nlines * 100. / romlines.size());
+        uint64 after_inputs, after_random;
+        stringstream(a) >> after_inputs;
+        stringstream(b) >> after_random;
+        Game game{
+          (string)"roms/" + filename,
+            RLE::Decompress({ 101, 0, 4, 2, 3, 3, 2, 1, 50, 0, }),
+            kEveryGameUponLoad,
+            after_inputs,
+            after_random,
+            };
+        const pair<uint64, uint64> p = RunGameSerially(game);
+        fprintf(out, "%llu %llu %s\n", p.first, p.second,
+                filename.c_str());
+        fflush(out);
+        nlines++;
+        fprintf(stderr, "Did %d/%lld = %.1f%%.\n",
+                nlines, romlines.size(),
+                nlines * 100. / romlines.size());
       }
     }
     fclose(out);
