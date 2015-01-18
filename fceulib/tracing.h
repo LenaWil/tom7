@@ -2,16 +2,16 @@
 #define __TRACING_H
 
 #include "trace.h"
+#include "stringprintf.h"
 
 // This file declares a global trace (if tracing is enabled) and macros
 // for actually doing tracing within FCEUlib.
 
 // Should normally be 0, unless debugging something. Traces are huge
 // and slow everything down a lot!
-#define TRACING 0
+#define TRACING 1
 
 #if TRACING
-#include "stringprintf.h"
 
 extern Traces fceulib__traces;
 #define TRACEF(...) fceulib__traces.TraceString(FCEU_StringPrintf( __VA_ARGS__ ))
@@ -20,6 +20,7 @@ extern Traces fceulib__traces;
 #define TRACEN(n) fceulib__traces.TraceNumber((uint64)n)
 #define TRACE_ENABLE() fceulib__traces.Enable()
 #define TRACE_DISABLE() fceulib__traces.Disable()
+#define TRACE_SWITCH(s) fceulib__traces.SwitchTraceFile(s);
 
 #else
 
@@ -29,6 +30,7 @@ extern Traces fceulib__traces;
 #define TRACEN(n) do { } while (0)
 #define TRACE_ENABLE() do { } while (0)
 #define TRACE_DISABLE() do { } while (0)
+#define TRACE_SWITCH(s) do { } while (0)
 
 #endif  // TRACING
 

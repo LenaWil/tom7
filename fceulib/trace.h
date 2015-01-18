@@ -54,6 +54,12 @@ struct Traces {
   // Write to the file pointer. Not thread-safe.
   void Write(const Trace &t);
 
+  // Switches to a new trace file, closing the old one. This is useful
+  // when you are tracing two events within the same instance (that
+  // should be the same, like replaying from a save-state) rather than
+  // two different versions of the program to track down a regression.
+  void SwitchTraceFile(const std::string &s);
+
   // Note that this opens the file (clobbering it).
   Traces();
 

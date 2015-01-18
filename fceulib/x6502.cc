@@ -24,6 +24,8 @@
 #include "fceu.h"
 #include "sound.h"
 
+#include "tracing.h"
+
 #include "x6502abbrev.h"
 X6502 X;
 uint32 timestamp;
@@ -320,9 +322,9 @@ static constexpr uint8 ZNTable[256] = {
  RdMem((target&0x00FF)|(rt&0xFF00));  \
 }
 
-/* Now come the macros to wrap up all of the above stuff addressing mode functions
-   and operation macros.  Note that operation macros will always operate(redundant
-   redundant) on the variable "x".
+/* Now come the macros to wrap up all of the above stuff addressing
+   mode functions and operation macros. Note that operation macros
+   will always operate(redundant redundant) on the variable "x".
 */
 
 #define RMW_A(op) {uint8 x=_A; op; _A=x; break; } /* Meh... */
@@ -431,6 +433,7 @@ void X6502_Run(int32 cycles) {
   }
 
   _count += cycles;
+  TRACEF("x6502_Run %d %d", cycles, _count);
   extern int test; test++;
   while (_count > 0) {
     int32 temp;
