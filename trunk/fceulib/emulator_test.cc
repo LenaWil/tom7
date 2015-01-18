@@ -158,6 +158,7 @@ static pair<uint64, uint64> RunGameSerially(const Game &game) {
       } else {                                                  \
         fprintf(stderr, "Run with --full to see details.\n");   \
       }                                                         \
+      TRACEF("(crashed)");					\
       abort();                                                  \
     }                                                           \
   } while (0)
@@ -188,8 +189,29 @@ static pair<uint64, uint64> RunGameSerially(const Game &game) {
   vector<uint8> basis;
   emu->GetBasis(&basis);
 
-  auto SaveAndStep = [&game, &emu, &saves, &inputs, &checksums,
+  auto StepMaybeTraced = [&emu](uint8 b) {
+    // This is debugging task specific. Copy and paste the target
+    // in here!
+    static constexpr uint64 TARGET = 15068955522825614913ULL;
+    if (emu->RamChecksum() == TARGET) {
+      fprintf(stderr, "Enabling tracing because of ram match.\n");
+      TRACE_ENABLE();
+      TRACEF("RAM is target of %llu so tracing input [%s].",
+	     TARGET,
+	     SimpleFM2::InputToString(b).c_str());
+    } else {
+      TRACE_DISABLE();
+    }
+
+    // XXX we probably want more like scoped trace enable/disable.
+
+    emu->StepFull(b);
+  };
+
+  auto SaveAndStep = [&StepMaybeTraced,
+		      &game, &emu, &saves, &inputs, &checksums,
                       &actual_rams, &compressed_saves, &basis](uint8 b) {
+
     TRACEF("Step %s", SimpleFM2::InputToString(b).c_str());
     vector<uint8> save;
     emu->SaveUncompressed(&save);
@@ -208,7 +230,7 @@ static pair<uint64, uint64> RunGameSerially(const Game &game) {
     if (FULL) {
       actual_rams.push_back(emu->GetMemory());
     }
-    emu->StepFull(b);
+    StepMaybeTraced(b);
   };
 
   for (uint8 b : game.inputs) SaveAndStep(b);
@@ -217,23 +239,26 @@ static pair<uint64, uint64> RunGameSerially(const Game &game) {
   TRACEF("after_inputs %llu.", emu->RamChecksum());
 
   fprintf(stderr, "Random inputs:\n");
+  TRACE_SWITCH("forward-trace.bin");
   for (uint8 b : InputStream(game.cart, 10000)) SaveAndStep(b);
   CHECK_RAM(game.after_random);
   const uint64 ret2 = emu->RamChecksum();
-  TRACEF("after_random %llu.", emu->RamChecksum());
+  // TRACEF("after_random %llu.", emu->RamChecksum());
 
   if (FULL) {
     // Go backwards to avoid just accidentally having the correct
     // internal state on account of just replaying all the frames in
     // order!
     fprintf(stderr, "Running frames backwards:\n");
+    TRACE_SWITCH("backward-trace.bin");
     for (int i = saves.size() - 2; i >= 0; i--) {
-      fprintf(stderr, "%d -> %d:\n", i, i + 1);
+      fprintf(stderr, "%d -> %d: ", i, i + 1);
       emu->LoadUncompressed(&saves[i]);
       CHECK_RAM_STEP(i);
+      fprintf(stderr, "(ram starts %llu)\n", emu->RamChecksum());
       CHECK(i + 1 < saves.size());
       CHECK(i + 1 < inputs.size());
-      emu->StepFull(inputs[i + 1]);
+      StepMaybeTraced(inputs[i + 1]);
       CHECK_RAM_STEP(i + 1);
     }
   }

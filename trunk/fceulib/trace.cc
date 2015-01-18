@@ -214,6 +214,17 @@ Traces::Traces() {
   }
 }
 
+void Traces::SwitchTraceFile(const string &s) {
+  fflush(fp);
+  fclose(fp);
+  fp = fopen(s.c_str(), "wb");
+  if (fp == nullptr) {
+    fprintf(stderr, "Unable to switch to trace file %s.\n",
+	    s.c_str());
+    abort();
+  }
+}
+
 bool Traces::Equal(const Trace &l, const Trace &r) {
   if (l.type != r.type) return false;
   switch (l.type) {
