@@ -21,7 +21,7 @@
 #include "mapinc.h"
 #include "mmc3.h"
 
-extern uint8 m114_perm[8];
+static constexpr uint8 m114_perm[8] = {0, 3, 1, 5, 6, 7, 2, 4};
 
 static void H2288PW(uint32 A, uint8 V) {
   if(EXPREGS[0]&0x40) {

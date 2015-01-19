@@ -484,221 +484,186 @@ void (*FFCEUX_PPUWrite)(uint32 A, uint8 V) = 0;
 
 #define CALL_PPUWRITE(A,V) (FFCEUX_PPUWrite?FFCEUX_PPUWrite(A,V):FFCEUX_PPUWrite_Default(A,V))
 
-//whether to use the new ppu (new PPU doesn't handle MMC5 extra nametables at all
+// TODO(tom7): Maybe just remove this entirely. Can at least make it a
+// compile-time constant to reduce code size / branches.
+// whether to use the new ppu (new PPU doesn't handle MMC5 extra
+// nametables at all
 int newppu = 0;
 
 //---------------
 
-static DECLFR(A2002)
-{
-	if (newppu)
-	{
-		//once we thought we clear latches here, but that caused midframe glitches.
-		//i think we should only reset the state machine for 2005/2006
-		//ppur.clear_latches();
-	}
+static DECLFR(A2002) {
+  // once we thought we clear latches here, but that caused midframe
+  // glitches. i think we should only reset the state machine for
+  // 2005/2006
+  // if (newppu) {
+  //   ppur.clear_latches();
+  // }
 
-	uint8 ret;
+  TRACEF("A2002 %d", PPU_status);
 
-	FCEUPPU_LineUpdate();
-	ret = PPU_status;
-	ret|=PPUGenLatch&0x1F;
+  FCEUPPU_LineUpdate();
+  uint8 ret = PPU_status;
+  TRACEN(ret);
 
-#ifdef FCEUDEF_DEBUGGER
-	if (!fceuindbg)
-#endif
-	{
-		vtoggle=0;
-		PPU_status&=0x7F;
-		PPUGenLatch=ret;
-	}
+  ret|=PPUGenLatch&0x1F;
+  TRACEN(ret);
 
-	return ret;
+  vtoggle=0;
+  PPU_status&=0x7F;
+  PPUGenLatch=ret;
+
+  return ret;
 }
 
-static DECLFR(A2004)
-{
-    if (newppu)
-    {
-        if ((ppur.status.sl < 241) && PPUON)
-        {
-            /* from cycles 0 to 63, the
-             * 32 byte OAM buffer gets init
-             * to 0xFF */
-            if (ppur.status.cycle < 64)
-                return spr_read.ret = 0xFF;
-            else
-            {
-                for (int i = spr_read.last;
-                     i != ppur.status.cycle; ++i)
-                {
-                    if (i < 256)
-                    {
-                        switch (spr_read.mode)
-                        {
-                            case 0:
-                                if (spr_read.count < 2)
-                                    spr_read.ret = (PPU[3] & 0xF8)
-                                    + (spr_read.count << 2);
-                                else
-                                    spr_read.ret = spr_read.count << 2;
-                                spr_read.found_pos[spr_read.found] =
-                                    spr_read.ret;
+static DECLFR(A2004) {
+  if (newppu) {
+    if ((ppur.status.sl < 241) && PPUON) {
+      /* from cycles 0 to 63, the
+       * 32 byte OAM buffer gets init
+       * to 0xFF */
+      if (ppur.status.cycle < 64) {
+	return spr_read.ret = 0xFF;
+      } else {
+	for (int i = spr_read.last;
+	     i != ppur.status.cycle; ++i) {
+	  if (i < 256) {
+	    switch (spr_read.mode) {
+	    case 0:
+	      if (spr_read.count < 2)
+		spr_read.ret = (PPU[3] & 0xF8)
+		  + (spr_read.count << 2);
+	      else
+		spr_read.ret = spr_read.count << 2;
+	      spr_read.found_pos[spr_read.found] =
+		spr_read.ret;
 
-                                spr_read.ret = SPRAM[spr_read.ret];
+	      spr_read.ret = SPRAM[spr_read.ret];
 
-                                if (i & 1) //odd cycle
-                                {
-                                    //see if in range
-                                    if ( !((ppur.status.sl - 1 -
-                                            spr_read.ret)
-                                            & ~(Sprite16 ? 0xF : 0x7)) )
+	      if (i & 1) {
+		//odd cycle
+		//see if in range
+		if ( !((ppur.status.sl - 1 -
+			spr_read.ret)
+		       & ~(Sprite16 ? 0xF : 0x7)) ) {
+		  ++spr_read.found;
+		  spr_read.fetch = 1;
+		  spr_read.mode = 1;
+		} else {
+		  if (++spr_read.count == 64) {
+		    spr_read.mode = 4;
+		    spr_read.count = 0;
+		  } else if (spr_read.found == 8) {
+		    spr_read.fetch = 0;
+		    spr_read.mode = 2;
+		  }
+		}
+	      }
+	      break;
+	    case 1: //sprite is in range fetch next 3 bytes
+	      if (i & 1) {
+		++spr_read.fetch;
+		if (spr_read.fetch == 4) {
+		  spr_read.fetch = 1;
+		  if (++spr_read.count == 64) {
+		    spr_read.count = 0;
+		    spr_read.mode = 4;
+		  } else if (spr_read.found == 8) {
+		    spr_read.fetch = 0;
+		    spr_read.mode = 2;
+		  } else {
+		    spr_read.mode = 0;
+		  }
+		}
+	      }
 
-                                    {
-                                        ++spr_read.found;
-                                        spr_read.fetch = 1;
-                                        spr_read.mode = 1;
-                                    }
-                                    else
-                                    {
-                                        if (++spr_read.count == 64)
-                                        {
-                                            spr_read.mode = 4;
-                                            spr_read.count = 0;
-                                        }
-                                        else if (spr_read.found == 8)
-                                        {
-                                            spr_read.fetch = 0;
-                                            spr_read.mode = 2;
-                                        }
-                                    }
-                                }
-                                break;
-                            case 1: //sprite is in range fetch next 3 bytes
-                                if (i & 1)
-                                {
-                                    ++spr_read.fetch;
-                                    if (spr_read.fetch == 4)
-                                    {
-                                        spr_read.fetch = 1;
-                                        if (++spr_read.count == 64)
-                                        {
-                                            spr_read.count = 0;
-                                            spr_read.mode = 4;
-                                        }
-                                        else if (spr_read.found == 8)
-                                        {
-                                            spr_read.fetch = 0;
-                                            spr_read.mode = 2;
-                                        }
-                                        else
-                                            spr_read.mode = 0;
-                                    }
-                                }
+	      if (spr_read.count < 2) {
+		spr_read.ret = (PPU[3] & 0xF8)
+		  + (spr_read.count << 2);
+	      } else {
+		spr_read.ret = spr_read.count << 2;
+	      }
 
-                                if (spr_read.count < 2)
-                                    spr_read.ret = (PPU[3] & 0xF8)
-                                        + (spr_read.count << 2);
-                                else
-                                    spr_read.ret = spr_read.count << 2;
-
-                                spr_read.ret = SPRAM[spr_read.ret |
-                                    spr_read.fetch];
-                                break;
-                            case 2: //8th sprite fetched
-                                spr_read.ret = SPRAM[(spr_read.count << 2)
-                                    | spr_read.fetch];
-                                if (i & 1)
-                                {
-                                    if ( !((ppur.status.sl - 1 -
-                                              SPRAM[((spr_read.count << 2)
-                                                    | spr_read.fetch)])
-                                            & ~((Sprite16) ? 0xF : 0x7)) )
-                                    {
-                                        spr_read.fetch = 1;
-                                        spr_read.mode = 3;
-                                    }
-                                    else
-                                    {
-                                        if (++spr_read.count == 64)
-                                        {
-                                            spr_read.count = 0;
-                                            spr_read.mode = 4;
-                                        }
-                                        spr_read.fetch =
-                                            (spr_read.fetch + 1) & 3;
-                                    }
-                                }
-                                spr_read.ret = spr_read.count;
-                                break;
-                            case 3: //9th sprite overflow detected
-                                spr_read.ret = SPRAM[spr_read.count
-                                               | spr_read.fetch];
-                                if (i & 1)
-                                {
-                                    if (++spr_read.fetch == 4)
-                                    {
-                                        spr_read.count = (spr_read.count
-                                                + 1) & 63;
-                                        spr_read.mode = 4;
-                                    }
-                                }
-                                break;
-                            case 4: //read OAM[n][0] until hblank
-                                if (i & 1)
-                                    spr_read.count =
-                                        (spr_read.count + 1) & 63;
-                                spr_read.fetch = 0;
-                                spr_read.ret = SPRAM[spr_read.count << 2];
-                                break;
-                        }
-                    }
-                    else if (i < 320)
-                    {
-                        spr_read.ret = (i & 0x38) >> 3;
-                        if (spr_read.found < (spr_read.ret + 1))
-                        {
-                            if (spr_read.num)
-                            {
-                                spr_read.ret = SPRAM[252];
-                                spr_read.num = 0;
-                            }
-                            else
-                                spr_read.ret = 0xFF;
-                        }
-                        else if ((i & 7) < 4)
-                        {
-                            spr_read.ret =
-                                SPRAM[spr_read.found_pos[spr_read.ret]
-                                      | spr_read.fetch++];
-                            if (spr_read.fetch == 4)
-                                spr_read.fetch = 0;
-                        }
-                        else
-                            spr_read.ret = SPRAM[spr_read.found_pos
-                                                 [spr_read.ret | 3]];
-                    }
-                    else
-                    {
-                        if (!spr_read.found)
-                            spr_read.ret = SPRAM[252];
-                        else
-                            spr_read.ret = SPRAM[spr_read.found_pos[0]];
-                        break;
-                    }
-                }
-                spr_read.last = ppur.status.cycle;
-                return spr_read.ret;
-            }
-        }
-        else
-            return SPRAM[PPU[3]];
+	      spr_read.ret = SPRAM[spr_read.ret |
+				   spr_read.fetch];
+	      break;
+	    case 2: //8th sprite fetched
+	      spr_read.ret = SPRAM[(spr_read.count << 2)
+				   | spr_read.fetch];
+	      if (i & 1) {
+		if ( !((ppur.status.sl - 1 -
+			SPRAM[((spr_read.count << 2)
+			       | spr_read.fetch)])
+		       & ~((Sprite16) ? 0xF : 0x7)) ) {
+		  spr_read.fetch = 1;
+		  spr_read.mode = 3;
+		} else {
+		  if (++spr_read.count == 64) {
+		    spr_read.count = 0;
+		    spr_read.mode = 4;
+		  }
+		  spr_read.fetch =
+		    (spr_read.fetch + 1) & 3;
+		}
+	      }
+	      spr_read.ret = spr_read.count;
+	      break;
+	    case 3: //9th sprite overflow detected
+	      spr_read.ret = SPRAM[spr_read.count
+				   | spr_read.fetch];
+	      if (i & 1) {
+		if (++spr_read.fetch == 4) {
+		  spr_read.count = (spr_read.count
+				    + 1) & 63;
+		  spr_read.mode = 4;
+		}
+	      }
+	      break;
+	    case 4: //read OAM[n][0] until hblank
+	      if (i & 1)
+		spr_read.count =
+		  (spr_read.count + 1) & 63;
+	      spr_read.fetch = 0;
+	      spr_read.ret = SPRAM[spr_read.count << 2];
+	      break;
+	    }
+	  } else if (i < 320) {
+	    spr_read.ret = (i & 0x38) >> 3;
+	    if (spr_read.found < (spr_read.ret + 1)) {
+	      if (spr_read.num) {
+		spr_read.ret = SPRAM[252];
+		spr_read.num = 0;
+	      } else {
+		spr_read.ret = 0xFF;
+	      }
+	    } else if ((i & 7) < 4) {
+	      spr_read.ret =
+		SPRAM[spr_read.found_pos[spr_read.ret]
+		      | spr_read.fetch++];
+	      if (spr_read.fetch == 4)
+		spr_read.fetch = 0;
+	    } else {
+	      spr_read.ret = SPRAM[spr_read.found_pos
+				   [spr_read.ret | 3]];
+	    }
+	  } else {
+	    if (!spr_read.found)
+	      spr_read.ret = SPRAM[252];
+	    else
+	      spr_read.ret = SPRAM[spr_read.found_pos[0]];
+	    break;
+	  }
+	}
+	spr_read.last = ppur.status.cycle;
+	return spr_read.ret;
+      }
+    } else {
+      return SPRAM[PPU[3]];
     }
-    else
-    {
-        FCEUPPU_LineUpdate();
-        return PPUGenLatch;
-    }
+  } else {
+    FCEUPPU_LineUpdate();
+    return PPUGenLatch;
+  }
 }
 
 static DECLFR(A200x)  /* Not correct for $2004 reads. */
@@ -1031,21 +996,22 @@ void FCEUPPU_LineUpdate()
 		}
 }
 
+// These two used to not be saved in stateinfo, but that caused execution
+// to diverge in 'Ultimate Basketball'.
 static int32 sphitx;
 static uint8 sphitdata;
 
-static void CheckSpriteHit(int p)
-{
+static void CheckSpriteHit(int p) {
+  TRACEF("CheckSpriteHit %d %d %02x\n", p, sphitx, sphitdata);
 	int l=p-16;
 	int x;
 
 	if (sphitx==0x100) return;
 
-	for (x=sphitx;x<(sphitx+8) && x<l;x++)
-	{
+	for (x=sphitx;x<(sphitx+8) && x<l;x++) {
 
-        if ((sphitdata&(0x80>>(x-sphitx))) && !(Plinef[x]&64) && x < 255)
-		{
+        if ((sphitdata&(0x80>>(x-sphitx))) && !(Plinef[x]&64) && x < 255) {
+		  TRACELOC();
 			PPU_status|=0x40;
 			//printf("Ha:  %d, %d, Hita: %d, %d, %d, %d, %d\n",p,p&~7,scanline,GETLASTPIXEL-16,&Plinef[x],Pline,Pline-Plinef);
 			//printf("%d\n",GETLASTPIXEL-16);
@@ -1069,11 +1035,27 @@ static void EndRL() {
 //Needed for zapper emulation and *gasp* sprite emulation.
 static int any_sprites_on_line = 0;
 
+// These used to be static inside RefreshLine, but interleavings of
+// save/restore in "Ultimate Basketball" can cause execution to diverge.
+// Now saved in stateinfo.
+static uint32 pshift[2];
+// This was also static; why not save it too? -tom7
+static uint32 atlatch;
+
 // lasttile is really "second to last tile."
 static void RefreshLine(int lastpixel) {
-	static uint32 pshift[2];
-	static uint32 atlatch;
 	uint32 smorkus=RefreshAddr;
+
+	static int norecurse=0; /* Yeah, recursion would be bad.
+				   PPU_hook() functions can call
+				   mirroring/chr bank switching functions,
+				   which call FCEUPPU_LineUpdate, which call this
+				   function. */
+	if (norecurse) return;
+
+	TRACEF("RefreshLine %d %u %u %u %u %d",
+	       lastpixel, pshift[0], pshift[1], atlatch, smorkus,
+	       norecurse);
 
 #define RefreshAddr smorkus
 	uint32 vofs;
@@ -1081,26 +1063,16 @@ static void RefreshLine(int lastpixel) {
 
 	register uint8 *P=Pline;
 	int lasttile=lastpixel>>3;
-	int numtiles;
-	static int norecurse=0; /* Yeah, recursion would be bad.
-							PPU_hook() functions can call
-							mirroring/chr bank switching functions,
-							which call FCEUPPU_LineUpdate, which call this
-							function. */
-	if (norecurse) return;
 
-	if (sphitx != 0x100 && !(PPU_status&0x40))
-	{
-		if ((sphitx < (lastpixel-16)) && !(sphitx < ((lasttile - 2)*8)))
-		{
-			//printf("OK: %d\n",scanline);
-			lasttile++;
-		}
-
+	if (sphitx != 0x100 && !(PPU_status&0x40)) {
+	  if ((sphitx < (lastpixel-16)) && !(sphitx < ((lasttile - 2)*8))) {
+	    //printf("OK: %d\n",scanline);
+	    lasttile++;
+	  }
 	}
 
 	if (lasttile>34) lasttile=34;
-	numtiles=lasttile-firsttile;
+	int numtiles=lasttile-firsttile;
 
 	if (numtiles<=0) return;
 
@@ -1110,8 +1082,7 @@ static void RefreshLine(int lastpixel) {
 
 	vofs=((PPU[0]&0x10)<<8) | ((RefreshAddr>>12)&7);
 
-	if (!ScreenON && !SpriteON)
-	{
+	if (!ScreenON && !SpriteON) {
 		uint32 tem;
 		tem=Pal[0]|(Pal[0]<<8)|(Pal[0]<<16)|(Pal[0]<<24);
 		tem|=0x40404040;
@@ -1155,12 +1126,14 @@ static void RefreshLine(int lastpixel) {
 			{
 				if ((tochange<=0 && MMC5HackSPMode&0x40) || (tochange>0 && !(MMC5HackSPMode&0x40)))
 				{
+				  TRACELOC();
 #define PPUT_MMC5SP
 #include "pputile.inc"
 #undef PPUT_MMC5SP
 				}
 				else
 				{
+				  TRACELOC();
 #include "pputile.inc"
 				}
 				tochange--;
@@ -1175,6 +1148,7 @@ static void RefreshLine(int lastpixel) {
 #define PPUT_MMC5CHR1
 			for (X1=firsttile;X1<lasttile;X1++)
 			{
+			  TRACELOC();
 #include "pputile.inc"
 			}
 #undef PPUT_MMC5CHR1
@@ -1185,6 +1159,7 @@ static void RefreshLine(int lastpixel) {
 #define PPUT_MMC5CHR1
 			for (X1=firsttile;X1<lasttile;X1++)
 			{
+			  TRACELOC();
 #include "pputile.inc"
 			}
 #undef PPUT_MMC5CHR1
@@ -1193,6 +1168,7 @@ static void RefreshLine(int lastpixel) {
 		{
 			for (X1=firsttile;X1<lasttile;X1++)
 			{
+			  TRACELOC();
 #include "pputile.inc"
 			}
 		}
@@ -1204,6 +1180,7 @@ static void RefreshLine(int lastpixel) {
 #define PPUT_HOOK
 		for (X1=firsttile;X1<lasttile;X1++)
 		{
+		  TRACELOC();
 #include "pputile.inc"
 		}
 #undef PPUT_HOOK
@@ -1213,6 +1190,7 @@ static void RefreshLine(int lastpixel) {
 	{
 		for (X1=firsttile;X1<lasttile;X1++)
 		{
+		  TRACELOC();
 #include "pputile.inc"
 		}
 	}
@@ -1482,6 +1460,7 @@ static void FetchSpriteData() {
 
 	ns++;
       } else {
+	TRACELOC();
 	PPU_status|=0x20;
 	break;
       }
@@ -1537,6 +1516,7 @@ static void FetchSpriteData() {
 	ns++;
       }
       else {
+	TRACELOC();
 	PPU_status|=0x20;
 	break;
       }
@@ -1545,8 +1525,10 @@ static void FetchSpriteData() {
   //printf("%d %d\n",scanline,ns);
 
   //Handle case when >8 sprites per scanline option is enabled.
-  if (ns>8) PPU_status|=0x20;
-  else if (PPU_hook) {
+  if (ns>8) {
+    TRACELOC();
+    PPU_status|=0x20;
+  } else if (PPU_hook) {
     for (n=0;n<(8-ns);n++) {
       PPU_hook(0x2000);
       PPU_hook(vofs);
@@ -1867,6 +1849,7 @@ int FCEUPPU_Loop(int skip) {
     ppudead--;
   } else {
     X6502_Run(256+85);
+    TRACELOC();
     PPU_status |= 0x80;
 
     //Not sure if this is correct.  According to Matt Conte and my own tests, it is.
@@ -1881,6 +1864,7 @@ int FCEUPPU_Loop(int skip) {
       TriggerNMI();
 
     X6502_Run((scanlines_per_frame-242)*(256+85)-12);
+    TRACELOC();
     PPU_status&=0x1f;
     X6502_Run(256);
 
@@ -1916,6 +1900,7 @@ int FCEUPPU_Loop(int skip) {
       y=SPRAM[0];
       y++;
 
+      TRACELOC();
       PPU_status|=0x20;       // Fixes "Bee 52".  Does it break anything?
       if (GameHBIRQHook)
 	{
@@ -1924,14 +1909,20 @@ int FCEUPPU_Loop(int skip) {
 	    {
 	      if (ScreenON || SpriteON)
 		GameHBIRQHook();
-	      if (scanline==y && SpriteON) PPU_status|=0x40;
+	      if (scanline==y && SpriteON) {
+		TRACELOC();
+		PPU_status|=0x40;
+	      }
 	      X6502_Run((scanline==239)?85:(256+85));
 	    }
 	}
       else if (y<240)
 	{
 	  X6502_Run((256+85)*y);
-	  if (SpriteON) PPU_status|=0x40; // Quick and very dirty hack.
+	  if (SpriteON) {
+	    TRACELOC();
+	    PPU_status|=0x40; // Quick and very dirty hack.
+	  }
 	  X6502_Run((256+85)*(240-y));
 	}
       else
@@ -1992,6 +1983,10 @@ const SFORMAT FCEUPPU_STATEINFO[] = {
   { &TempAddrT, 2|FCEUSTATE_RLSB, "TADD"},
   { &VRAMBuffer, 1, "VBUF"},
   { &PPUGenLatch, 1, "PGEN"},
+  { &pshift[0], 4|FCEUSTATE_RLSB, "PSH1" },
+  { &pshift[1], 4|FCEUSTATE_RLSB, "PSH2" },
+  { &sphitx, 4|FCEUSTATE_RLSB, "Psph" },
+  { &sphitdata, 1, "Pspd" },
   { 0 }
 };
 
@@ -2123,6 +2118,7 @@ int FCEUX_PPU_Loop(int skip) {
     }
 
 	{
+	        TRACELOC();
 		PPU_status |= 0x80;
 		ppuphase = PPUPHASE_VBL;
 
@@ -2142,6 +2138,7 @@ int FCEUX_PPU_Loop(int skip) {
 		    runppu(20*(kLineTime)-delay);
 
 		//this seems to run just before the dummy scanline begins
+	        TRACELOC();
 		PPU_status = 0;
 		//this early out caused metroid to fail to boot. I am leaving it here as a reminder of what not to do
 		//if (!PPUON) { runppu(kLineTime*242); goto finish; }
@@ -2248,6 +2245,7 @@ int FCEUX_PPU_Loop(int skip) {
 								if (oam[6] == 0 && (pixel & 3) != 0 &&
                                    rasterpos < 255)
                                 {
+  				    TRACELOC();
                                     PPU_status |= 0x40;
                                 }
 								havepixel = true;
@@ -2280,6 +2278,7 @@ int FCEUX_PPU_Loop(int skip) {
 					//if we already have maxsprites, then this new one causes an overflow,
 					//set the flag and bail out.
 					if (oamcount >= 8 && PPUON) {
+					        TRACELOC();
 						PPU_status |= 0x20;
 						if (maxsprites == 8)
 							break;

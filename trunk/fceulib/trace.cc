@@ -211,6 +211,8 @@ Traces::Traces() {
   if (fp == nullptr) {
     fprintf(stderr, "Unable to open trace file.\n");
     abort();
+  } else {
+    fprintf(stderr, "Tracing is enabled!\n");
   }
 }
 

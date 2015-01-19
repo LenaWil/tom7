@@ -23,15 +23,18 @@ int main(int argc, char **argv) {
   fprintf(stderr, "Loaded %lld traces from %s.\n", left.size(), argv[1]);
   vector<Trace> right = Traces::ReadFromFile(argv[2]);
   fprintf(stderr, "Loaded %lld traces from %s.\n", right.size(), argv[2]);
-  
+
+  bool same = true;
   for (int i = 0; i < max(left.size(), right.size()); i++) {
     if (i >= left.size()) {
       printf("The right trace is longer (%lld vs. %lld) but they\n"
 	     "are the same up to that point.\n", left.size(), right.size());
+      same = false;
       break;
     } else if (i >= right.size()) {
       printf("The left trace is longer (%lld vs. %lld) but they\n"
 	     "are the same up to that point.\n", left.size(), right.size());
+      same = false;
       break;
     }
 
@@ -54,10 +57,15 @@ int main(int argc, char **argv) {
       printf("At index %d, traces disagree.\n", i);
       printf("Diff:\n%s\n",
 	     Traces::Difference(l, r).c_str());
-
+      same = false;
       break;
     }
   }
 
-  return 0;
+  if (same) {
+    printf("Well, I guess they are the same.\n");
+    return 0;
+  } else {
+    return 1;
+  }
 }

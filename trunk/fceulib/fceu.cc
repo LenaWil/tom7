@@ -95,6 +95,7 @@ static DECLFW(BNull) {
 }
 
 static DECLFR(ANull) {
+  TRACEF("Read unmapped: %02x", X.DB);
   return X.DB;
 }
 
@@ -109,15 +110,17 @@ void SetReadHandler(int32 start, int32 end, readfunc func) {
   if (!func)
     func = ANull;
 
+  fprintf(stderr, "XXX SetReadHandler %d-%d %p\n", start, end, func);
+
   if (RWWrap) {
-    for(int32 x = end; x >= start; x--) {
+    for (int32 x = end; x >= start; x--) {
       if (x >= 0x8000)
 	AReadG[x - 0x8000] = func;
       else
 	ARead[x]=func;
     }
   } else {
-    for(int x = end; x >= start; x--) {
+    for (int x = end; x >= start; x--) {
       ARead[x] = func;
     }
   }
