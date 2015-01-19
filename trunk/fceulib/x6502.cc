@@ -87,7 +87,7 @@ void X6502_DMW(uint32 A, uint8 V) {
 // (for example, the N flag is actually 0x80 which is the same bit as
 // what's tested to populate the table, so flags |= (b & 0x80)).
 // Anyway, I inlined the values rather than establishing them when the
-// emulator starts up, mostly for thread safety sake.
+// emulator starts up, mostly for thread safety sake. -tom7
 static constexpr uint8 ZNTable[256] = {
   Z_FLAG, 0, 0, 0, 0, 0, 0, 0,
   0, 0, 0, 0, 0, 0, 0, 0,
@@ -337,7 +337,7 @@ static constexpr uint8 ZNTable[256] = {
 #define RMW_ZP(op) {uint8 A; uint8 x; GetZP(A); x=RdRAM(A); op; WrRAM(A,x); break; }
 #define RMW_ZPX(op) {uint8 A; uint8 x; GetZPI(A,_X); x=RdRAM(A); op; WrRAM(A,x); break;}
 
-#define LD_IM(op) {uint8 x; x=RdMem(_PC); _PC++; op; break;}
+#define LD_IM(op) {uint8 x; x=RdMem(_PC); TRACEN(x); _PC++; op; break;}
 #define LD_ZP(op) {uint8 A; uint8 x; GetZP(A); x=RdRAM(A); op; break;}
 #define LD_ZPX(op) {uint8 A; uint8 x; GetZPI(A,_X); x=RdRAM(A); op; break;}
 #define LD_ZPY(op) {uint8 A; uint8 x; GetZPI(A,_Y); x=RdRAM(A); op; break;}
@@ -377,30 +377,42 @@ static constexpr uint8 CycTable[256] = {
 /*0xF0*/ 2,5,2,8,4,4,6,6,2,4,2,7,4,4,7,7,
 };
 
-void X6502_IRQBegin(int w) {
+#undef X6502_IRQBegin
+static void X6502_IRQBegin(int w) {
+  TRACEF("IRQBegin %d", w);
   _IRQlow |= w;
 }
 
+// void X6502_IRQBegin(int w);
+void X6502_IRQBegin_Wrapper(const std::string &where, int w) {
+  TRACEF("IRQBegin wrapper %s %d", where.c_str(), w);
+  X6502_IRQBegin(w);
+}
+
 void X6502_IRQEnd(int w) {
+  TRACEF("IRQEnd %d", w);
   _IRQlow &= ~w;
 }
 
-void TriggerNMI(void) {
+void TriggerNMI() {
+  TRACEFUN();
   _IRQlow |= FCEU_IQNMI;
 }
 
-void TriggerNMI2(void) {
+void TriggerNMI2() {
+  TRACEFUN();
   _IRQlow |= FCEU_IQNMI2;
 }
 
-void X6502_Reset(void) {
+void X6502_Reset() {
+  TRACEFUN();
   _IRQlow = FCEU_IQRESET;
 }
 
 /**
 * Initializes the 6502 CPU
 **/
-void X6502_Init(void) {
+void X6502_Init() {
   // Initialize the CPU structure
   memset((void *)&X,0,sizeof(X));
 
@@ -418,7 +430,7 @@ void X6502_Init(void) {
 #endif
 }
 
-void X6502_Power(void) {
+void X6502_Power() {
   _count=_tcount=_IRQlow=_PC=_A=_X=_Y=_P=_PI=_DB=_jammed=0;
   _S=0xFD;
   timestamp=0;
@@ -433,12 +445,34 @@ void X6502_Run(int32 cycles) {
   }
 
   _count += cycles;
-  TRACEF("x6502_Run %d %d", cycles, _count);
+
+  // Temporarily disable tracing unless this is the particular cycle
+  // we're intereted in.
+  TRACE_SCOPED_STAY_ENABLED_IF(timestamp == 3524 && cycles == 4096);
+  TRACEF("x6502_Run (%d) for %d X: %d %04x "
+	 "%02x %02x %02x %02x %02x %02x "
+	 "/ %02x %u %02x",
+	 timestamp,
+	 cycles,
+	 _count, _PC,
+	 _A, _X, _Y, _S, _P, _PI,
+	 _jammed, _IRQlow, _DB);
+  TRACEA(RAM, 0x800);
+
   extern int test; test++;
   while (_count > 0) {
     int32 temp;
 
+    TRACEF("while X: %d %04x "
+	   "%02x %02x %02x %02x %02x %02x "
+	   "/ %02x %u %02x",
+	   _count, _PC,
+	   _A, _X, _Y, _S, _P, _PI,
+	   _jammed, _IRQlow, _DB);
+    TRACEA(RAM, 0x800);
+
     if (_IRQlow) {
+      TRACEF("IRQlow set.");
       if (_IRQlow&FCEU_IQRESET) {
 	_PC=RdMem(0xFFFC);
 	_PC|=RdMem(0xFFFD)<<8;
@@ -489,6 +523,7 @@ void X6502_Run(int32 cycles) {
     if (MapIRQHook) MapIRQHook(temp);
     fceulib__sound.FCEU_SoundCPUHook(temp);
     _PC++;
+    TRACEN(b1);
     switch (b1) {
     case 0x00:  /* BRK */
       _PC++;
@@ -959,14 +994,4 @@ void X6502_Run(int32 cycles) {
 
     }
   }
-}
-
-//--------------------------
-//---Called from debuggers
-void FCEUI_NMI(void) {
-  _IRQlow |= FCEU_IQNMI;
-}
-
-void FCEUI_IRQ(void) {
-  _IRQlow |= FCEU_IQTEMP;
 }

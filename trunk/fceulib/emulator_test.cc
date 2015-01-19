@@ -192,7 +192,7 @@ static pair<uint64, uint64> RunGameSerially(const Game &game) {
   auto StepMaybeTraced = [&emu](uint8 b) {
     // This is debugging task specific. Copy and paste the target
     // in here!
-    static constexpr uint64 TARGET = 15068955522825614913ULL;
+    static constexpr uint64 TARGET = 3644825459203058137ULL;
     if (emu->RamChecksum() == TARGET) {
       fprintf(stderr, "Enabling tracing because of ram match.\n");
       TRACE_ENABLE();
@@ -258,7 +258,7 @@ static pair<uint64, uint64> RunGameSerially(const Game &game) {
       fprintf(stderr, "(ram starts %llu)\n", emu->RamChecksum());
       CHECK(i + 1 < saves.size());
       CHECK(i + 1 < inputs.size());
-      StepMaybeTraced(inputs[i + 1]);
+      StepMaybeTraced(inputs[i]);
       CHECK_RAM_STEP(i + 1);
     }
   }

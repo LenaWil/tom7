@@ -23,6 +23,7 @@
 static uint8 cmd,mir,rmode,IRQmode;
 static uint8 DRegs[11];
 static uint8 IRQCount,IRQa,IRQLatch;
+static int smallcount;
 
 static SFORMAT Rambo_StateRegs[]={
   {&cmd, 1, "CMD"},
@@ -33,6 +34,7 @@ static SFORMAT Rambo_StateRegs[]={
   {&IRQa, 1, "IRQA"},
   {&IRQLatch, 1, "IRQL"},
   {DRegs, 11, "DREG"},
+  {&smallcount, 4, "SMAC"},
   {0}
 };
 
@@ -41,8 +43,10 @@ static void (*setchr1wrap)(unsigned int A, unsigned int V);
 
 static void RAMBO1_IRQHook(int a)
 {
-  static int smallcount;
   if(!IRQmode) return;
+
+  TRACEF("RAMBO1: %d %d %02x %02x",
+	 a, smallcount, IRQCount, IRQa);
 
   smallcount+=a;
   while(smallcount>=4)

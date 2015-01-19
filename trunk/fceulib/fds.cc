@@ -35,6 +35,8 @@
 #include "cart.h"
 #include "driver.h"
 
+#include "tracing.h"
+
 //  TODO:  Add code to put a delay in between the time a disk is inserted
 //	and the when it can be successfully read/written to.  This should
 //	prevent writes to wrong places OR add code to prevent disk ejects
@@ -203,6 +205,7 @@ static DECLFR(FDSRead4030)
 	uint8 ret=0;
 
 	/* Cheap hack. */
+	TRACEF("FDSRead IRQlow %02x", X.IRQlow);
 	if (X.IRQlow&FCEU_IQEXT) ret|=1;
 	if (X.IRQlow&FCEU_IQEXT2) ret|=2;
 

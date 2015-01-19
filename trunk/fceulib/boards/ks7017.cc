@@ -23,6 +23,8 @@
 
 #include "mapinc.h"
 
+#include "tracing.h"
+
 static uint8 reg, mirr;
 static int32 IRQa, IRQCount, IRQLatch;
 static uint8 *WRAM=NULL;
@@ -77,6 +79,7 @@ static DECLFW(UNLKS7017Write)
 static DECLFR(FDSRead4030)
 {
   X6502_IRQEnd(FCEU_IQEXT);
+  TRACEF("ks7017 irqlow %02x", X.IRQlow);
   return X.IRQlow&FCEU_IQEXT?1:0;
 }
 
