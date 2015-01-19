@@ -30,6 +30,17 @@ struct Game {
   uint64 after_load;
   uint64 after_inputs;
   uint64 after_random;
+  string random_seed = "randoms";
+  Game(const string &c, const vector<uint8> &i,
+       uint64 al, uint64 ai, uint64 ar) :
+    cart(c), inputs(i), after_load(al), 
+    after_inputs(ai), after_random(ar) {}
+  Game(const string &c, const vector<uint8> &i,
+       uint64 al, uint64 ai, uint64 ar,
+       const string &seed) :
+    cart(c), inputs(i), after_load(al), 
+    after_inputs(ai), after_random(ar),
+    random_seed(seed) {}
 };
 
 static int64 TimeUsec() {
@@ -115,7 +126,7 @@ static pair<uint64, uint64> RunGameSerially(const Game &game) {
     const uint64 cx = emu->RamChecksum();            \
     CHECK_EQ(cx, (field))                            \
       << "\nExpected ram to be " << #field << " = "  \
-      << (field) << " but got " << cx;               \
+      << (field) << "\nbut got " << cx;               \
   } while(0)
 
   // Once we've collected the states, we have not just the checksums
@@ -130,7 +141,7 @@ static pair<uint64, uint64> RunGameSerially(const Game &game) {
     const uint64 cx = emu->RamChecksum();                       \
     if (cx != checksums[idx]) {                                 \
       fprintf(stderr, "Bad RAM checksum at step %d (%s). "      \
-              "Expected\n %llu but got %llu.\n", idx, #i,       \
+              "Expected\n %llu\nbut got %llu.\n", idx, #i,       \
               checksums[idx], cx);                              \
       if (FULL) {                                               \
         const vector<uint8> mem = emu->GetMemory();             \
@@ -192,19 +203,16 @@ static pair<uint64, uint64> RunGameSerially(const Game &game) {
   auto StepMaybeTraced = [&emu](uint8 b) {
     // This is debugging task specific. Copy and paste the target
     // in here!
-    static constexpr uint64 TARGET = 3644825459203058137ULL;
-    if (emu->RamChecksum() == TARGET) {
+    static constexpr uint64 TARGET = 0ULL;
+    // XXX use scoped trace.
+    const uint64 cx = emu->RamChecksum();
+    TRACE_SCOPED_ENABLE_IF(cx == TARGET);
+    if (cx == TARGET) {
       fprintf(stderr, "Enabling tracing because of ram match.\n");
-      TRACE_ENABLE();
       TRACEF("RAM is target of %llu so tracing input [%s].",
 	     TARGET,
 	     SimpleFM2::InputToString(b).c_str());
-    } else {
-      TRACE_DISABLE();
     }
-
-    // XXX we probably want more like scoped trace enable/disable.
-
     emu->StepFull(b);
   };
 
@@ -240,7 +248,7 @@ static pair<uint64, uint64> RunGameSerially(const Game &game) {
 
   fprintf(stderr, "Random inputs:\n");
   TRACE_SWITCH("forward-trace.bin");
-  for (uint8 b : InputStream(game.cart, 10000)) SaveAndStep(b);
+  for (uint8 b : InputStream("randoms", 10000)) SaveAndStep(b);
   CHECK_RAM(game.after_random);
   const uint64 ret2 = emu->RamChecksum();
   // TRACEF("after_random %llu.", emu->RamChecksum());
@@ -252,10 +260,10 @@ static pair<uint64, uint64> RunGameSerially(const Game &game) {
     fprintf(stderr, "Running frames backwards:\n");
     TRACE_SWITCH("backward-trace.bin");
     for (int i = saves.size() - 2; i >= 0; i--) {
-      fprintf(stderr, "%d -> %d: ", i, i + 1);
+      // fprintf(stderr, "%d -> %d: ", i, i + 1);
       emu->LoadUncompressed(&saves[i]);
       CHECK_RAM_STEP(i);
-      fprintf(stderr, "(ram starts %llu)\n", emu->RamChecksum());
+      // fprintf(stderr, "(ram starts %llu)\n", emu->RamChecksum());
       CHECK(i + 1 < saves.size());
       CHECK(i + 1 < inputs.size());
       StepMaybeTraced(inputs[i]);
@@ -334,14 +342,33 @@ int main(int argc, char **argv) {
   // First, ensure that we have preserved the single-threaded
   // behavior.
 
-  // Regression.
+  // Regression -- Tengen cart wasn't saving all its state.
   Game skull{
     "skull.nes",
     RLE::Decompress({ 101, 0, 4, 2, 3, 3, 2, 1, 50, 0, }),
     kEveryGameUponLoad,
     17813153070445949947ULL,
-    4919724013337299501ULL,
+    4140614200917092591ULL,
     };
+
+  Game ubasketball{
+    "ubasketball.nes",
+    RLE::Decompress({ 101, 0, 4, 2, 3, 3, 2, 1, 50, 0, }),
+    kEveryGameUponLoad,
+    18168214949483867499ULL,
+    13068962115749660119ULL,
+    "roms/Ultimate Basketball.nes",
+    };
+
+  /*
+  Game ubasketball{
+    "ubasketball.nes",
+    RLE::Decompress({ 101, 0, 4, 2, 3, 3, 2, 1, 50, 0, }),
+    kEveryGameUponLoad,
+    18168214949483867499ULL,
+    13068962115749660119ULL,
+    };
+  */
 
   Game escape{
     "escape.nes",
@@ -354,7 +381,7 @@ int main(int argc, char **argv) {
         13, 128, 25, 2, 128, 0, 128, 0, 128, 0, 2, 0, 28, 128, 0, 0}),
     kEveryGameUponLoad,
     6838541238215755706ULL,
-    14453325089239387428ULL,
+    6819303093664748341ULL,
     };
 
   Game karate{
@@ -368,7 +395,7 @@ int main(int argc, char **argv) {
       13, 128, 25, 2, 128, 0, 128, 0, 128, 0, 2, 0, 28, 128, 0, 0}),
       kEveryGameUponLoad,
       0x38cff7186cda146fULL,
-      0x8ae8299e61234c95ULL,
+      1841694725427045113ULL,
       };
 
   Game mario{
@@ -398,7 +425,7 @@ int main(int argc, char **argv) {
       0}),
       kEveryGameUponLoad,
       187992912212093401ULL,
-      16444816755826868158ULL,
+      6695545142227306073ULL,
       };
 
   Game arkanoid{
@@ -450,12 +477,11 @@ int main(int argc, char **argv) {
       29, 64, 3, 0, 41, 128, 22, 0, 7, 128, 38, 0, }),
       kEveryGameUponLoad,
       17404343783895927036ULL,
-      6310604747032322204ULL,
+      18130621035109203977ULL,
       };
 
-  // XXX Note: Something must be preventing this from loading the save state,
-  // since kirby has battery-backed NVROM and I think is successfully writing
-  // it at the end (maybe we never 'save' the game in this movie?)
+  // XXX Uses battery-backed NVROM. Do something more hygeinic than simply
+  // unlinking ".sav" before the test.
   Game kirby{
     "kirby.nes",
       RLE::Decompress({
@@ -493,26 +519,28 @@ int main(int argc, char **argv) {
       160, 18, 32, 2, 160, 80, 128, 7, 0, }),
       kEveryGameUponLoad,
       5937014762881028957ULL,
-      4633358520100955945ULL,
+      10450299151185393612ULL,
       };
 
   const int64 start_us = TimeUsec();
 
   TRACE_DISABLE();
-  RunGameSerially(skull);
+
+
+  // RunGameSerially(escape);
+
+  RunGameSerially(karate);
+  // RunGameSerially(karate);
+  // RunGameSerially(escape);
 
   RunGameSerially(mario);
 
   RunGameSerially(kirby);
-
   RunGameSerially(arkanoid);
-
-  RunGameSerially(escape);
   RunGameSerially(escape);
 
-  RunGameSerially(karate);
-  RunGameSerially(karate);
-  RunGameSerially(escape);
+  RunGameSerially(skull);
+  RunGameSerially(ubasketball);
 
   if (COMPREHENSIVE) {
     printf("Now COMPREHENSIVE tests.\n");
@@ -544,6 +572,11 @@ int main(int argc, char **argv) {
         fprintf(stderr, "Did %d/%lld = %.1f%%.\n",
                 nlines, romlines.size(),
                 nlines * 100. / romlines.size());
+	if (p.first != after_inputs ||
+	    p.second != after_random) {
+	  fprintf(stderr, "(Note, didn't match last time: %s)\n",
+		  filename.c_str());
+	}
       }
     }
     fclose(out);

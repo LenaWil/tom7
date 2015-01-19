@@ -9,7 +9,7 @@
 
 // Should normally be 0, unless debugging something. Traces are huge
 // and slow everything down a lot!
-#define TRACING 1
+#define TRACING 0
 
 #if TRACING
 
@@ -48,6 +48,7 @@ extern Traces fceulib__traces;
 #define TRACE_DISABLE() do { } while (0)
 #define TRACE_SWITCH(s) do { } while (0)
 #define TRACE_SCOPED_ENABLE_IF(cond) struct S { } fceu_scoped_trace_instance; \
+  (void)fceu_scoped_trace_instance;					\
   do { } while (0)
 
 #endif  // TRACING
