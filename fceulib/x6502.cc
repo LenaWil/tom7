@@ -40,6 +40,7 @@ void (*MapIRQHook)(int a);
 
 //normal memory read
 static INLINE uint8 RdMem(unsigned int A) {
+  TRACEF("readfunc is %p", ARead[A]);
   return _DB=ARead[A](A);
 }
 
@@ -341,7 +342,7 @@ static constexpr uint8 ZNTable[256] = {
 #define LD_ZP(op) {uint8 A; uint8 x; GetZP(A); x=RdRAM(A); op; break;}
 #define LD_ZPX(op) {uint8 A; uint8 x; GetZPI(A,_X); x=RdRAM(A); op; break;}
 #define LD_ZPY(op) {uint8 A; uint8 x; GetZPI(A,_Y); x=RdRAM(A); op; break;}
-#define LD_AB(op) {unsigned int A; uint8 x; GetAB(A); x=RdMem(A); (void)x; op; break; }
+#define LD_AB(op) {unsigned int A; uint8 x; GetAB(A); TRACEN(A); x=RdMem(A); TRACEF("Read %d -> %02x", A, x); (void)x; op; break; }
 #define LD_ABI(reg,op) {unsigned int A; uint8 x; GetABIRD(A,reg); x=RdMem(A); (void)x; op; break;}
 #define LD_ABX(op) LD_ABI(_X,op)
 #define LD_ABY(op) LD_ABI(_Y,op)
@@ -448,7 +449,13 @@ void X6502_Run(int32 cycles) {
 
   // Temporarily disable tracing unless this is the particular cycle
   // we're intereted in.
-  TRACE_SCOPED_STAY_ENABLED_IF(timestamp == 3524 && cycles == 4096);
+  // TRACE_SCOPED_STAY_ENABLED_IF(false);
+  // TRACE_SCOPED_STAY_ENABLED_IF(timestamp == 3524 && cycles == 4096);
+  TRACE_SCOPED_STAY_ENABLED_IF(timestamp == 2501 &&
+			       cycles == 4096 &&
+			       _DB == 0xfb &&
+			       _count == 4016 &&
+			       _PC == 0xe399);
   TRACEF("x6502_Run (%d) for %d X: %d %04x "
 	 "%02x %02x %02x %02x %02x %02x "
 	 "/ %02x %u %02x",
@@ -458,11 +465,17 @@ void X6502_Run(int32 cycles) {
 	 _A, _X, _Y, _S, _P, _PI,
 	 _jammed, _IRQlow, _DB);
   TRACEA(RAM, 0x800);
+  extern uint8 PPU[4];
+  TRACEA(PPU, 4);
 
   extern int test; test++;
   while (_count > 0) {
     int32 temp;
 
+    /*
+    TRACE_SCOPED_STAY_ENABLED_IF(_count == 3680 && _PC == 0xe399 &&
+				 _DB == 0xfb);
+    */
     TRACEF("while X: %d %04x "
 	   "%02x %02x %02x %02x %02x %02x "
 	   "/ %02x %u %02x",
@@ -470,6 +483,7 @@ void X6502_Run(int32 cycles) {
 	   _A, _X, _Y, _S, _P, _PI,
 	   _jammed, _IRQlow, _DB);
     TRACEA(RAM, 0x800);
+    TRACEA(PPU, 4);
 
     if (_IRQlow) {
       TRACEF("IRQlow set.");

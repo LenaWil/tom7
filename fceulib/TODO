@@ -8,6 +8,7 @@ Stuff I should be able to get rid of:
  - video.cc can probably go?
  - autosave (fceu.cc mostly)
  - FCEUDEF_DEBUGGER is never defined. excise.
+ - smorkus in PPU
  - make x6502 follow normal conventions of how it defines stuff,
    include guards, etc.
  - x6502struct.h: preexec
