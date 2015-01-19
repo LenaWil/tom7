@@ -39,6 +39,8 @@ Cleanup to do:
  - There's a #define for WRAM in ines.h and ALSO a non-static
    WRAM in mmc3.cc which wasted hours of my time. Are the right
    places seeing the right symbol, even?
+ - I left wrappers around IRQBegin and SetReadHandler that are
+   expensive even when not tracing.
 
 Surprisingly necessary:
  - crc32 since ines.cc has a table of games and their CRCs.

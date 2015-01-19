@@ -3,6 +3,10 @@
 
 #include "git.h"
 
+// XXX
+#include <string>
+#include "stringprintf.h"
+
 static constexpr bool fceuindbg = false;
 extern int newppu;
 
@@ -19,6 +23,15 @@ extern int newppu;
 
 void FCEU_MemoryRand(uint8 *ptr, uint32 size);
 void SetReadHandler(int32 start, int32 end, readfunc func);
+#if 0
+#define SetReadHandler(start, end, func) \
+  SetReadHandler_Wrapped(FCEU_StringPrintf(__FILE__ ":%s:%d = %s",	\
+					   __func__, __LINE__, #func),	\
+                         start, end, func)
+void SetReadHandler_Wrapped(const std::string &what, 
+			    int32 start, int32 end, readfunc func);
+#endif
+
 void SetWriteHandler(int32 start, int32 end, writefunc func);
 writefunc GetWriteHandler(int32 a);
 readfunc GetReadHandler(int32 a);

@@ -23,6 +23,7 @@ static constexpr uint64 kEveryGameUponLoad =
 // Set by command-line --full.
 static bool FULL = false;
 static bool COMPREHENSIVE = false;
+static bool MAKE_COMPREHENSIVE = true;
 
 struct Game {
   string cart;
@@ -201,10 +202,10 @@ static pair<uint64, uint64> RunGameSerially(const Game &game) {
   emu->GetBasis(&basis);
 
   auto StepMaybeTraced = [&emu](uint8 b) {
+    const uint64 cx = emu->RamChecksum();
     // This is debugging task specific. Copy and paste the target
     // in here!
-    const bool match = false;
-    const uint64 cx = emu->RamChecksum();
+    const bool match = cx == 13880957536073757852ULL;
     TRACE_SCOPED_ENABLE_IF(match);
     if (match) {
       fprintf(stderr, "Enabling tracing because of ram match %llu.\n", cx);
@@ -241,20 +242,23 @@ static pair<uint64, uint64> RunGameSerially(const Game &game) {
   };
 
   for (uint8 b : game.inputs) SaveAndStep(b);
-  CHECK_RAM(game.after_inputs);
+  if (!MAKE_COMPREHENSIVE) {
+    CHECK_RAM(game.after_inputs);
+  }
   const uint64 ret1 = emu->RamChecksum();
   TRACEF("after_inputs %llu.", emu->RamChecksum());
 
   fprintf(stderr, "Random inputs:\n");
   TRACE_SWITCH("forward-trace.bin");
   for (uint8 b : InputStream("randoms", 10000)) SaveAndStep(b);
-  CHECK_RAM(game.after_random);
+  // This is checked by the comprehensive driver, or should be.
+  if (!MAKE_COMPREHENSIVE) {
+    CHECK_RAM(game.after_random);
+  }
   const uint64 ret2 = emu->RamChecksum();
   // TRACEF("after_random %llu.", emu->RamChecksum());
 
-  // Disabled for debugging basketball problem because it doesn't
-  // happen when frames are run in this order.
-  if (false && FULL) {
+  if (FULL) {
     // Go backwards to avoid just accidentally having the correct
     // internal state on account of just replaying all the frames in
     // order!
@@ -377,6 +381,14 @@ int main(int argc, char **argv) {
     18168214949483867499ULL,
     13068962115749660119ULL,
     "roms/Ultimate Basketball.nes",
+    };
+
+  Game banditkings{
+    "banditkings.nes",
+    RLE::Decompress({ 101, 0, 4, 2, 3, 3, 2, 1, 50, 0, }),
+    kEveryGameUponLoad,
+    18168214949483867499ULL,
+    13068962115749660119ULL,
     };
 
   /*
@@ -544,6 +556,8 @@ int main(int argc, char **argv) {
   const int64 start_us = TimeUsec();
 
   TRACE_DISABLE();
+
+  RunGameSerially(banditkings);
 
   RunGameSerially(ubasketball);
   
