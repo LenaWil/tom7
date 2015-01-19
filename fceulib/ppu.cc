@@ -125,51 +125,51 @@ struct BITREVLUT {
 };
 BITREVLUT<8> bitrevlut;
 
-struct PPUSTATUS
-{
-    int32 sl;
-    int32 cycle, end_cycle;
+struct PPUSTATUS {
+  int32 sl;
+  int32 cycle, end_cycle;
 };
-struct SPRITE_READ
-{
-    int32 num;
-    int32 count;
-    int32 fetch;
-    int32 found;
-    int32 found_pos[8];
-    int32 ret;
-    int32 last;
-    int32 mode;
+struct SPRITE_READ {
+  int32 num;
+  int32 count;
+  int32 fetch;
+  int32 found;
+  int32 found_pos[8];
+  int32 ret;
+  int32 last;
+  int32 mode;
 
-	void reset() {
-		num = count = fetch = found = ret = last = mode = 0;
-		found_pos[0] = found_pos[1] = found_pos[2] = found_pos[3] = 0;
-		found_pos[4] = found_pos[5] = found_pos[6] = found_pos[7] = 0;
-	}
+  void reset() {
+    num = count = fetch = found = ret = last = mode = 0;
+    found_pos[0] = found_pos[1] = found_pos[2] = found_pos[3] = 0;
+    found_pos[4] = found_pos[5] = found_pos[6] = found_pos[7] = 0;
+  }
 
-	void start_scanline()
-	{
-		num = 1;
-        found = 0;
-        fetch = 1;
-        count = 0;
-        last = 64;
-        mode = 0;
-		found_pos[0] = found_pos[1] = found_pos[2] = found_pos[3] = 0;
-		found_pos[4] = found_pos[5] = found_pos[6] = found_pos[7] = 0;
-	}
+  void start_scanline() {
+    num = 1;
+    found = 0;
+    fetch = 1;
+    count = 0;
+    last = 64;
+    mode = 0;
+    found_pos[0] = found_pos[1] = found_pos[2] = found_pos[3] = 0;
+    found_pos[4] = found_pos[5] = found_pos[6] = found_pos[7] = 0;
+  }
 };
 
-//doesn't need to be savestated as it is just a reflection of the current position in the ppu loop
+// doesn't need to be savestated as it is just a reflection of the
+// current position in the ppu loop
 PPUPHASE ppuphase;
 
-//this needs to be savestated since a game may be trying to read from this across vblanks
+// this needs to be savestated since a game may be trying to read from
+// this across vblanks
 SPRITE_READ spr_read;
 
-//definitely needs to be savestated
+// definitely needs to be savestated
 uint8 idleSynch = 1;
 
-//uses the internal counters concept at http://nesdev.icequake.net/PPU%20addressing.txt
+// uses the internal counters concept at
+// http://nesdev.icequake.net/PPU%20addressing.txt
 struct PPUREGS {
   // normal clocked regs. as the game can interfere with these at any
   // time, they need to be savestated
@@ -1003,24 +1003,24 @@ static uint8 sphitdata;
 
 static void CheckSpriteHit(int p) {
   TRACEF("CheckSpriteHit %d %d %02x\n", p, sphitx, sphitdata);
-	int l=p-16;
-	int x;
+  int l=p-16;
+  int x;
 
-	if (sphitx==0x100) return;
+  if (sphitx==0x100) return;
 
-	for (x=sphitx;x<(sphitx+8) && x<l;x++) {
+  for (x=sphitx;x<(sphitx+8) && x<l;x++) {
 
-        if ((sphitdata&(0x80>>(x-sphitx))) && !(Plinef[x]&64) && x < 255) {
-		  TRACELOC();
-			PPU_status|=0x40;
-			//printf("Ha:  %d, %d, Hita: %d, %d, %d, %d, %d\n",p,p&~7,scanline,GETLASTPIXEL-16,&Plinef[x],Pline,Pline-Plinef);
-			//printf("%d\n",GETLASTPIXEL-16);
-			//if (Plinef[x] == 0xFF)
-			//printf("PL: %d, %02x\n",scanline, Plinef[x]);
-			sphitx=0x100;
-			break;
-		}
-	}
+    if ((sphitdata&(0x80>>(x-sphitx))) && !(Plinef[x]&64) && x < 255) {
+      TRACELOC();
+      PPU_status|=0x40;
+      //printf("Ha:  %d, %d, Hita: %d, %d, %d, %d, %d\n",p,p&~7,scanline,GETLASTPIXEL-16,&Plinef[x],Pline,Pline-Plinef);
+      //printf("%d\n",GETLASTPIXEL-16);
+      //if (Plinef[x] == 0xFF)
+      //printf("PL: %d, %02x\n",scanline, Plinef[x]);
+      sphitx=0x100;
+      break;
+    }
+  }
 }
 
 static void EndRL() {
@@ -1044,211 +1044,210 @@ static uint32 atlatch;
 
 // lasttile is really "second to last tile."
 static void RefreshLine(int lastpixel) {
-	uint32 smorkus=RefreshAddr;
+  uint32 smorkus=RefreshAddr;
 
-	static int norecurse=0; /* Yeah, recursion would be bad.
-				   PPU_hook() functions can call
-				   mirroring/chr bank switching functions,
-				   which call FCEUPPU_LineUpdate, which call this
-				   function. */
-	if (norecurse) return;
+  /* Yeah, recursion would be bad.
+     PPU_hook() functions can call
+     mirroring/chr bank switching functions,
+     which call FCEUPPU_LineUpdate, which call this
+     function. */
+  static int norecurse = 0;
+  if (norecurse) return;
 
-	TRACEF("RefreshLine %d %u %u %u %u %d",
-	       lastpixel, pshift[0], pshift[1], atlatch, smorkus,
-	       norecurse);
+  TRACEF("RefreshLine %d %u %u %u %u %d",
+	 lastpixel, pshift[0], pshift[1], atlatch, smorkus,
+	 norecurse);
 
 #define RefreshAddr smorkus
-	uint32 vofs;
-	int X1;
+  uint32 vofs;
+  int X1;
 
-	register uint8 *P=Pline;
-	int lasttile=lastpixel>>3;
+  register uint8 *P=Pline;
+  int lasttile=lastpixel>>3;
 
-	if (sphitx != 0x100 && !(PPU_status&0x40)) {
-	  if ((sphitx < (lastpixel-16)) && !(sphitx < ((lasttile - 2)*8))) {
-	    //printf("OK: %d\n",scanline);
-	    lasttile++;
-	  }
-	}
+  if (sphitx != 0x100 && !(PPU_status&0x40)) {
+    if ((sphitx < (lastpixel-16)) && !(sphitx < ((lasttile - 2)*8))) {
+      //printf("OK: %d\n",scanline);
+      lasttile++;
+    }
+  }
 
-	if (lasttile>34) lasttile=34;
-	int numtiles=lasttile-firsttile;
+  if (lasttile>34) lasttile=34;
+  int numtiles=lasttile-firsttile;
 
-	if (numtiles<=0) return;
+  if (numtiles<=0) return;
 
-	P=Pline;
+  P=Pline;
 
-	vofs=0;
+  vofs=0;
 
-	vofs=((PPU[0]&0x10)<<8) | ((RefreshAddr>>12)&7);
+  vofs=((PPU[0]&0x10)<<8) | ((RefreshAddr>>12)&7);
 
-	if (!ScreenON && !SpriteON) {
-		uint32 tem;
-		tem=Pal[0]|(Pal[0]<<8)|(Pal[0]<<16)|(Pal[0]<<24);
-		tem|=0x40404040;
-		FCEU_dwmemset(Pline,tem,numtiles*8);
-		P+=numtiles*8;
-		Pline=P;
+  if (!ScreenON && !SpriteON) {
+    uint32 tem;
+    tem=Pal[0]|(Pal[0]<<8)|(Pal[0]<<16)|(Pal[0]<<24);
+    tem|=0x40404040;
+    FCEU_dwmemset(Pline,tem,numtiles*8);
+    P+=numtiles*8;
+    Pline=P;
 
-		firsttile=lasttile;
+    firsttile=lasttile;
 
 #define TOFIXNUM (272-0x4)
-		if (lastpixel>=TOFIXNUM && tofix)
-		{
-			Fixit1();
-			tofix=0;
-		}
+    if (lastpixel>=TOFIXNUM && tofix) {
+      Fixit1();
+      tofix=0;
+    }
 
-		if ((lastpixel-16)>=0)
-		{
-			InputScanlineHook(Plinef,any_sprites_on_line?sprlinebuf:0,linestartts,lasttile*8-16);
-		}
-		return;
-	}
+    if ((lastpixel-16)>=0) {
+      InputScanlineHook(Plinef,any_sprites_on_line?sprlinebuf:0,linestartts,lasttile*8-16);
+    }
+    return;
+  }
 
-	//Priority bits, needed for sprite emulation.
-	Pal[0]|=64;
-	Pal[4]|=64;
-	Pal[8]|=64;
-	Pal[0xC]|=64;
+  //Priority bits, needed for sprite emulation.
+  Pal[0]|=64;
+  Pal[4]|=64;
+  Pal[8]|=64;
+  Pal[0xC]|=64;
 
-	//This high-level graphics MMC5 emulation code was written for MMC5 carts in "CL" mode.
-	//It's probably not totally correct for carts in "SL" mode.
+  //This high-level graphics MMC5 emulation code was written for MMC5 carts in "CL" mode.
+  //It's probably not totally correct for carts in "SL" mode.
 
 #define PPUT_MMC5
-	if (MMC5Hack)
+  if (MMC5Hack)
+    {
+      if (MMC5HackCHRMode==0 && (MMC5HackSPMode&0x80))
 	{
-		if (MMC5HackCHRMode==0 && (MMC5HackSPMode&0x80))
+	  int tochange=MMC5HackSPMode&0x1F;
+	  tochange-=firsttile;
+	  for (X1=firsttile;X1<lasttile;X1++)
+	    {
+	      if ((tochange<=0 && MMC5HackSPMode&0x40) || (tochange>0 && !(MMC5HackSPMode&0x40)))
 		{
-			int tochange=MMC5HackSPMode&0x1F;
-			tochange-=firsttile;
-			for (X1=firsttile;X1<lasttile;X1++)
-			{
-				if ((tochange<=0 && MMC5HackSPMode&0x40) || (tochange>0 && !(MMC5HackSPMode&0x40)))
-				{
-				  TRACELOC();
+		  TRACELOC();
 #define PPUT_MMC5SP
 #include "pputile.inc"
 #undef PPUT_MMC5SP
-				}
-				else
-				{
-				  TRACELOC();
-#include "pputile.inc"
-				}
-				tochange--;
-			}
 		}
-		else if (MMC5HackCHRMode==1 && (MMC5HackSPMode&0x80))
+	      else
 		{
-			int tochange=MMC5HackSPMode&0x1F;
-			tochange-=firsttile;
+		  TRACELOC();
+#include "pputile.inc"
+		}
+	      tochange--;
+	    }
+	}
+      else if (MMC5HackCHRMode==1 && (MMC5HackSPMode&0x80))
+	{
+	  int tochange=MMC5HackSPMode&0x1F;
+	  tochange-=firsttile;
 
 #define PPUT_MMC5SP
 #define PPUT_MMC5CHR1
-			for (X1=firsttile;X1<lasttile;X1++)
-			{
-			  TRACELOC();
+	  for (X1=firsttile;X1<lasttile;X1++)
+	    {
+	      TRACELOC();
 #include "pputile.inc"
-			}
+	    }
 #undef PPUT_MMC5CHR1
 #undef PPUT_MMC5SP
-		}
-		else if (MMC5HackCHRMode==1)
-		{
+	}
+      else if (MMC5HackCHRMode==1)
+	{
 #define PPUT_MMC5CHR1
-			for (X1=firsttile;X1<lasttile;X1++)
-			{
-			  TRACELOC();
+	  for (X1=firsttile;X1<lasttile;X1++)
+	    {
+	      TRACELOC();
 #include "pputile.inc"
-			}
+	    }
 #undef PPUT_MMC5CHR1
-		}
-		else
-		{
-			for (X1=firsttile;X1<lasttile;X1++)
-			{
-			  TRACELOC();
-#include "pputile.inc"
-			}
-		}
 	}
+      else
+	{
+	  for (X1=firsttile;X1<lasttile;X1++)
+	    {
+	      TRACELOC();
+#include "pputile.inc"
+	    }
+	}
+    }
 #undef PPUT_MMC5
-	else if (PPU_hook)
-	{
-		norecurse=1;
+  else if (PPU_hook)
+    {
+      norecurse=1;
 #define PPUT_HOOK
-		for (X1=firsttile;X1<lasttile;X1++)
-		{
-		  TRACELOC();
-#include "pputile.inc"
-		}
-#undef PPUT_HOOK
-		norecurse=0;
-	}
-	else
+      for (X1=firsttile;X1<lasttile;X1++)
 	{
-		for (X1=firsttile;X1<lasttile;X1++)
-		{
-		  TRACELOC();
+	  TRACELOC();
 #include "pputile.inc"
-		}
 	}
+#undef PPUT_HOOK
+      norecurse=0;
+    }
+  else
+    {
+      for (X1=firsttile;X1<lasttile;X1++)
+	{
+	  TRACELOC();
+#include "pputile.inc"
+	}
+    }
 
 #undef vofs
 #undef RefreshAddr
 
-	//Reverse changes made before.
-	Pal[0]&=63;
-	Pal[4]&=63;
-	Pal[8]&=63;
-	Pal[0xC]&=63;
+  //Reverse changes made before.
+  Pal[0]&=63;
+  Pal[4]&=63;
+  Pal[8]&=63;
+  Pal[0xC]&=63;
 
-	RefreshAddr=smorkus;
-	if (firsttile<=2 && 2<lasttile && !(PPU[1]&2))
+  RefreshAddr=smorkus;
+  if (firsttile<=2 && 2<lasttile && !(PPU[1]&2))
+    {
+      uint32 tem;
+      tem=Pal[0]|(Pal[0]<<8)|(Pal[0]<<16)|(Pal[0]<<24);
+      tem|=0x40404040;
+      *(uint32 *)Plinef=*(uint32 *)(Plinef+4)=tem;
+    }
+
+  if (!ScreenON)
+    {
+      uint32 tem;
+      int tstart,tcount;
+      tem=Pal[0]|(Pal[0]<<8)|(Pal[0]<<16)|(Pal[0]<<24);
+      tem|=0x40404040;
+
+      tcount=lasttile-firsttile;
+      tstart=firsttile-2;
+      if (tstart<0)
 	{
-		uint32 tem;
-		tem=Pal[0]|(Pal[0]<<8)|(Pal[0]<<16)|(Pal[0]<<24);
-		tem|=0x40404040;
-		*(uint32 *)Plinef=*(uint32 *)(Plinef+4)=tem;
+	  tcount+=tstart;
+	  tstart=0;
 	}
+      if (tcount>0)
+	FCEU_dwmemset(Plinef+tstart*8,tem,tcount*8);
+    }
 
-	if (!ScreenON)
-	{
-		uint32 tem;
-		int tstart,tcount;
-		tem=Pal[0]|(Pal[0]<<8)|(Pal[0]<<16)|(Pal[0]<<24);
-		tem|=0x40404040;
+  if (lastpixel>=TOFIXNUM && tofix)
+    {
+      //puts("Fixed");
+      Fixit1();
+      tofix=0;
+    }
 
-		tcount=lasttile-firsttile;
-		tstart=firsttile-2;
-		if (tstart<0)
-		{
-			tcount+=tstart;
-			tstart=0;
-		}
-		if (tcount>0)
-			FCEU_dwmemset(Plinef+tstart*8,tem,tcount*8);
-	}
+  //CheckSpriteHit(lasttile*8); //lasttile*8); //lastpixel);
 
-	if (lastpixel>=TOFIXNUM && tofix)
-	{
-		//puts("Fixed");
-		Fixit1();
-		tofix=0;
-	}
+  //This only works right because of a hack earlier in this function.
+  CheckSpriteHit(lastpixel);
 
-	//CheckSpriteHit(lasttile*8); //lasttile*8); //lastpixel);
-
-	//This only works right because of a hack earlier in this function.
-	CheckSpriteHit(lastpixel);
-
-	if ((lastpixel-16)>=0)
-	{
-		InputScanlineHook(Plinef,any_sprites_on_line?sprlinebuf:0,linestartts,lasttile*8-16);
-	}
-	Pline=P;
-	firsttile=lasttile;
+  if ((lastpixel-16)>=0)
+    {
+      InputScanlineHook(Plinef,any_sprites_on_line?sprlinebuf:0,linestartts,lasttile*8-16);
+    }
+  Pline=P;
+  firsttile=lasttile;
 }
 
 static INLINE void Fixit2()

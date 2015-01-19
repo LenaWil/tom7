@@ -110,8 +110,6 @@ void SetReadHandler(int32 start, int32 end, readfunc func) {
   if (!func)
     func = ANull;
 
-  fprintf(stderr, "XXX SetReadHandler %d-%d %p\n", start, end, func);
-
   if (RWWrap) {
     for (int32 x = end; x >= start; x--) {
       if (x >= 0x8000)
