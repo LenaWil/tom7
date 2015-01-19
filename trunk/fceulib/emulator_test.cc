@@ -203,11 +203,8 @@ static pair<uint64, uint64> RunGameSerially(const Game &game) {
   auto StepMaybeTraced = [&emu](uint8 b) {
     // This is debugging task specific. Copy and paste the target
     // in here!
-    // XXX use scoped trace.
+    const bool match = false;
     const uint64 cx = emu->RamChecksum();
-    const bool match = cx == 8865444225475616893ULL ||
-      cx == 3931414930846365196 ||
-      cx == 8447464726686818;
     TRACE_SCOPED_ENABLE_IF(match);
     if (match) {
       fprintf(stderr, "Enabling tracing because of ram match %llu.\n", cx);
@@ -291,21 +288,20 @@ static pair<uint64, uint64> RunGameSerially(const Game &game) {
 
   auto DoSeekSpan = [&emu, &saves, &checksums, &inputs, 
 		     &actual_rams, &StepMaybeTraced](int seekto, int dist) {
-    fprintf(stderr, "seekto %d dist %d\n", seekto, dist);
+    // fprintf(stderr, "seekto %d dist %d\n", seekto, dist);
     emu->LoadUncompressed(&saves[seekto]);
     CHECK_RAM(checksums[seekto]);
-    // fprintf(stderr, "(ram %llu)\n", emu->RamChecksum());
     for (int j = 0; j < dist; j++) {
       if (seekto + j + 1 < saves.size()) {
-	fprintf(stderr, "  [ram %llu] Stepping to idx %d...\n", 
-		emu->RamChecksum(),
-		seekto + j);
+	// fprintf(stderr, "  [ram %llu] Stepping to idx %d...\n", 
+	//         emu->RamChecksum(), seekto + j);
         StepMaybeTraced(inputs[seekto + j]);
         CHECK_RAM(checksums[seekto + j + 1]);
       }
     }
   };
 
+  #if 0
   // In basketball.nes.
   fprintf(stderr, "Reproduce failure:\n");
   TRACE_SWITCH("testcase-trace.bin");
@@ -314,39 +310,20 @@ static pair<uint64, uint64> RunGameSerially(const Game &game) {
 
   fprintf(stderr, "XXX failed to reproduce failure...\n");
   abort();
+  #endif
 
   fprintf(stderr, "Random seeks:\n");
   for (int i = 0; i < 500; i++) {
     const int seekto = Rand(saves.size());
     const int dist = Rand(5) + 1;
     DoSeekSpan(seekto, dist);
-    /*
-    fprintf(stderr, "iter %d seekto %d\n", i, seekto);
-    emu->LoadUncompressed(&saves[seekto]);
-    CHECK_RAM(checksums[seekto]);
-    fprintf(stderr, "(ram %llu)\n", emu->RamChecksum());
-
-    for (int j = 0; j < dist; j++) {
-      if (seekto + j + 1 < saves.size()) {
-	fprintf(stderr, "  Stepping to idx %d...\n", seekto + j);
-        emu->StepFull(inputs[seekto + j]);
-        CHECK_RAM(checksums[seekto + j + 1]);
-      }
-    }
-    */
   }
 
-  fprintf(stderr, "XXX success!\n");
-  exit(0);
-
-  // XXX replace this, but it was distracting me because it looks
-  // just like the above.
-  /*
   if (FULL) {
     fprintf(stderr, "Random seeks (compressed):\n");
     for (int i = 0; i < 500; i++) {
       const int seekto = Rand(saves.size());
-      fprintf(stderr, "iter %d seekto %d\n", i, seekto);
+      // fprintf(stderr, "iter %d seekto %d\n", i, seekto);
       emu->LoadEx(&compressed_saves[seekto], &basis);
       CHECK_RAM(checksums[seekto]);
       const int dist = Rand(5) + 1;
@@ -358,7 +335,6 @@ static pair<uint64, uint64> RunGameSerially(const Game &game) {
       }
     }
   }
-  */
 
   fprintf(stderr, "OK.\n");
   return {ret1, ret2};
@@ -571,14 +547,10 @@ int main(int argc, char **argv) {
 
   RunGameSerially(ubasketball);
   
-  fprintf(stderr, "XXX exit early.\n");
-  return 0;
-
   // RunGameSerially(escape);
 
   RunGameSerially(karate);
   // RunGameSerially(karate);
-  // RunGameSerially(escape);
 
   RunGameSerially(mario);
 
@@ -588,6 +560,8 @@ int main(int argc, char **argv) {
 
   RunGameSerially(skull);
 
+  RunGameSerially(escape);
+ 
   if (COMPREHENSIVE) {
     printf("Now COMPREHENSIVE tests.\n");
     vector<string> romlines = ReadFileToLines("roms/roms.txt");
