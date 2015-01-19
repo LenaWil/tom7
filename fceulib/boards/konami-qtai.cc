@@ -34,7 +34,7 @@ static uint8 IRQa, K4IRQ;
 static uint32 IRQLatch, IRQCount;
 
 static uint8 regs[16];
-//static uint8 test[8];
+
 static SFORMAT StateRegs[]=
 {
   {&IRQCount, 1, "IRQC"},
@@ -86,15 +86,6 @@ static void Sync(void)
     setchr1r(0x10,0x1c00,(((regs[5]&1))<<2)+7);
 //  }
 //*/
-/*    setchr1r(1,0x0000,test[0]);
-    setchr1r(1,0x0400,test[1]);
-    setchr1r(1,0x0800,test[2]);
-    setchr1r(1,0x0c00,test[3]);
-    setchr1r(1,0x1000,test[4]);
-    setchr1r(1,0x1400,test[5]);
-    setchr1r(1,0x1800,test[6]);
-    setchr1r(1,0x1c00,test[7]);
-*/
     fceulib__cart.setprg4r(0x10,0x6000,regs[0]&1);
   if(regs[2]>=0x40)
     fceulib__cart.setprg8r(1,0x8000,(regs[2]-0x40));
@@ -112,12 +103,6 @@ static void Sync(void)
   fceulib__cart.setprg8r(1,0xE000,~0);
   fceulib__cart.setmirror(MI_V);
 }
-
-/*static DECLFW(TestWrite)
-{
-  test[A&7] = V;
-  Sync();
-}*/
 
 static DECLFW(M190Write)
 {
@@ -165,22 +150,12 @@ static DECLFW(M1902007Wrap)
 
 
 static void M190Power(void) {
-/*  test[0]=0;
-  test[1]=1;
-  test[2]=2;
-  test[3]=3;
-  test[4]=4;
-  test[5]=5;
-  test[6]=6;
-  test[7]=7;
-*/
   fceulib__cart.setprg4r(0x10,0x7000,2);
 
   old2007wrap=GetWriteHandler(0x2007);
   SetWriteHandler(0x2007,0x2007,M1902007Wrap);
 
   SetReadHandler(0x6000,0xFFFF,fceulib__cart.CartBR);
-//  SetWriteHandler(0x5000,0x5007,TestWrite);
   SetWriteHandler(0x6000,0x7FFF,fceulib__cart.CartBW);
   SetWriteHandler(0x8000,0xFFFF,M190Write);
   SetReadHandler(0xDC00,0xDC00,M190Read);

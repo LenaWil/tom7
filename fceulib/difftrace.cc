@@ -9,6 +9,8 @@ using namespace std;
 
 using Trace = Traces::Trace;
 
+static constexpr int MAX_HISTORY = 40;
+
 int main(int argc, char **argv) {
   if (argc != 3) {
     fprintf(stderr, 
@@ -36,7 +38,7 @@ int main(int argc, char **argv) {
     const Trace &l = left[i], &r = right[i];
     if (!Traces::Equal(l, r)) {
       list<string> recent;
-      int countleft = 40;
+      int countleft = MAX_HISTORY;
       for (int j = i - 1; j > 0 && countleft > 0; j--) {
 	recent.push_front(Traces::LineString(left[j]));
 	countleft--;

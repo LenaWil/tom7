@@ -41,8 +41,8 @@ struct Traces {
   // are discarded instead of being written to disk. However,
   // tracing can still be expensive, so globally disabling
   // tracing is done via macros in tracing.h.
-  void Enable();
-  void Disable();
+  void SetEnabled(bool);
+  bool IsEnabled() const;
 
   // Adds a trace like printf.
   // void TraceF(const char *fmt, ...);

@@ -7,6 +7,10 @@ Stuff I should be able to get rid of:
  - auto-fire
  - video.cc can probably go?
  - autosave (fceu.cc mostly)
+ - FCEUDEF_DEBUGGER is never defined. excise.
+ - make x6502 follow normal conventions of how it defines stuff,
+   include guards, etc.
+ - x6502struct.h: preexec
 
       Still to objectify:
 
@@ -66,7 +70,7 @@ alias files='find . -type f | grep -v .svn | grep -v ".o$"'
     (message sym)
     (let ((cmd (concat "bash -c \"grep '"
 	                sym 
-	   	        "' `/bin/find . -type f | grep -v roms/ | grep -v roms_crash/ | grep -v .svn | grep -v '.exe$' | grep -v '.o$'`\"")))
+	   	        "' `/bin/find . -type f | grep -v roms/ | grep -v roms_crash/ | grep -v .svn | grep -v '.nes$' | grep -v '.exe$' | grep -v '.o$'`\"")))
       (message "%s" cmd)
         (let ((res (shell-command-to-string cmd)))
            (message "%s" (concat cmd "\n" res))

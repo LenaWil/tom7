@@ -22,6 +22,8 @@
 
 #include "x6502struct.h"
 
+#include "tracing.h"
+
 extern X6502 X;
 
 void X6502_Debug(void (*CPUHook)(X6502 *),
@@ -58,21 +60,23 @@ extern void (*MapIRQHook)(int a);
 #define FCEU_IQFCOUNT   0x200
 #define FCEU_IQTEMP     0x800
 
-void X6502_Init(void);
-void X6502_Reset(void);
-void X6502_Power(void);
+void X6502_Init();
+void X6502_Reset();
+void X6502_Power();
 
-void TriggerNMI(void);
-void TriggerNMI2(void);
+void TriggerNMI();
+void TriggerNMI2();
 
 uint8 X6502_DMR(uint32 A);
 void X6502_DMW(uint32 A, uint8 V);
 
-void X6502_IRQBegin(int w);
-void X6502_IRQEnd(int w);
+// XXX PERF
+// void X6502_IRQBegin(int w);
+void X6502_IRQBegin_Wrapper(const std::string &where, int w);
+#define MKSTRING(s) #s
+#define X6502_IRQBegin(w) X6502_IRQBegin_Wrapper(FCEU_StringPrintf(__FILE__ ":%d",__LINE__), (w))
 
-void FCEUI_NMI();
-void FCEUI_IRQ();
+void X6502_IRQEnd(int w);
 
 #define _X6502H
 #endif

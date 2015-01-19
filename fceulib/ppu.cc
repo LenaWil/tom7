@@ -86,7 +86,7 @@ static uint32 ppulut3[128];
 static constexpr bool rendersprites = true;
 static constexpr bool renderbg = true;
 
-// XXX ugh. Modified in x6502. Is it used? -tom7
+// XXX ugh. Modified in x6502. Is it used? Not in this file. -tom7
 int test = 0;
 
 static const char *attrbits(uint8 b) {

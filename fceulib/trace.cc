@@ -171,12 +171,12 @@ bool RLE::DecompressEx(const vector<uint8> &in,
 
 }  // namespace
 
-void Traces::Enable() {
-  enabled = true;
+void Traces::SetEnabled(bool b) {
+  enabled = b;
 }
 
-void Traces::Disable() {
-  enabled = false;
+bool Traces::IsEnabled() const {
+  return enabled;
 }
 
 void Traces::TraceString(const string &s) {
@@ -251,8 +251,9 @@ static const char *TypeString(Traces::TraceType ty) {
 string Traces::Difference(const Trace &l, const Trace &r) {
   if (Equal(l, r)) return "Equal.";
   if (l.type != r.type) {
-    return StringPrintf("Types are different: %s vs %s",
-			TypeString(l.type), TypeString(r.type));
+    string s = StringPrintf("Types are different: %s vs %s",
+			    TypeString(l.type), TypeString(r.type));
+    return s + ". Values:\n" + LineString(l) + "\n" + LineString(r);
   }
 
   switch (l.type) {
@@ -312,10 +313,10 @@ string Traces::LineString(const Trace &t) {
      return StringPrintf("\"%s\"", t.data_string.c_str());
    }
  case MEMORY: {
-   bool all_zero = true;
-   for (uint8 b : t.data_memory) all_zero = all_zero || b;
+   bool any_zero = false;
+   for (uint8 b : t.data_memory) any_zero = any_zero || b;
    return StringPrintf("[MEMORY %d bytes (%s)]", t.data_memory.size(),
-		       all_zero ? "all zero" : "nonzero");
+		       any_zero ? "nonzero" : "all zero");
  }
  case NUMBER:
    return StringPrintf("%llu", t.data_number);
