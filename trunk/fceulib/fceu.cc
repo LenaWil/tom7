@@ -106,24 +106,6 @@ readfunc GetReadHandler(int32 a) {
     return ARead[a];
 }
 
-void SetReadHandler(int32 start, int32 end, readfunc func) {
-  if (!func)
-    func = ANull;
-
-  if (RWWrap) {
-    for (int32 x = end; x >= start; x--) {
-      if (x >= 0x8000)
-	AReadG[x - 0x8000] = func;
-      else
-	ARead[x]=func;
-    }
-  } else {
-    for (int x = end; x >= start; x--) {
-      ARead[x] = func;
-    }
-  }
-}
-
 writefunc GetWriteHandler(int32 a) {
   if (RWWrap && a >= 0x8000)
     return BWriteG[a - 0x8000];
@@ -506,3 +488,30 @@ bool FCEU_IsValidUI(EFCEUI ui) {
   }
   return true;
 }
+
+void SetReadHandler(int32 start, int32 end, readfunc func) {
+  if (!func)
+    func = ANull;
+
+  if (RWWrap) {
+    for (int32 x = end; x >= start; x--) {
+      if (x >= 0x8000)
+	AReadG[x - 0x8000] = func;
+      else
+	ARead[x]=func;
+    }
+  } else {
+    for (int x = end; x >= start; x--) {
+      ARead[x] = func;
+    }
+  }
+}
+
+#if 0
+void SetReadHandler_Wrapped(const std::string &what, 
+			    int32 start, int32 end, readfunc func) {
+  TRACEF("SetReadHandler(%d, %d)  %s", start, end, what.c_str());
+  fprintf(stderr, "SetReadHandler(%d, %d)  %s = %p\n", start, end, what.c_str(), func);
+  SetReadHandler(start, end, func);
+}
+#endif

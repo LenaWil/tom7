@@ -449,22 +449,21 @@ static DECLFR(MMC5_ExRAMRd)
  // return(X.DB);
 }
 
-static DECLFR(MMC5_read)
-{
-  switch(A)
-  {
-    case 0x5204: X6502_IRQEnd(FCEU_IQEXT);
-                 {
-                   uint8 x;
-                   x=MMC5IRQR;
-                   if(!fceuindbg)
-                     MMC5IRQR&=0x40;
-                   return x;
-                 }
-    case 0x5205: return (mul[0]*mul[1]);
-    case 0x5206: return ((mul[0]*mul[1])>>8);
+static DECLFR(MMC5_read) {
+  TRACEF("MMC5_read %d %02x %02x", A, mul[0], mul[1]);
+  switch (A) {
+  case 0x5204: {
+    X6502_IRQEnd(FCEU_IQEXT);
+      
+    uint8 x = MMC5IRQR;
+    if(!fceuindbg)
+      MMC5IRQR &= 0x40;
+    return x;
   }
-  return(X.DB);
+  case 0x5205: return (mul[0]*mul[1]);
+  case 0x5206: return ((mul[0]*mul[1])>>8);
+  }
+  return X.DB;
 }
 
 void MMC5Synco(void)
@@ -750,38 +749,37 @@ void NSFMMC5_Close(void)
  ExRAM=0;
 }
 
-static void GenMMC5Reset(void)
-{
- int x;
+static void GenMMC5Reset(void) {
+  int x;
 
- for(x=0;x<4;x++) PRGBanks[x]=~0;
- for(x=0;x<8;x++) CHRBanksA[x]=~0;
- for(x=0;x<4;x++) CHRBanksB[x]=~0;
- WRAMMaskEnable[0]=WRAMMaskEnable[1]=~0;
+  for(x=0;x<4;x++) PRGBanks[x]=~0;
+  for(x=0;x<8;x++) CHRBanksA[x]=~0;
+  for(x=0;x<4;x++) CHRBanksB[x]=~0;
+  WRAMMaskEnable[0]=WRAMMaskEnable[1]=~0;
 
- mmc5psize=mmc5vsize=3;
- CHRMode=0;
+  mmc5psize=mmc5vsize=3;
+  CHRMode=0;
 
- NTAMirroring=NTFill=ATFill=0xFF;
+  NTAMirroring=NTFill=ATFill=0xFF;
 
- MMC5Synco();
+  MMC5Synco();
 
- SetWriteHandler(0x4020,0x5bff,Mapper5_write);
- SetReadHandler(0x4020,0x5bff,MMC5_read);
+  SetWriteHandler(0x4020,0x5bff,Mapper5_write);
+  SetReadHandler(0x4020,0x5bff,MMC5_read);
 
- SetWriteHandler(0x5c00,0x5fff,MMC5_ExRAMWr);
- SetReadHandler(0x5c00,0x5fff,MMC5_ExRAMRd);
+  SetWriteHandler(0x5c00,0x5fff,MMC5_ExRAMWr);
+  SetReadHandler(0x5c00,0x5fff,MMC5_ExRAMRd);
 
- SetWriteHandler(0x6000,0xFFFF,MMC5_WriteROMRAM);
- SetReadHandler(0x6000,0xFFFF,MMC5_ReadROMRAM);
+  SetWriteHandler(0x6000,0xFFFF,MMC5_WriteROMRAM);
+  SetReadHandler(0x6000,0xFFFF,MMC5_ReadROMRAM);
 
- SetWriteHandler(0x5000,0x5015,Mapper5_SW);
- SetWriteHandler(0x5205,0x5206,Mapper5_write);
- SetReadHandler(0x5205,0x5206,MMC5_read);
+  SetWriteHandler(0x5000,0x5015,Mapper5_SW);
+  SetWriteHandler(0x5205,0x5206,Mapper5_write);
+  SetReadHandler(0x5205,0x5206,MMC5_read);
 
- //GameHBIRQHook=MMC5_hb;
- // FCEU_CheatAddRAM(8,0x6000,WRAM);
- // FCEU_CheatAddRAM(1,0x5c00,ExRAM);
+  //GameHBIRQHook=MMC5_hb;
+  // FCEU_CheatAddRAM(8,0x6000,WRAM);
+  // FCEU_CheatAddRAM(1,0x5c00,ExRAM);
 }
 
 static SFORMAT MMC5_StateRegs[]={
@@ -805,52 +803,52 @@ static SFORMAT MMC5_StateRegs[]={
         { &MMC5Sound.running, 1, "SDRU"},
         { &MMC5Sound.raw, 1, "SDRW"},
         { &MMC5Sound.rawcontrol, 1, "SDRC"},
+	// Added by tom7 due to savestate divergence in Bandit Kings.
+	{ &mul, 2, "5mul" },
         {0}
 };
 
-static void GenMMC5_Init(CartInfo *info, int wsize, int battery)
-{
- if(wsize)
- {
-  WRAM=(uint8*)FCEU_gmalloc(wsize*1024);
-  fceulib__cart.SetupCartPRGMapping(0x10,WRAM,wsize*1024,1);
+static void GenMMC5_Init(CartInfo *info, int wsize, int battery) {
+  if(wsize) {
+    WRAM=(uint8*)FCEU_gmalloc(wsize*1024);
+    fceulib__cart.SetupCartPRGMapping(0x10,WRAM,wsize*1024,1);
+    AddExState(WRAM, wsize*1024, 0, "WRAM");
+  }
+
+  MMC5fill=(uint8*)FCEU_gmalloc(1024);
+  ExRAM=(uint8*)FCEU_gmalloc(1024);
+
+  AddExState(MMC5_StateRegs, ~0, 0, 0);
   AddExState(WRAM, wsize*1024, 0, "WRAM");
- }
+  AddExState(ExRAM, 1024, 0, "ERAM");
+  AddExState(&MMC5HackSPMode, 1, 0, "SPLM");
+  AddExState(&MMC5HackSPScroll, 1, 0, "SPLS");
+  AddExState(&MMC5HackSPPage, 1, 0, "SPLP");
+  AddExState(&MMC50x5130, 1, 0, "5130");
 
- MMC5fill=(uint8*)FCEU_gmalloc(1024);
- ExRAM=(uint8*)FCEU_gmalloc(1024);
+  MMC5WRAMsize=wsize/8;
+  BuildWRAMSizeTable();
+  GameStateRestore=MMC5_StateRestore;
+  info->Power=GenMMC5Reset;
 
- AddExState(MMC5_StateRegs, ~0, 0, 0);
- AddExState(WRAM, wsize*1024, 0, "WRAM");
- AddExState(ExRAM, 1024, 0, "ERAM");
- AddExState(&MMC5HackSPMode, 1, 0, "SPLM");
- AddExState(&MMC5HackSPScroll, 1, 0, "SPLS");
- AddExState(&MMC5HackSPPage, 1, 0, "SPLP");
- AddExState(&MMC50x5130, 1, 0, "5130");
+  if(battery) {
+    info->SaveGame[0]=WRAM;
+    if(wsize<=16)
+      info->SaveGameLen[0]=8192;
+    else
+      info->SaveGameLen[0]=32768;
+  }
 
- MMC5WRAMsize=wsize/8;
- BuildWRAMSizeTable();
- GameStateRestore=MMC5_StateRestore;
- info->Power=GenMMC5Reset;
+  MMC5HackVROMMask=fceulib__cart.CHRmask4[0];
+  MMC5HackExNTARAMPtr=ExRAM;
+  MMC5Hack=1;
+  MMC5HackVROMPTR=fceulib__cart.CHRptr[0];
+  MMC5HackCHRMode=0;
+  MMC5HackSPMode=MMC5HackSPScroll=MMC5HackSPPage=0;
+  Mapper5_ESI();
 
- if(battery) {
-  info->SaveGame[0]=WRAM;
-  if(wsize<=16)
-   info->SaveGameLen[0]=8192;
-  else
-   info->SaveGameLen[0]=32768;
- }
-
- MMC5HackVROMMask=fceulib__cart.CHRmask4[0];
- MMC5HackExNTARAMPtr=ExRAM;
- MMC5Hack=1;
- MMC5HackVROMPTR=fceulib__cart.CHRptr[0];
- MMC5HackCHRMode=0;
- MMC5HackSPMode=MMC5HackSPScroll=MMC5HackSPPage=0;
- Mapper5_ESI();
-
- FFCEUX_PPURead = mmc5_PPURead;
- FFCEUX_PPUWrite = mmc5_PPUWrite;
+  FFCEUX_PPURead = mmc5_PPURead;
+  FFCEUX_PPUWrite = mmc5_PPUWrite;
 }
 
 void Mapper5_Init(CartInfo *info)

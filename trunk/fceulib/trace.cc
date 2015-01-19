@@ -274,13 +274,13 @@ string Traces::Difference(const Trace &l, const Trace &r) {
     // Long version.
     for (int i = 0; i < min(l.data_memory.size(),
 			    r.data_memory.size()); i++) {
+      if (!(i % 16)) how += "\n";
       uint8 ll = l.data_memory[i], rr = r.data_memory[i];
       if (ll != rr) {
 	how += StringPrintf("%02x|%02x ", ll, rr);
       } else {
-	how += StringPrintf("(%02x)  ", ll);
+	how += StringPrintf("%02x ", ll);
       }
-      if (!i % 16) how += "\n";
     }
     return how;
 

@@ -27,6 +27,16 @@
 #include "tracing.h"
 
 #include "x6502abbrev.h"
+
+#define N_FLAG  0x80
+#define V_FLAG  0x40
+#define U_FLAG  0x20
+#define B_FLAG  0x10
+#define D_FLAG  0x08
+#define I_FLAG  0x04
+#define Z_FLAG  0x02
+#define C_FLAG  0x01
+
 X6502 X;
 uint32 timestamp;
 void (*MapIRQHook)(int a);
@@ -379,16 +389,18 @@ static constexpr uint8 CycTable[256] = {
 };
 
 #undef X6502_IRQBegin
-static void X6502_IRQBegin(int w) {
+void X6502_IRQBegin(int w) {
   TRACEF("IRQBegin %d", w);
   _IRQlow |= w;
 }
 
 // void X6502_IRQBegin(int w);
+#if 0
 void X6502_IRQBegin_Wrapper(const std::string &where, int w) {
   TRACEF("IRQBegin wrapper %s %d", where.c_str(), w);
   X6502_IRQBegin(w);
 }
+#endif
 
 void X6502_IRQEnd(int w) {
   TRACEF("IRQEnd %d", w);
@@ -438,8 +450,25 @@ void X6502_Power() {
   X6502_Reset();
 }
 
+#define TRACE_MACHINEFMT "X: %d %04x %02x %02x %02x %02x %02x %02x / %02x %u %02x"
+#define TRACE_MACHINEARGS _count, _PC, _A, _X, _Y, _S, _P, _PI, _jammed, _IRQlow, _DB
+
 void X6502_Run(int32 cycles) {
-  if(PAL) {
+  // Temporarily disable tracing unless this is the particular cycle
+  // we're intereted in.
+  // TRACE_SCOPED_STAY_ENABLED_IF(false);
+  TRACE_SCOPED_STAY_ENABLED_IF(cycles == 341 && timestamp == 0 &&
+			       _count == -32 && _PC == 0xfa09);
+  TRACEF("x6502_Run(%d) @ %d " TRACE_MACHINEFMT,
+	 cycles,
+	 timestamp,
+	 TRACE_MACHINEARGS);
+  TRACEA(RAM, 0x800);
+  extern uint8 PPU[4];
+  (void)PPU;
+  TRACEA(PPU, 4);
+
+  if (PAL) {
     cycles *= 15;    // 15*4=60
   } else {
     cycles *= 16;    // 16*4=64
@@ -447,41 +476,12 @@ void X6502_Run(int32 cycles) {
 
   _count += cycles;
 
-  // Temporarily disable tracing unless this is the particular cycle
-  // we're intereted in.
-  // TRACE_SCOPED_STAY_ENABLED_IF(false);
-  // TRACE_SCOPED_STAY_ENABLED_IF(timestamp == 3524 && cycles == 4096);
-  TRACE_SCOPED_STAY_ENABLED_IF(timestamp == 2501 &&
-			       cycles == 4096 &&
-			       _DB == 0xfb &&
-			       _count == 4016 &&
-			       _PC == 0xe399);
-  TRACEF("x6502_Run (%d) for %d X: %d %04x "
-	 "%02x %02x %02x %02x %02x %02x "
-	 "/ %02x %u %02x",
-	 timestamp,
-	 cycles,
-	 _count, _PC,
-	 _A, _X, _Y, _S, _P, _PI,
-	 _jammed, _IRQlow, _DB);
-  TRACEA(RAM, 0x800);
-  extern uint8 PPU[4];
-  TRACEA(PPU, 4);
-
   extern int test; test++;
   while (_count > 0) {
     int32 temp;
 
-    /*
-    TRACE_SCOPED_STAY_ENABLED_IF(_count == 3680 && _PC == 0xe399 &&
-				 _DB == 0xfb);
-    */
-    TRACEF("while X: %d %04x "
-	   "%02x %02x %02x %02x %02x %02x "
-	   "/ %02x %u %02x",
-	   _count, _PC,
-	   _A, _X, _Y, _S, _P, _PI,
-	   _jammed, _IRQlow, _DB);
+    TRACE_SCOPED_STAY_ENABLED_IF(_count == 4800 && _PC == 0xfa12);
+    TRACEF("while " TRACE_MACHINEFMT, TRACE_MACHINEARGS);
     TRACEA(RAM, 0x800);
     TRACEA(PPU, 4);
 
@@ -1008,4 +1008,6 @@ void X6502_Run(int32 cycles) {
 
     }
   }
+  TRACEF("Exiting X6502_Run normally: " TRACE_MACHINEFMT, TRACE_MACHINEARGS);
+  TRACEA(RAM, 0x800);
 }

@@ -26,24 +26,11 @@
 
 extern X6502 X;
 
-void X6502_Debug(void (*CPUHook)(X6502 *),
-		 uint8 (*ReadHook)(X6502 *, unsigned int),
-		 void (*WriteHook)(X6502 *, unsigned int, uint8));
-
 void X6502_RunDebug(int32 cycles);
 #define X6502_Run(x) X6502_RunDebug(x)
 //------------
 
 extern uint32 timestamp;
-
-#define N_FLAG  0x80
-#define V_FLAG  0x40
-#define U_FLAG  0x20
-#define B_FLAG  0x10
-#define D_FLAG  0x08
-#define I_FLAG  0x04
-#define Z_FLAG  0x02
-#define C_FLAG  0x01
 
 extern void (*MapIRQHook)(int a);
 
@@ -70,11 +57,10 @@ void TriggerNMI2();
 uint8 X6502_DMR(uint32 A);
 void X6502_DMW(uint32 A, uint8 V);
 
-// XXX PERF
-// void X6502_IRQBegin(int w);
-void X6502_IRQBegin_Wrapper(const std::string &where, int w);
-#define MKSTRING(s) #s
-#define X6502_IRQBegin(w) X6502_IRQBegin_Wrapper(FCEU_StringPrintf(__FILE__ ":%d",__LINE__), (w))
+void X6502_IRQBegin(int w);
+// void X6502_IRQBegin_Wrapper(const std::string &where, int w);
+// #define MKSTRING(s) #s
+// #define X6502_IRQBegin(w) X6502_IRQBegin_Wrapper(FCEU_StringPrintf(__FILE__ ":%d",__LINE__), (w))
 
 void X6502_IRQEnd(int w);
 

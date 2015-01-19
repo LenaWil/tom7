@@ -1847,8 +1847,10 @@ int FCEUPPU_Loop(int skip) {
     X6502_Run(scanlines_per_frame*(256+85));
     ppudead--;
   } else {
-    X6502_Run(256+85);
     TRACELOC();
+    X6502_Run(256+85);
+    TRACEA(RAM, 0x800);
+
     PPU_status |= 0x80;
 
     //Not sure if this is correct.  According to Matt Conte and my own tests, it is.
@@ -1856,14 +1858,13 @@ int FCEUPPU_Loop(int skip) {
     //NOTE:  Not having this here breaks a Super Donkey Kong game.
     PPU[3]=PPUSPL=0;
 
-    //I need to figure out the true nature and length of this delay.
+    // I need to figure out the true nature and length of this delay.
     X6502_Run(12);
 
     if (VBlankON)
       TriggerNMI();
 
     X6502_Run((scanlines_per_frame-242)*(256+85)-12);
-    TRACELOC();
     PPU_status&=0x1f;
     X6502_Run(256);
 
