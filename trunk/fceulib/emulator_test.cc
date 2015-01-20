@@ -23,7 +23,7 @@ static constexpr uint64 kEveryGameUponLoad =
 // Set by command-line --full.
 static bool FULL = false;
 static bool COMPREHENSIVE = false;
-static bool MAKE_COMPREHENSIVE = true;
+static bool MAKE_COMPREHENSIVE = false;
 
 struct Game {
   string cart;
@@ -205,7 +205,7 @@ static pair<uint64, uint64> RunGameSerially(const Game &game) {
     const uint64 cx = emu->RamChecksum();
     // This is debugging task specific. Copy and paste the target
     // in here!
-    const bool match = cx == 13880957536073757852ULL;
+    const bool match = false; // cx == 7275972486064663483ULL;
     TRACE_SCOPED_ENABLE_IF(match);
     if (match) {
       fprintf(stderr, "Enabling tracing because of ram match %llu.\n", cx);
@@ -387,19 +387,17 @@ int main(int argc, char **argv) {
     "banditkings.nes",
     RLE::Decompress({ 101, 0, 4, 2, 3, 3, 2, 1, 50, 0, }),
     kEveryGameUponLoad,
-    18168214949483867499ULL,
-    13068962115749660119ULL,
+    17831801454501511911ULL,
+    5379627193232254395ULL,
     };
 
-  /*
-  Game ubasketball{
-    "ubasketball.nes",
+  Game castlevania3{
+    "castlevania3.nes",
     RLE::Decompress({ 101, 0, 4, 2, 3, 3, 2, 1, 50, 0, }),
     kEveryGameUponLoad,
-    18168214949483867499ULL,
-    13068962115749660119ULL,
+    14818299322749207898ULL,
+    8640140690401464515ULL,
     };
-  */
 
   Game escape{
     "escape.nes",
@@ -409,7 +407,7 @@ int main(int argc, char **argv) {
       128, 9, 129, 14, 128, 2, 0, 8, 64, 0, 0, 2, 128, 2, 0, 12, 130, 128,
       0, 128, 0, 128, 0, 27, 0, 27, 128, 23, 130, 12, 128, 8, 0, 4, 128, 21,
       129, 11, 64, 14, 128, 16, 130, 23, 128, 16, 64, 2, 0, 8, 128, 24, 130,
-        13, 128, 25, 2, 128, 0, 128, 0, 128, 0, 2, 0, 28, 128, 0, 0}),
+      13, 128, 25, 2, 128, 0, 128, 0, 128, 0, 2, 0, 28, 128, 0, 0}),
     kEveryGameUponLoad,
     6838541238215755706ULL,
     6819303093664748341ULL,
@@ -558,6 +556,7 @@ int main(int argc, char **argv) {
   TRACE_DISABLE();
 
   RunGameSerially(banditkings);
+  RunGameSerially(castlevania3);
 
   RunGameSerially(ubasketball);
   

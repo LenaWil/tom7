@@ -394,7 +394,6 @@ void X6502_IRQBegin(int w) {
   _IRQlow |= w;
 }
 
-// void X6502_IRQBegin(int w);
 #if 0
 void X6502_IRQBegin_Wrapper(const std::string &where, int w) {
   TRACEF("IRQBegin wrapper %s %d", where.c_str(), w);
@@ -457,8 +456,7 @@ void X6502_Run(int32 cycles) {
   // Temporarily disable tracing unless this is the particular cycle
   // we're intereted in.
   // TRACE_SCOPED_STAY_ENABLED_IF(false);
-  TRACE_SCOPED_STAY_ENABLED_IF(cycles == 341 && timestamp == 0 &&
-			       _count == -32 && _PC == 0xfa09);
+  TRACE_SCOPED_STAY_ENABLED_IF(true);
   TRACEF("x6502_Run(%d) @ %d " TRACE_MACHINEFMT,
 	 cycles,
 	 timestamp,
@@ -480,7 +478,7 @@ void X6502_Run(int32 cycles) {
   while (_count > 0) {
     int32 temp;
 
-    TRACE_SCOPED_STAY_ENABLED_IF(_count == 4800 && _PC == 0xfa12);
+    TRACE_SCOPED_STAY_ENABLED_IF(false);
     TRACEF("while " TRACE_MACHINEFMT, TRACE_MACHINEARGS);
     TRACEA(RAM, 0x800);
     TRACEA(PPU, 4);
