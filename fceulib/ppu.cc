@@ -732,82 +732,67 @@ static DECLFR(A2007) {
 
     ret=VRAMBuffer;
 
-#ifdef FCEUDEF_DEBUGGER
-    if (!fceuindbg)
-#endif
-      {
-	if (PPU_hook) PPU_hook(tmp);
-	PPUGenLatch=VRAMBuffer;
-	if (tmp<0x2000) {
-	  VRAMBuffer=fceulib__cart.VPage[tmp>>10][tmp];
-	} else if (tmp < 0x3F00) {
-	  VRAMBuffer=vnapage[(tmp>>10)&0x3][tmp&0x3FF];
-	}
-      }
-#ifdef FCEUDEF_DEBUGGER
-    if (!fceuindbg)
-#endif
-      {
-	if ((ScreenON || SpriteON) && (scanline < 240))
-	  {
-	    uint32 rad=RefreshAddr;
+    if (PPU_hook) PPU_hook(tmp);
+    PPUGenLatch=VRAMBuffer;
+    if (tmp < 0x2000) {
+      VRAMBuffer=fceulib__cart.VPage[tmp>>10][tmp];
+    } else if (tmp < 0x3F00) {
+      VRAMBuffer=vnapage[(tmp>>10)&0x3][tmp&0x3FF];
+    }
 
-	    if ((rad&0x7000)==0x7000)
-	      {
-		rad^=0x7000;
-		if ((rad&0x3E0)==0x3A0)
-		  rad^=0xBA0;
-		else if ((rad&0x3E0)==0x3e0)
-		  rad^=0x3e0;
-		else
-		  rad+=0x20;
-	      }
-	    else
-	      rad+=0x1000;
-	    RefreshAddr=rad;
-	  }
+
+    if ((ScreenON || SpriteON) && scanline < 240) {
+      uint32 rad=RefreshAddr;
+
+      if ((rad&0x7000)==0x7000) {
+	rad^=0x7000;
+	if ((rad&0x3E0)==0x3A0)
+	  rad^=0xBA0;
+	else if ((rad&0x3E0)==0x3e0)
+	  rad^=0x3e0;
 	else
-	  {
-	    if (INC32)
-	      RefreshAddr+=32;
-	    else
-	      RefreshAddr++;
-	  }
-	if (PPU_hook) PPU_hook(RefreshAddr&0x3fff);
+	  rad+=0x20;
+      } else {
+	rad+=0x1000;
       }
+      RefreshAddr=rad;
+    } else {
+      if (INC32)
+	RefreshAddr+=32;
+      else
+	RefreshAddr++;
+    }
+    if (PPU_hook) PPU_hook(RefreshAddr&0x3fff);
 
     return ret;
   }
 }
 
-static DECLFW(B2000)
-{
-	//    FCEU_printf("%04x:%02x, (%d) %02x, %02x\n",A,V,scanline,PPU[0],PPU_status);
+static DECLFW(B2000) {
+  //    FCEU_printf("%04x:%02x, (%d) %02x, %02x\n",A,V,scanline,PPU[0],PPU_status);
 
-	FCEUPPU_LineUpdate();
-	PPUGenLatch=V;
-	if (!(PPU[0]&0x80) && (V&0x80) && (PPU_status&0x80))
-	{
-		//     FCEU_printf("Trigger NMI, %d, %d\n",timestamp,ppudead);
-		TriggerNMI2();
-	}
-	PPU[0]=V;
-	TempAddr&=0xF3FF;
-	TempAddr|=(V&3)<<10;
+  FCEUPPU_LineUpdate();
+  PPUGenLatch=V;
+  if (!(PPU[0]&0x80) && (V&0x80) && (PPU_status&0x80)) {
+    //     FCEU_printf("Trigger NMI, %d, %d\n",timestamp,ppudead);
+    TriggerNMI2();
+  }
+  PPU[0]=V;
+  TempAddr&=0xF3FF;
+  TempAddr|=(V&3)<<10;
 
-	ppur._h = V&1;
-	ppur._v = (V>>1)&1;
-	ppur.s = (V>>4)&1;
+  ppur._h = V&1;
+  ppur._v = (V>>1)&1;
+  ppur.s = (V>>4)&1;
 }
 
-static DECLFW(B2001)
-{
-	//printf("%04x:$%02x, %d\n",A,V,scanline);
-	FCEUPPU_LineUpdate();
-	PPUGenLatch=V;
-	PPU[1]=V;
-	if (V&0xE0)
-		deemp=V>>5;
+static DECLFW(B2001) {
+  //printf("%04x:$%02x, %d\n",A,V,scanline);
+  FCEUPPU_LineUpdate();
+  PPUGenLatch=V;
+  PPU[1]=V;
+  if (V&0xE0)
+    deemp=V>>5;
 }
 //
 static DECLFW(B2002)
@@ -825,95 +810,81 @@ static DECLFW(B2003)
 
 static DECLFW(B2004)
 {
-	//printf("Wr: %04x:$%02x\n",A,V);
-    PPUGenLatch=V;
-    if (newppu)
-    {
-        //the attribute upper bits are not connected
-        //so AND them out on write, since reading them
-        //should return 0 in those bits.
-        if ((PPU[3] & 3) == 2)
-            V &= 0xE3;
-        SPRAM[PPU[3]] = V;
-        PPU[3] = (PPU[3] + 1) & 0xFF;
+  //printf("Wr: %04x:$%02x\n",A,V);
+  PPUGenLatch=V;
+  if (newppu) {
+    //the attribute upper bits are not connected
+    //so AND them out on write, since reading them
+    //should return 0 in those bits.
+    if ((PPU[3] & 3) == 2)
+      V &= 0xE3;
+    SPRAM[PPU[3]] = V;
+    PPU[3] = (PPU[3] + 1) & 0xFF;
+  } else {
+    if (PPUSPL>=8) {
+      if (PPU[3]>=8)
+	SPRAM[PPU[3]]=V;
+    } else {
+      //printf("$%02x:$%02x\n",PPUSPL,V);
+      SPRAM[PPUSPL]=V;
     }
-    else
-    {
-        if (PPUSPL>=8)
-        {
-            if (PPU[3]>=8)
-                SPRAM[PPU[3]]=V;
-        }
-        else
-        {
-            //printf("$%02x:$%02x\n",PPUSPL,V);
-            SPRAM[PPUSPL]=V;
-        }
-        PPU[3]++;
-        PPUSPL++;
-    }
+    PPU[3]++;
+    PPUSPL++;
+  }
 }
 
-static DECLFW(B2005)
-{
-	uint32 tmp=TempAddr;
-	FCEUPPU_LineUpdate();
-	PPUGenLatch=V;
-	if (!vtoggle)
-	{
-		tmp&=0xFFE0;
-		tmp|=V>>3;
-		XOffset=V&7;
-		ppur._ht = V>>3;
-		ppur.fh = V&7;
-	}
-	else
-	{
-		tmp&=0x8C1F;
-		tmp|=((V&~0x7)<<2);
-		tmp|=(V&7)<<12;
-		ppur._vt = V>>3;
-		ppur._fv = V&7;
-	}
-	TempAddr=tmp;
-	vtoggle^=1;
+static DECLFW(B2005) {
+  uint32 tmp=TempAddr;
+  FCEUPPU_LineUpdate();
+  PPUGenLatch=V;
+  if (!vtoggle) {
+    tmp&=0xFFE0;
+    tmp|=V>>3;
+    XOffset=V&7;
+    ppur._ht = V>>3;
+    ppur.fh = V&7;
+  } else {
+    tmp&=0x8C1F;
+    tmp|=((V&~0x7)<<2);
+    tmp|=(V&7)<<12;
+    ppur._vt = V>>3;
+    ppur._fv = V&7;
+  }
+  TempAddr=tmp;
+  vtoggle^=1;
 }
 
 
-static DECLFW(B2006)
-{
-	FCEUPPU_LineUpdate();
+static DECLFW(B2006) {
+  FCEUPPU_LineUpdate();
 
-	PPUGenLatch=V;
-	if (!vtoggle)
-	{
-		TempAddr&=0x00FF;
-		TempAddr|=(V&0x3f)<<8;
+  PPUGenLatch=V;
+  if (!vtoggle) {
+    TempAddr&=0x00FF;
+    TempAddr|=(V&0x3f)<<8;
 
-		ppur._vt &= 0x07;
-		ppur._vt |= (V&0x3)<<3;
-		ppur._h = (V>>2)&1;
-		ppur._v = (V>>3)&1;
-		ppur._fv = (V>>4)&3;
-	}
- 	else
-	{
-		TempAddr&=0xFF00;
-		TempAddr|=V;
+    ppur._vt &= 0x07;
+    ppur._vt |= (V&0x3)<<3;
+    ppur._h = (V>>2)&1;
+    ppur._v = (V>>3)&1;
+    ppur._fv = (V>>4)&3;
+  } else {
+    TempAddr&=0xFF00;
+    TempAddr|=V;
 
-		RefreshAddr=TempAddr;
-		if (PPU_hook)
-			PPU_hook(RefreshAddr);
-		//printf("%d, %04x\n",scanline,RefreshAddr);
+    RefreshAddr=TempAddr;
+    if (PPU_hook)
+      PPU_hook(RefreshAddr);
+    //printf("%d, %04x\n",scanline,RefreshAddr);
 
-		ppur._vt &= 0x18;
-		ppur._vt |= (V>>5);
-		ppur._ht = V&31;
+    ppur._vt &= 0x18;
+    ppur._vt |= (V>>5);
+    ppur._ht = V&31;
 
-		ppur.install_latches();
-	}
+    ppur.install_latches();
+  }
 
-	vtoggle^=1;
+  vtoggle^=1;
 }
 
 static DECLFW(B2007) {
@@ -948,52 +919,47 @@ static DECLFW(B2007) {
   }
 }
 
-static DECLFW(B4014)
-{
-	uint32 t=V<<8;
-	int x;
+static DECLFW(B4014) {
+  uint32 t=V<<8;
+  int x;
 
-	for (x=0;x<256;x++)
-		X6502_DMW(0x2004,X6502_DMR(t+x));
+  for (x=0;x<256;x++) {
+    X6502_DMW(0x2004,X6502_DMR(t+x));
+  }
 }
 
-#define PAL(c)  ((c)+cc)
+// Unused?? Plus conflicts with PAL?! -tom7
+// #define PAL(c)  ((c)+cc)
 
 #define GETLASTPIXEL    (PAL?((timestamp*48-linestartts)/15) : ((timestamp*48-linestartts)>>4) )
 
 static uint8 *Pline,*Plinef;
 static int firsttile;
-int linestartts;	//no longer static so the debugger can see it
+static int linestartts;
 static int tofix=0;
 
-static void ResetRL(uint8 *target)
-{
-	memset(target,0xFF,256);
-	InputScanlineHook(0,0,0,0);
-	Plinef=target;
-	Pline=target;
-	firsttile=0;
-	linestartts=timestamp*48+X.count;
-	tofix=0;
-	FCEUPPU_LineUpdate();
-	tofix=1;
+static void ResetRL(uint8 *target) {
+  memset(target,0xFF,256);
+  InputScanlineHook(0,0,0,0);
+  Plinef=target;
+  Pline=target;
+  firsttile=0;
+  linestartts=timestamp*48+X.count;
+  tofix=0;
+  FCEUPPU_LineUpdate();
+  tofix=1;
 }
 
 static uint8 sprlinebuf[256+8];
 
-void FCEUPPU_LineUpdate()
-{
-	if (newppu)
-		return;
+void FCEUPPU_LineUpdate() {
+  if (newppu)
+    return;
 
-#ifdef FCEUDEF_DEBUGGER
-	if (!fceuindbg)
-#endif
-		if (Pline)
-		{
-			int l=GETLASTPIXEL;
-			RefreshLine(l);
-		}
+  if (Pline) {
+    int l=GETLASTPIXEL;
+    RefreshLine(l);
+  }
 }
 
 // These two used to not be saved in stateinfo, but that caused execution
@@ -1003,13 +969,11 @@ static uint8 sphitdata;
 
 static void CheckSpriteHit(int p) {
   TRACEF("CheckSpriteHit %d %d %02x\n", p, sphitx, sphitdata);
-  int l=p-16;
-  int x;
+  const int l = p - 16;
 
   if (sphitx==0x100) return;
 
-  for (x=sphitx;x<(sphitx+8) && x<l;x++) {
-
+  for (int x=sphitx;x<(sphitx+8) && x<l;x++) {
     if ((sphitdata&(0x80>>(x-sphitx))) && !(Plinef[x]&64) && x < 255) {
       TRACELOC();
       PPU_status|=0x40;
@@ -1024,11 +988,11 @@ static void CheckSpriteHit(int p) {
 }
 
 static void EndRL() {
-	RefreshLine(272);
-	if (tofix)
-		Fixit1();
-	CheckSpriteHit(272);
-	Pline=0;
+  RefreshLine(272);
+  if (tofix)
+    Fixit1();
+  CheckSpriteHit(272);
+  Pline=0;
 }
 
 //spork the world.  Any sprites on this line? Then this will be set to 1.

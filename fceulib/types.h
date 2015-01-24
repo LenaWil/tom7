@@ -22,17 +22,10 @@
 #ifndef __FCEU_TYPES
 #define __FCEU_TYPES
 
-///causes the code fragment argument to be compiled in if the build includes debugging
-#ifdef FCEUDEF_DEBUGGER
-#define DEBUG(X) X;
-#error Do not enable debugging for fceulib!
-#else
-#define DEBUG(X)
-#endif
-
 // TODO: Get rid of MSVC support. -tom7
 
 #ifdef MSVC
+#error MSVC support has been removed!
 typedef unsigned char uint8;
 typedef unsigned short uint16;
 typedef unsigned int uint32;
@@ -135,10 +128,6 @@ typedef uint32_t uint32;
 
 typedef void (*writefunc)(uint32 A, uint8 V);
 typedef uint8 (*readfunc)(uint32 A);
-
-#ifndef CTASSERT
-#define CTASSERT(x) static_assert((x), #x);
-#endif
 
 #include "utils/endian.h"
 

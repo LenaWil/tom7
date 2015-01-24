@@ -23,6 +23,8 @@ static constexpr uint64 kEveryGameUponLoad =
 // Set by command-line --full.
 static bool FULL = false;
 static bool COMPREHENSIVE = false;
+// Turn this on to have it generate the whole roms file
+// without failing if there's a checksum mismatch.
 static bool MAKE_COMPREHENSIVE = false;
 
 struct Game {
@@ -578,6 +580,8 @@ int main(int argc, char **argv) {
   if (COMPREHENSIVE) {
     printf("Now COMPREHENSIVE tests.\n");
     vector<string> romlines = ReadFileToLines("roms/roms.txt");
+    // We write this each time we run the comprehensive test because
+    // it's so expensive anyway, but it shouldn't ever change now.
     FILE *out = fopen("all-roms.txt", "wb");
     if (!out) abort();
     int nlines = 0;
