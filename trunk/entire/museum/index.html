@@ -1,0 +1,63 @@
+
+<!doctype html>
+<title>Entire Screen of One Game</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<meta name="description" content="Entire Screen of One Game" />
+<meta name="keywords" content="recursive platformer">
+<link rel="image_src" href="entire.png">
+
+<style>
+body {
+ background: #113;
+ font: 14px verdana,helvetica,sans-serif
+ -webkit-touch-callout: none;
+ -webkit-user-select: none;
+ -khtml-user-select: none;
+ -moz-user-select: none;
+ -ms-user-select: none;
+ user-select: none;
+}
+canvas {
+ background: #000;
+ margin-left: auto;
+ margin-right: auto;
+ display: block;
+}
+</style>
+
+<table>
+<tr>
+<td style="width:200px">
+  <span style="color: #CCF; font:36px bold helvetica,arial,sans-serif">the entire screen of one game
+  </span>
+  <br>
+  <span style="color: #77A; font: 36px bold helvetica,arial,sans-serif">by <a style="text-decoration:none; color:#FF7" href="http://radar.spacebar.org/f/a/weblog/category/1/video_games">@tom7</a>
+  </span>
+</td>
+<!-- <div id="loading" style="width:512px; margin: 4px auto 0 auto; font-size: 24px; color:#999; margin-bottom:6px">loading?</div> -->
+<td style="width:600px"><canvas style="width:600px;height:600px" id="canvas"></canvas></td>
+<td style="width:200px;padding-left: 24px">
+  <span style="color: #CCF; font:36px bold helvetica,arial,sans-serif">you can't win the game. it exists only to destroy your mind.
+  </span>
+
+  <br><br>
+  <span style="color: #888; font:36px bold helvetica,arial,sans-serif">use arrow keys and space
+  </span>
+
+</td>
+</table>
+
+<div style="width: 512px; margin : 4px auto 0 auto; text-align: center; font: 12px Verdana,Helvetica,sans-serif; color : #497B69">
+<b style="color: #4499AA">Entire Screen of One Game</b> by <a style="color : #2ACDEA; font-weight: bold" href="http://tom7.org/">Tom 7</a> for Ludum Dare 31. [<a href="http://radar.spacebar.org/f/a/weblog/comment/1/1115">comments</a>] <br> Theme: <b>Entire Game on One Screen</b><br/>
+<span style="color: #55AA88">You might need a fast computer and Chrome/Safari/Firefox.</span> &nbsp; &nbsp; <a href="http://twitter.com/tom7" style="text-decoration: none; font-weight: bold; color : #6A9DFA">@tom7</a> 
+<span id="counter"></span>
+</div>
+
+<img src="entire.png" style="position:fixed;top:-1000px;left:-10000px" alt="screenshot for thumbnails" />
+</center>
+
+<script src="constants.js"></script>
+<script src="video.js"></script>
+<script src="map.js"></script>
+<script src="entire.js"></script>
+
