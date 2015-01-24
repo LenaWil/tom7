@@ -52,7 +52,12 @@
 #include <math.h>
 #include "emu2413.h"
 
-static const unsigned char default_inst[15][8] = {
+/* Mask */
+#define OPLL_MASK_CH(x) (1 << (x))
+
+#define PI 3.14159265358979323846
+
+static constexpr uint8 default_inst[15][8] = {
 	/* VRC7 instruments, January 17, 2004 update -Xodnizel */
 	{ 0x03, 0x21, 0x04, 0x06, 0x8D, 0xF2, 0x42, 0x17 },
 	{ 0x13, 0x41, 0x05, 0x0E, 0x99, 0x96, 0x63, 0x12 },
@@ -204,7 +209,7 @@ static uint32 dphaseTable[512][8][16];
 				  Create tables
 
 ****************************************************/
-INLINE static int32 Min(int32 i, int32 j) {
+inline static int32 Min(int32 i, int32 j) {
 	if (i < j)
 		return i;
 	else
@@ -291,75 +296,74 @@ static void makeDphaseTable(void) {
 				dphaseTable[fnum][block][ML] = rate_adjust(((fnum * mltable[ML]) << block) >> (20 - DP_BITS));
 }
 
+static constexpr double dB2(double x) {
+  return x * 2.0;
+}
 static void makeTllTable(void) {
-#define dB2(x) ((x) * 2)
+  // #define dB2(x) ((x) * 2)
 
-	static double kltable[16] = {
-		dB2(0.000), dB2(9.000), dB2(12.000), dB2(13.875), dB2(15.000), dB2(16.125), dB2(16.875), dB2(17.625),
-		dB2(18.000), dB2(18.750), dB2(19.125), dB2(19.500), dB2(19.875), dB2(20.250), dB2(20.625), dB2(21.000)
-	};
+  static constexpr double kltable[16] = {
+    dB2(0.000), dB2(9.000), dB2(12.000), dB2(13.875), 
+    dB2(15.000), dB2(16.125), dB2(16.875), dB2(17.625),
+    dB2(18.000), dB2(18.750), dB2(19.125), dB2(19.500), 
+    dB2(19.875), dB2(20.250), dB2(20.625), dB2(21.000)
+  };
 
-	int32 tmp;
-	int32 fnum, block, TL, KL;
-
-	for (fnum = 0; fnum < 16; fnum++)
-		for (block = 0; block < 8; block++)
-			for (TL = 0; TL < 64; TL++)
-				for (KL = 0; KL < 4; KL++) {
-					if (KL == 0) {
-						tllTable[fnum][block][TL][KL] = TL2EG(TL);
-					} else {
-						tmp = (int32)(kltable[fnum] - dB2(3.000) * (7 - block));
-						if (tmp <= 0)
-							tllTable[fnum][block][TL][KL] = TL2EG(TL);
-						else
-							tllTable[fnum][block][TL][KL] = (uint32)((tmp >> (3 - KL)) / EG_STEP) + TL2EG(TL);
-					}
-				}
+  for (int32 fnum = 0; fnum < 16; fnum++)
+    for (int32 block = 0; block < 8; block++)
+      for (int32 TL = 0; TL < 64; TL++)
+	for (int32 KL = 0; KL < 4; KL++) {
+	  if (KL == 0) {
+	    tllTable[fnum][block][TL][KL] = TL2EG(TL);
+	  } else {
+	    int32 tmp = (int32)(kltable[fnum] - dB2(3.000) * (7 - block));
+	    if (tmp <= 0)
+	      tllTable[fnum][block][TL][KL] = TL2EG(TL);
+	    else
+	      tllTable[fnum][block][TL][KL] = (uint32)((tmp >> (3 - KL)) / EG_STEP) + TL2EG(TL);
+	  }
+	}
 }
 
 /* Rate Table for Attack */
 static void makeDphaseARTable(void) {
-	int32 AR, Rks, RM, RL;
-	for (AR = 0; AR < 16; AR++)
-		for (Rks = 0; Rks < 16; Rks++) {
-			RM = AR + (Rks >> 2);
-			RL = Rks & 3;
-			if (RM > 15)
-				RM = 15;
-			switch (AR) {
-			case 0:
-				dphaseARTable[AR][Rks] = 0;
-				break;
-			case 15:
-				dphaseARTable[AR][Rks] = 0; /*EG_DP_WIDTH;*/
-				break;
-			default:
-				dphaseARTable[AR][Rks] = rate_adjust((3 * (RL + 4) << (RM + 1)));
-				break;
-			}
-		}
+  for (int32 AR = 0; AR < 16; AR++)
+    for (int32 Rks = 0; Rks < 16; Rks++) {
+      int32 RM = AR + (Rks >> 2);
+      int32 RL = Rks & 3;
+      if (RM > 15)
+	RM = 15;
+      switch (AR) {
+      case 0:
+	dphaseARTable[AR][Rks] = 0;
+	break;
+      case 15:
+	dphaseARTable[AR][Rks] = 0; /*EG_DP_WIDTH;*/
+	break;
+      default:
+	dphaseARTable[AR][Rks] = rate_adjust((3 * (RL + 4) << (RM + 1)));
+	break;
+      }
+    }
 }
 
 /* Rate Table for Decay and Release */
 static void makeDphaseDRTable(void) {
-	int32 DR, Rks, RM, RL;
-
-	for (DR = 0; DR < 16; DR++)
-		for (Rks = 0; Rks < 16; Rks++) {
-			RM = DR + (Rks >> 2);
-			RL = Rks & 3;
-			if (RM > 15)
-				RM = 15;
-			switch (DR) {
-			case 0:
-				dphaseDRTable[DR][Rks] = 0;
-				break;
-			default:
-				dphaseDRTable[DR][Rks] = rate_adjust((RL + 4) << (RM - 1));
-				break;
-			}
-		}
+  for (int32 DR = 0; DR < 16; DR++)
+    for (int32 Rks = 0; Rks < 16; Rks++) {
+      int32 RM = DR + (Rks >> 2);
+      int32 RL = Rks & 3;
+      if (RM > 15)
+	RM = 15;
+      switch (DR) {
+      case 0:
+	dphaseDRTable[DR][Rks] = 0;
+	break;
+      default:
+	dphaseDRTable[DR][Rks] = rate_adjust((RL + 4) << (RM - 1));
+	break;
+      }
+    }
 }
 
 static void makeRksTable(void) {
@@ -381,7 +385,7 @@ static void makeRksTable(void) {
 
 ************************************************************/
 
-INLINE static uint32 calc_eg_dphase(OPLL_SLOT * slot) {
+inline static uint32 calc_eg_dphase(OPLL_SLOT * slot) {
 	switch (slot->eg_mode) {
 	case ATTACK:
 		return dphaseARTable[slot->patch.AR][slot->rks];
@@ -434,21 +438,21 @@ INLINE static uint32 calc_eg_dphase(OPLL_SLOT * slot) {
 
 
 /* Slot key on  */
-INLINE static void slotOn(OPLL_SLOT * slot) {
+inline static void slotOn(OPLL_SLOT * slot) {
 	slot->eg_mode = ATTACK;
 	slot->eg_phase = 0;
 	slot->phase = 0;
 }
 
 /* Slot key off */
-INLINE static void slotOff(OPLL_SLOT * slot) {
+inline static void slotOff(OPLL_SLOT * slot) {
 	if (slot->eg_mode == ATTACK)
 		slot->eg_phase = EXPAND_BITS(AR_ADJUST_TABLE[HIGHBITS(slot->eg_phase, EG_DP_BITS - EG_BITS)], EG_BITS, EG_DP_BITS);
 	slot->eg_mode = RELEASE;
 }
 
 /* Channel key on */
-INLINE static void keyOn(OPLL * opll, int32 i) {
+inline static void keyOn(OPLL * opll, int32 i) {
 	if (!opll->slot_on_flag[i * 2])
 		slotOn(MOD(opll, i));
 	if (!opll->slot_on_flag[i * 2 + 1])
@@ -457,37 +461,37 @@ INLINE static void keyOn(OPLL * opll, int32 i) {
 }
 
 /* Channel key off */
-INLINE static void keyOff(OPLL * opll, int32 i) {
+inline static void keyOff(OPLL * opll, int32 i) {
 	if (opll->slot_on_flag[i * 2 + 1])
 		slotOff(CAR(opll, i));
 	opll->key_status[i] = 0;
 }
 
 /* Set sustine parameter */
-INLINE static void setSustine(OPLL * opll, int32 c, int32 sustine) {
+inline static void setSustine(OPLL * opll, int32 c, int32 sustine) {
 	CAR(opll, c)->sustine = sustine;
 	if (MOD(opll, c)->type)
 		MOD(opll, c)->sustine = sustine;
 }
 
 /* Volume : 6bit ( Volume register << 2 ) */
-INLINE static void setVolume(OPLL * opll, int32 c, int32 volume) {
+inline static void setVolume(OPLL * opll, int32 c, int32 volume) {
 	CAR(opll, c)->volume = volume;
 }
 
 /* Set F-Number ( fnum : 9bit ) */
-INLINE static void setFnumber(OPLL * opll, int32 c, int32 fnum) {
+inline static void setFnumber(OPLL * opll, int32 c, int32 fnum) {
 	CAR(opll, c)->fnum = fnum;
 	MOD(opll, c)->fnum = fnum;
 }
 
 /* Set Block data (block : 3bit ) */
-INLINE static void setBlock(OPLL * opll, int32 c, int32 block) {
+inline static void setBlock(OPLL * opll, int32 c, int32 block) {
 	CAR(opll, c)->block = block;
 	MOD(opll, c)->block = block;
 }
 
-INLINE static void update_key_status(OPLL * opll) { 	int ch;
+inline static void update_key_status(OPLL * opll) { 	int ch;
 
 	for (ch = 0; ch < 6; ch++)
 		opll->slot_on_flag[ch * 2] = opll->slot_on_flag[ch * 2 + 1] = (opll->HiFreq[ch]) & 0x10;
@@ -624,7 +628,7 @@ void OPLL_set_rate(OPLL * opll, uint32 r) {
 	rate = r;
 }
 
-void OPLL_set_quality(OPLL * opll, uint32 q) {
+static void OPLL_set_quality(OPLL * opll, uint32 q) {
 	opll->quality = q;
 	OPLL_set_rate(opll, rate);
 }
@@ -670,7 +674,7 @@ static void update_ampm(OPLL * opll) {
 }
 
 /* PG */
-INLINE static void calc_phase(OPLL_SLOT * slot, int32 lfo) {
+inline static void calc_phase(OPLL_SLOT * slot, int32 lfo) {
 	if (slot->patch.PM)
 		slot->phase += (slot->dphase * lfo) >> PM_AMP_BITS;
 	else
@@ -759,7 +763,7 @@ static void calc_envelope(OPLL_SLOT * slot, int32 lfo) {
 }
 
 /* CARRIOR */
-INLINE static int32 calc_slot_car(OPLL_SLOT * slot, int32 fm) {
+inline static int32 calc_slot_car(OPLL_SLOT * slot, int32 fm) {
 	slot->output[1] = slot->output[0];
 
 	if (slot->egout >= (DB_MUTE - 1)) {
@@ -772,7 +776,7 @@ INLINE static int32 calc_slot_car(OPLL_SLOT * slot, int32 fm) {
 }
 
 /* MODULATOR */
-INLINE static int32 calc_slot_mod(OPLL_SLOT * slot) {
+inline static int32 calc_slot_mod(OPLL_SLOT * slot) {
 	int32 fm;
 
 	slot->output[1] = slot->output[0];
@@ -791,7 +795,7 @@ INLINE static int32 calc_slot_mod(OPLL_SLOT * slot) {
 	return slot->feedback;
 }
 
-static INLINE int16 calc(OPLL * opll) {
+static inline int16 calc(OPLL * opll) {
 	int32 inst = 0, out = 0;
 	int32 i;
 
@@ -818,7 +822,7 @@ void moocow(OPLL* opll, int32 *buf, int32 len, int shift) {
 	}
 }
 
-int16 OPLL_calc(OPLL * opll) {
+static int16 OPLL_calc(OPLL * opll) {
 	if (!opll->quality)
 		return calc(opll);
 
@@ -835,7 +839,7 @@ int16 OPLL_calc(OPLL * opll) {
 	return (int16)opll->out;
 }
 
-uint32 OPLL_setMask(OPLL * opll, uint32 mask) {
+static uint32 OPLL_setMask(OPLL * opll, uint32 mask) {
 	uint32 ret;
 
 	if (opll) {
@@ -846,7 +850,7 @@ uint32 OPLL_setMask(OPLL * opll, uint32 mask) {
 		return 0;
 }
 
-uint32 OPLL_toggleMask(OPLL * opll, uint32 mask) {
+static uint32 OPLL_toggleMask(OPLL * opll, uint32 mask) {
 	uint32 ret;
 
 	if (opll) {
@@ -1059,7 +1063,7 @@ void OPLL_writeReg(OPLL * opll, uint32 reg, uint32 data) {
 	}
 }
 
-void OPLL_writeIO(OPLL * opll, uint32 adr, uint32 val) {
+static void OPLL_writeIO(OPLL * opll, uint32 adr, uint32 val) {
 	if (adr & 1)
 		OPLL_writeReg(opll, opll->adr, val);
 	else

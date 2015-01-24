@@ -80,7 +80,7 @@ static void ZapperFrapper(int w, uint8 *bg, uint8 *spr, uint32 linets, int final
         
 }      
 
-static INLINE int CheckColor(int w) {
+static inline int CheckColor(int w) {
   FCEUPPU_LineUpdate();
 
   if (newppu) {

@@ -28,23 +28,39 @@ static void (*psfun)(void);
 void MMC5RunSound(int Count);
 void MMC5RunSoundHQ(void);
 
-static INLINE void MMC5SPRVROM_BANK1(uint32 A,uint32 V) {
+static inline void MMC5SPRVROM_BANK1(uint32 A,uint32 V) {
   if (fceulib__cart.CHRptr[0]) {
     V&=fceulib__cart.CHRmask1[0];
     fceulib__cart.MMC5SPRVPage[(A)>>10]=&fceulib__cart.CHRptr[0][(V)<<10]-(A);
   }
 }
 
-static INLINE void MMC5BGVROM_BANK1(uint32 A,uint32 V) {if (fceulib__cart.CHRptr[0]){V&=fceulib__cart.CHRmask1[0];fceulib__cart.MMC5BGVPage[(A)>>10]=&fceulib__cart.CHRptr[0][(V)<<10]-(A);}}
+static inline void MMC5BGVROM_BANK1(uint32 A,uint32 V) {
+  if (fceulib__cart.CHRptr[0]){V&=fceulib__cart.CHRmask1[0];fceulib__cart.MMC5BGVPage[(A)>>10]=&fceulib__cart.CHRptr[0][(V)<<10]-(A);}
+}
 
-static INLINE void MMC5SPRVROM_BANK2(uint32 A,uint32 V) {if (fceulib__cart.CHRptr[0]){V&=fceulib__cart.CHRmask2[0];fceulib__cart.MMC5SPRVPage[(A)>>10]=fceulib__cart.MMC5SPRVPage[((A)>>10)+1]=&fceulib__cart.CHRptr[0][(V)<<11]-(A);}}
-static INLINE void MMC5BGVROM_BANK2(uint32 A,uint32 V) {if (fceulib__cart.CHRptr[0]){V&=fceulib__cart.CHRmask2[0];fceulib__cart.MMC5BGVPage[(A)>>10]=fceulib__cart.MMC5BGVPage[((A)>>10)+1]=&fceulib__cart.CHRptr[0][(V)<<11]-(A);}}
+static inline void MMC5SPRVROM_BANK2(uint32 A,uint32 V) {
+  if (fceulib__cart.CHRptr[0]){V&=fceulib__cart.CHRmask2[0];fceulib__cart.MMC5SPRVPage[(A)>>10]=fceulib__cart.MMC5SPRVPage[((A)>>10)+1]=&fceulib__cart.CHRptr[0][(V)<<11]-(A);}
+}
 
-static INLINE void MMC5SPRVROM_BANK4(uint32 A,uint32 V) {if (fceulib__cart.CHRptr[0]){V&=fceulib__cart.CHRmask4[0];fceulib__cart.MMC5SPRVPage[(A)>>10]=fceulib__cart.MMC5SPRVPage[((A)>>10)+1]= fceulib__cart.MMC5SPRVPage[((A)>>10)+2]=fceulib__cart.MMC5SPRVPage[((A)>>10)+3]=&fceulib__cart.CHRptr[0][(V)<<12]-(A);}}
-static INLINE void MMC5BGVROM_BANK4(uint32 A,uint32 V) {if (fceulib__cart.CHRptr[0]){V&=fceulib__cart.CHRmask4[0];fceulib__cart.MMC5BGVPage[(A)>>10]=fceulib__cart.MMC5BGVPage[((A)>>10)+1]=fceulib__cart.MMC5BGVPage[((A)>>10)+2]=fceulib__cart.MMC5BGVPage[((A)>>10)+3]=&fceulib__cart.CHRptr[0][(V)<<12]-(A);}}
+static inline void MMC5BGVROM_BANK2(uint32 A,uint32 V) {
+  if (fceulib__cart.CHRptr[0]){V&=fceulib__cart.CHRmask2[0];fceulib__cart.MMC5BGVPage[(A)>>10]=fceulib__cart.MMC5BGVPage[((A)>>10)+1]=&fceulib__cart.CHRptr[0][(V)<<11]-(A);}
+}
 
-static INLINE void MMC5SPRVROM_BANK8(uint32 V) {if (fceulib__cart.CHRptr[0]){V&=fceulib__cart.CHRmask8[0];fceulib__cart.MMC5SPRVPage[0]=fceulib__cart.MMC5SPRVPage[1]=fceulib__cart.MMC5SPRVPage[2]=fceulib__cart.MMC5SPRVPage[3]=fceulib__cart.MMC5SPRVPage[4]=fceulib__cart.MMC5SPRVPage[5]=fceulib__cart.MMC5SPRVPage[6]=fceulib__cart.MMC5SPRVPage[7]=&fceulib__cart.CHRptr[0][(V)<<13];}}
-static INLINE void MMC5BGVROM_BANK8(uint32 V) {if (fceulib__cart.CHRptr[0]){V&=fceulib__cart.CHRmask8[0];fceulib__cart.MMC5BGVPage[0]=fceulib__cart.MMC5BGVPage[1]=fceulib__cart.MMC5BGVPage[2]=fceulib__cart.MMC5BGVPage[3]=fceulib__cart.MMC5BGVPage[4]=fceulib__cart.MMC5BGVPage[5]=fceulib__cart.MMC5BGVPage[6]=fceulib__cart.MMC5BGVPage[7]=&fceulib__cart.CHRptr[0][(V)<<13];}}
+static inline void MMC5SPRVROM_BANK4(uint32 A,uint32 V) {
+  if (fceulib__cart.CHRptr[0]){V&=fceulib__cart.CHRmask4[0];fceulib__cart.MMC5SPRVPage[(A)>>10]=fceulib__cart.MMC5SPRVPage[((A)>>10)+1]= fceulib__cart.MMC5SPRVPage[((A)>>10)+2]=fceulib__cart.MMC5SPRVPage[((A)>>10)+3]=&fceulib__cart.CHRptr[0][(V)<<12]-(A);}
+}
+
+static inline void MMC5BGVROM_BANK4(uint32 A,uint32 V) {
+if (fceulib__cart.CHRptr[0]){V&=fceulib__cart.CHRmask4[0];fceulib__cart.MMC5BGVPage[(A)>>10]=fceulib__cart.MMC5BGVPage[((A)>>10)+1]=fceulib__cart.MMC5BGVPage[((A)>>10)+2]=fceulib__cart.MMC5BGVPage[((A)>>10)+3]=&fceulib__cart.CHRptr[0][(V)<<12]-(A);}
+}
+
+static inline void MMC5SPRVROM_BANK8(uint32 V) {
+  if (fceulib__cart.CHRptr[0]){V&=fceulib__cart.CHRmask8[0];fceulib__cart.MMC5SPRVPage[0]=fceulib__cart.MMC5SPRVPage[1]=fceulib__cart.MMC5SPRVPage[2]=fceulib__cart.MMC5SPRVPage[3]=fceulib__cart.MMC5SPRVPage[4]=fceulib__cart.MMC5SPRVPage[5]=fceulib__cart.MMC5SPRVPage[6]=fceulib__cart.MMC5SPRVPage[7]=&fceulib__cart.CHRptr[0][(V)<<13];}
+}
+static inline void MMC5BGVROM_BANK8(uint32 V) {
+  if (fceulib__cart.CHRptr[0]){V&=fceulib__cart.CHRmask8[0];fceulib__cart.MMC5BGVPage[0]=fceulib__cart.MMC5BGVPage[1]=fceulib__cart.MMC5BGVPage[2]=fceulib__cart.MMC5BGVPage[3]=fceulib__cart.MMC5BGVPage[4]=fceulib__cart.MMC5BGVPage[5]=fceulib__cart.MMC5BGVPage[6]=fceulib__cart.MMC5BGVPage[7]=&fceulib__cart.CHRptr[0][(V)<<13];}
+}
 
 static uint8 PRGBanks[4];
 static uint8 WRAMPage;

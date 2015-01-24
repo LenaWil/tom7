@@ -300,64 +300,58 @@ static FDSSOUND fdso;
 #define amplitude  fdso.amplitude
 #define speedo    fdso.speedo
 
-void FDSSoundStateAdd()
-{
-	AddExState(fdso.cwave,64,0,"WAVE");
-	AddExState(fdso.mwave,32,0,"MWAV");
-	AddExState(amplitude,2,0,"AMPL");
-	AddExState(SPSG,0xB,0,"SPSG");
+void FDSSoundStateAdd() {
+  AddExState(fdso.cwave,64,0,"WAVE");
+  AddExState(fdso.mwave,32,0,"MWAV");
+  AddExState(amplitude,2,0,"AMPL");
+  AddExState(SPSG,0xB,0,"SPSG");
 
-	AddExState(&b8shiftreg88,1,0,"B88");
+  AddExState(&b8shiftreg88,1,0,"B88");
 
-	AddExState(&clockcount, 4, 1, "CLOC");
-	AddExState(&b19shiftreg60,4,1,"B60");
-	AddExState(&b24adder66,4,1,"B66");
-	AddExState(&b24latch68,4,1,"B68");
-	AddExState(&b17latch76,4,1,"B76");
+  AddExState(&clockcount, 4, 1, "CLOC");
+  AddExState(&b19shiftreg60,4,1,"B60");
+  AddExState(&b24adder66,4,1,"B66");
+  AddExState(&b24latch68,4,1,"B68");
+  AddExState(&b17latch76,4,1,"B76");
 
 }
 
-static DECLFR(FDSSRead)
-{
-	switch(A&0xF)
-	{
-	case 0x0:return(amplitude[0]|(X.DB&0xC0));
-	case 0x2:return(amplitude[1]|(X.DB&0xC0));
-	}
-	return(X.DB);
+static DECLFR(FDSSRead) {
+  switch(A&0xF) {
+  case 0x0:return(amplitude[0]|(X.DB&0xC0));
+  case 0x2:return(amplitude[1]|(X.DB&0xC0));
+  }
+  return(X.DB);
 }
 
-static DECLFW(FDSSWrite)
-{
-	if (FSettings.SndRate)
-	{
-		if (FSettings.soundq>=1)
-			RenderSoundHQ();
-		else
-			RenderSound();
-	}
-	A-=0x4080;
-	switch(A)
-	{
-	case 0x0:
-	case 0x4: if (V&0x80)
-				  amplitude[(A&0xF)>>2]=V&0x3F; //)>0x20?0x20:(V&0x3F);
-		break;
-	case 0x5://printf("$%04x:$%02x\n",A,V);
-		break;
-	case 0x7: b17latch76=0;SPSG[0x5]=0;//printf("$%04x:$%02x\n",A,V);
-		break;
-	case 0x8:
-		b17latch76=0;
-		//   printf("%d:$%02x, $%02x\n",SPSG[0x5],V,b17latch76);
-		fdso.mwave[SPSG[0x5]&0x1F]=V&0x7;
-		SPSG[0x5]=(SPSG[0x5]+1)&0x1F;
-		break;
-	}
-	//if (A>=0x7 && A!=0x8 && A<=0xF)
-	//if (A==0xA || A==0x9)
-	//printf("$%04x:$%02x\n",A,V);
-	SPSG[A]=V;
+static DECLFW(FDSSWrite) {
+  if (FSettings.SndRate) {
+    if (FSettings.soundq>=1)
+      RenderSoundHQ();
+    else
+      RenderSound();
+  }
+  A-=0x4080;
+  switch(A) {
+  case 0x0:
+  case 0x4: if (V&0x80)
+      amplitude[(A&0xF)>>2]=V&0x3F; //)>0x20?0x20:(V&0x3F);
+    break;
+  case 0x5://printf("$%04x:$%02x\n",A,V);
+    break;
+  case 0x7: b17latch76=0;SPSG[0x5]=0;//printf("$%04x:$%02x\n",A,V);
+    break;
+  case 0x8:
+    b17latch76=0;
+    //   printf("%d:$%02x, $%02x\n",SPSG[0x5],V,b17latch76);
+    fdso.mwave[SPSG[0x5]&0x1F]=V&0x7;
+    SPSG[0x5]=(SPSG[0x5]+1)&0x1F;
+    break;
+  }
+  //if (A>=0x7 && A!=0x8 && A<=0xF)
+  //if (A==0xA || A==0x9)
+  //printf("$%04x:$%02x\n",A,V);
+  SPSG[A]=V;
 }
 
 // $4080 - Fundamental wave amplitude data register 92
@@ -369,93 +363,75 @@ static DECLFW(FDSSWrite)
 // $4087 - Same as $4086($4087 is the upper 4 bits)
 
 
-static void DoEnv()
-{
-	int x;
+static void DoEnv() {
+  for (int x=0;x<2;x++) {
+    if (!(SPSG[x<<2]&0x80) && !(SPSG[0x3]&0x40)) {
+      static int counto[2]={0,0};
 
-	for (x=0;x<2;x++)
-		if (!(SPSG[x<<2]&0x80) && !(SPSG[0x3]&0x40))
-		{
-			static int counto[2]={0,0};
-
-			if (counto[x]<=0)
-			{
-				if (!(SPSG[x<<2]&0x80))
-				{
-					if (SPSG[x<<2]&0x40)
-					{
-						if (amplitude[x]<0x3F)
-							amplitude[x]++;
-					}
-					else
-					{
-						if (amplitude[x]>0)
-							amplitude[x]--;
-					}
-				}
-				counto[x]=(SPSG[x<<2]&0x3F);
-			}
-			else
-				counto[x]--;
-		}
+      if (counto[x]<=0) {
+	if (!(SPSG[x<<2]&0x80)) {
+	  if (SPSG[x<<2]&0x40) {
+	    if (amplitude[x]<0x3F)
+	      amplitude[x]++;
+	  } else {
+	    if (amplitude[x]>0)
+	      amplitude[x]--;
+	  }
+	}
+	counto[x]=(SPSG[x<<2]&0x3F);
+      } else {
+	counto[x]--;
+      }
+    }
+  }
 }
 
-static DECLFR(FDSWaveRead)
-{
-	return(fdso.cwave[A&0x3f]|(X.DB&0xC0));
+static DECLFR(FDSWaveRead) {
+  return(fdso.cwave[A&0x3f]|(X.DB&0xC0));
 }
 
-static DECLFW(FDSWaveWrite)
-{
-	//printf("$%04x:$%02x, %d\n",A,V,SPSG[0x9]&0x80);
-	if (SPSG[0x9]&0x80)
-		fdso.cwave[A&0x3f]=V&0x3F;
+static DECLFW(FDSWaveWrite) {
+  //printf("$%04x:$%02x, %d\n",A,V,SPSG[0x9]&0x80);
+  if (SPSG[0x9]&0x80)
+    fdso.cwave[A&0x3f]=V&0x3F;
 }
 
 static int ta;
-static INLINE void ClockRise()
-{
-	if (!clockcount)
-	{
-		ta++;
+static inline void ClockRise() {
+  if (!clockcount) {
+    ta++;
 
-		b19shiftreg60=(SPSG[0x2]|((SPSG[0x3]&0xF)<<8));
-		b17latch76=(SPSG[0x6]|((SPSG[0x07]&0xF)<<8))+b17latch76;
+    b19shiftreg60=(SPSG[0x2]|((SPSG[0x3]&0xF)<<8));
+    b17latch76=(SPSG[0x6]|((SPSG[0x07]&0xF)<<8))+b17latch76;
 
-		if (!(SPSG[0x7]&0x80))
-		{
-			int t=fdso.mwave[(b17latch76>>13)&0x1F]&7;
-			int t2=amplitude[1];
-			int adj = 0;
+    if (!(SPSG[0x7]&0x80)) {
+      int t=fdso.mwave[(b17latch76>>13)&0x1F]&7;
+      int t2=amplitude[1];
+      int adj = 0;
 
-			if ((t&3))
-			{
-				if ((t&4))
-					adj -= (t2 * ((4 - (t&3) ) ));
-				else
-					adj += (t2 * ( (t&3) ));
-			}
-			adj *= 2;
-			if (adj > 0x7F) adj = 0x7F;
-			if (adj < -0x80) adj = -0x80;
-			//if (adj) printf("%d ",adj);
-			b8shiftreg88=0x80 + adj;
-		}
-		else
-		{
-			b8shiftreg88=0x80;
-		}
-	}
+      if ((t&3)) {
+	if ((t&4))
+	  adj -= (t2 * ((4 - (t&3) ) ));
 	else
-	{
-		b19shiftreg60<<=1;
-		b8shiftreg88>>=1;
-	}
-	// b24adder66=(b24latch68+b19shiftreg60)&0x3FFFFFF;
-	b24adder66=(b24latch68+b19shiftreg60)&0x1FFFFFF;
+	  adj += (t2 * ( (t&3) ));
+      }
+      adj *= 2;
+      if (adj > 0x7F) adj = 0x7F;
+      if (adj < -0x80) adj = -0x80;
+      //if (adj) printf("%d ",adj);
+      b8shiftreg88=0x80 + adj;
+    } else {
+      b8shiftreg88=0x80;
+    }
+  } else {
+    b19shiftreg60<<=1;
+    b8shiftreg88>>=1;
+  }
+  // b24adder66=(b24latch68+b19shiftreg60)&0x3FFFFFF;
+  b24adder66=(b24latch68+b19shiftreg60)&0x1FFFFFF;
 }
 
-static INLINE void ClockFall()
+static inline void ClockFall()
 {
 	//if (!(SPSG[0x7]&0x80))
 	{
@@ -465,11 +441,15 @@ static INLINE void ClockFall()
 	clockcount=(clockcount+1)&7;
 }
 
-static INLINE int32 FDSDoSound()
+static inline int32 FDSDoSound()
 {
 	fdso.count+=fdso.cycles;
 	if (fdso.count>=((int64)1<<40))
 	{
+	  // This is mysterious to me. We entire the loop if the count exceeds
+	  // 1<<40, but also goto directly into it below if it's greater than
+	  // 32768. Since we keep gotoing here, it looks equivalent to just
+	  // while fdso.count >= 32768 ?
 dogk:
 		fdso.count-=(int64)1<<40;
 		ClockRise();

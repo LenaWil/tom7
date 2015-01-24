@@ -1214,39 +1214,34 @@ static void RefreshLine(int lastpixel) {
   firsttile=lasttile;
 }
 
-static INLINE void Fixit2()
-{
-	if (ScreenON || SpriteON)
-	{
-		uint32 rad=RefreshAddr;
-		rad&=0xFBE0;
-		rad|=TempAddr&0x041f;
-		RefreshAddr=rad;
-		//PPU_hook(RefreshAddr);
-		//PPU_hook(RefreshAddr,-1);
-	}
+static inline void Fixit2() {
+  if (ScreenON || SpriteON) {
+    uint32 rad=RefreshAddr;
+    rad&=0xFBE0;
+    rad|=TempAddr&0x041f;
+    RefreshAddr=rad;
+    //PPU_hook(RefreshAddr);
+    //PPU_hook(RefreshAddr,-1);
+  }
 }
 
-static void Fixit1()
-{
-	if (ScreenON || SpriteON)
-	{
-		uint32 rad=RefreshAddr;
+static void Fixit1() {
+  if (ScreenON || SpriteON) {
+    uint32 rad=RefreshAddr;
 
-		if ((rad & 0x7000) == 0x7000)
-		{
-			rad ^= 0x7000;
-			if ((rad & 0x3E0) == 0x3A0)
-				rad ^= 0xBA0;
-			else if ((rad & 0x3E0) == 0x3e0)
-				rad ^= 0x3e0;
-			else
-				rad += 0x20;
-		}
-		else
-			rad += 0x1000;
-		RefreshAddr = rad;
-	}
+    if ((rad & 0x7000) == 0x7000) {
+      rad ^= 0x7000;
+      if ((rad & 0x3E0) == 0x3A0)
+	rad ^= 0xBA0;
+      else if ((rad & 0x3E0) == 0x3e0)
+	rad ^= 0x3e0;
+      else
+	rad += 0x20;
+    } else {
+      rad += 0x1000;
+    }
+    RefreshAddr = rad;
+  }
 }
 
 void MMC5_hb(int);     //Ugh ugh ugh.
@@ -2012,7 +2007,7 @@ struct BGData {
   struct Record {
     uint8 nt, at, pt[2];
 
-    INLINE void Read() {
+    inline void Read() {
       RefreshAddr = ppur.get_ntread();
       nt = FFCEUX_PPURead(RefreshAddr);
       runppu(kFetchTime);
@@ -2062,363 +2057,357 @@ int FCEUX_PPU_Loop(int skip) {
   fprintf(stderr, "Not expecting to use new PPU.\n");
   abort();
 
-	//262 scanlines
-    if (ppudead)
-    {
-        /* not quite emulating all the NES power up behavior
-         * since it is known that the NES ignores writes to some
-         * register before around a full frame, but no games
-         * should write to those regs during that time, it needs
-         * to wait for vblank  */
-        ppur.status.sl = 241;
-        if (PAL)
-            runppu(70*kLineTime);
-        else
-            runppu(20*kLineTime);
-        ppur.status.sl = 0;
-        runppu(242*kLineTime);
-        --ppudead;
-        goto finish;
-    }
+  //262 scanlines
+  if (ppudead) {
+    /* not quite emulating all the NES power up behavior
+     * since it is known that the NES ignores writes to some
+     * register before around a full frame, but no games
+     * should write to those regs during that time, it needs
+     * to wait for vblank  */
+    ppur.status.sl = 241;
+    if (PAL)
+      runppu(70*kLineTime);
+    else
+      runppu(20*kLineTime);
+    ppur.status.sl = 0;
+    runppu(242*kLineTime);
+    --ppudead;
+    goto finish;
+  }
 
-	{
-	        TRACELOC();
-		PPU_status |= 0x80;
-		ppuphase = PPUPHASE_VBL;
+  {
+    TRACELOC();
+    PPU_status |= 0x80;
+    ppuphase = PPUPHASE_VBL;
 
-		//Not sure if this is correct.  According to Matt Conte and my own tests, it is.
-		//Timing is probably off, though.
-		//NOTE:  Not having this here breaks a Super Donkey Kong game.
-		PPU[3]=PPUSPL=0;
-		const int delay = 20; //fceu used 12 here but I couldnt get it to work in marble madness and pirates.
+    //Not sure if this is correct.  According to Matt Conte and my own tests, it is.
+    //Timing is probably off, though.
+    //NOTE:  Not having this here breaks a Super Donkey Kong game.
+    PPU[3]=PPUSPL=0;
+    const int delay = 20; //fceu used 12 here but I couldnt get it to work in marble madness and pirates.
 
-        ppur.status.sl = 241; //for sprite reads
+    ppur.status.sl = 241; //for sprite reads
 
-        runppu(delay); //X6502_Run(12);
-		if (VBlankON) TriggerNMI();
-        if (PAL)
-            runppu(70*(kLineTime)-delay);
-        else
-		    runppu(20*(kLineTime)-delay);
+    runppu(delay); //X6502_Run(12);
+    if (VBlankON) TriggerNMI();
+    if (PAL)
+      runppu(70*(kLineTime)-delay);
+    else
+      runppu(20*(kLineTime)-delay);
 
-		//this seems to run just before the dummy scanline begins
-	        TRACELOC();
-		PPU_status = 0;
-		//this early out caused metroid to fail to boot. I am leaving it here as a reminder of what not to do
-		//if (!PPUON) { runppu(kLineTime*242); goto finish; }
+    //this seems to run just before the dummy scanline begins
+    TRACELOC();
+    PPU_status = 0;
+    //this early out caused metroid to fail to boot. I am leaving it here as a reminder of what not to do
+    //if (!PPUON) { runppu(kLineTime*242); goto finish; }
 
-		//There are 2 conditions that update all 5 PPU scroll counters with the
-		//contents of the latches adjacent to them. The first is after a write to
-		//2006/2. The second, is at the beginning of scanline 20, when the PPU starts
-		//rendering data for the first time in a frame (this update won't happen if
-		//all rendering is disabled via 2001.3 and 2001.4).
+    //There are 2 conditions that update all 5 PPU scroll counters with the
+    //contents of the latches adjacent to them. The first is after a write to
+    //2006/2. The second, is at the beginning of scanline 20, when the PPU starts
+    //rendering data for the first time in a frame (this update won't happen if
+    //all rendering is disabled via 2001.3 and 2001.4).
 
-		//if (PPUON)
-		//	ppur.install_latches();
+    //if (PPUON)
+    //	ppur.install_latches();
 
-		static uint8 oams[2][64][8]; //[7] turned to [8] for faster indexing
-		static int oamcounts[2]={0,0};
-		static int oamslot=0;
-		static int oamcount;
+    static uint8 oams[2][64][8]; //[7] turned to [8] for faster indexing
+    static int oamcounts[2]={0,0};
+    static int oamslot=0;
+    static int oamcount;
 
-		//capture the initial xscroll
-		//int xscroll = ppur.fh;
-		//render 241 scanlines (including 1 dummy at beginning)
-		for (int sl=0;sl<241;sl++) {
-			spr_read.start_scanline();
+    //capture the initial xscroll
+    //int xscroll = ppur.fh;
+    //render 241 scanlines (including 1 dummy at beginning)
+    for (int sl=0;sl<241;sl++) {
+      spr_read.start_scanline();
 
-			g_rasterpos = 0;
-			ppur.status.sl = sl;
+      g_rasterpos = 0;
+      ppur.status.sl = sl;
 
-			const int yp = sl-1;
-			ppuphase = PPUPHASE_BG;
+      const int yp = sl-1;
+      ppuphase = PPUPHASE_BG;
 
-			if (sl != 0) if (MMC5Hack && PPUON) MMC5_hb(yp);
-
-
-			//twiddle the oam buffers
-			const int scanslot = oamslot^1;
-			const int renderslot = oamslot;
-			oamslot ^= 1;
-
-			oamcount = oamcounts[renderslot];
-
-			//the main scanline rendering loop:
-			//32 times, we will fetch a tile and then render 8 pixels.
-			//two of those tiles were read in the last scanline.
-			for (int xt=0;xt<32;xt++) {
-				bgdata.main[xt+2].Read();
-
-                //ok, we're also going to draw here.
-				//unless we're on the first dummy scanline
-				if (sl != 0) {
-					int xstart = xt<<3;
-					oamcount = oamcounts[renderslot];
-					uint8 * const target=XBuf+(yp<<8)+xstart;
-					uint8 *ptr = target;
-					int rasterpos = xstart;
-
-					//check all the conditions that can cause things to render in these 8px
-					const bool renderspritenow = SpriteON && rendersprites && (xt>0 || SpriteLeft8);
-					const bool renderbgnow = ScreenON && renderbg && (xt>0 || BGLeft8);
-					for (int xp=0;xp<8;xp++,rasterpos++,g_rasterpos++) {
-
-						//bg pos is different from raster pos due to its offsetability.
-						//so adjust for that here
-						const int bgpos = rasterpos + ppur.fh;
-						const int bgpx = bgpos&7;
-						const int bgtile = bgpos>>3;
-
-						uint8 pixel=0, pixelcolor;
-
-						//generate the BG data
-						if (renderbgnow)
-						{
-							uint8* pt = bgdata.main[bgtile].pt;
-							pixel = ((pt[0]>>(7-bgpx))&1) | (((pt[1]>>(7-bgpx))&1)<<1) | bgdata.main[bgtile].at;
-						}
-						pixelcolor = PALRAM[pixel];
-
-						//look for a sprite to be drawn
-						bool havepixel = false;
-						for (int s=0;s<oamcount;s++) {
-							uint8* oam = oams[renderslot][s];
-							int x = oam[3];
-							if (rasterpos>=x && rasterpos<x+8) {
-								//build the pixel.
-								//fetch the LSB of the patterns
-								uint8 spixel = oam[4]&1;
-								spixel |= (oam[5]&1)<<1;
-
-								//shift down the patterns so the next pixel is in the LSB
-								oam[4] >>= 1;
-								oam[5] >>= 1;
-
-								if (!renderspritenow) continue;
-
-								//bail out if we already have a pixel from a higher priority sprite
-								if (havepixel) continue;
-
-								//transparent pixel bailout
-								if (spixel==0) continue;
-
-								//spritehit:
-								//1. is it sprite#0?
-								//2. is the bg pixel nonzero?
-								//then, it is spritehit.
-								if (oam[6] == 0 && (pixel & 3) != 0 &&
-                                   rasterpos < 255)
-                                {
-  				    TRACELOC();
-                                    PPU_status |= 0x40;
-                                }
-								havepixel = true;
-
-								//priority handling
-								if (oam[2]&0x20) {
-									//behind background:
-									if ((pixel&3)!=0) continue;
-								}
-
-								//bring in the palette bits and palettize
-								spixel |= (oam[2]&3)<<2;
-								pixelcolor  = PALRAM[0x10+spixel];
-							}
-						}
-
-						*ptr++ = PaletteAdjustPixel(pixelcolor);
-					}
-				}
-			}
-
-			//look for sprites (was supposed to run concurrent with bg rendering)
-			oamcounts[scanslot] = 0;
-			oamcount=0;
-			const int spriteHeight = Sprite16?16:8;
-			for (int i=0;i<64;i++) {
-				oams[scanslot][oamcount][7] = 0;
-				uint8* spr = SPRAM+i*4;
-				if (yp >= spr[0] && yp < spr[0]+spriteHeight) {
-					//if we already have maxsprites, then this new one causes an overflow,
-					//set the flag and bail out.
-					if (oamcount >= 8 && PPUON) {
-					        TRACELOC();
-						PPU_status |= 0x20;
-						if (maxsprites == 8)
-							break;
-					}
-
-					//just copy some bytes into the internal sprite buffer
-					for (int j=0;j<4;j++)
-						oams[scanslot][oamcount][j] = spr[j];
-					oams[scanslot][oamcount][7] = 1;
-
-					//note that we stuff the oam index into [6].
-					//i need to turn this into a struct so we can have fewer magic numbers
-					oams[scanslot][oamcount][6] = (uint8)i;
-					oamcount++;
-				}
-			}
-			oamcounts[scanslot] = oamcount;
-
-			//FV is clocked by the PPU's horizontal blanking impulse, and therefore will increment every scanline.
-			//well, according to (which?) tests, maybe at the end of hblank.
-			//but, according to what it took to get crystalis working, it is at the beginning of hblank.
-
-            //this is done at cycle 251
-            //rendering scanline, it doesn't need to be scanline 0,
-            //because on the first scanline when the increment is 0, the vs_scroll is reloaded.
-			//if (PPUON && sl != 0)
-			//	ppur.increment_vs();
-
-			//todo - think about clearing oams to a predefined value to force deterministic behavior
-
-			//so.. this is the end of hblank. latch horizontal scroll values
-            //do it cycle at 251
-			 if (PPUON && sl != 0)
-				ppur.install_h_latches();
-
-			ppuphase = PPUPHASE_OBJ;
-
-			//fetch sprite patterns
-			for (int s = 0; s < maxsprites; s++) {
-
-				//if we have hit our eight sprite pattern and we dont have any more sprites, then bail
-				if (s==oamcount && s>=8)
-					break;
-
-				//if this is a real sprite sprite, then it is not above the 8 sprite limit.
-				//this is how we support the no 8 sprite limit feature.
-				//not that at some point we may need a virtual FCEUX_PPURead which just peeks and doesnt increment any counters
-				//this could be handy for the debugging tools also
-				const bool realSprite = (s<8);
-
-				uint8* const oam = oams[scanslot][s];
-				uint32 line = yp - oam[0];
-				if (oam[2]&0x80) //vflip
-					line = spriteHeight-line-1;
-
-				uint32 patternNumber = oam[1];
-				uint32 patternAddress;
-
-				//create deterministic dummy fetch pattern
-				if (!oam[7]) {
-					patternNumber = 0;
-					line = 0;
-				}
-
-				//8x16 sprite handling:
-				if (Sprite16) {
-					uint32 bank = (patternNumber&1)<<12;
-					patternNumber = patternNumber&~1;
-					patternNumber |= (line>>3);
-					patternAddress = (patternNumber<<4) | bank;
-				} else {
-					patternAddress = (patternNumber<<4) | (SpAdrHI<<9);
-				}
-
-				//offset into the pattern for the current line.
-				//tricky: tall sprites have already had lines>8 taken care of by getting a new pattern number above.
-				//so we just need the line offset for the second pattern
-				patternAddress += line&7;
-
-				//garbage nametable fetches
-				//reset the scroll counter, happens at cycle 304
-				if (realSprite)
-				{
-					if ((sl == 0) && PPUON)
-					{
-						if (ppur.status.cycle == 304)
-						{
-							runppu(1);
-							ppur.install_latches();
-							runppu(1);
-						}
-						else
-							runppu(kFetchTime);
-					}
-					else
-						runppu(kFetchTime);
-				}
-
-				//Dragon's Lair (Europe version mapper 4)
-				//does not set SpriteON in the beginning but it does
-				//set the bg on so if using the conditional SpriteON the MMC3 counter
-				//the counter will never count and no IRQs will be fired so use PPUON
-				if (((PPU[0]&0x38)!=0x18) && s == 2 && PPUON) { //SpriteON ) {
-					//(The MMC3 scanline counter is based entirely on PPU A12, triggered on rising edges (after the line remains low for a sufficiently long period of time))
-					//http://nesdevwiki.org/wiki/index.php/Nintendo_MMC3
-					//test cases for timing: SMB3, Crystalis
-					//crystalis requires deferring this til somewhere in sprite [1,3]
-					//kirby requires deferring this til somewhere in sprite [2,5..
-                    //if (PPUON && GameHBIRQHook) {
-					if (GameHBIRQHook) {
-						GameHBIRQHook();
-					}
-				}
-
-				if (realSprite) runppu(kFetchTime);
+      if (sl != 0) if (MMC5Hack && PPUON) MMC5_hb(yp);
 
 
-				//pattern table fetches
-				RefreshAddr = patternAddress;
-				oam[4] = FFCEUX_PPURead(RefreshAddr);
-				if (realSprite) runppu(kFetchTime);
+      //twiddle the oam buffers
+      const int scanslot = oamslot^1;
+      const int renderslot = oamslot;
+      oamslot ^= 1;
 
-				RefreshAddr += 8;
-				oam[5] = FFCEUX_PPURead(RefreshAddr);
-				if (realSprite) runppu(kFetchTime);
+      oamcount = oamcounts[renderslot];
 
-				//hflip
-				if (!(oam[2]&0x40)) {
-					oam[4] = bitrevlut[oam[4]];
-					oam[5] = bitrevlut[oam[5]];
-				}
-			}
+      //the main scanline rendering loop:
+      //32 times, we will fetch a tile and then render 8 pixels.
+      //two of those tiles were read in the last scanline.
+      for (int xt=0;xt<32;xt++) {
+	bgdata.main[xt+2].Read();
 
-			ppuphase = PPUPHASE_BG;
+	//ok, we're also going to draw here.
+	//unless we're on the first dummy scanline
+	if (sl != 0) {
+	  int xstart = xt<<3;
+	  oamcount = oamcounts[renderslot];
+	  uint8 * const target=XBuf+(yp<<8)+xstart;
+	  uint8 *ptr = target;
+	  int rasterpos = xstart;
 
-			//fetch BG: two tiles for next line
-			for (int xt=0;xt<2;xt++)
-				bgdata.main[xt].Read();
+	  //check all the conditions that can cause things to render in these 8px
+	  const bool renderspritenow = SpriteON && rendersprites && (xt>0 || SpriteLeft8);
+	  const bool renderbgnow = ScreenON && renderbg && (xt>0 || BGLeft8);
+	  for (int xp=0;xp<8;xp++,rasterpos++,g_rasterpos++) {
 
-			//I'm unclear of the reason why this particular access to memory is made.
-			//The nametable address that is accessed 2 times in a row here, is also the
-			//same nametable address that points to the 3rd tile to be rendered on the
-			//screen (or basically, the first nametable address that will be accessed when
-			//the PPU is fetching background data on the next scanline).
-			//(not implemented yet)
-			runppu(kFetchTime);
-            if (sl == 0) {
-                if (idleSynch && PPUON && !PAL)
-                    ppur.status.end_cycle = 340;
-                else
-                    ppur.status.end_cycle = 341;
-                idleSynch ^= 1;
-            } else {
-                ppur.status.end_cycle = 341;
+	    //bg pos is different from raster pos due to its offsetability.
+	    //so adjust for that here
+	    const int bgpos = rasterpos + ppur.fh;
+	    const int bgpx = bgpos&7;
+	    const int bgtile = bgpos>>3;
+
+	    uint8 pixel=0, pixelcolor;
+
+	    //generate the BG data
+	    if (renderbgnow) {
+	      uint8* pt = bgdata.main[bgtile].pt;
+	      pixel = ((pt[0]>>(7-bgpx))&1) | (((pt[1]>>(7-bgpx))&1)<<1) | bgdata.main[bgtile].at;
 	    }
-			runppu(kFetchTime);
+	    pixelcolor = PALRAM[pixel];
 
-            //After memory access 170, the PPU simply rests for 4 cycles (or the
-			//equivelant of half a memory access cycle) before repeating the whole
-			//pixel/scanline rendering process. If the scanline being rendered is the very
-			//first one on every second frame, then this delay simply doesn't exist.
-            if (ppur.status.end_cycle == 341)
-                runppu(1);
+	    //look for a sprite to be drawn
+	    bool havepixel = false;
+	    for (int s=0;s<oamcount;s++) {
+	      uint8* oam = oams[renderslot][s];
+	      int x = oam[3];
+	      if (rasterpos>=x && rasterpos<x+8) {
+		//build the pixel.
+		//fetch the LSB of the patterns
+		uint8 spixel = oam[4]&1;
+		spixel |= (oam[5]&1)<<1;
 
-        } //scanline loop
+		//shift down the patterns so the next pixel is in the LSB
+		oam[4] >>= 1;
+		oam[5] >>= 1;
 
-		if (MMC5Hack && PPUON) MMC5_hb(240);
+		if (!renderspritenow) continue;
 
-		//idle for one line
-		runppu(kLineTime);
-		framectr++;
+		//bail out if we already have a pixel from a higher priority sprite
+		if (havepixel) continue;
 
+		//transparent pixel bailout
+		if (spixel==0) continue;
+
+		//spritehit:
+		//1. is it sprite#0?
+		//2. is the bg pixel nonzero?
+		//then, it is spritehit.
+		if (oam[6] == 0 && (pixel & 3) != 0 &&
+		    rasterpos < 255) {
+		  TRACELOC();
+		  PPU_status |= 0x40;
+		}
+		havepixel = true;
+
+		//priority handling
+		if (oam[2]&0x20) {
+		  //behind background:
+		  if ((pixel&3)!=0) continue;
+		}
+
+		//bring in the palette bits and palettize
+		spixel |= (oam[2]&3)<<2;
+		pixelcolor  = PALRAM[0x10+spixel];
+	      }
+	    }
+
+	    *ptr++ = PaletteAdjustPixel(pixelcolor);
+	  }
+	}
+      }
+
+      //look for sprites (was supposed to run concurrent with bg rendering)
+      oamcounts[scanslot] = 0;
+      oamcount=0;
+      const int spriteHeight = Sprite16?16:8;
+      for (int i=0;i<64;i++) {
+	oams[scanslot][oamcount][7] = 0;
+	uint8* spr = SPRAM+i*4;
+	if (yp >= spr[0] && yp < spr[0]+spriteHeight) {
+	  //if we already have maxsprites, then this new one causes an overflow,
+	  //set the flag and bail out.
+	  if (oamcount >= 8 && PPUON) {
+	    TRACELOC();
+	    PPU_status |= 0x20;
+	    if (maxsprites == 8)
+	      break;
+	  }
+
+	  //just copy some bytes into the internal sprite buffer
+	  for (int j=0;j<4;j++)
+	    oams[scanslot][oamcount][j] = spr[j];
+	  oams[scanslot][oamcount][7] = 1;
+
+	  //note that we stuff the oam index into [6].
+	  //i need to turn this into a struct so we can have fewer magic numbers
+	  oams[scanslot][oamcount][6] = (uint8)i;
+	  oamcount++;
+	}
+      }
+      oamcounts[scanslot] = oamcount;
+
+      //FV is clocked by the PPU's horizontal blanking impulse, and therefore will increment every scanline.
+      //well, according to (which?) tests, maybe at the end of hblank.
+      //but, according to what it took to get crystalis working, it is at the beginning of hblank.
+
+      //this is done at cycle 251
+      //rendering scanline, it doesn't need to be scanline 0,
+      //because on the first scanline when the increment is 0, the vs_scroll is reloaded.
+      //if (PPUON && sl != 0)
+      //	ppur.increment_vs();
+
+      //todo - think about clearing oams to a predefined value to force deterministic behavior
+
+      //so.. this is the end of hblank. latch horizontal scroll values
+      //do it cycle at 251
+      if (PPUON && sl != 0)
+	ppur.install_h_latches();
+
+      ppuphase = PPUPHASE_OBJ;
+
+      //fetch sprite patterns
+      for (int s = 0; s < maxsprites; s++) {
+
+	//if we have hit our eight sprite pattern and we dont have any more sprites, then bail
+	if (s==oamcount && s>=8)
+	  break;
+
+	//if this is a real sprite sprite, then it is not above the 8 sprite limit.
+	//this is how we support the no 8 sprite limit feature.
+	//not that at some point we may need a virtual FCEUX_PPURead which just peeks and doesnt increment any counters
+	//this could be handy for the debugging tools also
+	const bool realSprite = (s<8);
+
+	uint8* const oam = oams[scanslot][s];
+	uint32 line = yp - oam[0];
+	if (oam[2]&0x80) //vflip
+	  line = spriteHeight-line-1;
+
+	uint32 patternNumber = oam[1];
+	uint32 patternAddress;
+
+	//create deterministic dummy fetch pattern
+	if (!oam[7]) {
+	  patternNumber = 0;
+	  line = 0;
 	}
 
-finish:
-	// FCEU_PutImage();
+	//8x16 sprite handling:
+	if (Sprite16) {
+	  uint32 bank = (patternNumber&1)<<12;
+	  patternNumber = patternNumber&~1;
+	  patternNumber |= (line>>3);
+	  patternAddress = (patternNumber<<4) | bank;
+	} else {
+	  patternAddress = (patternNumber<<4) | (SpAdrHI<<9);
+	}
 
-	return 0;
+	//offset into the pattern for the current line.
+	//tricky: tall sprites have already had lines>8 taken care of by getting a new pattern number above.
+	//so we just need the line offset for the second pattern
+	patternAddress += line&7;
+
+	//garbage nametable fetches
+	//reset the scroll counter, happens at cycle 304
+	if (realSprite) {
+	  if ((sl == 0) && PPUON) {
+	    if (ppur.status.cycle == 304) {
+	      runppu(1);
+	      ppur.install_latches();
+	      runppu(1);
+	    } else {
+	      runppu(kFetchTime);
+	    }
+	  } else {
+	    runppu(kFetchTime);
+	  }
+	}
+
+	//Dragon's Lair (Europe version mapper 4)
+	//does not set SpriteON in the beginning but it does
+	//set the bg on so if using the conditional SpriteON the MMC3 counter
+	//the counter will never count and no IRQs will be fired so use PPUON
+	if (((PPU[0]&0x38)!=0x18) && s == 2 && PPUON) { //SpriteON ) {
+	  //(The MMC3 scanline counter is based entirely on PPU A12, triggered on rising edges (after the line remains low for a sufficiently long period of time))
+	  //http://nesdevwiki.org/wiki/index.php/Nintendo_MMC3
+	  //test cases for timing: SMB3, Crystalis
+	  //crystalis requires deferring this til somewhere in sprite [1,3]
+	  //kirby requires deferring this til somewhere in sprite [2,5..
+	  //if (PPUON && GameHBIRQHook) {
+	  if (GameHBIRQHook) {
+	    GameHBIRQHook();
+	  }
+	}
+
+	if (realSprite) runppu(kFetchTime);
+
+
+	//pattern table fetches
+	RefreshAddr = patternAddress;
+	oam[4] = FFCEUX_PPURead(RefreshAddr);
+	if (realSprite) runppu(kFetchTime);
+
+	RefreshAddr += 8;
+	oam[5] = FFCEUX_PPURead(RefreshAddr);
+	if (realSprite) runppu(kFetchTime);
+
+	//hflip
+	if (!(oam[2]&0x40)) {
+	  oam[4] = bitrevlut[oam[4]];
+	  oam[5] = bitrevlut[oam[5]];
+	}
+      }
+
+      ppuphase = PPUPHASE_BG;
+
+      //fetch BG: two tiles for next line
+      for (int xt=0;xt<2;xt++)
+	bgdata.main[xt].Read();
+
+      //I'm unclear of the reason why this particular access to memory is made.
+      //The nametable address that is accessed 2 times in a row here, is also the
+      //same nametable address that points to the 3rd tile to be rendered on the
+      //screen (or basically, the first nametable address that will be accessed when
+      //the PPU is fetching background data on the next scanline).
+      //(not implemented yet)
+      runppu(kFetchTime);
+      if (sl == 0) {
+	if (idleSynch && PPUON && !PAL)
+	  ppur.status.end_cycle = 340;
+	else
+	  ppur.status.end_cycle = 341;
+	idleSynch ^= 1;
+      } else {
+	ppur.status.end_cycle = 341;
+      }
+      runppu(kFetchTime);
+
+      //After memory access 170, the PPU simply rests for 4 cycles (or the
+      //equivelant of half a memory access cycle) before repeating the whole
+      //pixel/scanline rendering process. If the scanline being rendered is the very
+      //first one on every second frame, then this delay simply doesn't exist.
+      if (ppur.status.end_cycle == 341)
+	runppu(1);
+
+    } //scanline loop
+
+    if (MMC5Hack && PPUON) MMC5_hb(240);
+
+    //idle for one line
+    runppu(kLineTime);
+    framectr++;
+
+  }
+
+ finish:
+  // FCEU_PutImage();
+
+  return 0;
 }
