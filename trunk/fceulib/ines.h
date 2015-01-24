@@ -32,7 +32,6 @@ int iNESLoad(const char *name, FceuFile *fp, int OverwriteVidMode);
 #ifdef INESPRIV
 
 void iNESStateRestore(int version);
-// extern uint32 iNESGameCRC32;
 
 extern uint32 VROM_size;
 extern uint32 ROM_size;
@@ -88,8 +87,6 @@ extern uint8 *ROM;
 extern uint8 *VROM;
 extern uint32 VROM_size;
 extern uint32 ROM_size;
-extern int iNesSave();
-extern int iNesSaveAs(char* name);
 extern const TMasterRomInfo* MasterRomInfo;
 extern TMasterRomInfoParams MasterRomInfoParams;
 
@@ -130,14 +127,6 @@ void VROM_BANK8(uint32 V);
 void ROM_BANK8(uint32 A, uint32 V);
 void ROM_BANK16(uint32 A, uint32 V);
 void ROM_BANK32(uint32 V);
-
-extern uint8 vmask;
-extern uint32 vmask1;
-extern uint32 vmask2;
-extern uint32 vmask4;
-extern uint32 pmask8;
-extern uint8 pmask16;
-extern uint8 pmask32;
 
 void onemir(uint8 V);
 void MIRROR_SET2(uint8 V);

@@ -30,9 +30,9 @@
 #include "tracing.h"
 
 uint8 MMC3_cmd;
-uint8 *WRAM;
-uint8 *CHRRAM;
-uint32 CHRRAMSize;
+static uint8 *MMC3_WRAM;
+static uint8 *CHRRAM;
+static uint32 CHRRAMSize;
 uint8 DRegBuf[8];
 uint8 EXPREGS[8];    /* For bootleg games, mostly. */
 uint8 A000B, A001B;
@@ -41,8 +41,8 @@ uint8 mmc3opts=0;
 #undef IRQCount
 #undef IRQLatch
 #undef IRQa
-uint8 IRQCount,IRQLatch,IRQa;
-uint8 IRQReload;
+static uint8 IRQCount,IRQLatch,IRQa;
+static uint8 IRQReload;
 
 static SFORMAT MMC3_StateRegs[] = {
  {DRegBuf, 8, "REGS"},
@@ -243,12 +243,12 @@ static void GENNOMWRAP(uint8 V)
 
 static DECLFW(MBWRAMMMC6)
 {
- WRAM[A&0x3ff]=V;
+ MMC3_WRAM[A&0x3ff]=V;
 }
 
 static DECLFR(MAWRAMMMC6)
 {
- return(WRAM[A&0x3ff]);
+ return(MMC3_WRAM[A&0x3ff]);
 }
 
 void GenMMC3Power()
@@ -262,17 +262,17 @@ void GenMMC3Power()
   fceulib__cart.setmirror(1);
   if (mmc3opts&1) {
     if (wrams==1024) {
-      // FCEU_CheatAddRAM(1,0x7000,WRAM);
+      // FCEU_CheatAddRAM(1,0x7000,MMC3_WRAM);
       SetReadHandler(0x7000,0x7FFF,MAWRAMMMC6);
       SetWriteHandler(0x7000,0x7FFF,MBWRAMMMC6);
     } else {
-      // FCEU_CheatAddRAM((wrams&0x1fff)>>10,0x6000,WRAM);
+      // FCEU_CheatAddRAM((wrams&0x1fff)>>10,0x6000,MMC3_WRAM);
       SetWriteHandler(0x6000,0x6000 + ((wrams - 1) & 0x1fff),Cart::CartBW);
       SetReadHandler(0x6000,0x6000 + ((wrams - 1) & 0x1fff),Cart::CartBR);
       fceulib__cart.setprg8r(0x10,0x6000,0);
     }
     if (!(mmc3opts&2))
-      FCEU_dwmemset(WRAM,0,wrams);
+      FCEU_dwmemset(MMC3_WRAM,0,wrams);
   }
   MMC3RegReset();
   if (CHRRAM)
@@ -281,8 +281,8 @@ void GenMMC3Power()
 
 static void GenMMC3Close() {
   free(CHRRAM);
-  free(WRAM);
-  CHRRAM = WRAM = nullptr;
+  free(MMC3_WRAM);
+  CHRRAM = MMC3_WRAM = nullptr;
 }
 
 void GenMMC3_Init(CartInfo *info, int prg, int chr, int wram, int battery) {
@@ -298,10 +298,10 @@ void GenMMC3_Init(CartInfo *info, int prg, int chr, int wram, int battery) {
 
   if (wram) {
     mmc3opts|=1;
-    WRAM=(uint8*)FCEU_gmalloc(wrams);
+    MMC3_WRAM=(uint8*)FCEU_gmalloc(wrams);
     TRACEF("MMC3 Init %d %d %d %d", prg, chr, wram, battery);
-    fceulib__cart.SetupCartPRGMapping(0x10,WRAM,wrams,1);
-    AddExState(WRAM, wrams, 0, "MRAM");
+    fceulib__cart.SetupCartPRGMapping(0x10,MMC3_WRAM,wrams,1);
+    AddExState(MMC3_WRAM, wrams, 0, "MRAM");
 
     TRACEA(DRegBuf, 8);
     TRACEN(MMC3_cmd);
@@ -316,7 +316,7 @@ void GenMMC3_Init(CartInfo *info, int prg, int chr, int wram, int battery) {
   if (battery) {
     TRACEF("Adding savegame");
     mmc3opts|=2;
-    info->SaveGame[0]=WRAM;
+    info->SaveGame[0]=MMC3_WRAM;
     info->SaveGameLen[0]=wrams;
   }
 
@@ -340,8 +340,8 @@ void GenMMC3_Init(CartInfo *info, int prg, int chr, int wram, int battery) {
   }
   GameStateRestore = GenMMC3Restore;
  
-  TRACEF("WRAM is %d...", wrams);
-  TRACEA(WRAM, wrams);
+  TRACEF("MMC3_WRAM is %d...", wrams);
+  TRACEA(MMC3_WRAM, wrams);
 }
 
 // ----------------------------------------------------------------------
@@ -528,7 +528,7 @@ static DECLFW(M45Write)
 {
  if (EXPREGS[3]&0x40)
  {
-  WRAM[A-0x6000]=V;
+  MMC3_WRAM[A-0x6000]=V;
   return;
  }
  EXPREGS[EXPREGS[4]]=V;
@@ -699,7 +699,7 @@ static DECLFW(M52Write)
 {
  if (EXPREGS[1])
  {
-  WRAM[A-0x6000]=V;
+  MMC3_WRAM[A-0x6000]=V;
   return;
  }
  EXPREGS[1]=V&0x80;
@@ -1355,9 +1355,9 @@ void Mapper250_Init(CartInfo *info)
 static DECLFR(MR254WRAM)
 {
   if (EXPREGS[0])
-    return WRAM[A-0x6000];
+    return MMC3_WRAM[A-0x6000];
   else
-    return WRAM[A-0x6000]^EXPREGS[1];
+    return MMC3_WRAM[A-0x6000]^EXPREGS[1];
 }
 
 static DECLFW(M254Write)

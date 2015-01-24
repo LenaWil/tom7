@@ -40,7 +40,6 @@ static constexpr uint8 lengthtable[0x20]= {
   12, 16, 24, 18, 48, 20, 96, 22, 192, 24, 72, 26, 16, 28, 32, 30
 };
 
-
 static constexpr uint32 NoiseFreqTableNTSC[0x10] = {
   4, 8, 16, 32, 64, 96, 128, 160, 202,
   254, 380, 508, 762, 1016, 2034, 4068
@@ -208,8 +207,9 @@ void Sound::Write_DMCRegs_Direct(DECLFW_ARGS) {
       if (!(V&0x80)) {
 	X6502_IRQEnd(FCEU_IQDPCM);
 	SIRQStat&=~0x80;
+      } else { 
+	X6502_IRQBegin(FCEU_IQDPCM);
       }
-      else X6502_IRQBegin(FCEU_IQDPCM);
     }
     DMCFormat=V;
     break;
@@ -642,7 +642,6 @@ void Sound::RDoTriangle() {
 }
 
 void Sound::RDoTriangleNoisePCMLQ() {
-  int32 V;
   int32 start,end;
   int32 freq[2];
   int32 inie[2];
@@ -696,17 +695,17 @@ void Sound::RDoTriangleNoisePCMLQ() {
   totalout = wlookup2[triangle_noise_tcout+noiseout+RawDALatch];
 
   if (inie[0] && inie[1]) {
-    for (V=start;V<end;V++) {
+    for (int32 V=start;V<end;V++) {
       Wave[V>>4]+=totalout;
 
       triangle_noise_triacc-=inie[0];
       triangle_noise_noiseacc-=inie[1];
 
       if (triangle_noise_triacc<=0) {
-      rea:
-	triangle_noise_triacc+=freq[0]; //t;
-	tristep=(tristep+1)&0x1F;
-	if (triangle_noise_triacc<=0) goto rea;
+	do {
+	  triangle_noise_triacc+=freq[0]; //t;
+	  tristep=(tristep+1)&0x1F;
+	} while (triangle_noise_triacc <= 0);
 	triangle_noise_tcout=(tristep&0xF);
 	if (!(tristep&0x10)) triangle_noise_tcout^=0xF;
 	triangle_noise_tcout *= 3;
@@ -714,31 +713,31 @@ void Sound::RDoTriangleNoisePCMLQ() {
       }
 
       if (triangle_noise_noiseacc<=0) {
-      rea2:
-	//used to added <<(16+2) when the noise table
-	//values were half.
-	if (PAL)
-	  triangle_noise_noiseacc+=NoiseFreqTablePAL[PSG[0xE]&0xF]<<(16+1);
-	else
-	  triangle_noise_noiseacc+=NoiseFreqTableNTSC[PSG[0xE]&0xF]<<(16+1);
-	nreg=(nreg<<1)+(((nreg>>nshift)^(nreg>>14))&1);
-	nreg&=0x7fff;
-	noiseout=amptab[(nreg>>0xe)&1];
-	if (triangle_noise_noiseacc<=0) goto rea2;
+	do {
+	  // used to added <<(16+2) when the noise table
+	  // values were half.
+	  if (PAL)
+	    triangle_noise_noiseacc+=NoiseFreqTablePAL[PSG[0xE]&0xF]<<(16+1);
+	  else
+	    triangle_noise_noiseacc+=NoiseFreqTableNTSC[PSG[0xE]&0xF]<<(16+1);
+	  nreg=(nreg<<1)+(((nreg>>nshift)^(nreg>>14))&1);
+	  nreg&=0x7fff;
+	  noiseout=amptab[(nreg>>0xe)&1];
+	} while (triangle_noise_noiseacc <= 0);
 	totalout = wlookup2[triangle_noise_tcout+noiseout+RawDALatch];
       } /* triangle_noise_noiseacc<=0 */
     } /* for (V=... */
   } else if (inie[0]) {
-    for (V=start;V<end;V++) {
+    for (int32 V=start;V<end;V++) {
       Wave[V>>4]+=totalout;
 
       triangle_noise_triacc-=inie[0];
 
       if (triangle_noise_triacc<=0) {
-      area:
-	triangle_noise_triacc+=freq[0]; //t;
-	tristep=(tristep+1)&0x1F;
-	if (triangle_noise_triacc<=0) goto area;
+	do {
+	  triangle_noise_triacc+=freq[0]; //t;
+	  tristep=(tristep+1)&0x1F;
+	} while (triangle_noise_triacc <= 0);
 	triangle_noise_tcout=(tristep&0xF);
 	if (!(tristep&0x10)) triangle_noise_tcout^=0xF;
 	triangle_noise_tcout *= 3;
@@ -746,27 +745,28 @@ void Sound::RDoTriangleNoisePCMLQ() {
       }
     }
   } else if (inie[1]) {
-    for (V=start;V<end;V++) {
+    for (int32 V=start;V<end;V++) {
       Wave[V>>4]+=totalout;
       triangle_noise_noiseacc-=inie[1];
       if (triangle_noise_noiseacc<=0) {
-      area2:
-	//used to be added <<(16+2) when the noise table
-	//values were half.
-	if (PAL)
-	  triangle_noise_noiseacc+=NoiseFreqTablePAL[PSG[0xE]&0xF]<<(16+1);
-	else
-	  triangle_noise_noiseacc+=NoiseFreqTableNTSC[PSG[0xE]&0xF]<<(16+1);
-	nreg=(nreg<<1)+(((nreg>>nshift)^(nreg>>14))&1);
-	nreg&=0x7fff;
-	noiseout=amptab[(nreg>>0xe)&1];
-	if (triangle_noise_noiseacc<=0) goto area2;
+	do {
+	  //used to be added <<(16+2) when the noise table
+	  //values were half.
+	  if (PAL)
+	    triangle_noise_noiseacc+=NoiseFreqTablePAL[PSG[0xE]&0xF]<<(16+1);
+	  else
+	    triangle_noise_noiseacc+=NoiseFreqTableNTSC[PSG[0xE]&0xF]<<(16+1);
+	  nreg=(nreg<<1)+(((nreg>>nshift)^(nreg>>14))&1);
+	  nreg&=0x7fff;
+	  noiseout=amptab[(nreg>>0xe)&1];
+	} while (triangle_noise_noiseacc <= 0);
 	totalout = wlookup2[triangle_noise_tcout+noiseout+RawDALatch];
       } /* triangle_noise_noiseacc<=0 */
     }
   } else {
-    for (V=start;V<end;V++)
+    for (int32 V=start;V<end;V++) {
       Wave[V>>4]+=totalout;
+    }
   }
 }
 
@@ -1060,8 +1060,7 @@ void Sound::FCEUI_SetLowPass(int q) {
 // calling SetSoundVariables). Deleted. Can we make the rest
 // compile-time constants? -tom7
 
-Sound::Sound() 
-  : stateinfo{
+Sound::Sound() : stateinfo {
  { &fhcnt, 4|FCEUSTATE_RLSB,"FHCN"},
  { &fcnt, 1, "FCNT"},
  { PSG, 0x10, "PSG"},
