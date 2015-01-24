@@ -1,38 +1,11 @@
 #ifndef _EMU2413_H_
 #define _EMU2413_H_
 
-#ifndef INLINE
-#if defined(_MSC_VER)
-#define INLINE __forceinline
-#elif defined(__GNUC__)
-#define INLINE __inline__
-#elif defined(_MWERKS_)
-#define INLINE inline
-#else
-#define INLINE
-#endif
-#endif
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-typedef unsigned char uint8 ;
-typedef signed char int8 ;
-
-typedef unsigned short uint16 ;
-typedef signed short int16 ;
-
-typedef unsigned int uint32 ;
-typedef signed int int32 ;
-
-#define PI 3.14159265358979323846
-
-enum { OPLL_VRC7_TONE=0 };
+#include "../types.h"
 
 /* voice data */
 typedef struct {
-	uint32 TL, FB, EG, ML, AR, DR, SL, RR, KR, KL, AM, PM, WF;
+  uint32 TL, FB, EG, ML, AR, DR, SL, RR, KR, KL, AM, PM, WF;
 } OPLL_PATCH;
 
 /* slot */
@@ -63,9 +36,6 @@ typedef struct {
 	uint32 eg_dphase; /* Phase increment amount */
 	uint32 egout;     /* output */
 } OPLL_SLOT;
-
-/* Mask */
-#define OPLL_MASK_CH(x) (1 << (x))
 
 /* opll */
 typedef struct {
@@ -113,27 +83,15 @@ void OPLL_delete(OPLL *);
 /* Setup */
 void OPLL_reset(OPLL *);
 void OPLL_set_rate(OPLL *opll, uint32 r);
-void OPLL_set_quality(OPLL *opll, uint32 q);
+// void OPLL_set_quality(OPLL *opll, uint32 q);
 
 /* Port/Register access */
-void OPLL_writeIO(OPLL *, uint32 reg, uint32 val);
+// void OPLL_writeIO(OPLL *, uint32 reg, uint32 val);
 void OPLL_writeReg(OPLL *, uint32 reg, uint32 val);
-
-/* Synthsize */
-int16 OPLL_calc(OPLL *);
 
 /* Misc */
 void OPLL_forceRefresh(OPLL *);
 
-/* Channel Mask */
-uint32 OPLL_setMask(OPLL *, uint32 mask);
-uint32 OPLL_toggleMask(OPLL *, uint32 mask);
-
-
 void moocow(OPLL* opll, int32 *buf, int32 len, int shift);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif

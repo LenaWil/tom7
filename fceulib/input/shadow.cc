@@ -86,35 +86,30 @@ static void ZapperFrapper(uint8 *bg, uint8 *spr, uint32  linets, int final)
  ZD.zappo=final;
 }
 
-static INLINE int CheckColor(void)
-{ 
+static inline int CheckColor(void) { 
  FCEUPPU_LineUpdate();
  
- if((ZD.zaphit+10)>=(timestampbase+timestamp)) return(0);
+ if ((ZD.zaphit+10)>=(timestampbase+timestamp)) return 0;
  
- return(1);   
+ return 1;
 }
 
 
-static uint8 ReadZapper(int w, uint8 ret)
-{
-		if(w)
-		{
-		 ret&=~0x18;
-                 if(ZD.bogo)
-                  ret|=0x10;
-                 if(CheckColor())
-                  ret|=0x8;
-		}
-		else
-		{
-		 //printf("Kayo: %d\n",ZD.zap_readbit);
-		 ret&=~2;
-		 //if(ZD.zap_readbit==4) ret|=ZD.mzb&2;
-		 ret|=(ret&1)<<1;
-		 //ZD.zap_readbit++;
-		}
-                return ret;
+static uint8 ReadZapper(int w, uint8 ret) {
+  if(w) {
+    ret&=~0x18;
+    if(ZD.bogo)
+      ret|=0x10;
+    if(CheckColor())
+      ret|=0x8;
+  } else {
+    //printf("Kayo: %d\n",ZD.zap_readbit);
+    ret&=~2;
+    //if(ZD.zap_readbit==4) ret|=ZD.mzb&2;
+    ret|=(ret&1)<<1;
+    //ZD.zap_readbit++;
+  }
+  return ret;
 }
 
 static void DrawZapper(uint8 *buf, int arg)

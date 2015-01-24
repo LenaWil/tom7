@@ -61,7 +61,7 @@ void UpdateOPL(int Count)
  dwave=0;
 }
 
-static INLINE void DaMirror(int V) {
+static inline void DaMirror(int V) {
  int salpo[4]={MI_V,MI_H,MI_0,MI_1};
  fceulib__cart.setmirror(salpo[V&3]);
 }

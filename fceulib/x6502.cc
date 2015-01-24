@@ -49,17 +49,17 @@ void (*MapIRQHook)(int a);
 }
 
 //normal memory read
-static INLINE uint8 RdMem(unsigned int A) {
+static inline uint8 RdMem(unsigned int A) {
   TRACEF("readfunc is %p", ARead[A]);
   return _DB=ARead[A](A);
 }
 
 //normal memory write
-static INLINE void WrMem(unsigned int A, uint8 V) {
+static inline void WrMem(unsigned int A, uint8 V) {
   BWrite[A](A,V);
 }
 
-static INLINE uint8 RdRAM(unsigned int A) {
+static inline uint8 RdRAM(unsigned int A) {
   // PERF: We should read directly from ram in this case (and
   // see what other ones are possible); cheats at this level
   // are not important. -tom7
@@ -68,7 +68,7 @@ static INLINE uint8 RdRAM(unsigned int A) {
   // return(_DB=RAM[A]);
 }
 
-static INLINE void WrRAM(unsigned int A, uint8 V) {
+static inline void WrRAM(unsigned int A, uint8 V) {
   RAM[A]=V;
 }
 
