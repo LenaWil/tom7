@@ -244,7 +244,7 @@ Dynamic.prototype.DrawCropped = function(d,
 
   if (isNaN(wx) || isNaN(wy) ||
       isNaN(osx1) || isNaN(osy1)) {
-    console.log([wx, wy, osx1, osy1].join(' '));
+    // console.log([wx, wy, osx1, osy1].join(' '));
     Reboot();
     // throw 'Nanzies';
   }
@@ -377,7 +377,7 @@ function DrawWorld(
 
   if (isNaN(wh) || wh == 0) {
     // HERE prolly zero
-    console.log([sx1, sy1, sx2, sy2]);
+    // console.log([sx1, sy1, sx2, sy2]);
     Reboot();
     // throw ('aha! ' + wh + ' at depth ' + d);
   }
@@ -715,9 +715,9 @@ function SpawnBlock() {
   } else {
     idle_block_count++;
   }
-  console.log(dynamicobjects.length + ' blocks, waskey ' +
-	      (waskey ? 't' : 'f'), ', idle ' +
-	      idle_block_count);
+  // console.log(dynamicobjects.length + ' blocks, waskey ' +
+  // (waskey ? 't' : 'f'), ', idle ' +
+  // idle_block_count);
   // Reset latch.
   waskey = false;
 }
