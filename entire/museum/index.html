@@ -7,58 +7,87 @@
 <meta http-equiv="content-type" content="text/html; charset=utf-8" />
 <meta name="description" content="Entire Screen of One Game" />
 <meta name="keywords" content="recursive platformer, tom 7">
-<link rel="image_src" href="entire.png">
 
 <style>
 body {
- background: #113;
- font: 14px verdana,helvetica,sans-serif
- -webkit-touch-callout: none;
- -webkit-user-select: none;
- -khtml-user-select: none;
- -moz-user-select: none;
- -ms-user-select: none;
- user-select: none;
-}
-canvas {
- background: #000;
- display: block;
- width: 600px;
- height: 600px;
- position:absolute;
- top:50%;
- left:50%;
- margin: -300px 0 0 -300px;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  padding: 0;
+  margin: 0;
 }
 </style>
 
-<canvas style="width:600px;height:600px" id="canvas"></canvas>
+<body>
+</body>
 
 <script>
 
 ///// Constants.
 
-var DEBUG = false; // true;
+// Size of the game, in pixels.
+var SQUARE_SIZE = 600;
+// Alternatively, this does work in Chrome:
+// var MAXIMUM = Math.max(window.innerWidth, window.innerHeight);
 
-var WIDTH = 600;
-var HEIGHT = 600;
+// Width and height really need to be the same.
+var WIDTH = SQUARE_SIZE;
+var HEIGHT = SQUARE_SIZE;
+
+// Throttle framerate; affects the speed and smoothness of the game.
+// Probably shouldn't change this.
 var MINFRAMEMS = 25.0;
+
+// After this many blocks on-screen, reset to discourage hogging
+// it (and also because the game gets pretty slow). About 5 minutes.
+var MAX_BLOCKS = 32;
+// After this many spawned blocks where no key was pressed, the
+// next keypress will restart. About 20-30 seconds.
+var MAX_IDLE_BLOCKS = 2;
+
+function Reboot() {
+  window.location.reload();
+}
 
 ///// Video.
 
-// Main canvas, not the zoomed one. If there's no
-// #canvas on the page, then we create one off-screen.
+function Reposition() {
+  var fs = document.getElementById('fs');
+  fs.style.position = 'absolute';
+  fs.style.width = '100%';
+  fs.style.height = '' + window.innerHeight + 'px';
+  fs.style.backgroundColor = '#113';
+  fs.style.cursor = 'none';
+  
+  var c = document.getElementById('canvas');
+  c.style.display = 'block';
+  c.style.width = WIDTH + 'px';
+  c.style.height = HEIGHT + 'px';
+  c.style.position = 'absolute';
+  c.style.top = '50%';
+  c.style.left = '50%';
+  c.style.marginTop = '-' + (HEIGHT / 2) + 'px';
+  c.style.marginLeft = '-' + (WIDTH / 2) + 'px';
+}
+
+window.onresize = Reposition;
+
+// Create a canvas and style it so that it's in the
+// center of the screen.
 var canvas =
     (function() {
-      var c = document.getElementById('canvas');
-      if (!c) {
-	c = document.createElement('canvas');
-	// Off-screen.
-	// document.body.appendChild(c);
-	c.id = 'canvas';
-      }
+      var fs = document.createElement('div');
+      document.body.appendChild(fs);
+      fs.id = 'fs';
+      var c = document.createElement('canvas');
+      fs.appendChild(c);
+      c.id = 'canvas';
       c.width = WIDTH;
       c.height = HEIGHT;
+      Reposition();
       return c;
     })();
 
@@ -66,9 +95,7 @@ var canvas =
 var ctx = canvas.getContext('2d');
 var id = ctx.createImageData(WIDTH, HEIGHT);
 var buf = new ArrayBuffer(id.data.length);
-// Make two aliases of the data, the second allowing us
-// to write 32-bit pixels.
-var buf8 = new Uint8ClampedArray(buf);
+// Make an alias that lets us write 32-bit pixels:
 var buf32 = new Uint32Array(buf);
 
 ///////// Map.
@@ -104,13 +131,9 @@ var start_time = (new Date()).getTime();
 // Number of elapsed frames in the current scene.
 var frames = 0;
 
-function XY(x, y) { return '(' + x + ',' + y + ')'; }
-
 FRAMES_UNTIL_BLOCK = 300;
 var framesuntilblock = 0;
 function Init() {
-  // Actually, maybe we should start by spawning a block?
-  // framesuntilblock = FRAMES_UNTIL_BLOCK;
   SpawnBlock();
 }
 
@@ -157,9 +180,6 @@ Static.prototype.x1 = function() { return this.x; }
 Static.prototype.x2 = function() { return this.x + this.w; }
 Static.prototype.y1 = function() { return this.y; }
 Static.prototype.y2 = function() { return this.y + this.h; }
-Static.prototype.DebugString = function() {
-  return 'Static(' + [this.x, this.y, this.w, this.h].join(',') + ')';
-}
 Static.prototype.DrawCropped = function(d, osx1, osy1, osx2, osy2,
 					sx1, sy1, sx2, sy2,
 					fg, bg) {
@@ -210,9 +230,6 @@ Dynamic.prototype.x1 = function() { return this.x; }
 Dynamic.prototype.x2 = function() { return this.x + this.w; }
 Dynamic.prototype.y1 = function() { return this.y; }
 Dynamic.prototype.y2 = function() { return this.y + this.h; }
-Dynamic.prototype.DebugString = function() {
-  return 'Dynamic(' + [this.x, this.y, this.w, this.h].join(',') + ')';
-}
 Dynamic.prototype.DrawCropped = function(d,
 					 osx1, osy1, osx2, osy2,
 					 sx1, sy1, sx2, sy2,
@@ -228,7 +245,8 @@ Dynamic.prototype.DrawCropped = function(d,
   if (isNaN(wx) || isNaN(wy) ||
       isNaN(osx1) || isNaN(osy1)) {
     console.log([wx, wy, osx1, osy1].join(' '));
-    throw 'Nanzies';
+    Reboot();
+    // throw 'Nanzies';
   }
 
   // cx/cy are the cropped screen coordinates.
@@ -281,18 +299,11 @@ Dynamic.prototype.DrawCropped = function(d,
   }
 
   if (d > 25) {
-    console.log('"infinite" recursion? ' +
-		' os: ' + [osx1, osy1, osx2, osy2].join(',') +
-		' s: ' + [sx1, sy1, sx2, sy2].join(',') +
-		' cs: ' + [cx1, cy1, cx2, cy2].join(',') +
-		' fg bg: ' + [fg, bg].join(','));
-
     ctx.fillStyle = '#000000';
     ctx.fillRect(cx1, cy1, cx2 - cx1, cy2 - cy1);
     return;
   }
 
-  // console.log('rec drawworld: ' + newscale);
   DrawWorld(d + 1,
 	    this.fg, this.bg,
 	    cx1, cy1, cx2, cy2,
@@ -326,20 +337,14 @@ function ScrollToFit(
 
   if (x1 < wx + XMARGIN) {
     wx = x1 - XMARGIN;
-    // console.log(ww + ' ' + XMARGIN + ' off left edge: now ' + wx);
   } else if (x2 > (wx + ww) - XMARGIN) {
-    // console.log('over by ' + (x2 - ((wx + ww) - XMARGIN)));
     wx += (x2 - ((wx + ww) - XMARGIN));
-    // console.log(ww + ' ' + XMARGIN + ' off right edge: now ' + wx);
   }
 
   if (y1 < wy + YMARGIN) {
     wy = y1 - YMARGIN;
-    // console.log(ww + ' ' + YMARGIN + ' off left edge: now ' + wy);
   } else if (y2 > (wy + wh) - YMARGIN) {
-    // console.log('over by ' + (y2 - ((wy + ww) - YMARGIN)));
     wy += (y2 - ((wy + wh) - YMARGIN));
-    // console.log(ww + ' ' + YMARGIN + ' off right edge: now ' + wy);
   }
 
   return { x: wx, y: wy };
@@ -373,7 +378,8 @@ function DrawWorld(
   if (isNaN(wh) || wh == 0) {
     // HERE prolly zero
     console.log([sx1, sy1, sx2, sy2]);
-    throw ('aha! ' + wh + ' at depth ' + d);
+    Reboot();
+    // throw ('aha! ' + wh + ' at depth ' + d);
   }
 
   // Coordinate transforms.
@@ -393,9 +399,6 @@ function DrawWorld(
   // var wy2 = wytosy(sy2);
 
   var DO = function(obj) {
-    // console.log('on screen? ' + XY(sx1, sy1) + ' to ' + XY(sx2, sy2));
-    // console.log(obj.DebugString());
-    
     // First, discard the object if it's completely 
     // outside our screen rectangle. We do all clipping
     // in screen coordinates, because we don't want
@@ -406,7 +409,7 @@ function DrawWorld(
     var osx2 = wxtosx(obj.x2());
     if (osx2 < sx1) return;
     var osy1 = wytosy(obj.y1());
-    if (isNaN(osy1)) throw osy1;
+    if (isNaN(osy1)) Reboot(); // throw osy1;
     if (osy1 > sy2) return;
     var osy2 = wytosy(obj.y2());
     if (osy2 < sy1) return;
@@ -460,12 +463,6 @@ function Draw() {
 	    NextBackground(),
 	    0, 0, WIDTH, HEIGHT,
 	    xpos, ypos, wpos, hpos);
-}
-
-function DumpPos() {
-  console.log('var xpos = ', xpos, ', ypos = ', ypos, 
-	      /* ', scale = ', scale, */
-	      ';');
 }
 
 function move1DClip(obj, pos, dpos, f) {
@@ -523,36 +520,27 @@ function DoPhysics(rank, obj) {
   // PERF these already need to capture obj to run widthblocked,
   // so don't bother passing it as a parameter too.
   var BlockedUp = function(obj, newy) {
-    var yes = WidthBlocked(obj.x + obj.w * CORNER,
-			   newy,
-			   obj.w * (1 - 2 * CORNER));
-    // XXX Probably unused?
-    // collision_up = collision_up || yes;
-    return yes;
+    return WidthBlocked(obj.x + obj.w * CORNER,
+			newy,
+			obj.w * (1 - 2 * CORNER));
   };
 
   var BlockedDown = function(obj, newy) {
-    var yes = WidthBlocked(obj.x + obj.w * CORNER,
-			   newy + obj.h,
-			   obj.w * (1 - 2 * CORNER));
-    // collision_down = collision_down || yes;
-    return yes;
+    return WidthBlocked(obj.x + obj.w * CORNER,
+			newy + obj.h,
+			obj.w * (1 - 2 * CORNER));
   };
 
   var BlockedLeft = function(obj, newx) {
-    var yes = HeightBlocked(newx, 
-                            obj.y + obj.h * CORNER, 
-                            obj.h * (1 - 2 * CORNER));
-    // collision_left = collision_left || yes;
-    return yes;
+    return HeightBlocked(newx, 
+                         obj.y + obj.h * CORNER, 
+                         obj.h * (1 - 2 * CORNER));
   };
 
   var BlockedRight = function(obj, newx) {
-    var yes = HeightBlocked(newx + obj.w, 
-                            obj.y + obj.h * CORNER, 
-                            obj.h * (1 - 2 * CORNER));
-    // collision_right = collision_right || yes;
-    return yes;
+    return HeightBlocked(newx + obj.w, 
+                         obj.y + obj.h * CORNER, 
+                         obj.h * (1 - 2 * CORNER));
   };
 
   var att = 1 / (1 + rank);
@@ -570,7 +558,8 @@ function DoPhysics(rank, obj) {
   obj.dx = ox.dpos / att;
 
   // The effect of physics needs to be determined by the depth
-  // of the block... TODO!
+  // of the block, but we do this by multiplying as the constants
+  // are used.
   var C = {
     accel: 3,
     decel_ground: 0.95,
@@ -582,18 +571,12 @@ function DoPhysics(rank, obj) {
   };
 
   var GROUND_SLOP = 2.0;
-  var OnTheGround = function() {
-    // XXX just used blockeddown?
-    // in the starting arrangement you can't jump with the left guy.
-    return WidthBlocked(obj.x + obj.w * 0.1,
-                        obj.y + obj.h + GROUND_SLOP,
-                        obj.w * 0.8);
-  };
+  // On the ground?
+  var otg = WidthBlocked(obj.x + obj.w * 0.1,
+                         obj.y + obj.h + GROUND_SLOP,
+                         obj.w * 0.8);
 
-
-  var otg = OnTheGround();
-
-  if (otg && holdingSpace) {
+  if (otg && (holdingSpace || holdingUp)) {
     obj.dy = -C.jump_impulse;
   }
 
@@ -619,12 +602,9 @@ function DoPhysics(rank, obj) {
     }
   }
 
-  if (otg) {
-
-  } else {
+  if (!otg) {
     obj.dy += C.gravity * att;
     if (obj.dy > C.terminal_velocity / att) {
-      // console.log('term');
       obj.dy = C.terminal_velocity;
     }
   }
@@ -647,7 +627,11 @@ function ZoomIn() {
   hpos -= 2 * amount;
 }
 
+var waskey = false;
+var idle_block_count = 0;
+
 function Physics() {
+  // Explorer mode (cheats)
   if (holdingShift) {
     if (holdingLeft) xpos -= 5;
     else if (holdingRight) xpos += 5;
@@ -657,7 +641,21 @@ function Physics() {
     else if (holdingMinus) ZoomOut();
     return;
   }
-  
+
+  // See if we've been idle too long.
+  var anyKey = holdingLeft | holdingRight | holdingUp |
+      holdingDown | holdingSpace;
+
+  if (anyKey) {
+    // Latched, read by SpawnBlock.
+    waskey = true;
+    // But if we've been idle for long enough, then assume
+    // this is a new player and reset.
+    if (idle_block_count > MAX_IDLE_BLOCKS) {
+      Reboot();
+    }
+  }
+
   // Count, maybe generate new block.
   if (framesuntilblock == 0) {
     SpawnBlock();
@@ -701,12 +699,27 @@ function SpawnBlock() {
   ypos = 12;
   wpos = 24;
   hpos = 24;
-  // scale = WIDTH / 24;
 
   nextcolor++;
   nextcolor %= COLORS.length;
-  console.log('spawned! now ' + dynamicobjects.length);
   framesuntilblock = FRAMES_UNTIL_BLOCK;
+
+  // Museum mode: Don't let there be too many blocks (it gets
+  // slow), and give someone else a chance to play!
+  if (dynamicobjects.length > MAX_BLOCKS) {
+    Reboot();
+  }
+
+  if (waskey) {
+    idle_block_count = 0;
+  } else {
+    idle_block_count++;
+  }
+  console.log(dynamicobjects.length + ' blocks, waskey ' +
+	      (waskey ? 't' : 'f'), ', idle ' +
+	      idle_block_count);
+  // Reset latch.
+  waskey = false;
 }
 
 last = 0;
@@ -714,7 +727,8 @@ function Step(time) {
   // Throttle to 30 fps or something we
   // should be able to hit on most platforms.
   // Word has it that 'time' may not be supported on Safari, so
-  // compute our own. (TODO: use performance.now probably)
+  // compute our own. (TODO: use performance.now, though note
+  // that they got rid of it in iOS 8.1?)
   var now = (new Date()).getTime();
   var diff = now - last;
   // debug.innerHTML = diff;
@@ -732,14 +746,6 @@ function Step(time) {
   Physics();
 
   Draw();
-
-  if (false && DEBUG) {
-    counter++;
-    var sec = ((new Date()).getTime() - start_time) / 1000;
-    document.getElementById('counter').innerHTML =
-        'skipped ' + skipped + ' drew ' +
-        counter + ' (' + (counter / sec).toFixed(2) + ' fps)';
-  }
 
   // And continue the loop...
   window.requestAnimationFrame(Step);
@@ -760,29 +766,18 @@ var holdingShift = false,
 
 document.onkeydown = function(e) {
   e = e || window.event;
-  if (e.ctrlKey) return true;
+  // Disable modifier keys in museum mode, which
+  // can only be used for no good.
+  if (e.ctrlKey) return false;
+  if (e.altKey) return false;
 
   switch (e.keyCode) {
     case 9:  // tab?
-    // CHEATS
-    // if (true || DEBUG)
-    // textpages = [];
-    // XXX CHEAT
-    SpawnBlock();
+    if (false) SpawnBlock();
 
     break;
     case 27: // ESC
-    if (true || DEBUG) {
-      document.body.innerHTML =
-	  '<b style="color:#fff;font-size:40px">(SILENCED. ' +
-          'RELOAD TO PLAY)</b>';
-      Step = function() { };
-      // n.b. javascript keeps running...
-    }
-    case 8: // BACKSPACE
-    if (DEBUG) {
-      gang = null;
-    }
+    Reboot();
     break;
     case 37: // LEFT
     holdingLeft = true;
@@ -818,10 +813,7 @@ document.onkeydown = function(e) {
     holdingShift = true;
     break;
     default:
-    // console.log(e.keyCode);
   } 
-  // var elt = document.getElementById('key');
-  // elt && (elt.innerHTML = 'key: ' + e.keyCode);
   return false;
 }
 
@@ -867,7 +859,6 @@ document.onkeyup = function(e) {
   return false;
 }
 
-// resources.WhenReady(Start);
 Start();
 
 </script>
