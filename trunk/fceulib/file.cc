@@ -76,10 +76,6 @@ static FileBaseInfo DetermineFileBase(const char *f) {
   return FileBaseInfo((string)drv + dir,name,ext);
 }
 
-static inline FileBaseInfo DetermineFileBase(const string& str) { 
-  return DetermineFileBase(str.c_str());
-}
-
 FceuFile *FCEU_fopen(const std::string &path, char *mode, char *ext) {
   // XXX simplify away; see below
   bool read = (string)mode == "rb";
