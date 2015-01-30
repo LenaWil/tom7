@@ -1,7 +1,7 @@
 #ifndef __FDS_H
 #define __FDS_H
 
-class FceuFile;
+struct FceuFile;
 
 void FCEU_FDSInsert();
 void FCEU_FDSSelect();

@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include <cstdint>
+#include <cstdlib>
 
 // This is a facility only used for debugging fceulib regressions. The
 // idea is that we see a change in the memory checksum for a game after

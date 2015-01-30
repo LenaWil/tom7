@@ -1,5 +1,6 @@
 
 #include "test-util.h"
+#include <cstdlib>
 
 inline string ReadFile(const string &s) {
   if (s == "") return "";

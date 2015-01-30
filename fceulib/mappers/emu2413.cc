@@ -628,11 +628,6 @@ void OPLL_set_rate(OPLL * opll, uint32 r) {
 	rate = r;
 }
 
-static void OPLL_set_quality(OPLL * opll, uint32 q) {
-	opll->quality = q;
-	OPLL_set_rate(opll, rate);
-}
-
 /*********************************************************
 
 				 Generate wave data
@@ -820,45 +815,6 @@ void moocow(OPLL* opll, int32 *buf, int32 len, int shift) {
 		buf++;
 		len--;
 	}
-}
-
-static int16 OPLL_calc(OPLL * opll) {
-	if (!opll->quality)
-		return calc(opll);
-
-	while (opll->realstep > opll->oplltime) {
-		opll->oplltime += opll->opllstep;
-		opll->prev = opll->next;
-		opll->next = calc(opll);
-	}
-
-	opll->oplltime -= opll->realstep;
-	opll->out = (int16)(((double)opll->next * (opll->opllstep - opll->oplltime)
-						   + (double)opll->prev * opll->oplltime) / opll->opllstep);
-
-	return (int16)opll->out;
-}
-
-static uint32 OPLL_setMask(OPLL * opll, uint32 mask) {
-	uint32 ret;
-
-	if (opll) {
-		ret = opll->mask;
-		opll->mask = mask;
-		return ret;
-	} else
-		return 0;
-}
-
-static uint32 OPLL_toggleMask(OPLL * opll, uint32 mask) {
-	uint32 ret;
-
-	if (opll) {
-		ret = opll->mask;
-		opll->mask ^= mask;
-		return ret;
-	} else
-		return 0;
 }
 
 /****************************************************
@@ -1062,11 +1018,3 @@ void OPLL_writeReg(OPLL * opll, uint32 reg, uint32 data) {
 		break;
 	}
 }
-
-static void OPLL_writeIO(OPLL * opll, uint32 adr, uint32 val) {
-	if (adr & 1)
-		OPLL_writeReg(opll, opll->adr, val);
-	else
-		opll->adr = val;
-}
-

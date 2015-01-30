@@ -24,9 +24,6 @@ struct Palette {
 
   int ipalette = 0;
 
-  int controlselect = 0;
-  int controllength = 0;
-
   /* These are dynamically filled/generated palettes: */
   PaletteEntry palettei[64];       // Custom palette for an individual game.
   PaletteEntry paletten[64];       // Mathematically generated palette.
