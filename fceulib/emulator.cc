@@ -168,21 +168,11 @@ Emulator *Emulator::Create(const string &romfile) {
   FCEUI_SetRenderedLines(scanlinestart + 8, scanlineend - 8, 
 			 scanlinestart, scanlineend);
 
-
-  // XXX
-  {
-    extern int input_display;
-    input_display = 0;
-  }
-
   // Load the game.
   if (1 != LoadGame(romfile.c_str())) {
     fprintf(stderr, "Couldn't load [%s]\n", romfile.c_str());
     return nullptr;
   }
-
-  // Default.
-  newppu = 0;
 
   return new Emulator;
 }

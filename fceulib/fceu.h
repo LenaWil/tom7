@@ -8,7 +8,7 @@
 #include "stringprintf.h"
 
 static constexpr bool fceuindbg = false;
-extern int newppu;
+static constexpr int newppu = 0;
 
 // TODO(tom7): Fix this junk. These have to take a Fceulib object.
 #define DECLFR(x) uint8 x (uint32 A)
