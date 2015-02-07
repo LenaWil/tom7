@@ -134,8 +134,6 @@ extern bool lagCounterDisplay;
 extern char lagFlag;
 void LagCounterReset();
 
-extern int input_display;
-
 extern const SFORMAT FCEUINPUT_STATEINFO[];
 
 

@@ -26,22 +26,16 @@ uint8* FCEUPPU_GetCHR(uint32 vadr, uint32 refreshaddr);
 // 0 to keep 8-sprites limitation, 1 to remove it
 void FCEUI_DisableSpriteLimitation(int a);
 
-
-#ifdef _MSC_VER
-#define FASTCALL __fastcall
-#else
-#define FASTCALL
-#endif
-
 void PPU_ResetHooks();
-extern uint8 (FASTCALL *FFCEUX_PPURead)(uint32 A);
+extern uint8 (*FFCEUX_PPURead)(uint32 A);
 extern void (*FFCEUX_PPUWrite)(uint32 A, uint8 V);
-extern uint8 FASTCALL FFCEUX_PPURead_Default(uint32 A);
+extern uint8 FFCEUX_PPURead_Default(uint32 A);
 
 extern int scanline;
 extern int g_rasterpos;
 extern uint8 PPU[4];
 
+// I think this is new ppu only.
 enum PPUPHASE {
   PPUPHASE_VBL, PPUPHASE_BG, PPUPHASE_OBJ
 };

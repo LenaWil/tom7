@@ -82,10 +82,6 @@ static uint8 joy_readbit[2];
 uint8 joy[4]={0,0,0,0}; //HACK - should be static but movie needs it
 static uint8 LastStrobe;
 
-// Used to be in movie.cc but was only used by being imported by other
-// modules. Moved here. Dunno what it is. -tom7
-int input_display = 0;
-
 bool replaceP2StartWithMicrophone = false;
 
 //This function is a quick hack to get the NSF player to use emulated gamepad input.

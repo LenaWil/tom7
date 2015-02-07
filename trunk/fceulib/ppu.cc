@@ -448,7 +448,7 @@ static inline void FFCEUX_PPUWrite_Default(uint32 A, uint8 V) {
     }
 }
 
-uint8 FASTCALL FFCEUX_PPURead_Default(uint32 A) {
+uint8 FFCEUX_PPURead_Default(uint32 A) {
   uint32 tmp = A;
 
   if (PPU_hook) PPU_hook(A);
@@ -476,8 +476,8 @@ uint8 FASTCALL FFCEUX_PPURead_Default(uint32 A) {
 }
 
 
-uint8 (FASTCALL *FFCEUX_PPURead)(uint32 A) = 0;
-void (*FFCEUX_PPUWrite)(uint32 A, uint8 V) = 0;
+uint8 (*FFCEUX_PPURead)(uint32 A) = nullptr;
+void (*FFCEUX_PPUWrite)(uint32 A, uint8 V) = nullptr;
 
 #define CALL_PPUWRITE(A,V) (FFCEUX_PPUWrite?FFCEUX_PPUWrite(A,V):FFCEUX_PPUWrite_Default(A,V))
 
@@ -485,18 +485,11 @@ void (*FFCEUX_PPUWrite)(uint32 A, uint8 V) = 0;
 // compile-time constant to reduce code size / branches.
 // whether to use the new ppu (new PPU doesn't handle MMC5 extra
 // nametables at all
-int newppu = 0;
+// static constexpr int newppu = 0;
 
 //---------------
 
 static DECLFR(A2002) {
-  // once we thought we clear latches here, but that caused midframe
-  // glitches. i think we should only reset the state machine for
-  // 2005/2006
-  // if (newppu) {
-  //   ppur.clear_latches();
-  // }
-
   TRACEF("A2002 %d", PPU_status);
 
   FCEUPPU_LineUpdate();
@@ -514,255 +507,57 @@ static DECLFR(A2002) {
 }
 
 static DECLFR(A2004) {
-  if (newppu) {
-    if ((ppur.status.sl < 241) && PPUON) {
-      /* from cycles 0 to 63, the
-       * 32 byte OAM buffer gets init
-       * to 0xFF */
-      if (ppur.status.cycle < 64) {
-	return spr_read.ret = 0xFF;
-      } else {
-	for (int i = spr_read.last;
-	     i != ppur.status.cycle; ++i) {
-	  if (i < 256) {
-	    switch (spr_read.mode) {
-	    case 0:
-	      if (spr_read.count < 2)
-		spr_read.ret = (PPU[3] & 0xF8)
-		  + (spr_read.count << 2);
-	      else
-		spr_read.ret = spr_read.count << 2;
-	      spr_read.found_pos[spr_read.found] =
-		spr_read.ret;
-
-	      spr_read.ret = SPRAM[spr_read.ret];
-
-	      if (i & 1) {
-		//odd cycle
-		//see if in range
-		if ( !((ppur.status.sl - 1 -
-			spr_read.ret)
-		       & ~(Sprite16 ? 0xF : 0x7)) ) {
-		  ++spr_read.found;
-		  spr_read.fetch = 1;
-		  spr_read.mode = 1;
-		} else {
-		  if (++spr_read.count == 64) {
-		    spr_read.mode = 4;
-		    spr_read.count = 0;
-		  } else if (spr_read.found == 8) {
-		    spr_read.fetch = 0;
-		    spr_read.mode = 2;
-		  }
-		}
-	      }
-	      break;
-	    case 1: //sprite is in range fetch next 3 bytes
-	      if (i & 1) {
-		++spr_read.fetch;
-		if (spr_read.fetch == 4) {
-		  spr_read.fetch = 1;
-		  if (++spr_read.count == 64) {
-		    spr_read.count = 0;
-		    spr_read.mode = 4;
-		  } else if (spr_read.found == 8) {
-		    spr_read.fetch = 0;
-		    spr_read.mode = 2;
-		  } else {
-		    spr_read.mode = 0;
-		  }
-		}
-	      }
-
-	      if (spr_read.count < 2) {
-		spr_read.ret = (PPU[3] & 0xF8)
-		  + (spr_read.count << 2);
-	      } else {
-		spr_read.ret = spr_read.count << 2;
-	      }
-
-	      spr_read.ret = SPRAM[spr_read.ret |
-				   spr_read.fetch];
-	      break;
-	    case 2: //8th sprite fetched
-	      spr_read.ret = SPRAM[(spr_read.count << 2)
-				   | spr_read.fetch];
-	      if (i & 1) {
-		if ( !((ppur.status.sl - 1 -
-			SPRAM[((spr_read.count << 2)
-			       | spr_read.fetch)])
-		       & ~((Sprite16) ? 0xF : 0x7)) ) {
-		  spr_read.fetch = 1;
-		  spr_read.mode = 3;
-		} else {
-		  if (++spr_read.count == 64) {
-		    spr_read.count = 0;
-		    spr_read.mode = 4;
-		  }
-		  spr_read.fetch =
-		    (spr_read.fetch + 1) & 3;
-		}
-	      }
-	      spr_read.ret = spr_read.count;
-	      break;
-	    case 3: //9th sprite overflow detected
-	      spr_read.ret = SPRAM[spr_read.count
-				   | spr_read.fetch];
-	      if (i & 1) {
-		if (++spr_read.fetch == 4) {
-		  spr_read.count = (spr_read.count
-				    + 1) & 63;
-		  spr_read.mode = 4;
-		}
-	      }
-	      break;
-	    case 4: //read OAM[n][0] until hblank
-	      if (i & 1)
-		spr_read.count =
-		  (spr_read.count + 1) & 63;
-	      spr_read.fetch = 0;
-	      spr_read.ret = SPRAM[spr_read.count << 2];
-	      break;
-	    }
-	  } else if (i < 320) {
-	    spr_read.ret = (i & 0x38) >> 3;
-	    if (spr_read.found < (spr_read.ret + 1)) {
-	      if (spr_read.num) {
-		spr_read.ret = SPRAM[252];
-		spr_read.num = 0;
-	      } else {
-		spr_read.ret = 0xFF;
-	      }
-	    } else if ((i & 7) < 4) {
-	      spr_read.ret =
-		SPRAM[spr_read.found_pos[spr_read.ret]
-		      | spr_read.fetch++];
-	      if (spr_read.fetch == 4)
-		spr_read.fetch = 0;
-	    } else {
-	      spr_read.ret = SPRAM[spr_read.found_pos
-				   [spr_read.ret | 3]];
-	    }
-	  } else {
-	    if (!spr_read.found)
-	      spr_read.ret = SPRAM[252];
-	    else
-	      spr_read.ret = SPRAM[spr_read.found_pos[0]];
-	    break;
-	  }
-	}
-	spr_read.last = ppur.status.cycle;
-	return spr_read.ret;
-      }
-    } else {
-      return SPRAM[PPU[3]];
-    }
-  } else {
-    FCEUPPU_LineUpdate();
-    return PPUGenLatch;
-  }
-}
-
-static DECLFR(A200x)  /* Not correct for $2004 reads. */
-{
-	FCEUPPU_LineUpdate();
-	return PPUGenLatch;
-}
-
-/*
-  static DECLFR(A2004)
-  {
-  uint8 ret;
-
   FCEUPPU_LineUpdate();
-  ret = SPRAM[PPU[3]];
+  return PPUGenLatch;
+}
 
-  if (PPUSPL>=8)
-  {
-  if (PPU[3]>=8)
-  ret = SPRAM[PPU[3]];
-  }
-  else
-  {
-  //printf("$%02x:$%02x\n",PPUSPL,V);
-  ret = SPRAM[PPUSPL];
-  }
-  PPU[3]++;
-  PPUSPL++;
-  PPUGenLatch = ret;
-  printf("%d, %02x\n",scanline,ret);
-  return(ret);
-  }
-*/
+/* Not correct for $2004 reads. */
+static DECLFR(A200x) {
+  FCEUPPU_LineUpdate();
+  return PPUGenLatch;
+}
+
 static DECLFR(A2007) {
   uint8 ret;
   uint32 tmp=RefreshAddr&0x3FFF;
 
-  if (newppu) {
-    ret = VRAMBuffer;
-    RefreshAddr = ppur.get_2007access() & 0x3FFF;
-    if ((RefreshAddr & 0x3F00) == 0x3F00) {
-      //if it is in the palette range bypass the
-      //delayed read, and what gets filled in the temp
-      //buffer is the address - 0x1000, also
-      //if grayscale is set then the return is AND with 0x30
-      //to get a gray color reading
-      if (!(tmp & 3)) {
-	if (!(tmp & 0xC))
-	  ret = PALRAM[0x00];
-	else
-	  ret = UPALRAM[((tmp & 0xC) >> 2) - 1];
-      }
-      else
-	ret = PALRAM[tmp & 0x1F];
-      if (GRAYSCALE)
-	ret &= 0x30;
-      VRAMBuffer = FFCEUX_PPURead(RefreshAddr - 0x1000);
-    } else {
-      VRAMBuffer = FFCEUX_PPURead(RefreshAddr);
-    }
-    ppur.increment2007(INC32!=0);
-    RefreshAddr = ppur.get_2007access();
-    return ret;
-  } else {
-    FCEUPPU_LineUpdate();
+  FCEUPPU_LineUpdate();
 
-    ret=VRAMBuffer;
+  ret=VRAMBuffer;
 
-    if (PPU_hook) PPU_hook(tmp);
-    PPUGenLatch=VRAMBuffer;
-    if (tmp < 0x2000) {
-      VRAMBuffer=fceulib__cart.VPage[tmp>>10][tmp];
-    } else if (tmp < 0x3F00) {
-      VRAMBuffer=vnapage[(tmp>>10)&0x3][tmp&0x3FF];
-    }
-
-
-    if ((ScreenON || SpriteON) && scanline < 240) {
-      uint32 rad=RefreshAddr;
-
-      if ((rad&0x7000)==0x7000) {
-	rad^=0x7000;
-	if ((rad&0x3E0)==0x3A0)
-	  rad^=0xBA0;
-	else if ((rad&0x3E0)==0x3e0)
-	  rad^=0x3e0;
-	else
-	  rad+=0x20;
-      } else {
-	rad+=0x1000;
-      }
-      RefreshAddr=rad;
-    } else {
-      if (INC32)
-	RefreshAddr+=32;
-      else
-	RefreshAddr++;
-    }
-    if (PPU_hook) PPU_hook(RefreshAddr&0x3fff);
-
-    return ret;
+  if (PPU_hook) PPU_hook(tmp);
+  PPUGenLatch=VRAMBuffer;
+  if (tmp < 0x2000) {
+    VRAMBuffer=fceulib__cart.VPage[tmp>>10][tmp];
+  } else if (tmp < 0x3F00) {
+    VRAMBuffer=vnapage[(tmp>>10)&0x3][tmp&0x3FF];
   }
+
+
+  if ((ScreenON || SpriteON) && scanline < 240) {
+    uint32 rad=RefreshAddr;
+
+    if ((rad&0x7000)==0x7000) {
+      rad^=0x7000;
+      if ((rad&0x3E0)==0x3A0)
+	rad^=0xBA0;
+      else if ((rad&0x3E0)==0x3e0)
+	rad^=0x3e0;
+      else
+	rad+=0x20;
+    } else {
+      rad+=0x1000;
+    }
+    RefreshAddr=rad;
+  } else {
+    if (INC32)
+      RefreshAddr+=32;
+    else
+      RefreshAddr++;
+  }
+  if (PPU_hook) PPU_hook(RefreshAddr&0x3fff);
+
+  return ret;
 }
 
 static DECLFW(B2000) {
@@ -809,25 +604,15 @@ static DECLFW(B2004)
 {
   //printf("Wr: %04x:$%02x\n",A,V);
   PPUGenLatch=V;
-  if (newppu) {
-    //the attribute upper bits are not connected
-    //so AND them out on write, since reading them
-    //should return 0 in those bits.
-    if ((PPU[3] & 3) == 2)
-      V &= 0xE3;
-    SPRAM[PPU[3]] = V;
-    PPU[3] = (PPU[3] + 1) & 0xFF;
+  if (PPUSPL>=8) {
+    if (PPU[3]>=8)
+      SPRAM[PPU[3]]=V;
   } else {
-    if (PPUSPL>=8) {
-      if (PPU[3]>=8)
-	SPRAM[PPU[3]]=V;
-    } else {
-      //printf("$%02x:$%02x\n",PPUSPL,V);
-      SPRAM[PPUSPL]=V;
-    }
-    PPU[3]++;
-    PPUSPL++;
+    //printf("$%02x:$%02x\n",PPUSPL,V);
+    SPRAM[PPUSPL]=V;
   }
+  PPU[3]++;
+  PPUSPL++;
 }
 
 static DECLFW(B2005) {
@@ -885,42 +670,31 @@ static DECLFW(B2006) {
 }
 
 static DECLFW(B2007) {
-  uint32 tmp=RefreshAddr&0x3FFF;
+  const uint32 tmp=RefreshAddr&0x3FFF;
 
-  if (newppu) {
-    PPUGenLatch=V;
-    RefreshAddr = ppur.get_2007access() & 0x3FFF;
-    CALL_PPUWRITE(RefreshAddr,V);
-    //printf("%04x ",RefreshAddr);
-    ppur.increment2007(INC32!=0);
-    RefreshAddr = ppur.get_2007access();
+  PPUGenLatch=V;
+  if (tmp>=0x3F00) {
+    // hmmm....
+    if (!(tmp&0xf))
+      PALRAM[0x00]=PALRAM[0x04]=PALRAM[0x08]=PALRAM[0x0C]=V&0x3F;
+    else if (tmp&3) PALRAM[(tmp&0x1f)]=V&0x3f;
+  } else if (tmp<0x2000) {
+    if (PPUCHRRAM&(1<<(tmp>>10)))
+      fceulib__cart.VPage[tmp>>10][tmp]=V;
   } else {
-    //printf("%04x ",tmp);
-    PPUGenLatch=V;
-    if (tmp>=0x3F00) {
-      // hmmm....
-      if (!(tmp&0xf))
-	PALRAM[0x00]=PALRAM[0x04]=PALRAM[0x08]=PALRAM[0x0C]=V&0x3F;
-      else if (tmp&3) PALRAM[(tmp&0x1f)]=V&0x3f;
-    } else if (tmp<0x2000) {
-      if (PPUCHRRAM&(1<<(tmp>>10)))
-	fceulib__cart.VPage[tmp>>10][tmp]=V;
-    } else {
-      if (PPUNTARAM&(1<<((tmp&0xF00)>>10)))
-	vnapage[((tmp&0xF00)>>10)][tmp&0x3FF]=V;
-    }
-    //      FCEU_printf("ppu (%04x) %04x:%04x %d, %d\n",X.PC,RefreshAddr,PPUGenLatch,scanline,timestamp);
-    if (INC32) RefreshAddr+=32;
-    else RefreshAddr++;
-    if (PPU_hook) PPU_hook(RefreshAddr&0x3fff);
+    if (PPUNTARAM&(1<<((tmp&0xF00)>>10)))
+      vnapage[((tmp&0xF00)>>10)][tmp&0x3FF]=V;
   }
+  //      FCEU_printf("ppu (%04x) %04x:%04x %d, %d\n",X.PC,RefreshAddr,PPUGenLatch,scanline,timestamp);
+  if (INC32) RefreshAddr+=32;
+  else RefreshAddr++;
+  if (PPU_hook) PPU_hook(RefreshAddr&0x3fff);
 }
 
 static DECLFW(B4014) {
-  uint32 t=V<<8;
-  int x;
+  const uint32 t=V<<8;
 
-  for (x=0;x<256;x++) {
+  for (int x=0;x<256;x++) {
     X6502_DMW(0x2004,X6502_DMR(t+x));
   }
 }
@@ -945,9 +719,6 @@ static void ResetRL(uint8 *target) {
 static uint8 sprlinebuf[256+8];
 
 void FCEUPPU_LineUpdate() {
-  if (newppu)
-    return;
-
   if (Pline) {
     const int l = (PAL? ((timestamp*48-linestartts)/15) : 
 		        ((timestamp*48-linestartts)>>4) );
@@ -1766,11 +1537,6 @@ void FCEUPPU_Power() {
 }
 
 int FCEUPPU_Loop(int skip) {
-  if (newppu) {
-    int FCEUX_PPU_Loop(int skip);
-    return FCEUX_PPU_Loop(skip);
-  }
-
   // Needed for Knight Rider, possibly others.
   if (ppudead) {
     memset(XBuf, 0x80, 256*240);
@@ -1783,9 +1549,10 @@ int FCEUPPU_Loop(int skip) {
 
     PPU_status |= 0x80;
 
-    //Not sure if this is correct.  According to Matt Conte and my own tests, it is.
-    //Timing is probably off, though.
-    //NOTE:  Not having this here breaks a Super Donkey Kong game.
+    // Not sure if this is correct.
+    // According to Matt Conte and my own tests, it is.
+    // Timing is probably off, though.
+    // NOTE:  Not having this here breaks a Super Donkey Kong game.
     PPU[3]=PPUSPL=0;
 
     // I need to figure out the true nature and length of this delay.
@@ -1832,31 +1599,27 @@ int FCEUPPU_Loop(int skip) {
 
       TRACELOC();
       PPU_status|=0x20;       // Fixes "Bee 52".  Does it break anything?
-      if (GameHBIRQHook)
-	{
-	  X6502_Run(256);
-	  for (scanline=0;scanline<240;scanline++)
-	    {
-	      if (ScreenON || SpriteON)
-		GameHBIRQHook();
-	      if (scanline==y && SpriteON) {
-		TRACELOC();
-		PPU_status|=0x40;
-	      }
-	      X6502_Run((scanline==239)?85:(256+85));
-	    }
-	}
-      else if (y<240)
-	{
-	  X6502_Run((256+85)*y);
-	  if (SpriteON) {
+      if (GameHBIRQHook) {
+	X6502_Run(256);
+	for (scanline=0;scanline<240;scanline++) {
+	  if (ScreenON || SpriteON)
+	    GameHBIRQHook();
+	  if (scanline==y && SpriteON) {
 	    TRACELOC();
-	    PPU_status|=0x40; // Quick and very dirty hack.
+	    PPU_status|=0x40;
 	  }
-	  X6502_Run((256+85)*(240-y));
+	  X6502_Run((scanline==239)?85:(256+85));
 	}
-      else
+      } else if (y<240) {
+	X6502_Run((256+85)*y);
+	if (SpriteON) {
+	  TRACELOC();
+	  PPU_status|=0x40; // Quick and very dirty hack.
+	}
+	X6502_Run((256+85)*(240-y));
+      } else {
 	X6502_Run((256+85)*240);
+      }
     }
 #endif
     else {
@@ -1921,6 +1684,7 @@ const SFORMAT FCEUPPU_STATEINFO[] = {
 };
 
 // TODO: PERF: Can avoid saving new ppu state! -tom7
+// XXX deleteme.
 const SFORMAT FCEU_NEWPPU_STATEINFO[] = {
   { &idleSynch, 1, "IDLS" },
   { &spr_read.num, 4|FCEUSTATE_RLSB, "SR_0" },
@@ -2023,7 +1787,9 @@ static inline int PaletteAdjustPixel(int pixel) {
     return (pixel&0x3F)|0x80;
 }
 
-int FCEUX_PPU_Loop(int skip) {
+// this is newppu
+#if 0
+static int FCEUX_PPU_Loop(int skip) {
   fprintf(stderr, "Not expecting to use new PPU.\n");
   abort();
 
@@ -2389,3 +2155,4 @@ int FCEUX_PPU_Loop(int skip) {
 
   return 0;
 }
+#endif
