@@ -26,21 +26,14 @@ uint8* FCEUPPU_GetCHR(uint32 vadr, uint32 refreshaddr);
 // 0 to keep 8-sprites limitation, 1 to remove it
 void FCEUI_DisableSpriteLimitation(int a);
 
-void PPU_ResetHooks();
-extern uint8 (*FFCEUX_PPURead)(uint32 A);
-extern void (*FFCEUX_PPUWrite)(uint32 A, uint8 V);
-extern uint8 FFCEUX_PPURead_Default(uint32 A);
+// void PPU_ResetHooks();
+// extern uint8 (*FFCEUX_PPURead)(uint32 A);
+// extern void (*FFCEUX_PPUWrite)(uint32 A, uint8 V);
+// extern uint8 FFCEUX_PPURead_Default(uint32 A);
 
 extern int scanline;
 extern int g_rasterpos;
 extern uint8 PPU[4];
-
-// I think this is new ppu only.
-enum PPUPHASE {
-  PPUPHASE_VBL, PPUPHASE_BG, PPUPHASE_OBJ
-};
-
-extern PPUPHASE ppuphase;
 
 extern const SFORMAT FCEUPPU_STATEINFO[];
 extern const SFORMAT FCEU_NEWPPU_STATEINFO[];

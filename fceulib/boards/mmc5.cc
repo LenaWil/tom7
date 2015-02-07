@@ -106,6 +106,7 @@ static inline uint8 *  MMC5BGVRAMADR(uint32 A)
   } else return &fceulib__cart.MMC5BGVPage[(A)>>10][(A)];
 }
 
+#if 0
 static void mmc5_PPUWrite(uint32 A, uint8 V) {
   uint32 tmp = A;
   extern uint8 PALRAM[0x20];
@@ -133,7 +134,7 @@ static uint8 mmc5_PPURead(uint32 A) {
     return vnapage[(A>>10)&0x3][A&0x3FF];
   }
 }
-
+#endif
 
 
 // ELROM seems to have 8KB of RAM
@@ -838,9 +839,6 @@ static void GenMMC5_Init(CartInfo *info, int wsize, int battery) {
   MMC5HackCHRMode=0;
   MMC5HackSPMode=MMC5HackSPScroll=MMC5HackSPPage=0;
   Mapper5_ESI();
-
-  FFCEUX_PPURead = mmc5_PPURead;
-  FFCEUX_PPUWrite = mmc5_PPUWrite;
 }
 
 void Mapper5_Init(CartInfo *info)

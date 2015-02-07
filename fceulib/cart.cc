@@ -87,8 +87,6 @@ void Cart::setpageptr(int s, uint32 A, uint8 *p, int ram) {
 // the bottom of mappers/6.cc...
 //   -tom7
 void Cart::ResetCartMapping(void) {
-  PPU_ResetHooks();
-
   for (int x=0;x<32;x++) {
     Page[x]=nothing-x*2048;
     PRGptr[x]=CHRptr[x]=nullptr;
