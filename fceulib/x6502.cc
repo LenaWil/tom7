@@ -474,7 +474,6 @@ void X6502_Run(int32 cycles) {
 
   _count += cycles;
 
-  extern int test; test++;
   while (_count > 0) {
     int32 temp;
 
