@@ -45,13 +45,13 @@ if(X1>=2) {
 #ifdef PPUT_MMC5SP
 	vadr=(MMC5HackExNTARAMPtr[xs|(ys<<5)]<<4)+(vofs&7);
 #else
-	zz=RefreshAddr&0x1F;
-	C=vnapage[(RefreshAddr>>10)&3];
-	vadr=(C[RefreshAddr&0x3ff]<<4)+vofs;   /* Fetch name table byte. */
+	zz=refreshaddr_local&0x1F;
+	C=vnapage[(refreshaddr_local>>10)&3];
+	vadr=(C[refreshaddr_local&0x3ff]<<4)+vofs;   /* Fetch name table byte. */
 #endif
 
 #ifdef PPUT_HOOK
-	PPU_hook(0x2000|(RefreshAddr&0xfff));
+	PPU_hook(0x2000|(refreshaddr_local&0xfff));
 #endif
 
 #ifdef PPUT_MMC5SP
@@ -59,10 +59,10 @@ if(X1>=2) {
 	cc=((cc >> ((xs&2) + ((ys&0x2)<<1))) &3);
 #else
 	#ifdef PPUT_MMC5CHR1
-		cc=(MMC5HackExNTARAMPtr[RefreshAddr & 0x3ff] & 0xC0)>>6;
+		cc=(MMC5HackExNTARAMPtr[refreshaddr_local & 0x3ff] & 0xC0)>>6;
 	#else
-		cc=C[0x3c0+(zz>>2)+((RefreshAddr&0x380)>>4)];  /* Fetch attribute table byte. */
-		cc=((cc >> ((zz&2) + ((RefreshAddr&0x40)>>4))) &3);
+		cc=C[0x3c0+(zz>>2)+((refreshaddr_local&0x380)>>4)];  /* Fetch attribute table byte. */
+		cc=((cc >> ((zz&2) + ((refreshaddr_local&0x40)>>4))) &3);
 	#endif
 #endif
 
@@ -78,7 +78,7 @@ pshift[1]<<=8;
 #else
 	#ifdef PPUT_MMC5CHR1
 		C = MMC5HackVROMPTR;
-		C += (((MMC5HackExNTARAMPtr[RefreshAddr & 0x3ff]) & 0x3f & 
+		C += (((MMC5HackExNTARAMPtr[refreshaddr_local & 0x3ff]) & 0x3f & 
 			MMC5HackVROMMask) << 12) + (vadr & 0xfff);
 		C += (MMC50x5130&0x3)<<18; //11-jun-2009 for kuja_killer
 	#elif defined(PPUT_MMC5)
@@ -95,12 +95,12 @@ pshift[1]<<=8;
 pshift[0]|=C[0];
 pshift[1]|=C[8];
 
-if((RefreshAddr&0x1f)==0x1f)
-	RefreshAddr^=0x41F;
+if((refreshaddr_local&0x1f)==0x1f)
+	refreshaddr_local^=0x41F;
 else
-	RefreshAddr++;
+	refreshaddr_local++;
 
 #ifdef PPUT_HOOK
-	PPU_hook(0x2000|(RefreshAddr&0xfff));
+	PPU_hook(0x2000|(refreshaddr_local&0xfff));
 #endif
 

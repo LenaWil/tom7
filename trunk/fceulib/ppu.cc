@@ -61,8 +61,6 @@
 
 #define PPU_status      (PPU[2])
 
-#define Pal     (PALRAM)
-
 static void FetchSpriteData();
 static void RefreshLine(int lastpixel);
 static void RefreshSprites();
@@ -86,9 +84,7 @@ static uint32 ppulut3[128];
 static constexpr bool rendersprites = true;
 static constexpr bool renderbg = true;
 
-// XXX ugh. Modified in x6502. Is it used? Not in this file. -tom7
-int test = 0;
-
+// XXX not thread safe. Only used in (disabled) debugging code.
 static const char *attrbits(uint8 b) {
   static char buf[9] = {0};
   for (int i = 0; i < 8; i ++) {
@@ -358,7 +354,8 @@ void (*PPU_hook)(uint32 A);
 uint8 vtoggle = 0;
 uint8 XOffset = 0;
 
-uint32 TempAddr = 0, RefreshAddr = 0;
+static uint32 TempAddr = 0;
+static uint32 RefreshAddr = 0;
 
 static int maxsprites = 8;
 
@@ -928,11 +925,6 @@ static DECLFW(B4014) {
   }
 }
 
-// Unused?? Plus conflicts with PAL?! -tom7
-// #define PAL(c)  ((c)+cc)
-
-#define GETLASTPIXEL    (PAL?((timestamp*48-linestartts)/15) : ((timestamp*48-linestartts)>>4) )
-
 static uint8 *Pline,*Plinef;
 static int firsttile;
 static int linestartts;
@@ -957,7 +949,8 @@ void FCEUPPU_LineUpdate() {
     return;
 
   if (Pline) {
-    int l=GETLASTPIXEL;
+    const int l = (PAL? ((timestamp*48-linestartts)/15) : 
+		        ((timestamp*48-linestartts)>>4) );
     RefreshLine(l);
   }
 }
@@ -1008,7 +1001,11 @@ static uint32 atlatch;
 
 // lasttile is really "second to last tile."
 static void RefreshLine(int lastpixel) {
-  uint32 smorkus=RefreshAddr;
+  // pputile.inc modifies this variable, but we don't put the result
+  // into RefreshAddr until we're done -- maybe so that hooks that
+  // we execute don't see the updated value until the end. (Note
+  // however that RefreshAddr is only used in ppu*.
+  uint32 refreshaddr_local=RefreshAddr;
 
   /* Yeah, recursion would be bad.
      PPU_hook() functions can call
@@ -1019,10 +1016,9 @@ static void RefreshLine(int lastpixel) {
   if (norecurse) return;
 
   TRACEF("RefreshLine %d %u %u %u %u %d",
-	 lastpixel, pshift[0], pshift[1], atlatch, smorkus,
+	 lastpixel, pshift[0], pshift[1], atlatch, refreshaddr_local,
 	 norecurse);
 
-#define RefreshAddr smorkus
   uint32 vofs;
   int X1;
 
@@ -1045,11 +1041,12 @@ static void RefreshLine(int lastpixel) {
 
   vofs=0;
 
-  vofs=((PPU[0]&0x10)<<8) | ((RefreshAddr>>12)&7);
+  vofs=((PPU[0]&0x10)<<8) | ((refreshaddr_local>>12)&7);
 
+  static constexpr int TOFIXNUM = 272 - 0x4;
   if (!ScreenON && !SpriteON) {
     uint32 tem;
-    tem=Pal[0]|(Pal[0]<<8)|(Pal[0]<<16)|(Pal[0]<<24);
+    tem=PALRAM[0]|(PALRAM[0]<<8)|(PALRAM[0]<<16)|(PALRAM[0]<<24);
     tem|=0x40404040;
     FCEU_dwmemset(Pline,tem,numtiles*8);
     P+=numtiles*8;
@@ -1057,121 +1054,99 @@ static void RefreshLine(int lastpixel) {
 
     firsttile=lasttile;
 
-#define TOFIXNUM (272-0x4)
     if (lastpixel>=TOFIXNUM && tofix) {
       Fixit1();
       tofix=0;
     }
 
     if ((lastpixel-16)>=0) {
-      InputScanlineHook(Plinef,any_sprites_on_line?sprlinebuf:0,linestartts,lasttile*8-16);
+      InputScanlineHook(Plinef,any_sprites_on_line?sprlinebuf:0,
+			linestartts,lasttile*8-16);
     }
     return;
   }
 
-  //Priority bits, needed for sprite emulation.
-  Pal[0]|=64;
-  Pal[4]|=64;
-  Pal[8]|=64;
-  Pal[0xC]|=64;
+  // Priority bits, needed for sprite emulation.
+  PALRAM[0]|=64;
+  PALRAM[4]|=64;
+  PALRAM[8]|=64;
+  PALRAM[0xC]|=64;
 
-  //This high-level graphics MMC5 emulation code was written for MMC5 carts in "CL" mode.
-  //It's probably not totally correct for carts in "SL" mode.
+  // This high-level graphics MMC5 emulation code was written for MMC5
+  //carts in "CL" mode. It's probably not totally correct for carts in
+  //"SL" mode.
 
 #define PPUT_MMC5
-  if (MMC5Hack)
-    {
-      if (MMC5HackCHRMode==0 && (MMC5HackSPMode&0x80))
-	{
-	  int tochange=MMC5HackSPMode&0x1F;
-	  tochange-=firsttile;
-	  for (X1=firsttile;X1<lasttile;X1++)
-	    {
-	      if ((tochange<=0 && MMC5HackSPMode&0x40) || (tochange>0 && !(MMC5HackSPMode&0x40)))
-		{
-		  TRACELOC();
+  if (MMC5Hack) {
+    if (MMC5HackCHRMode==0 && (MMC5HackSPMode&0x80)) {
+      int tochange=MMC5HackSPMode&0x1F;
+      tochange-=firsttile;
+      for (X1=firsttile;X1<lasttile;X1++) {
+	if ((tochange<=0 && MMC5HackSPMode&0x40) || (tochange>0 && !(MMC5HackSPMode&0x40))) {
+	  TRACELOC();
 #define PPUT_MMC5SP
 #include "pputile.inc"
 #undef PPUT_MMC5SP
-		}
-	      else
-		{
-		  TRACELOC();
+	} else {
+	  TRACELOC();
 #include "pputile.inc"
-		}
-	      tochange--;
-	    }
 	}
-      else if (MMC5HackCHRMode==1 && (MMC5HackSPMode&0x80))
-	{
-	  int tochange=MMC5HackSPMode&0x1F;
-	  tochange-=firsttile;
+	tochange--;
+      }
+    } else if (MMC5HackCHRMode==1 && (MMC5HackSPMode&0x80)) {
+      int tochange=MMC5HackSPMode&0x1F;
+      tochange-=firsttile;
 
 #define PPUT_MMC5SP
 #define PPUT_MMC5CHR1
-	  for (X1=firsttile;X1<lasttile;X1++)
-	    {
-	      TRACELOC();
+      for (X1=firsttile;X1<lasttile;X1++) {
+	TRACELOC();
 #include "pputile.inc"
-	    }
+      }
 #undef PPUT_MMC5CHR1
 #undef PPUT_MMC5SP
-	}
-      else if (MMC5HackCHRMode==1)
-	{
+    } else if (MMC5HackCHRMode==1) {
 #define PPUT_MMC5CHR1
-	  for (X1=firsttile;X1<lasttile;X1++)
-	    {
-	      TRACELOC();
+      for (X1=firsttile;X1<lasttile;X1++) {
+	TRACELOC();
 #include "pputile.inc"
-	    }
+      }
 #undef PPUT_MMC5CHR1
-	}
-      else
-	{
-	  for (X1=firsttile;X1<lasttile;X1++)
-	    {
-	      TRACELOC();
+    } else {
+      for (X1=firsttile;X1<lasttile;X1++) {
+	TRACELOC();
 #include "pputile.inc"
-	    }
-	}
+      }
     }
+  }
 #undef PPUT_MMC5
-  else if (PPU_hook)
-    {
-      norecurse=1;
+  else if (PPU_hook) {
+    norecurse=1;
 #define PPUT_HOOK
-      for (X1=firsttile;X1<lasttile;X1++)
-	{
-	  TRACELOC();
+    for (X1=firsttile;X1<lasttile;X1++) {
+      TRACELOC();
 #include "pputile.inc"
-	}
+    }
 #undef PPUT_HOOK
-      norecurse=0;
-    }
-  else
-    {
-      for (X1=firsttile;X1<lasttile;X1++)
-	{
-	  TRACELOC();
+    norecurse=0;
+  } else {
+    for (X1=firsttile;X1<lasttile;X1++) {
+      TRACELOC();
 #include "pputile.inc"
-	}
     }
-
-#undef vofs
-#undef RefreshAddr
+  }
 
   //Reverse changes made before.
-  Pal[0]&=63;
-  Pal[4]&=63;
-  Pal[8]&=63;
-  Pal[0xC]&=63;
+  PALRAM[0]&=63;
+  PALRAM[4]&=63;
+  PALRAM[8]&=63;
+  PALRAM[0xC]&=63;
 
-  RefreshAddr=smorkus;
+  RefreshAddr=refreshaddr_local;
   if (firsttile<=2 && 2<lasttile && !(PPU[1]&2))
     {
       uint32 tem;
-      tem=Pal[0]|(Pal[0]<<8)|(Pal[0]<<16)|(Pal[0]<<24);
+      tem=PALRAM[0]|(PALRAM[0]<<8)|(PALRAM[0]<<16)|(PALRAM[0]<<24);
       tem|=0x40404040;
       *(uint32 *)Plinef=*(uint32 *)(Plinef+4)=tem;
     }
@@ -1180,7 +1155,7 @@ static void RefreshLine(int lastpixel) {
     {
       uint32 tem;
       int tstart,tcount;
-      tem=Pal[0]|(Pal[0]<<8)|(Pal[0]<<16)|(Pal[0]<<24);
+      tem=PALRAM[0]|(PALRAM[0]<<8)|(PALRAM[0]<<16)|(PALRAM[0]<<24);
       tem|=0x40404040;
 
       tcount=lasttile-firsttile;
@@ -1255,13 +1230,9 @@ static void DoLine() {
 
   if (!renderbg) {
     // User asked to not display background data.
-    uint32 tem;
-    uint8 col;
-    if (gNoBGFillColor == 0xFF)
-      col = Pal[0];
-    else col = gNoBGFillColor;
-    tem=col|(col<<8)|(col<<16)|(col<<24);
-    tem|=0x40404040;
+    uint8 col = (gNoBGFillColor == 0xFF) ? PALRAM[0] : gNoBGFillColor;
+    uint32 tem = col|(col<<8)|(col<<16)|(col<<24);
+    tem |= 0x40404040;
     FCEU_dwmemset(target,tem,256);
   }
 
@@ -1269,8 +1240,8 @@ static void DoLine() {
     CopySprites(target);
 
 
-  // What is this?? ORs every byte in the buffer with 0x30 if PPU[1] has its lowest
-  // bit set.
+  // What is this?? ORs every byte in the buffer with 0x30 if PPU[1]
+  // has its lowest bit set.
 
   if (ScreenON || SpriteON) {
     // Yes, very el-cheapo.
@@ -2052,7 +2023,6 @@ static inline int PaletteAdjustPixel(int pixel) {
     return (pixel&0x3F)|0x80;
 }
 
-int framectr=0;
 int FCEUX_PPU_Loop(int skip) {
   fprintf(stderr, "Not expecting to use new PPU.\n");
   abort();
@@ -2080,11 +2050,14 @@ int FCEUX_PPU_Loop(int skip) {
     PPU_status |= 0x80;
     ppuphase = PPUPHASE_VBL;
 
-    //Not sure if this is correct.  According to Matt Conte and my own tests, it is.
-    //Timing is probably off, though.
-    //NOTE:  Not having this here breaks a Super Donkey Kong game.
+    // Not sure if this is correct. 
+    // According to Matt Conte and my own tests, it is.
+    // Timing is probably off, though.
+    // NOTE:  Not having this here breaks a Super Donkey Kong game.
     PPU[3]=PPUSPL=0;
-    const int delay = 20; //fceu used 12 here but I couldnt get it to work in marble madness and pirates.
+    // fceu used 12 here but I couldnt get it to work in marble
+    // madness and pirates.
+    const int delay = 20;
 
     ppur.status.sl = 241; //for sprite reads
 
@@ -2101,11 +2074,12 @@ int FCEUX_PPU_Loop(int skip) {
     //this early out caused metroid to fail to boot. I am leaving it here as a reminder of what not to do
     //if (!PPUON) { runppu(kLineTime*242); goto finish; }
 
-    //There are 2 conditions that update all 5 PPU scroll counters with the
-    //contents of the latches adjacent to them. The first is after a write to
-    //2006/2. The second, is at the beginning of scanline 20, when the PPU starts
-    //rendering data for the first time in a frame (this update won't happen if
-    //all rendering is disabled via 2001.3 and 2001.4).
+    // There are 2 conditions that update all 5 PPU scroll counters
+    // with the contents of the latches adjacent to them. The first is
+    // after a write to 2006/2. The second, is at the beginning of
+    // scanline 20, when the PPU starts rendering data for the first
+    // time in a frame (this update won't happen if all rendering is
+    // disabled via 2001.3 and 2001.4).
 
     //if (PPUON)
     //	ppur.install_latches();
@@ -2137,9 +2111,9 @@ int FCEUX_PPU_Loop(int skip) {
 
       oamcount = oamcounts[renderslot];
 
-      //the main scanline rendering loop:
-      //32 times, we will fetch a tile and then render 8 pixels.
-      //two of those tiles were read in the last scanline.
+      // the main scanline rendering loop:
+      // 32 times, we will fetch a tile and then render 8 pixels.
+      // two of those tiles were read in the last scanline.
       for (int xt=0;xt<32;xt++) {
 	bgdata.main[xt+2].Read();
 
@@ -2152,8 +2126,10 @@ int FCEUX_PPU_Loop(int skip) {
 	  uint8 *ptr = target;
 	  int rasterpos = xstart;
 
-	  //check all the conditions that can cause things to render in these 8px
-	  const bool renderspritenow = SpriteON && rendersprites && (xt>0 || SpriteLeft8);
+	  // check all the conditions that can cause things to render
+	  // in these 8px
+	  const bool renderspritenow = SpriteON && rendersprites && 
+	    (xt>0 || SpriteLeft8);
 	  const bool renderbgnow = ScreenON && renderbg && (xt>0 || BGLeft8);
 	  for (int xp=0;xp<8;xp++,rasterpos++,g_rasterpos++) {
 
@@ -2168,7 +2144,9 @@ int FCEUX_PPU_Loop(int skip) {
 	    //generate the BG data
 	    if (renderbgnow) {
 	      uint8* pt = bgdata.main[bgtile].pt;
-	      pixel = ((pt[0]>>(7-bgpx))&1) | (((pt[1]>>(7-bgpx))&1)<<1) | bgdata.main[bgtile].at;
+	      pixel = ((pt[0]>>(7-bgpx))&1) | 
+		(((pt[1]>>(7-bgpx))&1)<<1) | 
+		bgdata.main[bgtile].at;
 	    }
 	    pixelcolor = PALRAM[pixel];
 
@@ -2371,12 +2349,13 @@ int FCEUX_PPU_Loop(int skip) {
       for (int xt=0;xt<2;xt++)
 	bgdata.main[xt].Read();
 
-      //I'm unclear of the reason why this particular access to memory is made.
-      //The nametable address that is accessed 2 times in a row here, is also the
-      //same nametable address that points to the 3rd tile to be rendered on the
-      //screen (or basically, the first nametable address that will be accessed when
-      //the PPU is fetching background data on the next scanline).
-      //(not implemented yet)
+      // I'm unclear of the reason why this particular access to
+      // memory is made. The nametable address that is accessed 2
+      // times in a row here, is also the same nametable address that
+      // points to the 3rd tile to be rendered on the screen (or
+      // basically, the first nametable address that will be accessed
+      // when the PPU is fetching background data on the next
+      // scanline). (not implemented yet)
       runppu(kFetchTime);
       if (sl == 0) {
 	if (idleSynch && PPUON && !PAL)
@@ -2389,10 +2368,11 @@ int FCEUX_PPU_Loop(int skip) {
       }
       runppu(kFetchTime);
 
-      //After memory access 170, the PPU simply rests for 4 cycles (or the
-      //equivelant of half a memory access cycle) before repeating the whole
-      //pixel/scanline rendering process. If the scanline being rendered is the very
-      //first one on every second frame, then this delay simply doesn't exist.
+      // After memory access 170, the PPU simply rests for 4 cycles
+      // (or the equivelant of half a memory access cycle) before
+      // repeating the whole pixel/scanline rendering process. If the
+      // scanline being rendered is the very first one on every second
+      // frame, then this delay simply doesn't exist.
       if (ppur.status.end_cycle == 341)
 	runppu(1);
 
@@ -2402,8 +2382,6 @@ int FCEUX_PPU_Loop(int skip) {
 
     //idle for one line
     runppu(kLineTime);
-    framectr++;
-
   }
 
  finish:
