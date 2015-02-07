@@ -171,8 +171,6 @@ static void ResetGameLoaded() {
   GameStateRestore=0;
   PPU_hook=0;
   GameHBIRQHook=0;
-  FFCEUX_PPURead = 0;
-  FFCEUX_PPUWrite = 0;
   // Probably this should happen within sound itself.
   if (fceulib__sound.GameExpSound.Kill)
     fceulib__sound.GameExpSound.Kill();
