@@ -7,6 +7,7 @@
 #include <sys/time.h>
 #include <sstream>
 #include <unistd.h>
+#include <cstdio>
 
 #include "base/logging.h"
 #include "test-util.h"
@@ -270,6 +271,10 @@ static SerialResult RunGameSerially(const Game &game) {
   // should just be part of the savestate feature.
   if (0 == unlink(".sav")) {
     fprintf(stderr, "NOTE: Removed .sav file before RunGameSerially.\n");
+  }
+
+  if (0 == remove(".sav")) {
+    fprintf(stderr, "NOTE: Removed .sav file (C++ style).\n");
   }
 
   CHECK(!ExistsFile(".sav")) << "\nJust tried to unlink this. "

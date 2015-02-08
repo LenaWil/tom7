@@ -9,7 +9,7 @@ Stuff I should be able to get rid of:
  - auto-fire
  - video.cc can probably go?
  - proper in-memory treatment of battery backed saves. lots of
-   red herrings here!
+   red herrings here! also, it leaks file descriptors.
  - autosave (fceu.cc mostly)
  - FCEUDEF_DEBUGGER is never defined. excise.
  - make x6502 follow normal conventions of how it defines stuff,
