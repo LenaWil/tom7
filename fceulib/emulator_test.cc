@@ -295,7 +295,8 @@ static SerialResult RunGameSerially(const Game &game) {
     const uint64 cx = emu->RamChecksum();
     // This is debugging task specific. Copy and paste the target
     // in here!
-    const bool match = false; // cx == 7275972486064663483ULL;
+    const bool match =  false;
+    TRACEF(".. %llu", cx);
     TRACE_SCOPED_ENABLE_IF(match);
     if (match) {
       fprintf(stderr, "Enabling tracing because of ram match %llu.\n", cx);
@@ -306,12 +307,13 @@ static SerialResult RunGameSerially(const Game &game) {
     emu->StepFull(b);
   };
 
-  auto SaveAndStep = [&StepMaybeTraced,
+  int step_counter = 0;
+  auto SaveAndStep = [&StepMaybeTraced, &step_counter,
 		      &game, &emu, &saves, &inputs, &checksums,
                       &actual_rams, &images,
 		      &compressed_saves, &basis](uint8 b) {
-
-    TRACEF("Step %s", SimpleFM2::InputToString(b).c_str());
+    TRACEF("Step %d: %s", step_counter, SimpleFM2::InputToString(b).c_str());
+    step_counter++;
     vector<uint8> save;
     emu->SaveUncompressed(&save);
     TRACEV(save);
@@ -342,7 +344,7 @@ static SerialResult RunGameSerially(const Game &game) {
   TRACEF("after_inputs %llu.", emu->RamChecksum());
 
   fprintf(stderr, "Random inputs:\n");
-  TRACE_SWITCH("forward-trace.bin");
+  // TRACE_SWITCH("forward-trace.bin");
   for (uint8 b : InputStream("randoms", 10000)) SaveAndStep(b);
   // This is checked by the comprehensive driver, or should be.
   if (!MAKE_COMPREHENSIVE) {
@@ -357,7 +359,7 @@ static SerialResult RunGameSerially(const Game &game) {
     // internal state on account of just replaying all the frames in
     // order!
     fprintf(stderr, "Running frames backwards:\n");
-    TRACE_SWITCH("backward-trace.bin");
+    // TRACE_SWITCH("backward-trace.bin");
     for (int i = saves.size() - 2; i >= 0; i--) {
       // fprintf(stderr, "%d -> %d: ", i, i + 1);
       emu->LoadUncompressed(&saves[i]);
@@ -667,12 +669,15 @@ int main(int argc, char **argv) {
     return sr;
   };
 
+  TRACE_ENABLE();
+
   RunGameToCollage(kirby);
 
   RunGameToCollage(banditkings);
   RunGameToCollage(castlevania3);
 
   RunGameToCollage(ubasketball);
+
   
   // RunGameToCollage(escape);
 

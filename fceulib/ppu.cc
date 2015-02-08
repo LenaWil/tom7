@@ -26,6 +26,8 @@
 #include  <string.h>
 #include  <stdio.h>
 #include  <stdlib.h>
+#include  <tuple>
+#include  <utility>
 
 #include  "types.h"
 #include  "x6502.h"
@@ -91,7 +93,7 @@ uint8 *vnapage[4] = { nullptr, nullptr, nullptr, nullptr };
 uint8 PPUNTARAM = 0;
 uint8 PPUCHRRAM = 0;
 
-// Color deemphasis emulation.  Joy...
+// Color deemphasis emulation.
 static uint8 deemp = 0;
 static int deempcnt[8] = {};
 
@@ -501,7 +503,7 @@ void FCEUPPU_LineUpdate() {
 }
 
 static void CheckSpriteHit(int p) {
-  TRACEF("CheckSpriteHit %d %d %02x\n", p, sphitx, sphitdata);
+  TRACEF("CheckSpriteHit %d %d %02x", p, sphitx, sphitdata);
   const int l = p - 16;
 
   if (sphitx == 0x100) return;
@@ -539,6 +541,9 @@ static int any_sprites_on_line = 0;
 static uint32 pshift[2];
 // This was also static; why not save it too? -tom7
 static uint32 atlatch;
+
+// XXX
+#include "pputile.h"
 
 // lasttile is really "second to last tile."
 static void RefreshLine(int lastpixel) {
@@ -610,67 +615,75 @@ static void RefreshLine(int lastpixel) {
   // carts in "CL" mode. It's probably not totally correct for carts in
   // "SL" mode.
 
-#define PPUT_MMC5
   if (MMC5Hack) {
-    if (MMC5HackCHRMode==0 && (MMC5HackSPMode&0x80)) {
+    if (MMC5HackCHRMode == 0 && (MMC5HackSPMode&0x80)) {
       int tochange=MMC5HackSPMode&0x1F;
       tochange-=firsttile;
-      for (int X1=firsttile;X1<lasttile;X1++) {
-	if ((tochange<=0 && MMC5HackSPMode&0x40) || (tochange>0 && !(MMC5HackSPMode&0x40))) {
+      for (int X1 = firsttile; X1 < lasttile; X1++) {
+	if ((tochange<=0 && MMC5HackSPMode&0x40) || 
+	    (tochange>0 && !(MMC5HackSPMode&0x40))) {
 	  TRACELOC();
-#define PPUT_MMC5SP
-#include "pputile.inc"
-#undef PPUT_MMC5SP
+	  // MMC5 and MMC5SP
+	  std::tie(refreshaddr_local, P) =
+	    PPUTile<true, true, false, false>(X1, P, vofs, refreshaddr_local);
 	} else {
 	  TRACELOC();
-#include "pputile.inc"
+	  // MMC5 only
+	  std::tie(refreshaddr_local, P) =
+	    PPUTile<true, false, false, false>(X1, P, vofs, refreshaddr_local);
 	}
 	tochange--;
       }
-    } else if (MMC5HackCHRMode==1 && (MMC5HackSPMode&0x80)) {
+    } else if (MMC5HackCHRMode == 1 && (MMC5HackSPMode&0x80)) {
       int tochange=MMC5HackSPMode&0x1F;
       tochange-=firsttile;
 
-#define PPUT_MMC5SP
-#define PPUT_MMC5CHR1
-      for (int X1=firsttile;X1<lasttile;X1++) {
+      for (int X1 = firsttile; X1 < lasttile; X1++) {
 	TRACELOC();
-#include "pputile.inc"
+	// MMC5, MMC5SP, MMC5CHR1
+	std::tie(refreshaddr_local, P) =
+	  PPUTile<true, true, false, true>(X1, P, vofs, refreshaddr_local);
       }
-#undef PPUT_MMC5CHR1
-#undef PPUT_MMC5SP
-    } else if (MMC5HackCHRMode==1) {
-#define PPUT_MMC5CHR1
-      for (int X1=firsttile;X1<lasttile;X1++) {
+    } else if (MMC5HackCHRMode == 1) {
+      for (int X1 = firsttile; X1 < lasttile; X1++) {
 	TRACELOC();
-#include "pputile.inc"
+	// MMC5, MMC5CHR1
+	std::tie(refreshaddr_local, P) =
+	  PPUTile<true, false, false, true>(X1, P, vofs, refreshaddr_local);
       }
-#undef PPUT_MMC5CHR1
     } else {
-      for (int X1=firsttile;X1<lasttile;X1++) {
+      for (int X1 = firsttile; X1 < lasttile; X1++) {
 	TRACELOC();
-#include "pputile.inc"
+	// MMC5 only
+	std::tie(refreshaddr_local, P) =
+	  PPUTile<true, false, false, false>(X1, P, vofs, refreshaddr_local);
       }
     }
-  }
-#undef PPUT_MMC5
-  else if (PPU_hook) {
+  } else if (PPU_hook) {
     norecurse=1;
-#define PPUT_HOOK
-    for (int X1=firsttile;X1<lasttile;X1++) {
+    for (int X1 = firsttile; X1 < lasttile; X1++) {
       TRACELOC();
-#include "pputile.inc"
+      // HOOK
+      std::tie(refreshaddr_local, P) =
+	PPUTile<false, false, true, false>(X1, P, vofs, refreshaddr_local);
     }
-#undef PPUT_HOOK
     norecurse=0;
   } else {
-    for (int X1=firsttile;X1<lasttile;X1++) {
+    for (int X1 = firsttile; X1 < lasttile; X1++) {
       TRACELOC();
-#include "pputile.inc"
+      // Nothing.
+      std::tie(refreshaddr_local, P) =
+	PPUTile<false, false, false, false>(X1, P, vofs, refreshaddr_local);
     }
   }
 
-  //Reverse changes made before.
+  TRACEF("After PPU: %d %d", X.PC, refreshaddr_local);
+  TRACEF("Moreover: %d %u %u %u %u %d",
+	 lastpixel, pshift[0], pshift[1], atlatch, refreshaddr_local,
+	 norecurse);
+  TRACEA(PPU, 4);
+
+  // Reverse changes made before.
   PALRAM[0]&=63;
   PALRAM[4]&=63;
   PALRAM[8]&=63;
@@ -857,7 +870,7 @@ void FCEUI_DisableSpriteLimitation(int a) {
 // where the PPU is looking for sprites for the NEXT scanline.
 static uint8 numsprites,SpriteBlurp;
 static void FetchSpriteData() {
-  int n;
+  int n; // XXX in for loops.
   int vofs;
   uint8 P0=PPU[0];
 
@@ -870,7 +883,7 @@ static void FetchSpriteData() {
   H+=(P0&0x20)>>2;
 
   DEBUGF(stderr, "FetchSprites @%d\n", scanline);
-  if (!PPU_hook)
+  if (!PPU_hook) {
     for (n = 63; n >= 0; n--, spr++) {
       if ((unsigned int)(scanline - spr->y) >= H) continue;
       //printf("%d, %u\n",scanline,(unsigned int)(scanline-spr->y));
@@ -920,7 +933,7 @@ static void FetchSpriteData() {
 	break;
       }
     }
-  else
+  } else {
     for (n=63;n>=0;n--,spr++) {
       if ((unsigned int)(scanline-spr->y)>=H) continue;
 
@@ -965,18 +978,18 @@ static void FetchSpriteData() {
 	}
 
 	ns++;
-      }
-      else {
+      } else {
 	TRACELOC();
 	PPU_status|=0x20;
 	break;
       }
     }
+  }
   //if (ns>=7)
   //printf("%d %d\n",scanline,ns);
 
   //Handle case when >8 sprites per scanline option is enabled.
-  if (ns>8) {
+  if (ns > 8) {
     TRACELOC();
     PPU_status|=0x20;
   } else if (PPU_hook) {

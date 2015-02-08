@@ -1,7 +1,10 @@
 
-template<bool PPUT_MMC5SP, bool PPUT_HOOK, bool PPUT_MMC5SP>
-void PPUTile() {
-  uint8 *C; 
+// Returns refreshaddr_local.
+template<bool PPUT_MMC5, bool PPUT_MMC5SP, bool PPUT_HOOK, bool PPUT_MMC5CHR1>
+static inline std::pair<uint32, uint8 *> PPUTile(const int X1, uint8 *P, 
+						 const uint32 vofs,
+						 uint32 refreshaddr_local) {
+  uint8 *C;
   register uint8 cc;
   uint32 vadr;
 
@@ -15,15 +18,15 @@ void PPUTile() {
   // in any case. -tom7
   (void)zz;
 
-  uint8 xs,ys;
+  uint8 xs, ys;
   if (PPUT_MMC5SP) {
-    xs=X1;
-    ys=((scanline>>3)+MMC5HackSPScroll)&0x1F;
-    if(ys>=0x1E) ys-=0x1E;
+    xs = X1;
+    ys = ((scanline>>3)+MMC5HackSPScroll) & 0x1F;
+    if (ys >= 0x1E) ys -= 0x1E;
   }
 	
-  if(X1>=2) {
-    uint8 *S=PALRAM;
+  if (X1 >= 2) {
+    uint8 *S = PALRAM;
     uint32 pixdata;
 
     pixdata = ppulut1[(pshift[0]>>(8-XOffset))&0xFF] | 
@@ -60,56 +63,62 @@ void PPUTile() {
   }
 
   if (PPUT_HOOK) {
-    PPU_hook(0x2000|(refreshaddr_local&0xfff));
+    PPU_hook(0x2000 | (refreshaddr_local & 0xfff));
   }
 
   if (PPUT_MMC5SP) {
-    cc=MMC5HackExNTARAMPtr[0x3c0+(xs>>2)+((ys&0x1C)<<1)];
-    cc=((cc >> ((xs&2) + ((ys&0x2)<<1))) &3);
+    cc = MMC5HackExNTARAMPtr[0x3c0+(xs>>2)+((ys&0x1C)<<1)];
+    cc = (cc >> ((xs&2) + ((ys&0x2)<<1))) & 3;
   } else {
     if (PPUT_MMC5CHR1) {
-      cc=(MMC5HackExNTARAMPtr[refreshaddr_local & 0x3ff] & 0xC0)>>6;
+      cc = (MMC5HackExNTARAMPtr[refreshaddr_local & 0x3ff] & 0xC0) >> 6;
     } else {
-      cc=C[0x3c0+(zz>>2)+((refreshaddr_local&0x380)>>4)];  /* Fetch attribute table byte. */
-      cc=((cc >> ((zz&2) + ((refreshaddr_local&0x40)>>4))) &3);
+      /* Fetch attribute table byte. */
+      cc = C[0x3c0+(zz>>2)+((refreshaddr_local&0x380)>>4)];
+      cc = (cc >> ((zz&2) + ((refreshaddr_local&0x40)>>4))) & 3;
     }
   }
 
-atlatch>>=2;
-atlatch|=cc<<2;  
+  atlatch >>= 2;
+  atlatch |= cc << 2;  
        
-pshift[0]<<=8;
-pshift[1]<<=8;
+  pshift[0] <<= 8;
+  pshift[1] <<= 8;
 
-#ifdef PPUT_MMC5SP
-	C = MMC5HackVROMPTR+vadr;
-	C += ((MMC5HackSPPage & 0x3f & MMC5HackVROMMask) << 12);
-#else
-	#ifdef PPUT_MMC5CHR1
-		C = MMC5HackVROMPTR;
-		C += (((MMC5HackExNTARAMPtr[refreshaddr_local & 0x3ff]) & 0x3f & 
-			MMC5HackVROMMask) << 12) + (vadr & 0xfff);
-		C += (MMC50x5130&0x3)<<18; //11-jun-2009 for kuja_killer
-	#elif defined(PPUT_MMC5)
-		C=MMC5BGVRAMADR(vadr);
-	#else
-		C = VRAMADR(vadr);
-	#endif
-#endif
+  if (PPUT_MMC5SP) {
+    C = MMC5HackVROMPTR + vadr;
+    C += ((MMC5HackSPPage & 0x3f & MMC5HackVROMMask) << 12);
+  } else {
+    if (PPUT_MMC5CHR1) {
+      C = MMC5HackVROMPTR;
+      C += (((MMC5HackExNTARAMPtr[refreshaddr_local & 0x3ff]) & 0x3f & 
+	     MMC5HackVROMMask) << 12) + (vadr & 0xfff);
+      //11-jun-2009 for kuja_killer
+      C += (MMC50x5130 & 0x3) << 18;
+    } else if (PPUT_MMC5) {
+      C = MMC5BGVRAMADR(vadr);
+    } else {
+      C = VRAMADR(vadr);
+    }
+  }
 
-#ifdef PPUT_HOOK
-	PPU_hook(vadr);
-#endif
+  if (PPUT_HOOK) {
+    PPU_hook(vadr);
+  }
 
-pshift[0]|=C[0];
-pshift[1]|=C[8];
+  pshift[0] |= C[0];
+  pshift[1] |= C[8];
 
-if((refreshaddr_local&0x1f)==0x1f)
-	refreshaddr_local^=0x41F;
-else
-	refreshaddr_local++;
+  if ((refreshaddr_local&0x1f) == 0x1f) {
+    refreshaddr_local ^= 0x41F;
+  } else {
+    refreshaddr_local++;
+  }
 
-#ifdef PPUT_HOOK
-	PPU_hook(0x2000|(refreshaddr_local&0xfff));
-#endif
+  if (PPUT_HOOK) {
+    PPU_hook(0x2000 | (refreshaddr_local & 0xfff));
+  }
+
+  return std::make_pair(refreshaddr_local, P);
+}
 

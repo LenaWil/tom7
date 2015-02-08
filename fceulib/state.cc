@@ -90,6 +90,8 @@ static constexpr SFORMAT SFCPUC[] = {
 static int SubWrite(EMUFILE* os, const SFORMAT *sf) {
   uint32 acc=0;
 
+  TRACE_SCOPED_STAY_ENABLED_IF(false);
+
   while (sf->v) {
     if (sf->s==~0) {
       // Link to another struct
@@ -110,7 +112,8 @@ static int SubWrite(EMUFILE* os, const SFORMAT *sf) {
     if (os) {
       os->fwrite(sf->desc,4);
       write32le(sf->s&(~FCEUSTATE_FLAGS),os);
-
+      
+      TRACE_SCOPED_ENABLE_IF(sf->desc[0] == 'P' && sf->desc[1] == 'C');
       TRACEF("%s for %d", sf->desc, sf->s & ~FCEUSTATE_FLAGS);
 
       if (sf->s&FCEUSTATE_INDIRECT)
@@ -145,7 +148,7 @@ static int WriteStateChunk(EMUFILE* os, int type, const SFORMAT *sf) {
   os->fputc(type);
   int bsize = SubWrite((EMUFILE*)0,sf);
   write32le(bsize,os);
-  TRACEF("Write %s etc. sized %d", sf->desc, bsize);
+  // TRACEF("Write %s etc. sized %d", sf->desc, bsize);
 
   if (!SubWrite(os,sf)) {
     return 5;
@@ -286,16 +289,16 @@ bool FCEUSS_SaveRAW(std::vector<uint8> *out) {
   totalsize += WriteStateChunk(&os,3,FCEUPPU_STATEINFO);
   TRACEV(*out);
   totalsize += WriteStateChunk(&os,4,FCEUINPUT_STATEINFO);
-  TRACEV(*out);
+  // TRACEV(*out);
   totalsize += WriteStateChunk(&os,5,fceulib__sound.FCEUSND_STATEINFO());
-  TRACEV(*out);
+  // TRACEV(*out);
 
   if (SPreSave) SPreSave();
   // This allows other parts of the system to hook into things to be
   // saved. It is indeed used for "WRAM", "LATC", "BUSC". -tom7
-  TRACEF("SFMDATA:");
+  // TRACEF("SFMDATA:");
   totalsize += WriteStateChunk(&os,0x10,SFMDATA);
-  TRACEV(*out);
+  // TRACEV(*out);
   if (SPreSave) SPostSave();
 
   // save the length of the file
