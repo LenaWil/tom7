@@ -272,6 +272,9 @@ static SerialResult RunGameSerially(const Game &game) {
     fprintf(stderr, "NOTE: Removed .sav file before RunGameSerially.\n");
   }
 
+  CHECK(!ExistsFile(".sav")) << "\nJust tried to unlink this. "
+    "Is another process using it?";
+
   // save[i] and checksum[i] represent the state right before
   // input[i] is issued. Note we don't have save/checksum for
   // the final state.

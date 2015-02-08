@@ -1,9 +1,11 @@
 Stuff I should be able to get rid of:
 
+ - I've been compiling with -g instead of -O3 for quite a while.
+   Do a comprehensive test to make sure it's okay!
+
  - ines.cpp "trainerpoo"
  - file wrappers can be massively simplified
  - file archive support
- - new ppu?
  - auto-fire
  - video.cc can probably go?
  - proper in-memory treatment of battery backed saves. lots of

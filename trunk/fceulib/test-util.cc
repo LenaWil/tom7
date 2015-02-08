@@ -1,6 +1,7 @@
 
 #include "test-util.h"
 #include <cstdlib>
+#include <sys/stat.h>
 
 inline string ReadFile(const string &s) {
   if (s == "") return "";
@@ -77,4 +78,9 @@ string LoseWhiteL(const string &s) {
   }
   /* all whitespace */
   return "";
+}
+
+bool ExistsFile(string s) {
+  struct stat st;
+  return !stat(s.c_str(), &st);
 }
