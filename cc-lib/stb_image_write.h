@@ -8,6 +8,7 @@
      - Assume C++11
      - Make it more likely to be threadsafe (no non-const static buffers)
      - Break into header and CC file separately.
+     - Clean up warnings from unused variables
 
    Sean notes:
    Will probably not work correctly with strict-aliasing optimizations.
@@ -40,7 +41,8 @@ USAGE:
    monochrome color.) The rectangle is 'w' pixels wide and 'h' pixels tall.
    The *data pointer points to the first byte of the top-left-most pixel.
    For PNG, "stride_in_bytes" is the distance in bytes from the first byte of
-   a row of pixels to the first byte of the next row of pixels.
+   a row of pixels to the first byte of the next row of pixels. (Tom 7 says:
+   use "4 * width" for a nice normal packed image.)
 
    PNG creates output files with the same number of components as the input.
    The BMP format expands Y to RGB in the file format and does not
