@@ -50,8 +50,10 @@ struct Emulator {
 
   // Get image. StepFull must have been called to produce this frame,
   // or else who knows what's in there? Size is 256 x 256 pixels,
-  // 4 color channels (bytes) per pixel in RGBA order.
+  // 4 color channels (bytes) per pixel in RGBA order, though only
+  // 240 pixels high contain anything interesting.
   void GetImage(vector<uint8> *rgba);
+  vector<uint8> GetImage();
 
   // Get sound. StepFull must have been called to produce this wave.
   // The result is a vector of signed 16-bit samples, mono.
@@ -60,6 +62,8 @@ struct Emulator {
   // Returns 64-bit checksum (based on MD5, endianness-dependent)
   // of RAM (only). Note there are other important bits of state.
   uint64 RamChecksum();
+  // Same, of the RGBA image. We only look at 240 scanlines here.
+  uint64 ImageChecksum();
 
   // States often only differ by a small amount, so a way to reduce
   // their entropy is to diff them against a representative savestate.

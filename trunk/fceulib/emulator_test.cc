@@ -14,6 +14,7 @@
 #include "rle.h"
 #include "simplefm2.h"
 #include "base/stringprintf.h"
+#include "stb_image_write.h"
 
 #include "tracing.h"
 
@@ -123,7 +124,91 @@ struct InputStream {
 // #define CHECK(exp) if (true) { (void)(exp); } else cerr
 // #define CHECK_EQ(a, b) if (true) { (void)(a); (void)(b); } else cerr
 
-static pair<uint64, uint64> RunGameSerially(const Game &game) {
+struct Collage {
+  static constexpr int NUMW = 10;
+  static constexpr int NUMH = 6;
+  static constexpr int WIDTH = 256 * 10;
+  static constexpr int HEIGHT = 240 * 6;
+
+  const string filename_base = "collage";
+  int file_number = 0;
+  int nextx = 0;
+  int nexty = 0;
+  vector<uint8> cur;
+  Collage() {
+    cur.reserve(WIDTH * HEIGHT * 4);
+    for (int i = 0; i < WIDTH * HEIGHT; i++) {
+      cur.push_back(0);
+      cur.push_back(0);
+      cur.push_back(0);
+      cur.push_back(0xFF);
+    }
+  }
+  
+  void Push(const vector<uint8> &screen) {
+    CHECK(cur.size() == WIDTH * HEIGHT * 4);
+    CHECK(screen.size() >= 256 * 240 * 4);
+    CHECK(nextx < NUMW);
+    CHECK(nexty < NUMH);
+
+    // Given pixel coordinates, write the RGBA tuple.
+    auto Write4 = [this, &screen](int sx, int sy, int dx, int dy) {
+      int sp = sx * 4 + sy * 256 * 4;
+      int dp = dx * 4 + dy * WIDTH * 4;
+      CHECK(dp >= 0 && dp + 3 < cur.size()) << dp << " " << cur.size();
+      CHECK(sp >= 0 && sp + 3 < screen.size());
+      cur[dp + 0] = screen[sp + 0];
+      cur[dp + 1] = screen[sp + 1];
+      cur[dp + 2] = screen[sp + 2];
+      cur[dp + 3] = screen[sp + 3];
+    };
+    for (int srcx = 0; srcx < 256; srcx++) {
+      for (int srcy = 0; srcy < 240; srcy++) {
+	int dstx = nextx * 256 + srcx;
+	int dsty = nexty * 240 + srcy;
+	Write4(srcx, srcy, dstx, dsty);
+      }
+    }
+
+    nextx++;
+    if (nextx >= NUMW) {
+      nextx = 0;
+      nexty++;
+      if (nexty >= NUMH) {
+	Flush();
+      }
+    }
+  }
+
+  // Only writes an image if there are any.
+  void Flush() {
+    if (nextx > 0 || nexty > 0) {
+      // XXX write image.
+      string filename = 
+	StringPrintf("%s-%d.png", filename_base.c_str(), file_number);
+      stbi_write_png(filename.c_str(), WIDTH, HEIGHT, 4, cur.data(),
+		     4 * WIDTH);
+      fprintf(stderr, "Flushed %d-image collage to %s.\n",
+	      nextx + nexty * NUMW,
+	      filename.c_str());
+      file_number++;
+    }
+    nextx = 0;
+    nexty = 0;
+  }
+
+};
+
+struct SerialResult {
+  uint64 after_inputs;
+  uint64 after_random;
+  uint64 image_after_inputs;
+  uint64 image_after_random;
+  // Only in FULL+ mode.
+  vector<uint8> final_image;
+};
+
+static SerialResult RunGameSerially(const Game &game) {
   printf("Testing %s...\n" , game.cart.c_str());
 # define CHECK_RAM(field) do {                       \
     const uint64 cx = emu->RamChecksum();            \
@@ -136,6 +221,7 @@ static pair<uint64, uint64> RunGameSerially(const Game &game) {
   // but the actual RAMs (in full mode), so we can print better
   // diagnostic messages. The argument i is the index into checksums
   // and actual_rams.
+  // XXX TODO: Also check screenshots at each step.
 # define CHECK_RAM_STEP(i) do {                                 \
     const int idx = (i);                                        \
     CHECK(idx >= 0);                                            \
@@ -144,7 +230,7 @@ static pair<uint64, uint64> RunGameSerially(const Game &game) {
     const uint64 cx = emu->RamChecksum();                       \
     if (cx != checksums[idx]) {                                 \
       fprintf(stderr, "Bad RAM checksum at step %d (%s). "      \
-              "Expected\n %llu\nbut got %llu.\n", idx, #i,       \
+              "Expected\n %llu\nbut got %llu.\n", idx, #i,      \
               checksums[idx], cx);                              \
       if (FULL) {                                               \
         const vector<uint8> mem = emu->GetMemory();             \
@@ -194,6 +280,8 @@ static pair<uint64, uint64> RunGameSerially(const Game &game) {
   vector<uint64> checksums;
   // Only populated in FULL mode.
   vector<vector<uint8>> actual_rams;
+  // Only populated in FULL mode.
+  vector<vector<uint8>> images;
   vector<uint8> inputs;
   std::unique_ptr<Emulator> emu{Emulator::Create(game.cart)};
   CHECK(emu.get() != nullptr) << game.cart.c_str();
@@ -220,7 +308,8 @@ static pair<uint64, uint64> RunGameSerially(const Game &game) {
 
   auto SaveAndStep = [&StepMaybeTraced,
 		      &game, &emu, &saves, &inputs, &checksums,
-                      &actual_rams, &compressed_saves, &basis](uint8 b) {
+                      &actual_rams, &images,
+		      &compressed_saves, &basis](uint8 b) {
 
     TRACEF("Step %s", SimpleFM2::InputToString(b).c_str());
     vector<uint8> save;
@@ -239,6 +328,7 @@ static pair<uint64, uint64> RunGameSerially(const Game &game) {
     checksums.push_back(csum);
     if (FULL) {
       actual_rams.push_back(emu->GetMemory());
+      images.push_back(emu->GetImage());
     }
     StepMaybeTraced(b);
   };
@@ -248,6 +338,7 @@ static pair<uint64, uint64> RunGameSerially(const Game &game) {
     CHECK_RAM(game.after_inputs);
   }
   const uint64 ret1 = emu->RamChecksum();
+  const uint64 iret1 = emu->ImageChecksum();
   TRACEF("after_inputs %llu.", emu->RamChecksum());
 
   fprintf(stderr, "Random inputs:\n");
@@ -258,6 +349,7 @@ static pair<uint64, uint64> RunGameSerially(const Game &game) {
     CHECK_RAM(game.after_random);
   }
   const uint64 ret2 = emu->RamChecksum();
+  const uint64 iret2 = emu->ImageChecksum();
   // TRACEF("after_random %llu.", emu->RamChecksum());
 
   if (FULL) {
@@ -343,7 +435,16 @@ static pair<uint64, uint64> RunGameSerially(const Game &game) {
   }
 
   fprintf(stderr, "OK.\n");
-  return {ret1, ret2};
+  // XXX probably don't need separate ret1, ret2 now?
+  SerialResult sr;
+  sr.after_inputs = ret1;
+  sr.after_random = ret2;
+  sr.image_after_inputs = iret1;
+  sr.image_after_random = iret2;
+  if (FULL && images.size() > 0) {
+    sr.final_image = std::move(images[images.size() - 1]);
+  }
+  return sr;
 }
 
 int main(int argc, char **argv) {
@@ -557,27 +658,38 @@ int main(int argc, char **argv) {
 
   TRACE_DISABLE();
 
-  RunGameSerially(kirby);
+  Collage collage;
+  auto RunGameToCollage = [&collage](const Game &game) {
+    SerialResult sr = RunGameSerially(game);
+    if (!sr.final_image.empty()) {
+      collage.Push(sr.final_image);
+    }
+    return sr;
+  };
 
-  RunGameSerially(banditkings);
-  RunGameSerially(castlevania3);
+  RunGameToCollage(kirby);
 
-  RunGameSerially(ubasketball);
+  RunGameToCollage(banditkings);
+  RunGameToCollage(castlevania3);
+
+  RunGameToCollage(ubasketball);
   
-  // RunGameSerially(escape);
+  // RunGameToCollage(escape);
 
-  RunGameSerially(karate);
-  // RunGameSerially(karate);
+  RunGameToCollage(karate);
+  // RunGameToCollage(karate);
 
-  RunGameSerially(mario);
+  RunGameToCollage(mario);
 
-  RunGameSerially(arkanoid);
-  RunGameSerially(escape);
+  RunGameToCollage(arkanoid);
+  RunGameToCollage(escape);
 
-  RunGameSerially(skull);
+  RunGameToCollage(skull);
 
-  RunGameSerially(escape);
+  RunGameToCollage(escape);
  
+  collage.Flush();
+
   if (COMPREHENSIVE) {
     printf("Now COMPREHENSIVE tests.\n");
     vector<string> romlines = ReadFileToLines("roms/roms.txt");
@@ -589,6 +701,7 @@ int main(int argc, char **argv) {
     for (string line : romlines) {
       string a = Chop(line);
       string b = Chop(line);
+      // XXXXXX load image checksums too
       string filename = LoseWhiteL(line);
 
       if (!filename.empty()) {
@@ -602,8 +715,10 @@ int main(int argc, char **argv) {
             after_inputs,
             after_random,
             };
-        const pair<uint64, uint64> p = RunGameSerially(game);
-        fprintf(out, "%llu %llu %s\n", p.first, p.second,
+        const SerialResult sr = RunGameToCollage(game);
+        fprintf(out, "%llu %llu %llu %llu %s\n", 
+		sr.after_inputs, sr.after_random,
+		sr.image_after_inputs, sr.image_after_random,
                 filename.c_str());
         fflush(out);
         nlines++;
@@ -612,8 +727,8 @@ int main(int argc, char **argv) {
                 nlines * 100. / romlines.size());
 	// In this case we've already aborted (unless
 	// MAKE_COMPREHENSIVE is set).
-	if (p.first != after_inputs ||
-	    p.second != after_random) {
+	if (sr.after_inputs != after_inputs ||
+	    sr.after_random != after_random) {
 	  fprintf(stderr, "(Note, didn't match last time: %s)\n",
 		  filename.c_str());
 	}
