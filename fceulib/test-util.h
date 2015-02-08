@@ -69,6 +69,7 @@ vector<string> ReadFileToLines(const string &s);
 vector<string> SplitToLines(const string &s);
 string Chop(string &s);
 string LoseWhiteL(const string &s);
+bool ExistsFile(string s);
 
 // Generally we just want reliable and portable names for specific
 // word sizes. C++11 actually gives these to us now; no more
