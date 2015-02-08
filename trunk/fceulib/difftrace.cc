@@ -9,7 +9,7 @@ using namespace std;
 
 using Trace = Traces::Trace;
 
-static constexpr int MAX_HISTORY = 40;
+static constexpr int MAX_HISTORY = 120;
 
 int main(int argc, char **argv) {
   if (argc != 3) {

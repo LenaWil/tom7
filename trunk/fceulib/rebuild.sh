@@ -2,11 +2,15 @@
 
 set +x
 
-rm -f .sav ../fceulib2370/.sav
-cp fceu.cc emulator_test.cc trace.{cc,h} tracing.{cc,h} ../fceulib2370/
+rm -f .sav ../fceulib2400/.sav
+rm -f trace.bin ../fceulib2400/trace.bin
+cp x6502.cc state.cc emulator_test.cc trace.{cc,h} tracing.{cc,h} ../fceulib2400/
 
-cd ../fceulib2370
-make -j 20 emulator_test.exe && ./emulator_test.exe || exit -1
-cd ../fceulib
-make -j 20 emulator_test.exe difftrace.exe && ./emulator_test.exe || exit -1
-./difftrace.exe ../fceulib2370/trace.bin trace.bin
+cd ../fceulib2400
+make -j 20 emulator_test.exe || exit -1 
+./emulator_test.exe
+cd ../fceulib_fixy
+make -j 20 emulator_test.exe difftrace.exe || exit -1
+./emulator_test.exe
+./difftrace.exe ../fceulib2400/trace.bin trace.bin
+

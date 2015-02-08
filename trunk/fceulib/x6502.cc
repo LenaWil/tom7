@@ -456,7 +456,7 @@ void X6502_Run(int32 cycles) {
   // Temporarily disable tracing unless this is the particular cycle
   // we're intereted in.
   // TRACE_SCOPED_STAY_ENABLED_IF(false);
-  TRACE_SCOPED_STAY_ENABLED_IF(true);
+  TRACE_SCOPED_STAY_ENABLED_IF(false);
   TRACEF("x6502_Run(%d) @ %d " TRACE_MACHINEFMT,
 	 cycles,
 	 timestamp,

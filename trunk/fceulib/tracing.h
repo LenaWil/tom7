@@ -35,7 +35,7 @@ extern Traces fceulib__traces;
   struct FceuScopedTrace {					\
     FceuScopedTrace() : old(fceulib__traces.IsEnabled()) { }	\
     ~FceuScopedTrace() { fceulib__traces.SetEnabled(old); }	\
-  private: bool old; } fceu_scoped_trace_instance; \
+  private: bool old; } fceu_scoped_trace_instance;              \
   fceulib__traces.SetEnabled((cond))      
 
 #else
@@ -50,7 +50,7 @@ extern Traces fceulib__traces;
 #define TRACE_DISABLE() do { } while (0)
 #define TRACE_SWITCH(s) do { } while (0)
 #define TRACE_SCOPED_ENABLE_IF(cond) struct S { } fceu_scoped_trace_instance; \
-  (void)fceu_scoped_trace_instance;					\
+  (void)fceu_scoped_trace_instance;				   	      \
   do { } while (0)
 
 #endif  // TRACING
