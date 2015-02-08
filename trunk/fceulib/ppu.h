@@ -30,4 +30,5 @@ extern uint8 PPU[4];
 
 extern const SFORMAT FCEUPPU_STATEINFO[];
 
+
 #endif
