@@ -3,7 +3,6 @@
 
 #include "state.h"
 
-void FCEUPPU_Init(void);
 void FCEUPPU_Reset(void);
 void FCEUPPU_Power(void);
 int FCEUPPU_Loop(int skip);
@@ -21,21 +20,14 @@ extern uint8 PPUCHRRAM;
 
 void FCEUPPU_SaveState(void);
 void FCEUPPU_LoadState(int version);
-uint8* FCEUPPU_GetCHR(uint32 vadr, uint32 refreshaddr);
 
 // 0 to keep 8-sprites limitation, 1 to remove it
 void FCEUI_DisableSpriteLimitation(int a);
-
-// void PPU_ResetHooks();
-// extern uint8 (*FFCEUX_PPURead)(uint32 A);
-// extern void (*FFCEUX_PPUWrite)(uint32 A, uint8 V);
-// extern uint8 FFCEUX_PPURead_Default(uint32 A);
 
 extern int scanline;
 extern int g_rasterpos;
 extern uint8 PPU[4];
 
 extern const SFORMAT FCEUPPU_STATEINFO[];
-extern const SFORMAT FCEU_NEWPPU_STATEINFO[];
 
 #endif

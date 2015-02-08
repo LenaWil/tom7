@@ -281,8 +281,6 @@ bool FCEUI_Initialize() {
   FSettings.NoiseVolume=256;		//0-256 scale (256 is max volume)
   FSettings.PCMVolume=256;		//0-256 scale (256 is max volume)
 
-  FCEUPPU_Init();
-
   X6502_Init();
 
   return true;
