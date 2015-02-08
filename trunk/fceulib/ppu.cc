@@ -68,13 +68,59 @@ static void CopySprites(uint8 *target);
 
 static void Fixit1();
 
-// PPU lookup table? I think? These are constant arrays
-// that do some kind of bit transformations. ppulut2 is
-// the same as ppulut1, but with the bits shifted up one.
-// (if they are constant, can they be initialized constexpr? -tom7)
-static uint32 ppulut1[256];
-static uint32 ppulut2[256];
-static uint32 ppulut3[128];
+static int ppudead = 1;
+static int cycle_parity = 0;
+
+// When BG is turned off, this is the fill color.
+// 0xFF shall indicate to use palette[0]
+static constexpr uint8 gNoBGFillColor = 0xFF;
+
+int MMC5Hack = 0;
+uint32 MMC5HackVROMMask = 0;
+uint8 *MMC5HackExNTARAMPtr = nullptr;
+uint8 *MMC5HackVROMPTR = nullptr;
+uint8 MMC5HackCHRMode = 0;
+uint8 MMC5HackSPMode = 0;
+uint8 MMC50x5130 = 0;
+uint8 MMC5HackSPScroll = 0;
+uint8 MMC5HackSPPage = 0;
+
+
+static uint8 VRAMBuffer = 0, PPUGenLatch = 0;
+uint8 *vnapage[4] = { nullptr, nullptr, nullptr, nullptr };
+uint8 PPUNTARAM = 0;
+uint8 PPUCHRRAM = 0;
+
+// Color deemphasis emulation.  Joy...
+static uint8 deemp = 0;
+static int deempcnt[8] = {};
+
+void (*GameHBIRQHook)(), (*GameHBIRQHook2)();
+void (*PPU_hook)(uint32 A);
+
+static uint8 vtoggle = 0;
+static uint8 XOffset = 0;
+
+static uint32 TempAddr = 0;
+static uint32 RefreshAddr = 0;
+
+static int maxsprites = 8;
+
+// These two used to not be saved in stateinfo, but that caused execution
+// to diverge in 'Ultimate Basketball'.
+static int32 sphitx;
+static uint8 sphitdata;
+
+//scanline is equal to the current visible scanline we're on.
+int scanline;
+int g_rasterpos;
+static uint32 scanlines_per_frame;
+
+uint8 PPU[4];
+static uint8 PPUSPL;
+uint8 NTARAM[0x800],PALRAM[0x20],SPRAM[0x100],SPRBUF[0x100];
+uint8 UPALRAM[0x03]; //for 0x4/0x8/0xC addresses in palette, the ones in
+                     //0x20 are 0 to not break fceu rendering.
 
 // These used to be options that could be controlled through the UI
 // but that's probably not a good idea for general purposes. Saved as
@@ -92,207 +138,125 @@ static const char *attrbits(uint8 b) {
   return buf;
 }
 
-template<int BITS>
-struct BITREVLUT {
-  uint8* lut;
+static constexpr uint32 ppulut1[256] = {
+0x00000000, 0x10000000, 0x01000000, 0x11000000, 0x00100000, 0x10100000,
+0x01100000, 0x11100000, 0x00010000, 0x10010000, 0x01010000, 0x11010000,
+0x00110000, 0x10110000, 0x01110000, 0x11110000, 0x00001000, 0x10001000,
+0x01001000, 0x11001000, 0x00101000, 0x10101000, 0x01101000, 0x11101000,
+0x00011000, 0x10011000, 0x01011000, 0x11011000, 0x00111000, 0x10111000,
+0x01111000, 0x11111000, 0x00000100, 0x10000100, 0x01000100, 0x11000100,
+0x00100100, 0x10100100, 0x01100100, 0x11100100, 0x00010100, 0x10010100,
+0x01010100, 0x11010100, 0x00110100, 0x10110100, 0x01110100, 0x11110100,
+0x00001100, 0x10001100, 0x01001100, 0x11001100, 0x00101100, 0x10101100,
+0x01101100, 0x11101100, 0x00011100, 0x10011100, 0x01011100, 0x11011100,
+0x00111100, 0x10111100, 0x01111100, 0x11111100, 0x00000010, 0x10000010,
+0x01000010, 0x11000010, 0x00100010, 0x10100010, 0x01100010, 0x11100010,
+0x00010010, 0x10010010, 0x01010010, 0x11010010, 0x00110010, 0x10110010,
+0x01110010, 0x11110010, 0x00001010, 0x10001010, 0x01001010, 0x11001010,
+0x00101010, 0x10101010, 0x01101010, 0x11101010, 0x00011010, 0x10011010,
+0x01011010, 0x11011010, 0x00111010, 0x10111010, 0x01111010, 0x11111010,
+0x00000110, 0x10000110, 0x01000110, 0x11000110, 0x00100110, 0x10100110,
+0x01100110, 0x11100110, 0x00010110, 0x10010110, 0x01010110, 0x11010110,
+0x00110110, 0x10110110, 0x01110110, 0x11110110, 0x00001110, 0x10001110,
+0x01001110, 0x11001110, 0x00101110, 0x10101110, 0x01101110, 0x11101110,
+0x00011110, 0x10011110, 0x01011110, 0x11011110, 0x00111110, 0x10111110,
+0x01111110, 0x11111110, 0x00000001, 0x10000001, 0x01000001, 0x11000001,
+0x00100001, 0x10100001, 0x01100001, 0x11100001, 0x00010001, 0x10010001,
+0x01010001, 0x11010001, 0x00110001, 0x10110001, 0x01110001, 0x11110001,
+0x00001001, 0x10001001, 0x01001001, 0x11001001, 0x00101001, 0x10101001,
+0x01101001, 0x11101001, 0x00011001, 0x10011001, 0x01011001, 0x11011001,
+0x00111001, 0x10111001, 0x01111001, 0x11111001, 0x00000101, 0x10000101,
+0x01000101, 0x11000101, 0x00100101, 0x10100101, 0x01100101, 0x11100101,
+0x00010101, 0x10010101, 0x01010101, 0x11010101, 0x00110101, 0x10110101,
+0x01110101, 0x11110101, 0x00001101, 0x10001101, 0x01001101, 0x11001101,
+0x00101101, 0x10101101, 0x01101101, 0x11101101, 0x00011101, 0x10011101,
+0x01011101, 0x11011101, 0x00111101, 0x10111101, 0x01111101, 0x11111101,
+0x00000011, 0x10000011, 0x01000011, 0x11000011, 0x00100011, 0x10100011,
+0x01100011, 0x11100011, 0x00010011, 0x10010011, 0x01010011, 0x11010011,
+0x00110011, 0x10110011, 0x01110011, 0x11110011, 0x00001011, 0x10001011,
+0x01001011, 0x11001011, 0x00101011, 0x10101011, 0x01101011, 0x11101011,
+0x00011011, 0x10011011, 0x01011011, 0x11011011, 0x00111011, 0x10111011,
+0x01111011, 0x11111011, 0x00000111, 0x10000111, 0x01000111, 0x11000111,
+0x00100111, 0x10100111, 0x01100111, 0x11100111, 0x00010111, 0x10010111,
+0x01010111, 0x11010111, 0x00110111, 0x10110111, 0x01110111, 0x11110111,
+0x00001111, 0x10001111, 0x01001111, 0x11001111, 0x00101111, 0x10101111,
+0x01101111, 0x11101111, 0x00011111, 0x10011111, 0x01011111, 0x11011111,
+0x00111111, 0x10111111, 0x01111111, 0x11111111, };
 
-  BITREVLUT() {
-    int bits = BITS;
-    int n = 1<<BITS;
-    lut = new uint8[n];
+// PERF: This is just the values in ppulut1 shifted up by one bit.
+// Is it faster to just shift wherever this is used, and reduce
+// the cache load?
+static constexpr uint32 ppulut2[256] = {
+0x00000000, 0x20000000, 0x02000000, 0x22000000, 0x00200000, 0x20200000,
+0x02200000, 0x22200000, 0x00020000, 0x20020000, 0x02020000, 0x22020000,
+0x00220000, 0x20220000, 0x02220000, 0x22220000, 0x00002000, 0x20002000,
+0x02002000, 0x22002000, 0x00202000, 0x20202000, 0x02202000, 0x22202000,
+0x00022000, 0x20022000, 0x02022000, 0x22022000, 0x00222000, 0x20222000,
+0x02222000, 0x22222000, 0x00000200, 0x20000200, 0x02000200, 0x22000200,
+0x00200200, 0x20200200, 0x02200200, 0x22200200, 0x00020200, 0x20020200,
+0x02020200, 0x22020200, 0x00220200, 0x20220200, 0x02220200, 0x22220200,
+0x00002200, 0x20002200, 0x02002200, 0x22002200, 0x00202200, 0x20202200,
+0x02202200, 0x22202200, 0x00022200, 0x20022200, 0x02022200, 0x22022200,
+0x00222200, 0x20222200, 0x02222200, 0x22222200, 0x00000020, 0x20000020,
+0x02000020, 0x22000020, 0x00200020, 0x20200020, 0x02200020, 0x22200020,
+0x00020020, 0x20020020, 0x02020020, 0x22020020, 0x00220020, 0x20220020,
+0x02220020, 0x22220020, 0x00002020, 0x20002020, 0x02002020, 0x22002020,
+0x00202020, 0x20202020, 0x02202020, 0x22202020, 0x00022020, 0x20022020,
+0x02022020, 0x22022020, 0x00222020, 0x20222020, 0x02222020, 0x22222020,
+0x00000220, 0x20000220, 0x02000220, 0x22000220, 0x00200220, 0x20200220,
+0x02200220, 0x22200220, 0x00020220, 0x20020220, 0x02020220, 0x22020220,
+0x00220220, 0x20220220, 0x02220220, 0x22220220, 0x00002220, 0x20002220,
+0x02002220, 0x22002220, 0x00202220, 0x20202220, 0x02202220, 0x22202220,
+0x00022220, 0x20022220, 0x02022220, 0x22022220, 0x00222220, 0x20222220,
+0x02222220, 0x22222220, 0x00000002, 0x20000002, 0x02000002, 0x22000002,
+0x00200002, 0x20200002, 0x02200002, 0x22200002, 0x00020002, 0x20020002,
+0x02020002, 0x22020002, 0x00220002, 0x20220002, 0x02220002, 0x22220002,
+0x00002002, 0x20002002, 0x02002002, 0x22002002, 0x00202002, 0x20202002,
+0x02202002, 0x22202002, 0x00022002, 0x20022002, 0x02022002, 0x22022002,
+0x00222002, 0x20222002, 0x02222002, 0x22222002, 0x00000202, 0x20000202,
+0x02000202, 0x22000202, 0x00200202, 0x20200202, 0x02200202, 0x22200202,
+0x00020202, 0x20020202, 0x02020202, 0x22020202, 0x00220202, 0x20220202,
+0x02220202, 0x22220202, 0x00002202, 0x20002202, 0x02002202, 0x22002202,
+0x00202202, 0x20202202, 0x02202202, 0x22202202, 0x00022202, 0x20022202,
+0x02022202, 0x22022202, 0x00222202, 0x20222202, 0x02222202, 0x22222202,
+0x00000022, 0x20000022, 0x02000022, 0x22000022, 0x00200022, 0x20200022,
+0x02200022, 0x22200022, 0x00020022, 0x20020022, 0x02020022, 0x22020022,
+0x00220022, 0x20220022, 0x02220022, 0x22220022, 0x00002022, 0x20002022,
+0x02002022, 0x22002022, 0x00202022, 0x20202022, 0x02202022, 0x22202022,
+0x00022022, 0x20022022, 0x02022022, 0x22022022, 0x00222022, 0x20222022,
+0x02222022, 0x22222022, 0x00000222, 0x20000222, 0x02000222, 0x22000222,
+0x00200222, 0x20200222, 0x02200222, 0x22200222, 0x00020222, 0x20020222,
+0x02020222, 0x22020222, 0x00220222, 0x20220222, 0x02220222, 0x22220222,
+0x00002222, 0x20002222, 0x02002222, 0x22002222, 0x00202222, 0x20202222,
+0x02202222, 0x22202222, 0x00022222, 0x20022222, 0x02022222, 0x22022222,
+0x00222222, 0x20222222, 0x02222222, 0x22222222, };
 
-    int m = 1;
-    int a = n >> 1;
-    int j = 2;
+// Note: Used inside pputile.inc.
+static constexpr uint32 ppulut3[128] = {
+0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000,
+0x00000000, 0x00000000, 0x44444444, 0x04444444, 0x00444444, 0x00044444,
+0x00004444, 0x00000444, 0x00000044, 0x00000004, 0x88888888, 0x08888888,
+0x00888888, 0x00088888, 0x00008888, 0x00000888, 0x00000088, 0x00000008,
+0xcccccccc, 0x0ccccccc, 0x00cccccc, 0x000ccccc, 0x0000cccc, 0x00000ccc,
+0x000000cc, 0x0000000c, 0x00000000, 0x40000000, 0x44000000, 0x44400000,
+0x44440000, 0x44444000, 0x44444400, 0x44444440, 0x44444444, 0x44444444,
+0x44444444, 0x44444444, 0x44444444, 0x44444444, 0x44444444, 0x44444444,
+0x88888888, 0x48888888, 0x44888888, 0x44488888, 0x44448888, 0x44444888,
+0x44444488, 0x44444448, 0xcccccccc, 0x4ccccccc, 0x44cccccc, 0x444ccccc,
+0x4444cccc, 0x44444ccc, 0x444444cc, 0x4444444c, 0x00000000, 0x80000000,
+0x88000000, 0x88800000, 0x88880000, 0x88888000, 0x88888800, 0x88888880,
+0x44444444, 0x84444444, 0x88444444, 0x88844444, 0x88884444, 0x88888444,
+0x88888844, 0x88888884, 0x88888888, 0x88888888, 0x88888888, 0x88888888,
+0x88888888, 0x88888888, 0x88888888, 0x88888888, 0xcccccccc, 0x8ccccccc,
+0x88cccccc, 0x888ccccc, 0x8888cccc, 0x88888ccc, 0x888888cc, 0x8888888c,
+0x00000000, 0xc0000000, 0xcc000000, 0xccc00000, 0xcccc0000, 0xccccc000,
+0xcccccc00, 0xccccccc0, 0x44444444, 0xc4444444, 0xcc444444, 0xccc44444,
+0xcccc4444, 0xccccc444, 0xcccccc44, 0xccccccc4, 0x88888888, 0xc8888888,
+0xcc888888, 0xccc88888, 0xcccc8888, 0xccccc888, 0xcccccc88, 0xccccccc8,
+0xcccccccc, 0xcccccccc, 0xcccccccc, 0xcccccccc, 0xcccccccc, 0xcccccccc,
+0xcccccccc, 0xcccccccc, };
 
-    lut[0] = 0;
-    lut[1] = a;
-
-    while (--bits) {
-      m <<= 1;
-      a >>= 1;
-      for (int i = 0; i < m; i++)
-	lut[j++] = lut[i] + a;
-    }
-  }
-
-  uint8 operator[](int index) { return lut[index]; }
-};
-BITREVLUT<8> bitrevlut;
-
-struct PPUSTATUS {
-  int32 sl;
-  int32 cycle, end_cycle;
-};
-struct SPRITE_READ {
-  int32 num;
-  int32 count;
-  int32 fetch;
-  int32 found;
-  int32 found_pos[8];
-  int32 ret;
-  int32 last;
-  int32 mode;
-
-  void reset() {
-    num = count = fetch = found = ret = last = mode = 0;
-    found_pos[0] = found_pos[1] = found_pos[2] = found_pos[3] = 0;
-    found_pos[4] = found_pos[5] = found_pos[6] = found_pos[7] = 0;
-  }
-
-  void start_scanline() {
-    num = 1;
-    found = 0;
-    fetch = 1;
-    count = 0;
-    last = 64;
-    mode = 0;
-    found_pos[0] = found_pos[1] = found_pos[2] = found_pos[3] = 0;
-    found_pos[4] = found_pos[5] = found_pos[6] = found_pos[7] = 0;
-  }
-};
-
-// doesn't need to be savestated as it is just a reflection of the
-// current position in the ppu loop
-// PPUPHASE ppuphase;
-
-// this needs to be savestated since a game may be trying to read from
-// this across vblanks
-SPRITE_READ spr_read;
-
-// definitely needs to be savestated
-uint8 idleSynch = 1;
-
-// uses the internal counters concept at
-// http://nesdev.icequake.net/PPU%20addressing.txt
-struct PPUREGS {
-  // normal clocked regs. as the game can interfere with these at any
-  // time, they need to be savestated
-  uint32 fv;//3
-  uint32 v;//1
-  uint32 h;//1
-  uint32 vt;//5
-  uint32 ht;//5
-
-  //temp unlatched regs (need savestating, can be written to at any time)
-  uint32 _fv, _v, _h, _vt, _ht;
-
-  //other regs that need savestating
-  uint32 fh; //3 (horz scroll)
-  uint32 s; //1 ($2000 bit 4: "Background pattern table address (0: $0000; 1: $1000)")
-
-  // other regs that don't need saving
-  uint32 par; // 8 (sort of a hack, just stored in here, but not managed by this system)
-
-  // cached state data. these are always reset at the beginning of a frame and don't need saving
-  // but just to be safe, we're gonna save it
-  PPUSTATUS status;
-
-  void reset() {
-    fv = v = h = vt = ht = 0;
-    fh = par = s = 0;
-    _fv = _v = _h = _vt = _ht = 0;
-    status.cycle = 0;
-    status.end_cycle = 341;
-    status.sl = 241;
-  }
-
-  void install_latches() {
-    fv = _fv;
-    v = _v;
-    h = _h;
-    vt = _vt;
-    ht = _ht;
-  }
-
-  void install_h_latches() {
-    ht = _ht;
-    h = _h;
-  }
-
-  void clear_latches() {
-    _fv = _v = _h = _vt = _ht = 0;
-    fh = 0;
-  }
-
-  void increment_hsc() {
-    // The first one, the horizontal scroll counter, consists of 6
-    // bits, and is made up by daisy-chaining the HT counter to the H
-    // counter. The HT counter is then clocked every 8 pixel dot
-    // clocks (or every 8/3 CPU clock cycles).
-    ht++;
-    h += (ht>>5);
-    ht &= 31;
-    h &= 1;
-  }
-
-  void increment_vs() {
-    fv++;
-    int fv_overflow = (fv >> 3);
-    vt += fv_overflow;
-    vt &= 31; //fixed tecmo super bowl
-    if (vt == 30 && fv_overflow==1) {
-      // caution here (only do it at the exact instant of overflow) fixes p'radikus conflict
-      v++;
-      vt = 0;
-    }
-    fv &= 7;
-    v &= 1;
-  }
-
-  uint32 get_ntread() const {
-    return 0x2000 | (v<<0xB) | (h<<0xA) | (vt<<5) | ht;
-  }
-
-  uint32 get_2007access() const {
-    return ((fv&3)<<0xC) | (v<<0xB) | (h<<0xA) | (vt<<5) | ht;
-  }
-
-  // The PPU has an internal 4-position, 2-bit shifter, which it uses for
-  // obtaining the 2-bit palette select data during an attribute table byte
-  // fetch. To represent how this data is shifted in the diagram, letters a..c
-  // are used in the diagram to represent the right-shift position amount to
-  // apply to the data read from the attribute data (a is always 0). This is why
-  // you only see bits 0 and 1 used off the read attribute data in the diagram.
-  uint32 get_atread() const {
-    return 0x2000 | (v<<0xB) | (h<<0xA) | 0x3C0 | ((vt&0x1C)<<1) | ((ht&0x1C)>>2);
-  }
-
-  // address line 3 relates to the pattern table fetch occuring (the
-  // PPU always makes them in pairs).
-  uint32 get_ptread() const {
-    return (s<<0xC) | (par<<0x4) | fv;
-  }
-
-  void increment2007(bool by32) {
-    // If the VRAM address increment bit (2000.2) is clear (inc. amt. = 1), all the
-    // scroll counters are daisy-chained (in the order of HT, VT, H, V, FV) so that
-    // the carry out of each counter controls the next counter's clock rate. The
-    // result is that all 5 counters function as a single 15-bit one. Any access to
-    // 2007 clocks the HT counter here.
-    //
-    // If the VRAM address increment bit is set (inc. amt. = 32), the only
-    // difference is that the HT counter is no longer being clocked, and the VT
-    // counter is now being clocked by access to 2007.
-    if (by32) {
-      vt++;
-    } else {
-      ht++;
-      vt+=(ht>>5)&1;
-    }
-    h+=(vt>>5);
-    v+=(h>>1);
-    fv+=(v>>1);
-    ht &= 31;
-    vt &= 31;
-    h &= 1;
-    v &= 1;
-    fv &= 7;
-  }
-};
-
-PPUREGS ppur;
-
+#if 0
 static void makeppulut() {
   for (int x=0; x < 256; x++) {
     ppulut1[x] = 0;
@@ -312,71 +276,48 @@ static void makeppulut() {
 	int shiftr;
 	shiftr = ( pixel + xo ) / 8;
 	shiftr *= 2;
-	ppulut3[ xo | (cc<<3) ] |= ( ( cc >> shiftr ) & 3 ) << ( 2 + pixel * 4 );
+	ppulut3[ xo | (cc<<3) ] |=
+	  ( ( cc >> shiftr ) & 3 ) << ( 2 + pixel * 4 );
       }
       //    printf("%08x\n",ppulut3[xo|(cc<<3)]);
     }
   }
+
+  #if 1
+  auto PrintTable = [](const char *name, const uint32 lut[256]) {
+    printf("static constexpr uint32 %s[256] = {", name);
+    for (int i = 0; i < 128; i++) {
+      if (i % 6 == 0) printf("\n");
+      // printf("0x%08x, ", lut[i]);
+      printf("0x%08x, ", lut[i]);
+    }
+    printf("\n};\n");
+  };
+  PrintTable("ppulut1", ppulut1);
+  PrintTable("ppulut2", ppulut2);
+  PrintTable("ppulut3", ppulut3);
+  #endif
+
+  for (int i = 0; i < 128; i++) {
+    if (ppulut1[i] != precomputed_ppulut1[i]) abort();
+    if (ppulut2[i] != precomputed_ppulut2[i]) abort();
+    if (ppulut3[i] != precomputed_ppulut3[i]) abort();
+  }
+  printf("PPU LUTs are ok.\n");
+}
+#endif
+
+static inline uint8 *MMC5SPRVRAMADR(uint32 v) {
+  return &fceulib__cart.MMC5SPRVPage[v >> 10][v];
+}
+static inline uint8 *VRAMADR(uint32 v) {
+  return &fceulib__cart.VPage[v >> 10][v];
 }
 
-static int ppudead=1;
-static int kook=0;
-
-//mbg 6/23/08
-//make the no-bg fill color configurable
-//0xFF shall indicate to use palette[0]
-uint8 gNoBGFillColor = 0xFF;
-
-int MMC5Hack = 0;
-uint32 MMC5HackVROMMask = 0;
-uint8 *MMC5HackExNTARAMPtr = nullptr;
-uint8 *MMC5HackVROMPTR = nullptr;
-uint8 MMC5HackCHRMode = 0;
-uint8 MMC5HackSPMode = 0;
-uint8 MMC50x5130 = 0;
-uint8 MMC5HackSPScroll = 0;
-uint8 MMC5HackSPPage = 0;
-
-
-uint8 VRAMBuffer = 0, PPUGenLatch = 0;
-uint8 *vnapage[4] = { nullptr, nullptr, nullptr, nullptr };
-uint8 PPUNTARAM = 0;
-uint8 PPUCHRRAM = 0;
-
-//Color deemphasis emulation.  Joy...
-static uint8 deemp = 0;
-static int deempcnt[8] = {};
-
-void (*GameHBIRQHook)(), (*GameHBIRQHook2)();
-void (*PPU_hook)(uint32 A);
-
-uint8 vtoggle = 0;
-uint8 XOffset = 0;
-
-static uint32 TempAddr = 0;
-static uint32 RefreshAddr = 0;
-
-static int maxsprites = 8;
-
-//scanline is equal to the current visible scanline we're on.
-int scanline;
-int g_rasterpos;
-static uint32 scanlines_per_frame;
-
-uint8 PPU[4];
-uint8 PPUSPL;
-uint8 NTARAM[0x800],PALRAM[0x20],SPRAM[0x100],SPRBUF[0x100];
-uint8 UPALRAM[0x03]; //for 0x4/0x8/0xC addresses in palette, the ones in
-                     //0x20 are 0 to not break fceu rendering.
-
-
-#define MMC5SPRVRAMADR(V)      &fceulib__cart.MMC5SPRVPage[(V)>>10][(V)]
-#define VRAMADR(V)      &fceulib__cart.VPage[(V)>>10][(V)]
-
-//mbg 8/6/08 - fix a bug relating to
-//"When in 8x8 sprite mode, only one set is used for both BG and sprites."
-//in mmc5 docs
-uint8 * MMC5BGVRAMADR(uint32 V) {
+// mbg 8/6/08 - fix a bug relating to
+// "When in 8x8 sprite mode, only one set is used for both BG and sprites."
+// in mmc5 docs
+uint8 *MMC5BGVRAMADR(uint32 V) {
   if (!Sprite16) {
     extern uint8 mmc5ABMode;                /* A=0, B=1 */
     if (mmc5ABMode==0)
@@ -385,44 +326,6 @@ uint8 * MMC5BGVRAMADR(uint32 V) {
       return &fceulib__cart.MMC5BGVPage[(V)>>10][(V)];
   } else return &fceulib__cart.MMC5BGVPage[(V)>>10][(V)];
 }
-
-// this duplicates logic which is embedded in the ppu rendering code
-// which figures out where to get CHR data from depending on various hack modes
-// mostly involving mmc5.
-// this might be incomplete.
-uint8* FCEUPPU_GetCHR(uint32 vadr, uint32 refreshaddr) {
-  if (MMC5Hack) {
-    if (MMC5HackCHRMode==1) {
-      uint8 *C = MMC5HackVROMPTR;
-      C += (((MMC5HackExNTARAMPtr[refreshaddr & 0x3ff]) & 
-	     0x3f & MMC5HackVROMMask) << 12) + (vadr & 0xfff);
-      C += (MMC50x5130&0x3)<<18; //11-jun-2009 for kuja_killer
-      return C;
-    } else {
-      return MMC5BGVRAMADR(vadr);
-    }
-  }
-  else return VRAMADR(vadr);
-}
-
-//likewise for ATTR
-int FCEUPPU_GetAttr(int ntnum, int xt, int yt) {
-  int attraddr = 0x3C0+((yt>>2)<<3)+(xt>>2);
-  int temp = (((yt&2)<<1)+(xt&2));
-  int refreshaddr = xt+yt*32;
-  if (MMC5Hack && MMC5HackCHRMode==1)
-    return (MMC5HackExNTARAMPtr[refreshaddr & 0x3ff] & 0xC0)>>6;
-  else
-    return (vnapage[ntnum][attraddr] & (3<<temp)) >> temp;
-}
-
-// TODO(tom7): Maybe just remove this entirely. Can at least make it a
-// compile-time constant to reduce code size / branches.
-// whether to use the new ppu (new PPU doesn't handle MMC5 extra
-// nametables at all
-// static constexpr int newppu = 0;
-
-//---------------
 
 static DECLFR(A2002) {
   TRACEF("A2002 %d", PPU_status);
@@ -508,9 +411,9 @@ static DECLFW(B2000) {
   TempAddr&=0xF3FF;
   TempAddr|=(V&3)<<10;
 
-  ppur._h = V&1;
-  ppur._v = (V>>1)&1;
-  ppur.s = (V>>4)&1;
+  // ppur._h = V&1;
+  // ppur._v = (V>>1)&1;
+  // ppur.s = (V>>4)&1;
 }
 
 static DECLFW(B2001) {
@@ -522,8 +425,7 @@ static DECLFW(B2001) {
     deemp=V>>5;
 }
 //
-static DECLFW(B2002)
-{
+static DECLFW(B2002) {
 	PPUGenLatch=V;
 }
 
@@ -558,14 +460,14 @@ static DECLFW(B2005) {
     tmp&=0xFFE0;
     tmp|=V>>3;
     XOffset=V&7;
-    ppur._ht = V>>3;
-    ppur.fh = V&7;
+    // ppur._ht = V>>3;
+    // ppur.fh = V&7;
   } else {
     tmp&=0x8C1F;
     tmp|=((V&~0x7)<<2);
     tmp|=(V&7)<<12;
-    ppur._vt = V>>3;
-    ppur._fv = V&7;
+    // ppur._vt = V>>3;
+    // ppur._fv = V&7;
   }
   TempAddr=tmp;
   vtoggle^=1;
@@ -580,11 +482,11 @@ static DECLFW(B2006) {
     TempAddr&=0x00FF;
     TempAddr|=(V&0x3f)<<8;
 
-    ppur._vt &= 0x07;
-    ppur._vt |= (V&0x3)<<3;
-    ppur._h = (V>>2)&1;
-    ppur._v = (V>>3)&1;
-    ppur._fv = (V>>4)&3;
+    // ppur._vt &= 0x07;
+    // ppur._vt |= (V&0x3)<<3;
+    // ppur._h = (V>>2)&1;
+    // ppur._v = (V>>3)&1;
+    // ppur._fv = (V>>4)&3;
   } else {
     TempAddr&=0xFF00;
     TempAddr|=V;
@@ -594,11 +496,11 @@ static DECLFW(B2006) {
       PPU_hook(RefreshAddr);
     //printf("%d, %04x\n",scanline,RefreshAddr);
 
-    ppur._vt &= 0x18;
-    ppur._vt |= (V>>5);
-    ppur._ht = V&31;
-
-    ppur.install_latches();
+    // ppur._vt &= 0x18;
+    // ppur._vt |= (V>>5);
+    // ppur._ht = V&31;
+    // 
+    // ppur.install_latches();
   }
 
   vtoggle^=1;
@@ -661,22 +563,18 @@ void FCEUPPU_LineUpdate() {
   }
 }
 
-// These two used to not be saved in stateinfo, but that caused execution
-// to diverge in 'Ultimate Basketball'.
-static int32 sphitx;
-static uint8 sphitdata;
-
 static void CheckSpriteHit(int p) {
   TRACEF("CheckSpriteHit %d %d %02x\n", p, sphitx, sphitdata);
   const int l = p - 16;
 
-  if (sphitx==0x100) return;
+  if (sphitx == 0x100) return;
 
   for (int x=sphitx;x<(sphitx+8) && x<l;x++) {
     if ((sphitdata&(0x80>>(x-sphitx))) && !(Plinef[x]&64) && x < 255) {
       TRACELOC();
-      PPU_status|=0x40;
-      //printf("Ha:  %d, %d, Hita: %d, %d, %d, %d, %d\n",p,p&~7,scanline,GETLASTPIXEL-16,&Plinef[x],Pline,Pline-Plinef);
+      PPU_status |= 0x40;
+      //printf("Ha:  %d, %d, Hita: %d, %d, %d, %d, %d\n",
+      //       p,p&~7,scanline,GETLASTPIXEL-16,&Plinef[x],Pline,Pline-Plinef);
       //printf("%d\n",GETLASTPIXEL-16);
       //if (Plinef[x] == 0xFF)
       //printf("PL: %d, %02x\n",scanline, Plinef[x]);
@@ -713,20 +611,15 @@ static void RefreshLine(int lastpixel) {
   // however that RefreshAddr is only used in ppu*.
   uint32 refreshaddr_local=RefreshAddr;
 
-  /* Yeah, recursion would be bad.
-     PPU_hook() functions can call
-     mirroring/chr bank switching functions,
-     which call FCEUPPU_LineUpdate, which call this
-     function. */
+  /* Yeah, recursion would be bad. PPU_hook() functions can call
+     mirroring/chr bank switching functions, which call
+     FCEUPPU_LineUpdate, which call this function. */
   static int norecurse = 0;
   if (norecurse) return;
 
   TRACEF("RefreshLine %d %u %u %u %u %d",
 	 lastpixel, pshift[0], pshift[1], atlatch, refreshaddr_local,
 	 norecurse);
-
-  uint32 vofs;
-  int X1;
 
   register uint8 *P=Pline;
   int lasttile=lastpixel>>3;
@@ -745,9 +638,7 @@ static void RefreshLine(int lastpixel) {
 
   P=Pline;
 
-  vofs=0;
-
-  vofs=((PPU[0]&0x10)<<8) | ((refreshaddr_local>>12)&7);
+  uint32 vofs=((PPU[0]&0x10)<<8) | ((refreshaddr_local>>12)&7);
 
   static constexpr int TOFIXNUM = 272 - 0x4;
   if (!ScreenON && !SpriteON) {
@@ -779,15 +670,15 @@ static void RefreshLine(int lastpixel) {
   PALRAM[0xC]|=64;
 
   // This high-level graphics MMC5 emulation code was written for MMC5
-  //carts in "CL" mode. It's probably not totally correct for carts in
-  //"SL" mode.
+  // carts in "CL" mode. It's probably not totally correct for carts in
+  // "SL" mode.
 
 #define PPUT_MMC5
   if (MMC5Hack) {
     if (MMC5HackCHRMode==0 && (MMC5HackSPMode&0x80)) {
       int tochange=MMC5HackSPMode&0x1F;
       tochange-=firsttile;
-      for (X1=firsttile;X1<lasttile;X1++) {
+      for (int X1=firsttile;X1<lasttile;X1++) {
 	if ((tochange<=0 && MMC5HackSPMode&0x40) || (tochange>0 && !(MMC5HackSPMode&0x40))) {
 	  TRACELOC();
 #define PPUT_MMC5SP
@@ -805,7 +696,7 @@ static void RefreshLine(int lastpixel) {
 
 #define PPUT_MMC5SP
 #define PPUT_MMC5CHR1
-      for (X1=firsttile;X1<lasttile;X1++) {
+      for (int X1=firsttile;X1<lasttile;X1++) {
 	TRACELOC();
 #include "pputile.inc"
       }
@@ -813,13 +704,13 @@ static void RefreshLine(int lastpixel) {
 #undef PPUT_MMC5SP
     } else if (MMC5HackCHRMode==1) {
 #define PPUT_MMC5CHR1
-      for (X1=firsttile;X1<lasttile;X1++) {
+      for (int X1=firsttile;X1<lasttile;X1++) {
 	TRACELOC();
 #include "pputile.inc"
       }
 #undef PPUT_MMC5CHR1
     } else {
-      for (X1=firsttile;X1<lasttile;X1++) {
+      for (int X1=firsttile;X1<lasttile;X1++) {
 	TRACELOC();
 #include "pputile.inc"
       }
@@ -829,14 +720,14 @@ static void RefreshLine(int lastpixel) {
   else if (PPU_hook) {
     norecurse=1;
 #define PPUT_HOOK
-    for (X1=firsttile;X1<lasttile;X1++) {
+    for (int X1=firsttile;X1<lasttile;X1++) {
       TRACELOC();
 #include "pputile.inc"
     }
 #undef PPUT_HOOK
     norecurse=0;
   } else {
-    for (X1=firsttile;X1<lasttile;X1++) {
+    for (int X1=firsttile;X1<lasttile;X1++) {
       TRACELOC();
 #include "pputile.inc"
     }
@@ -849,48 +740,42 @@ static void RefreshLine(int lastpixel) {
   PALRAM[0xC]&=63;
 
   RefreshAddr=refreshaddr_local;
-  if (firsttile<=2 && 2<lasttile && !(PPU[1]&2))
-    {
-      uint32 tem;
-      tem=PALRAM[0]|(PALRAM[0]<<8)|(PALRAM[0]<<16)|(PALRAM[0]<<24);
-      tem|=0x40404040;
-      *(uint32 *)Plinef=*(uint32 *)(Plinef+4)=tem;
+  if (firsttile<=2 && 2<lasttile && !(PPU[1]&2)) {
+    uint32 tem;
+    tem=PALRAM[0]|(PALRAM[0]<<8)|(PALRAM[0]<<16)|(PALRAM[0]<<24);
+    tem|=0x40404040;
+    *(uint32 *)Plinef=*(uint32 *)(Plinef+4)=tem;
+  }
+
+  if (!ScreenON) {
+    uint32 tem;
+    int tstart,tcount;
+    tem=PALRAM[0]|(PALRAM[0]<<8)|(PALRAM[0]<<16)|(PALRAM[0]<<24);
+    tem|=0x40404040;
+
+    tcount=lasttile-firsttile;
+    tstart=firsttile-2;
+    if (tstart<0) {
+      tcount+=tstart;
+      tstart=0;
     }
+    if (tcount>0)
+      FCEU_dwmemset(Plinef+tstart*8,tem,tcount*8);
+  }
 
-  if (!ScreenON)
-    {
-      uint32 tem;
-      int tstart,tcount;
-      tem=PALRAM[0]|(PALRAM[0]<<8)|(PALRAM[0]<<16)|(PALRAM[0]<<24);
-      tem|=0x40404040;
+  if (lastpixel>=TOFIXNUM && tofix) {
+    //puts("Fixed");
+    Fixit1();
+    tofix=0;
+  }
 
-      tcount=lasttile-firsttile;
-      tstart=firsttile-2;
-      if (tstart<0)
-	{
-	  tcount+=tstart;
-	  tstart=0;
-	}
-      if (tcount>0)
-	FCEU_dwmemset(Plinef+tstart*8,tem,tcount*8);
-    }
-
-  if (lastpixel>=TOFIXNUM && tofix)
-    {
-      //puts("Fixed");
-      Fixit1();
-      tofix=0;
-    }
-
-  //CheckSpriteHit(lasttile*8); //lasttile*8); //lastpixel);
-
-  //This only works right because of a hack earlier in this function.
+  // This only works right because of a hack earlier in this function.
   CheckSpriteHit(lastpixel);
 
-  if ((lastpixel-16)>=0)
-    {
-      InputScanlineHook(Plinef,any_sprites_on_line?sprlinebuf:0,linestartts,lasttile*8-16);
-    }
+  if (lastpixel - 16 >= 0) {
+    InputScanlineHook(Plinef, any_sprites_on_line ? sprlinebuf : 0,
+		      linestartts, lasttile * 8 - 16);
+  }
   Pline=P;
   firsttile=lasttile;
 }
@@ -958,13 +843,15 @@ static void DoLine() {
   }
   if ((PPU[1]>>5)==0x7) {
     for (int x = 63; x >= 0; x--)
-      *(uint32 *)&target[x<<2]=((*(uint32*)&target[x<<2])&0x3f3f3f3f)|0xc0c0c0c0;
+      *(uint32 *)&target[x<<2] = 
+	((*(uint32*)&target[x<<2])&0x3f3f3f3f)|0xc0c0c0c0;
   } else if (PPU[1]&0xE0) {
     for (int x = 63; x >= 0; x--)
-      *(uint32 *)&target[x<<2]=(*(uint32*)&target[x<<2])|0x40404040;
+      *(uint32 *)&target[x<<2] = (*(uint32*)&target[x<<2])|0x40404040;
   } else {
     for (int x = 63; x >= 0; x--)
-      *(uint32 *)&target[x<<2]=((*(uint32*)&target[x<<2])&0x3f3f3f3f)|0x80808080;
+      *(uint32 *)&target[x<<2] = 
+	((*(uint32*)&target[x<<2])&0x3f3f3f3f)|0x80808080;
   }
 
   sphitx=0x100;
@@ -1058,15 +945,12 @@ static void FetchSpriteData() {
 
 	{
 	  SPRB dst;
-	  uint8 *C;
-	  int t = (int)scanline-(spr->y);
+	  const int t = (int)scanline-(spr->y);
 	  // made uint32 from uint -tom7
-	  uint32 vadr;
-
-	  if (Sprite16)
-	    vadr = ((spr->no&1)<<12) + ((spr->no&0xFE)<<4);
-	  else
-	    vadr = (spr->no<<4)+vofs;
+	  uint32 vadr = 
+	    (Sprite16) ?
+	    ((spr->no&1)<<12) + ((spr->no&0xFE)<<4) :
+	    (spr->no<<4)+vofs;
 
 	  if (spr->atr & V_FLIP) {
 	    vadr+=7;
@@ -1078,8 +962,7 @@ static void FetchSpriteData() {
 	    vadr+=t&8;
 	  }
 
-	  if (MMC5Hack) C = MMC5SPRVRAMADR(vadr);
-	  else C = VRAMADR(vadr);
+	  const uint8 *C = (MMC5Hack) ? MMC5SPRVRAMADR(vadr) : VRAMADR(vadr);
 
 	  dst.ca[0]=C[0];
 	  dst.ca[1]=C[8];
@@ -1109,16 +992,13 @@ static void FetchSpriteData() {
 
 	{
 	  SPRB dst;
-	  uint8 *C;
-	  int t;
-	  unsigned int vadr;
 
-	  t = (int)scanline-(spr->y);
+	  const int t = (int)scanline-(spr->y);
 
-	  if (Sprite16)
-	    vadr = ((spr->no&1)<<12) + ((spr->no&0xFE)<<4);
-	  else
-	    vadr = (spr->no<<4)+vofs;
+	  unsigned int vadr = 
+	    Sprite16 ?
+	    ((spr->no&1)<<12) + ((spr->no&0xFE)<<4) :
+	    (spr->no<<4) + vofs;
 
 	  if (spr->atr&V_FLIP) {
 	    vadr+=7;
@@ -1130,8 +1010,7 @@ static void FetchSpriteData() {
 	    vadr+=t&8;
 	  }
 
-	  if (MMC5Hack) C = MMC5SPRVRAMADR(vadr);
-	  else C = VRAMADR(vadr);
+	  const uint8 *C = MMC5Hack ? MMC5SPRVRAMADR(vadr): VRAMADR(vadr);
 	  dst.ca[0]=C[0];
 	  if (ns<8) {
 	    PPU_hook(0x2000);
@@ -1329,7 +1208,7 @@ static void CopySprites(uint8 *target) {
   uint8 *P = target;
 
   if (!any_sprites_on_line) return;
-  any_sprites_on_line=0;
+  any_sprites_on_line = 0;
 
   if (!rendersprites) return;  //User asked to not display sprites.
 
@@ -1419,10 +1298,6 @@ void FCEUPPU_SetVideoSystem(int w) {
   }
 }
 
-//Initializes the PPU
-void FCEUPPU_Init() {
-  makeppulut();
-}
 
 void FCEUPPU_Reset() {
   VRAMBuffer = PPU[0] = PPU[1] = PPU_status = PPU[3] = 0;
@@ -1431,12 +1306,7 @@ void FCEUPPU_Reset() {
   RefreshAddr = TempAddr = 0;
   vtoggle = 0;
   ppudead = 2;
-  kook = 0;
-  idleSynch = 1;
-  //	XOffset=0;
-
-  ppur.reset();
-  spr_read.reset();
+  cycle_parity = 0;
 }
 
 void FCEUPPU_Power() {
@@ -1496,28 +1366,26 @@ int FCEUPPU_Loop(int skip) {
     PPU_status&=0x1f;
     X6502_Run(256);
 
-    {
-      if (ScreenON || SpriteON) {
-	if (GameHBIRQHook && ((PPU[0]&0x38)!=0x18))
-	  GameHBIRQHook();
-	if (PPU_hook)
-	  for (int x=0;x<42;x++) {PPU_hook(0x2000); PPU_hook(0);}
-	if (GameHBIRQHook2)
-	  GameHBIRQHook2();
-      }
-      X6502_Run(85-16);
-      if (ScreenON || SpriteON) {
-	RefreshAddr=TempAddr;
-	if (PPU_hook) PPU_hook(RefreshAddr&0x3fff);
-      }
-
-      //Clean this stuff up later.
-      any_sprites_on_line = numsprites = 0;
-      ResetRL(XBuf);
-
-      X6502_Run(16-kook);
-      kook ^= 1;
+    if (ScreenON || SpriteON) {
+      if (GameHBIRQHook && ((PPU[0]&0x38)!=0x18))
+	GameHBIRQHook();
+      if (PPU_hook)
+	for (int x=0;x<42;x++) {PPU_hook(0x2000); PPU_hook(0);}
+      if (GameHBIRQHook2)
+	GameHBIRQHook2();
     }
+    X6502_Run(85-16);
+    if (ScreenON || SpriteON) {
+      RefreshAddr=TempAddr;
+      if (PPU_hook) PPU_hook(RefreshAddr&0x3fff);
+    }
+
+    //Clean this stuff up later.
+    any_sprites_on_line = numsprites = 0;
+    ResetRL(XBuf);
+
+    X6502_Run(16 - cycle_parity);
+    cycle_parity ^= 1;
 
     // n.b. FRAMESKIP results in different behavior in memory, so don't do it.
     if (0) { /* used to be nsf playing code here -tom7 */ }
@@ -1584,10 +1452,9 @@ int FCEUPPU_Loop(int skip) {
 #endif
 }
 
-int (*PPU_MASTER)(int skip) = FCEUPPU_Loop;
-
 static uint16 TempAddrT,RefreshAddrT;
 
+// Why do we need to do this? -tom7
 void FCEUPPU_LoadState(int version) {
   TempAddr=TempAddrT;
   RefreshAddr=RefreshAddrT;
@@ -1598,7 +1465,7 @@ const SFORMAT FCEUPPU_STATEINFO[] = {
   { PALRAM, 0x20, "PRAM"},
   { SPRAM, 0x100, "SPRA"},
   { PPU, 0x4, "PPUR"},
-  { &kook, 1, "KOOK"},
+  { &cycle_parity, 1, "PARI"},
   { &ppudead, 1, "DEAD"},
   { &PPUSPL, 1, "PSPL"},
   { &XOffset, 1, "XOFF"},
@@ -1614,47 +1481,7 @@ const SFORMAT FCEUPPU_STATEINFO[] = {
   { 0 }
 };
 
-// TODO: PERF: Can avoid saving new ppu state! -tom7
-// XXX deleteme.
-const SFORMAT FCEU_NEWPPU_STATEINFO[] = {
-  { &idleSynch, 1, "IDLS" },
-  { &spr_read.num, 4|FCEUSTATE_RLSB, "SR_0" },
-  { &spr_read.count, 4|FCEUSTATE_RLSB, "SR_1" },
-  { &spr_read.fetch, 4|FCEUSTATE_RLSB, "SR_2" },
-  { &spr_read.found, 4|FCEUSTATE_RLSB, "SR_3" },
-  { &spr_read.found_pos[0], 4|FCEUSTATE_RLSB, "SRx0" },
-  { &spr_read.found_pos[0], 4|FCEUSTATE_RLSB, "SRx1" },
-  { &spr_read.found_pos[0], 4|FCEUSTATE_RLSB, "SRx2" },
-  { &spr_read.found_pos[0], 4|FCEUSTATE_RLSB, "SRx3" },
-  { &spr_read.found_pos[0], 4|FCEUSTATE_RLSB, "SRx4" },
-  { &spr_read.found_pos[0], 4|FCEUSTATE_RLSB, "SRx5" },
-  { &spr_read.found_pos[0], 4|FCEUSTATE_RLSB, "SRx6" },
-  { &spr_read.found_pos[0], 4|FCEUSTATE_RLSB, "SRx7" },
-  { &spr_read.ret, 4|FCEUSTATE_RLSB, "SR_4" },
-  { &spr_read.last, 4|FCEUSTATE_RLSB, "SR_5" },
-  { &spr_read.mode, 4|FCEUSTATE_RLSB, "SR_6" },
-  { &ppur.fv, 4|FCEUSTATE_RLSB, "PFVx" },
-  { &ppur.v, 4|FCEUSTATE_RLSB, "PVxx" },
-  { &ppur.h, 4|FCEUSTATE_RLSB, "PHxx" },
-  { &ppur.vt, 4|FCEUSTATE_RLSB, "PVTx" },
-  { &ppur.ht, 4|FCEUSTATE_RLSB, "PHTx" },
-  { &ppur._fv, 4|FCEUSTATE_RLSB, "P_FV" },
-  { &ppur._v, 4|FCEUSTATE_RLSB, "P_Vx" },
-  { &ppur._h, 4|FCEUSTATE_RLSB, "P_Hx" },
-  { &ppur._vt, 4|FCEUSTATE_RLSB, "P_VT" },
-  { &ppur._ht, 4|FCEUSTATE_RLSB, "P_HT" },
-  { &ppur.fh, 4|FCEUSTATE_RLSB, "PFHx" },
-  { &ppur.s, 4|FCEUSTATE_RLSB, "PSxx" },
-  { &ppur.status.sl, 4|FCEUSTATE_RLSB, "PST0" },
-  { &ppur.status.cycle, 4|FCEUSTATE_RLSB, "PST1" },
-  { &ppur.status.end_cycle, 4|FCEUSTATE_RLSB, "PST2" },
-  { 0 }
-};
-
 void FCEUPPU_SaveState() {
   TempAddrT = TempAddr;
   RefreshAddrT = RefreshAddr;
 }
-
-// probably can go:
-//  ppuphase

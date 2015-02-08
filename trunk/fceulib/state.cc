@@ -221,10 +221,6 @@ static bool ReadStateChunks(EMUFILE* is, int32 totalsize) {
       if (!ReadStateChunk(is,FCEUPPU_STATEINFO,size))
 	ret=false;
       break;
-    case 31:
-      if (!ReadStateChunk(is,FCEU_NEWPPU_STATEINFO,size))
-	ret=false;
-      break;
     case 4:
       if (!ReadStateChunk(is,FCEUINPUT_STATEINFO,size))
 	ret=false;
@@ -286,14 +282,8 @@ bool FCEUSS_SaveRAW(std::vector<uint8> *out) {
   fceulib__sound.FCEUSND_SaveState();
   totalsize = WriteStateChunk(&os,1,SFCPU);
   totalsize += WriteStateChunk(&os,2,SFCPUC);
-  totalsize += WriteStateChunk(&os,3,FCEUPPU_STATEINFO);
-  TRACEV(*out);
-  // PERF: Do we need to save both old and new ppu infos?
-  // PERF: I think not. PPU data is large; should definitely try
-  // removing this (or even removing code support for new ppu)
-
   TRACEF("PPU:");
-  totalsize += WriteStateChunk(&os,31,FCEU_NEWPPU_STATEINFO);
+  totalsize += WriteStateChunk(&os,3,FCEUPPU_STATEINFO);
   TRACEV(*out);
   totalsize += WriteStateChunk(&os,4,FCEUINPUT_STATEINFO);
   TRACEV(*out);

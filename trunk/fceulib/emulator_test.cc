@@ -557,6 +557,8 @@ int main(int argc, char **argv) {
 
   TRACE_DISABLE();
 
+  RunGameSerially(kirby);
+
   RunGameSerially(banditkings);
   RunGameSerially(castlevania3);
 
@@ -569,7 +571,6 @@ int main(int argc, char **argv) {
 
   RunGameSerially(mario);
 
-  RunGameSerially(kirby);
   RunGameSerially(arkanoid);
   RunGameSerially(escape);
 
@@ -609,6 +610,8 @@ int main(int argc, char **argv) {
         fprintf(stderr, "Did %d/%lld = %.1f%%.\n",
                 nlines, romlines.size(),
                 nlines * 100. / romlines.size());
+	// In this case we've already aborted (unless
+	// MAKE_COMPREHENSIVE is set).
 	if (p.first != after_inputs ||
 	    p.second != after_random) {
 	  fprintf(stderr, "(Note, didn't match last time: %s)\n",
