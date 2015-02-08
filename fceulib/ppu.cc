@@ -361,10 +361,6 @@ static DECLFW(B2000) {
   PPU[0]=V;
   TempAddr&=0xF3FF;
   TempAddr|=(V&3)<<10;
-
-  // ppur._h = V&1;
-  // ppur._v = (V>>1)&1;
-  // ppur.s = (V>>4)&1;
 }
 
 static DECLFW(B2001) {
@@ -411,14 +407,10 @@ static DECLFW(B2005) {
     tmp&=0xFFE0;
     tmp|=V>>3;
     XOffset=V&7;
-    // ppur._ht = V>>3;
-    // ppur.fh = V&7;
   } else {
     tmp&=0x8C1F;
     tmp|=((V&~0x7)<<2);
     tmp|=(V&7)<<12;
-    // ppur._vt = V>>3;
-    // ppur._fv = V&7;
   }
   TempAddr=tmp;
   vtoggle^=1;
@@ -542,15 +534,128 @@ static uint32 pshift[2];
 // This was also static; why not save it too? -tom7
 static uint32 atlatch;
 
-// XXX
-#include "pputile.h"
+
+// Used to be an include hack, replaced with a templated function.
+// Returns {refreshaddr_local, P}, which are both modified.
+template<bool PPUT_MMC5, bool PPUT_MMC5SP, bool PPUT_HOOK, bool PPUT_MMC5CHR1>
+static inline std::pair<uint32, uint8 *> PPUTile(const int X1, uint8 *P, 
+						 const uint32 vofs,
+						 uint32 refreshaddr_local) {
+  uint8 *C;
+  register uint8 cc;
+  uint32 vadr;
+  uint8 zz;       
+
+  uint8 xs, ys;
+  if (PPUT_MMC5SP) {
+    xs = X1;
+    ys = ((scanline>>3)+MMC5HackSPScroll) & 0x1F;
+    if (ys >= 0x1E) ys -= 0x1E;
+  }
+	
+  if (X1 >= 2) {
+    uint8 *S = PALRAM;
+    uint32 pixdata;
+
+    pixdata = ppulut1[(pshift[0]>>(8-XOffset))&0xFF] | 
+              ppulut2[(pshift[1]>>(8-XOffset))&0xFF];
+
+    pixdata |= ppulut3[XOffset|(atlatch<<3)];
+    // printf("%02x ",ppulut3[XOffset|(atlatch<<3)]);
+
+    P[0]=S[pixdata&0xF];
+    pixdata>>=4;
+    P[1]=S[pixdata&0xF];
+    pixdata>>=4;
+    P[2]=S[pixdata&0xF];
+    pixdata>>=4;
+    P[3]=S[pixdata&0xF];
+    pixdata>>=4;
+    P[4]=S[pixdata&0xF];
+    pixdata>>=4;
+    P[5]=S[pixdata&0xF];
+    pixdata>>=4;
+    P[6]=S[pixdata&0xF];
+    pixdata>>=4;
+    P[7]=S[pixdata&0xF];
+    P+=8;
+  }
+
+  if (PPUT_MMC5SP) {
+    vadr = (MMC5HackExNTARAMPtr[xs|(ys<<5)]<<4)+(vofs&7);
+  } else {
+    zz = refreshaddr_local&0x1F;
+    C = vnapage[(refreshaddr_local>>10)&3];
+    /* Fetch name table byte. */
+    vadr = (C[refreshaddr_local&0x3ff]<<4)+vofs;
+  }
+
+  if (PPUT_HOOK) {
+    PPU_hook(0x2000 | (refreshaddr_local & 0xfff));
+  }
+
+  if (PPUT_MMC5SP) {
+    cc = MMC5HackExNTARAMPtr[0x3c0+(xs>>2)+((ys&0x1C)<<1)];
+    cc = (cc >> ((xs&2) + ((ys&0x2)<<1))) & 3;
+  } else {
+    if (PPUT_MMC5CHR1) {
+      cc = (MMC5HackExNTARAMPtr[refreshaddr_local & 0x3ff] & 0xC0) >> 6;
+    } else {
+      /* Fetch attribute table byte. */
+      cc = C[0x3c0+(zz>>2)+((refreshaddr_local&0x380)>>4)];
+      cc = (cc >> ((zz&2) + ((refreshaddr_local&0x40)>>4))) & 3;
+    }
+  }
+
+  atlatch >>= 2;
+  atlatch |= cc << 2;  
+       
+  pshift[0] <<= 8;
+  pshift[1] <<= 8;
+
+  if (PPUT_MMC5SP) {
+    C = MMC5HackVROMPTR + vadr;
+    C += ((MMC5HackSPPage & 0x3f & MMC5HackVROMMask) << 12);
+  } else {
+    if (PPUT_MMC5CHR1) {
+      C = MMC5HackVROMPTR;
+      C += (((MMC5HackExNTARAMPtr[refreshaddr_local & 0x3ff]) & 0x3f & 
+	     MMC5HackVROMMask) << 12) + (vadr & 0xfff);
+      //11-jun-2009 for kuja_killer
+      C += (MMC50x5130 & 0x3) << 18;
+    } else if (PPUT_MMC5) {
+      C = MMC5BGVRAMADR(vadr);
+    } else {
+      C = VRAMADR(vadr);
+    }
+  }
+
+  if (PPUT_HOOK) {
+    PPU_hook(vadr);
+  }
+
+  pshift[0] |= C[0];
+  pshift[1] |= C[8];
+
+  if ((refreshaddr_local&0x1f) == 0x1f) {
+    refreshaddr_local ^= 0x41F;
+  } else {
+    refreshaddr_local++;
+  }
+
+  if (PPUT_HOOK) {
+    PPU_hook(0x2000 | (refreshaddr_local & 0xfff));
+  }
+
+  return std::make_pair(refreshaddr_local, P);
+}
 
 // lasttile is really "second to last tile."
 static void RefreshLine(int lastpixel) {
-  // pputile.inc modifies this variable, but we don't put the result
-  // into RefreshAddr until we're done -- maybe so that hooks that
-  // we execute don't see the updated value until the end. (Note
-  // however that RefreshAddr is only used in ppu*.
+  // Not clear why we make a backup copy of this -- probably so that
+  // hooks don't see the updated version until we're done. Modified
+  // wihin PPUTile. (However note that RefreshAddr is only mentioned
+  // inside ppu.cc.)
   uint32 refreshaddr_local=RefreshAddr;
 
   /* Yeah, recursion would be bad. PPU_hook() functions can call
