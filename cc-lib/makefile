@@ -1,6 +1,8 @@
 
 default : heap_test.exe rle_test.exe
 
+TESTCOMPILE=stb_image_write.o stb_image.o
+
 BASE=base/logging.o base/stringprintf.o
 
 # for 64 bits on windows
