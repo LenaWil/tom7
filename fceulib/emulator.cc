@@ -41,18 +41,32 @@ vector<uint8> Emulator::GetMemory() {
   return mem;
 }
 
+static inline uint64 MD5ToChecksum(const uint8 digest[16]) {
+  uint64 res = 0ULL;
+  for (int i = 0; i < 8; i++) {
+    res <<= 8;
+    res |= 255 & digest[i];
+  }
+  return res;
+}
+
 uint64 Emulator::RamChecksum() {
   md5_context ctx;
   md5_starts(&ctx);
   md5_update(&ctx, RAM, 0x800);
   uint8 digest[16];
   md5_finish(&ctx, digest);
-  uint64 res = 0;
-  for (int i = 0; i < 8; i++) {
-    res <<= 8;
-    res |= 255 & digest[i];
-  }
-  return res;
+  return MD5ToChecksum(digest);
+}
+
+uint64 Emulator::ImageChecksum() {
+  md5_context ctx;
+  md5_starts(&ctx);
+  vector<uint8> img = GetImage();
+  md5_update(&ctx, img.data(), 256 * 240 * 4);
+  uint8 digest[16];
+  md5_finish(&ctx, digest);
+  return MD5ToChecksum(digest);
 }
 
 /**
@@ -224,6 +238,12 @@ void Emulator::GetImage(vector<uint8> *rgba) {
       (*rgba)[y * 256 * 4 + x * 4 + 3] = 0xFF;
     }
   }
+}
+
+vector<uint8> Emulator::GetImage() {
+  vector<uint8> ret;
+  GetImage(&ret);
+  return ret;
 }
 
 void Emulator::GetSound(vector<int16> *wav) {
