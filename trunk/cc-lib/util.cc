@@ -233,7 +233,7 @@ static bool hasmagicf(FILE * f, const string & mag) {
     return false;
   }
 
-  for(unsigned int i = 0; i < mag.length(); i++) {
+  for (unsigned int i = 0; i < mag.length(); i++) {
     if (hdr[i] != mag[i]) {
       free(hdr);
       return false;
@@ -338,7 +338,7 @@ string Util::shint(int b, int i) {
    from idx ... */
 int Util::shout(int b, string s, unsigned int & idx) {
   int r = 0;
-  while(b--) {
+  while (b--) {
     r = ((unsigned char)s[idx++]) + (r<<8);
   }
   return r;
@@ -346,7 +346,7 @@ int Util::shout(int b, string s, unsigned int & idx) {
 
 unsigned int Util::hash(string s) {
   unsigned int h = 0x714FA5DD;
-  for(unsigned int i = 0; i < s.length(); i ++) {
+  for (unsigned int i = 0; i < s.length(); i ++) {
     h = (h << 11) | (h >> (32 - 11));
     h *= 3113;
     h ^= (unsigned char)s[i];
@@ -356,7 +356,7 @@ unsigned int Util::hash(string s) {
 
 string Util::lcase(string in) {
   string out;
-  for(unsigned int i = 0; i < in.length(); i++) {
+  for (unsigned int i = 0; i < in.length(); i++) {
     if (in[i] >= 'A' &&
 	in[i] <= 'Z') out += in[i]|32;
 
@@ -367,7 +367,7 @@ string Util::lcase(string in) {
 
 string Util::ucase(string in) {
   string out;
-  for(unsigned int i = 0; i < in.length(); i++) {
+  for (unsigned int i = 0; i < in.length(); i++) {
     if (in[i] >= 'a' &&
 	in[i] <= 'z') out += (in[i] & (~ 32));
 
@@ -377,9 +377,9 @@ string Util::ucase(string in) {
 }
 
 string Util::fileof(string s) {
-  for(long long int i = s.length() - 1; i >= 0; i --) {
+  for (long long int i = s.length() - 1; i >= 0; i --) {
     if (s[i] == DIRSEPC) {
-      return s.substr(i + 1, s.length () - (i + 1));
+      return s.substr(i + 1, s.length() - (i + 1));
     }
   }
   return s;
@@ -387,7 +387,7 @@ string Util::fileof(string s) {
 
 string Util::pathof(string s) {
   if (s == "") return ".";
-  for(long long int i = s.length () - 1; i >= 0; i --) {
+  for (long long int i = s.length() - 1; i >= 0; i --) {
     if (s[i] == DIRSEPC) {
       return s.substr(0, i);
     }
@@ -397,10 +397,10 @@ string Util::pathof(string s) {
 
 /* XX can use endswith below */
 string Util::ensureext(string f, string ext) {
-  if (f.length () < ext.length())
+  if (f.length() < ext.length())
     return f + ext;
   else {
-    if (f.substr(f.length () - ext.length(),
+    if (f.substr(f.length() - ext.length(),
 		 ext.length()) != ext)
       return f + ext;
     else return f;
@@ -409,12 +409,12 @@ string Util::ensureext(string f, string ext) {
 
 bool Util::endswith (string big, string small_) {
   if (small_.length() > big.length()) return false;
-  return big.substr(big.length() - small_.length (),
+  return big.substr(big.length() - small_.length(),
 		    small_.length()) == small_;
 }
 
 bool Util::startswith (string big, string small_) {
-  if (small_.length () > big.length()) return false;
+  if (small_.length() > big.length()) return false;
   return big.substr(0, small_.length()) == small_;
 }
 
@@ -440,7 +440,7 @@ FILE * Util::open_new(string fname) {
 
 string Util::getline(string & chunk) {
   string ret;
-  for(unsigned int i = 0; i < chunk.length(); i ++) {
+  for (unsigned int i = 0; i < chunk.length(); i ++) {
     if (chunk[i] == '\r') continue;
     else if (chunk[i] == '\n') {
       chunk = chunk.substr(i + 1, chunk.length() - (i + 1));
@@ -472,7 +472,7 @@ string Util::chop(string & line) {
   for (unsigned int i = 0; i < line.length(); i ++) {
     if (line[i] != ' ') {
       string acc;
-      for(unsigned int j = i; j < line.length (); j ++) {
+      for (unsigned int j = i; j < line.length(); j ++) {
 	if (line[j] == ' ') {
 	  line = line.substr(j, line.length() - j);
 	  return acc;
@@ -510,7 +510,7 @@ string Util::chopto(char c, string & line) {
 }
 
 string Util::losewhitel(const string & s) {
-  for(unsigned int i = 0; i < s.length(); i ++) {
+  for (unsigned int i = 0; i < s.length(); i ++) {
     switch(s[i]) {
     case ' ':
     case '\n':
@@ -519,7 +519,7 @@ string Util::losewhitel(const string & s) {
       /* keep going ... */
       break;
     default:
-      return s.substr(i, s.length () - i);
+      return s.substr(i, s.length() - i);
     }
   }
   /* all whitespace */
@@ -537,7 +537,7 @@ string Util::tempfile(string suffix) {
 	    tries, getpid(), random(),
 	    suffix.c_str());
     tries++;
-  } while(ExistsFile(fname));
+  } while (ExistsFile(fname));
 
   string ret = fname;
   delete fname;
@@ -567,12 +567,12 @@ string Util::tempfile(string suffix) {
 */
 int Util::natural_compare(const string & l, const string & r) {
 
-  for(int caseless = 0; caseless < 2; caseless ++) {
+  for (int caseless = 0; caseless < 2; caseless ++) {
 
     unsigned int il = 0;
     unsigned int ir = 0;
 
-    while(il < l.length() || ir < r.length()) {
+    while (il < l.length() || ir < r.length()) {
       /* if out of tokens in either string, it comes first. */
       if (il >= l.length()) return -1;
       if (ir >= r.length()) return 1;
@@ -674,8 +674,8 @@ int Util::library_compare(const string & l, const string & r) {
     else idxr += 4;
   }
 
-  return natural_compare (l.substr(idxl, l.length () - idxl),
-			  r.substr(idxr, r.length () - idxr));
+  return natural_compare (l.substr(idxl, l.length() - idxl),
+			  r.substr(idxr, r.length() - idxr));
 }
 
 /* XXX impossible to specify a spec for just ^ */
@@ -685,7 +685,7 @@ bool Util::matchspec(string spec, char c) {
   return !matchspec(spec.substr(1, spec.length() - 1), c);
 
   /* now loop looking for c in string, or ranges */
-  for(unsigned int i = 0; i < spec.length(); i ++) {
+  for (unsigned int i = 0; i < spec.length(); i ++) {
     /* ok if starts range, since they are inclusive */
     if (spec[i] == c) return true;
 
@@ -715,7 +715,7 @@ bool Util::library_matches(char k, const string & s) {
       (s[idx + 1]|32) == 'h' &&
       (s[idx + 2]|32) == 'e' &&
       (s[idx + 3])    == ' ') return (s[idx + 4]|32) == (k|32);
-  else return (s.length () > 0 && (s[idx]|32) == (k|32));
+  else return (s.length() > 0 && (s[idx]|32) == (k|32));
 }
 
 /* try a few methods to remove a file.
@@ -810,16 +810,16 @@ string Util::dirplus(const string &dir_, const string &file) {
 
 string Util::cdup(const string & dir) {
   /* XXX right second argument to rfind? I want to find the last / */
-  size_t idx = dir.rfind(DIRSEP, dir.length () - 1);
+  size_t idx = dir.rfind(DIRSEP, dir.length() - 1);
   if (idx != (signed)string::npos) {
     if (idx) return dir.substr(0, idx);
     else return ".";
   } else return ".";
 }
 
-void Util::createpathfor(string f) {
+void Util::createpathfor (string f) {
   string s;
-  for(unsigned int i = 0; i < f.length();  i++) {
+  for (unsigned int i = 0; i < f.length();  i++) {
     if (f[i] == DIRSEPC) {
       /* initial / will cause s == "" for first
 	 appearance */
@@ -830,14 +830,14 @@ void Util::createpathfor(string f) {
 }
 
 FILE * Util::fopenp(string f, string m) {
-  createpathfor(f);
+  createpathfor (f);
   return fopen(f.c_str(), m.c_str());
 }
 
 string Util::replace(string src, string findme, string rep) {
   long long int idx = src.length() - 1;
 
-  if (findme.length () < 1) return src;
+  if (findme.length() < 1) return src;
 
   /* idx represents the position in src which, for all chars greater
      than it, there begins no match of findme */
@@ -879,7 +879,7 @@ bool bitbuffer::nbits(string s, int n, int & idx, unsigned int & out) {
 
   out = 0;
 
-  while(n--) {
+  while (n--) {
     out <<= 1;
     /* check bounds */
     if ((unsigned)(idx >> 3) >= s.length()) return false;
@@ -903,7 +903,7 @@ void bitbuffer::writebits(int n, unsigned int b) {
 
   /* printf("writebits(%d, %d)\n", n, b); */
 
-  for(int i = 0; i < n; i ++) {
+  for (int i = 0; i < n; i ++) {
     int bytes_needed = ceil(bits + 1);
 
     /* allocate more */
@@ -911,7 +911,7 @@ void bitbuffer::writebits(int n, unsigned int b) {
       int nsize = (size + 1) * 2;
       unsigned char * tmp =
 	(unsigned char *) malloc(nsize * sizeof (unsigned char));
-      if (!tmp) abort ();
+      if (!tmp) abort();
       memset(tmp, 0, nsize);
       memcpy(tmp, data, size);
       free(data);
@@ -973,7 +973,7 @@ float Util::randfrac() {
    web sequence numbers are chosen randomly, now, so we
    actually do.
 */
-int Util::random () {
+int Util::random() {
 # if defined(WIN32) || defined(__MINGW32__)
   return ::rand();
 # else
@@ -991,7 +991,7 @@ struct RandomSeed {
     srandom(time(0) ^ getpid());
 # endif
     /* run it a bit */
-    for(int i = 0; i < 256; i ++)
+    for (int i = 0; i < 256; i ++)
       (void)Util::random();
   }
 };
