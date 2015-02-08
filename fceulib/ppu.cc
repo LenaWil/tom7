@@ -256,57 +256,6 @@ static constexpr uint32 ppulut3[128] = {
 0xcccccccc, 0xcccccccc, 0xcccccccc, 0xcccccccc, 0xcccccccc, 0xcccccccc,
 0xcccccccc, 0xcccccccc, };
 
-#if 0
-static void makeppulut() {
-  for (int x=0; x < 256; x++) {
-    ppulut1[x] = 0;
-
-    for (int y=0; y < 8; y++) {
-      ppulut1[x] |= ((x>>(7-y))&1)<<(y*4);
-    }
-
-    ppulut2[x] = ppulut1[x] << 1;
-  }
-
-  for (int cc = 0; cc < 16; cc++) {
-    for (int xo = 0;xo < 8; xo++) {
-      ppulut3[ xo | ( cc << 3 ) ] = 0;
-
-      for (int pixel = 0; pixel < 8; pixel++) {
-	int shiftr;
-	shiftr = ( pixel + xo ) / 8;
-	shiftr *= 2;
-	ppulut3[ xo | (cc<<3) ] |=
-	  ( ( cc >> shiftr ) & 3 ) << ( 2 + pixel * 4 );
-      }
-      //    printf("%08x\n",ppulut3[xo|(cc<<3)]);
-    }
-  }
-
-  #if 1
-  auto PrintTable = [](const char *name, const uint32 lut[256]) {
-    printf("static constexpr uint32 %s[256] = {", name);
-    for (int i = 0; i < 128; i++) {
-      if (i % 6 == 0) printf("\n");
-      // printf("0x%08x, ", lut[i]);
-      printf("0x%08x, ", lut[i]);
-    }
-    printf("\n};\n");
-  };
-  PrintTable("ppulut1", ppulut1);
-  PrintTable("ppulut2", ppulut2);
-  PrintTable("ppulut3", ppulut3);
-  #endif
-
-  for (int i = 0; i < 128; i++) {
-    if (ppulut1[i] != precomputed_ppulut1[i]) abort();
-    if (ppulut2[i] != precomputed_ppulut2[i]) abort();
-    if (ppulut3[i] != precomputed_ppulut3[i]) abort();
-  }
-  printf("PPU LUTs are ok.\n");
-}
-#endif
-
 static inline uint8 *MMC5SPRVRAMADR(uint32 v) {
   return &fceulib__cart.MMC5SPRVPage[v >> 10][v];
 }
@@ -481,12 +430,6 @@ static DECLFW(B2006) {
   if (!vtoggle) {
     TempAddr&=0x00FF;
     TempAddr|=(V&0x3f)<<8;
-
-    // ppur._vt &= 0x07;
-    // ppur._vt |= (V&0x3)<<3;
-    // ppur._h = (V>>2)&1;
-    // ppur._v = (V>>3)&1;
-    // ppur._fv = (V>>4)&3;
   } else {
     TempAddr&=0xFF00;
     TempAddr|=V;
@@ -494,13 +437,7 @@ static DECLFW(B2006) {
     RefreshAddr=TempAddr;
     if (PPU_hook)
       PPU_hook(RefreshAddr);
-    //printf("%d, %04x\n",scanline,RefreshAddr);
-
-    // ppur._vt &= 0x18;
-    // ppur._vt |= (V>>5);
-    // ppur._ht = V&31;
-    // 
-    // ppur.install_latches();
+    // printf("%d, %04x\n",scanline,RefreshAddr);
   }
 
   vtoggle^=1;
@@ -1079,14 +1016,9 @@ static void RefreshSprites() {
     // different though. 32 bits is 16 pixels, as expected.
 
     uint32 pixdata = ppulut1[spr->ca[0]] | ppulut2[spr->ca[1]];
-    // treat all sprites as checkerboard!
-    // uint32 pixdata = (scanline & 1) ? 0xCCCC : 0x3333;
-    // uint32 pixdata = 0xFFFF;
 
     // So then J is like the 1-bit mask of non-zero pixels.
     uint8 J = spr->ca[0] | spr->ca[1];
-    // uint8 J = (scanline & 1) ? 0xAA : 0x55;
-    // uint8 J = 0xFF;
 
     uint8 atr = spr->atr;
 
@@ -1439,8 +1371,11 @@ int FCEUPPU_Loop(int skip) {
 	}
 	deempcnt[x]=0;
       }
-      //FCEU_DispMessage("%2x:%2x:%2x:%2x:%2x:%2x:%2x:%2x %d",0,deempcnt[0],deempcnt[1],deempcnt[2],deempcnt[3],deempcnt[4],deempcnt[5],deempcnt[6],deempcnt[7],maxref);
-      //memset(deempcnt,0,sizeof(deempcnt));
+      // FCEU_DispMessage("%2x:%2x:%2x:%2x:%2x:%2x:%2x:%2x %d",
+      //                  0,deempcnt[0],deempcnt[1],deempcnt[2],
+      //                  deempcnt[3],deempcnt[4],deempcnt[5],
+      //                  deempcnt[6],deempcnt[7],maxref);
+      // memset(deempcnt,0,sizeof(deempcnt));
       fceulib__palette.SetNESDeemph(maxref,0);
     }
   } //else... to if (ppudead)
