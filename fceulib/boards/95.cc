@@ -33,20 +33,16 @@ static SFORMAT DB_StateRegs[]={
   {0}
 };
 
-static void toot(void)
-{
-  int x;
-
+static void toot(void) {
   MirCache[0]=MirCache[1]=(DRegs[0]>>4)&1;
   MirCache[2]=MirCache[3]=(DRegs[1]>>4)&1;
 
-  for(x=0;x<4;x++)
-     MirCache[4+x]=(DRegs[2+x]>>5)&1;
+  for(int x=0;x<4;x++)
+    MirCache[4+x]=(DRegs[2+x]>>5)&1;
   onemir(MirCache[lastA]);
 }
 
-static void Sync()
-{
+static void Sync() {
   fceulib__cart.setchr2(0x0000,DRegs[0]&0x1F);
   fceulib__cart.setchr2(0x0800,DRegs[1]&0x1F);
   fceulib__cart.setchr1(0x1000,DRegs[2]&0x1F);
@@ -58,14 +54,11 @@ static void Sync()
   toot();
 }
 
-static DECLFW(Mapper95_write)
-{
-  switch(A&0xF001)
-  {
+static DECLFW(Mapper95_write) {
+  switch(A&0xF001) {
     case 0x8000: cmd = V; break;
     case 0x8001:
-     switch(cmd&0x07)
-     {
+     switch(cmd&0x07) {
        case 0: DRegs[0]=(V&0x3F)>>1; break;
        case 1: DRegs[1]=(V&0x3F)>>1; break;
        case 2: DRegs[2]=V&0x3F; break;
@@ -79,8 +72,7 @@ static DECLFW(Mapper95_write)
   }
 }
 
-static void dragonbust_ppu(uint32 A)
-{
+static void dragonbust_ppu(uint32 A) {
   static int last=-1;
   static uint8 z;
 
@@ -89,15 +81,13 @@ static void dragonbust_ppu(uint32 A)
   A>>=10;
   lastA=A;
   z=MirCache[A];
-  if(z!=last)
-  {
+  if(z!=last) {
     onemir(z);
     last=z;
   }
 }
 
-static void DBPower(void)
-{
+static void DBPower(void) {
   memset(DRegs,0x3F,8);
   DRegs[0]=DRegs[1]=0x1F;
 
@@ -110,16 +100,14 @@ static void DBPower(void)
   SetWriteHandler(0x8000,0xffff,Mapper95_write);
 }
 
-static void StateRestore(int version)
-{
+static void StateRestore(int version) {
   Sync();
 }
 
-void Mapper95_Init(CartInfo *info)
-{
+void Mapper95_Init(CartInfo *info) {
   info->Power=DBPower;
   AddExState(DB_StateRegs, ~0, 0, 0);
-  PPU_hook=dragonbust_ppu;
+  fceulib__ppu.PPU_hook=dragonbust_ppu;
   GameStateRestore=StateRestore;
 }
 

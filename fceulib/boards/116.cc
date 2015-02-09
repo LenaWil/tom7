@@ -42,8 +42,7 @@ static uint8 IRQCount,IRQLatch,IRQa;
 static uint8 IRQReload;
 static uint8 mmc1_regs[4], mmc1_buffer, mmc1_shift;
 
-static SFORMAT StateRegs[]=
-{
+static SFORMAT StateRegs[]= {
   {&mode, 1, "MODE"},
   {vrc2_chr, 8, "VRCC"},
   {vrc2_prg, 2, "VRCP"},
@@ -324,7 +323,7 @@ static void UNLSL12Power(void) {
 
 void UNLSL12_Init(CartInfo *info) {
   info->Power = UNLSL12Power;
-  GameHBIRQHook = UNLSL12HBIRQ;
+  fceulib__ppu.GameHBIRQHook = UNLSL12HBIRQ;
   GameStateRestore = StateRestore;
   AddExState(&StateRegs, ~0, 0, 0);
 }

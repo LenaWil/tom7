@@ -38,22 +38,19 @@ static SFORMAT StateRegs[]=
   {0}
 };
 
-static void M68NTfix(void)
-{
-  if((!UNIFchrrama)&&(mirr&0x10))
-  {
-    PPUNTARAM = 0;
-    switch(mirr&3)
-    {
-     case 0: vnapage[0]=vnapage[2]=fceulib__cart.CHRptr[0]+(((nt1|128)&fceulib__cart.CHRmask1[0])<<10);
-             vnapage[1]=vnapage[3]=fceulib__cart.CHRptr[0]+(((nt2|128)&fceulib__cart.CHRmask1[0])<<10);
+static void M68NTfix(void) {
+  if((!UNIFchrrama)&&(mirr&0x10)) {
+    fceulib__ppu.PPUNTARAM = 0;
+    switch(mirr&3) {
+     case 0: fceulib__ppu.vnapage[0]=fceulib__ppu.vnapage[2]=fceulib__cart.CHRptr[0]+(((nt1|128)&fceulib__cart.CHRmask1[0])<<10);
+             fceulib__ppu.vnapage[1]=fceulib__ppu.vnapage[3]=fceulib__cart.CHRptr[0]+(((nt2|128)&fceulib__cart.CHRmask1[0])<<10);
              break;
-     case 1: vnapage[0]=vnapage[1]=fceulib__cart.CHRptr[0]+(((nt1|128)&fceulib__cart.CHRmask1[0])<<10);
-             vnapage[2]=vnapage[3]=fceulib__cart.CHRptr[0]+(((nt2|128)&fceulib__cart.CHRmask1[0])<<10);
+     case 1: fceulib__ppu.vnapage[0]=fceulib__ppu.vnapage[1]=fceulib__cart.CHRptr[0]+(((nt1|128)&fceulib__cart.CHRmask1[0])<<10);
+             fceulib__ppu.vnapage[2]=fceulib__ppu.vnapage[3]=fceulib__cart.CHRptr[0]+(((nt2|128)&fceulib__cart.CHRmask1[0])<<10);
              break;
-     case 2: vnapage[0]=vnapage[1]=vnapage[2]=vnapage[3]=fceulib__cart.CHRptr[0]+(((nt1|128)&fceulib__cart.CHRmask1[0])<<10);
+     case 2: fceulib__ppu.vnapage[0]=fceulib__ppu.vnapage[1]=fceulib__ppu.vnapage[2]=fceulib__ppu.vnapage[3]=fceulib__cart.CHRptr[0]+(((nt1|128)&fceulib__cart.CHRmask1[0])<<10);
              break;
-     case 3: vnapage[0]=vnapage[1]=vnapage[2]=vnapage[3]=fceulib__cart.CHRptr[0]+(((nt2|128)&fceulib__cart.CHRmask1[0])<<10);
+     case 3: fceulib__ppu.vnapage[0]=fceulib__ppu.vnapage[1]=fceulib__ppu.vnapage[2]=fceulib__ppu.vnapage[3]=fceulib__cart.CHRptr[0]+(((nt2|128)&fceulib__cart.CHRmask1[0])<<10);
              break;
     }
   }

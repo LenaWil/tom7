@@ -43,7 +43,7 @@ static void (*setchr1wrap)(unsigned int A, unsigned int V);
 
 static void RAMBO1_IRQHook(int a)
 {
-  if(!IRQmode) return;
+  if (!IRQmode) return;
 
   TRACEF("RAMBO1: %d %d %02x %02x",
 	 a, smallcount, IRQCount, IRQa);
@@ -53,39 +53,32 @@ static void RAMBO1_IRQHook(int a)
   {
     smallcount-=4;
     IRQCount--;
-    if(IRQCount==0xFF)
-      if(IRQa) X6502_IRQBegin(FCEU_IQEXT);
+    if (IRQCount==0xFF)
+      if (IRQa) X6502_IRQBegin(FCEU_IQEXT);
   }
 }
 
-static void RAMBO1_hb(void)
-{
-  if(IRQmode) return;
-  if(scanline==240) return;        /* hmm.  Maybe that should be an mmc3-only call in fce.c. */
+static void RAMBO1_hb(void) {
+  if (IRQmode) return;
+  if (fceulib__ppu.scanline==240) return;        /* hmm.  Maybe that should be an mmc3-only call in fce.c. */
   rmode=0;
   IRQCount--;
-  if(IRQCount==0xFF)
-  {
-    if(IRQa)
-    {
+  if (IRQCount==0xFF) {
+    if (IRQa) {
       rmode = 1;
       X6502_IRQBegin(FCEU_IQEXT);
     }
   }
 }
 
-static void Synco(void)
-{
+static void Synco(void) {
 
-  if(cmd&0x20)
-  {
+  if (cmd&0x20) {
     setchr1wrap(0x0000,DRegs[0]);
     setchr1wrap(0x0800,DRegs[1]);
     setchr1wrap(0x0400,DRegs[8]);
     setchr1wrap(0x0c00,DRegs[9]);
-  }
-  else
-  {
+  } else {
     setchr1wrap(0x0000,(DRegs[0]&0xFE));
     setchr1wrap(0x0400,(DRegs[0]&0xFE)|1);
     setchr1wrap(0x0800,(DRegs[1]&0xFE));
@@ -93,7 +86,7 @@ static void Synco(void)
   }
 
   for(int x=0;x<4;x++)
-     setchr1wrap(0x1000+x*0x400,DRegs[2+x]);
+    setchr1wrap(0x1000+x*0x400,DRegs[2+x]);
 
   fceulib__cart.setprg8(0x8000,DRegs[6]);
   fceulib__cart.setprg8(0xA000,DRegs[7]);
@@ -107,19 +100,19 @@ static DECLFW(RAMBO1_write)
   switch(A&0xF001)
   {
     case 0xa000: mir=V&1;
-//                 if(!nomirror)
+//                 if (!nomirror)
                    fceulib__cart.setmirror(mir^1);
                  break;
     case 0x8000: cmd = V;
                  break;
-    case 0x8001: if((cmd&0xF)<10)
+    case 0x8001: if ((cmd&0xF)<10)
                    DRegs[cmd&0xF]=V;
-                 else if((cmd&0xF)==0xF)
+                 else if ((cmd&0xF)==0xF)
                    DRegs[10]=V;
                  Synco();
                  break;
     case 0xc000: IRQLatch=V;
-                 if(rmode==1)
+                 if (rmode==1)
                    IRQCount=IRQLatch;
                  break;
     case 0xc001: rmode=1;
@@ -128,11 +121,11 @@ static DECLFW(RAMBO1_write)
                  break;
     case 0xE000: IRQa=0;
                  X6502_IRQEnd(FCEU_IQEXT);
-                 if(rmode==1)
+                 if (rmode==1)
                    IRQCount=IRQLatch;
                  break;
     case 0xE001: IRQa=1;
-                 if(rmode==1)
+                 if (rmode==1)
                    IRQCount=IRQLatch;
                  break;
   }
@@ -141,20 +134,18 @@ static DECLFW(RAMBO1_write)
 static void RAMBO1_Restore(int version)
 {
   Synco();
-//  if(!nomirror)
+//  if (!nomirror)
     fceulib__cart.setmirror(mir^1);
 }
 
-static void RAMBO1_init(void)
-{
-  int x;
-  for(x=0;x<11;x++)
-     DRegs[x]=~0;
+static void RAMBO1_init(void) {
+  for(int x=0;x<11;x++)
+    DRegs[x]=~0;
   cmd=mir=0;
-//  if(!nomirror)
-    fceulib__cart.setmirror(1);
+  //  if (!nomirror)
+  fceulib__cart.setmirror(1);
   Synco();
-  GameHBIRQHook=RAMBO1_hb;
+  fceulib__ppu.GameHBIRQHook=RAMBO1_hb;
   MapIRQHook=RAMBO1_IRQHook;
   GameStateRestore=RAMBO1_Restore;
   SetWriteHandler(0x8000,0xffff,RAMBO1_write);
@@ -179,7 +170,7 @@ static unsigned int PPUCHRBus;
 static void MirWrap(unsigned int A, unsigned int V)
 {
   MirCache[A>>10]=(V>>7)&1;
-  if(PPUCHRBus==(A>>10))
+  if (PPUCHRBus==(A>>10))
     setmirror(MI_0+((V>>7)&1));
   setchr1(A,V);
 }

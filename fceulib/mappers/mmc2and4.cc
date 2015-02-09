@@ -100,22 +100,20 @@ DECLFW(Mapper9and10_write)
         }
 }
 
-void Mapper9_init(void)
-{
-        latcha1=0xFE;
-        latcha2=0xFE;
-        ROM_BANK8(0xA000,~2);
-        ROM_BANK8(0x8000,0);
-        SetWriteHandler(0xA000,0xAFFF,Mapper9_write);
-        SetWriteHandler(0xB000,0xFFFF,Mapper9and10_write);
-        PPU_hook=latchcheck;
+void Mapper9_init(void) {
+  latcha1=0xFE;
+  latcha2=0xFE;
+  ROM_BANK8(0xA000,~2);
+  ROM_BANK8(0x8000,0);
+  SetWriteHandler(0xA000,0xAFFF,Mapper9_write);
+  SetWriteHandler(0xB000,0xFFFF,Mapper9and10_write);
+  fceulib__ppu.PPU_hook=latchcheck;
 }
 
-void Mapper10_init(void)
-{
-        latcha1=latcha2=0xFE;
-        SetWriteHandler(0xA000,0xAFFF,Mapper10_write);
-        SetWriteHandler(0xB000,0xFFFF,Mapper9and10_write);
-        PPU_hook=latchcheck;
+void Mapper10_init(void) {
+  latcha1=latcha2=0xFE;
+  SetWriteHandler(0xA000,0xAFFF,Mapper10_write);
+  SetWriteHandler(0xB000,0xFFFF,Mapper9and10_write);
+  fceulib__ppu.PPU_hook=latchcheck;
 }
 

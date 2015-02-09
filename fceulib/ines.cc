@@ -976,14 +976,14 @@ int iNESLoad(const char *name, FceuFile *fp, int OverwriteVidMode) {
 
 void VRAM_BANK1(uint32 A, uint8 V) {
   V&=7;
-  PPUCHRRAM|=(1<<(A>>10));
+  fceulib__ppu.PPUCHRRAM|=(1<<(A>>10));
   CHRBankList[(A)>>10]=V;
   fceulib__cart.VPage[(A)>>10]=&CHRRAM[V<<10]-(A);
 }
 
 void VRAM_BANK4(uint32 A, uint32 V) {
   V&=1;
-  PPUCHRRAM|=(0xF<<(A>>10));
+  fceulib__ppu.PPUCHRRAM|=(0xF<<(A>>10));
   CHRBankList[(A)>>10]=(V<<2);
   CHRBankList[((A)>>10)+1]=(V<<2)+1;
   CHRBankList[((A)>>10)+2]=(V<<2)+2;

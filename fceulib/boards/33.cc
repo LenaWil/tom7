@@ -101,17 +101,17 @@ static void StateRestore(int version) {
 }
 
 void Mapper33_Init(CartInfo *info) {
-	is48 = 0;
-	info->Power = M33Power;
-	GameStateRestore = StateRestore;
-	AddExState(&StateRegs, ~0, 0, 0);
+  is48 = 0;
+  info->Power = M33Power;
+  GameStateRestore = StateRestore;
+  AddExState(&StateRegs, ~0, 0, 0);
 }
 
 void Mapper48_Init(CartInfo *info) {
-	is48 = 1;
-	info->Power = M48Power;
-	GameHBIRQHook = M48IRQ;
-	GameStateRestore = StateRestore;
-	AddExState(&StateRegs, ~0, 0, 0);
+  is48 = 1;
+  info->Power = M48Power;
+  fceulib__ppu.GameHBIRQHook = M48IRQ;
+  GameStateRestore = StateRestore;
+  AddExState(&StateRegs, ~0, 0, 0);
 }
 

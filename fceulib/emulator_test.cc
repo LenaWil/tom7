@@ -748,6 +748,7 @@ int main(int argc, char **argv) {
       }
     }
     fclose(out);
+    collage.Flush();
   }
 
   const int64 end_us = TimeUsec();

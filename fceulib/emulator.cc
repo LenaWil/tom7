@@ -174,7 +174,7 @@ Emulator *Emulator::Create(const string &romfile) {
   fceulib__sound.FCEUI_SetLowPass(0);
 
   // Default.
-  FCEUI_DisableSpriteLimitation(1);
+  fceulib__ppu.FCEUI_DisableSpriteLimitation(1);
 
   // Defaults.
   constexpr int scanlinestart = 0, scanlineend = 239;

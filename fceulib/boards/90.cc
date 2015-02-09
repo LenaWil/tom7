@@ -84,7 +84,7 @@ static void mira(void) {
 	for(x=0;x<4;x++)
 	  {
 	    if((tkcom[1]&0x80)==(names[x]&0x80))        // RAM selected.
-	      fceulib__cart.setntamem(NTARAM+((names[x]&0x1)<<10),1,x);
+	      fceulib__cart.setntamem(fceulib__ppu.NTARAM+((names[x]&0x1)<<10),1,x);
 	    else
 	      fceulib__cart.setntamem(fceulib__cart.CHRptr[0]+(((names[x])&fceulib__cart.CHRmask1[0])<<10),0,x);
 	  }
@@ -463,40 +463,37 @@ static void M90Power(void)
 }
 
 
-void Mapper90_Init(CartInfo *info)
-{
+void Mapper90_Init(CartInfo *info) {
   is211=0;
   is209=0;
   info->Reset=togglie;
   info->Power=M90Power;
-  PPU_hook=M90PPU;
+  fceulib__ppu.PPU_hook=M90PPU;
   MapIRQHook=CPUWrap;
-  GameHBIRQHook2=SLWrap;
+  fceulib__ppu.GameHBIRQHook2=SLWrap;
   GameStateRestore=M90Restore;
   AddExState(Tek_StateRegs, ~0, 0, 0);
 }
 
-void Mapper209_Init(CartInfo *info)
-{
+void Mapper209_Init(CartInfo *info) {
   is211=0;
   is209=1;
   info->Reset=togglie;
   info->Power=M90Power;
-  PPU_hook=M90PPU;
+  fceulib__ppu.PPU_hook=M90PPU;
   MapIRQHook=CPUWrap;
-  GameHBIRQHook2=SLWrap;
+  fceulib__ppu.GameHBIRQHook2=SLWrap;
   GameStateRestore=M90Restore;
   AddExState(Tek_StateRegs, ~0, 0, 0);
 }
 
-void Mapper211_Init(CartInfo *info)
-{
+void Mapper211_Init(CartInfo *info) {
   is211=1;
   info->Reset=togglie;
   info->Power=M90Power;
-  PPU_hook=M90PPU;
+  fceulib__ppu.PPU_hook=M90PPU;
   MapIRQHook=CPUWrap;
-  GameHBIRQHook2=SLWrap;
+  fceulib__ppu.GameHBIRQHook2=SLWrap;
   GameStateRestore=M90Restore;
   AddExState(Tek_StateRegs, ~0, 0, 0);
 }

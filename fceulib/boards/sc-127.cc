@@ -27,8 +27,7 @@ static uint8 *WRAM=NULL;
 static uint32 WRAMSIZE;
 static uint16 IRQCount, IRQa;
 
-static SFORMAT StateRegs[]=
-{
+static SFORMAT StateRegs[]= {
   {reg, 8, "REGS"},
   {chr, 8, "CHRS"},
   {&IRQCount, 16, "IRQc"},
@@ -36,20 +35,17 @@ static SFORMAT StateRegs[]=
   {0}
 };
 
-static void Sync(void)
-{
+static void Sync(void) {
   fceulib__cart.setprg8(0x8000,reg[0]);
   fceulib__cart.setprg8(0xA000,reg[1]);
   fceulib__cart.setprg8(0xC000,reg[2]);
-  for(int i=0; i<8; i++)
+  for(int i = 0; i < 8; i++)
     fceulib__cart.setchr1(i << 10,chr[i]);
   fceulib__cart.setmirror(reg[3]^1);
 }
 
-static DECLFW(UNLSC127Write)
-{
-  switch(A)
-  {
+static DECLFW(UNLSC127Write) {
+  switch(A) {
     case 0x8000: reg[0] = V; break;
     case 0x8001: reg[1] = V; break;
     case 0x8002: reg[2] = V; break;
@@ -69,8 +65,7 @@ static DECLFW(UNLSC127Write)
   Sync();
 }
 
-static void UNLSC127Power(void)
-{
+static void UNLSC127Power(void) {
   Sync();
   fceulib__cart.setprg8r(0x10,0x6000,0);
   fceulib__cart.setprg8(0xE000,~0);
@@ -80,41 +75,33 @@ static void UNLSC127Power(void)
   SetWriteHandler(0x8000,0xFFFF,UNLSC127Write);
 }
 
-static void UNLSC127IRQ(void)
-{
- if(IRQa)
- {
-   IRQCount--;
-   if(IRQCount==0)
-   {
-    X6502_IRQBegin(FCEU_IQEXT);
-    IRQa=0;
-   }
- }
+static void UNLSC127IRQ(void) {
+  if(IRQa) {
+    IRQCount--;
+    if(IRQCount==0) {
+      X6502_IRQBegin(FCEU_IQEXT);
+      IRQa=0;
+    }
+  }
 }
 
-static void UNLSC127Reset(void)
-{
+static void UNLSC127Reset(void) {
 }
 
-static void UNLSC127Close(void)
-{
-  if(WRAM)
-    free(WRAM);
-  WRAM=NULL;
+static void UNLSC127Close(void) {
+  free(WRAM);
+  WRAM = nullptr;
 }
 
-static void StateRestore(int version)
-{
+static void StateRestore(int version) {
   Sync();
 }
 
-void UNLSC127_Init(CartInfo *info)
-{
+void UNLSC127_Init(CartInfo *info) {
   info->Reset=UNLSC127Reset;
   info->Power=UNLSC127Power;
   info->Close=UNLSC127Close;
-  GameHBIRQHook=UNLSC127IRQ;
+  fceulib__ppu.GameHBIRQHook=UNLSC127IRQ;
   GameStateRestore=StateRestore;
   WRAMSIZE=8192;
   WRAM=(uint8*)FCEU_gmalloc(WRAMSIZE);

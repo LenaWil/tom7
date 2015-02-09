@@ -24,16 +24,14 @@ static uint8 prg, mirr, prgmode;
 static uint8 *WRAM=NULL;
 static uint32 WRAMSIZE;
 
-static SFORMAT StateRegs[]=
-{
+static SFORMAT StateRegs[]= {
   {&prg, 1, "REGS"},
   {&mirr, 1, "MIRR"},
   {&prgmode, 1, "MIRR"},
   {0}
 };
 
-static void Sync(void)
-{
+static void Sync(void) {
   fceulib__cart.setmirror(mirr);
   fceulib__cart.setprg8r(0x10,0x6000,0);
   fceulib__cart.setchr8(0);
@@ -45,8 +43,7 @@ static void Sync(void)
   }
 }
 
-static DECLFW(UNLD2000Write)
-{
+static DECLFW(UNLD2000Write) {
 //  FCEU_printf("write %04x:%04x\n",A,V);
   switch(A) {
     case 0x5000: prg = V; Sync(); break;
@@ -55,16 +52,14 @@ static DECLFW(UNLD2000Write)
   }
 }
 
-static DECLFR(UNLD2000Read)
-{
-  if(prg & 0x40)
+static DECLFR(UNLD2000Read) {
+  if (prg & 0x40)
     return X.DB;
   else
     return Cart::CartBR(A);
 }
 
-static void UNLD2000Power(void)
-{
+static void UNLD2000Power(void) {
   prg = prgmode = 0;
   Sync();
   SetReadHandler(0x6000,0x7FFF,Cart::CartBR);
@@ -73,30 +68,26 @@ static void UNLD2000Power(void)
   SetWriteHandler(0x4020,0x5FFF,UNLD2000Write);
 }
 
-static void UNLAX5705IRQ(void)
-{
-  if(scanline > 174) fceulib__cart.setchr4(0x0000,1);
+static void UNLAX5705IRQ(void) {
+  if (fceulib__ppu.scanline > 174) fceulib__cart.setchr4(0x0000,1);
   else fceulib__cart.setchr4(0x0000,0);
 }
 
-static void UNLD2000Close(void)
-{
+static void UNLD2000Close(void) {
   if(WRAM)
     free(WRAM);
   WRAM=NULL;
 }
 
 
-static void StateRestore(int version)
-{
+static void StateRestore(int version) {
   Sync();
 }
 
-void UNLD2000_Init(CartInfo *info)
-{
+void UNLD2000_Init(CartInfo *info) {
   info->Power=UNLD2000Power;
   info->Close=UNLD2000Close;
-  GameHBIRQHook=UNLAX5705IRQ;
+  fceulib__ppu.GameHBIRQHook=UNLAX5705IRQ;
   GameStateRestore=StateRestore;
 
   WRAMSIZE=8192;

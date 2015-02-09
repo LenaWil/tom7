@@ -28,8 +28,7 @@ static uint8 IRQCount;
 static uint8 IRQPre;
 static uint8 IRQa;
 
-static SFORMAT StateRegs[]=
-{
+static SFORMAT StateRegs[] = {
   {prg, 4, "PRG"},
   {chr, 8, "CHR"},
   {&IRQCount, 1, "IRQC"},
@@ -47,24 +46,21 @@ static void SyncPrg(void) {
 }
 
 static void SyncChr(void) {
-  for(int i=0; i<8; i++)
+  for (int i = 0; i<8; i++)
     fceulib__cart.setchr1(i<<10,chr[i]);
 }
 
-static void StateRestore(int version)
-{
+static void StateRestore(int version) {
   SyncPrg();
   SyncChr();
 }
 
-static DECLFW(M183Write)
-{
-  if(((A&0xF80C)>=0xB000)&&((A&0xF80C)<=0xE00C)) {
+static DECLFW(M183Write) {
+  if (((A&0xF80C)>=0xB000)&&((A&0xF80C)<=0xE00C)) {
     int index=(((A>>11)-6)|(A>>3))&7;
     chr[index]=(chr[index]&(0xF0>>(A&4)))|((V&0x0F)<<(A&4));
     SyncChr();
-  }
-  else { 
+  } else { 
     switch (A&0xF80C) {
     case 0x8800: prg[0]=V; SyncPrg(); break;
     case 0xA800: prg[1]=V; SyncPrg(); break;
@@ -79,24 +75,21 @@ static DECLFW(M183Write)
       break;
     case 0xF000: IRQCount=((IRQCount&0xF0)|(V&0xF)); break;
     case 0xF004: IRQCount=((IRQCount&0x0F)|((V&0xF)<<4)); break;
-    case 0xF008: IRQa=V; if(!V)IRQPre=0; X6502_IRQEnd(FCEU_IQEXT); break;
+    case 0xF008: IRQa=V; if (!V)IRQPre=0; X6502_IRQEnd(FCEU_IQEXT); break;
     case 0xF00C: IRQPre=16; break;
     }
   }
 }
 
-static void M183IRQCounter(void)
-{
-  if(IRQa)
-  {
+static void M183IRQCounter(void) {
+  if (IRQa) {
     IRQCount++;
-    if((IRQCount-IRQPre)==238)
+    if ((IRQCount-IRQPre)==238)
       X6502_IRQBegin(FCEU_IQEXT);
   }
 }
 
-static void M183Power(void)
-{
+static void M183Power(void) {
   IRQPre=IRQCount=IRQa=0;
   SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
   SetWriteHandler(0x8000,0xFFFF,M183Write);
@@ -105,10 +98,9 @@ static void M183Power(void)
   SyncChr();
 }
 
-void Mapper183_Init(CartInfo *info)
-{
+void Mapper183_Init(CartInfo *info) {
   info->Power=M183Power;
-  GameHBIRQHook=M183IRQCounter;
+  fceulib__ppu.GameHBIRQHook=M183IRQCounter;
   GameStateRestore=StateRestore;
   AddExState(&StateRegs, ~0, 0, 0);
 }
