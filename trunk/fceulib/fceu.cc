@@ -169,8 +169,8 @@ static DECLFR(ARAMH) {
 static void ResetGameLoaded() {
   if (GameInfo) FCEU_CloseGame();
   GameStateRestore=0;
-  PPU_hook=0;
-  GameHBIRQHook=0;
+  fceulib__ppu.PPU_hook=0;
+  fceulib__ppu.GameHBIRQHook=0;
   // Probably this should happen within sound itself.
   if (fceulib__sound.GameExpSound.Kill)
     fceulib__sound.GameExpSound.Kill();
@@ -178,7 +178,7 @@ static void ResetGameLoaded() {
 	 sizeof (fceulib__sound.GameExpSound));
 
   MapIRQHook=0;
-  MMC5Hack=0;
+  fceulib__ppu.MMC5Hack=0;
   PAL&=1;
   fceulib__palette.pale = 0;
 }
@@ -302,7 +302,7 @@ void FCEUI_Emulate(uint8 **pXBuf, int32 **SoundBuf, int32 *SoundBufSize,
 
   // fprintf(stderr, "ppu loop..\n");
 
-  (void)FCEUPPU_Loop(skip);
+  (void)fceulib__ppu.FCEUPPU_Loop(skip);
 
   // fprintf(stderr, "sound thing loop skip=%d..\n", skip);
 
@@ -337,7 +337,7 @@ void ResetNES() {
   if (!GameInfo) return;
   GameInterface(GI_RESETM2);
   fceulib__sound.FCEUSND_Reset();
-  FCEUPPU_Reset();
+  fceulib__ppu.FCEUPPU_Reset();
   X6502_Reset();
 
   // clear back baffer
@@ -376,7 +376,7 @@ void PowerNES() {
 
   InitializeInput();
   fceulib__sound.FCEUSND_Power();
-  FCEUPPU_Power();
+  fceulib__ppu.FCEUPPU_Power();
 
   // Have the external game hardware "powered" after the internal NES
   // stuff. Needed for the NSF code and VS System code.
@@ -410,7 +410,7 @@ void FCEU_ResetVidSys() {
     w = FSettings.PAL;
 
   PAL = !!w;
-  FCEUPPU_SetVideoSystem(w);
+  fceulib__ppu.FCEUPPU_SetVideoSystem(w);
   fceulib__sound.SetSoundVariables();
 }
 

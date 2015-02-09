@@ -14,6 +14,7 @@ Stuff I should be able to get rid of:
  - FCEUDEF_DEBUGGER is never defined. excise.
  - make x6502 follow normal conventions of how it defines stuff,
    include guards, etc.
+ - rename __dummy_mapper to not start with __.
  - x6502struct.h: preexec
 
       Still to objectify:
@@ -89,12 +90,12 @@ alias files="/bin/find . -type f | grep -v roms/ | grep -v roms_crash/ | grep -v
 
 // (global-set-key "\C-xm" 'find-mentions)
 
-(defun insert-cart ()
+(defun insert-ppu ()
   (interactive "")
-  (save-excursion  (insert "fceulib__cart."))
+  (save-excursion  (insert "fceulib__ppu."))
 )
 
-(global-set-key "\C-xx" 'insert-cart)
+(global-set-key "\C-xx" 'insert-ppu)
 
 (defun set-cart-rectangle ()
   (interactive "")

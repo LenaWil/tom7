@@ -24,14 +24,12 @@ static uint8 regs[8];
 static uint8 *WRAM = NULL;
 static uint32 WRAMSIZE;
 
-static SFORMAT StateRegs[]=
-{
+static SFORMAT StateRegs[] = {
   {regs, 8, "REGS"},
   {0}
 };
 
-static void Sync(void)
-{
+static void Sync(void) {
   fceulib__cart.setprg2r(0x10,0x0800,0);
   fceulib__cart.setprg2r(0x10,0x1000,1);
   fceulib__cart.setprg2r(0x10,0x1800,2);
@@ -46,14 +44,12 @@ static void Sync(void)
 //  CartBW(A,V);
 //}
 
-static DECLFW(SSSNROMWrite)
-{
+static DECLFW(SSSNROMWrite) {
   //FCEU_printf("write %04x %02x\n",A,V);
   //regs[A&7] = V;
 }
 
-static DECLFR(SSSNROMRead)
-{
+static DECLFR(SSSNROMRead) {
   //FCEU_printf("read %04x\n",A);
   switch(A&7) {
   case 0: return regs[0]=0xff;   // clear all exceptions
@@ -69,8 +65,7 @@ static DECLFR(SSSNROMRead)
   }
 }
 
-static void SSSNROMPower(void)
-{
+static void SSSNROMPower(void) {
   regs[0]=regs[1]=regs[2]=regs[3]=regs[4]=regs[5]=regs[6]=0;
   regs[7]=0xff;
   Sync();
@@ -85,34 +80,28 @@ static void SSSNROMPower(void)
   SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
 }
 
-static void SSSNROMReset(void)
-{
+static void SSSNROMReset(void) {
   regs[1]=regs[2]=regs[3]=regs[4]=regs[5]=regs[6]=0;
 }
 
-static void SSSNROMClose(void)
-{
-  if(WRAM)
-    free(WRAM);
-  WRAM=NULL;
+static void SSSNROMClose(void) {
+  free(WRAM);
+  WRAM = nullptr;
 }
 
-static void SSSNROMIRQHook(void)
-{
+static void SSSNROMIRQHook(void) {
 //  X6502_IRQBegin(FCEU_IQEXT);
 }
 
-static void StateRestore(int version)
-{
+static void StateRestore(int version) {
   Sync();
 }
 
-void SSSNROM_Init(CartInfo *info)
-{
+void SSSNROM_Init(CartInfo *info) {
   info->Reset=SSSNROMReset;
   info->Power=SSSNROMPower;
   info->Close=SSSNROMClose;
-  GameHBIRQHook=SSSNROMIRQHook;
+  fceulib__ppu.GameHBIRQHook=SSSNROMIRQHook;
   GameStateRestore=StateRestore;
 
   WRAMSIZE=16384;

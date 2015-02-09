@@ -93,9 +93,8 @@ void Mapper80_init(void)
  isfu=0;
 }
 
-void Mapper207_init(void)
-{
- Mapper80_init();
- isfu=1;
- PPU_hook=Fudou_PPU;
+void Mapper207_init(void) {
+  Mapper80_init();
+  isfu=1;
+  fceulib__ppu.PPU_hook=Fudou_PPU;
 }

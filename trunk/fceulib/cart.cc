@@ -222,48 +222,48 @@ void Cart::setprg32(uint32 A, uint32 V) {
 
 void Cart::setchr1r(int r, unsigned int A, unsigned int V) {
   if (!CHRptr[r]) return;
-  FCEUPPU_LineUpdate();
+  fceulib__ppu.FCEUPPU_LineUpdate();
   V&=CHRmask1[r];
   if (CHRram[r])
-    PPUCHRRAM|=(1<<(A>>10));
+    fceulib__ppu.PPUCHRRAM|=(1<<(A>>10));
   else
-    PPUCHRRAM&=~(1<<(A>>10));
+    fceulib__ppu.PPUCHRRAM&=~(1<<(A>>10));
   VPageR[(A)>>10]=&CHRptr[r][(V)<<10]-(A);
 }
 
 void Cart::setchr2r(int r, unsigned int A, unsigned int V) {
   if (!CHRptr[r]) return;
-  FCEUPPU_LineUpdate();
+  fceulib__ppu.FCEUPPU_LineUpdate();
   V&=CHRmask2[r];
   VPageR[(A)>>10]=VPageR[((A)>>10)+1]=&CHRptr[r][(V)<<11]-(A);
   if (CHRram[r])
-    PPUCHRRAM|=(3<<(A>>10));
+    fceulib__ppu.PPUCHRRAM|=(3<<(A>>10));
   else
-    PPUCHRRAM&=~(3<<(A>>10));
+    fceulib__ppu.PPUCHRRAM&=~(3<<(A>>10));
 }
 
 void Cart::setchr4r(int r, unsigned int A, unsigned int V) {
   if (!CHRptr[r]) return;
-  FCEUPPU_LineUpdate();
+  fceulib__ppu.FCEUPPU_LineUpdate();
   V&=CHRmask4[r];
   VPageR[(A)>>10]=VPageR[((A)>>10)+1]=
     VPageR[((A)>>10)+2]=VPageR[((A)>>10)+3]=&CHRptr[r][(V)<<12]-(A);
   if (CHRram[r])
-    PPUCHRRAM|=(15<<(A>>10));
+    fceulib__ppu.PPUCHRRAM|=(15<<(A>>10));
   else
-    PPUCHRRAM&=~(15<<(A>>10));
+    fceulib__ppu.PPUCHRRAM&=~(15<<(A>>10));
 }
 
 void Cart::setchr8r(int r, unsigned int V) {
   if (!CHRptr[r]) return;
-  FCEUPPU_LineUpdate();
+  fceulib__ppu.FCEUPPU_LineUpdate();
   V&=CHRmask8[r];
   for (int x=7;x>=0;x--)
     VPageR[x]=&CHRptr[r][V<<13];
   if (CHRram[r])
-    PPUCHRRAM|=(255);
+    fceulib__ppu.PPUCHRRAM|=(255);
   else
-    PPUCHRRAM=0;
+    fceulib__ppu.PPUCHRRAM=0;
 }
 
 void Cart::setchr1(unsigned int A, unsigned int V) {
@@ -285,77 +285,81 @@ void Cart::setchr8(unsigned int V) {
 void Cart::setvram8(uint8 *p) {
   for (int x = 7; x >= 0; x--)
     VPageR[x]=p;
-  PPUCHRRAM|=255;
+  fceulib__ppu.PPUCHRRAM|=255;
 }
 
 void Cart::setvram4(uint32 A, uint8 *p) {
   for (int x=3; x >= 0; x--)
     VPageR[(A>>10)+x]=p-A;
-  PPUCHRRAM|=(15<<(A>>10));
+  fceulib__ppu.PPUCHRRAM|=(15<<(A>>10));
 }
 
 void Cart::setvramb1(uint8 *p, uint32 A, uint32 b) {
-  FCEUPPU_LineUpdate();
+  fceulib__ppu.FCEUPPU_LineUpdate();
   VPageR[A>>10]=p-A+(b<<10);
-  PPUCHRRAM|=(1<<(A>>10));
+  fceulib__ppu.PPUCHRRAM|=(1<<(A>>10));
 }
 
 void Cart::setvramb2(uint8 *p, uint32 A, uint32 b) {
-  FCEUPPU_LineUpdate();
+  fceulib__ppu.FCEUPPU_LineUpdate();
   VPageR[(A>>10)]=VPageR[(A>>10)+1]=p-A+(b<<11);
-  PPUCHRRAM|=(3<<(A>>10));
+  fceulib__ppu.PPUCHRRAM|=(3<<(A>>10));
 }
 
 void Cart::setvramb4(uint8 *p, uint32 A, uint32 b) {
-  FCEUPPU_LineUpdate();
+  fceulib__ppu.FCEUPPU_LineUpdate();
   for (int x=3;x>=0;x--)
     VPageR[(A>>10)+x]=p-A+(b<<12);
-  PPUCHRRAM|=(15<<(A>>10));
+  fceulib__ppu.PPUCHRRAM|=(15<<(A>>10));
 }
 
 void Cart::setvramb8(uint8 *p, uint32 b) {
-  FCEUPPU_LineUpdate();
+  fceulib__ppu.FCEUPPU_LineUpdate();
   for (int x=7;x>=0;x--)
     VPageR[x]=p+(b<<13);
-  PPUCHRRAM|=255;
+  fceulib__ppu.PPUCHRRAM|=255;
 }
 
 /* This function can be called without calling SetupCartMirroring(). */
 
 void Cart::setntamem(uint8 *p, int ram, uint32 b) {
-  FCEUPPU_LineUpdate();
-  vnapage[b]=p;
-  PPUNTARAM&=~(1<<b);
+  fceulib__ppu.FCEUPPU_LineUpdate();
+  fceulib__ppu.vnapage[b]=p;
+  fceulib__ppu.PPUNTARAM&=~(1<<b);
   if (ram)
-    PPUNTARAM|=1<<b;
+    fceulib__ppu.PPUNTARAM|=1<<b;
 }
 
 void Cart::setmirrorw(int a, int b, int c, int d) {
-  FCEUPPU_LineUpdate();
-  vnapage[0]=NTARAM+a*0x400;
-  vnapage[1]=NTARAM+b*0x400;
-  vnapage[2]=NTARAM+c*0x400;
-  vnapage[3]=NTARAM+d*0x400;
+  fceulib__ppu.FCEUPPU_LineUpdate();
+  fceulib__ppu.vnapage[0]=fceulib__ppu.NTARAM+a*0x400;
+  fceulib__ppu.vnapage[1]=fceulib__ppu.NTARAM+b*0x400;
+  fceulib__ppu.vnapage[2]=fceulib__ppu.NTARAM+c*0x400;
+  fceulib__ppu.vnapage[3]=fceulib__ppu.NTARAM+d*0x400;
 }
 
 void Cart::setmirror(int t) {
-  FCEUPPU_LineUpdate();
+  fceulib__ppu.FCEUPPU_LineUpdate();
   if (!mirrorhard) {
     switch (t) {
     case MI_H:
-      vnapage[0]=vnapage[1]=NTARAM;vnapage[2]=vnapage[3]=NTARAM+0x400;
+      fceulib__ppu.vnapage[0]=fceulib__ppu.vnapage[1]=fceulib__ppu.NTARAM;
+      fceulib__ppu.vnapage[2]=fceulib__ppu.vnapage[3]=fceulib__ppu.NTARAM+0x400;
       break;
     case MI_V:
-      vnapage[0]=vnapage[2]=NTARAM;vnapage[1]=vnapage[3]=NTARAM+0x400;
+      fceulib__ppu.vnapage[0]=fceulib__ppu.vnapage[2]=fceulib__ppu.NTARAM;
+      fceulib__ppu.vnapage[1]=fceulib__ppu.vnapage[3]=fceulib__ppu.NTARAM+0x400;
       break;
     case MI_0:
-      vnapage[0]=vnapage[1]=vnapage[2]=vnapage[3]=NTARAM;
+      fceulib__ppu.vnapage[0]=fceulib__ppu.vnapage[1]=
+	fceulib__ppu.vnapage[2]=fceulib__ppu.vnapage[3]=fceulib__ppu.NTARAM;
       break;
     case MI_1:
-      vnapage[0]=vnapage[1]=vnapage[2]=vnapage[3]=NTARAM+0x400;
+      fceulib__ppu.vnapage[0]=fceulib__ppu.vnapage[1]=
+	fceulib__ppu.vnapage[2]=fceulib__ppu.vnapage[3]=fceulib__ppu.NTARAM+0x400;
       break;
     }
-    PPUNTARAM=0xF;
+    fceulib__ppu.PPUNTARAM=0xF;
   }
 }
 
@@ -364,11 +368,11 @@ void Cart::SetupCartMirroring(int m, int hard, uint8 *extra) {
     mirrorhard = 0;
     setmirror(m);
   } else {
-    vnapage[0]=NTARAM;
-    vnapage[1]=NTARAM+0x400;
-    vnapage[2]=extra;
-    vnapage[3]=extra+0x400;
-    PPUNTARAM=0xF;
+    fceulib__ppu.vnapage[0]=fceulib__ppu.NTARAM;
+    fceulib__ppu.vnapage[1]=fceulib__ppu.NTARAM+0x400;
+    fceulib__ppu.vnapage[2]=extra;
+    fceulib__ppu.vnapage[3]=extra+0x400;
+    fceulib__ppu.PPUNTARAM=0xF;
   }
   mirrorhard=hard;
 }

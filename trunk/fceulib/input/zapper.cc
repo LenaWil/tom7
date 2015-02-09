@@ -27,7 +27,8 @@
 
 ZAPPER ZD[2];
 
-static void ZapperFrapper(int w, uint8 *bg, uint8 *spr, uint32 linets, int final) {
+static void ZapperFrapper(int w, uint8 *bg, uint8 *spr, 
+			  uint32 linets, int final) {
   int xs,xe;
   int zx,zy;
 
@@ -44,7 +45,7 @@ static void ZapperFrapper(int w, uint8 *bg, uint8 *spr, uint32 linets, int final
 
   if (xe>256) xe=256;
 
-  if (scanline>=(zy-4) && scanline<=(zy+4)) {
+  if (fceulib__ppu.scanline>=(zy-4) && fceulib__ppu.scanline<=(zy+4)) {
     while (xs<xe) {
       uint8 a1,a2;
       uint32 sum;
@@ -81,35 +82,7 @@ static void ZapperFrapper(int w, uint8 *bg, uint8 *spr, uint32 linets, int final
 }      
 
 static inline int CheckColor(int w) {
-  FCEUPPU_LineUpdate();
-
-  if (newppu) {
-    int x = (int)ZD[w].mzx;
-    int y = (int)ZD[w].mzy;
-    int b = (int)ZD[w].mzb;
-    bool  block = (b&2)!=0;
-
-    int mousetime = y*256+x;
-    int nowtime = scanline*256 + g_rasterpos;
-
-    if (!block && mousetime < nowtime && mousetime >= nowtime - 384) {
-      extern uint8 *XBuf;
-      uint8 *pix = XBuf+(ZD[w].mzy<<8);
-      uint8 a1 = pix[ZD[w].mzx];
-      a1&=63;
-      uint32 sum = 
-	fceulib__palette.palo[a1].r + 
-	fceulib__palette.palo[a1].g + 
-	fceulib__palette.palo[a1].b;
-      //return ZD[w].zaphit = sum != 0;
-      ZD[w].zaphit = (sum>=100*3)?1:0;
-    } else {
-      ZD[w].zaphit = 0;
-    }
-
-    return ZD[w].zaphit?0:1;
-  }
-
+  fceulib__ppu.FCEUPPU_LineUpdate();
 
   if ((ZD[w].zaphit+100)>=(timestampbase+timestamp)) {
     return 0;
@@ -172,7 +145,6 @@ static void UpdateZapper(int w, void *data, int arg) {
     ZD[w].mzx=ptr[0];
     ZD[w].mzy=ptr[1];
   }
-
 }
 
 static void LogZapper(int w, MovieRecord* mr) {

@@ -82,35 +82,29 @@ static void UNLPEC586Power(void)
 }
 
 static void UNLPEC586IRQ(void) {
-//  if(reg[0]&0x80)
-  {
-    if(scanline==128) {
-      fceulib__cart.setchr4(0x0000,1);
-      fceulib__cart.setchr4(0x1000,0);
-    } else {
-      fceulib__cart.setchr4(0x0000,0);
-      fceulib__cart.setchr4(0x1000,1);
-    }
+  if(fceulib__ppu.scanline==128) {
+    fceulib__cart.setchr4(0x0000,1);
+    fceulib__cart.setchr4(0x1000,0);
+  } else {
+    fceulib__cart.setchr4(0x0000,0);
+    fceulib__cart.setchr4(0x1000,1);
   }
 }
 
-static void UNLPEC586Close(void)
-{
+static void UNLPEC586Close(void) {
   if(WRAM)
     free(WRAM);
   WRAM=NULL;
 }
 
-static void StateRestore(int version)
-{
+static void StateRestore(int version) {
   Sync();
 }
 
-void UNLPEC586Init(CartInfo *info)
-{
+void UNLPEC586Init(CartInfo *info) {
   info->Power=UNLPEC586Power;
   info->Close=UNLPEC586Close;
-  GameHBIRQHook=UNLPEC586IRQ;
+  fceulib__ppu.GameHBIRQHook=UNLPEC586IRQ;
   GameStateRestore=StateRestore;
 
   WRAMSIZE=8192;

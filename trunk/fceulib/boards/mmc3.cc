@@ -202,20 +202,17 @@ static void MMC3_hb()
  ClockMMC3Counter();
 }
 
-static void MMC3_hb_KickMasterHack()
-{
- if (scanline==238) ClockMMC3Counter();
+static void MMC3_hb_KickMasterHack() {
+ if (fceulib__ppu.scanline==238) ClockMMC3Counter();
  ClockMMC3Counter();
 }
 
-static void MMC3_hb_PALStarWarsHack()
-{
- if (scanline==240) ClockMMC3Counter();
+static void MMC3_hb_PALStarWarsHack() {
+ if (fceulib__ppu.scanline==240) ClockMMC3Counter();
  ClockMMC3Counter();
 }
 
-void GenMMC3Restore(int version)
-{
+void GenMMC3Restore(int version) {
  FixMMC3PRG(MMC3_cmd);
  FixMMC3CHR(MMC3_cmd);
 }
@@ -328,15 +325,15 @@ void GenMMC3_Init(CartInfo *info, int prg, int chr, int wram, int battery) {
 
   if (info->CRC32 == 0x5104833e) {
     // Kick Master
-    GameHBIRQHook = MMC3_hb_KickMasterHack;
+    fceulib__ppu.GameHBIRQHook = MMC3_hb_KickMasterHack;
   } else if (info->CRC32 == 0x5a6860f1 || info->CRC32 == 0xae280e20) {
     // Shougi Meikan '92/'93
-    GameHBIRQHook = MMC3_hb_KickMasterHack;
+    fceulib__ppu.GameHBIRQHook = MMC3_hb_KickMasterHack;
   } else if (info->CRC32 == 0xfcd772eb) {
     // PAL Star Wars, similar problem as Kick Master.
-    GameHBIRQHook = MMC3_hb_PALStarWarsHack;
+    fceulib__ppu.GameHBIRQHook = MMC3_hb_PALStarWarsHack;
   } else {
-    GameHBIRQHook = MMC3_hb;
+    fceulib__ppu.GameHBIRQHook = MMC3_hb;
   }
   GameStateRestore = GenMMC3Restore;
  
@@ -995,7 +992,7 @@ void Mapper165_Init(CartInfo *info)
 {
  GenMMC3_Init(info, 512, 128, 8, info->battery);
  cwrap=M165CWM;
- PPU_hook=M165PPU;
+ fceulib__ppu.PPU_hook=M165PPU;
  info->Power=M165Power;
  CHRRAMSize = 4096;
  CHRRAM = (uint8*)FCEU_gmalloc(CHRRAMSize);
@@ -1411,36 +1408,31 @@ void TKROM_Init(CartInfo *info)
  GenMMC3_Init(info, 512, 256, 8, info->battery);
 }
 
-void TLROM_Init(CartInfo *info)
-{
+void TLROM_Init(CartInfo *info) {
  GenMMC3_Init(info, 512, 256, 0, 0);
 }
 
-void TSROM_Init(CartInfo *info)
-{
+void TSROM_Init(CartInfo *info) {
  GenMMC3_Init(info, 512, 256, 8, 0);
 }
 
-void TLSROM_Init(CartInfo *info)
-{
+void TLSROM_Init(CartInfo *info) {
  GenMMC3_Init(info, 512, 256, 8, 0);
  cwrap=TKSWRAP;
  mwrap=GENNOMWRAP;
- PPU_hook=TKSPPU;
+ fceulib__ppu.PPU_hook=TKSPPU;
  AddExState(&PPUCHRBus, 1, 0, "PPUC");
 }
 
-void TKSROM_Init(CartInfo *info)
-{
+void TKSROM_Init(CartInfo *info) {
  GenMMC3_Init(info, 512, 256, 8, info->battery);
  cwrap=TKSWRAP;
  mwrap=GENNOMWRAP;
- PPU_hook=TKSPPU;
+ fceulib__ppu.PPU_hook=TKSPPU;
  AddExState(&PPUCHRBus, 1, 0, "PPUC");
 }
 
-void TQROM_Init(CartInfo *info)
-{
+void TQROM_Init(CartInfo *info) {
  GenMMC3_Init(info, 512, 64, 0, 0);
  cwrap=TQWRAP;
  CHRRAMSize=8192;
@@ -1448,7 +1440,6 @@ void TQROM_Init(CartInfo *info)
  fceulib__cart.SetupCartCHRMapping(0x10, CHRRAM, CHRRAMSize, 1);
 }
 
-void HKROM_Init(CartInfo *info)
-{
+void HKROM_Init(CartInfo *info) {
  GenMMC3_Init(info, 512, 512, 1, info->battery);
 }

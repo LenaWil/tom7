@@ -104,7 +104,7 @@ static DECLFR(Namco_Read5800) {
 static void DoNTARAMROM(int w, uint8 V) {
   NTAPage[w]=V;
   if (V>=0xE0) {
-    fceulib__cart.setntamem(NTARAM+((V&1)<<10), 1, w);
+    fceulib__cart.setntamem(fceulib__ppu.NTARAM+((V&1)<<10), 1, w);
   } else {
     V&=fceulib__cart.CHRmask1[0];
     fceulib__cart.setntamem(fceulib__cart.CHRptr[0]+(V<<10), 0, w);

@@ -94,10 +94,9 @@ typedef struct __cartdata {
   uint8 size;
 } cartdata;
 
-#define Sprite16  (PPU[0]&0x20)   //Sprites 8x16/8x8
+#define Sprite16  (fceulib__ppu.PPU_values[0]&0x20)   //Sprites 8x16/8x8
 //#define MMC5SPRVRAMADR(V)      &MMC5SPRVPage[(V)>>10][(V)]
-static inline uint8 *  MMC5BGVRAMADR(uint32 A)
-{
+static inline uint8 *MMC5BGVRAMADR(uint32 A) {
   if (!Sprite16) {
     if (mmc5ABMode==0)
       return &fceulib__cart.MMC5SPRVPage[(A)>>10][(A)];
@@ -343,34 +342,45 @@ static DECLFW(Mapper5_write) {
     mmc5ABMode = 0;
     // if we had a test case for this then we could test this, but it
     // hasnt been verified
-    CHRBanksA[A&7]=V | ((MMC50x5130&0x3)<<8);
+    CHRBanksA[A&7]=V | ((fceulib__ppu.MMC50x5130&0x3)<<8);
     //CHRBanksA[A&7]=V;
     MMC5CHRA();
-  }
-  else switch (A) {
+  } else {
+    switch (A) {
     case 0x5105: {
       for (int x=0;x<4;x++) {
 	switch ((V>>(x<<1))&3) {
 	case 0:
-	  PPUNTARAM|=1<<x;vnapage[x]=NTARAM;break;
+	  fceulib__ppu.PPUNTARAM|=1<<x;
+	  fceulib__ppu.vnapage[x]=fceulib__ppu.NTARAM;
+	  break;
 	case 1:
-	  PPUNTARAM|=1<<x;vnapage[x]=NTARAM+0x400;break;
+	  fceulib__ppu.PPUNTARAM|=1<<x;
+	  fceulib__ppu.vnapage[x]=fceulib__ppu.NTARAM+0x400;
+	  break;
 	case 2:
-	  PPUNTARAM|=1<<x;vnapage[x]=ExRAM;break;
+	  fceulib__ppu.PPUNTARAM|=1<<x;
+	  fceulib__ppu.vnapage[x]=ExRAM;
+	  break;
 	case 3:
-	  PPUNTARAM&=~(1<<x);vnapage[x]=MMC5fill;break;
+	  fceulib__ppu.PPUNTARAM&=~(1<<x);
+	  fceulib__ppu.vnapage[x]=MMC5fill;
+	  break;
 	}
       }
-    }
       NTAMirroring=V;
       break;
+    }
     case 0x5113: WRAMPage=V;MMC5WRAM(0x6000,V&7);break;
     case 0x5100: mmc5psize=V;MMC5PRG();break;
     case 0x5101: mmc5vsize=V;
-      if (!mmc5ABMode)
-	{ MMC5CHRB();MMC5CHRA();}
-      else
-	{ MMC5CHRA();MMC5CHRB();}
+      if (!mmc5ABMode) { 
+	MMC5CHRB();
+	MMC5CHRA();
+      } else {
+	MMC5CHRA();
+	MMC5CHRB();
+      }
       break;
     case 0x5114:
     case 0x5115:
@@ -385,7 +395,7 @@ static DECLFW(Mapper5_write) {
       break;
     case 0x5102: WRAMMaskEnable[0]=V;break;
     case 0x5103: WRAMMaskEnable[1]=V;break;
-    case 0x5104: CHRMode=V;MMC5HackCHRMode=V&3;break;
+    case 0x5104: CHRMode=V;fceulib__ppu.MMC5HackCHRMode=V&3;break;
     case 0x5106: 
       if (V!=NTFill) {
 	uint32 t = V|(V<<8)|(V<<16)|(V<<24);
@@ -393,26 +403,28 @@ static DECLFW(Mapper5_write) {
       }
       NTFill=V;
       break;
-    case 0x5107: if (V!=ATFill)
-	{
-	  unsigned char moop;
-	  uint32 t;
-	  moop=V|(V<<2)|(V<<4)|(V<<6);
-	  t=moop|(moop<<8)|(moop<<16)|(moop<<24);
-	  FCEU_dwmemset(MMC5fill+0x3c0,t,0x40);
-	}
+    case 0x5107: 
+      if (V!=ATFill) {
+	unsigned char moop;
+	uint32 t;
+	moop=V|(V<<2)|(V<<4)|(V<<6);
+	t=moop|(moop<<8)|(moop<<16)|(moop<<24);
+	FCEU_dwmemset(MMC5fill+0x3c0,t,0x40);
+      }
       ATFill=V;
       break;
-    case 0x5130: MMC50x5130=V;break;
-
-    case 0x5200: MMC5HackSPMode=V;break;
-    case 0x5201: MMC5HackSPScroll=(V>>3)&0x1F;break;
-    case 0x5202: MMC5HackSPPage=V&0x3F;break;
+    case 0x5130: 
+      fceulib__ppu.MMC50x5130=V;
+      break;
+    case 0x5200: fceulib__ppu.MMC5HackSPMode=V;break;
+    case 0x5201: fceulib__ppu.MMC5HackSPScroll=(V>>3)&0x1F;break;
+    case 0x5202: fceulib__ppu.MMC5HackSPPage=V&0x3F;break;
     case 0x5203: X6502_IRQEnd(FCEU_IQEXT);IRQScanline=V;break;
     case 0x5204: X6502_IRQEnd(FCEU_IQEXT);IRQEnable=V&0x80;break;
     case 0x5205: mul[0]=V;break;
     case 0x5206: mul[1]=V;break;
     }
+  }
 }
 
 static DECLFR(MMC5_ReadROMRAM)
@@ -434,7 +446,7 @@ static DECLFW(MMC5_WriteROMRAM)
 
 static DECLFW(MMC5_ExRAMWr)
 {
-  if (MMC5HackCHRMode!=3)
+  if (fceulib__ppu.MMC5HackCHRMode!=3)
     ExRAM[A&0x3ff]=V;
 }
 
@@ -464,37 +476,43 @@ static DECLFR(MMC5_read) {
   return X.DB;
 }
 
-void MMC5Synco(void)
-{
-  int x;
-
+void MMC5Synco(void) {
   MMC5PRG();
-  for (x=0;x<4;x++)
-  {
-    switch ((NTAMirroring>>(x<<1))&3)
-    {
-      case 0:PPUNTARAM|=1<<x;vnapage[x]=NTARAM;break;
-      case 1:PPUNTARAM|=1<<x;vnapage[x]=NTARAM+0x400;break;
-      case 2:PPUNTARAM|=1<<x;vnapage[x]=ExRAM;break;
-      case 3:PPUNTARAM&=~(1<<x);vnapage[x]=MMC5fill;break;
+  for (int x=0;x<4;x++) {
+    switch ((NTAMirroring>>(x<<1))&3) {
+      case 0: 
+	fceulib__ppu.PPUNTARAM|=1<<x;
+	fceulib__ppu.vnapage[x]=fceulib__ppu.NTARAM;
+	break;
+      case 1: 
+	fceulib__ppu.PPUNTARAM|=1<<x;
+	fceulib__ppu.vnapage[x]=fceulib__ppu.NTARAM+0x400;
+	break;
+      case 2:
+	fceulib__ppu.PPUNTARAM|=1<<x;
+	fceulib__ppu.vnapage[x]=ExRAM;
+	break;
+      case 3: 
+	fceulib__ppu.PPUNTARAM&=~(1<<x);
+	fceulib__ppu.vnapage[x]=MMC5fill;
+	break;
     }
   }
   MMC5WRAM(0x6000,WRAMPage&7);
-  if (!mmc5ABMode)
-  {
+  if (!mmc5ABMode) {
     MMC5CHRB();
     MMC5CHRA();
-  }
-  else
-  {
+  } else {
     MMC5CHRA();
     MMC5CHRB();
   }
+
   {
     uint32 t;
     t=NTFill|(NTFill<<8)|(NTFill<<16)|(NTFill<<24);
     FCEU_dwmemset(MMC5fill,t,0x3c0);
   }
+
   {
     unsigned char moop;
     uint32 t;
@@ -503,7 +521,7 @@ void MMC5Synco(void)
     FCEU_dwmemset(MMC5fill+0x3c0,t,0x40);
   }
   X6502_IRQEnd(FCEU_IQEXT);
-  MMC5HackCHRMode=CHRMode&3;
+  fceulib__ppu.MMC5HackCHRMode=CHRMode&3;
 }
 
 void MMC5_hb(int scanline) {
@@ -728,7 +746,7 @@ void NSFMMC5_Init(void) {
   Mapper5_ESI();
   SetWriteHandler(0x5c00,0x5fef,MMC5_ExRAMWr);
   SetReadHandler(0x5c00,0x5fef,MMC5_ExRAMRd);
-  MMC5HackCHRMode=2;
+  fceulib__ppu.MMC5HackCHRMode=2;
   SetWriteHandler(0x5000,0x5015,Mapper5_SW);
   SetWriteHandler(0x5205,0x5206,Mapper5_write);
   SetReadHandler(0x5205,0x5206,MMC5_read);
@@ -814,10 +832,11 @@ static void GenMMC5_Init(CartInfo *info, int wsize, int battery) {
   AddExState(MMC5_StateRegs, ~0, 0, 0);
   AddExState(WRAM, wsize*1024, 0, "WRAM");
   AddExState(ExRAM, 1024, 0, "ERAM");
-  AddExState(&MMC5HackSPMode, 1, 0, "SPLM");
-  AddExState(&MMC5HackSPScroll, 1, 0, "SPLS");
-  AddExState(&MMC5HackSPPage, 1, 0, "SPLP");
-  AddExState(&MMC50x5130, 1, 0, "5130");
+  // XXX perhaps these variables should be moved to here from PPU?
+  AddExState(&fceulib__ppu.MMC5HackSPMode, 1, 0, "SPLM");
+  AddExState(&fceulib__ppu.MMC5HackSPScroll, 1, 0, "SPLS");
+  AddExState(&fceulib__ppu.MMC5HackSPPage, 1, 0, "SPLP");
+  AddExState(&fceulib__ppu.MMC50x5130, 1, 0, "5130");
 
   MMC5WRAMsize=wsize/8;
   BuildWRAMSizeTable();
@@ -832,12 +851,13 @@ static void GenMMC5_Init(CartInfo *info, int wsize, int battery) {
       info->SaveGameLen[0]=32768;
   }
 
-  MMC5HackVROMMask=fceulib__cart.CHRmask4[0];
-  MMC5HackExNTARAMPtr=ExRAM;
-  MMC5Hack=1;
-  MMC5HackVROMPTR=fceulib__cart.CHRptr[0];
-  MMC5HackCHRMode=0;
-  MMC5HackSPMode=MMC5HackSPScroll=MMC5HackSPPage=0;
+  fceulib__ppu.MMC5HackVROMMask = fceulib__cart.CHRmask4[0];
+  fceulib__ppu.MMC5HackExNTARAMPtr = ExRAM;
+  fceulib__ppu.MMC5Hack = 1;
+  fceulib__ppu.MMC5HackVROMPTR = fceulib__cart.CHRptr[0];
+  fceulib__ppu.MMC5HackCHRMode = 0;
+  fceulib__ppu.MMC5HackSPMode = fceulib__ppu.MMC5HackSPScroll = 
+    fceulib__ppu.MMC5HackSPPage = 0;
   Mapper5_ESI();
 }
 

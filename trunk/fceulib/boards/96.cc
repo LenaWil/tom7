@@ -24,53 +24,45 @@
 
 static uint8 reg, ppulatch;
 
-static SFORMAT StateRegs[]=
-{
+static SFORMAT StateRegs[]= {
   {&reg, 1, "REG"},
   {&ppulatch, 1, "PPUL"},
   {0}
 };
 
-static void Sync(void)
-{
+static void Sync(void) {
   fceulib__cart.setmirror(MI_0);
   fceulib__cart.setprg32(0x8000,reg & 3);
   fceulib__cart.setchr4(0x0000,(reg & 4) | ppulatch);
   fceulib__cart.setchr4(0x1000,(reg & 4) | 3);
 }
 
-static DECLFW(M96Write)
-{
+static DECLFW(M96Write) {
   reg = V;
   Sync();
 }
 
-static void M96Hook(uint32 A)
-{
-  if((A & 0x3000) == 0x2000)
-  {
+static void M96Hook(uint32 A) {
+  if ((A & 0x3000) == 0x2000) {
     ppulatch = (A>>8) & 3;
     Sync();
   }
 }
 
-static void M96Power(void)
-{
+static void M96Power(void) {
   reg = ppulatch = 0;
   Sync();
   SetReadHandler(0x8000,0xffff,Cart::CartBR);
   SetWriteHandler(0x8000,0xffff,M96Write);
 }
 
-static void StateRestore(int version)
-{
+static void StateRestore(int version) {
   Sync();
 }
 
-void Mapper96_Init(CartInfo *info)
-{
+void Mapper96_Init(CartInfo *info) {
   info->Power=M96Power;
-  PPU_hook=M96Hook;
+  fceulib__ppu.PPU_hook=M96Hook;
   GameStateRestore=StateRestore;
   AddExState(&StateRegs, ~0, 0, 0);
 }

@@ -62,16 +62,6 @@ FCEUGI *FCEUI_LoadGameVirtual(const char *name, int OverwriteVidMode);
 
 // TODO(tom7): Move these to the modules where they're defined.
 extern uint64 timestampbase;
-extern uint32 MMC5HackVROMMask;
-extern uint8 *MMC5HackExNTARAMPtr;
-extern int MMC5Hack;
-extern uint8 *MMC5HackVROMPTR;
-extern uint8 MMC5HackCHRMode;
-extern uint8 MMC5HackSPMode;
-extern uint8 MMC50x5130;
-extern uint8 MMC5HackSPScroll;
-extern uint8 MMC5HackSPPage;
-
 
 #define GAME_MEM_BLOCK_SIZE 131072
 

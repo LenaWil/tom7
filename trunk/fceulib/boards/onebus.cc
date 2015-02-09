@@ -296,8 +296,7 @@ static void UNLOneBusPower(void)
   Sync();
 }
 
-static void UNLOneBusReset(void)
-{
+static void UNLOneBusReset(void) {
   IRQReload = IRQCount = IRQa = 0;
 
   memset(cpu410x, 0x00, sizeof(cpu410x));
@@ -307,24 +306,22 @@ static void UNLOneBusReset(void)
   Sync();
 }
 
-static void StateRestore(int version)
-{
+static void StateRestore(int version) {
   Sync();
 }
 
-void UNLOneBus_Init(CartInfo *info)
-{
+void UNLOneBus_Init(CartInfo *info) {
   info->Power=UNLOneBusPower;
   info->Reset=UNLOneBusReset;
 
   uint32 *md32 = (uint32*)&info->MD5;
   const uint32 mdhead = *md32;
   // PowerJoy Supermax Carts
-  if(mdhead == 0x305fcdc3 || mdhead == 0x6abfce8e) {
+  if (mdhead == 0x305fcdc3 || mdhead == 0x6abfce8e) {
     inv_hack = 0xf;
   }
 
-  GameHBIRQHook=UNLOneBusIRQHook;
+  fceulib__ppu.GameHBIRQHook=UNLOneBusIRQHook;
   MapIRQHook=UNLOneBusCpuHook;
   GameStateRestore=StateRestore;
   AddExState(&StateRegs, ~0, 0, 0);

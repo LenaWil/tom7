@@ -88,10 +88,9 @@ static void StateRestore(int version)
   Sync();
 }
 
-void Mapper117_Init(CartInfo *info)
-{
+void Mapper117_Init(CartInfo *info) {
   info->Power=M117Power;
-  GameHBIRQHook=M117IRQHook;
+  fceulib__ppu.GameHBIRQHook=M117IRQHook;
   GameStateRestore=StateRestore;
   AddExState(&StateRegs, ~0, 0, 0);
 }

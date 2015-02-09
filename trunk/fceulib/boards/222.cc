@@ -78,27 +78,24 @@ static DECLFW(M222Write)
 //    case 0xF002: FCEU_printf("%04x:%02x %d\n",A,V,scanline); break;
 //    case 0xD001: IRQa=V; X6502_IRQEnd(FCEU_IQEXT); FCEU_printf("%04x:%02x %d\n",A,V,scanline); break;
 //    case 0xC001: IRQPre=16; FCEU_printf("%04x:%02x %d\n",A,V,scanline); break;
-    case 0xF000: IRQa=IRQCount=V; if(scanline<240) IRQCount-=8; else IRQCount+=4; X6502_IRQEnd(FCEU_IQEXT); break;
+    case 0xF000: IRQa=IRQCount=V; if(fceulib__ppu.scanline < 240) IRQCount-=8; else IRQCount+=4; X6502_IRQEnd(FCEU_IQEXT); break;
   }
   Sync();
 }
 
-static void M222Power(void)
-{
+static void M222Power(void) {
   fceulib__cart.setprg16(0xC000,~0);
   SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
   SetWriteHandler(0x8000,0xFFFF,M222Write);
 }
 
-static void StateRestore(int version)
-{
+static void StateRestore(int version) {
   Sync();
 }
 
-void Mapper222_Init(CartInfo *info)
-{
+void Mapper222_Init(CartInfo *info) {
   info->Power=M222Power;
-  GameHBIRQHook=M222IRQ;
+  fceulib__ppu.GameHBIRQHook=M222IRQ;
   GameStateRestore=StateRestore;
   AddExState(&StateRegs, ~0, 0, 0);
 }

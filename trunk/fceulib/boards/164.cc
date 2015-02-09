@@ -63,10 +63,10 @@ static DECLFR(ReadLow) {
 
 static void M163HB(void) {
   if(reg[1]&0x80) {
-    if(scanline==239) {
+    if (fceulib__ppu.scanline==239) {
       fceulib__cart.setchr4(0x0000,0);
       fceulib__cart.setchr4(0x1000,0);
-    } else if(scanline==127) {
+    } else if (fceulib__ppu.scanline==127) {
       fceulib__cart.setchr4(0x0000,1);
       fceulib__cart.setchr4(0x1000,1);
     }
@@ -147,7 +147,12 @@ static DECLFW(Write2)
 	switch (A&0x7300)
 	{
 		case 0x5200: reg[0]=V; WSync(); break;
-		case 0x5000: reg[1]=V; WSync(); if(!(reg[1]&0x80)&&(scanline<128)) fceulib__cart.setchr8(0); /* fceulib__cart.setchr8(0); */ break;
+		case 0x5000: 
+		  reg[1]=V; 
+		  WSync(); 
+		  if(!(reg[1]&0x80)&&(fceulib__ppu.scanline<128)) 
+		    fceulib__cart.setchr8(0); /* fceulib__cart.setchr8(0); */
+		  break;
 		case 0x5300: reg[2]=V; break;
 		case 0x5100: reg[3]=V; WSync(); break;
 	}
@@ -164,12 +169,11 @@ static void Power2(void)
 	WSync();
 }
 
-void Mapper163_Init(CartInfo *info)
-{
+void Mapper163_Init(CartInfo *info) {
   info->Power=Power2;
   info->Close=Close;
   WSync = Sync;
-  GameHBIRQHook=M163HB;
+  fceulib__ppu.GameHBIRQHook=M163HB;
 
   WRAMSIZE = 8192;
   WRAM=(uint8*)FCEU_gmalloc(WRAMSIZE);
