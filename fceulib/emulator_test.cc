@@ -35,16 +35,22 @@ struct Game {
   uint64 after_load;
   uint64 after_inputs;
   uint64 after_random;
+  uint64 image_after_inputs;
+  uint64 image_after_random;
   string random_seed = "randoms";
   Game(const string &c, const vector<uint8> &i,
-       uint64 al, uint64 ai, uint64 ar) :
+       uint64 al, uint64 ai, uint64 ar,
+       uint64 iai, uint64 iar) :
     cart(c), inputs(i), after_load(al), 
-    after_inputs(ai), after_random(ar) {}
+    after_inputs(ai), after_random(ar),
+    image_after_inputs(iai), image_after_random(iar) {}
   Game(const string &c, const vector<uint8> &i,
        uint64 al, uint64 ai, uint64 ar,
+       uint64 iai, uint64 iar,
        const string &seed) :
     cart(c), inputs(i), after_load(al), 
     after_inputs(ai), after_random(ar),
+    image_after_inputs(iai), image_after_random(iar),
     random_seed(seed) {}
 };
 
@@ -344,22 +350,24 @@ static SerialResult RunGameSerially(const Game &game) {
   };
 
   for (uint8 b : game.inputs) SaveAndStep(b);
-  if (!MAKE_COMPREHENSIVE) {
-    CHECK_RAM(game.after_inputs);
-  }
   const uint64 ret1 = emu->RamChecksum();
   const uint64 iret1 = emu->ImageChecksum();
+  if (!MAKE_COMPREHENSIVE) {
+    CHECK_RAM(game.after_inputs);
+    CHECK_EQ(game.image_after_inputs, iret1) << iret1;
+  }
   TRACEF("after_inputs %llu.", emu->RamChecksum());
 
   fprintf(stderr, "Random inputs:\n");
   // TRACE_SWITCH("forward-trace.bin");
   for (uint8 b : InputStream("randoms", 10000)) SaveAndStep(b);
   // This is checked by the comprehensive driver, or should be.
-  if (!MAKE_COMPREHENSIVE) {
-    CHECK_RAM(game.after_random);
-  }
   const uint64 ret2 = emu->RamChecksum();
   const uint64 iret2 = emu->ImageChecksum();
+  if (!MAKE_COMPREHENSIVE) {
+    CHECK_RAM(game.after_random);
+    CHECK_EQ(game.image_after_random, iret2) << iret2;
+  }
   // TRACEF("after_random %llu.", emu->RamChecksum());
 
   if (FULL) {
@@ -485,6 +493,8 @@ int main(int argc, char **argv) {
     kEveryGameUponLoad,
     17813153070445949947ULL,
     4140614200917092591ULL,
+    10140109344488695766ULL,
+    16099682408657503265ULL,
     };
 
   Game ubasketball{
@@ -493,6 +503,8 @@ int main(int argc, char **argv) {
     kEveryGameUponLoad,
     18168214949483867499ULL,
     13068962115749660119ULL,
+    14414055657961427423ULL,
+    7065287229454446029ULL,
     "roms/Ultimate Basketball.nes",
     };
 
@@ -502,6 +514,8 @@ int main(int argc, char **argv) {
     kEveryGameUponLoad,
     17831801454501511911ULL,
     5379627193232254395ULL,
+    8713712655585395193ULL,
+    11782439179331509265ULL,
     };
 
   Game castlevania3{
@@ -510,6 +524,8 @@ int main(int argc, char **argv) {
     kEveryGameUponLoad,
     14818299322749207898ULL,
     8640140690401464515ULL,
+    5263006926096009458ULL,
+    8020098881039396417ULL,
     };
 
   Game escape{
@@ -524,6 +540,8 @@ int main(int argc, char **argv) {
     kEveryGameUponLoad,
     6838541238215755706ULL,
     6819303093664748341ULL,
+    5472225341269592085ULL,
+    8472434954456589132ULL,
     };
 
   Game karate{
@@ -538,6 +556,8 @@ int main(int argc, char **argv) {
       kEveryGameUponLoad,
       0x38cff7186cda146fULL,
       1841694725427045113ULL,
+      14673076006826236492ULL,
+      17726519025766227181ULL,
       };
 
   Game mario{
@@ -568,6 +588,8 @@ int main(int argc, char **argv) {
       kEveryGameUponLoad,
       187992912212093401ULL,
       6695545142227306073ULL,
+      9151232040160770956ULL,
+      7043606518024981793ULL,
       };
 
   Game arkanoid{
@@ -620,6 +642,8 @@ int main(int argc, char **argv) {
       kEveryGameUponLoad,
       17404343783895927036ULL,
       18130621035109203977ULL,
+      8087545054192083934ULL,
+      13007242309738173365ULL,
       };
 
   // XXX Uses battery-backed NVROM. Do something more hygeinic than simply
@@ -662,6 +686,8 @@ int main(int argc, char **argv) {
       kEveryGameUponLoad,
       5937014762881028957ULL,
       10450299151185393612ULL,
+      10437697934907677179ULL,
+      15120013139071261080ULL,
       };
 
   const int64 start_us = TimeUsec();
@@ -678,27 +704,16 @@ int main(int argc, char **argv) {
   };
 
   TRACE_ENABLE();
-
+ 
   RunGameToCollage(kirby);
-
   RunGameToCollage(banditkings);
   RunGameToCollage(castlevania3);
-
   RunGameToCollage(ubasketball);
-
-  
-  // RunGameToCollage(escape);
-
   RunGameToCollage(karate);
-  // RunGameToCollage(karate);
-
   RunGameToCollage(mario);
-
   RunGameToCollage(arkanoid);
   RunGameToCollage(escape);
-
   RunGameToCollage(skull);
-
   RunGameToCollage(escape);
  
   collage.Flush();
@@ -714,19 +729,25 @@ int main(int argc, char **argv) {
     for (string line : romlines) {
       string a = Chop(line);
       string b = Chop(line);
-      // XXXXXX load image checksums too
+      string c = Chop(line);
+      string d = Chop(line);
       string filename = LoseWhiteL(line);
 
       if (!filename.empty()) {
-        uint64 after_inputs, after_random;
+        uint64 after_inputs, after_random,
+	  image_after_inputs, image_after_random;
         stringstream(a) >> after_inputs;
         stringstream(b) >> after_random;
+	stringstream(c) >> image_after_inputs;
+	stringstream(d) >> image_after_random;
         Game game{
           (string)"roms/" + filename,
             RLE::Decompress({ 101, 0, 4, 2, 3, 3, 2, 1, 50, 0, }),
             kEveryGameUponLoad,
             after_inputs,
             after_random,
+	    image_after_inputs,
+	    image_after_random,
             };
         const SerialResult sr = RunGameToCollage(game);
         fprintf(out, "%llu %llu %llu %llu %s\n", 
@@ -741,7 +762,9 @@ int main(int argc, char **argv) {
 	// In this case we've already aborted (unless
 	// MAKE_COMPREHENSIVE is set).
 	if (sr.after_inputs != after_inputs ||
-	    sr.after_random != after_random) {
+	    sr.after_random != after_random ||
+	    sr.image_after_inputs != image_after_inputs ||
+	    sr.image_after_random != image_after_random) {
 	  fprintf(stderr, "(Note, didn't match last time: %s)\n",
 		  filename.c_str());
 	}
