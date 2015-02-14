@@ -508,6 +508,16 @@ int main(int argc, char **argv) {
     "roms/Ultimate Basketball.nes",
     };
 
+  Game dw4{
+    "dw4.nes",
+    RLE::Decompress({ 101, 0, 4, 2, 3, 3, 2, 1, 50, 0, }),
+    kEveryGameUponLoad,
+    17780988614441753110ULL,
+    17294606533189464509ULL,
+    3449178001205003427ULL,
+    8743565477689764097ULL,
+    };
+
   Game banditkings{
     "banditkings.nes",
     RLE::Decompress({ 101, 0, 4, 2, 3, 3, 2, 1, 50, 0, }),
@@ -705,6 +715,7 @@ int main(int argc, char **argv) {
 
   TRACE_ENABLE();
  
+  RunGameToCollage(dw4);
   RunGameToCollage(kirby);
   RunGameToCollage(banditkings);
   RunGameToCollage(castlevania3);
