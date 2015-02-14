@@ -7,7 +7,6 @@ Stuff I should be able to get rid of:
  - file wrappers can be massively simplified
  - file archive support
  - auto-fire
- - video.cc can probably go?
  - proper in-memory treatment of battery backed saves. lots of
    red herrings here! also, it leaks file descriptors.
  - autosave (fceu.cc mostly)
@@ -28,10 +27,8 @@ Stuff I should be able to get rid of:
       headless-driver.cc
       ines.cc
       input.cc
-      ppu.cc
       state.cc
       unif.cc
-      video.cc
       vsuni.cc
       x6502.cc
       boards/*

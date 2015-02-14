@@ -22,12 +22,8 @@
 // This must be set for StepFull and GetSound to function.
 static constexpr int SAMPLE_RATE = 44100;
 
-// Joystick data. I think used for both controller 0 and 1. Part of
-// the "API".
-static uint32 joydata = 0;
-
 // The current contents of the screen; part of the "API".
-extern uint8 *XBuf, *XBackBuf;
+// extern uint8 *XBuf, *XBackBuf;
 
 void Emulator::GetMemory(vector<uint8> *mem) {
   mem->resize(0x800);
@@ -72,7 +68,7 @@ uint64 Emulator::ImageChecksum() {
 /**
  * Initialize all of the subsystem drivers: video, audio, and joystick.
  */
-static int DriverInitialize(FCEUGI *gi) {
+int Emulator::DriverInitialize(FCEUGI *gi) {
   // Used to init video. I think it's safe to skip.
 
   // Here we initialized sound. Assuming it's safe to skip,
@@ -99,11 +95,11 @@ static int DriverInitialize(FCEUGI *gi) {
  * provides data necessary for the driver code (number of scanlines to
  * render, what virtual input devices to use, etc.).
  */
-static int LoadGame(const char *path) {
+int Emulator::LoadGame(const string &path) {
   FCEU_CloseGame();
   GameInfo = nullptr;
 
-  if (!FCEUI_LoadGame(path, 1)) {
+  if (!FCEUI_LoadGame(path.c_str(), 1)) {
     return 0;
   }
 
@@ -134,15 +130,13 @@ Emulator::Emulator() {
 }
 
 Emulator *Emulator::Create(const string &romfile) {
-  int error;
-
   // XXX Need to get rid of IO too.
   fprintf(stderr, "Starting " FCEU_NAME_AND_VERSION "...\n");
 
   // (Here's where SDL was initialized.)
 
   // initialize the infrastructure
-  error = FCEUI_Initialize();
+  int error = FCEUI_Initialize();
   if (error != 1) {
     fprintf(stderr, "Error initializing.\n");
     return nullptr;
@@ -164,7 +158,7 @@ Emulator *Emulator::Create(const string &romfile) {
   // defaults
   // TODO(tom7): Make these compile-time constants inside of Palette rather
   // than state.
-  constexpr int ntsccol = 0, ntsctint = 56, ntschue = 72;
+  static constexpr int ntsccol = 0, ntsctint = 56, ntschue = 72;
   fceulib__palette.FCEUI_SetNTSCTH(ntsccol, ntsctint, ntschue);
 
   // Set NTSC (1 = pal)
@@ -177,47 +171,48 @@ Emulator *Emulator::Create(const string &romfile) {
   fceulib__ppu.FCEUI_DisableSpriteLimitation(1);
 
   // Defaults.
-  constexpr int scanlinestart = 0, scanlineend = 239;
+  static constexpr int scanlinestart = 0, scanlineend = 239;
 
   FCEUI_SetRenderedLines(scanlinestart + 8, scanlineend - 8, 
 			 scanlinestart, scanlineend);
 
+  Emulator *emu = new Emulator;
   // Load the game.
-  if (1 != LoadGame(romfile.c_str())) {
+  if (1 != emu->LoadGame(romfile.c_str())) {
     fprintf(stderr, "Couldn't load [%s]\n", romfile.c_str());
     return nullptr;
   }
 
-  return new Emulator;
+  return emu;
 }
 
 // Make one emulator step with the given input.
 // Bits from MSB to LSB are
 //    RLDUTSBA (Right, Left, Down, Up, sTart, Select, B, A)
 void Emulator::Step(uint8 inputs) {
-  int32 *sound;
-  int32 ssize;
-
   // The least significant byte is player 0 and
   // the bits are in the same order as in the fm2 file.
   joydata = (uint32) inputs;
 
   // Limited ability to skip video and sound.
-  constexpr int SKIP_VIDEO_AND_SOUND = 2;
+  static constexpr int SKIP_VIDEO_AND_SOUND = 2;
 
   // Emulate a single frame.
+  int32 *sound;
+  int32 ssize;
   FCEUI_Emulate(nullptr, &sound, &ssize, SKIP_VIDEO_AND_SOUND);
 }
 
 void Emulator::StepFull(uint8 inputs) {
-  int32 *sound;
-  int32 ssize;
   joydata = (uint32) inputs;
 
   // Run the video and sound as well.
-  constexpr int DO_VIDEO_AND_SOUND = 0;
+  static constexpr int DO_VIDEO_AND_SOUND = 0;
 
   // Emulate a single frame.
+  // TODO: Remove these arguments, which we don't use.
+  int32 *sound;
+  int32 ssize;
   FCEUI_Emulate(nullptr, &sound, &ssize, DO_VIDEO_AND_SOUND);
 }
 

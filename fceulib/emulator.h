@@ -16,6 +16,7 @@
 
 using namespace std;
 
+struct FCEUGI;
 struct Emulator {
   // Returns nullptr (or aborts) on error. Upon success, returns
   // a new-ly allocated instance.
@@ -89,6 +90,15 @@ struct Emulator {
   Emulator();
 
  private:
+  int DriverInitialize(FCEUGI *gi);
+  int LoadGame(const string &path);
+  
+  // Joystick data. I think used for both controller 0 and 1. Part of
+  // the "API". TODO: Move into FCEU or input object?
+  uint32 joydata = 0;
+
+
+
   // Maybe we should consider supporting cloning, actually.
   Emulator(const Emulator &) = delete;
   Emulator &operator =(const Emulator &) = delete;

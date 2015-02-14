@@ -40,7 +40,6 @@
 #include "unif.h"
 #include "palette.h"
 #include "state.h"
-#include "video.h"
 #include "input.h"
 #include "file.h"
 #include "vsuni.h"
@@ -131,24 +130,26 @@ void SetWriteHandler(int32 start, int32 end, writefunc func) {
   }
 }
 
-uint8 *GameMemBlock;
-uint8 *RAM;
-
-//---------
-//windows might need to allocate these differently, so we have some special code
+uint8 *GameMemBlock = nullptr;
+uint8 *RAM = nullptr;
+uint8 *XBuf = nullptr;
+uint8 *XBackBuf = nullptr;
 
 static void AllocBuffers() {
   GameMemBlock = (uint8*)FCEU_gmalloc(GAME_MEM_BLOCK_SIZE);
   RAM = (uint8*)FCEU_gmalloc(0x800);
+  XBuf = (uint8*)FCEU_gmalloc(256 * 256);
+  XBackBuf = (uint8*)FCEU_gmalloc(256 * 256);
 }
 
 static void FreeBuffers() {
   free(GameMemBlock);
   free(RAM);
+  free(XBuf);
+  free(XBackBuf);
 }
-//------
 
-uint8 PAL=0;
+uint8 PAL = 0;
 
 static DECLFW(BRAML) {
   RAM[A]=V;
@@ -257,10 +258,6 @@ FCEUGI *FCEUI_LoadGame(const char *name, int OverwriteVidMode) {
 bool FCEUI_Initialize() {
   srand(time(0));
 
-  if (!FCEU_InitVirtualVideo()) {
-    return false;
-  }
-
   AllocBuffers();
 
   // Initialize some parts of the settings structure
@@ -287,7 +284,6 @@ bool FCEUI_Initialize() {
 }
 
 void FCEUI_Kill() {
-  FCEU_KillVirtualVideo();
   FreeBuffers();
 }
 

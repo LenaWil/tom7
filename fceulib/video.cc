@@ -31,27 +31,6 @@
 uint8 *XBuf = nullptr;
 uint8 *XBackBuf = nullptr;
 
-void FCEU_KillVirtualVideo(void)
-{
-	//mbg merge TODO 7/17/06 temporarily removed
-	//if(xbsave)
-	//{
-	// free(xbsave);
-	// xbsave=0;
-	//}
-	//if(XBuf)
-	//{
-	//UnmapViewOfFile(XBuf);
-	//CloseHandle(mapXBuf);
-	//mapXBuf=nullptr;
-	//}
-	//if(XBackBuf)
-	//{
-	// free(XBackBuf);
-	// XBackBuf=0;
-	//}
-}
-
 /**
 * Return: Flag that indicates whether the function was succesful or not.
 *

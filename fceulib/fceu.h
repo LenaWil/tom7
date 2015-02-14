@@ -65,9 +65,18 @@ extern uint64 timestampbase;
 
 #define GAME_MEM_BLOCK_SIZE 131072
 
-extern uint8 *RAM;            //shared memory modifications
-extern uint8 *GameMemBlock;   //shared memory modifications
+// Basic RAM of the system. RAM has size 0x800.
+// GameMemBlock has the size above, though most games don't use
+// all of it.
+extern uint8 *RAM;
+extern uint8 *GameMemBlock;
 
+// Current frame buffer. 256x256
+extern uint8 *XBuf;
+extern uint8 *XBackBuf;
+
+// Hooks for reading and writing from memory locations. Each one
+// is a function pointer.
 extern readfunc ARead[0x10000];
 extern writefunc BWrite[0x10000];
 
