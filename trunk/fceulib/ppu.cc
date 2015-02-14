@@ -41,7 +41,6 @@
 #include  "cart.h"
 #include  "palette.h"
 #include  "state.h"
-#include  "video.h"
 #include  "input.h"
 #include  "driver.h"
 

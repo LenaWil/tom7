@@ -401,6 +401,9 @@ void Cart::FCEU_SaveGameSave(CartInfo *LocalHWInfo) {
 }
 
 void Cart::FCEU_LoadGameSave(CartInfo *LocalHWInfo) {
+  FCEU_ClearGameSave(LocalHWInfo);
+  fprintf(stderr, "Blocked cart from loading save game state.\n");
+  return;
   TRACEF("LoadSaveGame");
   if (LocalHWInfo->battery && LocalHWInfo->SaveGame[0] && 
       !disableBatteryLoading) {

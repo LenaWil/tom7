@@ -22,6 +22,8 @@
 		(at least that's the idea) 
 */
 
+#include <stdlib.h>
+
 // #define FCEU_dwmemset(d,c,n) {int _x; for(_x=n-4;_x>=0;_x-=4) *(uint32 *)&(d)[_x]=c;}
 // Looks like memset but for 32-bit quantities, though n is still in bytes. -tom7
 #define FCEU_dwmemset(d, c, n)			\
@@ -32,7 +34,6 @@
       _dest[_x] = (c);				\
     }						\
   } while(0)
-
 
 void *FCEU_malloc(uint32 size);
 void *FCEU_gmalloc(uint32 size);
