@@ -1,10 +1,56 @@
 
+// Random number generator by David B. Thomas.
+/*
+uint MWC64X(uint2 *state) {
+  enum { A = 4294883355U };
+  uint x=(*state).x, c=(*state).y;
+  uint res=x^c;
+
+  uint Xn=A*x+c;
+  uint carry=(uint)(Xn<c);
+  uint Cn=mad_hi(A,x,carry);
+
+  *state=(uint2)(Xn,Cn);
+  return res;
+}
+
+void MWCINIT(uint2 *state) {
+  for (int i = 0; i < 10000; i++) {
+    (void)MWC64X(state);
+  }
+}
+*/
+
+typedef struct {
+  // RNG state.  All values are possible.
+  ulong state;
+  // Controls which RNG sequence (stream) is selected. Must *always* be odd.
+  ulong inc;
+} pcg;
+
+uint pcg_next(pcg *rng) {
+  ulong oldstate = rng->state;
+  rng->state = oldstate * 6364136223846793005ULL + rng->inc;
+  ulong xorshifted = ((oldstate >> 18) ^ oldstate) >> 27;
+  ulong rot = oldstate >> 59;
+  return (xorshifted >> rot) | (xorshifted << ((-rot) & 31));
+}
+
 // Evaluation of single layer.
 
-__kernel void evaluate(__global float *input_image,
-                       __global float *feature_vector,
-                       __global float *output_image) {
+__kernel void train(__global uchar *seeds,
+                    __global float *input_image,
+                    __global float *feature_vector,
+                    __global float *output_image,
+                    __global float *expected_image) {
   int num = get_global_id(0);
+  pcg seed;
+  seed.state = seeds[num % NUM_SEEDS] | (num << 8);
+  seed.inc = num * 2 + 1;
+  pcg_next(&seed);
+  // for (int i = 0; i < 10000; i++) pcg_next(&seed);
+
+#if 0
   int pixel_num = num / NPP;
   // int channel_num = num % NPP;
 
@@ -52,4 +98,11 @@ __kernel void evaluate(__global float *input_image,
 
   float output = 1.0 / (1.0 + exp(-k * (input_sum - x0)));
   output_image[num] = output;
+
+  // Now, update feature vector.
+#endif
+
+  uint g = pcg_next(&seed); // MWC64X(&seed);
+  output_image[num] = g / (float)0xFFFFFFFF;
+
 }

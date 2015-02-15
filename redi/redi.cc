@@ -22,6 +22,8 @@ using uint8 = uint8_t;
 // Better compatibility with CL.
 using uchar = uint8_t;
 
+using uint64 = uint64_t;
+
 // The idea would be something like this. We have a huge array of nodes,
 // corresponding to the image's RGB channels. Let's say that we have N layers.
 // Each is that same size. On a given layer, a node gets inputs from all of
@@ -132,12 +134,25 @@ int main(int argc, char* argv[])  {
   rc.Discard(2000);
 
   auto RandFloat = [&rc]() -> float {
-    uint32 uu = 0;
+    uint32 uu = 0u;
     uu = rc.Byte() | (uu << 8);
     uu = rc.Byte() | (uu << 8);
     uu = rc.Byte() | (uu << 8);
     uu = rc.Byte() | (uu << 8);
     return (float)(uu / (double)0xFFFFFFFF);
+  };
+
+  auto Rand64 = [&rc]() -> uint64 {
+    uint64 uu = 0ULL;
+    uu = rc.Byte() | (uu << 8);
+    uu = rc.Byte() | (uu << 8);
+    uu = rc.Byte() | (uu << 8);
+    uu = rc.Byte() | (uu << 8);
+    uu = rc.Byte() | (uu << 8);
+    uu = rc.Byte() | (uu << 8);
+    uu = rc.Byte() | (uu << 8);
+    uu = rc.Byte() | (uu << 8);
+    return uu;
   };
 
   printf("[GPU] Initializing GPU.\n");
@@ -205,9 +220,14 @@ int main(int argc, char* argv[])  {
   // Actual result.
   vector<cl_float> output_image(NUM_NODES, 0.0f);
 
+  vector<uint8> seeds;
+  seeds.reserve(NUM_SEEDS);
+  for (int i = 0; i < NUM_SEEDS; i++) seeds.push_back(rc.Byte());
+
   cl_mem input_image_buf = BufferFromVector(context, true, &input_image);
   cl_mem expected_image_buf = BufferFromVector(context, true, &expected_image);
   cl_mem output_image_buf = BufferFromVector(context, false, &output_image);
+  cl_mem seed_buf = BufferFromVector(context, true, &seeds);
 
   auto FloatMB = [](int n) {
     return StringPrintf("%.1f", (n * 4) / (1024.0 * 1024.0));
@@ -227,13 +247,17 @@ int main(int argc, char* argv[])  {
 
   /* Step 8: Create kernel object */
   printf("[GPU] Running on GPU.\n");
-  cl_kernel kernel = clCreateKernel(program, "evaluate", nullptr);
+  cl_kernel kernel = clCreateKernel(program, "train", nullptr);
   Timer gputimer;
 
+  // uint64 random_seed = Rand64();
+
   /* Step 9: Sets Kernel arguments. */
-  CHECK_SUCCESS(clSetKernelArg(kernel, 0, sizeof(cl_mem), (void *)&input_image_buf));
-  CHECK_SUCCESS(clSetKernelArg(kernel, 1, sizeof(cl_mem), (void *)&fv_buf));
-  CHECK_SUCCESS(clSetKernelArg(kernel, 2, sizeof(cl_mem), (void *)&output_image_buf));
+  CHECK_SUCCESS(clSetKernelArg(kernel, 0, sizeof(cl_mem), (void *)&seed_buf));
+  CHECK_SUCCESS(clSetKernelArg(kernel, 1, sizeof(cl_mem), (void *)&input_image_buf));
+  CHECK_SUCCESS(clSetKernelArg(kernel, 2, sizeof(cl_mem), (void *)&fv_buf));
+  CHECK_SUCCESS(clSetKernelArg(kernel, 3, sizeof(cl_mem), (void *)&output_image_buf));
+  CHECK_SUCCESS(clSetKernelArg(kernel, 4, sizeof(cl_mem), (void *)&expected_image_buf));
 
   size_t global_work_offset[] = { 0 };
   size_t global_work_size[] = { NUM_NODES };
