@@ -227,7 +227,7 @@ int main(int argc, char* argv[])  {
   cl_mem input_image_buf = BufferFromVector(context, true, &input_image);
   cl_mem expected_image_buf = BufferFromVector(context, true, &expected_image);
   cl_mem output_image_buf = BufferFromVector(context, false, &output_image);
-  cl_mem seed_buf = BufferFromVector(context, true, &seeds);
+  cl_mem seed_buf = BufferFromVector(context, false, &seeds);
 
   auto FloatMB = [](int n) {
     return StringPrintf("%.1f", (n * 4) / (1024.0 * 1024.0));
@@ -259,56 +259,69 @@ int main(int argc, char* argv[])  {
   CHECK_SUCCESS(clSetKernelArg(kernel, 3, sizeof(cl_mem), (void *)&output_image_buf));
   CHECK_SUCCESS(clSetKernelArg(kernel, 4, sizeof(cl_mem), (void *)&expected_image_buf));
 
-  size_t global_work_offset[] = { 0 };
-  size_t global_work_size[] = { NUM_NODES };
-  CHECK(CL_SUCCESS == clEnqueueNDRangeKernel(command_queue, kernel, 
-					     // work dimensions
-					     1, 
-					     // global work offset
-					     global_work_offset,
-					     // global work size
-					     global_work_size, 
-					     // local work size
-					     nullptr, 
-					     // no wait list
-					     0, nullptr, 
-					     // no event
-					     nullptr));
-  // PERF any way to make this not have to FINISH the tasks?
-  clFinish(command_queue);
-  // Flush "works" but seems to slow down the interface more without
-  // reducing the time to finish.
-  // clFlush(command_queue);
+  static constexpr int ITERATIONS = 2000;
+  for (int iter = 0; iter < ITERATIONS; iter++) {
+    size_t global_work_offset[] = { 0 };
+    size_t global_work_size[] = { NUM_NODES };
+    CHECK(CL_SUCCESS == clEnqueueNDRangeKernel(command_queue, kernel, 
+					       // work dimensions
+					       1, 
+					       // global work offset
+					       global_work_offset,
+					       // global work size
+					       global_work_size, 
+					       // local work size
+					       nullptr, 
+					       // no wait list
+					       0, nullptr, 
+					       // no event
+					       nullptr));
+    // PERF any way to make this not have to FINISH the tasks?
+    clFinish(command_queue);
+    // Flush "works" but seems to slow down the interface more without
+    // reducing the time to finish.
+    // clFlush(command_queue);
+    printf(".");
 
-  // Need to tell it that we're going to read from the gpu_mem vector again.
-  // Note, this will safely wait for the kernel to complete because we did not
-  // pass CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE when we created the command
-  // queue. But for best performance we should probably do that.
-  // www.khronos.org/registry/cl/sdk/1.0/docs/man/xhtml/clCreateCommandQueue.html
-  cl_int errcode;
-  clEnqueueMapBuffer(command_queue, output_image_buf,
-		     // Blocking.
-		     CL_TRUE,
-		     CL_MAP_READ | CL_MAP_WRITE,
-		     // Offset, size.
-		     0, output_image.size(),
-		     // wait list.
-		     0, nullptr,
-		     // event
-		     nullptr,
-		     &errcode);
-  CHECK(CL_SUCCESS == errcode);
+
+    if (iter % 10 == 0) {
+      // Need to tell it that we're going to read from the gpu_mem vector again.
+      // Note, this will safely wait for the kernel to complete because we did not
+      // pass CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE when we created the command
+      // queue. But for best performance we should probably do that.
+      // www.khronos.org/registry/cl/sdk/1.0/docs/man/xhtml/clCreateCommandQueue.html
+      cl_int errcode;
+      clEnqueueMapBuffer(command_queue, output_image_buf,
+			 // Blocking.
+			 CL_TRUE,
+			 CL_MAP_READ | CL_MAP_WRITE,
+			 // Offset, size.
+			 0, output_image.size(),
+			 // wait list.
+			 0, nullptr,
+			 // event
+			 nullptr,
+			 &errcode);
+      CHECK(CL_SUCCESS == errcode);
+      string filename = StringPrintf("out-tom7-%d.png", iter);
+      SaveImage(filename, output_image);
+      printf("\nWrote %s.\n", filename.c_str());
+    }
+  }
+  printf("\n");
+
 
   double gpu_ms = gputimer.MS();
   
   printf(" **** GPU AFTER **** \n");
 
-  SaveImage("out-tom7.png", output_image);
 
   printf("OK!\n");
 
   double used_time = gpu_ms / 1000.0;
-  printf("[GPU] Time on GPU: %.4f sec\n", used_time);
+  printf("[GPU] Time on GPU: %.4f sec\n"
+	 "(%.4f sec/iteration)\n", 
+	 used_time, used_time / ITERATIONS);
   		     
   // TODO: Should probably clEnqueueUnmapMemObject.
 

@@ -24,12 +24,6 @@ CPPFLAGS= -DPSS_STYLE=1 -DDUMMY_UI -DHAVE_ASPRINTF -Wno-write-strings -m64 $(OPT
 
 OBJECTS=redi.o ${UTILOBJECTS}
 
-%.pb.cc: %.proto
-	$(PROTOC) $< --cpp_out=.
-
-%.pb.h: %.proto
-	$(PROTOC) $< --cpp_out=.
-
 # without static, can't find lz or lstdcxx maybe?
 LFLAGS=  -m64 -Wl,--subsystem,console $(CLLIBS) -lz -lOpenCL $(OPT) $(FLTO) $(PROFILE) -static
 
