@@ -130,6 +130,7 @@ static void SaveImage(const string &filename, const vector<cl_float> &img) {
   abort(); } } while (0)
 
 int main(int argc, char* argv[])  {
+  Timer setup_timer;
   ArcFour rc("redi");
   rc.Discard(2000);
 
@@ -141,6 +142,7 @@ int main(int argc, char* argv[])  {
     uu = rc.Byte() | (uu << 8);
     return (float)(uu / (double)0xFFFFFFFF);
   };
+
 
   auto Rand64 = [&rc]() -> uint64 {
     uint64 uu = 0ULL;
@@ -154,6 +156,7 @@ int main(int argc, char* argv[])  {
     uu = rc.Byte() | (uu << 8);
     return uu;
   };
+  (void)Rand64;
 
   printf("[GPU] Initializing GPU.\n");
   
@@ -255,13 +258,16 @@ int main(int argc, char* argv[])  {
 
   /* Step 8: Create kernel object */
   printf("[GPU] Running on GPU.\n");
+  Timer create_kernel;
   cl_kernel train_kernel = clCreateKernel(program, "train", nullptr);
   cl_kernel eval_kernel = clCreateKernel(program, "evaluate", nullptr);
-  Timer gputimer;
+  double create_kernel_ms = create_kernel.MS();
+  Timer gputimer;  
 
   // uint64 random_seed = Rand64();
 
   /* Step 9: Sets Kernel arguments. */
+  Timer set_args;
   CHECK_SUCCESS(clSetKernelArg(train_kernel, 0, sizeof(cl_mem), (void *)&seed_buf));
   CHECK_SUCCESS(clSetKernelArg(train_kernel, 1, sizeof(cl_mem), (void *)&input_image_buf));
   CHECK_SUCCESS(clSetKernelArg(train_kernel, 2, sizeof(cl_mem), (void *)&fv_buf));
@@ -271,33 +277,58 @@ int main(int argc, char* argv[])  {
   CHECK_SUCCESS(clSetKernelArg(eval_kernel,  0, sizeof(cl_mem), (void *)&eval_input_buf));
   CHECK_SUCCESS(clSetKernelArg(eval_kernel,  1, sizeof(cl_mem), (void *)&fv_buf));
   CHECK_SUCCESS(clSetKernelArg(eval_kernel,  2, sizeof(cl_mem), (void *)&eval_output_buf));
+  double set_args_ms = set_args.MS();
+
+
+  double setup_ms = setup_timer.MS();
+  printf("Time creating kernel: %.4fs\n"
+	 "Time setting args: %.4fs\n"
+	 "Time setting up: %.4fs\n",
+	 create_kernel_ms / 1000.0,
+	 set_args_ms / 1000.0,
+	 setup_ms / 1000.0);
 
   static constexpr int ITERATIONS = 2000;
+  vector<double> iteration_times;
   for (int iter = 0; iter < ITERATIONS; iter++) {
-    size_t global_work_offset[] = { 0 };
-    size_t global_work_size[] = { NUM_NODES };
-    CHECK(CL_SUCCESS == clEnqueueNDRangeKernel(command_queue, train_kernel, 
-					       // work dimensions
-					       1, 
-					       // global work offset
-					       global_work_offset,
-					       // global work size
-					       global_work_size, 
-					       // local work size
-					       nullptr, 
-					       // no wait list
-					       0, nullptr, 
-					       // no event
-					       nullptr));
+    Timer iteration_timer;
+    for (int h = 0; h < (NUM_NODES / CHUNK_SIZE); h++) {
+      size_t global_work_offset[] = { (uint64)h * CHUNK_SIZE };
+      size_t global_work_size[] = { CHUNK_SIZE };
+      CHECK(CL_SUCCESS == clEnqueueNDRangeKernel(command_queue, train_kernel, 
+						 // work dimensions
+						 1, 
+						 // global work offset
+						 global_work_offset,
+						 // global work size
+						 global_work_size, 
+						 // local work size
+						 nullptr, 
+						 // no wait list
+						 0, nullptr, 
+						 // no event
+						 nullptr));
+      clFinish(command_queue);
+      printf("-");
+    }
     // PERF any way to make this not have to FINISH the tasks?
-    clFinish(command_queue);
+
     // Flush "works" but seems to slow down the interface more without
     // reducing the time to finish.
     // clFlush(command_queue);
-    printf(".");
+    double iteration_ms = iteration_timer.MS();
+    iteration_times.push_back(iteration_ms);
+    // printf("[%.2f].", setup_timer.MS());
+    printf("#");
 
-
-    if (iter % 10 == 0) {
+    if (true || iter % 10 == 0) {
+      CHECK(iteration_times.size() > 0);
+      double sum = 0.0;
+      for (int i = 0; i < iteration_times.size(); i++) {
+	sum += iteration_times[i];
+      }
+      printf("\nAverage (full) iteration time: %fms.\n", sum / iteration_times.size());
+      
       // Need to tell it that we're going to read from the gpu_mem vector again.
       // Note, this will safely wait for the kernel to complete because we did not
       // pass CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE when we created the command
@@ -320,6 +351,8 @@ int main(int argc, char* argv[])  {
       SaveImage(filename, output_image);
       printf("\nWrote %s.\n", filename.c_str());
 
+      size_t global_work_offset[] = { 0 };
+      size_t global_work_size[] = { NUM_NODES };
       CHECK(CL_SUCCESS == clEnqueueNDRangeKernel(command_queue, eval_kernel,
 						 1,
 						 global_work_offset,

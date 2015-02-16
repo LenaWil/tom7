@@ -19,6 +19,8 @@
 #define RANDOM 0
 
 #define NUM_NODES (WIDTH * HEIGHT * NPP)
+// Must divide num_nodes.
+#define CHUNK_SIZE (WIDTH >> 2)
 
 // Transfer function is: Multiply each incoming edge by a weight. Add them.
 // Apply two-parameter sigmoid to result. All features are stored as floats in [0, 1];
