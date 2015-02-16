@@ -19,23 +19,40 @@ struct
          then SOME ".png"
          else NONE
 
+  val site_re = RE.find "(http://[^/]+/)"
+  fun okay_site url =
+    case site_re url of
+      SOME f => SOME (f 1)
+    | NONE => NONE
+
+  datatype res =
+      GOOD
+    | ERROR
+    | SKIP
+
   fun get_image url hquery num =
-    case okay_extension of
-      SOME ext =>
+    case (okay_extension url, okay_site url) of
+      (SOME ext, SOME site) =>
         let
-          val outfile = hquery ^ "-" ^ (Int.toString.num) ^ ext
+          val outfile = "corpus/" ^ hquery ^ "-" ^ (Int.toString num) ^ ext
           val cmd =
             "wget --no-check-certificate " ^
-            "--quiet "
+            "--quiet " ^
+            "--dns-timeout=1 " ^
+            "--connect-timeout=1 " ^
+            "--read-timeout=30 " ^
             "--user-agent \"" ^ user_agent ^ "\" " ^
-            (* "--referer \"" ^ referrer ^ "\" " ^ *)
+            "--referer \"" ^ site ^ "\" " ^
             "\"" ^ url ^ "\" " ^
             "--output-document " ^ outfile
+          (* val () = print (cmd ^ "\n") *)
           val ret = OS.Process.system cmd
         in
-          OS.Process.isSuccess
-          false
+          if OS.Process.isSuccess ret
+          then GOOD
+          else ERROR
         end
+    | (_, _) => SKIP
 
 
   fun process_html hquery html =
@@ -48,13 +65,12 @@ struct
       val nmatches = length matches
 
       fun getone (s, i) =
-        let in
-          if get_image s hquery (i + 1)
-          then print "."
-          else print "!"
-        end
+        case get_image s hquery (i + 1) of
+          GOOD => print "."
+        | ERROR => print "!"
+        | SKIP => print "_"
     in
-      print ("Downloading " ^ Int.toString nmatches ^ " match(es):\n"
+      print ("Downloading " ^ Int.toString nmatches ^ " match(es):\n" ^
              "[");
       ListUtil.appi getone matches;
       print "]\n";
@@ -63,6 +79,7 @@ struct
 
   fun fetch query =
     let
+      val () = print ("Query [" ^ query ^ "]:\n")
       (* Better just compile this one in, instead of wrangling
          with multi-escaping issues. *)
 
@@ -83,8 +100,8 @@ struct
         "\"" ^ url ^ "\" " ^
         "--output-document " ^ outfile
 
-      val () = print ("Sleeping " ^ Int.toString (!throttle) ^ ".\n")
-      val () = OS.Process.sleep (Time.fromSeconds (IntInf.fromInt (!throttle)))
+      (* val () = print ("Sleeping " ^ Int.toString (!throttle) ^ ".\n")
+      val () = OS.Process.sleep (Time.fromSeconds (IntInf.fromInt (!throttle))) *)
       val ret = OS.Process.system cmd
     in
       if OS.Process.isSuccess ret
