@@ -67,6 +67,7 @@ using uint64 = uint64_t;
 
 static_assert((NPP >= 3), "Must have at least R, G, B pixels.");
 static_assert((NEIGHBORHOOD & 1) == 1, "neighborhood must be odd.");
+static_assert((NUM_NODES % CHUNK_SIZE) == 0, "chunk size must divide input.");
 
 static_assert(RANDOM == 0, "random not yet supported.");
 
@@ -121,11 +122,12 @@ static vector<T> CopyBufferFromGPU(cl_command_queue cmd, cl_mem buf, int n) {
   return vec;
 }
 
-static void LoadImage(const string &filename, vector<cl_float> *img) {
-  CHECK(img->size() == WIDTH * HEIGHT * NPP);
+vector<float> LoadImage(const string &filename) {
   int width, height, bpp_unused;
   uint8 *stb_rgba = stbi_load(filename.c_str(), 
 			      &width, &height, &bpp_unused, 4);
+  vector<float> vec;
+  vec.resize(WIDTH * HEIGHT * NPP);
   CHECK(stb_rgba);
   CHECK_EQ(WIDTH, width);
   CHECK_EQ(HEIGHT, height);
@@ -135,14 +137,15 @@ static void LoadImage(const string &filename, vector<cl_float> *img) {
     int src = i * bpp;
     int dst = i * NPP;
     for (int j = 0; j < 3; j++) {
-      (*img)[dst + j] = stb_rgba[src + j] / 255.0;
+      vec[dst + j] = stb_rgba[src + j] / 255.0;
     }
 
     for (int j = 3; j < NPP; j++) {
-      (*img)[dst + j] = 0.0f;
+      vec[dst + j] = 0.0f;
     }
   }
   stbi_image_free(stb_rgba);
+  return vec;
 }
 
 static void SaveImage(const string &filename, const vector<cl_float> &img) {
@@ -163,6 +166,39 @@ static void SaveImage(const string &filename, const vector<cl_float> &img) {
   CHECK(rgba.size() == WIDTH * HEIGHT * 4);
   stbi_write_png(filename.c_str(), WIDTH, HEIGHT, 4, rgba.data(),
 		 4 * WIDTH);
+}
+
+static void SaveFlat(const string &filename, const vector<cl_float> &img) {
+  auto FloatByte = [](cl_float f) -> uint8 {
+    if (f > 1.0) return 0xFF;
+    else if (f < 0.0) return 0x00;
+    else return (uint8)(f * 255.0);
+  };
+  CHECK(img.size() == IMAGES_PER_BATCH * WIDTH * HEIGHT * NPP);
+
+  vector<uint8> rgba;
+  rgba.reserve(IMAGES_PER_BATCH * WIDTH * HEIGHT * 4);
+  for (int y = 0; y < HEIGHT; y++) {
+    for (int z = 0; z < IMAGES_PER_BATCH; z++) {
+      for (int x = 0; x < WIDTH; x++) {
+	int src = 
+	  // Start of image
+	  (z * NUM_NODES) +
+	  // Start of row
+	  y * WIDTH * NPP +
+	  // Start of pixel
+	  x * NPP;
+	for (int j = 0; j < 3; j++) {
+	  rgba.push_back(FloatByte(img[src + j]));
+	}
+	// Always alpha channel.
+	rgba.push_back(0xFF);
+      }
+    }
+  }
+  CHECK(rgba.size() == IMAGES_PER_BATCH * WIDTH * HEIGHT * 4);
+  stbi_write_png(filename.c_str(), WIDTH * IMAGES_PER_BATCH, HEIGHT, 4, rgba.data(),
+		 4 * WIDTH * IMAGES_PER_BATCH);
 }
 
 int main(int argc, char* argv[])  {
@@ -245,25 +281,47 @@ int main(int argc, char* argv[])  {
     exit(-1);
   }
 
-  // Training instance.
-  vector<cl_float> input_image(NUM_NODES, 0.0f);
-  LoadImage("tom7.png", &input_image);
-  vector<cl_float> expected_image = input_image;
-  LoadImage("tom7-edges.png", &expected_image);
+  printf("Loading images:\n");
+  vector<vector<float>> images;
+  for (const char *fn : {"sick.png", "tom7.png", "spirals.png", "bombe.png", "rotor.png"}) {
+    images.push_back(LoadImage(fn));
+  }
+  printf("(Loaded images).\n");
+  CHECK_EQ(IMAGES_PER_BATCH, images.size());
+
+  // Training instances for one round.
+  vector<cl_float> input_images_flat;
+  vector<cl_float> expected_images_flat;
+  for (const vector<float> &img : images) {
+    input_images_flat.insert(input_images_flat.end(), img.begin(), img.end());
+    // XXX learning identity function
+    expected_images_flat.insert(expected_images_flat.end(), img.begin(), img.end());
+  }
+  printf("Flattened images.\n");
 
   /*
-  vector<cl_float> eval_input(NUM_NODES, 0.0f);
-  LoadImage("sick.png", &eval_input);
-  vector<cl_float> eval_output(NUM_NODES, 0.0f);
+    vector<cl_float> eval_input(NUM_NODES, 0.0f);
+    LoadImage("sick.png", &eval_input);
+    vector<cl_float> eval_output(NUM_NODES, 0.0f);
   */
 
   vector<uint8> seeds;
   seeds.reserve(NUM_SEEDS);
   for (int i = 0; i < NUM_SEEDS; i++) seeds.push_back(rc.Byte());
 
-  cl_mem input_image_buf = MoveMemoryToGPU(context, command_queue, true, &input_image);
-  cl_mem expected_image_buf = MoveMemoryToGPU(context, command_queue, true, &expected_image);
-  cl_mem output_image_buf = CreateUninitializedGPUMemory<cl_float>(context, NUM_NODES);
+  vector<cl_float> features(NUM_FEATURES, 0.0f);
+  // Randomize feature buffer to start.
+  for (int i = 0; i < NUM_FEATURES; i++) {
+    features[i] = RandFloat();
+  }
+
+  cl_mem fv_buf = MoveMemoryToGPU(context, command_queue, false, &features);
+
+  cl_mem input_image_buf = MoveMemoryToGPU(context, command_queue, true, &input_images_flat);
+  cl_mem expected_image_buf = MoveMemoryToGPU(context, command_queue, true, &expected_images_flat);
+  // PERF training need not create this, but it's fun to watch.
+  cl_mem output_image_buf = 
+    CreateUninitializedGPUMemory<cl_float>(context, expected_images_flat.size());
   // This is read and written by GPU, but the host never needs to see it again.
   cl_mem seed_buf = MoveMemoryToGPU(context, command_queue, false, &seeds);
 
@@ -274,14 +332,7 @@ int main(int argc, char* argv[])  {
   LOG(INFO) << "Nodes per layer: " << NUM_NODES << " (" << FloatMB(NUM_NODES) << "mb)";
   LOG(INFO) << "Total features per layer: " << NUM_FEATURES 
 	    << " (" << FloatMB(NUM_FEATURES) << "mb)";
-  vector<cl_float> features(NUM_FEATURES, 0.0f);
 
-  // Randomize feature buffer to start.
-  for (int i = 0; i < NUM_FEATURES; i++) {
-    features[i] = RandFloat();
-  }
-
-  cl_mem fv_buf = MoveMemoryToGPU(context, command_queue, false, &features);
 
   printf("Setup time before 'finish' call: %.0f\n", setup_timer.MS());
   clFinish(command_queue);
@@ -289,7 +340,8 @@ int main(int argc, char* argv[])  {
   // Now can dispose of big temp buffers:
   features.clear();
   features.shrink_to_fit();
-
+	 input_images_flat.clear();
+	 
 
   /* Step 8: Create kernel object */
   printf("[GPU] Running on GPU.\n");
@@ -355,7 +407,7 @@ int main(int argc, char* argv[])  {
     // printf("[%.2f].", setup_timer.MS());
     printf("#");
 
-    if (true || iter % 10 == 0) {
+    if (iter % 5 == 0) {
       CHECK(iteration_times.size() > 0);
       double sum = 0.0;
       for (int i = 0; i < iteration_times.size(); i++) {
@@ -368,9 +420,10 @@ int main(int argc, char* argv[])  {
       // pass CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE when we created the command
       // queue. But for best performance we should probably do that.
       // www.khronos.org/registry/cl/sdk/1.0/docs/man/xhtml/clCreateCommandQueue.html
-      vector<float> img = CopyBufferFromGPU<float>(command_queue, output_image_buf, NUM_NODES);
-      string filename = StringPrintf("out-tom7-%d.png", iter);
-      SaveImage(filename, img);
+      vector<float> img = CopyBufferFromGPU<float>(command_queue, output_image_buf, 
+						   NUM_NODES * IMAGES_PER_BATCH);
+      string filename = StringPrintf("out-%d.png", iter);
+      SaveFlat(filename, img);
       printf("\nWrote %s.\n", filename.c_str());
 
       #if 0
