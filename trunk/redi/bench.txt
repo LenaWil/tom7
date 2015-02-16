@@ -1,3 +1,8 @@
 4.7s setup
 54810ms iteration time!
 
+-- create buffers on gpu --
+
+4.9s setup
+58422ms
+
