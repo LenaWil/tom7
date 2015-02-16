@@ -28,5 +28,6 @@ group is
  ../../sml-lib/misc/params-sig.sml
  ../../sml-lib/misc/params.sml
 
+ ../../sml-lib/util/re.cm
 
  fetcher.sml
