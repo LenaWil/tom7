@@ -37,3 +37,4 @@
 
 #define NUM_SEEDS (WIDTH * HEIGHT)
 
+#define IMAGES_PER_BATCH 5

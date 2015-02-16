@@ -45,23 +45,27 @@ float GetOutput(float fv[FEATURES_PER_NODE], float inputs[INPUTS_SUMMED]) {
   return output;
 }
 
-void MakeVectors(__global float *input_image,
-                 __global float *feature_vector,
+void GetFeatures(__global float *feature_vector,
                  int num,
-                 float fv[FEATURES_PER_NODE],
-                 float inputs[INPUTS_SUMMED]) {
+                 float fv[FEATURES_PER_NODE]) {
+  // Copy of my features from the global array.
+  const int featurenum_src = num * FEATURES_PER_NODE;
+
+  for (int i = 0; i < FEATURES_PER_NODE; i++)
+    fv[i] = feature_vector[featurenum_src + i];
+}
+
+void MakeInputVector(__global float *input_image,
+                     int num,
+                     int image_num,
+                     float *inputs) {
   int pixel_num = num / NPP;
   // int channel_num = num % NPP;
 
   int pixel_y = pixel_num / WIDTH;
   int pixel_x = pixel_num % WIDTH;
 
-  // Copy of my features from the global array.
-  const int featurenum_src = num * FEATURES_PER_NODE;
-
-  for (int i = 0; i < FEATURES_PER_NODE; i++)
-    fv[i] = feature_vector[featurenum_src + i];
-
+  int image_src = image_num * NUM_NODES;
 
   // Neighbors first.
   int halfnb = NEIGHBORHOOD / 2;
@@ -73,7 +77,7 @@ void MakeVectors(__global float *input_image,
 
       int srcnodenum = (srcpx + srcpy * WIDTH) * NPP;
       for (int ch = 0; ch < NPP; ch++) {
-        inputs[input_idx] = input_image[srcnodenum + ch];
+        inputs[input_idx] = input_image[image_src + srcnodenum + ch];
         input_idx++;
       }
     }
@@ -85,8 +89,9 @@ __kernel void evaluate(__global float *input_image,
                        __global float *output_image) {
   int num = get_global_id(0);
   float fv[FEATURES_PER_NODE];
+  GetFeatures(feature_vector, num, fv);
   float inputs[INPUTS_SUMMED];
-  MakeVectors(input_image, feature_vector, num, fv, inputs);
+  MakeInputVector(input_image, num, 0, inputs);
   output_image[num] = GetOutput(fv, inputs);
 }
 
@@ -96,22 +101,35 @@ __kernel void train(__global uchar *seeds,
                     __global float *output_image,
                     __global float *expected_image) {
   int num = get_global_id(0);
-  float expected = expected_image[num];
+  float expected[IMAGES_PER_BATCH];
+  for (int i = 0; i < IMAGES_PER_BATCH; i++) {
+    expected[i] = expected_image[i * NUM_NODES + num];
+  }
   pcg seed;
   seed.state = seeds[num % NUM_SEEDS] | (num << 8);
   seed.inc = num * 2 + 1;
   // First value is way too predictable.
   (void)pcg_next(&seed);
 
+  // These are the same for each image.
   float fv[FEATURES_PER_NODE];
-  float inputs[INPUTS_SUMMED];
-  MakeVectors(input_image, feature_vector, num, fv, inputs);
+  GetFeatures(feature_vector, num, fv);
 
-  float output = GetOutput(fv, inputs);
-  float best_loss = fabs(output - expected);
+  // Packed array of inputs, one for each image in the batch.
+  float inputs[INPUTS_SUMMED * IMAGES_PER_BATCH];
+  for (int i = 0; i < IMAGES_PER_BATCH; i++) {
+    MakeInputVector(input_image, num, i, &inputs[i * INPUTS_SUMMED]);
+  }
+
+  float outputs[IMAGES_PER_BATCH];
+  float best_loss = 0;
+  for (int i = 0; i < IMAGES_PER_BATCH; i++) {
+    outputs[i] = GetOutput(fv, &inputs[i * INPUTS_SUMMED]);
+    best_loss += fabs(outputs[i] - expected[i]);
+  }
 
   // nb: This part could be parallelized too, as a subproblem num.
-  // But what's the advantage when we have three million nodes to compute?
+  // But what's the advantage when we have three million independent nodes to compute?
   bool improved_features = false;
   for (int rounds = 0; rounds < 50; rounds++) {
     float fvv[FEATURES_PER_NODE];
@@ -127,19 +145,25 @@ __kernel void train(__global uchar *seeds,
         float rf = ((b >> 3) & 0x0FFFFFFF) / (float)0x0FFFFFFF;
         // Weight this blend by the magnitude of the current loss, maybe?
         fvv[f] = rf; // (fv[f] + rf) / 2.0;
-        improved_features;
       } else {
         fvv[f] = fv[f];
         // (Note: wastes randomness..)
       }
     }
 
-    float new_output = GetOutput(fvv, inputs);
-    float new_loss = fabs(new_output - expected);
+    // Now evaluate and compare.
+    float new_outputs[IMAGES_PER_BATCH];
+    float new_loss = 0;
+    for (int i = 0; i < IMAGES_PER_BATCH; i++) {
+      new_outputs[i] = GetOutput(fvv, &inputs[i * INPUTS_SUMMED]);
+      new_loss += fabs(new_outputs[i] - expected[i]);
+    }
     if (new_loss < best_loss) {
       improved_features = true;
       best_loss = new_loss;
-      output = new_output;
+      for (int i = 0; i < IMAGES_PER_BATCH; i++) {
+        outputs[i] = new_outputs[i];
+      }
       for (int f = 0; f < FEATURES_PER_NODE; f++) {
         fv[f] = fvv[f];
       }
@@ -154,7 +178,9 @@ __kernel void train(__global uchar *seeds,
     }
   }
 
-  output_image[num] = output;
+  for (int i = 0; i < IMAGES_PER_BATCH; i++) {
+    output_image[i * NUM_NODES + num] = outputs[i];
+  }
 
   // uint g = pcg_next(&seed); // MWC64X(&seed);
   // output_image[num] = g / (float)0xFFFFFFFF;
