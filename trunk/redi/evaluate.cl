@@ -42,24 +42,14 @@ float GetOutput(float fv[FEATURES_PER_NODE], float inputs[INPUTS_SUMMED]) {
 
   float output = 1.0 / (1.0 + exp(-k * (input_sum - x0)));
 
-  return fv[0];
-
   return output;
 }
 
-__kernel void train(__global uchar *seeds,
-                    __global float *input_image,
-                    __global float *feature_vector,
-                    __global float *output_image,
-                    __global float *expected_image) {
-  int num = get_global_id(0);
-  float expected = expected_image[num];
-  pcg seed;
-  seed.state = seeds[num % NUM_SEEDS] | (num << 8);
-  seed.inc = num * 2 + 1;
-  // First value is way too predictable.
-  (void)pcg_next(&seed);
-
+void MakeVectors(__global float *input_image,
+                 __global float *feature_vector,
+                 int num,
+                 float fv[FEATURES_PER_NODE],
+                 float inputs[INPUTS_SUMMED]) {
   int pixel_num = num / NPP;
   // int channel_num = num % NPP;
 
@@ -68,11 +58,11 @@ __kernel void train(__global uchar *seeds,
 
   // Copy of my features from the global array.
   const int featurenum_src = num * FEATURES_PER_NODE;
-  float fv[FEATURES_PER_NODE];
+
   for (int i = 0; i < FEATURES_PER_NODE; i++)
     fv[i] = feature_vector[featurenum_src + i];
 
-  float inputs[INPUTS_SUMMED];
+
   // Neighbors first.
   int halfnb = NEIGHBORHOOD / 2;
   int input_idx = 0;
@@ -88,6 +78,34 @@ __kernel void train(__global uchar *seeds,
       }
     }
   }
+}
+
+__kernel void evaluate(__global float *input_image,
+                       __global float *feature_vector,
+                       __global float *output_image) {
+  int num = get_global_id(0);
+  float fv[FEATURES_PER_NODE];
+  float inputs[INPUTS_SUMMED];
+  MakeVectors(input_image, feature_vector, num, fv, inputs);
+  output_image[num] = GetOutput(fv, inputs);
+}
+
+__kernel void train(__global uchar *seeds,
+                    __global float *input_image,
+                    __global float *feature_vector,
+                    __global float *output_image,
+                    __global float *expected_image) {
+  int num = get_global_id(0);
+  float expected = expected_image[num];
+  pcg seed;
+  seed.state = seeds[num % NUM_SEEDS] | (num << 8);
+  seed.inc = num * 2 + 1;
+  // First value is way too predictable.
+  (void)pcg_next(&seed);
+
+  float fv[FEATURES_PER_NODE];
+  float inputs[INPUTS_SUMMED];
+  MakeVectors(input_image, feature_vector, num, fv, inputs);
 
   float output = GetOutput(fv, inputs);
   float best_loss = fabs(output - expected);
@@ -109,6 +127,7 @@ __kernel void train(__global uchar *seeds,
         float rf = ((b >> 3) & 0x0FFFFFFF) / (float)0x0FFFFFFF;
         // Weight this blend by the magnitude of the current loss, maybe?
         fvv[f] = rf; // (fv[f] + rf) / 2.0;
+        improved_features;
       } else {
         fvv[f] = fv[f];
         // (Note: wastes randomness..)
@@ -127,9 +146,12 @@ __kernel void train(__global uchar *seeds,
     }
   }
 
-  // Now, update feature vector.
-  for (int f = 0; f < FEATURES_PER_NODE; f++) {
-    feature_vector[featurenum_src + f] = fv[f];
+  if (improved_features) {
+    // Now, update feature vector.
+    const int featurenum_src = num * FEATURES_PER_NODE;
+    for (int f = 0; f < FEATURES_PER_NODE; f++) {
+      feature_vector[featurenum_src + f] = fv[f];
+    }
   }
 
   output_image[num] = output;

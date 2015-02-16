@@ -216,9 +216,14 @@ int main(int argc, char* argv[])  {
   vector<cl_float> input_image(NUM_NODES, 0.0f);
   LoadImage("tom7.png", &input_image);
   vector<cl_float> expected_image = input_image;
+  LoadImage("tom7-edges.png", &expected_image);
   // (expected image is currently unused.)
   // Actual result.
   vector<cl_float> output_image(NUM_NODES, 0.0f);
+
+  vector<cl_float> eval_input(NUM_NODES, 0.0f);
+  LoadImage("sick.png", &eval_input);
+  vector<cl_float> eval_output(NUM_NODES, 0.0f);
 
   vector<uint8> seeds;
   seeds.reserve(NUM_SEEDS);
@@ -228,6 +233,9 @@ int main(int argc, char* argv[])  {
   cl_mem expected_image_buf = BufferFromVector(context, true, &expected_image);
   cl_mem output_image_buf = BufferFromVector(context, false, &output_image);
   cl_mem seed_buf = BufferFromVector(context, false, &seeds);
+
+  cl_mem eval_input_buf = BufferFromVector(context, true, &eval_input);
+  cl_mem eval_output_buf = BufferFromVector(context, false, &eval_output);
 
   auto FloatMB = [](int n) {
     return StringPrintf("%.1f", (n * 4) / (1024.0 * 1024.0));
@@ -247,23 +255,28 @@ int main(int argc, char* argv[])  {
 
   /* Step 8: Create kernel object */
   printf("[GPU] Running on GPU.\n");
-  cl_kernel kernel = clCreateKernel(program, "train", nullptr);
+  cl_kernel train_kernel = clCreateKernel(program, "train", nullptr);
+  cl_kernel eval_kernel = clCreateKernel(program, "evaluate", nullptr);
   Timer gputimer;
 
   // uint64 random_seed = Rand64();
 
   /* Step 9: Sets Kernel arguments. */
-  CHECK_SUCCESS(clSetKernelArg(kernel, 0, sizeof(cl_mem), (void *)&seed_buf));
-  CHECK_SUCCESS(clSetKernelArg(kernel, 1, sizeof(cl_mem), (void *)&input_image_buf));
-  CHECK_SUCCESS(clSetKernelArg(kernel, 2, sizeof(cl_mem), (void *)&fv_buf));
-  CHECK_SUCCESS(clSetKernelArg(kernel, 3, sizeof(cl_mem), (void *)&output_image_buf));
-  CHECK_SUCCESS(clSetKernelArg(kernel, 4, sizeof(cl_mem), (void *)&expected_image_buf));
+  CHECK_SUCCESS(clSetKernelArg(train_kernel, 0, sizeof(cl_mem), (void *)&seed_buf));
+  CHECK_SUCCESS(clSetKernelArg(train_kernel, 1, sizeof(cl_mem), (void *)&input_image_buf));
+  CHECK_SUCCESS(clSetKernelArg(train_kernel, 2, sizeof(cl_mem), (void *)&fv_buf));
+  CHECK_SUCCESS(clSetKernelArg(train_kernel, 3, sizeof(cl_mem), (void *)&output_image_buf));
+  CHECK_SUCCESS(clSetKernelArg(train_kernel, 4, sizeof(cl_mem), (void *)&expected_image_buf));
+
+  CHECK_SUCCESS(clSetKernelArg(eval_kernel,  0, sizeof(cl_mem), (void *)&eval_input_buf));
+  CHECK_SUCCESS(clSetKernelArg(eval_kernel,  1, sizeof(cl_mem), (void *)&fv_buf));
+  CHECK_SUCCESS(clSetKernelArg(eval_kernel,  2, sizeof(cl_mem), (void *)&eval_output_buf));
 
   static constexpr int ITERATIONS = 2000;
   for (int iter = 0; iter < ITERATIONS; iter++) {
     size_t global_work_offset[] = { 0 };
     size_t global_work_size[] = { NUM_NODES };
-    CHECK(CL_SUCCESS == clEnqueueNDRangeKernel(command_queue, kernel, 
+    CHECK(CL_SUCCESS == clEnqueueNDRangeKernel(command_queue, train_kernel, 
 					       // work dimensions
 					       1, 
 					       // global work offset
@@ -306,6 +319,29 @@ int main(int argc, char* argv[])  {
       string filename = StringPrintf("out-tom7-%d.png", iter);
       SaveImage(filename, output_image);
       printf("\nWrote %s.\n", filename.c_str());
+
+      CHECK(CL_SUCCESS == clEnqueueNDRangeKernel(command_queue, eval_kernel,
+						 1,
+						 global_work_offset,
+						 global_work_size,
+						 nullptr,
+						 0, nullptr,
+						 nullptr));
+      clEnqueueMapBuffer(command_queue, eval_output_buf,
+			 // Blocking.
+			 CL_TRUE,
+			 CL_MAP_READ | CL_MAP_WRITE,
+			 // Offset, size.
+			 0, output_image.size(),
+			 // wait list.
+			 0, nullptr,
+			 // event
+			 nullptr,
+			 &errcode);
+      CHECK(CL_SUCCESS == errcode);
+      string evalfilename = StringPrintf("out-eval-%d.png", iter);
+      SaveImage(evalfilename, eval_output);
+      printf("\nWrote %s too.\n", evalfilename.c_str());
     }
   }
   printf("\n");
@@ -326,12 +362,15 @@ int main(int argc, char* argv[])  {
   // TODO: Should probably clEnqueueUnmapMemObject.
 
   /* Step 12: Clean the resources. */
-  CHECK_SUCCESS(clReleaseKernel(kernel));
+  CHECK_SUCCESS(clReleaseKernel(train_kernel));
+  CHECK_SUCCESS(clReleaseKernel(eval_kernel));
   CHECK_SUCCESS(clReleaseProgram(program));
   CHECK_SUCCESS(clReleaseMemObject(input_image_buf));
   CHECK_SUCCESS(clReleaseMemObject(expected_image_buf));
   CHECK_SUCCESS(clReleaseMemObject(output_image_buf));
   CHECK_SUCCESS(clReleaseMemObject(fv_buf));
+  CHECK_SUCCESS(clReleaseMemObject(eval_output_buf));
+  CHECK_SUCCESS(clReleaseMemObject(eval_input_buf));
   CHECK_SUCCESS(clReleaseCommandQueue(command_queue));
   CHECK_SUCCESS(clReleaseContext(context));
 
