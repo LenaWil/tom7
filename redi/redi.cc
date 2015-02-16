@@ -70,6 +70,13 @@ static_assert((NEIGHBORHOOD & 1) == 1, "neighborhood must be odd.");
 
 static_assert(RANDOM == 0, "random not yet supported.");
 
+#define CHECK_SUCCESS(e) \
+  do { int ret = (e); if (ret != CL_SUCCESS) { \
+  fprintf(stderr, "Not successful with code %d.\n", ret); \
+  abort(); } } while (0)
+
+// Shares with the host memory and we don't control when it gets copied. This is
+// quite inefficient.
 template<class T>
 static cl_mem BufferFromVector(cl_context context, bool readonly, vector<T> *v) {
   return clCreateBuffer(context, 
@@ -78,6 +85,40 @@ static cl_mem BufferFromVector(cl_context context, bool readonly, vector<T> *v) 
 			sizeof (T) * v->size(),
 			(void *) v->data(),
 			nullptr);
+}
+
+// Creates a new buffer on the GPU and copies the memory there. They do not alias.
+// Note that the command queue is not flushed, so you should not touch the source
+// memory until it is.
+template<class T>
+static cl_mem MoveMemoryToGPU(cl_context context, cl_command_queue cmd,
+			      bool readonly, vector<T> *v) {
+  cl_mem buf = clCreateBuffer(context, 
+			      (readonly ? CL_MEM_READ_ONLY : 0),
+			      sizeof (T) * v->size(),
+			      nullptr,
+			      nullptr);
+  clEnqueueWriteBuffer(cmd, buf, CL_TRUE, 0, 
+		       sizeof (T) * v->size(), v->data(), 0, nullptr, nullptr);
+  return buf;
+}
+
+template<class T>
+static cl_mem CreateUninitializedGPUMemory(cl_context context, int n) {
+  return clCreateBuffer(context, 0, sizeof (T) * n, nullptr, nullptr);
+}
+
+template<class T>
+static vector<T> CopyBufferFromGPU(cl_command_queue cmd, cl_mem buf, int n) {
+  vector<T> vec;
+  vec.resize(n);
+  CHECK_SUCCESS(clEnqueueReadBuffer(cmd, buf, CL_TRUE, 0, sizeof (T) * n,
+				    vec.data(),
+				    // No wait-list or event.
+				    0, nullptr,
+				    nullptr));
+  clFinish(cmd);
+  return vec;
 }
 
 static void LoadImage(const string &filename, vector<cl_float> *img) {
@@ -124,17 +165,13 @@ static void SaveImage(const string &filename, const vector<cl_float> &img) {
 		 4 * WIDTH);
 }
 
-#define CHECK_SUCCESS(e) \
-  do { int ret = (e); if (ret != CL_SUCCESS) { \
-  fprintf(stderr, "Not successful with code %d.\n", ret); \
-  abort(); } } while (0)
-
 int main(int argc, char* argv[])  {
   Timer setup_timer;
   ArcFour rc("redi");
   rc.Discard(2000);
 
   auto RandFloat = [&rc]() -> float {
+    // XXX does this have the same precision problem that I had in the CL code?
     uint32 uu = 0u;
     uu = rc.Byte() | (uu << 8);
     uu = rc.Byte() | (uu << 8);
@@ -186,22 +223,16 @@ int main(int argc, char* argv[])  {
   devices = (cl_device_id *)malloc(numDevices * sizeof(cl_device_id));
   CHECK(CL_SUCCESS == clGetDeviceIDs(platform, CL_DEVICE_TYPE_GPU, numDevices, devices, nullptr));
 
-  /* Step 3: Create context. */
   cl_context context = clCreateContext(nullptr, 1, devices, nullptr, nullptr, nullptr);
-        
-  /* Step 4: Creating command queue associate with the context. */
   cl_command_queue command_queue = clCreateCommandQueue(context, devices[0], 0, nullptr);
 
   Timer gpu_compile;
-  /* Step 5: Create program object */
   const char *sources[] = { kernel_src.c_str() };
   size_t source_size[] = { kernel_src.size() };
   cl_program program = clCreateProgramWithSource(context, 1, sources,
                                                  source_size, nullptr);
 
-  /* Step 6: Build program. */
   if (CL_SUCCESS != clBuildProgram(program, 1, devices, nullptr, nullptr, nullptr)) {
-
     size_t blsize;
     
     CHECK(CL_SUCCESS == clGetProgramBuildInfo(program, devices[0], 
@@ -213,32 +244,28 @@ int main(int argc, char* argv[])  {
     printf("Failed to compile:\n %s", build_log);
     exit(-1);
   }
-  // double gpu_compile_ms = gpu_compile.MS();
 
   // Training instance.
   vector<cl_float> input_image(NUM_NODES, 0.0f);
   LoadImage("tom7.png", &input_image);
   vector<cl_float> expected_image = input_image;
   LoadImage("tom7-edges.png", &expected_image);
-  // (expected image is currently unused.)
-  // Actual result.
-  vector<cl_float> output_image(NUM_NODES, 0.0f);
 
+  /*
   vector<cl_float> eval_input(NUM_NODES, 0.0f);
   LoadImage("sick.png", &eval_input);
   vector<cl_float> eval_output(NUM_NODES, 0.0f);
+  */
 
   vector<uint8> seeds;
   seeds.reserve(NUM_SEEDS);
   for (int i = 0; i < NUM_SEEDS; i++) seeds.push_back(rc.Byte());
 
-  cl_mem input_image_buf = BufferFromVector(context, true, &input_image);
-  cl_mem expected_image_buf = BufferFromVector(context, true, &expected_image);
-  cl_mem output_image_buf = BufferFromVector(context, false, &output_image);
-  cl_mem seed_buf = BufferFromVector(context, false, &seeds);
-
-  cl_mem eval_input_buf = BufferFromVector(context, true, &eval_input);
-  cl_mem eval_output_buf = BufferFromVector(context, false, &eval_output);
+  cl_mem input_image_buf = MoveMemoryToGPU(context, command_queue, true, &input_image);
+  cl_mem expected_image_buf = MoveMemoryToGPU(context, command_queue, true, &expected_image);
+  cl_mem output_image_buf = CreateUninitializedGPUMemory<cl_float>(context, NUM_NODES);
+  // This is read and written by GPU, but the host never needs to see it again.
+  cl_mem seed_buf = MoveMemoryToGPU(context, command_queue, false, &seeds);
 
   auto FloatMB = [](int n) {
     return StringPrintf("%.1f", (n * 4) / (1024.0 * 1024.0));
@@ -249,12 +276,20 @@ int main(int argc, char* argv[])  {
 	    << " (" << FloatMB(NUM_FEATURES) << "mb)";
   vector<cl_float> features(NUM_FEATURES, 0.0f);
 
-  cl_mem fv_buf = BufferFromVector(context, false, &features);
-
   // Randomize feature buffer to start.
   for (int i = 0; i < NUM_FEATURES; i++) {
     features[i] = RandFloat();
   }
+
+  cl_mem fv_buf = MoveMemoryToGPU(context, command_queue, false, &features);
+
+  printf("Setup time before 'finish' call: %.0f\n", setup_timer.MS());
+  clFinish(command_queue);
+  printf("Setup time after 'finish' call: %.0f\n", setup_timer.MS());  
+  // Now can dispose of big temp buffers:
+  features.clear();
+  features.shrink_to_fit();
+
 
   /* Step 8: Create kernel object */
   printf("[GPU] Running on GPU.\n");
@@ -264,9 +299,7 @@ int main(int argc, char* argv[])  {
   double create_kernel_ms = create_kernel.MS();
   Timer gputimer;  
 
-  // uint64 random_seed = Rand64();
-
-  /* Step 9: Sets Kernel arguments. */
+  // Set kernel arguments.
   Timer set_args;
   CHECK_SUCCESS(clSetKernelArg(train_kernel, 0, sizeof(cl_mem), (void *)&seed_buf));
   CHECK_SUCCESS(clSetKernelArg(train_kernel, 1, sizeof(cl_mem), (void *)&input_image_buf));
@@ -274,16 +307,17 @@ int main(int argc, char* argv[])  {
   CHECK_SUCCESS(clSetKernelArg(train_kernel, 3, sizeof(cl_mem), (void *)&output_image_buf));
   CHECK_SUCCESS(clSetKernelArg(train_kernel, 4, sizeof(cl_mem), (void *)&expected_image_buf));
 
-  CHECK_SUCCESS(clSetKernelArg(eval_kernel,  0, sizeof(cl_mem), (void *)&eval_input_buf));
+  // XXX these are bogus now. fix...
+  CHECK_SUCCESS(clSetKernelArg(eval_kernel,  0, sizeof(cl_mem), (void *)&input_image_buf));
   CHECK_SUCCESS(clSetKernelArg(eval_kernel,  1, sizeof(cl_mem), (void *)&fv_buf));
-  CHECK_SUCCESS(clSetKernelArg(eval_kernel,  2, sizeof(cl_mem), (void *)&eval_output_buf));
+  CHECK_SUCCESS(clSetKernelArg(eval_kernel,  2, sizeof(cl_mem), (void *)&output_image_buf));
   double set_args_ms = set_args.MS();
 
 
   double setup_ms = setup_timer.MS();
   printf("Time creating kernel: %.4fs\n"
 	 "Time setting args: %.4fs\n"
-	 "Time setting up: %.4fs\n",
+	 "Total time setting up: %.4fs\n",
 	 create_kernel_ms / 1000.0,
 	 set_args_ms / 1000.0,
 	 setup_ms / 1000.0);
@@ -334,23 +368,12 @@ int main(int argc, char* argv[])  {
       // pass CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE when we created the command
       // queue. But for best performance we should probably do that.
       // www.khronos.org/registry/cl/sdk/1.0/docs/man/xhtml/clCreateCommandQueue.html
-      cl_int errcode;
-      clEnqueueMapBuffer(command_queue, output_image_buf,
-			 // Blocking.
-			 CL_TRUE,
-			 CL_MAP_READ | CL_MAP_WRITE,
-			 // Offset, size.
-			 0, output_image.size(),
-			 // wait list.
-			 0, nullptr,
-			 // event
-			 nullptr,
-			 &errcode);
-      CHECK(CL_SUCCESS == errcode);
+      vector<float> img = CopyBufferFromGPU<float>(command_queue, output_image_buf, NUM_NODES);
       string filename = StringPrintf("out-tom7-%d.png", iter);
-      SaveImage(filename, output_image);
+      SaveImage(filename, img);
       printf("\nWrote %s.\n", filename.c_str());
 
+      #if 0
       size_t global_work_offset[] = { 0 };
       size_t global_work_size[] = { NUM_NODES };
       CHECK(CL_SUCCESS == clEnqueueNDRangeKernel(command_queue, eval_kernel,
@@ -375,6 +398,7 @@ int main(int argc, char* argv[])  {
       string evalfilename = StringPrintf("out-eval-%d.png", iter);
       SaveImage(evalfilename, eval_output);
       printf("\nWrote %s too.\n", evalfilename.c_str());
+      #endif
     }
   }
   printf("\n");
@@ -402,8 +426,8 @@ int main(int argc, char* argv[])  {
   CHECK_SUCCESS(clReleaseMemObject(expected_image_buf));
   CHECK_SUCCESS(clReleaseMemObject(output_image_buf));
   CHECK_SUCCESS(clReleaseMemObject(fv_buf));
-  CHECK_SUCCESS(clReleaseMemObject(eval_output_buf));
-  CHECK_SUCCESS(clReleaseMemObject(eval_input_buf));
+  // CHECK_SUCCESS(clReleaseMemObject(eval_output_buf));
+  // CHECK_SUCCESS(clReleaseMemObject(eval_input_buf));
   CHECK_SUCCESS(clReleaseCommandQueue(command_queue));
   CHECK_SUCCESS(clReleaseContext(context));
 
