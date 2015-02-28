@@ -1,5 +1,5 @@
 
-default: redi.exe fetcher.exe
+default: redi.exe fetcher.exe resample.exe
 
 all: redi.exe fetcher.exe
 
@@ -24,12 +24,15 @@ UTILOBJECTS=../cc-lib/util.o ../cc-lib/arcfour.o ../cc-lib/base/stringprintf.o .
 
 CPPFLAGS= -DPSS_STYLE=1 -DDUMMY_UI -DHAVE_ASPRINTF -Wno-write-strings -m64 $(OPT) -D__MINGW32__ -DHAVE_ALLOCA -DNOWINSTUFF $(INCLUDES) $(PROFILE) $(FLTO) $(CLINCLUDES) -I ../cc-lib/ --std=c++0x
 
-OBJECTS=redi.o ${UTILOBJECTS}
+OBJECTS=${UTILOBJECTS}
 
 # without static, can't find lz or lstdcxx maybe?
 LFLAGS=  -m64 -Wl,--subsystem,console $(CLLIBS) -lz -lOpenCL $(OPT) $(FLTO) $(PROFILE) -static
 
 redi.exe : $(OBJECTS) redi.o
+	$(CXX) $^ -o $@ $(LFLAGS)
+
+resample.exe : $(OBJECTS) resample.o
 	$(CXX) $^ -o $@ $(LFLAGS)
 
 fetcher.exe : fetcher.cm fetcher.sml
