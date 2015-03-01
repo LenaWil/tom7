@@ -30,6 +30,8 @@
 #  include <sys/types.h>
    /* isalnum */
 #  include <ctype.h>
+   /* directory stuff */
+#  include <dirent.h>
 #endif
 
 
@@ -43,6 +45,21 @@ string dtos(double d) {
   char s[64];
   sprintf(s, "%.2f", d);
   return (string)s;
+}
+
+// TODO: I never tested this on posix.
+vector<string> Util::ListFiles(const string &s) {
+  vector<string> v;
+  DIR *dir = opendir(s.c_str());
+  if (dir == nullptr) return {};
+  while (struct dirent *res = readdir(dir)) {
+    string s = res->d_name;
+    if (s != "." && s != "..") {
+      v.push_back(std::move(s));
+    }
+  }
+  closedir(dir);
+  return v;
 }
 
 namespace {
