@@ -2,6 +2,8 @@
 // I split this into a customary .cc file and header, to avoid
 // preprocessor shenanigans.
 
+#include "stb_truetype.h"
+
 #define STB_TRUETYPE_IMPLEMENTATION
 
 //////////////////////////////////////////////////////////////////////////////
