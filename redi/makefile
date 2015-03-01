@@ -20,9 +20,13 @@ AMDSDK="/c/Program Files (x86)/AMD APP SDK/2.9"
 CLINCLUDES=-I ${AMDSDK}/include
 CLLIBS=-L ${AMDSDK}/lib/${AMD_ARCH}
 
-UTILOBJECTS=../cc-lib/util.o ../cc-lib/arcfour.o ../cc-lib/base/stringprintf.o ../cc-lib/base/logging.o ../cc-lib/stb_image.o ../cc-lib/stb_image_write.o
+UTILOBJECTS=../cc-lib/util.o ../cc-lib/arcfour.o ../cc-lib/base/stringprintf.o ../cc-lib/base/logging.o ../cc-lib/stb_image.o ../cc-lib/stb_image_write.o ../cc-lib/stb_truetype.o
 
-CPPFLAGS= -DPSS_STYLE=1 -DDUMMY_UI -DHAVE_ASPRINTF -Wno-write-strings -m64 $(OPT) -D__MINGW32__ -DHAVE_ALLOCA -DNOWINSTUFF $(INCLUDES) $(PROFILE) $(FLTO) $(CLINCLUDES) -I ../cc-lib/ --std=c++0x
+CPPFLAGS= -DPSS_STYLE=1 -DDUMMY_UI -DHAVE_ASPRINTF -Wno-write-strings -m64 $(OPT) -D__MINGW32__ -DHAVE_ALLOCA -DNOWINSTUFF $(INCLUDES) $(PROFILE) $(FLTO) $(CLINCLUDES) -I ../cc-lib/ --std=c++11
+
+%.o : %.cc clutil.h threadutil.h makefile
+	@$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
+	@echo -n "."
 
 OBJECTS=${UTILOBJECTS}
 

@@ -4,9 +4,10 @@
 // the outputs ignored.
 #define NPP 3
 
-// Size of of image in pixels (width/height). Note that there are
-// three nodes per pixel (RGB).
-#define SIZE 256
+// Size of one layer in pixels. Note that there are three nodes per pixel (RGB).
+// This is probably too big?
+#define WIDTH 1024
+#define HEIGHT 1024
 
 // How many pixels in the x and y direction do we sample from the previous
 // layer? (Uses modular arithmetic to keep the program simplest.) This is
@@ -17,7 +18,7 @@
 // of those nodes is part of the model but not updated.
 #define RANDOM 0
 
-#define NUM_NODES (SIZE * SIZE * NPP)
+#define NUM_NODES (WIDTH * HEIGHT * NPP)
 // Must divide num_nodes.
 #define CHUNK_SIZE (NUM_NODES >> 4)
 
@@ -34,6 +35,6 @@
 
 #define NUM_FEATURES (NUM_NODES * FEATURES_PER_NODE)
 
-#define NUM_SEEDS (SIZE * SIZE)
+#define NUM_SEEDS (WIDTH * HEIGHT)
 
 #define IMAGES_PER_BATCH 5
