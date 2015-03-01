@@ -1,5 +1,3 @@
-// XXX: Left off cleaning corpus at "dog"
-
 #include <CL/cl.h>
 #include <string.h>
 #include <stdio.h>
@@ -23,81 +21,12 @@
 #include "stb_image.h"
 #include "stb_image_write.h"
 
+#include "clutil.h"
+#include "threadutil.h"
+
 #include "constants.h"
 
-using namespace std;
 
-// Little byte machine.
-using uint8 = uint8_t;
-// Better compatibility with CL.
-using uchar = uint8_t;
-
-using uint64 = uint64_t;
-
-#define CHECK_SUCCESS(e) \
-  do { int ret = (e); if (ret != CL_SUCCESS) { \
-  fprintf(stderr, "Not successful with code %d.\n", ret); \
-  abort(); } } while (0)
-
-// Shares with the host memory and we don't control when it gets copied. This is
-// quite inefficient.
-template<class T>
-static cl_mem BufferFromVector(cl_context context, bool readonly, vector<T> *v) {
-  return clCreateBuffer(context, 
-			(readonly ? CL_MEM_READ_ONLY : 0) | 
-			CL_MEM_USE_HOST_PTR,
-			sizeof (T) * v->size(),
-			(void *) v->data(),
-			nullptr);
-}
-
-// Creates a new buffer on the GPU and copies the memory there. They do not alias.
-// Note that the command queue is not flushed, so you should not touch the source
-// memory until it is.
-template<class T>
-static cl_mem MoveMemoryToGPU(cl_context context, cl_command_queue cmd,
-			      bool readonly, vector<T> *v) {
-  cl_mem buf = clCreateBuffer(context, 
-			      (readonly ? CL_MEM_READ_ONLY : 0),
-			      sizeof (T) * v->size(),
-			      nullptr,
-			      nullptr);
-  clEnqueueWriteBuffer(cmd, buf, CL_TRUE, 0, 
-		       sizeof (T) * v->size(), v->data(), 0, nullptr, nullptr);
-  return buf;
-}
-
-// Same, but with a constant vector. Implies read-only.
-template<class T>
-static cl_mem MoveMemoryToGPUConst(cl_context context, cl_command_queue cmd,
-				   const vector<T> &v) {
-  cl_mem buf = clCreateBuffer(context, 
-			      CL_MEM_READ_ONLY,
-			      sizeof (T) * v.size(),
-			      nullptr,
-			      nullptr);
-  clEnqueueWriteBuffer(cmd, buf, CL_TRUE, 0, 
-		       sizeof (T) * v.size(), v.data(), 0, nullptr, nullptr);
-  return buf;
-}
-
-template<class T>
-static cl_mem CreateUninitializedGPUMemory(cl_context context, int n) {
-  return clCreateBuffer(context, 0, sizeof (T) * n, nullptr, nullptr);
-}
-
-template<class T>
-static vector<T> CopyBufferFromGPU(cl_command_queue cmd, cl_mem buf, int n) {
-  vector<T> vec;
-  vec.resize(n);
-  CHECK_SUCCESS(clEnqueueReadBuffer(cmd, buf, CL_TRUE, 0, sizeof (T) * n,
-				    vec.data(),
-				    // No wait-list or event.
-				    0, nullptr,
-				    nullptr));
-  clFinish(cmd);
-  return vec;
-}
 
 // Get the 1024x1024 square out of the center of the image.
 bool LoadImage1024(const string &filename, vector<uint8> *out) {
@@ -147,50 +76,6 @@ static void SaveImage(const string &filename, const vector<uint8> &img, int size
   stbi_write_png(filename.c_str(), size, size, 4, img.data(), 4 * size);
 }
 
-// Run the function f on each element of vec in parallel. The caller must of course
-// synchronize any accesses to shared data structures. Return value of function is
-// ignored.
-template<class T>
-void ParallelApp(const vector<T> &vec, 
-		 std::function<void(const T&)> &f,
-		 int max_concurrency) {
-  std::mutex index_m;
-  int next_index = 0;
-  
-  // Thread applies f repeatedly until there are no more indices.
-  // PERF: Can just start each thread knowing its start index, and avoid
-  // the synchronization overhead at startup.
-  auto th = [&index_m, &next_index, &vec, &f]() {
-    for (;;) {
-      index_m.lock();
-      if (next_index == vec.size()) {
-	// All done. Don't increment counter so that other threads can
-	// notice this too.
-	index_m.unlock();
-	return;
-      }
-      int my_index = next_index++;
-      index_m.unlock();
-
-      // Do work, not holding mutex.
-      (void)f(vec[my_index]);
-    }
-  };
-
-  vector<std::thread> threads;
-  threads.reserve(max_concurrency);
-  for (int i = 0; i < max_concurrency; i++) {
-    threads.emplace_back(th);
-  }
-  // Now just wait for them all to finish.
-  for (std::thread &t : threads) t.join();
-}
-
-struct MutexLock {
-  explicit MutexLock(std::mutex *m) : m(m) { m->lock(); }
-  ~MutexLock() { m->unlock(); }
-  std::mutex *m;
-};
 
 struct ResamplerCL {
   ResamplerCL(cl_device_id *devices,
