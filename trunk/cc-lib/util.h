@@ -9,6 +9,8 @@
 #include <string>
 #include <vector>
 
+#include <dirent.h>
+
 using namespace std;
 
 #ifdef WIN32
@@ -42,6 +44,8 @@ struct Util {
 
   static vector<unsigned char> ReadFileBytes(const string &f);
   static bool WriteFileBytes(const string &f, const vector<unsigned char> &b);
+
+  static vector<string> ListFiles(const string &dir);
 
   // XXX terrible names
   static int shout(int, string, unsigned int &);
