@@ -143,4 +143,15 @@ static vector<T> CopyBufferFromGPU(cl_command_queue cmd, cl_mem buf, int n) {
   return vec;
 }
 
+// Assumes the vector already has the correct size.
+template<class T>
+static void CopyBufferFromGPUTo(cl_command_queue cmd, cl_mem buf, vector<T> *vec) {
+  CHECK_SUCCESS(clEnqueueReadBuffer(cmd, buf, CL_TRUE, 0, sizeof (T) * vec->size(),
+				    vec->data(),
+				    // No wait-list or event.
+				    0, nullptr,
+				    nullptr));
+  clFinish(cmd);
+}
+
 #endif

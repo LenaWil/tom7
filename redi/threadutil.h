@@ -11,6 +11,7 @@
 #undef ARRAYSIZE
 
 // Do progress meter.
+// It should be thread safe and have a way for a thread to register a sub-meter.
 
 // TODO: Make these functions take a "callable" template param F, rather
 // than requiring std::function.
