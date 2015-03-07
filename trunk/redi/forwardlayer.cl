@@ -32,5 +32,5 @@ __kernel void ForwardLayer(// Size NUM_NODES, if each layer is the same
     const float v = previous_layer_outputs[my_indices[i]];
     potential += w * v;
   }
-  output_values[node_id] = potential;
+  output_values[node_id] = 1.0 / (1.0 + exp(-potential));
 }
