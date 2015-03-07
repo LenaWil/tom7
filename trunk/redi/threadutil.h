@@ -18,10 +18,15 @@
 // Run the function f on each element of vec in parallel, with its
 // index. The caller must of course synchronize any accesses to shared
 // data structures. Return value of function is ignored.
+//
+// TODO: Implement this in tems of ParallelComp
 template<class T>
 void ParallelAppi(const vector<T> &vec, 
 		  std::function<void(int i, const T&)> &f,
 		  int max_concurrency) {
+  // TODO: XXX This cast may really be unsafe, since these vectors
+  // could exceed 32 bit ints in practice.
+  max_concurrency = min((int)vec.size(), max_concurrency);
   std::mutex index_m;
   int next_index = 0;
   
@@ -62,6 +67,46 @@ void ParallelApp(const vector<T> &vec,
   std::function<void(int, const T &)> ff =
     [&f](int i_unused, const T &arg) { return f(arg); };
   ParallelAppi(vec, ff, max_concurrency);
+}
+
+// Parallel comprehension. Runs f on 0...(num-1).
+// Actually is comprehension the right name for this given that it
+// doesn't return anything? XXX
+template<class F>
+void ParallelComp(int num,
+		  const F &f,
+		  int max_concurrency) {
+  max_concurrency = min(num, max_concurrency);
+  std::mutex index_m;
+  int next_index = 0;
+
+  // Thread applies f repeatedly until there are no more indices.
+  // PERF: Can just start each thread knowing its start index, and avoid
+  // the synchronization overhead at startup.
+  auto th = [&index_m, &next_index, num, &f]() {
+    for (;;) {
+      index_m.lock();
+      if (next_index == num) {
+	// All done. Don't increment counter so that other threads can
+	// notice this too.
+	index_m.unlock();
+	return;
+      }
+      int my_index = next_index++;
+      index_m.unlock();
+
+      // Do work, not holding mutex.
+      (void)f(my_index);
+    }
+  };
+
+  vector<std::thread> threads;
+  threads.reserve(max_concurrency);
+  for (int i = 0; i < max_concurrency; i++) {
+    threads.emplace_back(th);
+  }
+  // Now just wait for them all to finish.
+  for (std::thread &t : threads) t.join();
 }
 
 // F needs to be callable (std::function or lambda) and thread safe. It returns R,

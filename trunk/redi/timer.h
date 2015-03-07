@@ -11,12 +11,14 @@ struct Timer {
     QueryPerformanceCounter(&starttime);
   }
 
-  void Stop() {
-    QueryPerformanceCounter(&stoptime);
-  }
+  // This looks buggy (MS also "stops"); don't call it!
+  // void Stop() {
+  // QueryPerformanceCounter(&stoptime);
+  // }
 
   double MS() {
-    Stop();
+    QueryPerformanceCounter(&stoptime);
+    // Stop();
     double elapsed_ms = (stoptime.QuadPart - starttime.QuadPart) *
       1000.0 / freq.QuadPart;
     return elapsed_ms;

@@ -45,6 +45,30 @@ struct CL {
     queue = clCreateCommandQueue(context, devices[0], 0, nullptr);
   }
 
+  pair<cl_program, cl_kernel> BuildOneKernel(const string &kernel_src,
+					     const string &function_name) {
+    Timer gpu_compile;
+    const char *sources[] = { kernel_src.c_str() };
+    size_t source_size[] = { kernel_src.size() };
+    cl_program program = clCreateProgramWithSource(context, 1, sources, source_size, nullptr);
+    if (CL_SUCCESS != clBuildProgram(program, 1, devices, nullptr, nullptr, nullptr)) {
+      size_t blsize;
+
+      CHECK(CL_SUCCESS == clGetProgramBuildInfo(program, devices[0], 
+						CL_PROGRAM_BUILD_LOG, 0, nullptr, &blsize));
+      char *build_log = (char *)malloc(blsize + 1);
+      CHECK(CL_SUCCESS == clGetProgramBuildInfo(program, devices[0], 
+						CL_PROGRAM_BUILD_LOG, blsize, build_log, nullptr));
+      build_log[blsize] = 0;
+      printf("Failed to compile:\n %s", build_log);
+      exit(-1);
+    }
+
+    cl_kernel kernel = clCreateKernel(program, function_name.c_str(), nullptr);
+    fprintf(stderr, "Compiled %s in %.1fms.\n", function_name.c_str(), gpu_compile.MS());
+    return make_pair(program, kernel);
+  }
+
   ~CL() {
     printf("Destroying CL.\n");
     CHECK_SUCCESS(clReleaseCommandQueue(queue));
