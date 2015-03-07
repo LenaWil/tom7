@@ -1,5 +1,3 @@
-
-
 // Nodes per pixel. Beyond the R, G, B values, the inputs will be zero and
 // the outputs ignored.
 #define NPP 3
@@ -8,32 +6,18 @@
 // three nodes per pixel (RGB).
 #define SIZE 256
 
-// How many pixels in the x and y direction do we sample from the previous
-// layer? (Uses modular arithmetic to keep the program simplest.) This is
-// NEIGHBORHOOD^2 * NPP actual parameters.
-#define NEIGHBORHOOD 5
-
-// Now many random nodes (not pixels) do we also sample? Currently the identity
-// of those nodes is part of the model but not updated.
-#define RANDOM 0
+// Target 1 gigabyte layer sizes.
+// 2^30 = 1GB        = 1073741824
+//   / 4-byte floats = 268435456
+//   / 256 / 256     = 4096
+//   / 3             = 1365.3
+//
+// (We also need the same for indices unless they are computed
+// as a function of the node's index.)
+//
+// This size could later be layer-specific, btw.
+//
+// Does NOT include bias term.
+#define INDICES_PER_NODE 1024
 
 #define NUM_NODES (SIZE * SIZE * NPP)
-// Must divide num_nodes.
-#define CHUNK_SIZE (NUM_NODES >> 4)
-
-// Transfer function is: Multiply each incoming edge by a weight. Add them.
-// Apply two-parameter sigmoid to result. All features are stored as floats in [0, 1];
-// weights are treated as (x * 2 - 1) so that the effective range is [-1, 1].
-// and sigmoid params are TBD.
-#define FEATURES_PER_INPUT_EDGE 1
-#define ADDITIONAL_FEATURES_PER_NODE 2
-
-#define INPUTS_SUMMED (NEIGHBORHOOD * NEIGHBORHOOD * NPP + RANDOM)
-
-#define FEATURES_PER_NODE (ADDITIONAL_FEATURES_PER_NODE + (INPUTS_SUMMED * FEATURES_PER_INPUT_EDGE))
-
-#define NUM_FEATURES (NUM_NODES * FEATURES_PER_NODE)
-
-#define NUM_SEEDS (SIZE * SIZE)
-
-#define IMAGES_PER_BATCH 5
