@@ -1,3 +1,36 @@
+
+
+In total (which was 152.4s),
+spent 4.4ms in setup (0.0%),
+41.6ms in stimulation init (0.0%),
+2869.9ms in forward layer (1.9%),
+649.1ms in fc init (0.4%),
+2864.1ms in forward layer kernel (at most; 1.9%).
+148774.7ms in backwards pass (97.6%),
+67.0ms in error for output layer (0.0%),
+Destroying CL.
+OK.
+
+real    3m41.715s
+
+
+Then parallelized:
+
+In total (which was 32.5s),
+spent 4.1ms in setup (0.0%),
+40.9ms in stimulation init (0.1%),
+2873.0ms in forward layer (8.9%),
+667.7ms in fc init (2.1%),
+2866.9ms in forward layer kernel (at most; 8.8%).
+28831.3ms in backwards pass (88.8%),
+22.7ms in error for output layer (0.1%),
+Destroying CL.
+OK.
+
+1m42
+
+==================================================
+
 4.7s setup
 54810ms iteration time!
 

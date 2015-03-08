@@ -100,7 +100,6 @@ struct ImageA {
 
 // Pretty much only useful for this application since it loads the whole font each time.
 ImageA *FontChar(const string &filename, char c, int size) {
-  printf("Fopen...\n");
   fflush(stdout);
 
   FILE *file = fopen(filename.c_str(), "rb");
@@ -108,12 +107,10 @@ ImageA *FontChar(const string &filename, char c, int size) {
     fprintf(stderr, "Failed to fopen %s\n", filename.c_str());
     return nullptr;
   }
-  printf("fopen ok\n");
   // XXX check read size
   uint8 *ttf_buffer = (uint8*)malloc(1<<25);
   fread(ttf_buffer, 1, 1 << 25, file);
   fclose(file);
-  printf("Fread ok.\n");
 
   stbtt_fontinfo font;
   stbtt_InitFont(&font, ttf_buffer, stbtt_GetFontOffsetForIndex(ttf_buffer, 0));
@@ -175,18 +172,29 @@ struct Network {
     num_layers(num_layers),
     indices(num_layers, vector<uint32>(INDICES_PER_NODE * NUM_NODES, 0)),
     weights(num_layers, vector<float>(INDICES_PER_NODE * NUM_NODES, 0.0f)),
-    biases(num_layers, vector<float>(NUM_NODES, 0.0f)) {
-  }
+    biases(num_layers, vector<float>(NUM_NODES, 0.0f)),
+    inverted_indices_span(num_layers,
+			  vector<pair<uint32, uint32>>(NUM_NODES, make_pair(0, 0))),
+    inverted_indices(num_layers, vector<uint32>(INDICES_PER_NODE * NUM_NODES, 0)) {}
   int64 Bytes() const {
-    return (INDICES_PER_NODE * NUM_NODES * sizeof (uint32) * num_layers) +
+    return 
+      // indices
+      (INDICES_PER_NODE * NUM_NODES * sizeof (uint32) * num_layers) +
+      // weights
       (INDICES_PER_NODE * NUM_NODES * sizeof (float) * num_layers) +
-      (NUM_NODES * sizeof (float) * num_layers);
+      // biases
+      (NUM_NODES * sizeof (float) * num_layers) +
+      // inverted_indices_span
+      (NUM_NODES * sizeof (uint32) * 2 * num_layers) +
+      // inverted_indices
+      (INDICES_PER_NODE * NUM_NODES * sizeof (uint32) * num_layers);
   }
 
   // The number of "real" layers, that is, not counting the input.
   const int num_layers;
 
-  // For each of these fields, the outer vector has size num_layers.
+  // For all of the fields in this struct, the outer vector has size num_layers.
+  // (It might even be a good idea to make this into a Layer struct.)
   // INDICES_PER_NODE * NUM_NODES
   vector<vector<uint32>> indices;
   // INDICES_PER_NODE * NUM_NODES
@@ -194,8 +202,106 @@ struct Network {
   // NUM_NODES
   vector<vector<float>> biases;
 
-  // TODO: Also need inverted indices.
+  // For a given node, where do I output to in the next layer?
+  // Note that nodes don't all have the same number of outputs.
+  // This is a packed structure to facilitate GPU operations.
+  //
+  // For a given node, where do my output indices start in
+  // the inverted_indices array, and how many are there?
+  // NUM_NODES
+  vector<vector<pair<uint32, uint32>>> inverted_indices_span;
+  // Packed array of indices. Since every node on the next layer
+  // has exactly INDICES_PER_NODE inputs, this will be of
+  // size INDICES_PER_NODE * NUM_NODES. However, any given node
+  // on this layer may be used more or fewer times.
+  //
+  // There are num_layers of these, but be careful about the offset.
+  // The 0th inverted index is about the gap between the input layer
+  // (otherwise not represented in the network) and the first hidden
+  // layer. The last one is about the last gap, not the output layer,
+  // since the output layer is not indexed by anything.
+  //
+  // The value here gives the index into the indices/weights vectors
+  // for the next layer. If for each index i within the span (defined
+  // by inverted_indices_span[layer][z]) for node id z
+  // let gidx = inverted_indices[layer][i]
+  // and then indices[layer][gidx] == z. (The same for the weight
+  // vector gives us the weight, which is the point, and dividing
+  // by INDICES_PER_NODE gives us the output node.) As such, this is
+  // a permutation of 0..(NUM_NODES * INDICES_PER_NODE - 1).
+  vector<vector<uint32>> inverted_indices;
 };
+
+static void CheckInvertedIndices(const Network &net) {
+  for (int layer = 0; layer < net.num_layers; layer++) {
+    const vector<uint32> &indices = net.indices[layer];
+    const vector<uint32> &inv = net.inverted_indices[layer];
+    const vector<pair<uint32, uint32>> &span = net.inverted_indices_span[layer];
+    CHECK_EQ(NUM_NODES * INDICES_PER_NODE, indices.size());
+    CHECK_EQ(NUM_NODES, span.size());
+    CHECK_EQ(NUM_NODES * INDICES_PER_NODE, inv.size());
+    // z is a node id from the src layer.
+    for (int z = 0; z < span.size(); z++) {
+      // i is the index within the compacted inverted index.
+      for (int i = span[z].first; i < span[z].first + span[z].second; i++) {
+	// Global index into 'indices'.
+	const int gidx = inv[i];
+	// This should map back to our current node id.
+	CHECK_EQ(indices[gidx], z);
+      }
+    }
+  }
+}
+
+static void ComputeInvertedIndices(Network *net) {
+  // Computes the values for inverted_indices[layer] and
+  // inverted_indices_span[layer]. Note that although we use the
+  // [layer] offset throughout, both are really talking about the gap
+  // between layers, with the 0th element's index being the way the
+  // first hidden layer uses the inputs, and the 0th element's invert
+  // index being about the way the inputs map to the first hidden
+  // layer.
+  auto OneLayer = [net](int layer) {
+    CHECK_LT(layer, net->inverted_indices.size());
+    CHECK_LT(layer, net->inverted_indices_span.size());
+    vector<pair<uint32, uint32>> *span = &net->inverted_indices_span[layer];
+    CHECK_EQ(NUM_NODES, span->size());
+    vector<uint32> *inverted = &net->inverted_indices[layer];
+    CHECK_EQ(INDICES_PER_NODE * NUM_NODES, inverted->size());
+    
+    // Indexed by node id in the source layer.
+    vector<vector<uint32>> occurrences;
+    occurrences.resize(NUM_NODES);
+    for (int dest_indices_idx = 0;
+	 dest_indices_idx < NUM_NODES * INDICES_PER_NODE;
+	 dest_indices_idx++) {
+      // This index gets put into exactly one place in occurrences.
+      const int src_nodes_idx = net->indices[layer][dest_indices_idx];
+      occurrences[src_nodes_idx].push_back(dest_indices_idx);
+    }
+
+    // Sort each subvector, for locality of access.
+    for (vector<uint32> &v : occurrences) {
+      std::sort(v.begin(), v.end());
+    }
+
+    // Now flatten.
+    int flat_size = 0;
+    for (int src_nodes_idx = 0;
+	 src_nodes_idx < NUM_NODES;
+	 src_nodes_idx++) {
+      (*span)[src_nodes_idx] = make_pair(flat_size, occurrences[src_nodes_idx].size());
+      
+      for (int val : occurrences[src_nodes_idx]) {
+	(*inverted)[flat_size] = val;
+	flat_size++;
+      }
+    }
+    CHECK_EQ(NUM_NODES * INDICES_PER_NODE, flat_size);
+  };
+
+  ParallelComp(net->num_layers, OneLayer, 12);
+}
 
 struct Stimulation {
   // PERF is this really the fastest way? It seems to involve a bunch
@@ -219,9 +325,106 @@ struct Stimulation {
 };
 
 struct Errors {
+  Errors(int num_layers) : 
+    num_layers(num_layers),
+    error(num_layers, vector<float>(NUM_NODES, 0.0f)) {
+  }
   const int num_layers;
-  // XXX HERE
+  int64 Bytes() const {
+    return num_layers * NUM_NODES * sizeof (float);
+  }
+
+  // These are the delta terms in Mitchell. We have num_layers of them, where
+  // each layer is a real layer (i.e., not counting the input; it does not have delta
+  // terms) and error[num_layers - 1] is the error for the output.
+  vector<vector<float>> error;
 };
+
+// Set the error values; this is almost just a memcpy so don't bother doing it
+// on GPU.
+static void SetOutputError(const Stimulation &stim, const vector<float> &expected, Errors *err) {
+  // One more value vector than layers, since we have values for the input "layer" too.
+  const int num_layers = stim.num_layers;
+  CHECK(stim.values.size() == num_layers + 1);
+  const vector<float> &output = stim.values[num_layers];
+
+  CHECK_EQ(NUM_NODES, expected.size());
+  CHECK_EQ(NUM_NODES, output.size()); 
+  vector<float> *output_error = &err->error[num_layers - 1];
+  CHECK_EQ(NUM_NODES, output_error->size());
+  for (int k = 0; k < NUM_NODES; k++) {
+    float out_k = output[k];
+    (*output_error)[k] = out_k * (1.0 - out_k) * (expected[k] - out_k);
+  }
+}
+
+// Propagate the error backwards from the dest_layer to the src_layer. (Note that
+// the "destination" of the error terms is the source; here I'm keeping the same
+// terminology about "source" and "destination" based on how data flows in the
+// normal forward direction.)
+//
+// PERF Could/should be a kernel.
+static void BackwardsError(const Network &net, const Stimulation &stim,
+			   int dest_layer, Errors *err) {
+  // If we have
+  //
+  //   inputs     h        h'    outputs
+  //     o ------ o ------ o ------ o 
+  //     o ------ o ------ o ------ o
+  //     o ------ o ------ o ------ o
+  //         layer 0   layer 1   layer 2
+  //       gap 0    gap 1     gap 2
+  //   vals 0   vals 1   vals 2    vals 3
+  //
+  // we are propagating the error from layer n to layer n-1, which is the gap n.
+  //
+  // Note that we never propagate error to the input, although that would maybe be
+  // funny:
+  CHECK_GT(dest_layer, 0);
+  const int gap = dest_layer;
+
+  const int src_layer = dest_layer - 1;
+  CHECK_GE(src_layer, 0);
+
+  // Loop over every node in the previous layer, index h. Note that stim has an
+  // extra data layer in it because it does represent the values of the input
+  // layer, thus the +1 here.
+  const vector<float> &src_output = stim.values[src_layer + 1];
+
+  // The inverted index is really in the gap.
+  const vector<pair<uint32, uint32>> &spans = net.inverted_indices_span[gap];
+  const vector<uint32> &inverted_index = net.inverted_indices[gap];
+  const vector<uint32> &dest_indices = net.indices[dest_layer];
+  const vector<float> &dest_weights = net.weights[dest_layer];
+
+  const vector<float> &dest_error = err->error[dest_layer];
+  vector<float> *src_error = &err->error[src_layer];
+  for (int h = 0; h < NUM_NODES; h++) {
+    float out_h = src_output[h];
+    // Unpack inverted index for this node, so that we can loop over all of
+    // the places its output is sent.
+    const pair<uint32, uint32> &span = spans[h];
+    
+    // The error for a hidden node is the sum of all the errors for
+    // the next layer, but modulated by the weight of the edge.
+    double weighted_error_sum = 0.0;
+    for (int i = span.first; i < span.first + span.second; i++) {
+      int gidx = inverted_index[i];
+      // gidx is an index into the index and weights vectors on the
+      // destination layer.
+      CHECK_EQ(dest_indices[gidx], h);
+      // Compute from the index which destination node it belongs to.
+      int dest_node_idx = gidx / INDICES_PER_NODE;
+      weighted_error_sum += dest_weights[gidx] * dest_error[dest_node_idx];
+    }
+    
+    (*src_error)[h] = out_h * (1.0 - out_h) * weighted_error_sum;
+
+    // (Nothing to do about bias terms here; they are like the input layer
+    // in the sense that we don't propagate error to them. But we will need
+    // to update the weights.)
+  }
+}
 
 struct ForwardLayerCL {
   explicit ForwardLayerCL(CL *cl) : cl(cl) {
@@ -352,8 +555,12 @@ static void MakeIndices(ArcFour *rc, Network *net) {
   static constexpr int NEIGHBORHOOD = 5;
 
   // For best results, use false, true:
-  static constexpr bool SYMMETRIC_GAUSSIAN = false;
-  static constexpr bool GAUSSIAN = true;
+  // static constexpr bool SYMMETRIC_GAUSSIAN = false;
+  // static constexpr bool GAUSSIAN = true;
+
+  // Fastest initialization, worse quality
+  static constexpr bool SYMMETRIC_GAUSSIAN = true;
+  static constexpr bool GAUSSIAN = false;
 
   static_assert(STDDEV > 1.0, "surprisingly small stddev");
   static_assert(NEIGHBORHOOD >= 0, "must include the pixel itself.");
@@ -471,7 +678,7 @@ static void MakeIndices(ArcFour *rc, Network *net) {
 static void RandomizeNetwork(ArcFour *rc, Network *net) {
   auto RandomizeFloats = [](ArcFour *rc, vector<float> *vec) {
     for (int i = 0; i < vec->size(); i++) {
-      (*vec)[i] = RandFloat(rc) - 0.5f;
+      (*vec)[i] = RandFloat(rc) * 0.1 - 0.05f;
     }
   };
 
@@ -528,7 +735,7 @@ int main(int argc, char* argv[]) {
   CHECK(corpus.size() > 0);
 
   // XXXXXXX
-  corpus.resize(100);
+  corpus.resize(20);
 
   vector<string> font_filenames = Util::ListFiles("fonts/");
   vector<ImageA *> fonts =
@@ -550,7 +757,12 @@ int main(int argc, char* argv[]) {
 	 net.Bytes() / (1000.0 * 1000.0));
   printf("Network init:\n");
   RandomizeNetwork(&rc, &net);
+  printf("Make indices:\n");
   MakeIndices(&rc, &net);
+  printf("Invert index:\n");
+  ComputeInvertedIndices(&net);
+  printf("Check it:\n");
+  CheckInvertedIndices(net);
   printf("Initialized network in %.1fms.\n", initialize_network_timer.MS());
 
   {
@@ -562,7 +774,7 @@ int main(int argc, char* argv[]) {
 
   // Training round: Loop over all images in random order.
   double setup_ms = 0.0, stimulation_init_ms = 0.0, forward_ms = 0.0,
-    fc_init_ms = 0.0, kernel_ms = 0.0;
+    fc_init_ms = 0.0, kernel_ms = 0.0, backward_ms = 0.0, output_error_ms = 0.0;
   static constexpr int MAX_ROUNDS = 1; // 10000;
   Timer total_timer;
   for (int round_number = 0; round_number < MAX_ROUNDS; round_number++) {
@@ -586,9 +798,21 @@ int main(int argc, char* argv[]) {
     vector<Stimulation> stims;
     stims.reserve(examples.size());
     for (int i = 0; i < examples.size(); i++) stims.emplace_back(NUM_LAYERS);
-    int64 stim_bytes = 0ll;
-    for (const Stimulation &s : stims) stim_bytes += s.Bytes();
-    printf("Size for all stimulations: %.1fMB\n", stim_bytes / (1000.0 * 1000.0));
+    vector<Errors> errs;
+    errs.reserve(examples.size());
+    for (int i = 0; i < examples.size(); i++) errs.emplace_back(NUM_LAYERS);
+
+    {
+      // Diagnostic only.
+      int64 stim_bytes = 0ll, err_bytes = 0ll;
+      for (int i = 0; i < examples.size(); i++) {
+	stim_bytes += stims[i].Bytes();
+	err_bytes += errs[i].Bytes();
+      }
+      printf("Size for all stimulations: %.1fMB\n", stim_bytes / (1000.0 * 1000.0));
+      printf("Size for all errors: %.1fMB\n", err_bytes / (1000.0 * 1000.0));
+    }
+      
     // These are just memory copies; easy to do in parallel.
     ParallelComp(examples.size(),
 		 [&examples, &stims](int i) {
@@ -596,9 +820,9 @@ int main(int argc, char* argv[]) {
 		 }, 16);
     stimulation_init_ms += stimulation_init_timer.MS();
 
-    // The loop over layer smust be in serial.
+    // The loop over layers must be in serial.
     for (int src = 0; src < NUM_LAYERS; src++) {
-      printf("Layer %d.\n", src);
+      printf("FWD Layer %d: ", src);
       Timer fc_init_timer;
       ForwardLayerCL::ForwardContext fc(&forwardlayer, net, src);
       fc_init_ms += fc_init_timer.MS();
@@ -612,13 +836,49 @@ int main(int argc, char* argv[]) {
 		     fc.Forward(&stims[example]);
 		     if (example % 10 == 0) {
 		       MutexLock ml(&print_mutex);
-		       printf("[%d/%d] (%.2f%%)", example, (int)examples.size(),
+		       printf("[%d/%d] (%.2f%%) ", example, (int)examples.size(),
 			      100.0 * example / examples.size());
 		     }
 		   }, 12);
       forward_ms += forward_timer.MS();
       kernel_ms += fc.kernel_ms;
+      printf("\n");
     }
+    // TODO PERF: Can kill transformed input eagerly, if having memory pressure issues.
+   
+    // PERF Parallelize
+    printf("Error calc.\n");
+    Timer output_error_timer;
+    ParallelComp(examples.size(),
+		 [&examples, &expected, &stims, &errs](int example) {
+		   // PERF: We only need the desired result temporarily, and could just
+		   // compute it at the same time we do the error calculation.
+		   vector<float> desired_result;
+		   desired_result.resize(NUM_NODES);
+		   InitializeLayerFromImage(expected[example], &desired_result);
+		   SetOutputError(stims[example], desired_result, &errs[example]);
+		 }, 12);
+    output_error_ms += output_error_timer.MS();
+
+    // Also serial, but in reverse. We don't propagate error from dst=0,
+    // because there's nothing before that but the input.
+    Timer backward_timer;
+    for (int dst = NUM_LAYERS - 1; dst > 0; dst--) {
+      printf("BWD Layer %d: ", dst);
+
+      std::mutex print_mutex;
+      ParallelComp(examples.size(),
+		   [&print_mutex, &net, &examples, &stims, dst, &errs](int example) {
+		     BackwardsError(net, stims[example], dst, &errs[example]);
+		     if (example % 5 == 0) {
+		       MutexLock ml(&print_mutex);
+		       printf("[%d/%d] (%.2f%%) ", example, (int)examples.size(),
+			      100.0 * example / examples.size());
+		     }
+		   }, 12);
+      printf("\n");
+    }
+    backward_ms += backward_timer.MS();
 
     // XXX write out a sample of the round's performance as images.
     DeleteElements(&examples);
@@ -633,13 +893,17 @@ int main(int argc, char* argv[]) {
 	 "%.1fms in stimulation init (%.1f%%),\n"
 	 "%.1fms in forward layer (%.1f%%),\n"
 	 "%.1fms in fc init (%.1f%%),\n"
-	 "%.1fms in forward layer kernel (at most; %.1f%%).\n",
+	 "%.1fms in forward layer kernel (at most; %.1f%%).\n"
+	 "%.1fms in backwards pass (%.1f%%),\n"
+	 "%.1fms in error for output layer (%.1f%%),\n",
 	 total_ms / 1000.0,
 	 setup_ms, Pct(setup_ms),
 	 stimulation_init_ms, Pct(stimulation_init_ms),
 	 forward_ms, Pct(forward_ms),
 	 fc_init_ms, Pct(fc_init_ms),
-	 kernel_ms, Pct(kernel_ms));
+	 kernel_ms, Pct(kernel_ms),
+	 backward_ms, Pct(backward_ms),
+	 output_error_ms, Pct(output_error_ms));
 
   /*
     BlitChannel(0xFF, 0x0, 0x0, *font, 
