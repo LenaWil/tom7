@@ -327,16 +327,17 @@ struct Stimulation {
 struct Errors {
   Errors(int num_layers) : 
     num_layers(num_layers),
-    error(num_layers, vector<float>(NUM_NODES, 0.0f)) {
+    error(num_layers + 1, vector<float>(NUM_NODES, 0.0f)) {
   }
   const int num_layers;
   int64 Bytes() const {
-    return num_layers * NUM_NODES * sizeof (float);
+    return (num_layers + 1) * NUM_NODES * sizeof (float);
   }
 
-  // These are the delta terms in Mitchell. We have num_layers of them, where
-  // each layer is a real layer (i.e., not counting the input; it does not have delta
-  // terms) and error[num_layers - 1] is the error for the output.
+  // These are the delta terms in Mitchell. We have num_layers + 1 of them, where
+  // the error[0] is the input deltas (we obviously don't update the input, but we do
+  // update the weights of the first real layer, which reads from it) and
+  // and error[num_layers] is the error for the output.
   vector<vector<float>> error;
 };
 
@@ -350,7 +351,8 @@ static void SetOutputError(const Stimulation &stim, const vector<float> &expecte
 
   CHECK_EQ(NUM_NODES, expected.size());
   CHECK_EQ(NUM_NODES, output.size()); 
-  vector<float> *output_error = &err->error[num_layers - 1];
+  CHECK(err->error.size() == num_layers + 1);
+  vector<float> *output_error = &err->error[num_layers];
   CHECK_EQ(NUM_NODES, output_error->size());
   for (int k = 0; k < NUM_NODES; k++) {
     float out_k = output[k];
@@ -378,13 +380,14 @@ static void BackwardsError(const Network &net, const Stimulation &stim,
   //
   // we are propagating the error from layer n to layer n-1, which is the gap n.
   //
-  // Note that we never propagate error to the input, although that would maybe be
-  // funny:
-  CHECK_GT(dest_layer, 0);
+  // We do have to propagate error everywhere that we have a value, that is,
+  // all the way to the input layer. So this gets called with dest_layer = 0.
+  CHECK_GE(dest_layer, 0);
   const int gap = dest_layer;
 
+  // We'll only look at src_layer in stim and err, where we add one to it.
   const int src_layer = dest_layer - 1;
-  CHECK_GE(src_layer, 0);
+  CHECK_GE(src_layer + 1, 0);
 
   // Loop over every node in the previous layer, index h. Note that stim has an
   // extra data layer in it because it does represent the values of the input
@@ -397,8 +400,12 @@ static void BackwardsError(const Network &net, const Stimulation &stim,
   const vector<uint32> &dest_indices = net.indices[dest_layer];
   const vector<float> &dest_weights = net.weights[dest_layer];
 
-  const vector<float> &dest_error = err->error[dest_layer];
-  vector<float> *src_error = &err->error[src_layer];
+  // Note that like with the stimulation, we have an error corresponding to
+  // each value, including in the input. This is used to update the value's
+  // corresponding weight wherever it's used. Thus, the +1s in these.
+  CHECK_LT(dest_layer + 1, err->error.size());
+  const vector<float> &dest_error = err->error[dest_layer + 1];
+  vector<float> *src_error = &err->error[src_layer + 1];
   for (int h = 0; h < NUM_NODES; h++) {
     float out_h = src_output[h];
     // Unpack inverted index for this node, so that we can loop over all of
@@ -420,9 +427,7 @@ static void BackwardsError(const Network &net, const Stimulation &stim,
     
     (*src_error)[h] = out_h * (1.0 - out_h) * weighted_error_sum;
 
-    // (Nothing to do about bias terms here; they are like the input layer
-    // in the sense that we don't propagate error to them. But we will need
-    // to update the weights.)
+    // TODO: I guess I need to compute error deltas for the bias terms, too.
   }
 }
 
@@ -432,7 +437,7 @@ static void BackwardsError(const Network &net, const Stimulation &stim,
 // we want error to go down), so I think that's a typo in the book. But maybe I am
 // the one screwing up.
 static constexpr float LEARNING_RATE = -0.05f;
-static void UpdateWeights(Network *net, const Stim &stim, const Errors &err) {
+static void UpdateWeights(Network *net, const Stimulation &stim, const Errors &err) {
   // This one is doing a simple thing with a lot of parallelism, but unfortunately
   // writes would collide if we tried to add in all the weight updates in parallel.
   // Not clear what the best approach is here. Parallelizing over layers is easy,
@@ -447,7 +452,7 @@ static void UpdateWeights(Network *net, const Stim &stim, const Errors &err) {
 		 int node_idx = work_id / num_layers;
 
 		 for (int input_idx = 0; input_idx < INDICES_PER_NODE; input_idx++) {
-		   const int gidx = INDICES_PER_NODE * node_idx + input_id;
+		   const int gidx = INDICES_PER_NODE * node_idx + input_idx;
 		   CHECK_GE(gidx, 0);
 		   CHECK_LT(gidx, net->indices[layer].size());
 		   int src_idx = net->indices[layer][gidx];
@@ -455,13 +460,15 @@ static void UpdateWeights(Network *net, const Stim &stim, const Errors &err) {
 		   CHECK_LT(src_idx, NUM_NODES);
 		   // Note since stim has an additional layer for the input, layer
 		   // here is referring to the output values of the previous layer.
-		   float x = stim.values[layer][src_idx];
+		   float x_ji = stim.values[layer][src_idx];
 
-		   float error = err.errors
+		   // Similarly, we need the error from the previous layer, which
+		   // is arranged in parallel with stimulation.
+		   float delta_j = err.error[layer][src_idx];
 
-		     net->weights[layer][gidx] += LEARNING_RATE * delta;
+		   net->weights[layer][gidx] += LEARNING_RATE * delta_j * x_ji;
 		 }
-		 // XXX and the bias term.
+		 // XXX and the bias term. We need its delta.
 	       }, 12);
 }
 
@@ -813,7 +820,8 @@ int main(int argc, char* argv[]) {
 
   // Training round: Loop over all images in random order.
   double setup_ms = 0.0, stimulation_init_ms = 0.0, forward_ms = 0.0,
-    fc_init_ms = 0.0, kernel_ms = 0.0, backward_ms = 0.0, output_error_ms = 0.0;
+    fc_init_ms = 0.0, kernel_ms = 0.0, backward_ms = 0.0, output_error_ms = 0.0,
+    update_ms = 0.0;
   static constexpr int MAX_ROUNDS = 1; // 10000;
   Timer total_timer;
   for (int round_number = 0; round_number < MAX_ROUNDS; round_number++) {
@@ -899,10 +907,9 @@ int main(int argc, char* argv[]) {
 		 }, 12);
     output_error_ms += output_error_timer.MS();
 
-    // Also serial, but in reverse. We don't propagate error from dst=0,
-    // because there's nothing before that but the input.
+    // Also serial, but in reverse.
     Timer backward_timer;
-    for (int dst = NUM_LAYERS - 1; dst > 0; dst--) {
+    for (int dst = NUM_LAYERS - 1; dst >= 0; dst--) {
       printf("BWD Layer %d: ", dst);
 
       std::mutex print_mutex;
@@ -919,6 +926,14 @@ int main(int argc, char* argv[]) {
     }
     backward_ms += backward_timer.MS();
 
+    Timer update_timer;
+    // Don't parallelize! These are all writing to the same network weights. Each
+    // call is parallelized, though.
+    for (int example = 0; example < examples.size(); example++) {
+      UpdateWeights(&net, stims[example], errs[example]);
+    }
+    update_ms += update_timer.MS();
+
     // XXX write out a sample of the round's performance as images.
     DeleteElements(&examples);
     DeleteElements(&expected);
@@ -934,7 +949,8 @@ int main(int argc, char* argv[]) {
 	 "%.1fms in fc init (%.1f%%),\n"
 	 "%.1fms in forward layer kernel (at most; %.1f%%).\n"
 	 "%.1fms in backwards pass (%.1f%%),\n"
-	 "%.1fms in error for output layer (%.1f%%),\n",
+	 "%.1fms in error for output layer (%.1f%%),\n"
+	 "%.1fms in updating weights (%.1f%%),\n",
 	 total_ms / 1000.0,
 	 setup_ms, Pct(setup_ms),
 	 stimulation_init_ms, Pct(stimulation_init_ms),
@@ -942,7 +958,8 @@ int main(int argc, char* argv[]) {
 	 fc_init_ms, Pct(fc_init_ms),
 	 kernel_ms, Pct(kernel_ms),
 	 backward_ms, Pct(backward_ms),
-	 output_error_ms, Pct(output_error_ms));
+	 output_error_ms, Pct(output_error_ms),
+	 update_ms, Pct(update_ms));
 
   /*
     BlitChannel(0xFF, 0x0, 0x0, *font, 
