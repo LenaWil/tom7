@@ -29,6 +29,23 @@ OK.
 
 1m42
 
+Then updating weights (and another error layer):
+
+
+In total (which was 72.9s),
+spent 4.2ms in setup (0.0%),
+47.3ms in stimulation init (0.1%),
+3583.7ms in forward layer (4.9%),
+679.4ms in fc init (0.9%),
+3577.8ms in forward layer kernel (at most; 4.9%).
+58410.6ms in backwards pass (80.1%),
+23.1ms in error for output layer (0.0%),
+10164.9ms in updating weights (13.9%),
+Destroying CL.
+OK.
+
+real    2m21.746s
+
 ==================================================
 
 4.7s setup
