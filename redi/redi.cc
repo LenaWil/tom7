@@ -426,6 +426,45 @@ static void BackwardsError(const Network &net, const Stimulation &stim,
   }
 }
 
+
+// This is 'eta' in Mitchell. I'm pretty sure this is supposed to be negative (since
+// the derivative tells us how quickly the error changes as the value changes, and
+// we want error to go down), so I think that's a typo in the book. But maybe I am
+// the one screwing up.
+static constexpr float LEARNING_RATE = -0.05f;
+static void UpdateWeights(Network *net, const Stim &stim, const Errors &err) {
+  // This one is doing a simple thing with a lot of parallelism, but unfortunately
+  // writes would collide if we tried to add in all the weight updates in parallel.
+  // Not clear what the best approach is here. Parallelizing over layers is easy,
+  // at least.
+  
+  // Here we parallelize over nodes (in all layers), and update all of
+  // the weights for that node (as well as the bias term) in a chunk.
+  const int num_layers = net->num_layers;
+  ParallelComp(num_layers * NUM_NODES,
+	       [&net, &stim, &err, num_layers](int work_id) {
+		 int layer = work_id % num_layers;
+		 int node_idx = work_id / num_layers;
+
+		 for (int input_idx = 0; input_idx < INDICES_PER_NODE; input_idx++) {
+		   const int gidx = INDICES_PER_NODE * node_idx + input_id;
+		   CHECK_GE(gidx, 0);
+		   CHECK_LT(gidx, net->indices[layer].size());
+		   int src_idx = net->indices[layer][gidx];
+		   CHECK_GE(src_idx, 0);
+		   CHECK_LT(src_idx, NUM_NODES);
+		   // Note since stim has an additional layer for the input, layer
+		   // here is referring to the output values of the previous layer.
+		   float x = stim.values[layer][src_idx];
+
+		   float error = err.errors
+
+		     net->weights[layer][gidx] += LEARNING_RATE * delta;
+		 }
+		 // XXX and the bias term.
+	       }, 12);
+}
+
 struct ForwardLayerCL {
   explicit ForwardLayerCL(CL *cl) : cl(cl) {
     const string kernel_src = 
