@@ -1,3 +1,7 @@
+#include "../cc-lib/sdl/sdlutil.h"
+#include "SDL.h"
+#include "SDL_main.h"
+
 #include <CL/cl.h>
 #include <string.h>
 #include <stdio.h>
@@ -40,11 +44,15 @@ using uint64 = uint64_t;
 // You can read the previous versions (redi-random.cc) to see some of
 // the history / thoughts.
 
-// static_assert((NPP >= 3), "Must have at least R, G, B pixels.");
+static_assert((NPP >= 3), "Must have at least R, G, B pixels.");
 // static_assert((NEIGHBORHOOD & 1) == 1, "neighborhood must be odd.");
 // static_assert((NUM_NODES % CHUNK_SIZE) == 0, "chunk size must divide input.");
 
 // static_assert(RANDOM == 0, "random not yet supported.");
+
+static SDL_Surface *screen = nullptr;
+#define SCREENW 1920
+#define SCREENH 1080
 
 template<class C>
 static void DeleteElements(C *cont) {
@@ -87,6 +95,31 @@ struct ImageRGBA {
   const int width, height;
   vector<uint8> rgba;
 };
+
+// Using standard region of -1 to 1.
+static uint8 FloatByte(float f) {
+  if (f < -1.0f) return 0;
+  else if (f > 1.0f) return 255;
+  else return (uint8)((f + 1.0f) * 127.5);
+}
+
+static float ByteFloat(uint8 b) {
+  return (b / 127.5f) - 1.0f;
+}
+
+static void WriteLayerAsImage(const string &filename, const vector<float> &values) {
+  vector<uint8> rgba;
+  for (int i = 0; i < NUM_NODES; i++) {
+    rgba.push_back(FloatByte(values[i]));
+    if ((rgba.size() + 1) % 4 == 0) {
+      rgba.push_back(0xFF);
+    }
+  }
+  CHECK_EQ(rgba.size(), SIZE * SIZE * 4);
+  ImageRGBA img(rgba, SIZE, SIZE);
+  img.Save(filename);
+  printf("Wrote %s...\n", filename.c_str());
+}
 
 // Single-channel bitmap.
 struct ImageA {
@@ -327,11 +360,16 @@ struct Stimulation {
 struct Errors {
   Errors(int num_layers) : 
     num_layers(num_layers),
-    error(num_layers + 1, vector<float>(NUM_NODES, 0.0f)) {
+    error(num_layers + 1, vector<float>(NUM_NODES, 0.0f)),
+    bias_error(num_layers, vector<float>(NUM_NODES, 0.0f)) {
   }
   const int num_layers;
   int64 Bytes() const {
-    return (num_layers + 1) * NUM_NODES * sizeof (float);
+    return 
+      // Error
+      (num_layers + 1) * NUM_NODES * sizeof (float) +
+      // Bias error
+      num_layers * NUM_NODES * sizeof (float);
   }
 
   // These are the delta terms in Mitchell. We have num_layers + 1 of them, where
@@ -339,6 +377,17 @@ struct Errors {
   // update the weights of the first real layer, which reads from it) and
   // and error[num_layers] is the error for the output.
   vector<vector<float>> error;
+  // Each node also has a bias term, which is just like having a node
+  // in the previous layer that always outputs 1. These are the delta
+  // terms for those phantom nodes; we have num_layers of them, where
+  // we do have these terms for the input layer (as though it has
+  // phantom bias nodes) but not for the output. Each one is NUM_NODES
+  // in size, corresponding to the single bias input for each node in
+  // the next layer.
+  // PERF: Probably don't need to actually represent this since it's
+  // not a summation and doesn't need to be propagated; it can just be
+  // computed at the time we do the update?
+  vector<vector<float>> bias_error;
 };
 
 // Set the error values; this is almost just a memcpy so don't bother doing it
@@ -355,7 +404,11 @@ static void SetOutputError(const Stimulation &stim, const vector<float> &expecte
   vector<float> *output_error = &err->error[num_layers];
   CHECK_EQ(NUM_NODES, output_error->size());
   for (int k = 0; k < NUM_NODES; k++) {
+    // Here we want to multiply by the derivative, sigma'(input),
+    // which is sigma(input) * (1.0 - sigma(input)), and we already have
+    // sigma(input) -- it's the output.
     float out_k = output[k];
+    // Note in some presentations this is out_k - expected_k.
     (*output_error)[k] = out_k * (1.0 - out_k) * (expected[k] - out_k);
   }
 }
@@ -377,6 +430,8 @@ static void BackwardsError(const Network &net, const Stimulation &stim,
   //         layer 0   layer 1   layer 2
   //       gap 0    gap 1     gap 2
   //   vals 0   vals 1   vals 2    vals 3
+  //
+  // (also remark about bias nodes in this graph)
   //
   // we are propagating the error from layer n to layer n-1, which is the gap n.
   //
@@ -407,7 +462,7 @@ static void BackwardsError(const Network &net, const Stimulation &stim,
   const vector<float> &dest_error = err->error[dest_layer + 1];
   vector<float> *src_error = &err->error[src_layer + 1];
   for (int h = 0; h < NUM_NODES; h++) {
-    float out_h = src_output[h];
+    const float out_h = src_output[h];
     // Unpack inverted index for this node, so that we can loop over all of
     // the places its output is sent.
     const pair<uint32, uint32> &span = spans[h];
@@ -425,18 +480,32 @@ static void BackwardsError(const Network &net, const Stimulation &stim,
       weighted_error_sum += dest_weights[gidx] * dest_error[dest_node_idx];
     }
     
-    (*src_error)[h] = out_h * (1.0 - out_h) * weighted_error_sum;
+    (*src_error)[h] = out_h * (1.0f - out_h) * weighted_error_sum;
 
-    // TODO: I guess I need to compute error deltas for the bias terms, too.
+    // XXX ?
+    // Delta for bias term: Isn't it always zero because we have 1 * (1 - 1) * etc.?
+    // (yes I think that's right; but we don't ever need that delta)
   }
 }
+
+/////////////////////////////////////////////////////////////////////////////////////
+/// Update wednesday: I think we do not need to compute deltas all the way up to the
+/// input nodes, nor for bias terms. I was mistakenly reading x_ji in mitchell as
+/// "the input from j to i" but it's really "the input to j from i".
+///
+/// Error calculation looks okay (though we'll change the number of error layers
+/// probably). UpdateWeights is wrong.
+/////////////////////////////////////////////////////////////////////////////////////
 
 
 // This is 'eta' in Mitchell. I'm pretty sure this is supposed to be negative (since
 // the derivative tells us how quickly the error changes as the value changes, and
 // we want error to go down), so I think that's a typo in the book. But maybe I am
 // the one screwing up.
-static constexpr float LEARNING_RATE = -0.05f;
+//
+// (Actually, I think this all comes down to whether we take (expected - actual) or
+// (actual - expected) when computing the error in the output layer.
+static constexpr float LEARNING_RATE = +0.05f;
 static void UpdateWeights(Network *net, const Stimulation &stim, const Errors &err) {
   // This one is doing a simple thing with a lot of parallelism, but unfortunately
   // writes would collide if we tried to add in all the weight updates in parallel.
@@ -464,10 +533,22 @@ static void UpdateWeights(Network *net, const Stimulation &stim, const Errors &e
 
 		   // Similarly, we need the error from the previous layer, which
 		   // is arranged in parallel with stimulation.
+		   //
+		   // XXX 11 Mar 2015 I think this is supposed to be the delta
+		   // for the layer whose weights we're updating?
 		   float delta_j = err.error[layer][src_idx];
 
 		   net->weights[layer][gidx] += LEARNING_RATE * delta_j * x_ji;
 		 }
+		 
+		 // The output of the bias node.
+		 float x_bias = 1.0f;
+		 // Its error.
+		 // aha and here it's not the "delta of the bias node" but the delta
+		 // of this node we're updating, which is why this is not degenerate.
+		 float delta_j = 0.0f;
+		 // so this means no update ?
+
 		 // XXX and the bias term. We need its delta.
 	       }, 12);
 }
@@ -576,9 +657,9 @@ static void InitializeLayerFromImage(const ImageRGBA *rgba, vector<float> *value
   CHECK_EQ(values->size(), NUM_NODES);
   int dst = 0;
   for (int i = 0; i < SIZE * SIZE; i++) {
-    (*values)[dst++] = rgba->rgba[3 * i] / 255.0;
-    (*values)[dst++] = rgba->rgba[3 * i + 1] / 255.0;
-    (*values)[dst++] = rgba->rgba[3 * i + 2] / 255.0;
+    (*values)[dst++] = ByteFloat(rgba->rgba[4 * i + 0]);
+    (*values)[dst++] = ByteFloat(rgba->rgba[4 * i + 1]);
+    (*values)[dst++] = ByteFloat(rgba->rgba[4 * i + 2]);
     for (int j = 0; j < NPP - 3; j++) {
       (*values)[dst++] = 0.0f;
     }
@@ -601,12 +682,12 @@ static void MakeIndices(ArcFour *rc, Network *net) {
   static constexpr int NEIGHBORHOOD = 5;
 
   // For best results, use false, true:
-  // static constexpr bool SYMMETRIC_GAUSSIAN = false;
-  // static constexpr bool GAUSSIAN = true;
+  static constexpr bool SYMMETRIC_GAUSSIAN = false;
+  static constexpr bool GAUSSIAN = true;
 
   // Fastest initialization, worse quality
-  static constexpr bool SYMMETRIC_GAUSSIAN = true;
-  static constexpr bool GAUSSIAN = false;
+  // static constexpr bool SYMMETRIC_GAUSSIAN = true;
+  // static constexpr bool GAUSSIAN = false;
 
   static_assert(STDDEV > 1.0, "surprisingly small stddev");
   static_assert(NEIGHBORHOOD >= 0, "must include the pixel itself.");
@@ -757,7 +838,55 @@ static void App(const vector<A> &vec, const F &f) {
   for (const auto &elt : vec) f(elt);
 }
 
-int main(int argc, char* argv[]) {
+void UIThread() {
+  static uint32 ch = 0;
+  for (;;) {
+    ch++;
+    ch &= 255;
+    sdlutil::clearsurface(screen, (ch << 24) | (ch << 16) | (ch << 8) | ch);
+    SDL_Flip(screen);
+
+    SDL_Event event;
+    if (SDL_PollEvent(&event)) {
+      if (event.type == SDL_QUIT) {
+	LOG(FATAL) << "QUIT.";
+	return;
+      } else if (event.type == SDL_KEYDOWN) {
+	switch(event.key.keysym.sym) {
+	case SDLK_ESCAPE:
+	  LOG(FATAL) << "ESCAPE.";
+	  return;
+	default:;
+	}
+      }
+    } else {
+      SDL_Delay(1);
+    }
+  }
+}
+
+int SDL_main(int argc, char* argv[]) {
+
+  if (!SetPriorityClass(GetCurrentProcess(), BELOW_NORMAL_PRIORITY_CLASS)) {
+    LOG(FATAL) << "Unable to go to BELOW_NORMAL priority.\n";
+  }
+
+  /* Initialize SDL and network, if we're using it. */
+  CHECK(SDL_Init(SDL_INIT_VIDEO |
+		 SDL_INIT_TIMER | 
+		 SDL_INIT_AUDIO) >= 0);
+  fprintf(stderr, "SDL initialized OK.\n");
+
+  SDL_EnableKeyRepeat(SDL_DEFAULT_REPEAT_DELAY,
+                      SDL_DEFAULT_REPEAT_INTERVAL);
+
+  SDL_EnableUNICODE(1);
+
+  screen = sdlutil::makescreen(SCREENW, SCREENH);
+  CHECK(screen);
+
+  std::thread ui_thread(&UIThread);
+
   Timer setup_timer;
   ArcFour rc("redi");
   rc.Discard(2000);
@@ -780,9 +909,6 @@ int main(int argc, char* argv[]) {
 		16);
   CHECK(corpus.size() > 0);
 
-  // XXXXXXX
-  corpus.resize(20);
-
   vector<string> font_filenames = Util::ListFiles("fonts/");
   vector<ImageA *> fonts =
     ParallelMap(font_filenames,
@@ -797,7 +923,7 @@ int main(int argc, char* argv[]) {
   // Create the initial network.
   // TODO: Serialize and load from disk if we have one.
   Timer initialize_network_timer;
-  static constexpr int NUM_LAYERS = 2;
+  static constexpr int NUM_LAYERS = 1;
   Network net{NUM_LAYERS};
   printf("Network uses %.2fMB of storage (without overhead).\n", 
 	 net.Bytes() / (1000.0 * 1000.0));
@@ -821,16 +947,20 @@ int main(int argc, char* argv[]) {
   // Training round: Loop over all images in random order.
   double setup_ms = 0.0, stimulation_init_ms = 0.0, forward_ms = 0.0,
     fc_init_ms = 0.0, kernel_ms = 0.0, backward_ms = 0.0, output_error_ms = 0.0,
-    update_ms = 0.0;
-  static constexpr int MAX_ROUNDS = 1; // 10000;
+    update_ms = 0.0, writing_ms = 0.0;
+  static constexpr int MAX_ROUNDS = 100; // 10000;
   Timer total_timer;
   for (int round_number = 0; round_number < MAX_ROUNDS; round_number++) {
     Timer setup_timer;
     // Shuffle corpus for this round.
-    Shuffle(&rc, &corpus);
+    vector<ImageRGBA *> corpuscopy = corpus;
+    Shuffle(&rc, &corpuscopy);
+    // Don't run the full corpus.
+    corpuscopy.resize(50);
+
     // Copy to make training data; same order.
-    vector<ImageRGBA *> examples = Map(corpus, [](ImageRGBA *img) { return img->Copy(); });
-    vector<ImageRGBA *> expected = Map(corpus, [](ImageRGBA *img) { return img->Copy(); });
+    vector<ImageRGBA *> examples = Map(corpuscopy, [](ImageRGBA *img) { return img->Copy(); });
+    vector<ImageRGBA *> expected = Map(corpuscopy, [](ImageRGBA *img) { return img->Copy(); });
 
     // XXX Apply some effect to the example or expected!
     setup_ms += setup_timer.MS();
@@ -892,6 +1022,21 @@ int main(int argc, char* argv[]) {
       printf("\n");
     }
     // TODO PERF: Can kill transformed input eagerly, if having memory pressure issues.
+
+    // Write outputs as graphics.
+    Timer writing_timer;
+    ParallelComp(min((int)examples.size(), 10),
+		 [&stims, round_number](int example) {
+		   const Stimulation &stim = stims[example];
+		   for (int i = 0; i < stim.values.size(); i++) {
+		     string filename = StringPrintf("round-%d-ex-%d-layer-%d.png",
+						    round_number,
+						    example,
+						    i);
+		     WriteLayerAsImage(filename, stim.values[i]);
+		   }
+		 }, 16);
+    writing_ms += writing_timer.MS();
    
     // PERF Parallelize
     printf("Error calc.\n");
@@ -950,7 +1095,8 @@ int main(int argc, char* argv[]) {
 	 "%.1fms in forward layer kernel (at most; %.1f%%).\n"
 	 "%.1fms in backwards pass (%.1f%%),\n"
 	 "%.1fms in error for output layer (%.1f%%),\n"
-	 "%.1fms in updating weights (%.1f%%),\n",
+	 "%.1fms in updating weights (%.1f%%),\n"
+	 "%.1fms in writing images (%.1f%%),\n",
 	 total_ms / 1000.0,
 	 setup_ms, Pct(setup_ms),
 	 stimulation_init_ms, Pct(stimulation_init_ms),
@@ -959,7 +1105,8 @@ int main(int argc, char* argv[]) {
 	 kernel_ms, Pct(kernel_ms),
 	 backward_ms, Pct(backward_ms),
 	 output_error_ms, Pct(output_error_ms),
-	 update_ms, Pct(update_ms));
+	 update_ms, Pct(update_ms),
+	 writing_ms, Pct(writing_ms));
 
   /*
     BlitChannel(0xFF, 0x0, 0x0, *font, 
@@ -971,6 +1118,7 @@ int main(int argc, char* argv[]) {
 
     printf("Done.\n");
   */
-
+  ui_thread.join();
   return 0;
 }
+
