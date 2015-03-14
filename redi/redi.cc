@@ -50,6 +50,12 @@ static_assert((NPP >= 3), "Must have at least R, G, B pixels.");
 
 // static_assert(RANDOM == 0, "random not yet supported.");
 
+std::mutex print_mutex;
+#define Printf(fmt, ...) do {		\
+  MutexLock Printf_ml(&print_mutex);		\
+  printf(fmt, ##__VA_ARGS__);			\
+  } while (0);
+
 static SDL_Surface *screen = nullptr;
 #define SCREENW 1920
 #define SCREENH 1080
@@ -98,9 +104,15 @@ struct ImageRGBA {
 
 // Using standard region of -1 to 1.
 static uint8 FloatByte(float f) {
-  if (f < -1.0f) return 0;
-  else if (f > 1.0f) return 255;
-  else return (uint8)((f + 1.0f) * 127.5);
+  if (f <= -1.0f) return 0;
+  else if (f >= 1.0f) return 255;
+  else {
+    // Now we know f is in [-1, 1].
+    float zero_to_two = f + 1.0f;
+    float zero_to_one = zero_to_two * 0.5f;
+    return (uint8)(zero_to_one * 255.0);
+    // return (uint8)((f + 1.0f) * 127.5);
+  }
 }
 
 static float ByteFloat(uint8 b) {
@@ -118,7 +130,20 @@ static void WriteLayerAsImage(const string &filename, const vector<float> &value
   CHECK_EQ(rgba.size(), SIZE * SIZE * 4);
   ImageRGBA img(rgba, SIZE, SIZE);
   img.Save(filename);
-  printf("Wrote %s...\n", filename.c_str());
+  Printf("Wrote %s...\n", filename.c_str());
+ 
+  // XXX PERF and as text file.
+  {
+    string tf = (string)"text-" + filename + (string)".txt";
+    FILE *ftxt = fopen(tf.c_str(), "wb");
+    for (int i = 0; i < values.size(); i++) {
+      if (i % 8 == 0) fprintf(ftxt, "\n");
+      fprintf(ftxt, "% f ", values[i]);
+    }
+    fclose(ftxt);
+    Printf("And %s.\n", tf.c_str());
+  }
+
 }
 
 // Single-channel bitmap.
@@ -264,6 +289,26 @@ struct Network {
   // a permutation of 0..(NUM_NODES * INDICES_PER_NODE - 1).
   vector<vector<uint32>> inverted_indices;
 };
+
+static void WriteNetwork(const Network &net, const string &filename) {
+  FILE *f = fopen(filename.c_str(), "wb");
+  for (int layer = 0; layer < net.num_layers; layer++) {
+    fprintf(f, "\n"
+	    "===================\n"
+	    "Layer %d:\n"
+	    "===================\n", layer);
+    for (int node_idx = 0; node_idx < NUM_NODES; node_idx++) {
+      fprintf(f, "n %d: % f ", node_idx, net.biases[layer][node_idx]);
+      for (int i = 0; i < INDICES_PER_NODE; i++) {
+	fprintf(f, " + %f*n%d",
+		net.weights[layer][node_idx * INDICES_PER_NODE + i],
+		net.indices[layer][node_idx * INDICES_PER_NODE + i]);
+      }
+      fprintf(f, "\n");
+    }
+  }
+  fclose(f);
+}
 
 static void CheckInvertedIndices(const Network &net) {
   for (int layer = 0; layer < net.num_layers; layer++) {
@@ -470,7 +515,8 @@ static void BackwardsError(const Network &net, const Stimulation &stim,
 // all comes down to the signs of the error; whether we compute
 // (expected - actual) or (actual - expected). Either way, we want to be DECREASING
 // error, not INCREASING it. For this setup, positive.
-static constexpr float LEARNING_RATE = +0.05f;
+// static constexpr float LEARNING_RATE = +0.05f;
+static constexpr float LEARNING_RATE = +0.20f;
 static void UpdateWeights(Network *net, const Stimulation &stim, const Errors &err) {
   // This one is doing a simple thing with a lot of parallelism, but unfortunately
   // writes would collide if we tried to add in all the weight updates in parallel.
@@ -653,7 +699,7 @@ static void InitializeLayerFromImage(const ImageRGBA *rgba, vector<float> *value
 //      locality and makes sure we don't have any statically dead nodes).
 static void MakeIndices(ArcFour *rc, Network *net) {
   static constexpr double STDDEV = SIZE / 4.0;
-  static constexpr int NEIGHBORHOOD = 5;
+  // static constexpr int NEIGHBORHOOD = 5;
 
   // For best results, use false, true:
   static constexpr bool SYMMETRIC_GAUSSIAN = false;
@@ -665,7 +711,7 @@ static void MakeIndices(ArcFour *rc, Network *net) {
 
   static_assert(STDDEV > 1.0, "surprisingly small stddev");
   static_assert(NEIGHBORHOOD >= 0, "must include the pixel itself.");
-  static_assert(NEIGHBORHOOD * NEIGHBORHOOD * NPP <= INDICES_PER_NODE,
+  static_assert((NEIGHBORHOOD + 1) * (NEIGHBORHOOD + 1) * NPP <= INDICES_PER_NODE,
 		"neighborhood doesn't fit in indices!");
   auto OneNode = [](ArcFour *rc, int x, int y, int channel) -> vector<uint32> {
     // PERF if not parallel, this can be outside and waste fewer tails...
@@ -779,7 +825,7 @@ static void MakeIndices(ArcFour *rc, Network *net) {
 static void RandomizeNetwork(ArcFour *rc, Network *net) {
   auto RandomizeFloats = [](ArcFour *rc, vector<float> *vec) {
     for (int i = 0; i < vec->size(); i++) {
-      (*vec)[i] = RandFloat(rc) * 0.1 - 0.05f;
+      (*vec)[i] = RandFloat(rc) * 0.1f - 0.05f;
     }
   };
 
@@ -823,23 +869,32 @@ void UIThread() {
     SDL_Event event;
     if (SDL_PollEvent(&event)) {
       if (event.type == SDL_QUIT) {
-	LOG(FATAL) << "QUIT.";
+	Printf("QUIT.\n");
 	return;
       } else if (event.type == SDL_KEYDOWN) {
 	switch(event.key.keysym.sym) {
 	case SDLK_ESCAPE:
-	  LOG(FATAL) << "ESCAPE.";
+	  Printf("ESCAPE.\n");
 	  return;
 	default:;
 	}
       }
     } else {
-      SDL_Delay(1);
+      SDL_Delay(10);
     }
   }
 }
 
+static bool train_should_die = false;
+std::mutex train_should_die_m;
+
 void TrainThread() {
+  auto ShouldDie = []() {
+    bool should_die = ReadWithLock(&train_should_die_m, &train_should_die);
+    if (should_die) Printf("Train thread signaled death.\n");
+    return should_die;
+  };
+
   Timer setup_timer;
   ArcFour rc("redi");
   rc.Discard(2000);
@@ -904,7 +959,11 @@ void TrainThread() {
   static constexpr int MAX_ROUNDS = 100; // 10000;
   Timer total_timer;
   for (int round_number = 0; round_number < MAX_ROUNDS; round_number++) {
+    Printf("Writing network:\n");
+    WriteNetwork(net, StringPrintf("network-%d.txt", round_number));
+
     Timer setup_timer;
+    Printf("Setting up batch:\n");
     // Shuffle corpus for this round.
     vector<ImageRGBA *> corpuscopy = corpus;
     Shuffle(&rc, &corpuscopy);
@@ -912,6 +971,7 @@ void TrainThread() {
     corpuscopy.resize(50);
 
     // Copy to make training data; same order.
+    // TODO: These leak when we exit the thread early.
     vector<ImageRGBA *> examples = Map(corpuscopy, [](ImageRGBA *img) { return img->Copy(); });
     vector<ImageRGBA *> expected = Map(corpuscopy, [](ImageRGBA *img) { return img->Copy(); });
 
@@ -950,6 +1010,7 @@ void TrainThread() {
 		 }, 16);
     stimulation_init_ms += stimulation_init_timer.MS();
 
+    if (ShouldDie()) return;
     // The loop over layers must be in serial.
     for (int src = 0; src < NUM_LAYERS; src++) {
       printf("FWD Layer %d: ", src);
@@ -976,6 +1037,7 @@ void TrainThread() {
     }
     // TODO PERF: Can kill transformed input eagerly, if having memory pressure issues.
 
+    if (ShouldDie()) return;
     // Write outputs as graphics.
     Timer writing_timer;
     ParallelComp(min((int)examples.size(), 10),
@@ -991,7 +1053,7 @@ void TrainThread() {
 		 }, 16);
     writing_ms += writing_timer.MS();
    
-    // PERF Parallelize
+    if (ShouldDie()) return;
     printf("Error calc.\n");
     Timer output_error_timer;
     ParallelComp(examples.size(),
@@ -1006,6 +1068,7 @@ void TrainThread() {
     CHECK_EQ(examples.size(), errs.size());
     CHECK_EQ(examples.size(), stims.size());
 
+    if (ShouldDie()) return;
     printf("Backwards:\n");
     // Also serial, but in reverse.
     Timer backward_timer;
@@ -1027,6 +1090,7 @@ void TrainThread() {
     }
     backward_ms += backward_timer.MS();
 
+    if (ShouldDie()) return;
     printf("Update weights:\n");
     Timer update_timer;
     // Don't parallelize! These are all writing to the same network weights. Each
@@ -1039,6 +1103,7 @@ void TrainThread() {
     // XXX write out a sample of the round's performance as images.
     DeleteElements(&examples);
     DeleteElements(&expected);
+    if (ShouldDie()) return;
   }
 
   double total_ms = total_timer.MS();
@@ -1091,9 +1156,12 @@ int SDL_main(int argc, char* argv[]) {
   std::thread train_thread(&TrainThread);
 
   UIThread();
+  
+  Printf("Killing train thread (might need to wait for round to finish)...\n");
+  WriteWithLock(&train_should_die_m, &train_should_die, true);
+  train_thread.join();
 
-  // TODO: should_die flag for train thread.
-
+  Printf("Train is dead; now UI exiting.\n");
   /*
     BlitChannel(0xFF, 0x0, 0x0, *font, 
 		30, 30,
@@ -1106,6 +1174,7 @@ int SDL_main(int argc, char* argv[]) {
   */
   // ui_thread.join();
 
+  SDL_Quit();
   return 0;
 }
 
