@@ -18,6 +18,10 @@
 // This size could later be layer-specific, btw.
 //
 // Does NOT include bias term.
-#define INDICES_PER_NODE 1024
+
+// #define INDICES_PER_NODE 1024
+// #define NEIGHBORHOOD 5
+#define INDICES_PER_NODE 4
+#define NEIGHBORHOOD 0
 
 #define NUM_NODES (SIZE * SIZE * NPP)

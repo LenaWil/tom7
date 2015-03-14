@@ -146,5 +146,19 @@ struct MutexLock {
   std::mutex *m;
 };
 
+// Read with the mutex that protects it. T must be copyable,
+// obviously!
+template<class T>
+T ReadWithLock(std::mutex *m, const T *t) {
+  MutexLock ml(m);
+  return *t;
+}
+
+// Write with the mutex that protects it. T must be copyable.
+template<class T>
+void WriteWithLock(std::mutex *m, T *t, const T &val) {
+  MutexLock ml(m);
+  *t = val;
+}
 
 #endif
