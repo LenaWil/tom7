@@ -1,6 +1,8 @@
 #include "../cc-lib/sdl/sdlutil.h"
 #include "SDL.h"
 #include "SDL_main.h"
+#include "../cc-lib/sdl/chars.h"
+#include "../cc-lib/sdl/font.h"
 
 #include <CL/cl.h>
 #include <string.h>
@@ -41,8 +43,29 @@ using uchar = uint8_t;
 using uint32 = uint32_t;
 using uint64 = uint64_t;
 
+#if 1
+#define ECHECK(a)
+#define ECHECK_EQ(a, b)
+#define ECHECK_LT(a, b)
+#define ECHECK_GT(a, b)
+#define ECHECK_LE(a, b)
+#define ECHECK_GE(a, b)
+#else
+#error implement these
+#endif
+
+// Graphics.
+#define FONTWIDTH 9
+#define FONTHEIGHT 16
+static Font *font = nullptr;
+#define SCREENW 1920
+#define SCREENH 1080
+static SDL_Surface *screen = nullptr;
+
 // You can read the previous versions (redi-random.cc) to see some of
 // the history / thoughts.
+
+static constexpr int NUM_LAYERS = 2;
 
 static_assert((NPP >= 3), "Must have at least R, G, B pixels.");
 // static_assert((NEIGHBORHOOD & 1) == 1, "neighborhood must be odd.");
@@ -55,10 +78,6 @@ std::mutex print_mutex;
   MutexLock Printf_ml(&print_mutex);		\
   printf(fmt, ##__VA_ARGS__);			\
   } while (0);
-
-static SDL_Surface *screen = nullptr;
-#define SCREENW 1920
-#define SCREENH 1080
 
 template<class C>
 static void DeleteElements(C *cont) {
@@ -102,30 +121,25 @@ struct ImageRGBA {
   vector<uint8> rgba;
 };
 
-// Using standard region of -1 to 1.
 static uint8 FloatByte(float f) {
-  if (f <= -1.0f) return 0;
-  else if (f >= 1.0f) return 255;
-  else {
-    // Now we know f is in [-1, 1].
-    float zero_to_two = f + 1.0f;
-    float zero_to_one = zero_to_two * 0.5f;
-    return (uint8)(zero_to_one * 255.0);
-    // return (uint8)((f + 1.0f) * 127.5);
-  }
+  if (f <= 0.0f) return 0;
+  if (f >= 1.0f) return 255;
+  else return f * 255.0;
 }
 
-static float ByteFloat(uint8 b) {
-  return (b / 127.5f) - 1.0f;
+static constexpr float ByteFloat(uint8 b) {
+  return (b / 255.0);
 }
 
 static void WriteLayerAsImage(const string &filename, const vector<float> &values) {
   vector<uint8> rgba;
-  for (int i = 0; i < NUM_NODES; i++) {
-    rgba.push_back(FloatByte(values[i]));
-    if ((rgba.size() + 1) % 4 == 0) {
-      rgba.push_back(0xFF);
+  // TODO: Write other channels as separate transparent images?
+  for (int i = 0; i < NUM_NODES / NPP; i++) {
+    for (int j = 0; j < 3; j++) {
+      const float f = values[i * NPP + j];
+      rgba.push_back(FloatByte(f));
     }
+    rgba.push_back(0xFF);
   }
   CHECK_EQ(rgba.size(), SIZE * SIZE * 4);
   ImageRGBA img(rgba, SIZE, SIZE);
@@ -133,7 +147,7 @@ static void WriteLayerAsImage(const string &filename, const vector<float> &value
   Printf("Wrote %s...\n", filename.c_str());
  
   // XXX PERF and as text file.
-  {
+  if (false) {
     string tf = (string)"text-" + filename + (string)".txt";
     FILE *ftxt = fopen(tf.c_str(), "wb");
     for (int i = 0; i < values.size(); i++) {
@@ -231,8 +245,8 @@ struct Network {
     indices(num_layers, vector<uint32>(INDICES_PER_NODE * NUM_NODES, 0)),
     weights(num_layers, vector<float>(INDICES_PER_NODE * NUM_NODES, 0.0f)),
     biases(num_layers, vector<float>(NUM_NODES, 0.0f)),
-    inverted_indices_span(num_layers,
-			  vector<pair<uint32, uint32>>(NUM_NODES, make_pair(0, 0))),
+    inverted_indices_start(num_layers, vector<uint32>(NUM_NODES, 0U)),
+    inverted_indices_length(num_layers, vector<uint32>(NUM_NODES, 0U)),
     inverted_indices(num_layers, vector<uint32>(INDICES_PER_NODE * NUM_NODES, 0)) {}
   int64 Bytes() const {
     return 
@@ -242,10 +256,22 @@ struct Network {
       (INDICES_PER_NODE * NUM_NODES * sizeof (float) * num_layers) +
       // biases
       (NUM_NODES * sizeof (float) * num_layers) +
-      // inverted_indices_span
-      (NUM_NODES * sizeof (uint32) * 2 * num_layers) +
+      // inverted_indices_start
+      (NUM_NODES * sizeof (uint32) * num_layers) +
+      // inverted_indices_length
+      (NUM_NODES * sizeof (uint32) * num_layers) +
       // inverted_indices
       (INDICES_PER_NODE * NUM_NODES * sizeof (uint32) * num_layers);
+  }
+
+  void CopyFrom(const Network &other) {
+    CHECK_EQ(this->num_layers, other.num_layers);
+    this->indices = other.indices;
+    this->weights = other.weights;
+    this->biases = other.biases;
+    this->inverted_indices_start = other.inverted_indices_start;
+    this->inverted_indices_length = other.inverted_indices_length;
+    this->inverted_indices = other.indices;
   }
 
   // The number of "real" layers, that is, not counting the input.
@@ -267,7 +293,8 @@ struct Network {
   // For a given node, where do my output indices start in
   // the inverted_indices array, and how many are there?
   // NUM_NODES
-  vector<vector<pair<uint32, uint32>>> inverted_indices_span;
+  vector<vector<uint32>> inverted_indices_start;
+  vector<vector<uint32>> inverted_indices_length;
   // Packed array of indices. Since every node on the next layer
   // has exactly INDICES_PER_NODE inputs, this will be of
   // size INDICES_PER_NODE * NUM_NODES. However, any given node
@@ -281,7 +308,7 @@ struct Network {
   //
   // The value here gives the index into the indices/weights vectors
   // for the next layer. If for each index i within the span (defined
-  // by inverted_indices_span[layer][z]) for node id z
+  // by inverted_indices_start[layer][z]) for node id z
   // let gidx = inverted_indices[layer][i]
   // and then indices[layer][gidx] == z. (The same for the weight
   // vector gives us the weight, which is the point, and dividing
@@ -291,13 +318,20 @@ struct Network {
 };
 
 static void WriteNetwork(const Network &net, const string &filename) {
+  bool truncate = false;
+  if (net.Bytes() > 20000000LL) {
+    truncate = true;
+    Printf("Writing trucated network because it's too big.\n");
+  }
   FILE *f = fopen(filename.c_str(), "wb");
   for (int layer = 0; layer < net.num_layers; layer++) {
     fprintf(f, "\n"
 	    "===================\n"
 	    "Layer %d:\n"
 	    "===================\n", layer);
-    for (int node_idx = 0; node_idx < NUM_NODES; node_idx++) {
+
+    const int max_nodes = truncate ? 8 : NUM_NODES;
+    for (int node_idx = 0; node_idx < max_nodes; node_idx++) {
       fprintf(f, "n %d: % f ", node_idx, net.biases[layer][node_idx]);
       for (int i = 0; i < INDICES_PER_NODE; i++) {
 	fprintf(f, " + %f*n%d",
@@ -314,14 +348,16 @@ static void CheckInvertedIndices(const Network &net) {
   for (int layer = 0; layer < net.num_layers; layer++) {
     const vector<uint32> &indices = net.indices[layer];
     const vector<uint32> &inv = net.inverted_indices[layer];
-    const vector<pair<uint32, uint32>> &span = net.inverted_indices_span[layer];
+    const vector<uint32> &starts = net.inverted_indices_start[layer];
+    const vector<uint32> &lengths = net.inverted_indices_length[layer];
     CHECK_EQ(NUM_NODES * INDICES_PER_NODE, indices.size());
-    CHECK_EQ(NUM_NODES, span.size());
+    CHECK_EQ(NUM_NODES, starts.size());
+    CHECK_EQ(NUM_NODES, lengths.size());
     CHECK_EQ(NUM_NODES * INDICES_PER_NODE, inv.size());
     // z is a node id from the src layer.
-    for (int z = 0; z < span.size(); z++) {
+    for (int z = 0; z < starts.size(); z++) {
       // i is the index within the compacted inverted index.
-      for (int i = span[z].first; i < span[z].first + span[z].second; i++) {
+      for (int i = starts[z]; i < starts[z] + lengths[z]; i++) {
 	// Global index into 'indices'.
 	const int gidx = inv[i];
 	// This should map back to our current node id.
@@ -341,9 +377,12 @@ static void ComputeInvertedIndices(Network *net) {
   // layer.
   auto OneLayer = [net](int layer) {
     CHECK_LT(layer, net->inverted_indices.size());
-    CHECK_LT(layer, net->inverted_indices_span.size());
-    vector<pair<uint32, uint32>> *span = &net->inverted_indices_span[layer];
-    CHECK_EQ(NUM_NODES, span->size());
+    CHECK_LT(layer, net->inverted_indices_start.size());
+    CHECK_LT(layer, net->inverted_indices_length.size());
+    vector<uint32> *starts = &net->inverted_indices_start[layer];
+    vector<uint32> *lengths = &net->inverted_indices_length[layer];
+    CHECK_EQ(NUM_NODES, starts->size());
+    CHECK_EQ(NUM_NODES, lengths->size());
     vector<uint32> *inverted = &net->inverted_indices[layer];
     CHECK_EQ(INDICES_PER_NODE * NUM_NODES, inverted->size());
     
@@ -368,8 +407,9 @@ static void ComputeInvertedIndices(Network *net) {
     for (int src_nodes_idx = 0;
 	 src_nodes_idx < NUM_NODES;
 	 src_nodes_idx++) {
-      (*span)[src_nodes_idx] = make_pair(flat_size, occurrences[src_nodes_idx].size());
-      
+      (*starts)[src_nodes_idx] = flat_size;
+      (*lengths)[src_nodes_idx] = occurrences[src_nodes_idx].size();
+
       for (int val : occurrences[src_nodes_idx]) {
 	(*inverted)[flat_size] = val;
 	flat_size++;
@@ -400,6 +440,11 @@ struct Stimulation {
   // Here the outer vector has size num_layers + 1; first is the input.
   // Inner vector is size NUM_NODES, and just contains their output values.
   vector<vector<float>> values;
+
+  void CopyFrom(const Stimulation &other) {
+    CHECK_EQ(this->num_layers, other.num_layers);
+    this->values = other.values;
+  }
 };
 
 struct Errors {
@@ -423,14 +468,14 @@ struct Errors {
 static void SetOutputError(const Stimulation &stim, const vector<float> &expected, Errors *err) {
   // One more value vector than layers, since we have values for the input "layer" too.
   const int num_layers = stim.num_layers;
-  CHECK(stim.values.size() == num_layers + 1);
+  ECHECK(stim.values.size() == num_layers + 1);
   const vector<float> &output = stim.values[num_layers];
 
-  CHECK_EQ(NUM_NODES, expected.size());
-  CHECK_EQ(NUM_NODES, output.size()); 
-  CHECK(err->error.size() == num_layers);
+  ECHECK_EQ(NUM_NODES, expected.size());
+  ECHECK_EQ(NUM_NODES, output.size()); 
+  ECHECK(err->error.size() == num_layers);
   vector<float> *output_error = &err->error[num_layers - 1];
-  CHECK_EQ(NUM_NODES, output_error->size());
+  ECHECK_EQ(NUM_NODES, output_error->size());
   for (int k = 0; k < NUM_NODES; k++) {
     // Here we want to multiply by the derivative, sigma'(input),
     // which is sigma(input) * (1.0 - sigma(input)), and we already have
@@ -447,7 +492,8 @@ static void SetOutputError(const Stimulation &stim, const vector<float> &expecte
 // "destination" based on how data flows in the normal forward
 // direction.)
 //
-// PERF Could/should be a kernel.
+// This is now a kernel, so this function is uncalled. But it should
+// still work.
 static void BackwardsError(const Network &net, const Stimulation &stim,
 			   int dest_layer, Errors *err) {
   // If we have
@@ -465,26 +511,29 @@ static void BackwardsError(const Network &net, const Stimulation &stim,
   // from layer dest_layer to layer dest_layer-1, which is the gap dest_layer.
   //
   // Errors only go to real layers, so the dest layer is 1 at minimum.
-  CHECK_GT(dest_layer, 0);
+  ECHECK_GT(dest_layer, 0);
   const int gap = dest_layer;
 
   const int src_layer = dest_layer - 1;
-  CHECK_GE(src_layer, 0);
+  ECHECK_GE(src_layer, 0);
 
   // Note that stim has an extra data layer in it because it does
   // represent the values of the input layer, thus the +1 here.
-  CHECK_LT(src_layer + 1, stim.values.size());
+  ECHECK_LT(src_layer + 1, stim.values.size());
   const vector<float> &src_output = stim.values[src_layer + 1];
 
   // The inverted index is really in the gap.
-  CHECK_LT(gap, net.inverted_indices_span.size());
-  const vector<pair<uint32, uint32>> &spans = net.inverted_indices_span[gap];
+  ECHECK_LT(gap, net.inverted_indices_start.size());
+  ECHECK_LT(gap, net.inverted_indices_length.size());
+  const vector<uint32> &starts = net.inverted_indices_start[gap];
+  const vector<uint32> &lengths = net.inverted_indices_length[gap];
   const vector<uint32> &inverted_index = net.inverted_indices[gap];
   const vector<uint32> &dest_indices = net.indices[dest_layer];
+  (void)dest_indices;  // Suppress lint -- only used for debug check.
   const vector<float> &dest_weights = net.weights[dest_layer];
 
   // One error layer for each real layer (not the input).
-  CHECK_LT(dest_layer, err->error.size());
+  ECHECK_LT(dest_layer, err->error.size());
   const vector<float> &dest_error = err->error[dest_layer];
   vector<float> *src_error = &err->error[src_layer];
   // Loop over every node in the previous layer, index h.
@@ -492,16 +541,17 @@ static void BackwardsError(const Network &net, const Stimulation &stim,
     const float out_h = src_output[h];
     // Unpack inverted index for this node, so that we can loop over all of
     // the places its output is sent.
-    const pair<uint32, uint32> &span = spans[h];
+    const uint32 start = starts[h];
+    const uint32 length = lengths[h];
     
     // The error for a hidden node is the sum of all the errors for
     // the next layer, but modulated by the weight of the edge.
     double weighted_error_sum = 0.0;
-    for (int i = span.first; i < span.first + span.second; i++) {
+    for (int i = start; i < start + length; i++) {
       const int gidx = inverted_index[i];
       // gidx is an index into the index and weights vectors on the
       // destination layer.
-      CHECK_EQ(dest_indices[gidx], h);
+      ECHECK_EQ(dest_indices[gidx], h);
       // Compute from the index which destination node it belongs to.
       const int dest_node_idx = gidx / INDICES_PER_NODE;
       weighted_error_sum += dest_weights[gidx] * dest_error[dest_node_idx];
@@ -516,18 +566,21 @@ static void BackwardsError(const Network &net, const Stimulation &stim,
 // (expected - actual) or (actual - expected). Either way, we want to be DECREASING
 // error, not INCREASING it. For this setup, positive.
 // static constexpr float LEARNING_RATE = +0.05f;
-static constexpr float LEARNING_RATE = +0.20f;
-static void UpdateWeights(Network *net, const Stimulation &stim, const Errors &err) {
+// static constexpr float LEARNING_RATE = +0.05f;
+// Learning rate should be a small positive constant (0 < lr < 1) constant, probably
+// around 0.05, and decreasing as we run more rounds.
+static void UpdateWeights(const float learning_rate,
+			  Network *net, const Stimulation &stim, const Errors &err) {
   // This one is doing a simple thing with a lot of parallelism, but unfortunately
   // writes would collide if we tried to add in all the weight updates in parallel.
   // Not clear what the best approach is here. Parallelizing over layers is easy,
   // at least.
   
-  // Here we parallelize over nodes (in all layers), and update all of
-  // the weights for that node (as well as the bias term) in a chunk.
+  // Here we parallelize over all nodes in all layers; updating the weights and
+  // bias for that node in a chunk.
   const int num_layers = net->num_layers;
   ParallelComp(num_layers * NUM_NODES,
-	       [&net, &stim, &err, num_layers](int work_id) {
+	       [learning_rate, &net, &stim, &err, num_layers](int work_id) {
 		 // Update the weights for this node.
 		 const int layer = work_id % num_layers;
 		 const int node_idx = work_id / num_layers;
@@ -536,37 +589,43 @@ static void UpdateWeights(Network *net, const Stimulation &stim, const Errors &e
 		 // Since error is not represented for the input layer, 'layer' is
 		 // the correct index. (That is, the 0th layer is the earliest one
 		 // that has weights.)
-		 CHECK_LT(layer, err.error.size());
-		 CHECK_LT(node_idx, err.error[layer].size());
+		 ECHECK_LT(layer, err.error.size());
+		 ECHECK_LT(node_idx, err.error[layer].size());
 		 const float delta_j = err.error[layer][node_idx];
+		 const float learning_rate_times_delta_j = learning_rate * delta_j;
+
+		 vector<float> *layer_weights = &net->weights[layer];
+		 const vector<uint32> &layer_indices = net->indices[layer];
+
+		 // Note since stim has an additional layer for the input, layer
+		 // here is referring to the output values of the previous layer,
+		 // which is what we want. (The 0th layer is the earliest one
+		 // that we read: the input layer.)
+		 ECHECK_LT(layer, stim.values.size());
+		 const vector<float> &layer_values = stim.values[layer];
 
 		 // There is one weight for each input index.
 		 for (int input_idx = 0; input_idx < INDICES_PER_NODE; input_idx++) {
 		   const int gidx = INDICES_PER_NODE * node_idx + input_idx;
-		   CHECK_GE(gidx, 0);
-		   CHECK_LT(gidx, net->indices[layer].size());
+		   ECHECK_GE(gidx, 0);
+		   ECHECK_LT(gidx, layer_indices.size());
 
 		   // Offset of the node, which we use to get its output.
-		   const int src_idx = net->indices[layer][gidx];
-		   CHECK_GE(src_idx, 0);
-		   CHECK_LT(src_idx, NUM_NODES);
+		   const int src_idx = layer_indices[gidx];
+		   ECHECK_GE(src_idx, 0);
+		   ECHECK_LT(src_idx, NUM_NODES);
 
-		   // Note since stim has an additional layer for the input, layer
-		   // here is referring to the output values of the previous layer,
-		   // which is what we want. (The 0th layer is the earliest one
-		   // that we read: the input layer.)
-		   CHECK_LT(layer, stim.values.size());
-		   CHECK_LT(src_idx, stim.values[layer].size());
-		   const float x_ji = stim.values[layer][src_idx];
+		   ECHECK_LT(src_idx, layer_values.size());
+		   const float x_ji = layer_values[src_idx];
 
-		   net->weights[layer][gidx] += LEARNING_RATE * delta_j * x_ji;
+		   (*layer_weights)[gidx] += learning_rate_times_delta_j * x_ji;
 		 }
 
 		 // The bias terms are basically the same, but the output of that
 		 // node is 1. There's just one per node.
-		 CHECK_LT(layer, net->biases.size());
-		 CHECK_LT(node_idx, net->biases[layer].size());
-		 net->biases[layer][node_idx] += LEARNING_RATE * delta_j;
+		 ECHECK_LT(layer, net->biases.size());
+		 ECHECK_LT(node_idx, net->biases[layer].size());
+		 net->biases[layer][node_idx] += learning_rate_times_delta_j;
 	       }, 12);
 }
 
@@ -592,7 +651,7 @@ struct ForwardLayerCL {
     // Presumably clFinish can't tell "this thread's commands" apart from others,
     // so we may be prematurely waiting/running other thread's work.
     void Forward(Stimulation *stim) {
-      CHECK_LT(layer + 1, stim->values.size());
+      ECHECK_LT(layer + 1, stim->values.size());
 
       CL *cl = parent->cl;
 
@@ -671,6 +730,124 @@ struct ForwardLayerCL {
   std::mutex m;
 };
 
+struct BackwardLayerCL {
+  explicit BackwardLayerCL(CL *cl) : cl(cl) {
+    const string kernel_src = 
+      Util::ReadFile("constants.h") + "\n" +
+      Util::ReadFile("backwardlayer.cl");
+
+    std::tie(program, kernel) = cl->BuildOneKernel(kernel_src, "BackwardLayer");
+  }
+
+  struct BackwardContext {
+    BackwardContext(BackwardLayerCL *parent, const Network &net, int dest_layer) :
+      parent(parent), net(net), dest_layer(dest_layer) {
+      CL *cl = parent->cl;
+
+      const int gap = dest_layer;
+      // const int src_layer = dest_layer - 1;
+
+      starts = MoveMemoryToGPUConst(cl->context, cl->queue,
+				    net.inverted_indices_start[gap]);
+      lengths = MoveMemoryToGPUConst(cl->context, cl->queue,
+				    net.inverted_indices_length[gap]);
+
+      inverted_index = MoveMemoryToGPUConst(cl->context, cl->queue,
+					    net.inverted_indices[gap]);
+
+      dest_weights = MoveMemoryToGPUConst(cl->context, cl->queue,
+					  net.weights[dest_layer]);
+    }
+
+    // TODO: Do we really want to share the same command queue across threads?
+    // Presumably clFinish can't tell "this thread's commands" apart from others,
+    // so we may be prematurely waiting/running other thread's work.
+    void Backward(const Stimulation &stim, Errors *err) {
+      CL *cl = parent->cl;
+
+      // const int gap = dest_layer;
+      const int src_layer = dest_layer - 1;
+
+      //  const vector<float> &dest_error = err->error[dest_layer];
+      //  vector<float> *src_error = &err->error[src_layer];
+
+      cl_mem src_output = MoveMemoryToGPUConst(cl->context, cl->queue,
+					       stim.values[src_layer + 1]);
+      cl_mem dest_error = MoveMemoryToGPUConst(cl->context, cl->queue,
+					       err->error[dest_layer]);
+
+      cl_mem src_error = CreateUninitializedGPUMemory<float>(cl->context, NUM_NODES);
+
+      // Can't have multiple threads setting a kernel's argument at one time.
+      {
+	MutexLock ml(&parent->m);
+
+	CHECK_SUCCESS(clSetKernelArg(parent->kernel, 0, sizeof(cl_mem), (void *)&starts));
+	CHECK_SUCCESS(clSetKernelArg(parent->kernel, 1, sizeof(cl_mem), (void *)&lengths));
+	CHECK_SUCCESS(clSetKernelArg(parent->kernel, 2, sizeof(cl_mem), (void *)&inverted_index));
+	CHECK_SUCCESS(clSetKernelArg(parent->kernel, 3, sizeof(cl_mem), (void *)&dest_weights));
+	CHECK_SUCCESS(clSetKernelArg(parent->kernel, 4, sizeof(cl_mem), (void *)&src_output));
+	CHECK_SUCCESS(clSetKernelArg(parent->kernel, 5, sizeof(cl_mem), (void *)&dest_error));
+	CHECK_SUCCESS(clSetKernelArg(parent->kernel, 6, sizeof(cl_mem), (void *)&src_error));
+
+	size_t global_work_offset[] = { 0 };
+	size_t global_work_size[] = { (size_t)NUM_NODES };
+	Timer kernel_timer;
+	CHECK(CL_SUCCESS == clEnqueueNDRangeKernel(cl->queue, parent->kernel, 
+						   // work dimensions
+						   1, 
+						   // global work offset
+						   global_work_offset,
+						   // global work size
+						   global_work_size, 
+						   // local work size
+						   nullptr, 
+						   // no wait list
+						   0, nullptr, 
+						   // no event
+						   nullptr));
+	clFinish(cl->queue);
+	kernel_ms += kernel_timer.MS();
+      }
+
+      // Immediately release stuff we don't need any more; other threads may be trying
+      // to get GPU resources in parallel.
+      CHECK_SUCCESS(clReleaseMemObject(src_output));
+      CHECK_SUCCESS(clReleaseMemObject(dest_error));
+
+      CopyBufferFromGPUTo<float>(cl->queue, src_error, &err->error[src_layer]);
+
+      CHECK_SUCCESS(clReleaseMemObject(src_error));
+    }
+    
+    ~BackwardContext() {
+      CHECK_SUCCESS(clReleaseMemObject(starts));
+      CHECK_SUCCESS(clReleaseMemObject(lengths));
+      CHECK_SUCCESS(clReleaseMemObject(inverted_index));
+      CHECK_SUCCESS(clReleaseMemObject(dest_weights));
+    }
+
+    cl_mem starts, lengths, inverted_index, dest_weights;
+    BackwardLayerCL *parent = nullptr;
+    const Network &net;
+    const int dest_layer;
+    double kernel_ms = 0.0;
+  };
+
+  ~BackwardLayerCL() {
+    CHECK_SUCCESS(clReleaseKernel(kernel));
+    CHECK_SUCCESS(clReleaseProgram(program));
+  }
+
+  CL *cl = nullptr;
+  // Owned:
+  cl_program program;
+  cl_kernel kernel;
+
+  std::mutex m;
+};
+
+
 static void InitializeLayerFromImage(const ImageRGBA *rgba, vector<float> *values) {
   CHECK_EQ(SIZE, rgba->width);
   CHECK_EQ(SIZE, rgba->height);
@@ -698,7 +875,7 @@ static void InitializeLayerFromImage(const ImageRGBA *rgba, vector<float> *value
 //      directly (especially the pixel itself; this preserves spatial
 //      locality and makes sure we don't have any statically dead nodes).
 static void MakeIndices(ArcFour *rc, Network *net) {
-  static constexpr double STDDEV = SIZE / 4.0;
+  static constexpr double STDDEV = SIZE / 16.0;
   // static constexpr int NEIGHBORHOOD = 5;
 
   // For best results, use false, true:
@@ -711,7 +888,7 @@ static void MakeIndices(ArcFour *rc, Network *net) {
 
   static_assert(STDDEV > 1.0, "surprisingly small stddev");
   static_assert(NEIGHBORHOOD >= 0, "must include the pixel itself.");
-  static_assert((NEIGHBORHOOD + 1) * (NEIGHBORHOOD + 1) * NPP <= INDICES_PER_NODE,
+  static_assert((NEIGHBORHOOD * 2 + 1) * (NEIGHBORHOOD * 2 + 1) * NPP <= INDICES_PER_NODE,
 		"neighborhood doesn't fit in indices!");
   auto OneNode = [](ArcFour *rc, int x, int y, int channel) -> vector<uint32> {
     // PERF if not parallel, this can be outside and waste fewer tails...
@@ -725,12 +902,12 @@ static void MakeIndices(ArcFour *rc, Network *net) {
     // clips xx,yy if they are out of the image, but cc must be a valid
     // channel in [0, NPP).
     auto AddNodeByCoordinates = [&indices](int xx, int yy, int cc) {
-      CHECK_GE(cc, 0);
-      CHECK_LT(cc, NPP);
+      ECHECK_GE(cc, 0);
+      ECHECK_LT(cc, NPP);
       if (xx < 0 || yy < 0 || xx >= SIZE || yy >= SIZE) return;
       int idx = (yy * SIZE * NPP) + (xx * NPP) + cc;
-      CHECK_GE(idx, 0);
-      CHECK_LT(idx, NUM_NODES);
+      ECHECK_GE(idx, 0);
+      ECHECK_LT(idx, NUM_NODES);
       indices.insert(idx);
     };
     
@@ -792,9 +969,8 @@ static void MakeIndices(ArcFour *rc, Network *net) {
   for (int i = 0; i < net->num_layers; i++) rcs.push_back(Substream(rc, i));
 
   // Just for printf.
-  std::mutex m;
-  ParallelComp(net->num_layers, [&m, &rcs, &OneNode, &net](int layer) {
-    printf("Intializing indices for layer %d...\n", layer);
+  ParallelComp(net->num_layers, [&rcs, &OneNode, &net](int layer) {
+    Printf("Intializing indices for layer %d...\n", layer);
     int node_idx = 0;
     vector<uint32> *layer_indices = &net->indices[layer];
     for (int y = 0; y < SIZE; y++) {
@@ -812,8 +988,7 @@ static void MakeIndices(ArcFour *rc, Network *net) {
 	}
       }
       if (y % 10 == 0) {
-	MutexLock ml(&m);
-	printf("  [%d/%d] %.1f%%\n", y, SIZE, (100.0 * y) / SIZE);
+	Printf("  [%d/%d] %.1f%%\n", y, SIZE, (100.0 * y) / SIZE);
       }
     }
   }, 12);
@@ -858,35 +1033,218 @@ static void App(const vector<A> &vec, const F &f) {
   for (const auto &elt : vec) f(elt);
 }
 
+static constexpr int NUM_VIDEO_STIMULATIONS = 7;
+std::mutex video_export_m;
+vector<Stimulation> current_stimulations(7, Stimulation(NUM_LAYERS));
+Network current_network(NUM_LAYERS);
+static bool allow_updates = true;
+
+void ExportNetworkToVideo(const Network &net) {
+  MutexLock ml(&video_export_m);
+  if (allow_updates) {
+    current_network.CopyFrom(net);
+  }
+}
+
+void ExportStimulusToVideo(int example_id, const Stimulation &stim) {
+  MutexLock ml(&video_export_m);
+  if (allow_updates) {
+    CHECK_GE(example_id, 0);
+    CHECK_LT(example_id, current_stimulations.size());
+    current_stimulations[example_id].CopyFrom(stim);
+  }
+}
+
+// Communication between threads.
+static bool train_should_die = false;
+std::mutex train_should_die_m;
+static bool train_done = false;
+std::mutex train_done_m;
+
 void UIThread() {
-  static uint32 ch = 0;
+  enum Mode {
+    MODE_STIMULUS,
+    MODE_NETWORK,
+  };
+  Mode mode = MODE_STIMULUS;
+  struct ModeDescriptor {
+    char key;
+    const char *desc;
+    Mode mode;
+  };
+  auto all_modes = {
+    ModeDescriptor{'s', "Stimulus mode", MODE_STIMULUS},
+    {'n', "Network mode", MODE_NETWORK},
+  };
+
+  int mousex = 0, mousey = 0;
+
   for (;;) {
-    ch++;
-    ch &= 255;
-    sdlutil::clearsurface(screen, (ch << 24) | (ch << 16) | (ch << 8) | ch);
+    sdlutil::clearsurface(screen, 0x0);
+
+    string menu = "";
+    for (const ModeDescriptor &md : all_modes) {
+      if (md.mode == mode) {
+	menu += StringPrintf("[^3%c: %s^<]   ", md.key, md.desc);
+      } else {
+	menu += StringPrintf("^0%c^<^1: %s^<   ", md.key, md.desc);
+      }
+    }
+    
+    if (allow_updates) {
+      menu += "^0(space to pause)^<";
+    } else {
+      menu += "^3[space to unpause]^<";
+    }
+
+    font->draw(0, 0, menu);
+
+    static constexpr int MARGIN = 24;
+    static constexpr int GAP = 10;
+
+    if (mode == MODE_STIMULUS) {
+      MutexLock ml(&video_export_m);
+      for (int i = 0; i < current_stimulations.size(); i++) {
+	int sx = MARGIN + i * (SIZE + GAP);
+	for (int layer = 0; layer < NUM_LAYERS + 1; layer++) {
+	  int sy = MARGIN + layer * (SIZE + GAP);
+	  const vector<float> &values = current_stimulations[i].values[layer];
+	  for (int y = 0; y < SIZE; y++) {
+	    for (int x = 0; x < SIZE; x++) {
+	      int pixel_id = y * SIZE + x;
+	      const uint8 r = FloatByte(values[pixel_id * NPP + 0]);
+	      const uint8 g = FloatByte(values[pixel_id * NPP + 1]);
+	      const uint8 b = FloatByte(values[pixel_id * NPP + 2]);
+	      sdlutil::drawpixel(screen, sx + x, sy + y, r, g, b);
+	    }
+	  }
+	}
+      }
+    } else if (mode == MODE_NETWORK) {
+      MutexLock ml(&video_export_m);
+      // In this mode, draw the different nodes per pixel as separate rectangles.
+      // We just show one example at a time.
+      const int ex = 0;
+      int show_channels = std::min(NPP, 7);
+      for (int ch = 0; ch < show_channels; ch++) {
+	int sx = MARGIN + ch * (SIZE + GAP);
+	for (int layer = 0; layer < NUM_LAYERS + 1; layer++) {
+	  const vector<float> &values = current_stimulations[ex].values[layer];
+	  int sy = MARGIN + layer * (SIZE + GAP);
+
+	  for (int y = 0; y < SIZE; y++) {
+	    for (int x = 0; x < SIZE; x++) {
+	      int pixel_id = y * SIZE + x;
+	      const uint8 v = FloatByte(values[pixel_id * NPP + ch]);
+
+	      if (ch == 0) {
+		sdlutil::drawpixel(screen, sx + x, sy + y, v, 0, 0);
+	      } else if (ch == 1) {
+		sdlutil::drawpixel(screen, sx + x, sy + y, 0, v, 0);
+	      } else if (ch == 2) {
+		sdlutil::drawpixel(screen, sx + x, sy + y, 0, 0, v);
+	      } else {
+		sdlutil::drawpixel(screen, sx + x, sy + y, v, v, v);
+	      }
+	    }
+	  }
+	}
+
+	// Is the mouse in one of the layers?
+	int mx = (mousex - MARGIN) / (SIZE + GAP);
+	int my = (mousey - MARGIN) / (SIZE + GAP);
+	if (mx >= 0 && mx < show_channels &&
+	    my >= 0 && my < NUM_LAYERS + 1) {
+	  int ox = (mousex - MARGIN) % (SIZE + GAP);
+	  int oy = (mousey - MARGIN) % (SIZE + GAP);
+	  if (ox >= 0 && oy >= 0 && ox < SIZE && oy < SIZE) {
+	    // Okay, we are actually pointing at a layer then.
+	    const int channel = mx;
+	    const int layer = my;
+	    int node_id = (oy * SIZE + ox) * NPP + channel;
+	    
+	    CHECK_GE(node_id, 0) << node_id << " " << oy << " " << ox << " " << channel;
+	    CHECK_GE(channel, 0);
+	    CHECK_GE(ox, 0);
+	    CHECK_GE(oy, 0);
+	    CHECK_LT(node_id, NUM_NODES);
+	    CHECK_LE(layer, NUM_LAYERS);
+	    CHECK_GE(node_id, 0);
+	    float value = current_stimulations[ex].values[layer][node_id];
+
+	    font->draw(0, SCREENH - FONTHEIGHT,
+		       StringPrintf("layer %d channel %d x %d y %d node %d (val ^2%f^<)",
+				    layer, channel, ox, oy, node_id, value));
+	    // And draw its source indices.
+	    if (layer > 0) {
+	      int sy = MARGIN + (layer - 1) * (GAP + SIZE);
+	      for (int i = 0; i < INDICES_PER_NODE; i++) {
+		int src_idx = current_network.indices[layer - 1][node_id * INDICES_PER_NODE + i];
+		float weight = current_network.indices[layer - 1][node_id * INDICES_PER_NODE + i];
+		// Decompose source index:
+		int src_ch = src_idx % NPP;
+		int src_pixel = src_idx / NPP;
+		int src_y = src_pixel / SIZE;
+		int src_x = src_pixel % SIZE;
+
+		int sx = MARGIN + src_ch * (GAP + SIZE);
+		if (weight > 0) {
+		  sdlutil::drawpixel(screen, sx + src_x, sy + src_y, 0xFF, 0xFF, 0);
+		} else {
+		  sdlutil::drawpixel(screen, sx + src_x, sy + src_y, 0, 0xFF, 0xFF);
+		}
+	      }
+	    }
+	  }
+	}
+      }
+    }
+
     SDL_Flip(screen);
+
+    if (ReadWithLock(&train_done_m, &train_done)) {
+      Printf("UI thread saw that training finished.\n");
+      return;
+    }
 
     SDL_Event event;
     if (SDL_PollEvent(&event)) {
       if (event.type == SDL_QUIT) {
 	Printf("QUIT.\n");
 	return;
+
+      } else if (event.type == SDL_MOUSEMOTION) {
+	SDL_MouseMotionEvent *e = (SDL_MouseMotionEvent*)&event;
+
+	mousex = e->x;
+	mousey = e->y;
+	// (and immediately redraw)
+
       } else if (event.type == SDL_KEYDOWN) {
-	switch(event.key.keysym.sym) {
+	switch (event.key.keysym.sym) {
 	case SDLK_ESCAPE:
 	  Printf("ESCAPE.\n");
 	  return;
+	case SDLK_s:
+	  Printf("Stimulus mode.\n");
+	  mode = MODE_STIMULUS;
+	  break;
+	case SDLK_n:
+	  Printf("Network mode.\n");
+	  mode = MODE_NETWORK;
+	  break;
+	case SDLK_SPACE: {
+	  MutexLock ml(&video_export_m);
+	  allow_updates = !allow_updates;
+	}
 	default:;
 	}
       }
     } else {
-      SDL_Delay(10);
+      SDL_Delay(100);
     }
   }
 }
-
-static bool train_should_die = false;
-std::mutex train_should_die_m;
 
 void TrainThread() {
   auto ShouldDie = []() {
@@ -903,6 +1261,7 @@ void TrainThread() {
 
   // Create kernels right away so that we get compilation errors early.
   ForwardLayerCL forwardlayer{&cl};
+  BackwardLayerCL backwardlayer{&cl};
 
   vector<string> filenames = 
     // So gratuitous to use parallel map here..
@@ -931,7 +1290,6 @@ void TrainThread() {
   // Create the initial network.
   // TODO: Serialize and load from disk if we have one.
   Timer initialize_network_timer;
-  static constexpr int NUM_LAYERS = 1;
   Network net{NUM_LAYERS};
   printf("Network uses %.2fMB of storage (without overhead).\n", 
 	 net.Bytes() / (1000.0 * 1000.0));
@@ -954,13 +1312,28 @@ void TrainThread() {
 
   // Training round: Loop over all images in random order.
   double setup_ms = 0.0, stimulation_init_ms = 0.0, forward_ms = 0.0,
-    fc_init_ms = 0.0, kernel_ms = 0.0, backward_ms = 0.0, output_error_ms = 0.0,
+    fc_init_ms = 0.0, bc_init_ms = 0.0, kernel_ms = 0.0, backward_ms = 0.0, output_error_ms = 0.0,
     update_ms = 0.0, writing_ms = 0.0;
-  static constexpr int MAX_ROUNDS = 100; // 10000;
+  static constexpr int MAX_ROUNDS = 1000; // 10000;
+  static constexpr int EXAMPLES_PER_ROUND = 48;
+  static constexpr int VERBOSE_ROUND_EVERY = 100;
+  
   Timer total_timer;
   for (int round_number = 0; round_number < MAX_ROUNDS; round_number++) {
-    Printf("Writing network:\n");
-    WriteNetwork(net, StringPrintf("network-%d.txt", round_number));
+    Printf("\n\n ** ROUND %d **\n", round_number);
+
+    const float round_learning_weight = 
+      std::min(0.9,
+	       std::max(0.05, 2 * exp(-0.2275 * (round_number + 1)/3.0)));
+    Printf("Learning rate: %.4f\n", round_learning_weight);
+
+    bool is_verbose_round = 0 == ((round_number /* + 1 */) % VERBOSE_ROUND_EVERY);
+    if (is_verbose_round) {
+      Printf("Writing network:\n");
+      WriteNetwork(net, StringPrintf("network-%d.txt", round_number));
+    }
+    Printf("Export network:\n");
+    ExportNetworkToVideo(net);
 
     Timer setup_timer;
     Printf("Setting up batch:\n");
@@ -968,7 +1341,7 @@ void TrainThread() {
     vector<ImageRGBA *> corpuscopy = corpus;
     Shuffle(&rc, &corpuscopy);
     // Don't run the full corpus.
-    corpuscopy.resize(50);
+    corpuscopy.resize(EXAMPLES_PER_ROUND);
 
     // Copy to make training data; same order.
     // TODO: These leak when we exit the thread early.
@@ -999,8 +1372,9 @@ void TrainThread() {
 	stim_bytes += stims[i].Bytes();
 	err_bytes += errs[i].Bytes();
       }
-      printf("Size for all stimulations: %.1fMB\n", stim_bytes / (1000.0 * 1000.0));
-      printf("Size for all errors: %.1fMB\n", err_bytes / (1000.0 * 1000.0));
+      Printf("Size for all stimulations: %.1fMB, errors: %.1fMB\n",
+	     stim_bytes / (1000.0 * 1000.0),
+	     err_bytes / (1000.0 * 1000.0));
     }
       
     // These are just memory copies; easy to do in parallel.
@@ -1013,7 +1387,7 @@ void TrainThread() {
     if (ShouldDie()) return;
     // The loop over layers must be in serial.
     for (int src = 0; src < NUM_LAYERS; src++) {
-      printf("FWD Layer %d: ", src);
+      Printf("FWD Layer %d: ", src);
       Timer fc_init_timer;
       ForwardLayerCL::ForwardContext fc(&forwardlayer, net, src);
       fc_init_ms += fc_init_timer.MS();
@@ -1021,40 +1395,46 @@ void TrainThread() {
       // PERF could be parallel, but watch out about loading the GPU with
       // too many simultaneous value src/dst buffers.
       Timer forward_timer;
-      std::mutex print_mutex;
       ParallelComp(examples.size(),
-		   [&examples, &fc, &stims, &print_mutex](int example) {
+		   [&examples, &fc, &stims](int example) {
 		     fc.Forward(&stims[example]);
 		     if (example % 10 == 0) {
-		       MutexLock ml(&print_mutex);
-		       printf("[%d/%d] (%.2f%%) ", example, (int)examples.size(),
+		       Printf("[%d/%d] (%.2f%%) ", example, (int)examples.size(),
 			      100.0 * example / examples.size());
 		     }
+		     
+		     if (example < NUM_VIDEO_STIMULATIONS) {
+		       // Copy to screen.
+		       ExportStimulusToVideo(example, stims[example]);
+		     }
+
 		   }, 12);
       forward_ms += forward_timer.MS();
       kernel_ms += fc.kernel_ms;
-      printf("\n");
+      Printf("\n");
     }
     // TODO PERF: Can kill transformed input eagerly, if having memory pressure issues.
 
-    if (ShouldDie()) return;
-    // Write outputs as graphics.
-    Timer writing_timer;
-    ParallelComp(min((int)examples.size(), 10),
-		 [&stims, round_number](int example) {
-		   const Stimulation &stim = stims[example];
-		   for (int i = 0; i < stim.values.size(); i++) {
-		     string filename = StringPrintf("round-%d-ex-%d-layer-%d.png",
-						    round_number,
-						    example,
-						    i);
-		     WriteLayerAsImage(filename, stim.values[i]);
-		   }
-		 }, 16);
-    writing_ms += writing_timer.MS();
+    if (is_verbose_round) {
+      if (ShouldDie()) return;
+      // Write outputs as graphics.
+      Timer writing_timer;
+      ParallelComp(min((int)examples.size(), 10),
+		   [&stims, round_number](int example) {
+		     const Stimulation &stim = stims[example];
+		     for (int i = 0; i < stim.values.size(); i++) {
+		       string filename = StringPrintf("round-%d-ex-%d-layer-%d.png",
+						      round_number,
+						      example,
+						      i);
+		       WriteLayerAsImage(filename, stim.values[i]);
+		     }
+		   }, 16);
+      writing_ms += writing_timer.MS();
+    }
    
     if (ShouldDie()) return;
-    printf("Error calc.\n");
+    Printf("Error calc.\n");
     Timer output_error_timer;
     ParallelComp(examples.size(),
 		 [&examples, &expected, &stims, &errs](int example) {
@@ -1069,66 +1449,76 @@ void TrainThread() {
     CHECK_EQ(examples.size(), stims.size());
 
     if (ShouldDie()) return;
-    printf("Backwards:\n");
+    Printf("Backwards:\n");
     // Also serial, but in reverse.
     Timer backward_timer;
     // We do NOT propagate errors to the input layer, so dst is strictly greater than 1.
     for (int dst = NUM_LAYERS - 1; dst > 0; dst--) {
-      printf("BWD Layer %d: " /* XXX */, dst);
+      Printf("BWD Layer %d: ", dst);
 
-      std::mutex print_mutex;
+      Timer bc_init_timer;
+      BackwardLayerCL::BackwardContext bc{&backwardlayer, net, dst};
+      bc_init_ms += bc_init_timer.MS();
+
       ParallelComp(examples.size(),
-		   [&print_mutex, &net, &examples, &stims, dst, &errs](int example) {
-		     BackwardsError(net, stims[example], dst, &errs[example]);
+		   [&examples, &stims, &errs, &bc](int example) {
+		     bc.Backward(stims[example], &errs[example]);
+		     // BackwardsError(net, stims[example], dst, &errs[example]);
 		     if (example % 5 == 0) {
-		       MutexLock ml(&print_mutex);
-		       printf("[%d/%d] (%.2f%%) ", example, (int)examples.size(),
+		       Printf("[%d/%d] (%.2f%%) ", example, (int)examples.size(),
 			      100.0 * example / examples.size());
 		     }
 		   }, 12);
-      printf("\n");
+      Printf("\n");
     }
     backward_ms += backward_timer.MS();
 
     if (ShouldDie()) return;
-    printf("Update weights:\n");
+    Printf("Update weights:\n");
     Timer update_timer;
     // Don't parallelize! These are all writing to the same network weights. Each
     // call is parallelized, though.
     for (int example = 0; example < examples.size(); example++) {
-      UpdateWeights(&net, stims[example], errs[example]);
+      UpdateWeights(round_learning_weight, &net, stims[example], errs[example]);
     }
     update_ms += update_timer.MS();
 
-    // XXX write out a sample of the round's performance as images.
     DeleteElements(&examples);
     DeleteElements(&expected);
     if (ShouldDie()) return;
+
+    double total_ms = total_timer.MS();
+    auto Pct = [total_ms](double d) { return (100.0 * d) / total_ms; };
+    Printf("Total so far %.1fs.\n"
+	   "Time per round: %.1fs.\n"
+	   "We spent %.1fms in setup (%.1f%%),\n"
+	   "%.1fms in stimulation init (%.1f%%),\n"
+	   "%.1fms in forward layer (%.1f%%),\n"
+	   "%.1fms in fc init (%.1f%%),\n"
+	   "%.1fms in forward layer kernel (at most; %.1f%%).\n"
+	   "%.1fms in bc init (%.1f%%),\n"
+	   "%.1fms in backwards pass (%.1f%%),\n"
+	   "%.1fms in error for output layer (%.1f%%),\n"
+	   "%.1fms in updating weights (%.1f%%),\n"
+	   "%.1fms in writing images (%.1f%%),\n",
+	   total_ms / 1000.0,
+	   (total_ms / 1000.0) / (round_number + 1),
+	   setup_ms, Pct(setup_ms),
+	   stimulation_init_ms, Pct(stimulation_init_ms),
+	   forward_ms, Pct(forward_ms),
+	   fc_init_ms, Pct(fc_init_ms),
+	   kernel_ms, Pct(kernel_ms),
+	   bc_init_ms, Pct(bc_init_ms),
+	   backward_ms, Pct(backward_ms),
+	   output_error_ms, Pct(output_error_ms),
+	   update_ms, Pct(update_ms),
+	   writing_ms, Pct(writing_ms));
+
   }
 
-  double total_ms = total_timer.MS();
-  auto Pct = [total_ms](double d) { return (100.0 * d) / total_ms; };
-  printf("\n\n ** Done **\n"
-	 "In total (which was %.1fs),\n"
-	 "spent %.1fms in setup (%.1f%%),\n"
-	 "%.1fms in stimulation init (%.1f%%),\n"
-	 "%.1fms in forward layer (%.1f%%),\n"
-	 "%.1fms in fc init (%.1f%%),\n"
-	 "%.1fms in forward layer kernel (at most; %.1f%%).\n"
-	 "%.1fms in backwards pass (%.1f%%),\n"
-	 "%.1fms in error for output layer (%.1f%%),\n"
-	 "%.1fms in updating weights (%.1f%%),\n"
-	 "%.1fms in writing images (%.1f%%),\n",
-	 total_ms / 1000.0,
-	 setup_ms, Pct(setup_ms),
-	 stimulation_init_ms, Pct(stimulation_init_ms),
-	 forward_ms, Pct(forward_ms),
-	 fc_init_ms, Pct(fc_init_ms),
-	 kernel_ms, Pct(kernel_ms),
-	 backward_ms, Pct(backward_ms),
-	 output_error_ms, Pct(output_error_ms),
-	 update_ms, Pct(update_ms),
-	 writing_ms, Pct(writing_ms));
+  Printf(" ** Done. **");
+
+  WriteWithLock(&train_done_m, &train_done, true);
 }
 
 int SDL_main(int argc, char* argv[]) {
@@ -1151,7 +1541,11 @@ int SDL_main(int argc, char* argv[]) {
   screen = sdlutil::makescreen(SCREENW, SCREENH);
   CHECK(screen);
 
-  std::thread ui_thread(&UIThread);
+  font = Font::create(screen,
+		      "font.png",
+		      FONTCHARS,
+		      FONTWIDTH, FONTHEIGHT, FONTSTYLES, 1, 3);
+  CHECK(font != nullptr) << "Couldn't load font.";
 
   std::thread train_thread(&TrainThread);
 
