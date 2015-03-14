@@ -360,34 +360,17 @@ struct Stimulation {
 struct Errors {
   Errors(int num_layers) : 
     num_layers(num_layers),
-    error(num_layers + 1, vector<float>(NUM_NODES, 0.0f)),
-    bias_error(num_layers, vector<float>(NUM_NODES, 0.0f)) {
+    error(num_layers, vector<float>(NUM_NODES, 0.0f)) {
   }
   const int num_layers;
   int64 Bytes() const {
-    return 
-      // Error
-      (num_layers + 1) * NUM_NODES * sizeof (float) +
-      // Bias error
-      num_layers * NUM_NODES * sizeof (float);
+    return num_layers * NUM_NODES * sizeof (float);
   }
 
-  // These are the delta terms in Mitchell. We have num_layers + 1 of them, where
-  // the error[0] is the input deltas (we obviously don't update the input, but we do
-  // update the weights of the first real layer, which reads from it) and
+  // These are the delta terms in Mitchell. We have num_layers of them, where
+  // the error[0] is the first real layer (we don't compute errors for the input)
   // and error[num_layers] is the error for the output.
   vector<vector<float>> error;
-  // Each node also has a bias term, which is just like having a node
-  // in the previous layer that always outputs 1. These are the delta
-  // terms for those phantom nodes; we have num_layers of them, where
-  // we do have these terms for the input layer (as though it has
-  // phantom bias nodes) but not for the output. Each one is NUM_NODES
-  // in size, corresponding to the single bias input for each node in
-  // the next layer.
-  // PERF: Probably don't need to actually represent this since it's
-  // not a summation and doesn't need to be propagated; it can just be
-  // computed at the time we do the update?
-  vector<vector<float>> bias_error;
 };
 
 // Set the error values; this is almost just a memcpy so don't bother doing it
@@ -400,8 +383,8 @@ static void SetOutputError(const Stimulation &stim, const vector<float> &expecte
 
   CHECK_EQ(NUM_NODES, expected.size());
   CHECK_EQ(NUM_NODES, output.size()); 
-  CHECK(err->error.size() == num_layers + 1);
-  vector<float> *output_error = &err->error[num_layers];
+  CHECK(err->error.size() == num_layers);
+  vector<float> *output_error = &err->error[num_layers - 1];
   CHECK_EQ(NUM_NODES, output_error->size());
   for (int k = 0; k < NUM_NODES; k++) {
     // Here we want to multiply by the derivative, sigma'(input),
@@ -413,10 +396,11 @@ static void SetOutputError(const Stimulation &stim, const vector<float> &expecte
   }
 }
 
-// Propagate the error backwards from the dest_layer to the src_layer. (Note that
-// the "destination" of the error terms is the source; here I'm keeping the same
-// terminology about "source" and "destination" based on how data flows in the
-// normal forward direction.)
+// Propagate the error backwards from the dest_layer to the src_layer.
+// (Note that the error terms go FROM the destination TO the source;
+// here I'm keeping the same terminology about "source" and
+// "destination" based on how data flows in the normal forward
+// direction.)
 //
 // PERF Could/should be a kernel.
 static void BackwardsError(const Network &net, const Stimulation &stim,
@@ -428,39 +412,37 @@ static void BackwardsError(const Network &net, const Stimulation &stim,
   //     o ------ o ------ o ------ o
   //     o ------ o ------ o ------ o
   //         layer 0   layer 1   layer 2
+  //         error 0   error 1   error 2
   //       gap 0    gap 1     gap 2
-  //   vals 0   vals 1   vals 2    vals 3
+  //   vals 0   vals 1   vals 2   vals 3
   //
-  // (also remark about bias nodes in this graph)
+  // We also have error deltas for each real layer. We are propagating the error
+  // from layer dest_layer to layer dest_layer-1, which is the gap dest_layer.
   //
-  // we are propagating the error from layer n to layer n-1, which is the gap n.
-  //
-  // We do have to propagate error everywhere that we have a value, that is,
-  // all the way to the input layer. So this gets called with dest_layer = 0.
-  CHECK_GE(dest_layer, 0);
+  // Errors only go to real layers, so the dest layer is 1 at minimum.
+  CHECK_GT(dest_layer, 0);
   const int gap = dest_layer;
 
-  // We'll only look at src_layer in stim and err, where we add one to it.
   const int src_layer = dest_layer - 1;
-  CHECK_GE(src_layer + 1, 0);
+  CHECK_GE(src_layer, 0);
 
-  // Loop over every node in the previous layer, index h. Note that stim has an
-  // extra data layer in it because it does represent the values of the input
-  // layer, thus the +1 here.
+  // Note that stim has an extra data layer in it because it does
+  // represent the values of the input layer, thus the +1 here.
+  CHECK_LT(src_layer + 1, stim.values.size());
   const vector<float> &src_output = stim.values[src_layer + 1];
 
   // The inverted index is really in the gap.
+  CHECK_LT(gap, net.inverted_indices_span.size());
   const vector<pair<uint32, uint32>> &spans = net.inverted_indices_span[gap];
   const vector<uint32> &inverted_index = net.inverted_indices[gap];
   const vector<uint32> &dest_indices = net.indices[dest_layer];
   const vector<float> &dest_weights = net.weights[dest_layer];
 
-  // Note that like with the stimulation, we have an error corresponding to
-  // each value, including in the input. This is used to update the value's
-  // corresponding weight wherever it's used. Thus, the +1s in these.
-  CHECK_LT(dest_layer + 1, err->error.size());
-  const vector<float> &dest_error = err->error[dest_layer + 1];
-  vector<float> *src_error = &err->error[src_layer + 1];
+  // One error layer for each real layer (not the input).
+  CHECK_LT(dest_layer, err->error.size());
+  const vector<float> &dest_error = err->error[dest_layer];
+  vector<float> *src_error = &err->error[src_layer];
+  // Loop over every node in the previous layer, index h.
   for (int h = 0; h < NUM_NODES; h++) {
     const float out_h = src_output[h];
     // Unpack inverted index for this node, so that we can loop over all of
@@ -471,40 +453,23 @@ static void BackwardsError(const Network &net, const Stimulation &stim,
     // the next layer, but modulated by the weight of the edge.
     double weighted_error_sum = 0.0;
     for (int i = span.first; i < span.first + span.second; i++) {
-      int gidx = inverted_index[i];
+      const int gidx = inverted_index[i];
       // gidx is an index into the index and weights vectors on the
       // destination layer.
       CHECK_EQ(dest_indices[gidx], h);
       // Compute from the index which destination node it belongs to.
-      int dest_node_idx = gidx / INDICES_PER_NODE;
+      const int dest_node_idx = gidx / INDICES_PER_NODE;
       weighted_error_sum += dest_weights[gidx] * dest_error[dest_node_idx];
     }
     
     (*src_error)[h] = out_h * (1.0f - out_h) * weighted_error_sum;
-
-    // XXX ?
-    // Delta for bias term: Isn't it always zero because we have 1 * (1 - 1) * etc.?
-    // (yes I think that's right; but we don't ever need that delta)
   }
 }
 
-/////////////////////////////////////////////////////////////////////////////////////
-/// Update wednesday: I think we do not need to compute deltas all the way up to the
-/// input nodes, nor for bias terms. I was mistakenly reading x_ji in mitchell as
-/// "the input from j to i" but it's really "the input to j from i".
-///
-/// Error calculation looks okay (though we'll change the number of error layers
-/// probably). UpdateWeights is wrong.
-/////////////////////////////////////////////////////////////////////////////////////
-
-
-// This is 'eta' in Mitchell. I'm pretty sure this is supposed to be negative (since
-// the derivative tells us how quickly the error changes as the value changes, and
-// we want error to go down), so I think that's a typo in the book. But maybe I am
-// the one screwing up.
-//
-// (Actually, I think this all comes down to whether we take (expected - actual) or
-// (actual - expected) when computing the error in the output layer.
+// In some presentations, this is positive, and others, negative. It
+// all comes down to the signs of the error; whether we compute
+// (expected - actual) or (actual - expected). Either way, we want to be DECREASING
+// error, not INCREASING it. For this setup, positive.
 static constexpr float LEARNING_RATE = +0.05f;
 static void UpdateWeights(Network *net, const Stimulation &stim, const Errors &err) {
   // This one is doing a simple thing with a lot of parallelism, but unfortunately
@@ -517,39 +482,45 @@ static void UpdateWeights(Network *net, const Stimulation &stim, const Errors &e
   const int num_layers = net->num_layers;
   ParallelComp(num_layers * NUM_NODES,
 	       [&net, &stim, &err, num_layers](int work_id) {
-		 int layer = work_id % num_layers;
-		 int node_idx = work_id / num_layers;
+		 // Update the weights for this node.
+		 const int layer = work_id % num_layers;
+		 const int node_idx = work_id / num_layers;
 
+		 // Error term is for this node.
+		 // Since error is not represented for the input layer, 'layer' is
+		 // the correct index. (That is, the 0th layer is the earliest one
+		 // that has weights.)
+		 CHECK_LT(layer, err.error.size());
+		 CHECK_LT(node_idx, err.error[layer].size());
+		 const float delta_j = err.error[layer][node_idx];
+
+		 // There is one weight for each input index.
 		 for (int input_idx = 0; input_idx < INDICES_PER_NODE; input_idx++) {
 		   const int gidx = INDICES_PER_NODE * node_idx + input_idx;
 		   CHECK_GE(gidx, 0);
 		   CHECK_LT(gidx, net->indices[layer].size());
-		   int src_idx = net->indices[layer][gidx];
+
+		   // Offset of the node, which we use to get its output.
+		   const int src_idx = net->indices[layer][gidx];
 		   CHECK_GE(src_idx, 0);
 		   CHECK_LT(src_idx, NUM_NODES);
-		   // Note since stim has an additional layer for the input, layer
-		   // here is referring to the output values of the previous layer.
-		   float x_ji = stim.values[layer][src_idx];
 
-		   // Similarly, we need the error from the previous layer, which
-		   // is arranged in parallel with stimulation.
-		   //
-		   // XXX 11 Mar 2015 I think this is supposed to be the delta
-		   // for the layer whose weights we're updating?
-		   float delta_j = err.error[layer][src_idx];
+		   // Note since stim has an additional layer for the input, layer
+		   // here is referring to the output values of the previous layer,
+		   // which is what we want. (The 0th layer is the earliest one
+		   // that we read: the input layer.)
+		   CHECK_LT(layer, stim.values.size());
+		   CHECK_LT(src_idx, stim.values[layer].size());
+		   const float x_ji = stim.values[layer][src_idx];
 
 		   net->weights[layer][gidx] += LEARNING_RATE * delta_j * x_ji;
 		 }
-		 
-		 // The output of the bias node.
-		 float x_bias = 1.0f;
-		 // Its error.
-		 // aha and here it's not the "delta of the bias node" but the delta
-		 // of this node we're updating, which is why this is not degenerate.
-		 float delta_j = 0.0f;
-		 // so this means no update ?
 
-		 // XXX and the bias term. We need its delta.
+		 // The bias terms are basically the same, but the output of that
+		 // node is 1. There's just one per node.
+		 CHECK_LT(layer, net->biases.size());
+		 CHECK_LT(node_idx, net->biases[layer].size());
+		 net->biases[layer][node_idx] += LEARNING_RATE * delta_j;
 	       }, 12);
 }
 
@@ -571,6 +542,9 @@ struct ForwardLayerCL {
       biases = MoveMemoryToGPUConst(cl->context, cl->queue, net.biases[layer]);
     }
 
+    // TODO: Do we really want to share the same command queue across threads?
+    // Presumably clFinish can't tell "this thread's commands" apart from others,
+    // so we may be prematurely waiting/running other thread's work.
     void Forward(Stimulation *stim) {
       CHECK_LT(layer + 1, stim->values.size());
 
@@ -865,28 +839,7 @@ void UIThread() {
   }
 }
 
-int SDL_main(int argc, char* argv[]) {
-
-  if (!SetPriorityClass(GetCurrentProcess(), BELOW_NORMAL_PRIORITY_CLASS)) {
-    LOG(FATAL) << "Unable to go to BELOW_NORMAL priority.\n";
-  }
-
-  /* Initialize SDL and network, if we're using it. */
-  CHECK(SDL_Init(SDL_INIT_VIDEO |
-		 SDL_INIT_TIMER | 
-		 SDL_INIT_AUDIO) >= 0);
-  fprintf(stderr, "SDL initialized OK.\n");
-
-  SDL_EnableKeyRepeat(SDL_DEFAULT_REPEAT_DELAY,
-                      SDL_DEFAULT_REPEAT_INTERVAL);
-
-  SDL_EnableUNICODE(1);
-
-  screen = sdlutil::makescreen(SCREENW, SCREENH);
-  CHECK(screen);
-
-  std::thread ui_thread(&UIThread);
-
+void TrainThread() {
   Timer setup_timer;
   ArcFour rc("redi");
   rc.Discard(2000);
@@ -1043,8 +996,6 @@ int SDL_main(int argc, char* argv[]) {
     Timer output_error_timer;
     ParallelComp(examples.size(),
 		 [&examples, &expected, &stims, &errs](int example) {
-		   // PERF: We only need the desired result temporarily, and could just
-		   // compute it at the same time we do the error calculation.
 		   vector<float> desired_result;
 		   desired_result.resize(NUM_NODES);
 		   InitializeLayerFromImage(expected[example], &desired_result);
@@ -1052,10 +1003,15 @@ int SDL_main(int argc, char* argv[]) {
 		 }, 12);
     output_error_ms += output_error_timer.MS();
 
+    CHECK_EQ(examples.size(), errs.size());
+    CHECK_EQ(examples.size(), stims.size());
+
+    printf("Backwards:\n");
     // Also serial, but in reverse.
     Timer backward_timer;
-    for (int dst = NUM_LAYERS - 1; dst >= 0; dst--) {
-      printf("BWD Layer %d: ", dst);
+    // We do NOT propagate errors to the input layer, so dst is strictly greater than 1.
+    for (int dst = NUM_LAYERS - 1; dst > 0; dst--) {
+      printf("BWD Layer %d: " /* XXX */, dst);
 
       std::mutex print_mutex;
       ParallelComp(examples.size(),
@@ -1071,6 +1027,7 @@ int SDL_main(int argc, char* argv[]) {
     }
     backward_ms += backward_timer.MS();
 
+    printf("Update weights:\n");
     Timer update_timer;
     // Don't parallelize! These are all writing to the same network weights. Each
     // call is parallelized, though.
@@ -1107,6 +1064,35 @@ int SDL_main(int argc, char* argv[]) {
 	 output_error_ms, Pct(output_error_ms),
 	 update_ms, Pct(update_ms),
 	 writing_ms, Pct(writing_ms));
+}
+
+int SDL_main(int argc, char* argv[]) {
+
+  if (!SetPriorityClass(GetCurrentProcess(), BELOW_NORMAL_PRIORITY_CLASS)) {
+    LOG(FATAL) << "Unable to go to BELOW_NORMAL priority.\n";
+  }
+
+  /* Initialize SDL and network, if we're using it. */
+  CHECK(SDL_Init(SDL_INIT_VIDEO |
+		 SDL_INIT_TIMER | 
+		 SDL_INIT_AUDIO) >= 0);
+  fprintf(stderr, "SDL initialized OK.\n");
+
+  SDL_EnableKeyRepeat(SDL_DEFAULT_REPEAT_DELAY,
+                      SDL_DEFAULT_REPEAT_INTERVAL);
+
+  SDL_EnableUNICODE(1);
+
+  screen = sdlutil::makescreen(SCREENW, SCREENH);
+  CHECK(screen);
+
+  std::thread ui_thread(&UIThread);
+
+  std::thread train_thread(&TrainThread);
+
+  UIThread();
+
+  // TODO: should_die flag for train thread.
 
   /*
     BlitChannel(0xFF, 0x0, 0x0, *font, 
@@ -1118,7 +1104,8 @@ int SDL_main(int argc, char* argv[]) {
 
     printf("Done.\n");
   */
-  ui_thread.join();
+  // ui_thread.join();
+
   return 0;
 }
 

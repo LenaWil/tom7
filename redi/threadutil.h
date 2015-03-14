@@ -110,6 +110,12 @@ void ParallelComp(int num,
   for (std::thread &t : threads) t.join();
 }
 
+// Drop-in serial replacement for debugging, etc.
+template<class F>
+void UnParallelComp(int num, const F &f, int max_concurrency_ignored) {
+  for (int i = 0; i < num; i++) (void)f(i);
+}
+
 // F needs to be callable (std::function or lambda) and thread safe. It returns R,
 // which must have a default constructor, and this will only be efficient if it
 // has move semantics as well.
