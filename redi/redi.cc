@@ -847,6 +847,79 @@ struct BackwardLayerCL {
   std::mutex m;
 };
 
+struct UpdateWeightsCL {
+  explicit UpdateWeightsCL(CL *cl) : cl(cl) {
+    const string kernel_src = 
+      Util::ReadFile("constants.h") + "\n" +
+      Util::ReadFile("updateweights.cl");
+
+    std::tie(program, kernel) = cl->BuildOneKernel(kernel_src, "UpdateWeights");
+  }
+
+  void Update(float learning_rate,
+	      const Stimulation &stim, const Errors &err, Network *net, int layer) {
+    MutexLock ml(&m);
+
+    cl_mem layer_error = MoveMemoryToGPUConst(cl->context, cl->queue,
+					      err.error[layer]);
+    cl_mem layer_indices = MoveMemoryToGPUConst(cl->context, cl->queue,
+						net->indices[layer]);
+    cl_mem layer_values = MoveMemoryToGPUConst(cl->context, cl->queue,
+					       stim.values[layer]);
+    cl_mem layer_weights = MoveMemoryToGPU(cl->context, cl->queue,
+					   false, &net->weights[layer]);
+    cl_mem layer_biases = MoveMemoryToGPU(cl->context, cl->queue,
+					  false, &net->biases[layer]);
+
+    CHECK_SUCCESS(clSetKernelArg(kernel, 0, sizeof(cl_float), (void *)&learning_rate));
+    CHECK_SUCCESS(clSetKernelArg(kernel, 1, sizeof(cl_mem), (void *)&layer_error));
+    CHECK_SUCCESS(clSetKernelArg(kernel, 2, sizeof(cl_mem), (void *)&layer_indices));
+    CHECK_SUCCESS(clSetKernelArg(kernel, 3, sizeof(cl_mem), (void *)&layer_values));
+    CHECK_SUCCESS(clSetKernelArg(kernel, 4, sizeof(cl_mem), (void *)&layer_weights));
+    CHECK_SUCCESS(clSetKernelArg(kernel, 5, sizeof(cl_mem), (void *)&layer_biases));
+
+    size_t global_work_offset[] = { 0 };
+    size_t global_work_size[] = { (size_t)NUM_NODES };
+    CHECK(CL_SUCCESS == clEnqueueNDRangeKernel(cl->queue, kernel,
+					       // work dimensions
+					       1, 
+					       // global work offset
+					       global_work_offset,
+					       // global work size
+					       global_work_size, 
+					       // local work size
+					       nullptr, 
+					       // no wait list
+					       0, nullptr, 
+					       // no event
+					       nullptr));
+    clFinish(cl->queue);
+    CHECK_SUCCESS(clReleaseMemObject(layer_error));
+    CHECK_SUCCESS(clReleaseMemObject(layer_indices));
+    CHECK_SUCCESS(clReleaseMemObject(layer_values));
+    
+    CopyBufferFromGPUTo(cl->queue, layer_weights, &net->weights[layer]);
+    // TODO PERF: Could do biases on CPU to parallelize?
+    CopyBufferFromGPUTo(cl->queue, layer_biases, &net->biases[layer]);
+    clFinish(cl->queue);
+
+    CHECK_SUCCESS(clReleaseMemObject(layer_weights));
+    CHECK_SUCCESS(clReleaseMemObject(layer_biases));
+  }
+
+  ~UpdateWeightsCL() {
+    CHECK_SUCCESS(clReleaseKernel(kernel));
+    CHECK_SUCCESS(clReleaseProgram(program));
+  }
+
+  CL *cl = nullptr;
+  // Owned:
+  cl_program program;
+  cl_kernel kernel;
+
+  std::mutex m;
+};
+
 
 static void InitializeLayerFromImage(const ImageRGBA *rgba, vector<float> *values) {
   CHECK_EQ(SIZE, rgba->width);
@@ -1262,6 +1335,11 @@ void TrainThread() {
   // Create kernels right away so that we get compilation errors early.
   ForwardLayerCL forwardlayer{&cl};
   BackwardLayerCL backwardlayer{&cl};
+  UpdateWeightsCL updateweights{&cl};
+
+  // Replacing these functions:
+  (void)BackwardsError;
+  (void)UpdateWeights;
 
   vector<string> filenames = 
     // So gratuitous to use parallel map here..
@@ -1322,10 +1400,10 @@ void TrainThread() {
   for (int round_number = 0; round_number < MAX_ROUNDS; round_number++) {
     Printf("\n\n ** ROUND %d **\n", round_number);
 
-    const float round_learning_weight = 
+    const float round_learning_rate = 
       std::min(0.9,
 	       std::max(0.05, 2 * exp(-0.2275 * (round_number + 1)/3.0)));
-    Printf("Learning rate: %.4f\n", round_learning_weight);
+    Printf("Learning rate: %.4f\n", round_learning_rate);
 
     bool is_verbose_round = 0 == ((round_number /* + 1 */) % VERBOSE_ROUND_EVERY);
     if (is_verbose_round) {
@@ -1479,7 +1557,11 @@ void TrainThread() {
     // Don't parallelize! These are all writing to the same network weights. Each
     // call is parallelized, though.
     for (int example = 0; example < examples.size(); example++) {
-      UpdateWeights(round_learning_weight, &net, stims[example], errs[example]);
+      // UpdateWeights(round_learning_rate, &net, stims[example], errs[example]);
+      // PERF! Should be keeping all the network components on GPU mem.
+      for (int layer = 0; layer < NUM_LAYERS; layer++) {
+	updateweights.Update(round_learning_rate, stims[example], errs[example], &net, layer);
+      }
     }
     update_ms += update_timer.MS();
 
