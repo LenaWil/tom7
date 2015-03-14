@@ -1,5 +1,73 @@
 
 
+C++ kernel, backwards pass uses double:
+
+Total so far 1867.6s.
+Time per round: 9.4s.
+We spent 2082.9ms in setup (0.1%),
+21245.7ms in stimulation init (1.1%),
+81313.2ms in forward layer (4.4%),
+8880.3ms in fc init (0.5%),
+80478.4ms in forward layer kernel (at most; 4.3%).
+271570.1ms in backwards pass (14.5%),
+6632.0ms in error for output layer (0.4%),
+1455624.2ms in updating weights (77.9%),
+292.0ms in writing images (0.0%),
+
+And with float it's indistinguishable:
+
+Total so far 55.0s.
+Time per round: 9.2s.
+We spent 56.4ms in setup (0.1%),
+637.2ms in stimulation init (1.2%),
+2414.0ms in forward layer (4.4%),
+299.0ms in fc init (0.5%),
+2392.3ms in forward layer kernel (at most; 4.3%).
+8091.5ms in backwards pass (14.7%),
+165.9ms in error for output layer (0.3%),
+42577.0ms in updating weights (77.4%),
+144.0ms in writing images (0.3%),
+
+With kernel running backward pass:
+
+Update weights:
+Total so far 19.4s.
+Time per round: 9.7s.
+We spent 19.4ms in setup (0.1%),
+220.6ms in stimulation init (1.1%),
+808.0ms in forward layer (4.2%),
+100.5ms in fc init (0.5%),
+799.6ms in forward layer kernel (at most; 4.1%).
+41.2ms in bc init (0.2%),
+1699.5ms in backwards pass (8.7%),
+51.7ms in error for output layer (0.3%),
+16172.1ms in updating weights (83.2%),
+184.9ms in writing images (1.0%),
+
+
+
+--------------------------------------------------
+
+
+Fixed version, 1 layer, C++ weight kernel, 4 NPP, made
+checks debug-only.
+
+Total so far 3802.0s.
+Time per round: 22.9s.
+We spent 3052.1ms in setup (0.1%),
+27249.2ms in stimulation init (0.7%),
+1466350.9ms in forward layer (38.6%),
+70522.4ms in fc init (1.9%),
+1465684.0ms in forward layer kernel (at most; 38.6%).
+0.0ms in backwards pass (0.0%),
+11854.2ms in error for output layer (0.3%),
+2214138.8ms in updating weights (58.2%),
+920.4ms in writing images (0.0%),
+
+
+--------------------------------------------------
+
+
 In total (which was 152.4s),
 spent 4.4ms in setup (0.0%),
 41.6ms in stimulation init (0.0%),
