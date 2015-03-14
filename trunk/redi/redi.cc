@@ -856,56 +856,73 @@ struct UpdateWeightsCL {
     std::tie(program, kernel) = cl->BuildOneKernel(kernel_src, "UpdateWeights");
   }
 
-  void Update(float learning_rate,
-	      const Stimulation &stim, const Errors &err, Network *net, int layer) {
-    MutexLock ml(&m);
+  struct UpdateContext {
+    UpdateContext(UpdateWeightsCL *parent, Network *net, int layer) :
+      parent(parent), net(net), layer(layer) {
+      CL *cl = parent->cl;
 
-    cl_mem layer_error = MoveMemoryToGPUConst(cl->context, cl->queue,
-					      err.error[layer]);
-    cl_mem layer_indices = MoveMemoryToGPUConst(cl->context, cl->queue,
-						net->indices[layer]);
-    cl_mem layer_values = MoveMemoryToGPUConst(cl->context, cl->queue,
-					       stim.values[layer]);
-    cl_mem layer_weights = MoveMemoryToGPU(cl->context, cl->queue,
-					   false, &net->weights[layer]);
-    cl_mem layer_biases = MoveMemoryToGPU(cl->context, cl->queue,
-					  false, &net->biases[layer]);
+      layer_indices = MoveMemoryToGPUConst(cl->context, cl->queue, net->indices[layer]);
+      layer_weights = MoveMemoryToGPU(cl->context, cl->queue, false, &net->weights[layer]);
+      layer_biases = MoveMemoryToGPU(cl->context, cl->queue, false, &net->biases[layer]);
+    }
 
-    CHECK_SUCCESS(clSetKernelArg(kernel, 0, sizeof(cl_float), (void *)&learning_rate));
-    CHECK_SUCCESS(clSetKernelArg(kernel, 1, sizeof(cl_mem), (void *)&layer_error));
-    CHECK_SUCCESS(clSetKernelArg(kernel, 2, sizeof(cl_mem), (void *)&layer_indices));
-    CHECK_SUCCESS(clSetKernelArg(kernel, 3, sizeof(cl_mem), (void *)&layer_values));
-    CHECK_SUCCESS(clSetKernelArg(kernel, 4, sizeof(cl_mem), (void *)&layer_weights));
-    CHECK_SUCCESS(clSetKernelArg(kernel, 5, sizeof(cl_mem), (void *)&layer_biases));
+    void Update(float learning_rate, const Stimulation &stim, const Errors &err, int layer) {
+      CL *cl = parent->cl;
 
-    size_t global_work_offset[] = { 0 };
-    size_t global_work_size[] = { (size_t)NUM_NODES };
-    CHECK(CL_SUCCESS == clEnqueueNDRangeKernel(cl->queue, kernel,
-					       // work dimensions
-					       1, 
-					       // global work offset
-					       global_work_offset,
-					       // global work size
-					       global_work_size, 
-					       // local work size
-					       nullptr, 
-					       // no wait list
-					       0, nullptr, 
-					       // no event
-					       nullptr));
-    clFinish(cl->queue);
-    CHECK_SUCCESS(clReleaseMemObject(layer_error));
-    CHECK_SUCCESS(clReleaseMemObject(layer_indices));
-    CHECK_SUCCESS(clReleaseMemObject(layer_values));
-    
-    CopyBufferFromGPUTo(cl->queue, layer_weights, &net->weights[layer]);
-    // TODO PERF: Could do biases on CPU to parallelize?
-    CopyBufferFromGPUTo(cl->queue, layer_biases, &net->biases[layer]);
-    clFinish(cl->queue);
+      // Really can't run these in parallel because of concurrent writes to net.
+      MutexLock ml(&parent->m);
 
-    CHECK_SUCCESS(clReleaseMemObject(layer_weights));
-    CHECK_SUCCESS(clReleaseMemObject(layer_biases));
-  }
+      cl_mem layer_error = MoveMemoryToGPUConst(cl->context, cl->queue,
+						err.error[layer]);
+      cl_mem layer_values = MoveMemoryToGPUConst(cl->context, cl->queue,
+						 stim.values[layer]);
+
+      CHECK_SUCCESS(clSetKernelArg(parent->kernel, 0, sizeof(cl_float), (void *)&learning_rate));
+      CHECK_SUCCESS(clSetKernelArg(parent->kernel, 1, sizeof(cl_mem), (void *)&layer_error));
+      CHECK_SUCCESS(clSetKernelArg(parent->kernel, 2, sizeof(cl_mem), (void *)&layer_indices));
+      CHECK_SUCCESS(clSetKernelArg(parent->kernel, 3, sizeof(cl_mem), (void *)&layer_values));
+      CHECK_SUCCESS(clSetKernelArg(parent->kernel, 4, sizeof(cl_mem), (void *)&layer_weights));
+      CHECK_SUCCESS(clSetKernelArg(parent->kernel, 5, sizeof(cl_mem), (void *)&layer_biases));
+
+      size_t global_work_offset[] = { 0 };
+      size_t global_work_size[] = { (size_t)NUM_NODES };
+      CHECK(CL_SUCCESS == clEnqueueNDRangeKernel(cl->queue, parent->kernel,
+						 // work dimensions
+						 1, 
+						 // global work offset
+						 global_work_offset,
+						 // global work size
+						 global_work_size, 
+						 // local work size
+						 nullptr, 
+						 // no wait list
+						 0, nullptr, 
+						 // no event
+						 nullptr));
+      clFinish(cl->queue);
+      CHECK_SUCCESS(clReleaseMemObject(layer_error));
+      CHECK_SUCCESS(clReleaseMemObject(layer_values));
+    }
+
+    void Finish() {
+      CL *cl = parent->cl;
+      CopyBufferFromGPUTo(cl->queue, layer_weights, &net->weights[layer]);
+      CopyBufferFromGPUTo(cl->queue, layer_biases, &net->biases[layer]);
+      clFinish(cl->queue);
+    }
+
+    ~UpdateContext() {
+      CHECK_SUCCESS(clReleaseMemObject(layer_indices));
+      CHECK_SUCCESS(clReleaseMemObject(layer_weights));
+      CHECK_SUCCESS(clReleaseMemObject(layer_biases));
+    }
+
+    cl_mem layer_indices, layer_weights, layer_biases;
+    UpdateWeightsCL *parent = nullptr;
+    Network *net;
+    const int layer;
+    double kernel_ms = 0.0;
+  };
 
   ~UpdateWeightsCL() {
     CHECK_SUCCESS(clReleaseKernel(kernel));
@@ -1556,12 +1573,22 @@ void TrainThread() {
     Timer update_timer;
     // Don't parallelize! These are all writing to the same network weights. Each
     // call is parallelized, though.
-    for (int example = 0; example < examples.size(); example++) {
-      // UpdateWeights(round_learning_rate, &net, stims[example], errs[example]);
-      // PERF! Should be keeping all the network components on GPU mem.
-      for (int layer = 0; layer < NUM_LAYERS; layer++) {
-	updateweights.Update(round_learning_rate, stims[example], errs[example], &net, layer);
+
+    // for (int example = 0; example < examples.size(); example++) {
+    //   UpdateWeights(round_learning_rate, &net, stims[example], errs[example]);
+    // }
+
+    for (int layer = 0; layer < NUM_LAYERS; layer++) {
+      UpdateWeightsCL::UpdateContext uc(&updateweights, &net, layer);
+
+      // PERF Faster to try to run these in parallel (maybe parallelizing memory traffic
+      // with kernel execution -- but we can't run the kernels at the same time).
+      for (int example = 0; example < examples.size(); example++) {
+	uc.Update(round_learning_rate, stims[example], errs[example], layer);
       }
+      
+      // Must call this to copy weights back!
+      uc.Finish();
     }
     update_ms += update_timer.MS();
 
@@ -1571,6 +1598,7 @@ void TrainThread() {
 
     double total_ms = total_timer.MS();
     auto Pct = [total_ms](double d) { return (100.0 * d) / total_ms; };
+    double denom = round_number + 1;
     Printf("Total so far %.1fs.\n"
 	   "Time per round: %.1fs.\n"
 	   "We spent %.1fms in setup (%.1f%%),\n"
@@ -1584,17 +1612,17 @@ void TrainThread() {
 	   "%.1fms in updating weights (%.1f%%),\n"
 	   "%.1fms in writing images (%.1f%%),\n",
 	   total_ms / 1000.0,
-	   (total_ms / 1000.0) / (round_number + 1),
+	   (total_ms / 1000.0) / denom,
 	   setup_ms, Pct(setup_ms),
 	   stimulation_init_ms, Pct(stimulation_init_ms),
-	   forward_ms, Pct(forward_ms),
-	   fc_init_ms, Pct(fc_init_ms),
-	   kernel_ms, Pct(kernel_ms),
-	   bc_init_ms, Pct(bc_init_ms),
-	   backward_ms, Pct(backward_ms),
-	   output_error_ms, Pct(output_error_ms),
-	   update_ms, Pct(update_ms),
-	   writing_ms, Pct(writing_ms));
+	   forward_ms / denom, Pct(forward_ms),
+	   fc_init_ms / denom, Pct(fc_init_ms),
+	   kernel_ms / denom, Pct(kernel_ms),
+	   bc_init_ms / denom, Pct(bc_init_ms),
+	   backward_ms / denom, Pct(backward_ms),
+	   output_error_ms / denom, Pct(output_error_ms),
+	   update_ms / denom, Pct(update_ms),
+	   writing_ms / denom, Pct(writing_ms));
 
   }
 
