@@ -238,23 +238,6 @@ int Attempt (ArcFour *rc, const vector<string> &dict) {
   }
 
   return 1;
-
-#if 0
-  for (int idx = 0; idx < sorted.size(); idx++) {
-
-
-    if (idx % 100 == 0) {
-      printf("Portmantout is %d chars, working on [%s].c_str()");
-
-    }
-    const string &thisword = sorted[i]->w;
-    // If the word is already in the portmantout, then we are done.
-    if (portmantout.find(thisword) == string::npos) {
-      already_substr++;
-    }
-
-  }
-#endif
 }
 
 int main () {
@@ -264,40 +247,5 @@ int main () {
   
   Attempt(&rc, dict);
 
-#if 0
-  vector<const Word *> sorted;
-  for (const Word &word : words) sorted.push_back(&word);
-  std::sort(sorted.begin(), sorted.end(),
-	    [](const Word *l, const Word *r) {
-	      return l->score < r->score;
-	    });
-  for (const Word *word : sorted) {
-    printf("%d -> %s -> %d\n", word->accessibility, word->w.c_str(), word->exitability);
-  }
-#endif
-
   return 0;
 }
-
-#if 0
-  int starts[26] = {};
-  int ends[26] = {};
-
-  for (const string &s : dict) {
-    // Should strip.
-    if (s.empty()) continue;
-    int st = s[0] - 'a';
-    int en = s[s.size() - 1] - 'a';
-    if (st < 0 || st >= 26 ||
-	en < 0 || en >= 26) {
-      printf("Bad: [%s]\n", s.c_str());
-    } else {
-      starts[st]++;
-      ends[en]++;
-    }
-  }
-
-  for (int i = 0; i < 26; i++) {
-    printf("%6d   %c %6d\n", starts[i], 'a' + i, ends[i]);
-  }
-#endif
