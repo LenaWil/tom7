@@ -1,7 +1,7 @@
 
-default: portmantout.exe
+default: portmantout.exe join.exe paper.pdf
 
-all: portmantout.exe
+all: portmantout.exe join.exe paper.pdf
 
 # -fno-strict-aliasing
 CXXFLAGS=-Wall -Wno-deprecated -Wno-sign-compare -I/usr/local/include -I/usr/include -ISDL/include -std=c++11 
@@ -33,7 +33,14 @@ OBJECTS=${UTILOBJECTS}
 # without static, can't find lz or lstdcxx maybe?
 LFLAGS= -m64 -Wl,--subsystem,console $(CLLIBS) -lz $(OPT) $(FLTO) $(PROFILE) -static
 
+paper.pdf : paper.tex
+	pdflatex paper.tex
+	pdflatex paper.tex
+
 portmantout.exe : $(OBJECTS) $(SDLOBJECTS) portmantout.o
+	$(CXX) $^ -o $@ $(LFLAGS)
+
+join.exe : $(OBJECTS) $(SDLOBJECTS) join.o
 	$(CXX) $^ -o $@ $(LFLAGS)
 
 clean :

@@ -1,0 +1,8 @@
+39419 particles,
+600664 characters
+
+skipping words that are already substrings (expensive):
+
+38324 particles,
+577645 characters (61.99% efficiency)
+16387 words skipped
