@@ -33,9 +33,12 @@ OBJECTS=${UTILOBJECTS}
 # without static, can't find lz or lstdcxx maybe?
 LFLAGS= -m64 -Wl,--subsystem,console $(CLLIBS) -lz $(OPT) $(FLTO) $(PROFILE) -static
 
-paper.pdf : paper.tex
+table-two.tex : join.exe
+	./join.exe
+
+paper.pdf : paper.tex table-two.tex
 	pdflatex paper.tex
-	pdflatex paper.tex
+#	pdflatex paper.tex
 
 portmantout.exe : $(OBJECTS) $(SDLOBJECTS) portmantout.o
 	$(CXX) $^ -o $@ $(LFLAGS)
