@@ -3,6 +3,11 @@
 
 #include "arcfour.h"
 #include <cmath>
+#include <cstdint>
+
+using uint8 = uint8_t;
+using uint64 = uint64_t;
+using uint32 = uint32_t;
 
 // Caller owns new-ly allocated pointer.
 ArcFour *Substream(ArcFour *rc, int n) {
