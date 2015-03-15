@@ -70,7 +70,6 @@ int Attempt (ArcFour *rc, const vector<string> &dict) {
     if (it == bwd.end()) return empty;
     else return it->second;
   };
-  (void)Backward;
 
   for (Word &word : words) {
     for (int i = 1; i <= word.w.length(); i++) {
