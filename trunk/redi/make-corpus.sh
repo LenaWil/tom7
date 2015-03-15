@@ -76,6 +76,16 @@ make fetcher.exe
 # ./fetcher.exe pyramids
 # ./fetcher.exe iceberg
 
-./fetcher.exe capitol &
-./fetcher.exe "jack o lantern" &
-./fetcher.exe "tennis racket"
+# ./fetcher.exe capitol &
+# ./fetcher.exe "jack o lantern" &
+# ./fetcher.exe "tennis racket"
+
+# ./fetcher.exe beer &
+# ./fetcher.exe bumblebee &
+# ./fetcher.exe grapefruit &
+# ./fetcher.exe park &
+# ./fetcher.exe architecture
+
+./fetcher.exe waterslide &
+./fetcher.exe tarantula &
+./fetcher.exe "ferris wheel"

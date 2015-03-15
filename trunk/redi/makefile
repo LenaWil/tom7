@@ -4,12 +4,13 @@ default: redi.exe fetcher.exe resample.exe
 all: redi.exe fetcher.exe
 
 # -fno-strict-aliasing
-CXXFLAGS=-Wall -Wno-deprecated -Wno-sign-compare -I/usr/local/include -ISDL/include -std=c++11
+CXXFLAGS=-Wall -Wno-deprecated -Wno-sign-compare -I/usr/local/include -I/usr/include -ISDL/include -std=c++11 
 OPT=-O2
 
 # for 64 bits on windows
 CXX=x86_64-w64-mingw32-g++
 CC=x86_64-w64-mingw32-g++
+PROTOC=protoc
 
 MLTON=/c/mlton/bin/mlton.bat
 
@@ -17,6 +18,12 @@ AMD_ARCH=x86_64
 # AMDSDK="/c/Program Files (x86)/AMD APP SDK"
 AMDSDK="/c/Program Files (x86)/AMD APP SDK/2.9"
 
+# redi.pb.cc redi.pb.h: redi.proto
+#	$(PROTOC) $< --cpp_out=.
+# 
+# %.pb.h: %.proto
+# 	$(PROTOC) $< --cpp_out=.
+# 
 SDLARCH=x64
 SDLOPATH=SDL/build
 SDLUTILOBJECTS=../cc-lib/sdl/sdlutil.o ../cc-lib/sdl/font.o
@@ -32,9 +39,10 @@ UTILOBJECTS=../cc-lib/util.o ../cc-lib/arcfour.o ../cc-lib/base/stringprintf.o .
 
 CPPFLAGS= -DPSS_STYLE=1 -DDUMMY_UI -DHAVE_ASPRINTF -Wno-write-strings -m64 $(OPT) -D__MINGW32__ -DHAVE_ALLOCA -DNOWINSTUFF $(INCLUDES) $(PROFILE) $(FLTO) $(CLINCLUDES) -I ../cc-lib/ --std=c++11
 
-%.o : %.cc clutil.h threadutil.h randutil.h constants.h makefile
+%.o : %.cc clutil.h threadutil.h randutil.h constants.h makefile redi.pb.h
 	@$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
 	@echo -n "."
+
 
 OBJECTS=${UTILOBJECTS}
 

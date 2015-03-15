@@ -163,7 +163,8 @@ struct ResamplerCL {
 };
 
 int main(int argc, char* argv[])  {
-  Timer setup_timer;
+  ArcFour rc(__func__);
+  rc.Discard(2000);
 
   // Reports 1, currently, ugh.
   printf("[CPU] Has %d hardware concurrency\n", std::thread::hardware_concurrency());
@@ -251,10 +252,15 @@ int main(int argc, char* argv[])  {
 
   {
     std::mutex m, output;
+    vector<uint8> seeds;
+    seeds.reserve(images.size());
+    for (int i = 0; i < images.size(); i++) seeds.push_back(rc.Byte());
+
     int num = (int)images.size();
     int done = 0;
-    std::function<void(const vector<uint8> &v)> ResampleSave =
-      [&resampler1, &resampler2, &m, &output, num, &done](const vector<uint8> &v) {
+    auto ResampleSave =
+      [&resampler1, &resampler2, &m, &output, num, &done, &seeds](int i, const vector<uint8> &v) {
+      const uint8 seed = seeds[i];
       vector<uchar> newimg = resampler1.Resample(v);
       vector<uchar> newimg2 = resampler2.Resample(newimg);
       
@@ -265,7 +271,12 @@ int main(int argc, char* argv[])  {
 	done++;
       }
 
-      SaveImage(StringPrintf("corpus256/img%d.png", local_done), newimg2, 256);
+      // About 4% of corpus goes to held-out set.
+      if (seed < 11) {
+	SaveImage(StringPrintf("eval256/img%d.png", local_done), newimg2, 256);
+      } else {
+	SaveImage(StringPrintf("corpus256/img%d.png", local_done), newimg2, 256);
+      }
 
       if (local_done % 10 == 0) {
 	MutexLock ml(&output);
@@ -274,7 +285,7 @@ int main(int argc, char* argv[])  {
       }
     };
 
-    ParallelApp(images, ResampleSave, 8);
+    ParallelAppi(images, ResampleSave, 12);
   }
 
   CHECK_SUCCESS(clReleaseCommandQueue(command_queue));

@@ -21,9 +21,9 @@
 // data structures. Return value of function is ignored.
 //
 // TODO: Implement this in tems of ParallelComp
-template<class T>
+template<class T, class F>
 void ParallelAppi(const vector<T> &vec, 
-		  std::function<void(int i, const T&)> &f,
+		  const F &f,
 		  int max_concurrency) {
   // TODO: XXX This cast may really be unsafe, since these vectors
   // could exceed 32 bit ints in practice.
