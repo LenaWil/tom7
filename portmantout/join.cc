@@ -19,42 +19,105 @@ struct Word;
 using smap = unordered_map<string, vector<Word *>>;
 using sset = unordered_set<string>;
 
+struct Word {
+  explicit Word(const string &s) : w(s) {}
+  const string w;
+  sset prefixes;
+  sset suffixes;
+};
+
 std::mutex print_mutex;
 #define Printf(fmt, ...) do {		\
   MutexLock Printf_ml(&print_mutex);		\
   printf(fmt, ##__VA_ARGS__);			\
   } while (0);
 
-struct Word {
-  explicit Word(const string &s) : w(s) {}
-  const string w;
-  int used = 0;
-  int accessibility = 0;
-  int exitability = 0;
-  int score = 0;
-  sset prefixes;
-  sset suffixes;
-};
+int main () {
+  vector<string> dict = Util::ReadFileToLines("wordlist.asc");
+  printf("%d words.\n", (int)dict.size());
+  vector<string> particles = Util::ReadFileToLines("particles.txt");
+  printf("%d particles.\n", (int)particles.size());
+  ArcFour rc("portmantout");
 
-int Attempt (ArcFour *rc, const vector<string> &dict) {
-  vector<Word> words;
   int total_letters = 0;
-  int max_length = 0;
-  words.reserve(dict.size());
-  for (const string &s : dict) {
-    // Should strip.
-    if (s.empty()) continue;
-    for (char c : s) {
-      if (c < 'a' || c > 'z') {
-	printf("Bad: [%s]\n", s.c_str());
+  for (const string &w : dict) {
+    total_letters += w.size();
+  }
+  
+  // Build a complete graph telling us how to efficiently get from the
+  // source letter to destination, where both source and destination
+  // are in [a-z]. We'll fill in the diagonal too, but we won't need
+  // to use it.
+
+  struct Path {
+    Path() {}
+    bool has = false;
+    // Must start with src character and end with dst character.
+    string word;
+  };
+
+  // Note that source letter will be ending a particle we're trying
+  // to join, and dst will be beginning one.
+  // matrix[src][dst]
+  vector<vector<Path>> matrix(26, vector<Path>(26, Path()));
+
+  auto SaveTable = [&matrix](const string &filename) {
+    FILE *f = fopen(filename.c_str(), "wb");
+    fprintf(f, "<!doctype html>\n"
+	    "<style> td { padding: 0 4px } body { font: 13px Verdana } </style>\n"
+	    "<table>");
+    
+    fprintf(f, "<tr><td>&nbsp;</td> ");
+    for (int i = 0; i < 26; i++)
+      fprintf(f, "<td>%c</td>", 'a' + i);
+    fprintf(f, " </tr>\n");
+    
+    for (int src = 0; src < 26; src++) {
+      fprintf(f, "<tr><td>%c</td> ", 'a' + src);
+      for (int dst = 0; dst < 26; dst++) {
+	const Path &p = matrix[src][dst];
+	if (p.has) {
+	  fprintf(f, "<td>%s</td>", p.word.c_str());
+	} else {
+	  fprintf(f, "<td>&mdash;</td>");
+	}
+      }
+      fprintf(f, " </tr>\n");
+    }
+
+    fprintf(f, "</table>\n");
+    fclose(f);
+  };
+
+  int entries = 0;
+  for (const string &w : dict) {
+    if (w.size() > 1) {
+      int st = w[0] - 'a';
+      int en = w[w.size() - 1] - 'a';
+      if (st < 0 || st >= 26 ||
+	  en < 0 || en >= 26) {
+	printf("Bad: %s\n", w.c_str());
+	abort();
+      }
+
+      // Is this a single-word path better than we already have?
+      Path *p = &matrix[st][en];
+      if (!p->has) {
+	p->has = true;
+	p->word = w;
+	entries++;
+      } else if (w.size() < p->word.size()) {
+	p->word = w;
       }
     }
-    words.push_back(Word{s});
-    total_letters += s.size();
-    max_length = std::max((int)s.size(), max_length);
   }
 
-  printf("Total size %d, max length %d\n", total_letters, max_length);
+  printf("We were able to trivially fill %d entries (%.2f%%)\n",
+	 entries, (entries * 100.0) / (26 * 26));
+
+  SaveTable("table-trivial.html");
+
+  // Now iteratively fill.
 
   smap fwd;
   smap bwd;
@@ -64,12 +127,18 @@ int Attempt (ArcFour *rc, const vector<string> &dict) {
     if (it == fwd.end()) return empty;
     else return it->second;
   };
+  (void)Forward;
 
   auto Backward = [&empty, &bwd](const string &s) -> const vector<Word *> & {
     auto it = bwd.find(s);
     if (it == bwd.end()) return empty;
     else return it->second;
   };
+  (void)Backward;
+
+  vector<Word> words;
+  words.reserve(dict.size());
+  for (const string &s : dict) words.push_back(Word{s});
 
   for (Word &word : words) {
     for (int i = 1; i <= word.w.length(); i++) {
@@ -82,221 +151,65 @@ int Attempt (ArcFour *rc, const vector<string> &dict) {
     }
   }
   printf("Built prefix/suffix map.\n");
-
-  Timer onepass;
-  for (Word &word : words) {
-    word.accessibility = 0;
-    word.exitability = 0;
-  }
-  for (Word &word : words) {
-    // If there's a (forward) path to a word, increment its accessibility.
+  
+  // Try two-word phrases.
+  // Parallelize!
+  for (const Word &word : words) {
+    if (word.w.size() <= 1) continue;
+    // PERF check if we already have the whole src covered?
+    int st = word.w[0] - 'a';
     for (const string &suffix : word.suffixes) {
-      const vector<Word *> &nexts = Forward(suffix);
-      word.exitability += nexts.size();
-      for (Word *next : nexts) {
-	next->accessibility++;
+      for (const Word *other : Forward(suffix)) {
+	int en = other->w[other->w.size() - 1] - 'a';
+	Path *p = &matrix[st][en];
+	int size = word.w.size() - suffix.size() + other->w.size();
+	if (!p->has) {
+	  p->has = true;
+	  p->word = word.w.substr(0, word.w.size() - suffix.size()) + other->w;
+	  entries++;
+	} else if (size < p->word.size()) {
+	  printf("[%s / %s / %s] Improved %s to ", 
+		 word.w.c_str(), suffix.c_str(), other->w.c_str(),
+		 p->word.c_str());
+	  p->word = word.w.substr(0, word.w.size() - suffix.size()) + other->w;
+	  printf("%s!\n", p->word.c_str());
+	}
       }
     }
   }
-  for (Word &word : words) {
-    word.score = word.score + word.exitability;
-  }
 
-  double op_ms = onepass.MS();
-  printf("Scoring took %fms\n", op_ms);
+  printf("With two word phrases, %d entries (%.2f%%)\n",
+	 entries, (entries * 100.0) / (26 * 26));
+
+  SaveTable("table-two.html");
+
   
-  vector<Word *> sorted;
-  sorted.reserve(words.size());
-  for (Word &word : words) sorted.push_back(&word);
-  std::sort(sorted.begin(), sorted.end(),
-	    [](const Word *l, const Word *r) {
-	      return l->score < r->score;
-	    });
+  string portmantout = particles[0];
+  for (int i = 1; i < particles.size(); i++) {
+    CHECK(portmantout.size() > 0);
+    const string &next = particles[i];
+    CHECK(next.size() > 0);
+    int src = portmantout[portmantout.size() - 1] - 'a';
+    int dst = next[0] - 'a';
+    CHECK(matrix[src][dst].has);
+    const string &bridge = matrix[src][dst].word;
 
-  deque<Word*> todo(sorted.begin(), sorted.end());
-
-  int already_substr = 0;
-  string particle = "portmanteau";
-  // Hopefully it's actually smaller than the whole dictionary...
-  particle.reserve(total_letters * 2);
-  // Okay, now do them from hardest to easiest.
-
-
-  auto GetStartWord = [&todo]() -> Word * {
-    while (!todo.empty()) {
-      Word *w = todo.front();
-      todo.pop_front();
-      if (w->used == 0) return w;
-    }
-    LOG(FATAL) << "Uh, there are no more words.";
-    return nullptr;
-  };
-
-  int num_done = 0;
-  int num_left = words.size();
-
-  Timer running;
-
-  vector<string> particles;
-
-  auto UseWord = [&num_left, &num_done](Word *w) {
-    if (!w->used) {
-      num_done++;
-      num_left--;
-    }
-    w->used++;
-  };
-
-  Timer loop_timer;
-  int particle_total = 0;
-  while (num_left > 0) {
-    // Mark words that are substrings?
-    // Never need words in TODO that are already used.
-    deque<Word*> todo_new;
-    for (Word *w : todo) {
-      if (w->used == 0) {
-	if (particle.find(w->w, std::max(0, 
-					 (int)particle.size() - max_length * 2)) != string::npos) {
-	  already_substr++;
-	  UseWord(w);
-	} else {
-	  todo_new.push_back(w);
-	}
-      }
-    }
-    todo = std::move(todo_new);
-
-    for (int len = std::min(max_length, (int)particle.size()); len > 0; len--) {
-      string suffix = particle.substr(particle.size() - len, string::npos);
-      // printf("Try suffix [%s].\n", suffix.c_str());
-      const vector<Word *> &nexts = Forward(suffix);
-      for (Word *maybe : nexts) {
-	if (maybe->used == 0) {
-	  UseWord(maybe);
-	  // This is maybe fastest way to add new suffix:
-	  particle.resize(particle.size() - suffix.size());
-	  particle += maybe->w;
-	  // XXX remove it from exits?
-	  if (num_done % 100 == 0) {
-	    double per = loop_timer.MS() / num_done;
-	    printf("[%6d parts, %6dms per word, %6ds left, %6d skip] %s\n",
-		   (int)particles.size(),
-		   (int)per,
-		   (int)((num_left * per) / 1000.0),
-		   already_substr,
-		   maybe->w.c_str());
-	  }
-	  goto success;
-	}
-      }
-    }
-
-    // PERF good opportunity to cull words, either because they
-    // have already been used, or because they appear in the most
-    // recent particle.
-
-    if (particles.size() % 100 == 0) {
-      printf("There were no new continuations for [%s].. (%d done, %d left).\n"
-	     "Already substr: %d\n"
-	     "Took %.1fs\n",
-	     particle.c_str(), num_done, num_left,
-	     already_substr,
-	     running.MS() / 1000.0);
-    }
-    particles.push_back(particle);
-    particle_total += particle.size();
-    {
-      Word *restart = GetStartWord();
-      UseWord(restart);
-      particle = restart->w;
-    }
-    continue;
-
-    success:;
+    // Chop one char.
+    portmantout.resize(portmantout.size() - 1);
+    portmantout += bridge;
+    // And again.
+    portmantout.resize(portmantout.size() - 1);
+    portmantout += next;
   }
-  particles.push_back(particle);
-  particle_total += particle.size();
-
-  printf("Success! But I needed %d separate portmanteaus :(\n"
-	 "And that was %d characters! (of %d, %.2f%% of the size)\n"
-	 "I skipped %d words that were already substrs.\n"
-	 "Took %.1fs\n",
-	 (int)particles.size(),
-	 particle_total, total_letters, (100.0 * particle_total / total_letters),
-	 already_substr,
-	 running.MS() / 1000.0);
-
+  
+  printf("All done! The portmantout is assembled, of size %d. (%.1f%% efficiency)\n",
+	 (int)portmantout.size(),
+	 (portmantout.size() * 100.0) / total_letters);
   {
-    FILE *f = fopen("particles.txt", "wb");
-    CHECK(f != nullptr);
-    for (const string &p : particles) {
-      fprintf(f, "%s\n", p.c_str());
-    }
+    FILE *f = fopen("portmantout.txt", "wb");
+    fprintf(f, "%s\n", portmantout.c_str());
     fclose(f);
-    printf("Wrote particles.txt.\n");
   }
-
-  return 1;
-
-#if 0
-  for (int idx = 0; idx < sorted.size(); idx++) {
-
-
-    if (idx % 100 == 0) {
-      printf("Portmantout is %d chars, working on [%s].c_str()");
-
-    }
-    const string &thisword = sorted[i]->w;
-    // If the word is already in the portmantout, then we are done.
-    if (portmantout.find(thisword) == string::npos) {
-      already_substr++;
-    }
-
-  }
-#endif
-}
-
-int main () {
-  vector<string> dict = Util::ReadFileToLines("wordlist.asc");
-  printf("%d words.\n", (int)dict.size());
-  ArcFour rc("portmantout");
-  
-  Attempt(&rc, dict);
-
-#if 0
-  vector<const Word *> sorted;
-  for (const Word &word : words) sorted.push_back(&word);
-  std::sort(sorted.begin(), sorted.end(),
-	    [](const Word *l, const Word *r) {
-	      return l->score < r->score;
-	    });
-  for (const Word *word : sorted) {
-    printf("%d -> %s -> %d\n", word->accessibility, word->w.c_str(), word->exitability);
-  }
-#endif
 
   return 0;
 }
-
-#if 0
-  int starts[26] = {};
-  int ends[26] = {};
-
-  for (const string &s : dict) {
-    // Should strip.
-    if (s.empty()) continue;
-    int st = s[0] - 'a';
-    int en = s[s.size() - 1] - 'a';
-    if (st < 0 || st >= 26 ||
-	en < 0 || en >= 26) {
-      printf("Bad: [%s]\n", s.c_str());
-    } else {
-      starts[st]++;
-      ends[en]++;
-    }
-  }
-
-  for (int i = 0; i < 26; i++) {
-    printf("%6d   %c %6d\n", starts[i], 'a' + i, ends[i]);
-  }
-#endif
