@@ -12,6 +12,7 @@
 #include "arcfour.h"
 #include "randutil.h"
 #include "base/logging.h"
+#include "base/stringprintf.h"
 
 using namespace std;
 
@@ -43,6 +44,7 @@ int main () {
   for (const string &w : dict) {
     total_letters += w.size();
   }
+  printf("%d total letters.\n", total_letters);
   
   // Build a complete graph telling us how to efficiently get from the
   // source letter to destination, where both source and destination
@@ -62,31 +64,70 @@ int main () {
   vector<vector<Path>> matrix(26, vector<Path>(26, Path()));
 
   auto SaveTable = [&matrix](const string &filename) {
-    FILE *f = fopen(filename.c_str(), "wb");
-    fprintf(f, "<!doctype html>\n"
-	    "<style> td { padding: 0 4px } body { font: 13px Verdana } </style>\n"
-	    "<table>");
-    
-    fprintf(f, "<tr><td>&nbsp;</td> ");
-    for (int i = 0; i < 26; i++)
-      fprintf(f, "<td>%c</td>", 'a' + i);
-    fprintf(f, " </tr>\n");
-    
-    for (int src = 0; src < 26; src++) {
-      fprintf(f, "<tr><td>%c</td> ", 'a' + src);
-      for (int dst = 0; dst < 26; dst++) {
-	const Path &p = matrix[src][dst];
-	if (p.has) {
-	  fprintf(f, "<td>%s</td>", p.word.c_str());
-	} else {
-	  fprintf(f, "<td>&mdash;</td>");
-	}
-      }
+    {
+      FILE *f = fopen(StringPrintf("%s.html", filename.c_str()).c_str(), "wb");
+      fprintf(f, "<!doctype html>\n"
+	      "<style> td { padding: 0 4px } body { font: 13px Verdana } </style>\n"
+	      "<table>");
+
+      fprintf(f, "<tr><td>&nbsp;</td> ");
+      for (int i = 0; i < 26; i++)
+	fprintf(f, "<td>%c</td>", 'a' + i);
       fprintf(f, " </tr>\n");
+
+      for (int src = 0; src < 26; src++) {
+	fprintf(f, "<tr><td>%c</td> ", 'a' + src);
+	for (int dst = 0; dst < 26; dst++) {
+	  const Path &p = matrix[src][dst];
+	  if (p.has) {
+	    fprintf(f, "<td>%s</td>", p.word.c_str());
+	  } else {
+	    fprintf(f, "<td>&mdash;</td>");
+	  }
+	}
+	fprintf(f, " </tr>\n");
+      }
+
+      fprintf(f, "</table>\n");
+      fclose(f);
     }
 
-    fprintf(f, "</table>\n");
-    fclose(f);
+    {
+      FILE *f = fopen(StringPrintf("%s.tex", filename.c_str()).c_str(), "wb");
+
+      auto Cols = [&f, &matrix](int col_start, int col_end) {
+	fprintf(f, "\\noindent \\begin{tabular}{c");
+	for (int i = col_start; i < col_end; i++)
+	  fprintf(f, "l");
+	fprintf(f, "}\n");
+
+	fprintf(f, " --- ");
+	for (int i = col_start; i < col_end; i++)
+	  fprintf(f, "& {\\bf %c} ", 'a' + i);
+	fprintf(f, "\\\\\n");
+
+	for (int src = 0; src < 26; src++) {
+	  fprintf(f, "{\\bf %c} ", 'a' + src);
+	  for (int dst = col_start; dst < col_end; dst++) {
+	    const Path &p = matrix[src][dst];
+	    if (p.has) {
+	      fprintf(f, " & %s ", p.word.c_str());
+	    } else {
+	      fprintf(f, " & m--- ");
+	    }
+	  }
+	  fprintf(f, " \\\\\n");
+	}
+
+	fprintf(f, "\\end{tabular}");
+      };
+
+      Cols(0, 13);
+      fprintf(f, "\n\n");
+      Cols(13, 26);
+      
+      fclose(f);
+    }
   };
 
   int entries = 0;
@@ -115,7 +156,7 @@ int main () {
   printf("We were able to trivially fill %d entries (%.2f%%)\n",
 	 entries, (entries * 100.0) / (26 * 26));
 
-  SaveTable("table-trivial.html");
+  SaveTable("table-trivial");
 
   // Now iteratively fill.
 
@@ -181,7 +222,7 @@ int main () {
   printf("With two word phrases, %d entries (%.2f%%)\n",
 	 entries, (entries * 100.0) / (26 * 26));
 
-  SaveTable("table-two.html");
+  SaveTable("table-two");
 
   
   string portmantout = particles[0];
@@ -208,6 +249,22 @@ int main () {
   {
     FILE *f = fopen("portmantout.txt", "wb");
     fprintf(f, "%s\n", portmantout.c_str());
+    fclose(f);
+  }
+
+  {
+    FILE *f = fopen("portmantout.tex", "wb");
+    int col = 0;
+    static constexpr int MAX_COLUMN = 255;
+    for (char c : portmantout) {
+      fprintf(f, "%c", c);
+      col++;
+      if (col == MAX_COLUMN) {
+	fprintf(f, "\n");
+	col = 0;
+      }
+    }
+    fprintf(f, "\n");
     fclose(f);
   }
 

@@ -1,5 +1,5 @@
 \documentclass{article}
-\usepackage[top=0.4in, left=0.4in, right=0.4in]{geometry}
+\usepackage[top=0.25in, left=0.25in, right=0.25in, bottom=0.25in]{geometry}
 
 \usepackage{setspace}
 \usepackage{seqsplit}
@@ -26,27 +26,22 @@
 \newcommand\citef[1]{\addtocounter{footnote}{1}\footnotetext{\cite{#1}}\ensuremath{^{\mbox{\footnotesize [\thefootnote]}}}}
 \begin{document} 
 
-\title{Portmantout}
+\title{The Portmantout}
 \author{Dr.~Tom~Murphy~VII~Ph.D.\thanks{
-WIKIPEDIA!!!!
+Copyright \copyright\ 2015 the Regents of the Wikiplia
+Foundation. Appears in SIGBOVIK 2015 with the {\bf etaoin shrdlu} of the
+Association for Computational Heresy; {\em IEEEEEE!} press,
+Verlag-Verlag volume no.~0x40-2A.
+BTC~0.00
 }
 }
 
 \renewcommand\>{$>$}
 \newcommand\<{$<$}
 
-\date{15 Mar 2015}
+\date{1 April 2015}
 
 \maketitle
-
-\begin{abstract}
-Long word ok cool
-\end{abstract}
-
-\vspace{1em}
-{\noindent \small {\bf Keywords}:
- super
-}
 
 \newcommand\foo[1]{%
   \begin{minipage}{7.6in}
@@ -59,7 +54,10 @@ Long word ok cool
 A {\em portmanteau}, henceforewith non-italicized, is a
 stringin'-together of two words to make a new word, like
 ``brogrammer'' ({\sf brother} + {\sf programmer}; a programmer who is
-your brother), or (other example).
+your brother), ``hupset'' ({\sf hungry} + {\sf upset}; a bit more
+passive than hangry), or ``webinar'' ({\sf web} + {\sf nerd}).
+Portmanteaus were invented by Lewis Carroll, the Jabberwock of
+wordplay.
 
 It is natural to think of generalizations of the portmanteau, such as
 the {\em portmantrois},\!\footnote{Graham Smith, personal
@@ -71,17 +69,206 @@ the {\em portmantrois},\!\footnote{Graham Smith, personal
 a programmer who is your brother and a mermaid).
 
 In this paper I present the world's first (?)\footnote{I did a couple
-  Google searches; seems good enough.} {\em portmantout}, a
-portmanteau of all English-language words. 
+  Google searches; seems good enough.}\footnote{Enjoy source code: {\tt http://sourceforge.net/p/tom7misc/svn/HEAD/tree/trunk/portmantout}} {\em portmantout}, a
+portmanteau of all English-language words ({\em tout} means ``all'' in
+French-language). I also considered calling this a {\em portmantotal},
+{\em portmantotale}, etc., as well as {\em portmantoutal} (a
+portmantroix of the first three) or even {\em portmantoutale}. You
+kind of see how this can get out of hand. The word is
+%% XXX check final version
+630,408
+%% XXX
+letters long and contains all 108,709 words in a particular wordlist
+called {\tt wordlist.asc}.\footnote{Tom Murphy VII, ``What words ought
+  to exist?'', SIGBOVIK~2011} Even though nobody can really agree
+what all the words in English are, the technique used to generate this
+portmantout should work for most very long word lists, although we will
+see in Section~\ref{sec:join} that a handful of words are very important.
 
-overmagnifyingearlesshrimpierabbinicalcicadaeratorshrimpiestandardizableaseholdershrimpingementshrimpsychedelically ({\sf overmagnifying} + {\sf gearless} + {\sf shrimpier} + {\sf rabbinical} + {\sf calc} + {\sf cicada} + {\sf aerator} + {\sf shrimpiest} + {\sf standardizable} + {\sf leaseholders} + {\sf shrimping} + {\sf impingements} + {\sf shrimps} + {\sf psychedelically}; presumably having something to do with shrimp).
+Since the word itself is
+%% XXX check final version
+11 pages
+%% XXX
+long in 4pt type with $.75$ linespacing, and this SIGBOVIK proceedings is positively overfull
+hbox with content, we should probably get on with it.
+
+\section{Computationalizing ``portmanteau''}
+
+A real portmanteau is usually phonetic, like ``portmantotally'' is
+about the sound of ``---teau'' being the same as ``to---''. It's also
+not unusual for part of the word to be completely dropped, as in
+``chillax'', which drops the ``re---'' from {\sf relax}. They are also
+usually clever or meaningful. For the sake of computing a portmantout,
+we need to make some rules about what it is, and it can't require
+cleverness or semantic/phonemic interpretation of words if I'm going to
+start and complete this project on the day of the SIGBOVIK deadline.
+
+{\bf Generalized portmanteau.}\quad For a set of strings $L$, a string
+$s$ is a generalized portmanteau if the entire string can be covered
+by strings in $L$. A cover is a set of word occurrences $W = \langle m, n \rangle$,
+where $s_m$--$s_n$ (the substring starting at offset $m$ and ending at $n$, inclusive)
+is in $L$, and, taken sorted by the $m$ component, $W_i.n >= W_{i+1}.m$ for
+each $i$ in range. For example,
+
+\qquad\qquad\qquad\qquad\qquad\qquad\qquad\qquad\qquad\includegraphics[width=2in]{rewrotempered}
 
 
-\section{The big ol' word}
-\tiny
-\setstretch{0.1}
-biiiiig word.
+This string can be covered by {\sf rewrote}, {\sf temper}, and {\sf
+  red}, so it is a generalized portmanteau if these three strings are
+in $L$. (Spoiler alert: $L$ is English-language, so they are.)
+Importantly, the covering strings overlap: {\sf rewro}, {\sf temper}
+and {\sf ed} on their own would not cover this string (and {\sf rewro}
+is not a word). Therefore, we cannot simply concatenate the entire
+dictionary.
 
-.... put big word here ....
+{\bf Portmantout.}\quad A generalized portmanteau is a portmantout if
+it contains every string in $L$ as a substring. The words need not be
+in its cover, as there may be muliple covers (In fact I conspicuously
+did not choose the simpler one {\sf rewrote} + {\sf tempered}.) Other
+words, like {\sf wrote}, {\sf rote} and {\sf rot} are in there
+too ``for free'', even though they may not be able to participate in
+a legal cover.
+
+A word may appear multiple times; we just have to get them all. This
+is fairly unavoidable---the word {\sf a} appears
+%% XXX check final
+60,374 times
+% XXX
+in the portmantout. Perhaps more surprising is that the word {\sf
+  iraq} appears
+%%% XXX check final
+315 times.
+%% XXX
+
+
+Note that a ``generalized'' portmanteau does not actually include most
+colloquial portmanteaus; {\sf brogrammer} cannot be covered since we
+dropped the ``p---'' in {\sf programmer}. {\sf brogrammar} is also not
+a generalized portmanteau since {\sf bro} and {\sf grammar} do not
+overlap, yo, but I think it would be accepted colloquially by most
+dudes. Disrupt!
+
+\section{Generating a portmantout}
+
+It's fairly straightforward handwaving to see that generating the
+shortest portmantout is NP-complete. Seeing that it is in NP is easy;
+we just need to check the cover and look up all the substrings, which
+is clearly polynomial. It is probably NP-hard because the traveling
+salesman problem can be reduced to it; for each node in the graph,
+generate a two-symbol word $xy$ where $x$ and $y$ are fresh symbols;
+for each edge between cities $x_iy_i$ and $x_jy_j$ generate a string
+$y_iu^{w}x_j$, where $u$ is also a fresh symbol repeated $w$ times,
+the cost of the edge. This allows us only to join two city words by
+using a corresponding edge word.\footnote{There are some rubs: TSP
+  requires that nodes only be visited once but a portmantout can use
+  words multiple times. I believe that the multi-visit generalization
+  of TSP is also NP-hard. The portmantout solution also requires visiting
+  every edge, but we can relax this by concatenating all edge words $e$ into a
+  new mega-long word like $e_0 z e_1 z \ldots e_k$ where $z$ is also
+  a fresh symbol; since this word must appear and all edges are substrings
+  of it, we now have no requirement that the rest of the solution (containing
+  our TSP embedding) contains all edge words. This kind of trick also lets us
+  set the start node for TSP.}
+
+OK but good news! Since it's NP-complete, we know that we can come up
+with a solution that's both non-optimal and slow, and we can still
+feel pretty good about it. We proceed in two steps: Generating
+particles eagerly, and then joining them together.
+
+\subsection{Generating particles} \label{sec:gen}
+
+For the first step, we load up all the words, and insert each word
+into a multimap, keyed by each of its non-empty prefixes. We then
+start by initializing a particle from any word; we choose {\sf
+  portmanteau} to start, obviously. Then, repeatedly:
+\begin{itemize}
+\item Check each suffix of the particle in descending length-order,
+\begin{itemize}
+  \item If we have a word that has not already been used, strip the suffix from its start and append the remainder to the particle
+\end{itemize}
+\item Otherwise, emit the particle and start a new one with any unused word.
+\end{itemize}
+
+As an additional optimization, we discard words that are
+substrings of any particle. This search makes the program much slower,
+but it produces a much more efficient portmantout.
+
+This always makes progress, using up one word at each step: We either
+append it to our current particle, or we start a new particle with a
+word. The particles are all generalized portmanteaus by construction,
+because each added word has non-empty overlap with the previous one.
+Here's an example particle: {\sf overmagnify\-ingearlesshrimp\-ierabbinicalci\-cadaeratorshrimpiestandard\-izablease\-holdershrimp\-inge\-mentshrimpsychedelically} ({\sf overmagnifying} + {\sf gearless} + {\sf shrimpier} + {\sf rabbinical} + {\sf calc} + {\sf cicada} + {\sf aerators} + {\sf shrimpiest} + {\sf standardizable} + {\sf leaseholders} + {\sf shrimping} + {\sf impingements} + {\sf shrimps} + {\sf psychedelically}; presumably having something to do with shrimp).
+
+At this point, we have about 38,000 particles, many of which are a
+single word. English contains many imbalances, like vastly more words
+ending with ``---y'' (10,071) than beginning ``y---'' (only 338), so
+it is not hard to see how we may get stuck with no new words to add to
+a particle. We've also used each word only once, and locally maximized
+the amount of overlap. If we can join these particles together in a
+valid way, we'll have a portmantout.
+
+\subsection{Joining particles} \label{sec:join}
+
+Since we've already used every word, and, by construction, these
+particles cannot be adjoined directly, we know we will need to reuse
+some words to join them together. A simple way to do this is to
+construct a table of size $26^2$ that for every pair of letters $a$
+and $b$, contains a short word that starts with $a$ and ends with $b$.
+86\% of the table entries can be filled in, but some letters are very
+tricky: For example, almost no words end with ``q'' (we have only {\sf
+  colloq} and {\sf iraq} in our dictionary), and there are no words
+that start with ``v'' and end with ``f''. Fortunately, if we consider
+all two-word (generalized) portmanteaus, using basically the same
+algorithm as in Section~\ref{sec:gen}, we can fill the table
+completely (Figure~\ref{fig:table}).
+
+It is lucky for the existence of words like {\sf iraq}; they are used
+for many of the entries in the ``q'' column. In fact, without a
+handful of such words, it might be the case that English would not
+permit a portmantotal! There are probably some less irregular
+languages that cannot achieve this lexical feat. \verb+:'-(+
+
+This table alone would allow us a very simple algorithm for generating
+a valid portmantotal: Just take words from the dictionary and
+concatenate them, but when putting e.g. {\sf tv} and {\sf farm}
+together, we use the v--f linker {\sf vetof} ({\sf veto} + {\sf of})
+from the table. We can't ever fail! However, this would produce a
+portmantout that's bigger than the dictionary itself, which isn't very
+economical. Rather than use the whole dictionary this way, we instead
+join all of the 38,000 particles from the previous section. These are
+much more compact. And now we are done!
+
+\section{The portmantout}
+
+This portmantout is
+%% XXX check final version
+630,408
+%% XXX
+letters long; there are 931,823 total letters in the dictionary so this
+is a compresion ratio of 
+%% XXX
+1.47:1.
+%% XXX
+In comparison, ``brogrammermaid'' (although an illegal generalized
+portmanteau) has a compression ratio of \sfrac{24}{14} = 1.71:1. So it
+is fair to say that we are in the ballpark of a ``solid portmanteau.''
+Of course, the gold standard is a compression ratio of $\infty : 1$---for
+the case that we have the word {\sf portmanteau}, a totally overlapping portmanteau of
+{\sf portmanteau} + {\sf portmanteau},\!\footnote{Cara Gillotti, personal communication, 2015.} iterated infinitely.
+
+\begin{figure}[htp]
+\input{table-two}
+\caption{Minimal joining strings for every letter (rows) to every other letter (columns).} \label{fig:table}
+\end{figure}
+
+%  \begin{sloppypar}
+%  \tiny
+%  \setstretch{0.1}
+%  \hyphenpenalty=1
+%  \pretolerance=2
+%  \tolerance=2
+%  
+%  \noindent \input{portmantout}
+%  \end{sloppypar}
 
 \end{document}
