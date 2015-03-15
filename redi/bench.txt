@@ -1,4 +1,21 @@
 
+Super long run after kernel for updateweights:
+
+Total so far 10275.9s.
+Time per round: 4.0s.
+We spent 28520.2ms in setup (0.3%),
+354226.3ms in stimulation init (3.4%),
+716.0ms in forward layer (17.7%),
+68.3ms in fc init (1.7%),
+706.8ms in forward layer kernel (at most; 17.5%).
+43.9ms in bc init (1.1%),
+1772.6ms in backwards pass (43.9%),
+30.0ms in error for output layer (0.7%),
+1154.8ms in updating weights (28.6%),
+2.2ms in writing images (0.1%),
+
+--------------------------------------------------
+
 
 C++ kernel, backwards pass uses double:
 

@@ -59,13 +59,13 @@ using uint64 = uint64_t;
 #define FONTHEIGHT 16
 static Font *font = nullptr;
 #define SCREENW 1920
-#define SCREENH 1080
+#define SCREENH 1280
 static SDL_Surface *screen = nullptr;
 
 // You can read the previous versions (redi-random.cc) to see some of
 // the history / thoughts.
 
-static constexpr int NUM_LAYERS = 2;
+static constexpr int NUM_LAYERS = 3;
 
 static_assert((NPP >= 3), "Must have at least R, G, B pixels.");
 // static_assert((NEIGHBORHOOD & 1) == 1, "neighborhood must be odd.");
@@ -171,7 +171,7 @@ struct ImageA {
 };
 
 // Pretty much only useful for this application since it loads the whole font each time.
-ImageA *FontChar(const string &filename, char c, int size) {
+static ImageA *FontChar(const string &filename, char c, int size) {
   fflush(stdout);
 
   FILE *file = fopen(filename.c_str(), "rb");
@@ -202,9 +202,9 @@ ImageA *FontChar(const string &filename, char c, int size) {
   return new ImageA(ret, width, height);
 }
 
-void BlitChannel(uint8 r, uint8 g, uint8 b, const ImageA &channel, 
-		 int xpos, int ypos,
-		 ImageRGBA *dest) {
+static void BlitChannel(uint8 r, uint8 g, uint8 b, const ImageA &channel, 
+			int xpos, int ypos,
+			ImageRGBA *dest) {
   for (int y = 0; y < channel.height; y++) {
     int dsty = ypos + y;
     if (dsty >= 0 && dsty < dest->height) {
@@ -226,12 +226,32 @@ void BlitChannel(uint8 r, uint8 g, uint8 b, const ImageA &channel,
 	  Blend(didx + 1, g, ch);
 	  Blend(didx + 2, b, ch);
 	  dest->rgba[didx + 3] = 0xFF;
-	  /*
-	  dest->rgba[didx + 0] = r;
-	  dest->rgba[didx + 1] = g;
-	  dest->rgba[didx + 2] = b;
-	  dest->rgba[didx + 3] = ch;
-	  */
+	}
+      }
+    }
+  }
+}
+
+// This doesn't blend; it assumes we have 0 in every slot to start.
+// (This is only used to draw into the unused image channel in the
+// training data to try to coax it to recognize the position of the 'i').
+static void BlitNodeChannel(int ch_offset, const ImageA &channel,
+			    int xpos, int ypos,
+			    vector<float> *dest) {
+  CHECK_LT(ch_offset, NPP);
+  CHECK_GE(ch_offset, 0);
+  CHECK_EQ(dest->size(), SIZE * SIZE * NPP);
+  for (int y = 0; y < channel.height; y++) {
+    int dsty = ypos + y;
+    if (dsty >= 0 && dsty < SIZE) {
+      for (int x = 0; x < channel.width; x++) {
+	int dstx = xpos + x;
+	if (dstx >= 0 && dstx <= SIZE) {
+	  int sidx = x + channel.width * y;
+	  uint8 value = channel.alpha[sidx];
+
+	  int didx = (dsty * SIZE + dstx) * NPP + ch_offset;
+	  (*dest)[didx] = ByteFloat(value);
 	}
       }
     }
@@ -316,6 +336,90 @@ struct Network {
   // a permutation of 0..(NUM_NODES * INDICES_PER_NODE - 1).
   vector<vector<uint32>> inverted_indices;
 };
+
+void ReadNetworkBinary(const string &filename, Network *net) {
+  Printf("Reading [%s]\n", filename.c_str());
+  FILE *file = fopen(filename.c_str(), "rb");
+  CHECK(file != nullptr) << "If this fails but is present, you may "
+    "have a permissions problem.";
+
+  auto Read32 = [file]() {
+    int32_t i;
+    CHECK(!feof(file));
+    CHECK(1 == fread(&i, 4, 1, file));
+    return i;
+  };
+  auto ReadFloat = [file]() {
+    float value;
+    CHECK(!feof(file));
+    CHECK(1 == fread(&value, 4, 1, file));
+    return value;
+  };
+  auto ReadFloats = [&ReadFloat](vector<float> *vec) {
+    for (int i = 0; i < vec->size(); i++) {
+      (*vec)[i] = ReadFloat();
+    }
+  };
+
+  CHECK(Read32() == 0x27000700) << "Wrong magic number!";
+  CHECK_EQ(Read32(), NPP);
+  CHECK_EQ(Read32(), SIZE);
+  // This one we could probably increase, though.
+  CHECK_EQ(Read32(), INDICES_PER_NODE);
+  // And adding more layers would be totally reasonable.
+  int file_num_layers = Read32();
+  CHECK_EQ(file_num_layers, net->num_layers);
+  for (int i = 0; i < file_num_layers; i++) {
+    for (int j = 0; j < INDICES_PER_NODE * NUM_NODES; j++) {
+      net->indices[i][j] = Read32();
+    }
+  }
+
+  for (int i = 0; i < file_num_layers; i++)
+    ReadFloats(&net->weights[i]);
+
+  for (int i = 0; i < file_num_layers; i++)
+    ReadFloats(&net->biases[i]);
+  
+  fclose(file);
+  Printf("Read from %s.\n", filename.c_str());
+}
+
+static void SaveNetworkBinary(const Network &net, const string &filename) {
+  // Not portable, obviously.
+  FILE *file = fopen(filename.c_str(), "wb");
+  auto Write32 = [file](int32_t i) {
+    CHECK(1 == fwrite(&i, 4, 1, file));
+  };
+  auto WriteFloat = [file](float value) {
+    CHECK(1 == fwrite(&value, 4, 1, file));
+  };
+  auto WriteFloats = [&WriteFloat](const vector<float> &vec) {
+    for (float f : vec)
+      WriteFloat(f);
+  };
+
+  Write32(0x27000700);
+  Write32(NPP);
+  Write32(SIZE);
+  Write32(INDICES_PER_NODE);
+  Write32(net.num_layers);
+
+  for (int i = 0; i < net.num_layers; i++) {
+    for (uint32 idx : net.indices[i]) {
+      Write32(idx);
+    }
+  }
+
+  for (int i = 0; i < net.num_layers; i++)
+    WriteFloats(net.weights[i]);
+
+  for (int i = 0; i < net.num_layers; i++)
+    WriteFloats(net.biases[i]);
+
+  Printf("Wrote %s.\n", filename.c_str());
+  fclose(file);
+}
 
 static void WriteNetwork(const Network &net, const string &filename) {
   bool truncate = false;
@@ -1187,7 +1291,7 @@ void UIThread() {
       menu += "^3[space to unpause]^<";
     }
 
-    font->draw(0, 0, menu);
+    font->draw(2, 2, menu);
 
     static constexpr int MARGIN = 24;
     static constexpr int GAP = 10;
@@ -1262,7 +1366,7 @@ void UIThread() {
 	    CHECK_GE(node_id, 0);
 	    float value = current_stimulations[ex].values[layer][node_id];
 
-	    font->draw(0, SCREENH - FONTHEIGHT,
+	    font->draw(2, SCREENH - FONTHEIGHT - 2,
 		       StringPrintf("layer %d channel %d x %d y %d node %d (val ^2%f^<)",
 				    layer, channel, ox, oy, node_id, value));
 	    // And draw its source indices.
@@ -1336,15 +1440,26 @@ void UIThread() {
   }
 }
 
-void TrainThread() {
-  auto ShouldDie = []() {
-    bool should_die = ReadWithLock(&train_should_die_m, &train_should_die);
-    if (should_die) Printf("Train thread signaled death.\n");
-    return should_die;
-  };
+vector<ImageRGBA *> LoadImagesFromDirectory(const string &dir) {
+  vector<string> filenames = 
+    Map(Util::ListFiles(dir),
+	[dir](const string &s) -> string { return dir + s; });
 
+  Printf("Loading %d files from %s...\n", (int)filenames.size(), dir.c_str());
+  vector<ImageRGBA *> result =
+    ParallelMap(filenames,
+		[](const string &s) { return ImageRGBA::Load(s); },
+		16);
+  CHECK(result.size() > 0);
+  return result;
+}
+
+void TrainThread() {
   Timer setup_timer;
-  ArcFour rc("redi");
+  
+  string start_seed = StringPrintf("%d  %lld", getpid(), (int64)time(NULL));
+  Printf("Start seed: [%s]\n", start_seed.c_str());
+  ArcFour rc(start_seed);
   rc.Discard(2000);
 
   CL cl;
@@ -1354,33 +1469,9 @@ void TrainThread() {
   BackwardLayerCL backwardlayer{&cl};
   UpdateWeightsCL updateweights{&cl};
 
-  // Replacing these functions:
+  // Replacing these functions; don't warn.
   (void)BackwardsError;
   (void)UpdateWeights;
-
-  vector<string> filenames = 
-    // So gratuitous to use parallel map here..
-    ParallelMap(Util::ListFiles("corpus256/"),
-		[](const string &s) -> string { return (string)"corpus256/" + s; },
-		8);
-
-  printf("Loading %d...\n", (int)filenames.size());
-  vector<ImageRGBA *> corpus =
-    ParallelMap(filenames,
-		[](const string &s) { return ImageRGBA::Load(s); },
-		16);
-  CHECK(corpus.size() > 0);
-
-  vector<string> font_filenames = Util::ListFiles("fonts/");
-  vector<ImageA *> fonts =
-    ParallelMap(font_filenames,
-		[](const string &s) { 
-		  ImageA *f = FontChar((string)"fonts/" + s, 'i', 80); 
-		  CHECK(f != nullptr) << s;
-		  return f;
-		},
-		16);
-  CHECK(fonts.size() > 0);
 
   // Create the initial network.
   // TODO: Serialize and load from disk if we have one.
@@ -1388,20 +1479,50 @@ void TrainThread() {
   Network net{NUM_LAYERS};
   printf("Network uses %.2fMB of storage (without overhead).\n", 
 	 net.Bytes() / (1000.0 * 1000.0));
-  printf("Network init:\n");
-  RandomizeNetwork(&rc, &net);
-  printf("Make indices:\n");
-  MakeIndices(&rc, &net);
+
+  // printf("Network init:\n");
+  // RandomizeNetwork(&rc, &net);
+  // printf("Make indices:\n");
+  // MakeIndices(&rc, &net);
+  (void)RandomizeNetwork;
+  (void)MakeIndices;
+  ReadNetworkBinary("net.val", &net);
+
   printf("Invert index:\n");
   ComputeInvertedIndices(&net);
   printf("Check it:\n");
   CheckInvertedIndices(net);
   printf("Initialized network in %.1fms.\n", initialize_network_timer.MS());
 
+  vector<ImageRGBA *> corpus = LoadImagesFromDirectory("corpus256/");
+  vector<ImageRGBA *> heldout_corpus = LoadImagesFromDirectory("eval256/");
+
+  static constexpr int I_SIZE = 80;
+  vector<string> font_filenames = Util::ListFiles("fonts/");
+  vector<ImageA *> fonts =
+    ParallelMap(font_filenames,
+		[](const string &s) { 
+		  ImageA *f = FontChar((string)"fonts/" + s, 'i', I_SIZE);
+		  CHECK(f != nullptr) << s;
+		  return f;
+		},
+		16);
+  CHECK(fonts.size() > 0);
+
   {
     Stimulation stim{NUM_LAYERS};
     printf("A stimulation uses %.2fMB.\n", stim.Bytes() / (1000.0 * 1000.0));
   }
+
+  auto ShouldDie = [&net]() {
+    bool should_die = ReadWithLock(&train_should_die_m, &train_should_die);
+    if (should_die) {
+      Printf("Train thread signaled death.\n");
+      Printf("Saving...\n");
+      SaveNetworkBinary(net, "network-onexit.bin");
+    }
+    return should_die;
+  };
 
   printf("The corpus is of size %d.\n", (int)corpus.size());
 
@@ -1409,10 +1530,10 @@ void TrainThread() {
   double setup_ms = 0.0, stimulation_init_ms = 0.0, forward_ms = 0.0,
     fc_init_ms = 0.0, bc_init_ms = 0.0, kernel_ms = 0.0, backward_ms = 0.0, output_error_ms = 0.0,
     update_ms = 0.0, writing_ms = 0.0;
-  static constexpr int MAX_ROUNDS = 1000; // 10000;
+  static constexpr int MAX_ROUNDS = 10000; // 10000;
   static constexpr int EXAMPLES_PER_ROUND = 48;
-  static constexpr int VERBOSE_ROUND_EVERY = 100;
-  
+  static constexpr int VERBOSE_ROUND_EVERY = 250;
+
   Timer total_timer;
   for (int round_number = 0; round_number < MAX_ROUNDS; round_number++) {
     Printf("\n\n ** ROUND %d **\n", round_number);
@@ -1426,13 +1547,15 @@ void TrainThread() {
     if (is_verbose_round) {
       Printf("Writing network:\n");
       WriteNetwork(net, StringPrintf("network-%d.txt", round_number));
+      SaveNetworkBinary(net, "network-checkpoint.bin");
     }
+
     Printf("Export network:\n");
     ExportNetworkToVideo(net);
 
     Timer setup_timer;
     Printf("Setting up batch:\n");
-    // Shuffle corpus for this round.
+    // Shuffle corpus for this round (pointers alias originals).
     vector<ImageRGBA *> corpuscopy = corpus;
     Shuffle(&rc, &corpuscopy);
     // Don't run the full corpus.
@@ -1441,7 +1564,51 @@ void TrainThread() {
     // Copy to make training data; same order.
     // TODO: These leak when we exit the thread early.
     vector<ImageRGBA *> examples = Map(corpuscopy, [](ImageRGBA *img) { return img->Copy(); });
-    vector<ImageRGBA *> expected = Map(corpuscopy, [](ImageRGBA *img) { return img->Copy(); });
+
+    // Expected is weights, because we want to use non-RGB channels to encode other facts.
+    vector<vector<float>> expected(examples.size(), vector<float>(NUM_NODES, 0.0f));
+
+    vector<uint64> seeds;
+    seeds.reserve(examples.size());
+    for (int i = 0; i < examples.size(); i++) seeds.push_back(Rand64(&rc));
+    ParallelComp(examples.size(),
+		 [&seeds, &examples, &expected, &fonts](int i) {
+		   uint64 seed = seeds[i];
+		   const uint8 i_dice = seed & 0x7;
+		   seed >>= 3;
+		   
+		   uint8 x_dice = seed & 0x255;
+		   seed >>= 8;
+		   uint8 y_dice = seed & 0x255;
+		   seed >>= 8;
+
+		   // Always fill it with the image floats, but we may also modify it
+		   // (particularly its non-RGBA channels).
+		   InitializeLayerFromImage(examples[i], &expected[i]);
+
+		   if (x_dice < 12) x_dice += 12;
+		   if (y_dice < 12) y_dice += 12;
+		   if (x_dice > 255 - I_SIZE) x_dice -= I_SIZE;
+		   if (y_dice > 255 - I_SIZE) y_dice -= I_SIZE;
+
+		   // Most of the time, add an i.
+		   if (i_dice < 0x5) {
+		     // Blit to training example image.
+		     BlitChannel(0xFF, 0x0, 0x0, *fonts[0],
+				 x_dice, y_dice,
+				 examples[i]);
+
+		     // PERF This blitting can be done in parallel with the
+		     // forward stuff, because we only need it at the time we
+		     // compute error.
+		     // Blit to expected result's non-RGBA channel.
+		     if (NPP > 3) {
+		       BlitNodeChannel(3, *fonts[0],
+				       x_dice, y_dice,
+				       &expected[i]);
+		     }
+		   }
+		 }, 12);
 
     // XXX Apply some effect to the example or expected!
     setup_ms += setup_timer.MS();
@@ -1533,10 +1700,7 @@ void TrainThread() {
     Timer output_error_timer;
     ParallelComp(examples.size(),
 		 [&examples, &expected, &stims, &errs](int example) {
-		   vector<float> desired_result;
-		   desired_result.resize(NUM_NODES);
-		   InitializeLayerFromImage(expected[example], &desired_result);
-		   SetOutputError(stims[example], desired_result, &errs[example]);
+		   SetOutputError(stims[example], expected[example], &errs[example]);
 		 }, 12);
     output_error_ms += output_error_timer.MS();
 
@@ -1593,7 +1757,6 @@ void TrainThread() {
     update_ms += update_timer.MS();
 
     DeleteElements(&examples);
-    DeleteElements(&expected);
     if (ShouldDie()) return;
 
     double total_ms = total_timer.MS();
