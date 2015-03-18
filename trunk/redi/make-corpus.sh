@@ -86,6 +86,18 @@ make fetcher.exe
 # ./fetcher.exe park &
 # ./fetcher.exe architecture
 
-./fetcher.exe waterslide &
-./fetcher.exe tarantula &
-./fetcher.exe "ferris wheel"
+# ./fetcher.exe waterslide &
+# ./fetcher.exe tarantula &
+# ./fetcher.exe "ferris wheel"
+
+./fetcher.exe highway
+./fetcher.exe snakes
+./fetcher.exe airplane
+./fetcher.exe cocktail
+./fetcher.exe "cocktail party"
+./fetcher.exe "dinner party"
+./fetcher.exe superyacht
+./fetcher.exe helicopter
+./fetcher.exe coffee
+./fetcher.exe "dog on skateboard"
+./fetcher.exe "mri machine"
