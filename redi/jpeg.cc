@@ -205,6 +205,17 @@ static ImageA *FontChar(const string &filename, char c, int size) {
   return new ImageA(ret, width, height);
 }
 
+// Reduce to 4-bit color.
+static void Quantize(ImageRGBA *img) {
+  // three bit color
+  static constexpr uint8 MASK = 0xE0;
+  for (int i = 0; i < img->rgba.size(); i++) {
+    // Don't change alpha channel.
+    if (((i + 1) % 4) == 0) continue;
+    img->rgba[i] = MASK & img->rgba[i];
+  }
+}
+
 static void BlitChannel(uint8 r, uint8 g, uint8 b, const ImageA &channel, 
 			int xpos, int ypos,
 			ImageRGBA *dest) {
@@ -1230,10 +1241,10 @@ static void App(const vector<A> &vec, const F &f) {
   for (const auto &elt : vec) f(elt);
 }
 
-static constexpr int NUM_VIDEO_STIMULATIONS = 7;
+static constexpr int NUM_VIDEO_STIMULATIONS = 4;
 std::mutex video_export_m;
 int current_round = 0;
-vector<Stimulation> current_stimulations(7, Stimulation(NUM_LAYERS));
+vector<Stimulation> current_stimulations(NUM_VIDEO_STIMULATIONS, Stimulation(NUM_LAYERS));
 Network current_network(NUM_LAYERS);
 static bool allow_updates = true;
 
@@ -1375,7 +1386,7 @@ void UIThread() {
       // In this mode, draw the different nodes per pixel as separate rectangles.
       // We just show one example at a time.
       const int ex = offset % current_stimulations.size();
-      int show_channels = std::min(NPP, 7);
+      int show_channels = std::min(NPP, NUM_VIDEO_STIMULATIONS);
       for (int ch = 0; ch < show_channels; ch++) {
 	int sx = MARGIN + ch * (SIZE + GAP);
 	for (int layer = 0; layer < NUM_LAYERS + 1; layer++) {
@@ -1586,7 +1597,7 @@ void UIThread() {
       }
     } else {
       // PERF
-      SDL_Delay(1000);
+      SDL_Delay(10);
     }
   }
 }
@@ -1621,7 +1632,7 @@ void TrainThread() {
   // MakeIndices(&rc, &net);
   (void)RandomizeNetwork;
   (void)MakeIndices;
-  ReadNetworkBinary("net.val", &net);
+  ReadNetworkBinary("jnet.val", &net);
 
   printf("Invert index:\n");
   ComputeInvertedIndices(&net);
@@ -1629,7 +1640,7 @@ void TrainThread() {
   CheckInvertedIndices(net);
   printf("Initialized network in %.1fms.\n", initialize_network_timer.MS());
 
-  vector<ImageRGBA *> corpus = LoadImagesFromDirectory("corpus256/");
+  vector<ImageRGBA *> corpus = LoadImagesFromDirectory("jpegs256/");
 
   static constexpr int I_SIZE = 80;
   vector<string> font_filenames = Util::ListFiles("fonts/");
@@ -1653,7 +1664,7 @@ void TrainThread() {
     if (should_die) {
       Printf("Train thread signaled death.\n");
       Printf("Saving...\n");
-      SaveNetworkBinary(net, "network-onexit.bin");
+      SaveNetworkBinary(net, "jnetwork-onexit.bin");
     }
     return should_die;
   };
@@ -1665,7 +1676,7 @@ void TrainThread() {
     fc_init_ms = 0.0, bc_init_ms = 0.0, kernel_ms = 0.0, backward_ms = 0.0, output_error_ms = 0.0,
     update_ms = 0.0, writing_ms = 0.0;
   static constexpr int MAX_ROUNDS = 50000; // 10000;
-  static constexpr int EXAMPLES_PER_ROUND = 48;
+  static constexpr int EXAMPLES_PER_ROUND = 4;
   static constexpr int VERBOSE_ROUND_EVERY = 250;
 
   Timer total_timer;
@@ -1673,18 +1684,21 @@ void TrainThread() {
     Printf("\n\n ** ROUND %d **\n", round_number);
 
     // When starting from a fresh network, consider this:
-    // const float round_learning_rate = 
-    // std::min(0.9,
-    // std::max(0.05, 2 * exp(-0.2275 * (round_number + 1)/3.0)));
-    const float round_learning_rate = 0.0025;
+    const float round_learning_rate = 
+      0.05;
+    /*
+      std::max(0.000001, std::min(0.9,
+				  exp(-0.2275 * (round_number + 1)/200.0)));
+    */
+  // const float round_learning_rate = 0.0025;
 
     Printf("Learning rate: %.4f\n", round_learning_rate);
 
     bool is_verbose_round = 0 == ((round_number /* + 1 */) % VERBOSE_ROUND_EVERY);
     if (is_verbose_round) {
       Printf("Writing network:\n");
-      WriteNetwork(net, StringPrintf("network-%d.txt", round_number));
-      SaveNetworkBinary(net, "network-checkpoint.bin");
+      WriteNetwork(net, StringPrintf("jnetwork-%d.txt", round_number));
+      SaveNetworkBinary(net, "jnetwork-checkpoint.bin");
     }
 
     Printf("Export network:\n");
@@ -1706,53 +1720,6 @@ void TrainThread() {
     // Expected is weights, because we want to use non-RGB channels to encode other facts.
     vector<vector<float>> expected(examples.size(), vector<float>(NUM_NODES, 0.0f));
 
-    vector<uint64> seeds;
-    seeds.reserve(examples.size());
-    for (int i = 0; i < examples.size(); i++) seeds.push_back(Rand64(&rc));
-    ParallelComp(examples.size(),
-		 [&seeds, &examples, &expected, &fonts](int i) {
-		   uint64 seed = seeds[i];
-		   const uint8 i_dice = seed & 0x7;
-		   seed >>= 3;
-		   
-		   // XXX uhhhh
-		   uint8 x_dice = seed & 0x255;
-		   seed >>= 8;
-		   uint8 y_dice = seed & 0x255;
-		   seed >>= 8;
-
-		   // Always fill it with the image floats, but we may also modify it
-		   // (particularly its non-RGBA channels).
-		   InitializeLayerFromImage(examples[i], &expected[i]);
-
-		   if (x_dice < 12) x_dice += 12;
-		   if (y_dice < 12) y_dice += 12;
-		   if (x_dice > 255 - I_SIZE) x_dice -= I_SIZE;
-		   if (y_dice > 255 - I_SIZE) y_dice -= I_SIZE;
-
-		   // Most of the time, add an i.
-		   if (i_dice < 0x5) {
-		     // Blit to training example image.
-		     BlitChannel(0xFF, 0x0, 0x0, *fonts[0],
-				 x_dice, y_dice,
-				 examples[i]);
-		     // Printf("i at %d %d", (int)x_dice, (int)y_dice);
-
-		     // PERF This blitting can be done in parallel with the
-		     // forward stuff, because we only need it at the time we
-		     // compute error.
-		     // Blit to expected result's non-RGBA channel.
-		     if (NPP > 3) {
-		       BlitNodeChannel(3, *fonts[0],
-				       x_dice, y_dice,
-				       &expected[i]);
-		     }
-		   }
-		 }, 12);
-
-    // XXX Apply some effect to the example or expected!
-    setup_ms += setup_timer.MS();
-
     CHECK_EQ(examples.size(), expected.size());
     // TODO: may make sense to parallelize this loop somehow, so that we can parallelize
     // CPU/GPU duties?
@@ -1767,23 +1734,19 @@ void TrainThread() {
     errs.reserve(examples.size());
     for (int i = 0; i < examples.size(); i++) errs.emplace_back(NUM_LAYERS);
 
-    {
-      // Diagnostic only.
-      int64 stim_bytes = 0ll, err_bytes = 0ll;
-      for (int i = 0; i < examples.size(); i++) {
-	stim_bytes += stims[i].Bytes();
-	err_bytes += errs[i].Bytes();
-      }
-      Printf("Size for all stimulations: %.1fMB, errors: %.1fMB\n",
-	     stim_bytes / (1000.0 * 1000.0),
-	     err_bytes / (1000.0 * 1000.0));
-    }
-      
-    // These are just memory copies; easy to do in parallel.
+    vector<uint64> seeds;
+    seeds.reserve(examples.size());
+    for (int i = 0; i < examples.size(); i++) seeds.push_back(Rand64(&rc));
     ParallelComp(examples.size(),
-		 [&examples, &stims](int i) {
-		   InitializeLayerFromImage(examples[i], &stims[i].values[0]);		   
-		 }, 16);
+		 [&seeds, &examples, &expected, &stims](int i) {
+		   // This will always be the original image.
+		   InitializeLayerFromImage(examples[i], &expected[i]);
+		   Quantize(examples[i]);
+		   InitializeLayerFromImage(examples[i], &stims[i].values[0]);
+		 }, 12);
+
+    // XXX Apply some effect to the example or expected!
+    setup_ms += setup_timer.MS();
     stimulation_init_ms += stimulation_init_timer.MS();
 
     if (ShouldDie()) return;
@@ -1825,7 +1788,7 @@ void TrainThread() {
 		   [&stims, round_number](int example) {
 		     const Stimulation &stim = stims[example];
 		     for (int i = 0; i < stim.values.size(); i++) {
-		       string filename = StringPrintf("round-%d-ex-%d-layer-%d.png",
+		       string filename = StringPrintf("jround-%d-ex-%d-layer-%d.png",
 						      round_number,
 						      example,
 						      i);
@@ -1926,6 +1889,9 @@ void TrainThread() {
 	   output_error_ms / denom, Pct(output_error_ms),
 	   update_ms / denom, Pct(update_ms),
 	   writing_ms / denom, Pct(writing_ms));
+
+    SDL_Delay(100000);
+
 
   }
 

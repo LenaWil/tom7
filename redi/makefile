@@ -1,7 +1,7 @@
 
-default: redi.exe fetcher.exe resample.exe
+default: all
 
-all: redi.exe fetcher.exe
+all: redi.exe fetcher.exe resample.exe jpeg.exe
 
 # -fno-strict-aliasing
 CXXFLAGS=-Wall -Wno-deprecated -Wno-sign-compare -I/usr/local/include -I/usr/include -ISDL/include -std=c++11 
@@ -50,6 +50,9 @@ OBJECTS=${UTILOBJECTS}
 LFLAGS= $(LINKSDL) -m64 -Wl,--subsystem,console $(CLLIBS) -lz -lOpenCL $(OPT) $(FLTO) $(PROFILE) -static
 
 redi.exe : $(OBJECTS) $(SDLOBJECTS) redi.o
+	$(CXX) $^ -o $@ $(LFLAGS)
+
+jpeg.exe : $(OBJECTS) $(SDLOBJECTS) jpeg.o
 	$(CXX) $^ -o $@ $(LFLAGS)
 
 resample.exe : $(OBJECTS) resample.o
