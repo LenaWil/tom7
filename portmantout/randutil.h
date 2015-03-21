@@ -10,7 +10,7 @@ using uint64 = uint64_t;
 using uint32 = uint32_t;
 
 // Caller owns new-ly allocated pointer.
-ArcFour *Substream(ArcFour *rc, int n) {
+inline ArcFour *Substream(ArcFour *rc, int n) {
   vector<uint8> buf;
   buf.resize(64);
   for (int i = 0; i < 4; i++) {
@@ -45,7 +45,7 @@ static void Shuffle(ArcFour *rc, vector<T> *v) {
 }
 
 // In [0, 1].
-float RandFloat(ArcFour *rc) {
+inline float RandFloat(ArcFour *rc) {
   uint32 uu = 0u;
   uu = rc->Byte() | (uu << 8);
   uu = rc->Byte() | (uu << 8);
@@ -55,7 +55,7 @@ float RandFloat(ArcFour *rc) {
 		 (double)0x7FFFFFFF);
 };
 
-double RandDouble(ArcFour *rc) {
+inline double RandDouble(ArcFour *rc) {
   uint64 uu = 0u;
   uu = rc->Byte() | (uu << 8);
   uu = rc->Byte() | (uu << 8);
@@ -69,7 +69,7 @@ double RandDouble(ArcFour *rc) {
 	  (double)0x3FFFFFFFFFFFFFFFULL);
 };
 
-uint64 Rand64(ArcFour *rc) {
+inline uint64 Rand64(ArcFour *rc) {
   uint64 uu = 0ULL;
   uu = rc->Byte() | (uu << 8);
   uu = rc->Byte() | (uu << 8);
@@ -82,7 +82,7 @@ uint64 Rand64(ArcFour *rc) {
   return uu;
 };
 
-uint32 Rand32(ArcFour *rc) {
+inline uint32 Rand32(ArcFour *rc) {
   uint32 uu = 0ULL;
   uu = rc->Byte() | (uu << 8);
   uu = rc->Byte() | (uu << 8);
@@ -152,7 +152,7 @@ struct RandomGaussian {
 };
 
 // If you need many, RandomGaussian will be twice as fast.
-double OneRandomGaussian(ArcFour *rc) {
+inline double OneRandomGaussian(ArcFour *rc) {
   return RandomGaussian{rc}.Next();
 }
 

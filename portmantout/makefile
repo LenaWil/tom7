@@ -43,7 +43,7 @@ paper.pdf : paper.tex table-two.tex
 # portmantout.exe : $(OBJECTS) $(SDLOBJECTS) portmantout.o
 # 	$(CXX) $^ -o $@ $(LFLAGS)
 
-particles.exe : $(OBJECTS) $(SDLOBJECTS) particles.o
+particles.exe : $(OBJECTS) $(SDLOBJECTS) particles.o makeparticles.o
 	$(CXX) $^ -o $@ $(LFLAGS)
 
 join.exe : $(OBJECTS) $(SDLOBJECTS) join.o makejoin.o
