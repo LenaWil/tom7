@@ -46,7 +46,7 @@ paper.pdf : paper.tex table-two.tex
 particles.exe : $(OBJECTS) $(SDLOBJECTS) particles.o
 	$(CXX) $^ -o $@ $(LFLAGS)
 
-join.exe : $(OBJECTS) $(SDLOBJECTS) join.o
+join.exe : $(OBJECTS) $(SDLOBJECTS) join.o makejoin.o
 	$(CXX) $^ -o $@ $(LFLAGS)
 
 grid.exe : $(OBJECTS) $(SDLOBJECTS) grid.o
