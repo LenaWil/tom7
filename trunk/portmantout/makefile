@@ -1,5 +1,5 @@
 
-default: particles.exe join.exe grid.exe
+default: particles.exe join.exe grid.exe portmantout.exe
 
 all: particles.exe join.exe paper.pdf grid.exe
 
@@ -40,8 +40,8 @@ paper.pdf : paper.tex table-two.tex
 	pdflatex paper.tex
 #	pdflatex paper.tex
 
-# portmantout.exe : $(OBJECTS) $(SDLOBJECTS) portmantout.o
-# 	$(CXX) $^ -o $@ $(LFLAGS)
+portmantout.exe : $(OBJECTS) $(SDLOBJECTS) portmantout.o makeparticles.o makejoin.o
+	$(CXX) $^ -o $@ $(LFLAGS)
 
 particles.exe : $(OBJECTS) $(SDLOBJECTS) particles.o makeparticles.o
 	$(CXX) $^ -o $@ $(LFLAGS)
