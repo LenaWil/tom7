@@ -91,6 +91,39 @@ uint32 Rand32(ArcFour *rc) {
   return uu;
 };
 
+// Generate uniformly distributed numbers in [0, n - 1].
+// n must be greater than or equal to 2.
+inline uint32 RandTo(ArcFour *rc, uint32 n) {
+  // We use rejection sampling, as is standard, but with
+  // a modulus that's the next largest power of two. This
+  // means that we succeed half the time (worst case).
+  //
+  // First, compute the mask. Note that 2^k will be 100...00
+  // and so 2^k-1 is 011...11. This is the mask we're looking
+  // for. The input may not be a power of two, however. Make
+  // sure any 1 bit is propagated to every position less
+  // significant than it. (For 64-bit constants, we'd need
+  // another shift for 32.)
+  // 
+  // This ought to reduce to a constant if the argument is
+  // a compile-time constant.
+  uint32 mask = n - 1;
+  mask |= mask >> 1;
+  mask |= mask >> 2;
+  mask |= mask >> 4;
+  mask |= mask >> 8;
+  mask |= mask >> 16;
+
+  // Now, repeatedly generate random numbers, modulo that
+  // power of two.
+
+  // PERF: If thet number is small, we only need Rand16, etc.
+  for (;;) {
+    const uint32 x = Rand32(rc) & mask;
+    if (x < n) return x;
+  }
+}
+
 // Generates two at once, so needs some state.
 struct RandomGaussian {
   bool have = false;
