@@ -36,11 +36,12 @@ struct Word {
   sset suffixes;
 };
 
-int Attempt (ArcFour *rc, const vector<string> &dict) {
+int Attempt(ArcFour *rc, const vector<string> &dict) {
   vector<Word> words;
   int total_letters = 0;
   int max_length = 0;
   words.reserve(dict.size());
+  unordered_map<string, Word *> whole_word;
   for (const string &s : dict) {
     // Should strip.
     if (s.empty()) continue;
@@ -50,6 +51,8 @@ int Attempt (ArcFour *rc, const vector<string> &dict) {
       }
     }
     words.push_back(Word{s});
+    // XXX only works because we reserved above...
+    whole_word[s] = &words[words.size() - 1];
     total_letters += s.size();
     max_length = std::max((int)s.size(), max_length);
   }
@@ -153,11 +156,13 @@ int Attempt (ArcFour *rc, const vector<string> &dict) {
   while (num_left > 0) {
     // Mark words that are substrings?
     // Never need words in TODO that are already used.
+    #if 0
     deque<Word*> todo_new;
     for (Word *w : todo) {
       if (w->used == 0) {
-	if (particle.find(w->w, std::max(0, 
-					 (int)particle.size() - max_length * 2)) != string::npos) {
+	if (particle.find(w->w, 
+			  std::max(0, (int)particle.size() - max_length * 2)) !=
+	    string::npos) {
 	  already_substr++;
 	  UseWord(w);
 	} else {
@@ -166,6 +171,24 @@ int Attempt (ArcFour *rc, const vector<string> &dict) {
       }
     }
     todo = std::move(todo_new);
+
+    #else
+    
+    for (int st = std::max(0, (int)particle.size() - max_length * 2);
+	 st < particle.size() - 1;
+	 st++) {
+      for (int len = 1; len < particle.size() - st; len++) {
+	auto it = whole_word.find(particle.substr(st, len));
+	if (it != whole_word.end()) {
+	  if (it->second->used == 0) {
+	    already_substr++;
+	    UseWord(it->second);
+	  }
+	}
+      }
+    }
+
+    #endif
 
     for (int len = std::min(max_length, (int)particle.size()); len > 0; len--) {
       string suffix = particle.substr(particle.size() - len, string::npos);
@@ -178,7 +201,7 @@ int Attempt (ArcFour *rc, const vector<string> &dict) {
 	  particle.resize(particle.size() - suffix.size());
 	  particle += maybe->w;
 	  // XXX remove it from exits?
-	  if (num_done % 100 == 0) {
+	  if (num_done % 1000 == 0) {
 	    double per = loop_timer.MS() / num_done;
 	    printf("[%6d parts, %6dms per word, %6ds left, %6d skip] %s\n",
 		   (int)particles.size(),
@@ -196,7 +219,7 @@ int Attempt (ArcFour *rc, const vector<string> &dict) {
     // have already been used, or because they appear in the most
     // recent particle.
 
-    if (particles.size() % 100 == 0) {
+    if (particles.size() % 1000 == 0) {
       printf("There were no new continuations for [%s].. (%d done, %d left).\n"
 	     "Already substr: %d\n"
 	     "Took %.1fs\n",
