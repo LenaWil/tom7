@@ -36,7 +36,7 @@ struct Word {
   sset suffixes;
 };
 
-int Attempt(ArcFour *rc, const vector<string> &dict) {
+vector<string> Attempt(ArcFour *rc, const vector<string> &dict, bool verbose) {
   vector<Word> words;
   int total_letters = 0;
   int max_length = 0;
@@ -57,7 +57,7 @@ int Attempt(ArcFour *rc, const vector<string> &dict) {
     max_length = std::max((int)s.size(), max_length);
   }
 
-  printf("Total size %d, max length %d\n", total_letters, max_length);
+  if (verbose) printf("Total size %d, max length %d\n", total_letters, max_length);
 
   smap fwd;
   smap bwd;
@@ -85,7 +85,7 @@ int Attempt(ArcFour *rc, const vector<string> &dict) {
       bwd[suffix].push_back(&word);
     }
   }
-  printf("Built prefix/suffix map.\n");
+  if (verbose) printf("Built prefix/suffix map.\n");
 
   Timer onepass;
   for (Word &word : words) {
@@ -107,7 +107,7 @@ int Attempt(ArcFour *rc, const vector<string> &dict) {
   }
 
   double op_ms = onepass.MS();
-  printf("Scoring took %fms\n", op_ms);
+  if (verbose) printf("Scoring took %fms\n", op_ms);
   
   vector<Word *> sorted;
   sorted.reserve(words.size());
@@ -201,7 +201,7 @@ int Attempt(ArcFour *rc, const vector<string> &dict) {
 	  particle.resize(particle.size() - suffix.size());
 	  particle += maybe->w;
 	  // XXX remove it from exits?
-	  if (num_done % 1000 == 0) {
+	  if (verbose && num_done % 1000 == 0) {
 	    double per = loop_timer.MS() / num_done;
 	    printf("[%6d parts, %6dms per word, %6ds left, %6d skip] %s\n",
 		   (int)particles.size(),
@@ -219,7 +219,7 @@ int Attempt(ArcFour *rc, const vector<string> &dict) {
     // have already been used, or because they appear in the most
     // recent particle.
 
-    if (particles.size() % 1000 == 0) {
+    if (verbose && particles.size() % 10000 == 0) {
       printf("There were no new continuations for [%s].. (%d done, %d left).\n"
 	     "Already substr: %d\n"
 	     "Took %.1fs\n",
@@ -250,6 +250,16 @@ int Attempt(ArcFour *rc, const vector<string> &dict) {
 	 already_substr,
 	 running.MS() / 1000.0);
 
+  return particles;
+}
+
+int main() {
+  vector<string> dict = Util::ReadFileToLines("wordlist.asc");
+  printf("%d words.\n", (int)dict.size());
+  ArcFour rc("portmantout");
+  
+  vector<string> particles = Attempt(&rc, dict, false);
+
   {
     FILE *f = fopen("particles.txt", "wb");
     CHECK(f != nullptr);
@@ -259,16 +269,6 @@ int Attempt(ArcFour *rc, const vector<string> &dict) {
     fclose(f);
     printf("Wrote particles.txt.\n");
   }
-
-  return 1;
-}
-
-int main () {
-  vector<string> dict = Util::ReadFileToLines("wordlist.asc");
-  printf("%d words.\n", (int)dict.size());
-  ArcFour rc("portmantout");
-  
-  Attempt(&rc, dict);
 
   return 0;
 }
