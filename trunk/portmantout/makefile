@@ -1,5 +1,5 @@
 
-default: particles.exe join.exe grid.exe portmantout.exe
+default: particles.exe join.exe grid.exe portmantout.exe validate.exe
 
 all: particles.exe join.exe paper.pdf grid.exe
 
@@ -47,6 +47,12 @@ particles.exe : $(OBJECTS) $(SDLOBJECTS) particles.o makeparticles.o
 	$(CXX) $^ -o $@ $(LFLAGS)
 
 join.exe : $(OBJECTS) $(SDLOBJECTS) join.o makejoin.o
+	$(CXX) $^ -o $@ $(LFLAGS)
+
+validate.exe : $(OBJECTS) $(SDLOBJECTS) validate.o
+	$(CXX) $^ -o $@ $(LFLAGS)
+
+makeparticles_test.exe:  $(OBJECTS) $(SDLOBJECTS) makeparticles_test.o
 	$(CXX) $^ -o $@ $(LFLAGS)
 
 grid.exe : $(OBJECTS) $(SDLOBJECTS) grid.o

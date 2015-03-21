@@ -23,8 +23,9 @@ using sset = unordered_set<string>;
 struct Word {
   explicit Word(const string &s) : w(s) {}
   const string w;
+  int accessibility = 0, exitability = 0, score = 0;
   int used = 0;
-  sset prefixes;
+  sset prefixes, suffixes;
 };
 }
 
@@ -62,7 +63,9 @@ vector<string> MakeParticles(ArcFour *rc, const vector<string> &dict, bool verbo
   for (Word &word : words) {
     for (int i = 1; i <= word.w.length(); i++) {
       string prefix = word.w.substr(0, i);
+      string suffix = word.w.substr(i - 1, string::npos);
       word.prefixes.insert(prefix);
+      word.suffixes.insert(suffix);
       fwd[prefix].push_back(&word);
     }
   }
@@ -71,14 +74,36 @@ vector<string> MakeParticles(ArcFour *rc, const vector<string> &dict, bool verbo
   vector<Word *> sorted;
   sorted.reserve(words.size());
   for (Word &word : words) sorted.push_back(&word);
-  Shuffle(rc, &sorted);
+
+  if (true) {
+    for (Word &word : words) {
+      // If there's a (forward) path to a word, increment its accessibility.
+      for (const string &suffix : word.suffixes) {
+	vector<Word *> *nexts = Forward(suffix);
+	word.exitability += nexts->size();
+	for (Word *next : *nexts) {
+	  next->accessibility++;
+	}
+      }
+    }
+    for (Word &word : words) {
+      word.score = word.score + word.exitability;
+    }
+
+    std::sort(sorted.begin(), sorted.end(),
+	      [](const Word *l, const Word *r) {
+		return l->score < r->score;
+	      });
+  } else {
+    Shuffle(rc, &sorted);
+  }
 
   deque<Word*> todo(sorted.begin(), sorted.end());
 
   int already_substr = 0;
   string particle = "portmanteau";
   // Hopefully it's actually smaller than the whole dictionary...
-  particle.reserve(total_letters * 2);
+  // particle.reserve(total_letters * 2);
 
   auto GetStartWord = [&todo]() -> Word * {
     while (!todo.empty()) {
@@ -109,10 +134,25 @@ vector<string> MakeParticles(ArcFour *rc, const vector<string> &dict, bool verbo
   int particle_total = 0;
   while (num_left > 0) {
     // Mark words that are substrings.
+    #if 0
+    deque<Word*> todo_new;
+    for (Word *w : todo) {
+      if (w->used == 0) {
+	if (particle.find(w->w, std::max(0, 
+					 (int)particle.size() - max_length * 2)) != string::npos) {
+	  already_substr++;
+	  UseWord(w);
+	} else {
+	  todo_new.push_back(w);
+	}
+      }
+    }
+    todo = std::move(todo_new);
+    #else
     for (int st = std::max(0, (int)particle.size() - max_length * 2);
-	 st < particle.size() - 1;
+	 st < particle.size();
 	 st++) {
-      for (int len = 1; len < particle.size() - st; len++) {
+      for (int len = 1; len <= particle.size() - st; len++) {
 	auto it = whole_word.find(particle.substr(st, len));
 	if (it != whole_word.end()) {
 	  if (it->second->used == 0) {
@@ -122,6 +162,7 @@ vector<string> MakeParticles(ArcFour *rc, const vector<string> &dict, bool verbo
 	}
       }
     }
+    #endif
 
     for (int len = std::min(max_length, (int)particle.size()); len > 0; len--) {
       string suffix = particle.substr(particle.size() - len, string::npos);
@@ -149,7 +190,7 @@ vector<string> MakeParticles(ArcFour *rc, const vector<string> &dict, bool verbo
       int num_next = nexts->size();
       if (num_next == 0) continue;
 
-      int next = (num_next == 1) ? 0 : RandTo(rc, num_next);
+      int next = 0; // (num_next == 1) ? 0 : RandTo(rc, num_next);
       Word *choice = (*nexts)[next];
 
       UseWord(choice);
@@ -194,7 +235,7 @@ vector<string> MakeParticles(ArcFour *rc, const vector<string> &dict, bool verbo
   particles.push_back(particle);
   particle_total += particle.size();
 
-  if (verbose) {
+  if (true || verbose) {
     printf("Success! But I needed %d separate portmanteaus :(\n"
 	   "And that was %d characters! (of %d, %.2f%% of the size)\n"
 	   "I skipped %d words that were already substrs.\n"
