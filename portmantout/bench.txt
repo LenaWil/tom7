@@ -1,3 +1,11 @@
+Success! But I needed 41405 separate portmanteaus :(
+And that was 623522 characters! (of 931823, 66.91% of the size)
+I skipped 24319 words that were already substrs.
+Took 432.2s
+
+--------------------------------------------------
+
+
 39419 particles,
 600664 characters
 

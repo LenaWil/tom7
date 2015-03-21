@@ -40,7 +40,7 @@ int main () {
 
     for (;;) {
       Timer one;
-      vector<string> particles = MakeParticles(&rc, dict, false);
+      vector<string> particles = MakeParticles(&rc, dict, true);
 
       // Should maybe try this 10 times, take best?
       string portmantout = particles[0];
@@ -61,11 +61,21 @@ int main () {
 	portmantout += next;
       }
 
+      // Validation.
+      Timer validation;
+      for (const string &w : dict) {
+	CHECK(portmantout.find(w) != string::npos) << "FAILED: ["
+						   << portmantout
+						   << "] / " << w;
+      }
+      double validation_ms = validation.MS();
+
       int sz = (int)portmantout.size();
 
-      const char *nb = "";
+      string nb;
       {
 	MutexLock ml(&best_m);
+	nb = StringPrintf("best: %6d", best_size);
 	if (sz < best_size) {
 	  best_size = sz;
 	  FILE *f = fopen("portmantout.txt", "wb");
@@ -75,12 +85,17 @@ int main () {
 	}
       }
 
-      Printf("%2d. %7d letters in [%.1fs]%s\n", thread_id, sz,
-	     one.MS() / 1000.0, nb);
+      Printf("%2d. %7d letters in [%.1fs] [val %.1fs] %s\n", thread_id, sz,
+	     one.MS() / 1000.0, 
+	     validation_ms / 1000.0,
+	     nb.c_str());
     }
   };
   
 
+  OneThread(0);
+
+  /*
   static const int max_concurrency = 10;
   vector<std::thread> threads;
   threads.reserve(max_concurrency);
@@ -90,6 +105,7 @@ int main () {
   }
   // Won't ever actually finish.
   for (std::thread &t : threads) t.join();
+  */
 
   return 0;
 }
