@@ -29,7 +29,8 @@ std::mutex print_mutex;
   } while (0);
 
 // Number of cells in word grid.
-static constexpr int WSIZE = 330;
+static constexpr int WWIDTH = 439;
+static constexpr int WHEIGHT = 248;
 
 struct Word {
   explicit Word(const string &s, int idx) : w(s), vector_idx(idx), idx(idx) {}
@@ -38,8 +39,8 @@ struct Word {
   const int vector_idx = 0;
   // In grid.
   int idx = 0;
-  int X() const { return idx % WSIZE; }
-  int Y() const { return idx / WSIZE; }
+  int X() const { return idx % WWIDTH; }
+  int Y() const { return idx / WWIDTH; }
   sset prefixes;
   sset suffixes;
   // Outgoing edges.
@@ -49,12 +50,13 @@ struct Word {
 };
 
 static void WriteSVG(const string &filename, const vector<Word> &words) {
-  static constexpr double SVGSIZE = WSIZE * 10;
+  static constexpr double SVGWIDTH = WWIDTH * 10;
+  static constexpr double SVGHEIGHT = WHEIGHT * 10;
 
-  static constexpr double DOTSIZE = SVGSIZE / WSIZE;
+  static constexpr double DOTSIZE = SVGWIDTH / WWIDTH;
   static constexpr double HALFDOT = DOTSIZE / 2.0;
 
-  string svg = TextSVG::Header(SVGSIZE, SVGSIZE);
+  string svg = TextSVG::Header(SVGWIDTH, SVGHEIGHT);
 
   auto F = [](double d) {
     string s = StringPrintf("%f", d);
@@ -208,7 +210,7 @@ int MakeGrid(ArcFour *rc, const vector<string> &dict) {
   }
   printf("Built graph.\n");
 
-  WriteSVG("grid-0.svg", words);
+  WriteSVG("frame-0.svg", words);
 
   // Reduce energy.
 
@@ -247,7 +249,8 @@ int MakeGrid(ArcFour *rc, const vector<string> &dict) {
   int swaps = 0;
   Timer running;
 
-  auto TrySwap = [&rc, &words, &perm, &energy, &swaps, &running,
+  int framenum = 1;
+  auto TrySwap = [&rc, &words, &perm, &energy, &swaps, &running, &framenum,
 		  &GetBothEnergy](int a, int b) {
     if (a != b) {
       int aidx = words[a].idx;
@@ -267,17 +270,15 @@ int MakeGrid(ArcFour *rc, const vector<string> &dict) {
 
 	swaps++;
 	energy = energy - oldeng + neweng;
-	if (swaps % 25000 == 0) {
-	  printf("%6d Swapped %d and %d, energy %f\n", swaps, aidx, bidx, energy);
-	  if (swaps % 100000 == 0) {
-	    WriteSVG(StringPrintf("grid-%d.svg", swaps), words);	    
-	  }
+	if (swaps % 17000 == 0) {
+	  WriteSVG(StringPrintf("frame-%d.svg", framenum), words);
+	  framenum++;
+	}
 	  
-	  // Or if it's been a minute...
-	  if (running.MS() > 60 * 1000) {
-	    WriteSVG(StringPrintf("grid.svg", swaps), words);
-	    running.Start();
-	  }
+	// Or if it's been a minute...
+	if (running.MS() > 60 * 1000) {
+	  WriteSVG(StringPrintf("grid.svg", swaps), words);
+	  running.Start();
 	}
       } else {
 	// Undo.
@@ -300,9 +301,9 @@ int MakeGrid(ArcFour *rc, const vector<string> &dict) {
 	  if (dx != 0 || dy != 0) {
 	    int bx = words[a].X() + dx;
 	    int by = words[a].Y() + dy;
-	    if (bx >= 0 && bx < WSIZE &&
-		by >= 0 && by < WSIZE) {
-	      int bidx = by * WSIZE + bx;
+	    if (bx >= 0 && bx < WWIDTH &&
+		by >= 0 && by < WHEIGHT) {
+	      int bidx = by * WWIDTH + bx;
 	      CHECK(bidx >= 0);
 	      // Even though it's in the grid, the last row is
 	      // ragged. So check that it's actually in the
