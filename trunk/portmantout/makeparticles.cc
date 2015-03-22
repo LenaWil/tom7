@@ -31,7 +31,8 @@ struct Word {
 
 static constexpr bool SCORED_WORDS = false;
 
-vector<string> MakeParticles(ArcFour *rc, const vector<string> &dict, bool verbose) {
+vector<string> MakeParticles(ArcFour *rc, const vector<string> &dict, bool verbose,
+			     Trace *trace) {
   vector<Word> words;
   int total_letters = 0;
   int max_length = 0;
@@ -107,6 +108,14 @@ vector<string> MakeParticles(ArcFour *rc, const vector<string> &dict, bool verbo
   // Hopefully it's actually smaller than the whole dictionary...
   // particle.reserve(total_letters * 2);
 
+  Round *round = nullptr;
+  if (trace != nullptr) {
+    // Typically in ~40k territory.
+    trace->rounds.reserve(50000);
+    trace->rounds.push_back(Round());
+    round = &trace->rounds.back();
+  }
+
   auto GetStartWord = [&todo]() -> Word * {
     while (!todo.empty()) {
       Word *w = todo.front();
@@ -142,101 +151,87 @@ vector<string> MakeParticles(ArcFour *rc, const vector<string> &dict, bool verbo
       for (int len = 1; len <= particle.size() - st; len++) {
 	auto it = whole_word.find(particle.substr(st, len));
 	if (it != whole_word.end()) {
-	  if (it->second->used == 0) {
+	  Word *maybe = it->second;
+	  if (maybe->used == 0) {
 	    already_substr++;
-	    UseWord(it->second);
+	    if (round != nullptr) {
+	      round->covered.push_back(maybe->w);
+	    }
+	    UseWord(maybe);
 	  }
 	}
       }
     }
 
-    if (false) {
-      for (int len = std::min(max_length, (int)particle.size()); len > 0; len--) {
-	string suffix = particle.substr(particle.size() - len, string::npos);
-	// printf("Try suffix [%s].\n", suffix.c_str());
-	const vector<Word *> *nexts = Forward(suffix);
+    for (int len = std::min(max_length, (int)particle.size()); len > 0; len--) {
+      string suffix = particle.substr(particle.size() - len, string::npos);
+
+      vector<Word *> *nexts = Forward(suffix);
+      // printf("For suffx %s there were %d\n", suffix.c_str(), nexts->size());
+
+      // Make sure the vector is just unused words.
+      #if 1
+      for (int i = 0; i < nexts->size(); i++) {
+	Word *maybe = (*nexts)[i];
+	if (maybe->used > 0) {
+	  // We don't want to keep seeing this used word in the vector.
+	  if (i != nexts->size() - 1) {
+	    // Swap.
+	    (*nexts)[i] = (*nexts)[nexts->size() - 1];
+	    // Morally, do this, but it is now dead.
+	    // nexts[nexts.size() - 1] = maybe;
+	  }
+
+	  // Then chop.
+	  nexts->resize(nexts->size() - 1);
+
+	  // And look again.
+	  i--;
+	}
+      }
+      #else
+      {
+	// Preserve order.
+	vector<Word *> new_nexts;
 	for (Word *maybe : *nexts) {
 	  if (maybe->used == 0) {
-	    UseWord(maybe);
-	    // This is maybe fastest way to add new suffix:
-	    particle.resize(particle.size() - suffix.size());
-	    particle += maybe->w;
-	    goto success;
+	    new_nexts.push_back(maybe);
 	  }
 	}
+	*nexts = std::move(new_nexts);
       }
-    } else {
-    // NEW STYLE
-      for (int len = std::min(max_length, (int)particle.size()); len > 0; len--) {
-	string suffix = particle.substr(particle.size() - len, string::npos);
+      #endif
 
-	vector<Word *> *nexts = Forward(suffix);
-	// printf("For suffx %s there were %d\n", suffix.c_str(), nexts->size());
+      // printf(" .. and then were %d\n", nexts->size());
 
-	// Make sure the vector is just unused words.
-	#if 1
-	for (int i = 0; i < nexts->size(); i++) {
-	  Word *maybe = (*nexts)[i];
-	  if (maybe->used > 0) {
-	    // We don't want to keep seeing this used word in the vector.
-	    if (i != nexts->size() - 1) {
-	      // Swap.
-	      (*nexts)[i] = (*nexts)[nexts->size() - 1];
-	      // Morally, do this, but it is now dead.
-	      // nexts[nexts.size() - 1] = maybe;
-	    }
+      // There aren't any.
+      int num_next = nexts->size();
+      if (num_next == 0) continue;
 
-	    // Then chop.
-	    nexts->resize(nexts->size() - 1);
-	    
-	    // And look again.
-	    i--;
-	  }
-	}
-	#else
-	{
-	  // Preserve order.
-	  vector<Word *> new_nexts;
-	  for (Word *maybe : *nexts) {
-	    if (maybe->used == 0) {
-	      new_nexts.push_back(maybe);
-	    }
-	  }
-	  *nexts = std::move(new_nexts);
-	}
-	#endif
-	
-	// printf(" .. and then were %d\n", nexts->size());
+      int next = (num_next == 1) ? 0 : RandTo(rc, num_next);
+      Word *choice = (*nexts)[next];
 
-	// There aren't any.
-	int num_next = nexts->size();
-	if (num_next == 0) continue;
-
-	int next = (num_next == 1) ? 0 : RandTo(rc, num_next);
-	Word *choice = (*nexts)[next];
-
-	UseWord(choice);
-	// This is maybe fastest way to add new suffix:
-
-	// printf("%s (%s) + %s\n", particle.c_str(), suffix.c_str(), choice->w.c_str());
-	particle.resize(particle.size() - suffix.size());
-	particle += choice->w;
-
-	if (verbose && num_done % 1000 == 0) {
-	  double per = loop_timer.MS() / num_done;
-	  printf("[%6d parts, %6dms per word, %6ds left, %6d skip] %s\n",
-		 (int)particles.size(),
-		 (int)per,
-		 (int)((num_left * per) / 1000.0),
-		 already_substr,
-		 choice->w.c_str());
-	}
-	goto success;
+      if (round != nullptr) {
+	round->path.push_back(choice->w);
       }
+      UseWord(choice);
+      // This is maybe fastest way to add new suffix:
+
+      // printf("%s (%s) + %s\n", particle.c_str(), suffix.c_str(), choice->w.c_str());
+      particle.resize(particle.size() - suffix.size());
+      particle += choice->w;
+
+      if (verbose && num_done % 1000 == 0) {
+	double per = loop_timer.MS() / num_done;
+	printf("[%6d parts, %6dms per word, %6ds left, %6d skip] %s\n",
+	       (int)particles.size(),
+	       (int)per,
+	       (int)((num_left * per) / 1000.0),
+	       already_substr,
+	       choice->w.c_str());
+      }
+      goto success;
     }
-
-    // PERF good opportunity to cull words, like because they have already been
-    // used.
 
     if (verbose && particles.size() % 10000 == 0) {
       printf("There were no new continuations for [%s].. (%d done, %d left).\n"
@@ -253,6 +248,11 @@ vector<string> MakeParticles(ArcFour *rc, const vector<string> &dict, bool verbo
       Word *restart = GetStartWord();
       UseWord(restart);
       particle = restart->w;
+      if (trace != nullptr) {
+	trace->rounds.push_back(Round());
+	round = &trace->rounds.back();
+	round->path.push_back(restart->w);
+      }
     }
     continue;
 

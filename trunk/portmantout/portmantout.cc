@@ -49,11 +49,13 @@ int main () {
   printf("Existing portmantout is size %d.\n", (int)best_size);
 
   auto OneThread = [&matrix, &dict, &best_m, &best_size](int thread_id) {
-    ArcFour rc(StringPrintf("%d-aThread-%d", time(nullptr), thread_id));
+    ArcFour rc(StringPrintf("%d-bThread-%d", time(nullptr), thread_id));
 
     for (;;) {
       Timer one;
-      vector<string> particles = MakeParticles(&rc, dict, false);
+
+      Trace trace;
+      vector<string> particles = MakeParticles(&rc, dict, false, &trace);
 
       // Should maybe try this 10 times, take best?
       string portmantout = particles[0];

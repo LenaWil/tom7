@@ -49,7 +49,19 @@ struct Word {
   vector<Word *> rev_neighbors;
 };
 
+static void WriteData(const string &filename, const vector<Word> &words) {
+  FILE *f = fopen(filename.c_str(), "wb");
+  for (const Word &word : words) {
+    fprintf(f, "%d %s\n", word.idx, word.w.c_str());
+  }
+  fclose(f);
+  printf("Wrote %s.\n", filename.c_str());
+}
+
 static void WriteSVG(const string &filename, const vector<Word> &words) {
+  // XXX Temporarily disabled to backfill Data.
+  return;
+
   static constexpr double SVGWIDTH = WWIDTH * 10;
   static constexpr double SVGHEIGHT = WHEIGHT * 10;
 
@@ -272,6 +284,7 @@ int MakeGrid(ArcFour *rc, const vector<string> &dict) {
 	energy = energy - oldeng + neweng;
 	if (swaps % 17000 == 0) {
 	  WriteSVG(StringPrintf("frame-%d.svg", framenum), words);
+	  WriteData(StringPrintf("frame-%d.txt", framenum), words);
 	  framenum++;
 	}
 	  

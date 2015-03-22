@@ -22,7 +22,7 @@ int main() {
   printf("%d words.\n", (int)dict.size());
   ArcFour rc("portmantout");
   
-  vector<string> particles = MakeParticles(&rc, dict, true);
+  vector<string> particles = MakeParticles(&rc, dict, true, nullptr);
 
   {
     FILE *f = fopen("particles.txt", "wb");
