@@ -11,7 +11,7 @@ OPT=-O2
 CXX=x86_64-w64-mingw32-g++
 CC=x86_64-w64-mingw32-g++
 
-UTILOBJECTS=util.o arcfour.o stringprintf.o logging.o textsvg.o
+UTILOBJECTS=util.o arcfour.o stringprintf.o logging.o textsvg.o color-util.o stb_image_write.o
 
 CPPFLAGS= -DPSS_STYLE=1 -DDUMMY_UI -DHAVE_ASPRINTF -Wno-write-strings -m64 $(OPT) -D__MINGW32__ -DHAVE_ALLOCA -DNOWINSTUFF $(INCLUDES) $(PROFILE) $(FLTO) $(CLINCLUDES) -I ../cc-lib/ --std=c++11
 
