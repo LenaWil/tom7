@@ -13,4 +13,10 @@ int main () {
       printf("%s\n", particle.substr(st, len).c_str());
    }
   }
+
+  for (int len = std::min(max_length, (int)particle.size()); len > 0; len--) {
+    string suffix = particle.substr(particle.size() - len, string::npos);
+    printf(".. %s\n", suffix.c_str());
+  }
+
 }
