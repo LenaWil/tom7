@@ -29,6 +29,8 @@ struct Word {
 };
 }
 
+static constexpr bool SCORED_WORDS = false;
+
 vector<string> MakeParticles(ArcFour *rc, const vector<string> &dict, bool verbose) {
   vector<Word> words;
   int total_letters = 0;
@@ -75,7 +77,7 @@ vector<string> MakeParticles(ArcFour *rc, const vector<string> &dict, bool verbo
   sorted.reserve(words.size());
   for (Word &word : words) sorted.push_back(&word);
 
-  if (true) {
+  if (SCORED_WORDS) {
     for (Word &word : words) {
       // If there's a (forward) path to a word, increment its accessibility.
       for (const string &suffix : word.suffixes) {
@@ -134,21 +136,6 @@ vector<string> MakeParticles(ArcFour *rc, const vector<string> &dict, bool verbo
   int particle_total = 0;
   while (num_left > 0) {
     // Mark words that are substrings.
-    #if 0
-    deque<Word*> todo_new;
-    for (Word *w : todo) {
-      if (w->used == 0) {
-	if (particle.find(w->w, std::max(0, 
-					 (int)particle.size() - max_length * 2)) != string::npos) {
-	  already_substr++;
-	  UseWord(w);
-	} else {
-	  todo_new.push_back(w);
-	}
-      }
-    }
-    todo = std::move(todo_new);
-    #else
     for (int st = std::max(0, (int)particle.size() - max_length * 2);
 	 st < particle.size();
 	 st++) {
@@ -162,52 +149,90 @@ vector<string> MakeParticles(ArcFour *rc, const vector<string> &dict, bool verbo
 	}
       }
     }
-    #endif
 
-    for (int len = std::min(max_length, (int)particle.size()); len > 0; len--) {
-      string suffix = particle.substr(particle.size() - len, string::npos);
-
-      vector<Word *> *nexts = Forward(suffix);
-
-      // Make sure the vector is just unused words.
-      for (int i = 0; i < nexts->size(); i++) {
-	Word *maybe = (*nexts)[i];
-	if (maybe->used > 0) {
-	  // We don't want to keep seeing this used word in the vector.
-	  if (i != nexts->size() - 1) {
-	    // Swap.
-	    (*nexts)[i] = (*nexts)[nexts->size() - 1];
-	    // Morally, do this, but it is now dead.
-	    // nexts[nexts.size() - 1] = maybe;
+    if (false) {
+      for (int len = std::min(max_length, (int)particle.size()); len > 0; len--) {
+	string suffix = particle.substr(particle.size() - len, string::npos);
+	// printf("Try suffix [%s].\n", suffix.c_str());
+	const vector<Word *> *nexts = Forward(suffix);
+	for (Word *maybe : *nexts) {
+	  if (maybe->used == 0) {
+	    UseWord(maybe);
+	    // This is maybe fastest way to add new suffix:
+	    particle.resize(particle.size() - suffix.size());
+	    particle += maybe->w;
+	    goto success;
 	  }
-
-	  // Then chop.
-	  nexts->resize(nexts->size() - 1);
 	}
       }
+    } else {
+    // NEW STYLE
+      for (int len = std::min(max_length, (int)particle.size()); len > 0; len--) {
+	string suffix = particle.substr(particle.size() - len, string::npos);
 
-      // There aren't any.
-      int num_next = nexts->size();
-      if (num_next == 0) continue;
+	vector<Word *> *nexts = Forward(suffix);
+	// printf("For suffx %s there were %d\n", suffix.c_str(), nexts->size());
 
-      int next = 0; // (num_next == 1) ? 0 : RandTo(rc, num_next);
-      Word *choice = (*nexts)[next];
+	// Make sure the vector is just unused words.
+	#if 1
+	for (int i = 0; i < nexts->size(); i++) {
+	  Word *maybe = (*nexts)[i];
+	  if (maybe->used > 0) {
+	    // We don't want to keep seeing this used word in the vector.
+	    if (i != nexts->size() - 1) {
+	      // Swap.
+	      (*nexts)[i] = (*nexts)[nexts->size() - 1];
+	      // Morally, do this, but it is now dead.
+	      // nexts[nexts.size() - 1] = maybe;
+	    }
 
-      UseWord(choice);
-      // This is maybe fastest way to add new suffix:
-      particle.resize(particle.size() - suffix.size());
-      particle += choice->w;
+	    // Then chop.
+	    nexts->resize(nexts->size() - 1);
+	    
+	    // And look again.
+	    i--;
+	  }
+	}
+	#else
+	{
+	  // Preserve order.
+	  vector<Word *> new_nexts;
+	  for (Word *maybe : *nexts) {
+	    if (maybe->used == 0) {
+	      new_nexts.push_back(maybe);
+	    }
+	  }
+	  *nexts = std::move(new_nexts);
+	}
+	#endif
+	
+	// printf(" .. and then were %d\n", nexts->size());
 
-      if (verbose && num_done % 1000 == 0) {
-	double per = loop_timer.MS() / num_done;
-	printf("[%6d parts, %6dms per word, %6ds left, %6d skip] %s\n",
-	       (int)particles.size(),
-	       (int)per,
-	       (int)((num_left * per) / 1000.0),
-	       already_substr,
-	       choice->w.c_str());
+	// There aren't any.
+	int num_next = nexts->size();
+	if (num_next == 0) continue;
+
+	int next = (num_next == 1) ? 0 : RandTo(rc, num_next);
+	Word *choice = (*nexts)[next];
+
+	UseWord(choice);
+	// This is maybe fastest way to add new suffix:
+
+	// printf("%s (%s) + %s\n", particle.c_str(), suffix.c_str(), choice->w.c_str());
+	particle.resize(particle.size() - suffix.size());
+	particle += choice->w;
+
+	if (verbose && num_done % 1000 == 0) {
+	  double per = loop_timer.MS() / num_done;
+	  printf("[%6d parts, %6dms per word, %6ds left, %6d skip] %s\n",
+		 (int)particles.size(),
+		 (int)per,
+		 (int)((num_left * per) / 1000.0),
+		 already_substr,
+		 choice->w.c_str());
+	}
+	goto success;
       }
-      goto success;
     }
 
     // PERF good opportunity to cull words, like because they have already been
@@ -223,7 +248,8 @@ vector<string> MakeParticles(ArcFour *rc, const vector<string> &dict, bool verbo
     }
     particles.push_back(particle);
     particle_total += particle.size();
-    {
+
+    if (num_left > 0) {
       Word *restart = GetStartWord();
       UseWord(restart);
       particle = restart->w;
@@ -235,7 +261,7 @@ vector<string> MakeParticles(ArcFour *rc, const vector<string> &dict, bool verbo
   particles.push_back(particle);
   particle_total += particle.size();
 
-  if (true || verbose) {
+  if (verbose) {
     printf("Success! But I needed %d separate portmanteaus :(\n"
 	   "And that was %d characters! (of %d, %.2f%% of the size)\n"
 	   "I skipped %d words that were already substrs.\n"

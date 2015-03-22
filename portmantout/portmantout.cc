@@ -25,22 +25,35 @@ std::mutex print_mutex;
   printf(fmt, ##__VA_ARGS__);			\
   } while (0);
 
-
+static constexpr bool VALIDATE = false;
+static constexpr bool JUST_ONE = false;
 
 int main () {
+  // const vector<string> real_dict = Util::ReadFileToLines("wordlist.asc");
+  // const vector<string> dict = Util::ReadFileToLines("testdict.asc");
+  // const vector<vector<Path>> matrix = MakeJoin(real_dict);
   const vector<string> dict = Util::ReadFileToLines("wordlist.asc");
-  printf("%d words.\n", (int)dict.size());
   const vector<vector<Path>> matrix = MakeJoin(dict);
+  printf("%d words.\n", (int)dict.size());
+
+  if (!SetPriorityClass(GetCurrentProcess(), BELOW_NORMAL_PRIORITY_CLASS)) {
+    LOG(FATAL) << "Unable to go to BELOW_NORMAL priority.\n";
+  }
+
+  const vector<string> p = Util::ReadFileToLines("portmantout.txt");
+  CHECK_EQ(p.size(), 1) << "Expected a single line in the file.";
+  string orig_portmantout = std::move(p[0]);
 
   std::mutex best_m;
-  int best_size = 999999999;
+  int best_size = orig_portmantout.size();
+  printf("Existing portmantout is size %d.\n", (int)best_size);
 
   auto OneThread = [&matrix, &dict, &best_m, &best_size](int thread_id) {
-    ArcFour rc(StringPrintf("%d-Thread-%d", time(nullptr), thread_id));
+    ArcFour rc(StringPrintf("%d-aThread-%d", time(nullptr), thread_id));
 
     for (;;) {
       Timer one;
-      vector<string> particles = MakeParticles(&rc, dict, true);
+      vector<string> particles = MakeParticles(&rc, dict, false);
 
       // Should maybe try this 10 times, take best?
       string portmantout = particles[0];
@@ -61,14 +74,18 @@ int main () {
 	portmantout += next;
       }
 
+
+      string valstr;
       // Validation.
-      Timer validation;
-      for (const string &w : dict) {
-	CHECK(portmantout.find(w) != string::npos) << "FAILED: ["
-						   << portmantout
-						   << "] / " << w;
+      if (VALIDATE) {
+	Timer validation;
+	for (const string &w : dict) {
+	  CHECK(portmantout.find(w) != string::npos) << "FAILED: ["
+						     << portmantout
+						     << "] / " << w;
+	}
+	valstr = StringPrintf(" [val %.1fs]", validation.MS() / 1000.0);
       }
-      double validation_ms = validation.MS();
 
       int sz = (int)portmantout.size();
 
@@ -85,27 +102,29 @@ int main () {
 	}
       }
 
-      Printf("%2d. %7d letters in [%.1fs] [val %.1fs] %s\n", thread_id, sz,
+      Printf("%2d. %7d letters in [%.1fs]%s  %s\n", thread_id, sz,
 	     one.MS() / 1000.0, 
-	     validation_ms / 1000.0,
+	     valstr.c_str(),
 	     nb.c_str());
+
+      if (JUST_ONE)
+	return;
     }
   };
-  
 
-  OneThread(0);
-
-  /*
-  static const int max_concurrency = 10;
-  vector<std::thread> threads;
-  threads.reserve(max_concurrency);
-  for (int i = 0; i < max_concurrency; i++) {
-    auto Thread = [&OneThread, i]() { OneThread(i); };
-    threads.emplace_back(Thread);
+  if (JUST_ONE) {
+    OneThread(0);
+  } else {
+    static const int max_concurrency = 11;
+    vector<std::thread> threads;
+    threads.reserve(max_concurrency);
+    for (int i = 0; i < max_concurrency; i++) {
+      auto Thread = [&OneThread, i]() { OneThread(i); };
+      threads.emplace_back(Thread);
+    }
+    // Won't ever actually finish.
+    for (std::thread &t : threads) t.join();
   }
-  // Won't ever actually finish.
-  for (std::thread &t : threads) t.join();
-  */
 
   return 0;
 }
