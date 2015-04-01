@@ -97,9 +97,14 @@ int main() {
     fontx[idx] = i * FONTWIDTH;
   }
 
+  vector<int> colors;
+  ArcFour rc("scroll");
+  for (char c : port) {
+    colors.push_back(RandTo(&rc, 6));
+  }
+
   ParallelComp(NUMFRAMES,
-	       [font, &fontx, &port, maxscroll](int f) {
-      ArcFour rc(StringPrintf("%d", f));
+	       [font, &fontx, &port, &colors, maxscroll](int f) {
 
       ImageRGBA *frame = new ImageRGBA(SCREENWIDTH, SCREENHEIGHT);
       for (int i = 0; i < SCREENWIDTH * SCREENHEIGHT; i++) {
@@ -126,7 +131,7 @@ int main() {
 	  int idx = y * CHARSWIDE + x;
 	  if (idx >= 0 && idx < port.size()) {
 	    int ch = port[idx];
-	    int color = RandTo(&rc, 6);
+	    int color = colors[idx];
 	    frame->Blit(*font, fontx[ch], FONTHEIGHT * color,
 			FONTWIDTH, FONTHEIGHT,
 			x * (FONTWIDTH - 1),
