@@ -1,5 +1,5 @@
 
-default: particles.exe join.exe grid.exe portmantout.exe validate.exe
+default: particles.exe join.exe grid.exe portmantout.exe validate.exe scroll.exe
 
 all: particles.exe join.exe paper.pdf grid.exe
 
@@ -11,7 +11,7 @@ OPT=-O2
 CXX=x86_64-w64-mingw32-g++
 CC=x86_64-w64-mingw32-g++
 
-UTILOBJECTS=util.o arcfour.o stringprintf.o logging.o textsvg.o color-util.o stb_image_write.o
+UTILOBJECTS=util.o arcfour.o stringprintf.o logging.o textsvg.o color-util.o stb_image_write.o stb_image.o
 
 CPPFLAGS= -DPSS_STYLE=1 -DDUMMY_UI -DHAVE_ASPRINTF -Wno-write-strings -m64 $(OPT) -D__MINGW32__ -DHAVE_ALLOCA -DNOWINSTUFF $(INCLUDES) $(PROFILE) $(FLTO) $(CLINCLUDES) -I ../cc-lib/ --std=c++11
 
@@ -20,6 +20,10 @@ CPPFLAGS= -DPSS_STYLE=1 -DDUMMY_UI -DHAVE_ASPRINTF -Wno-write-strings -m64 $(OPT
 	@echo -n "."
 
 %.o : ../cc-lib/%.cc makefile
+	@$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
+	@echo -n "."
+
+%.o : ../cc-lib/%.c makefile
 	@$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
 	@echo -n "."
 
@@ -40,22 +44,25 @@ paper.pdf : paper.tex table-two.tex
 	pdflatex paper.tex
 #	pdflatex paper.tex
 
-portmantout.exe : $(OBJECTS) $(SDLOBJECTS) portmantout.o makeparticles.o makejoin.o
+portmantout.exe : $(OBJECTS) portmantout.o makeparticles.o makejoin.o
 	$(CXX) $^ -o $@ $(LFLAGS)
 
-particles.exe : $(OBJECTS) $(SDLOBJECTS) particles.o makeparticles.o
+particles.exe : $(OBJECTS) particles.o makeparticles.o
 	$(CXX) $^ -o $@ $(LFLAGS)
 
-join.exe : $(OBJECTS) $(SDLOBJECTS) join.o makejoin.o
+join.exe : $(OBJECTS) join.o makejoin.o
 	$(CXX) $^ -o $@ $(LFLAGS)
 
-validate.exe : $(OBJECTS) $(SDLOBJECTS) validate.o
+validate.exe : $(OBJECTS) validate.o
 	$(CXX) $^ -o $@ $(LFLAGS)
 
-makeparticles_test.exe:  $(OBJECTS) $(SDLOBJECTS) makeparticles_test.o
+makeparticles_test.exe:  $(OBJECTS) makeparticles_test.o
 	$(CXX) $^ -o $@ $(LFLAGS)
 
-grid.exe : $(OBJECTS) $(SDLOBJECTS) grid.o
+grid.exe : $(OBJECTS) grid.o
+	$(CXX) $^ -o $@ $(LFLAGS)
+
+scroll.exe : $(OBJECTS) scroll.o
 	$(CXX) $^ -o $@ $(LFLAGS)
 
 clean :
