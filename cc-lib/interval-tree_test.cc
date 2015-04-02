@@ -6,8 +6,8 @@
 #include <vector>
 #include <string>
 
-#include "../cc-lib/arcfour.h"
-#include "base.h"
+#include "arcfour.h"
+#include "base/logging.h"
 
 using namespace std;
 

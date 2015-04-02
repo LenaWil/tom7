@@ -11,6 +11,7 @@
 template<class T>
 struct IntervalDefaultBisect {
   T operator ()(const T &a, const T &b) {
+    // XXX I think this may be wrong for negative numbers.
     return static_cast<T>((a + b) / 2);
   }
 };

@@ -1,5 +1,5 @@
 
-default : heap_test.exe rle_test.exe
+default : heap_test.exe rle_test.exe interval-tree_test.exe
 
 TESTCOMPILE=stb_image_write.o stb_image.o
 
@@ -21,6 +21,9 @@ rle_test.o : rle_test.cc rle.h
 	$(CXX) $(CXXFLAGS) $< -o $@ -c
 
 rle_test.exe : rle_test.o rle.o $(BASE) arcfour.o
+	$(CXX) $(CXXFLAGS) $^ -o $@
+
+interval-tree_test.exe : interval-tree_test.o $(BASE) arcfour.o
 	$(CXX) $(CXXFLAGS) $^ -o $@
 
 clean :
