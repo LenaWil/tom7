@@ -1,7 +1,5 @@
 
-default: particles.exe join.exe grid.exe portmantout.exe validate.exe scroll.exe
-
-all: particles.exe join.exe paper.pdf grid.exe
+default: particles.exe join.exe grid.exe portmantout.exe validate.exe scroll.exe spans.exe
 
 # -fno-strict-aliasing
 CXXFLAGS=-Wall -Wno-deprecated -Wno-sign-compare -I/usr/local/include -I/usr/include -ISDL/include -std=c++11 
@@ -20,10 +18,6 @@ CPPFLAGS= -DPSS_STYLE=1 -DDUMMY_UI -DHAVE_ASPRINTF -Wno-write-strings -m64 $(OPT
 	@echo -n "."
 
 %.o : ../cc-lib/%.cc makefile
-	@$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
-	@echo -n "."
-
-%.o : ../cc-lib/%.c makefile
 	@$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
 	@echo -n "."
 
@@ -54,6 +48,9 @@ join.exe : $(OBJECTS) join.o makejoin.o
 	$(CXX) $^ -o $@ $(LFLAGS)
 
 validate.exe : $(OBJECTS) validate.o
+	$(CXX) $^ -o $@ $(LFLAGS)
+
+spans.exe : $(OBJECTS) spans.o
 	$(CXX) $^ -o $@ $(LFLAGS)
 
 makeparticles_test.exe:  $(OBJECTS) makeparticles_test.o

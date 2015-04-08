@@ -98,8 +98,9 @@ int main() {
   }
 
   vector<int> colors;
+  colors.reserve(port.size());
   ArcFour rc("scroll");
-  for (char c : port) {
+  for (int i = 0; i < port.size(); i++) {
     colors.push_back(RandTo(&rc, 6));
   }
 
