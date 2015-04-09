@@ -3,7 +3,6 @@
 #include "types.h"
 #include "version.h"
 #include "fceu.h"
-#include "config.h"
 
 using namespace std;
 

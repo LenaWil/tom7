@@ -15,7 +15,6 @@ Stuff I should be able to get rid of:
 
       Still to objectify:
 
-      config.cc
       emulator.cc
       fceu.cc
       fds.cc
