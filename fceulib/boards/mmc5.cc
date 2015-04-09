@@ -94,8 +94,10 @@ typedef struct __cartdata {
   uint8 size;
 } cartdata;
 
-#define Sprite16  (fceulib__ppu.PPU_values[0]&0x20)   //Sprites 8x16/8x8
+#if 0
+// unused -tom7
 //#define MMC5SPRVRAMADR(V)      &MMC5SPRVPage[(V)>>10][(V)]
+#define Sprite16  (fceulib__ppu.PPU_values[0]&0x20)   //Sprites 8x16/8x8
 static inline uint8 *MMC5BGVRAMADR(uint32 A) {
   if (!Sprite16) {
     if (mmc5ABMode==0)
@@ -104,6 +106,7 @@ static inline uint8 *MMC5BGVRAMADR(uint32 A) {
       return &fceulib__cart.MMC5BGVPage[(A)>>10][(A)];
   } else return &fceulib__cart.MMC5BGVPage[(A)>>10][(A)];
 }
+#endif
 
 #if 0
 static void mmc5_PPUWrite(uint32 A, uint8 V) {

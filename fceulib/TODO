@@ -10,11 +10,9 @@ Stuff I should be able to get rid of:
  - proper in-memory treatment of battery backed saves. lots of
    red herrings here! also, it leaks file descriptors.
  - autosave (fceu.cc mostly)
- - FCEUDEF_DEBUGGER is never defined. excise.
- - make x6502 follow normal conventions of how it defines stuff,
-   include guards, etc.
  - rename __dummy_mapper to not start with __.
- - x6502struct.h: preexec
+ - x6502.h: preexec
+ - get rid of _defines in x6502.cc
 
       Still to objectify:
 

@@ -26,7 +26,20 @@
 
 #include "tracing.h"
 
-#include "x6502abbrev.h"
+// XXX get rid of this -tom7
+#define _PC        X.PC
+#define _A         X.A
+#define _X         X.X
+#define _Y         X.Y
+#define _S         X.S
+#define _P         X.P
+#define _PI        X.mooPI
+#define _DB        X.DB
+#define _count     X.count
+#define _tcount    X.tcount
+#define _IRQlow    X.IRQlow
+#define _jammed    X.jammed
+
 
 #define N_FLAG  0x80
 #define V_FLAG  0x40
@@ -338,7 +351,7 @@ static constexpr uint8 ZNTable[256] = {
    will always operate(redundant redundant) on the variable "x".
 */
 
-#define RMW_A(op) {uint8 x=_A; op; _A=x; break; } /* Meh... */
+#define RMW_A(op) {uint8 x=_A; op; _A=x; break; }
 #define RMW_AB(op) {unsigned int A; uint8 x; GetAB(A); x=RdMem(A); WrMem(A,x); op; WrMem(A,x); break; }
 #define RMW_ABI(reg,op) {unsigned int A; uint8 x; GetABIWR(A,reg); x=RdMem(A); WrMem(A,x); op; WrMem(A,x); break; }
 #define RMW_ABX(op) RMW_ABI(_X,op)
