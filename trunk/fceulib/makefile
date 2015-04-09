@@ -24,9 +24,11 @@ WINLINK=-Wl,--subsystem,console -static
 endif
 
 # Suppress compilation commands, but show some indication of progress.
+# (Explicitly invoke bash to get shell builtin, since on OS X echo
+# otherwise treats -n literally.)
 %.o : %.cc
 	@$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $<
-	@echo -n "."
+	@bash -c "echo -n '.'"
 
 # If you don't have SDL, you can leave these out, and maybe it still works.
 LINKSDL= -mno-cygwin -lm -luser32 -lgdi32 -lwinmm -ldxguid
