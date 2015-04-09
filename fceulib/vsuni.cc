@@ -50,11 +50,11 @@ static uint8 DIPS=0;
 uint8 vsdip=0;
 
 void FCEUI_VSUniToggleDIPView() {
- DIPS=!DIPS;
+  DIPS=!DIPS;
 }
 
 void FCEU_VSUniToggleDIP(int w) {
- vsdip^=1<<w;
+  vsdip^=1<<w;
 }
 
 void FCEUI_VSUniSetDIP(int w, int state) {
@@ -62,8 +62,7 @@ void FCEUI_VSUniSetDIP(int w, int state) {
   FCEUI_VSUniToggleDIP(w);
 }
 
-uint8 FCEUI_VSUniGetDIPs()
-{
+uint8 FCEUI_VSUniGetDIPs() {
  return(vsdip);
 }
 
@@ -116,16 +115,16 @@ static readfunc OldReadPPU;
 static writefunc OldWritePPU[2];
 
 static DECLFR(A2002_Gumshoe) {
-  return( (OldReadPPU(A)&~0x3F) | 0x1C);
+  return (OldReadPPU(A)&~0x3F) | 0x1C;
 }
 
 static DECLFR(A2002_Topgun) {
-  return( (OldReadPPU(A)&~0x3F) | 0x1B);
+  return (OldReadPPU(A)&~0x3F) | 0x1B;
 }
 
 // Mighty Bomb Jack
 static DECLFR(A2002_MBJ) {
-  return( (OldReadPPU(A)&~0x3F) | 0x3D);
+  return (OldReadPPU(A)&~0x3F) | 0x3D;
 }
 
 static DECLFW(B2000_2001_2C05) {
@@ -136,23 +135,23 @@ static uint8 xevselect = 0;
 static DECLFR(XevRead) {
   //printf("%04x\n",A);
   if (A == 0x54FF) {
-    return(0x5);
+    return 0x5;
   } else if (A == 0x5678) {
-    return(xevselect?0:1);
+    return xevselect ? 0 : 1;
   } else if (A == 0x578F) {
-    return(xevselect?0xd1:0x89);
+    return xevselect ? 0xd1 : 0x89;
   } else if (A == 0x5567) {
-    xevselect ^=1;
-    return(xevselect?0x37:0x3E);
+    xevselect ^= 1;
+    return xevselect ? 0x37 : 0x3E;
   }
-  return(X.DB);
+  return X.DB;
 }
 
 void FCEU_VSUniSwap(uint8 *j0, uint8 *j1) {
   if (curvs->ioption & IOPTION_SWAPDIRAB) {
-    uint16 t=*j0;
-    *j0=(*j0&0xC)|(*j1&0xF3);
-    *j1=(*j1&0xC)|(t&0xF3);
+    uint16 t = *j0;
+    *j0 = (*j0&0xC)|(*j1&0xF3);
+    *j1 = (*j1&0xC)|(t&0xF3);
   }
 }
 
@@ -174,14 +173,14 @@ void FCEU_VSUniPower() {
     SetReadHandler(0x2002, 0x2002, A2002_MBJ);
   }
   if (curppu == RC2C05_04 || curppu == RC2C05_01 || 
-     curppu == RC2C05_03 || curppu == RC2C05_02) {
+      curppu == RC2C05_03 || curppu == RC2C05_02) {
     OldWritePPU[0] = GetWriteHandler(0x2000);
     OldWritePPU[1] = GetWriteHandler(0x2001);
     SetWriteHandler(0x2000, 0x2001, B2000_2001_2C05);
   }
   /* Super Xevious */
   if (curmd5 == 0x2d396247cf58f9faLL) {
-    SetReadHandler(0x5400,0x57FF,XevRead);
+    SetReadHandler(0x5400, 0x57FF, XevRead);
   }
 }
 
@@ -346,35 +345,35 @@ void FCEU_VSUniDraw(uint8 *XBuf) {
 
   if (!DIPS) return;
 
-  dest=(uint32 *)(XBuf+256*12+164);
-  for (int y=24;y;y--,dest+=(256-72)>>2) {
-    for (int x=72>>2;x;x--,dest++) {
+  dest = (uint32 *)(XBuf+256*12+164);
+  for (int y = 24 ; y; y--,dest+=(256-72)>>2) {
+    for (int x = 72>>2; x; x--,dest++) {
       *dest=0;
     }
   }
 
-  dest=(uint32 *)(XBuf+256*(12+4)+164+6 );
-  for (int y=16;y;y--,dest+=(256>>2)-16) {
-    for (int x=8;x;x--) {
-      *dest=0x01010101;
-      dest+=2;
+  dest = (uint32 *)(XBuf+256*(12+4)+164+6 );
+  for (int y = 16; y; y--,dest+=(256>>2)-16) {
+    for (int x = 8; x; x--) {
+      *dest = 0x01010101;
+      dest += 2;
     }
   }
 
-  dest=(uint32 *)(XBuf+256*(12+4)+164+6 );
+  dest = (uint32 *)(XBuf + 256 * (12+4) + 164 + 6);
   for (int x=0;x<8;x++,dest+=2) {
     uint32 *da=dest+(256>>2);
 
     if (!((vsdip>>x)&1))
       da+=(256>>2)*10;
-    for (int y=4;y;y--,da+=256>>2) {
+    for (int y=4; y; y--, da += 256 >> 2) {
       *da=0;
     }
   }
 }
 
 
-SFORMAT FCEUVSUNI_STATEINFO[]={
+SFORMAT FCEUVSUNI_STATEINFO[] = {
   { &vsdip, 1, "vsdp" },
   { &coinon, 1, "vscn" },
   { &VSindex, 1, "vsin" },
