@@ -11,7 +11,6 @@ Stuff I should be able to get rid of:
    red herrings here! also, it leaks file descriptors.
  - autosave (fceu.cc mostly)
  - rename __dummy_mapper to not start with __.
- - x6502.h: preexec
  - get rid of _defines in x6502.cc
 
       Still to objectify:

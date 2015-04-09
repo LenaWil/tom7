@@ -54,20 +54,20 @@ X6502 X;
 uint32 timestamp;
 void (*MapIRQHook)(int a);
 
-#define ADDCYC(x) {  \
- int __x=x;       \
- _tcount+=__x;    \
- _count-=__x*48;  \
- timestamp+=__x;  \
-}
+#define ADDCYC(x) {				\
+    int __x=x;					\
+    _tcount+=__x;				\
+    _count-=__x*48;				\
+    timestamp+=__x;				\
+  }
 
-//normal memory read
+// normal memory read
 static inline uint8 RdMem(unsigned int A) {
   TRACEF("readfunc is %p", ARead[A]);
   return _DB=ARead[A](A);
 }
 
-//normal memory write
+// normal memory write
 static inline void WrMem(unsigned int A, uint8 V) {
   BWrite[A](A,V);
 }
@@ -77,30 +77,29 @@ static inline uint8 RdRAM(unsigned int A) {
   // see what other ones are possible); cheats at this level
   // are not important. -tom7
   //bbit edited: this was changed so cheat substitution would work
-  return(_DB=ARead[A](A));
+  return (_DB=ARead[A](A));
   // return(_DB=RAM[A]);
 }
 
 static inline void WrRAM(unsigned int A, uint8 V) {
-  RAM[A]=V;
+  RAM[A] = V;
 }
 
 uint8 X6502_DMR(uint32 A) {
- ADDCYC(1);
- return(X.DB=ARead[A](A));
+  ADDCYC(1);
+  return (X.DB=ARead[A](A));
 }
 
 void X6502_DMW(uint32 A, uint8 V) {
- ADDCYC(1);
- BWrite[A](A,V);
+  ADDCYC(1);
+  BWrite[A](A,V);
 }
 
-#define PUSH(V) \
-{       \
- uint8 VTMP=V;  \
- WrRAM(0x100+_S,VTMP);  \
- _S--;  \
-}
+#define PUSH(V) {				\
+    uint8 VTMP=V;				\
+    WrRAM(0x100+_S,VTMP);			\
+    _S--;					\
+  }
 
 #define POP() RdRAM(0x100+(++_S))
 
@@ -149,29 +148,29 @@ static constexpr uint8 ZNTable[256] = {
 /* Some of these operations will only make sense if you know what the flag
    constants are. */
 
-#define X_ZN(zort)      _P&=~(Z_FLAG|N_FLAG);_P|=ZNTable[zort]
-#define X_ZNT(zort)  _P|=ZNTable[zort]
+#define X_ZN(zort) _P&=~(Z_FLAG|N_FLAG);_P|=ZNTable[zort]
+#define X_ZNT(zort) _P|=ZNTable[zort]
 
-#define JR(cond);  \
-{    \
- if(cond)  \
- {  \
-  uint32 tmp;  \
-  int32 disp;  \
-  disp=(int8)RdMem(_PC);  \
-  _PC++;  \
-  ADDCYC(1);  \
-  tmp=_PC;  \
-  _PC+=disp;  \
-  if((tmp^_PC)&0x100)  \
-  ADDCYC(1);  \
- }  \
- else _PC++;  \
-}
+#define JR(cond) {				\
+    if (cond) {					\
+      uint32 tmp;				\
+      int32 disp;				\
+      disp=(int8)RdMem(_PC);			\
+      _PC++;					\
+      ADDCYC(1);				\
+      tmp=_PC;					\
+      _PC+=disp;				\
+      if ((tmp^_PC)&0x100) {			\
+	ADDCYC(1);				\
+      }						\
+    } else {					\
+      _PC++;					\
+    }						\
+  }
 
 
-#define LDA     _A=x;X_ZN(_A)
-#define LDX     _X=x;X_ZN(_X)
+#define LDA  _A=x;X_ZN(_A)
+#define LDX  _X=x;X_ZN(_X)
 #define LDY  _Y=x;X_ZN(_Y)
 
 /*  All of the freaky arithmetic operations. */
@@ -180,46 +179,46 @@ static constexpr uint8 ZNTable[256] = {
 #define EOR  _A^=x;X_ZN(_A)
 #define ORA  _A|=x;X_ZN(_A)
 
-#define ADC  {  \
-        uint32 l=_A+x+(_P&1);  \
-        _P&=~(Z_FLAG|C_FLAG|N_FLAG|V_FLAG);  \
-        _P|=((((_A^x)&0x80)^0x80) & ((_A^l)&0x80))>>1;  \
-        _P|=(l>>8)&C_FLAG;  \
-        _A=l;  \
-        X_ZNT(_A);  \
-       }
+#define ADC {						\
+    uint32 l=_A+x+(_P&1);				\
+    _P&=~(Z_FLAG|C_FLAG|N_FLAG|V_FLAG);			\
+    _P|=((((_A^x)&0x80)^0x80) & ((_A^l)&0x80))>>1;	\
+    _P|=(l>>8)&C_FLAG;					\
+    _A=l;						\
+    X_ZNT(_A);						\
+  }
 
-#define SBC  {  \
-        uint32 l=_A-x-((_P&1)^1);  \
-        _P&=~(Z_FLAG|C_FLAG|N_FLAG|V_FLAG);  \
-        _P|=((_A^l)&(_A^x)&0x80)>>1;  \
-        _P|=((l>>8)&C_FLAG)^C_FLAG;  \
-        _A=l;  \
-        X_ZNT(_A);  \
-       }
+#define SBC {					\
+    uint32 l=_A-x-((_P&1)^1);			\
+    _P&=~(Z_FLAG|C_FLAG|N_FLAG|V_FLAG);		\
+    _P|=((_A^l)&(_A^x)&0x80)>>1;		\
+    _P|=((l>>8)&C_FLAG)^C_FLAG;			\
+    _A=l;					\
+    X_ZNT(_A);					\
+  }
 
-#define CMPL(a1,a2) {  \
-         uint32 t=a1-a2;  \
-         X_ZN(t&0xFF);  \
-         _P&=~C_FLAG;  \
-         _P|=((t>>8)&C_FLAG)^C_FLAG;  \
-		    }
+#define CMPL(a1,a2) {				\
+    uint32 t=a1-a2;				\
+    X_ZN(t&0xFF);				\
+    _P&=~C_FLAG;				\
+    _P|=((t>>8)&C_FLAG)^C_FLAG;			\
+  }
 
 /* Special undocumented operation.  Very similar to CMP. */
-#define AXS      {  \
-                     uint32 t=(_A&_X)-x;    \
-                     X_ZN(t&0xFF);      \
-                     _P&=~C_FLAG;       \
-         _P|=((t>>8)&C_FLAG)^C_FLAG;  \
-         _X=t;  \
-        }
+#define AXS {					\
+    uint32 t=(_A&_X)-x;				\
+    X_ZN(t&0xFF);				\
+    _P&=~C_FLAG;				\
+    _P|=((t>>8)&C_FLAG)^C_FLAG;			\
+    _X=t;					\
+  }
 
 #define CMP    CMPL(_A,x)
 #define CPX    CMPL(_X,x)
-#define CPY          CMPL(_Y,x)
+#define CPY    CMPL(_Y,x)
 
 /* The following operations modify the byte being worked on. */
-#define DEC         x--;X_ZN(x)
+#define DEC    x--;X_ZN(x)
 #define INC    x++;X_ZN(x)
 
 #define ASL  _P&=~C_FLAG;_P|=x>>7;x<<=1;X_ZN(x)
@@ -228,123 +227,113 @@ static constexpr uint8 ZNTable[256] = {
 /* For undocumented instructions, maybe for other things later... */
 #define LSRA  _P&=~(C_FLAG|N_FLAG|Z_FLAG);_P|=_A&1;_A>>=1;X_ZNT(_A)
 
-#define ROL  {  \
-     uint8 l=x>>7;  \
-     x<<=1;  \
-     x|=_P&C_FLAG;  \
-     _P&=~(Z_FLAG|N_FLAG|C_FLAG);  \
-     _P|=l;  \
-     X_ZNT(x);  \
-    }
-#define ROR  {  \
-     uint8 l=x&1;  \
-     x>>=1;  \
-     x|=(_P&C_FLAG)<<7;  \
-     _P&=~(Z_FLAG|N_FLAG|C_FLAG);  \
-     _P|=l;  \
-     X_ZNT(x);  \
-		}
+#define ROL {					\
+    uint8 l=x>>7;				\
+    x<<=1;					\
+    x|=_P&C_FLAG;				\
+    _P&=~(Z_FLAG|N_FLAG|C_FLAG);		\
+    _P|=l;					\
+    X_ZNT(x);					\
+  }
+#define ROR {					\
+    uint8 l=x&1;				\
+    x>>=1;					\
+    x|=(_P&C_FLAG)<<7;				\
+    _P&=~(Z_FLAG|N_FLAG|C_FLAG);		\
+    _P|=l;					\
+    X_ZNT(x);					\
+  }
 
 /* Icky icky thing for some undocumented instructions.  Can easily be
    broken if names of local variables are changed.
 */
 
 /* Absolute */
-#define GetAB(target)   \
-{  \
- target=RdMem(_PC);  \
- _PC++;  \
- target|=RdMem(_PC)<<8;  \
- _PC++;  \
-}
+#define GetAB(target) {			\
+    target=RdMem(_PC);				\
+    _PC++;					\
+    target|=RdMem(_PC)<<8;			\
+    _PC++;					\
+  }
 
 /* Absolute Indexed(for reads) */
-#define GetABIRD(target, i)  \
-{  \
- unsigned int tmp;  \
- GetAB(tmp);  \
- target=tmp;  \
- target+=i;  \
- if((target^tmp)&0x100)  \
- {  \
-  target&=0xFFFF;  \
-  RdMem(target^0x100);  \
-  ADDCYC(1);  \
- }  \
-}
+#define GetABIRD(target, i) {			\
+    unsigned int tmp;				\
+    GetAB(tmp);					\
+    target=tmp;					\
+    target+=i;					\
+    if ((target^tmp)&0x100) {			\
+      target&=0xFFFF;				\
+      RdMem(target^0x100);			\
+      ADDCYC(1);				\
+    }						\
+  }
 
 /* Absolute Indexed(for writes and rmws) */
-#define GetABIWR(target, i)  \
-{  \
- unsigned int rt;  \
- GetAB(rt);  \
- target=rt;  \
- target+=i;  \
- target&=0xFFFF;  \
- RdMem((target&0x00FF)|(rt&0xFF00));  \
-}
+#define GetABIWR(target, i) {			\
+    unsigned int rt;				\
+    GetAB(rt);					\
+    target=rt;					\
+    target+=i;					\
+    target&=0xFFFF;				\
+    RdMem((target&0x00FF)|(rt&0xFF00));		\
+  }
 
 /* Zero Page */
-#define GetZP(target)  \
-{  \
- target=RdMem(_PC);   \
- _PC++;  \
-}
+#define GetZP(target) {				\
+    target=RdMem(_PC);				\
+    _PC++;					\
+  }
 
 /* Zero Page Indexed */
-#define GetZPI(target,i)  \
-{  \
- target=i+RdMem(_PC);  \
- _PC++;  \
-}
+#define GetZPI(target,i) {			\
+    target=i+RdMem(_PC);			\
+    _PC++;					\
+  }
 
 /* Indexed Indirect */
-#define GetIX(target)  \
-{  \
- uint8 tmp;  \
- tmp=RdMem(_PC);  \
- _PC++;  \
- tmp+=_X;  \
- target=RdRAM(tmp);  \
- tmp++;    \
- target|=RdRAM(tmp)<<8;  \
-}
+#define GetIX(target) {				\
+    uint8 tmp;					\
+    tmp=RdMem(_PC);				\
+    _PC++;					\
+    tmp+=_X;					\
+    target=RdRAM(tmp);				\
+    tmp++;					\
+    target|=RdRAM(tmp)<<8;			\
+  }
 
 /* Indirect Indexed(for reads) */
-#define GetIYRD(target)  \
-{  \
- unsigned int rt;  \
- uint8 tmp;  \
- tmp=RdMem(_PC);  \
- _PC++;  \
- rt=RdRAM(tmp);  \
- tmp++;  \
- rt|=RdRAM(tmp)<<8;  \
- target=rt;  \
- target+=_Y;  \
- if((target^rt)&0x100)  \
- {  \
-  target&=0xFFFF;  \
-  RdMem(target^0x100);  \
-  ADDCYC(1);  \
- }  \
-}
+#define GetIYRD(target) {			\
+    unsigned int rt;				\
+    uint8 tmp;					\
+    tmp=RdMem(_PC);				\
+    _PC++;					\
+    rt=RdRAM(tmp);				\
+    tmp++;					\
+    rt|=RdRAM(tmp)<<8;				\
+    target=rt;					\
+    target+=_Y;					\
+    if ((target^rt)&0x100) {			\
+      target&=0xFFFF;				\
+      RdMem(target^0x100);			\
+      ADDCYC(1);				\
+    }						\
+  }
 
 /* Indirect Indexed(for writes and rmws) */
-#define GetIYWR(target)  \
-{  \
- unsigned int rt;  \
- uint8 tmp;  \
- tmp=RdMem(_PC);  \
- _PC++;  \
- rt=RdRAM(tmp);  \
- tmp++;  \
- rt|=RdRAM(tmp)<<8;  \
- target=rt;  \
- target+=_Y;  \
- target&=0xFFFF; \
- RdMem((target&0x00FF)|(rt&0xFF00));  \
-}
+#define GetIYWR(target) {			\
+    unsigned int rt;				\
+    uint8 tmp;					\
+    tmp=RdMem(_PC);				\
+    _PC++;					\
+    rt=RdRAM(tmp);				\
+    tmp++;					\
+    rt|=RdRAM(tmp)<<8;				\
+    target=rt;					\
+    target+=_Y;					\
+    target&=0xFFFF;				\
+    RdMem((target&0x00FF)|(rt&0xFF00));		\
+  }
 
 /* Now come the macros to wrap up all of the above stuff addressing
    mode functions and operation macros. Note that operation macros
@@ -439,12 +428,12 @@ void X6502_Reset() {
 **/
 void X6502_Init() {
   // Initialize the CPU structure
-  memset((void *)&X,0,sizeof(X));
+  memset((void *)&X, 0, sizeof(X));
 
   // Now initialized statically. -tom7
 #if 0
   for(int i = 0; i < sizeof(ZNTable); i++) {
-    if(!i) {
+    if (!i) {
       ZNTable[i] = Z_FLAG;
     } else if ( i & 0x80 ) {
       ZNTable[i] = N_FLAG;
@@ -851,7 +840,6 @@ void X6502_Run(int32 cycles) {
     case 0x70: JR(_P&V_FLAG); break;
 
       //default: printf("Bad %02x at $%04x\n",b1,X.PC);break;
-      //ifdef moo
       /* Here comes the undocumented instructions block.  Note that this implementation
 	 may be "wrong".  If so, please tell me.
       */
