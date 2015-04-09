@@ -41,9 +41,6 @@ struct X6502 {
   uint32 IRQlow;
   /* Data bus "cache" for reads from certain areas */
   uint8 DB;
-
-  /* Pre-exec'ing for debug breakpoints. */
-  int preexec;
 };
 
 extern X6502 X;
