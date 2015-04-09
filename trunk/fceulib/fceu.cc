@@ -117,14 +117,14 @@ void SetWriteHandler(int32 start, int32 end, writefunc func) {
     func = BNull;
 
   if (RWWrap) {
-    for(int32 x = end; x >= start; x--) {
+    for (int32 x = end; x >= start; x--) {
       if (x>=0x8000)
-	BWriteG[x-0x8000]=func;
+        BWriteG[x-0x8000]=func;
       else
-	BWrite[x]=func;
+        BWrite[x]=func;
     } 
   } else {
-    for(int32 x = end; x >= start; x--) {
+    for (int32 x = end; x >= start; x--) {
       BWrite[x]=func;
     }
   }
@@ -175,12 +175,12 @@ static void ResetGameLoaded() {
   // Probably this should happen within sound itself.
   if (fceulib__sound.GameExpSound.Kill)
     fceulib__sound.GameExpSound.Kill();
-  memset(&fceulib__sound.GameExpSound,0,
-	 sizeof (fceulib__sound.GameExpSound));
+  memset(&fceulib__sound.GameExpSound, 0,
+         sizeof (fceulib__sound.GameExpSound));
 
-  MapIRQHook=0;
-  fceulib__ppu.MMC5Hack=0;
-  PAL&=1;
+  MapIRQHook = 0;
+  fceulib__ppu.MMC5Hack = 0;
+  PAL &= 1;
   fceulib__palette.pale = 0;
 }
 
@@ -217,11 +217,11 @@ FCEUGI *FCEUI_LoadGameVirtual(const char *name, int OverwriteVidMode) {
   GameInfo->cspecial = SIS_NONE;
 
   // Try to load each different format
-  if (iNESLoad(name,fp,OverwriteVidMode))
+  if (iNESLoad(name, fp, OverwriteVidMode))
     goto endlseq;
-  if (UNIFLoad(name,fp))
+  if (UNIFLoad(name, fp))
     goto endlseq;
-  if (FDSLoad(name,fp))
+  if (FDSLoad(name, fp))
     goto endlseq;
 
   FCEU_PrintError("An error occurred while loading the file.");
@@ -256,6 +256,7 @@ FCEUGI *FCEUI_LoadGame(const char *name, int OverwriteVidMode) {
 
 // Return: Flag that indicates whether the function was succesful or not.
 bool FCEUI_Initialize() {
+  // I think we shouldn't do anything randomly in fceulib --tom7.
   srand(time(0));
 
   AllocBuffers();
@@ -271,12 +272,12 @@ bool FCEUI_Initialize() {
   //FSettings.UsrLastSLine[0]=231;
   FSettings.UsrLastSLine[0]=239;
   FSettings.UsrLastSLine[1]=239;
-  FSettings.SoundVolume=150;		//0-150 scale
-  FSettings.TriangleVolume=256;	//0-256 scale (256 is max volume)
-  FSettings.Square1Volume=256;	//0-256 scale (256 is max volume)
-  FSettings.Square2Volume=256;	//0-256 scale (256 is max volume)
-  FSettings.NoiseVolume=256;		//0-256 scale (256 is max volume)
-  FSettings.PCMVolume=256;		//0-256 scale (256 is max volume)
+  FSettings.SoundVolume=150;            //0-150 scale
+  FSettings.TriangleVolume=256; //0-256 scale (256 is max volume)
+  FSettings.Square1Volume=256;  //0-256 scale (256 is max volume)
+  FSettings.Square2Volume=256;  //0-256 scale (256 is max volume)
+  FSettings.NoiseVolume=256;            //0-256 scale (256 is max volume)
+  FSettings.PCMVolume=256;              //0-256 scale (256 is max volume)
 
   X6502_Init();
 
@@ -292,7 +293,7 @@ void FCEUI_Kill() {
 // emulate more than one frame
 // skip initiates frame skip if 1, or frame skip and sound skip if 2
 void FCEUI_Emulate(uint8 **pXBuf, int32 **SoundBuf, int32 *SoundBufSize, 
-		   int skip) {
+                   int skip) {
   FCEU_UpdateInput();
   lagFlag = 1;
 
@@ -488,9 +489,9 @@ void SetReadHandler(int32 start, int32 end, readfunc func) {
   if (RWWrap) {
     for (int32 x = end; x >= start; x--) {
       if (x >= 0x8000)
-	AReadG[x - 0x8000] = func;
+        AReadG[x - 0x8000] = func;
       else
-	ARead[x]=func;
+        ARead[x]=func;
     }
   } else {
     for (int x = end; x >= start; x--) {
@@ -501,7 +502,7 @@ void SetReadHandler(int32 start, int32 end, readfunc func) {
 
 #if 0
 void SetReadHandler_Wrapped(const std::string &what, 
-			    int32 start, int32 end, readfunc func) {
+                            int32 start, int32 end, readfunc func) {
   TRACEF("SetReadHandler(%d, %d)  %s", start, end, what.c_str());
   fprintf(stderr, "SetReadHandler(%d, %d)  %s = %p\n", start, end, what.c_str(), func);
   SetReadHandler(start, end, func);

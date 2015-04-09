@@ -12,6 +12,7 @@ Stuff I should be able to get rid of:
  - autosave (fceu.cc mostly)
  - rename __dummy_mapper to not start with __.
  - get rid of _defines in x6502.cc
+ - FCEUI_Initialize calls srand -- what is using random numbers?
 
       Still to objectify:
 
