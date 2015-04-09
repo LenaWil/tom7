@@ -3,7 +3,6 @@
 #include "types.h"
 #include "version.h"
 #include "fceu.h"
-#include "driver.h"
 #include "config.h"
 
 using namespace std;
@@ -41,7 +40,8 @@ ugetab
 
 " __TIME__ " " __DATE__ "\n)!";
 
-  const string compiler = FCEUD_GetCompilerString();
+  const string compiler =
+    "g++ " __VERSION__;
 
   return about + compiler;
 }

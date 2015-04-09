@@ -62,13 +62,6 @@ EMUFILE_FILE* FCEUD_UTF8_fstream(const char *fn, const char *m) {
   //return new std::fstream(fn,mode);
 }
 
-/**
- * Returns the compiler string.
- */
-const char *FCEUD_GetCompilerString() {
-  return "g++ " __VERSION__;
-}
-
 // Print error to stderr.
 void FCEUD_PrintError(const char *errormsg) {
   fprintf(stderr, "%s\n", errormsg);

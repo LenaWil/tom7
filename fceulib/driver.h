@@ -18,8 +18,6 @@ inline EMUFILE_FILE* FCEUD_UTF8_fstream(const std::string &n, const char *m) {
   return FCEUD_UTF8_fstream(n.c_str(),m); 
 }
 
-const char *FCEUD_GetCompilerString();
-
 // This makes me feel dirty for some reason.
 void FCEU_printf(char *format, ...);
 
