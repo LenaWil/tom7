@@ -1,3 +1,13 @@
+#ifndef __MINGW32__
+
+struct Timer {
+  Timer() {}
+  void Start() {}
+  double MS() { return 0.0; }
+};
+
+#else
+
 #include <windows.h>
 
 // Computes time elapsed in ms. Windows only.
@@ -28,3 +38,5 @@ struct Timer {
   LARGE_INTEGER freq;
   LARGE_INTEGER starttime, stoptime;
 };
+
+#endif  // WIN32
