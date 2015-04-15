@@ -2,13 +2,18 @@
 #ifndef __THREADUTIL_H
 #define __THREADUTIL_H
 
+#include <vector>
 #include <thread>
 #include <mutex>
 
+#ifdef __MINGW32__
 #include "mingw.thread.h"
 #include "mingw.mutex.h"
 // ugh, conflict...
 #undef ARRAYSIZE
+#endif
+
+
 
 // Do progress meter.
 // It should be thread safe and have a way for a thread to register a sub-meter.
@@ -20,14 +25,14 @@
 // index. The caller must of course synchronize any accesses to shared
 // data structures. Return value of function is ignored.
 //
-// TODO: Implement this in tems of ParallelComp
+// TODO: Implement this in terms of ParallelComp
 template<class T, class F>
-void ParallelAppi(const vector<T> &vec, 
+void ParallelAppi(const std::vector<T> &vec, 
 		  const F &f,
 		  int max_concurrency) {
   // TODO: XXX This cast may really be unsafe, since these vectors
   // could exceed 32 bit ints in practice.
-  max_concurrency = min((int)vec.size(), max_concurrency);
+  max_concurrency = std::min((int)vec.size(), max_concurrency);
   std::mutex index_m;
   int next_index = 0;
   
@@ -51,7 +56,7 @@ void ParallelAppi(const vector<T> &vec,
     }
   };
 
-  vector<std::thread> threads;
+  std::vector<std::thread> threads;
   threads.reserve(max_concurrency);
   for (int i = 0; i < max_concurrency; i++) {
     threads.emplace_back(th);
@@ -62,7 +67,7 @@ void ParallelAppi(const vector<T> &vec,
 
 // Same, but the typical case that the index is not needed.
 template<class T>
-void ParallelApp(const vector<T> &vec, 
+void ParallelApp(const std::vector<T> &vec, 
 		 std::function<void(const T&)> &f,
 		 int max_concurrency) {
   std::function<void(int, const T &)> ff =
@@ -77,7 +82,7 @@ template<class F>
 void ParallelComp(int num,
 		  const F &f,
 		  int max_concurrency) {
-  max_concurrency = min(num, max_concurrency);
+  max_concurrency = std::min(num, max_concurrency);
   std::mutex index_m;
   int next_index = 0;
 
@@ -101,7 +106,7 @@ void ParallelComp(int num,
     }
   };
 
-  vector<std::thread> threads;
+  std::vector<std::thread> threads;
   threads.reserve(max_concurrency);
   for (int i = 0; i < max_concurrency; i++) {
     threads.emplace_back(th);
@@ -120,13 +125,13 @@ void UnParallelComp(int num, const F &f, int max_concurrency_ignored) {
 // which must have a default constructor, and this will only be efficient if it
 // has move semantics as well.
 template<class T, class F>
-auto ParallelMap(const vector<T> &vec,
+auto ParallelMap(const std::vector<T> &vec,
 		 const F &f,
-		 int max_concurrency) -> vector<decltype(f(vec.front()))> {
+		 int max_concurrency) -> std::vector<decltype(f(vec.front()))> {
   using R = decltype(f(vec.front()));
   // Needed?
   // std::mutex out_m;
-  vector<R> result;
+  std::vector<R> result;
   result.resize(vec.size());
 
   // Not sure if C++11 makes thread safety guarantees about vector::operator[], but

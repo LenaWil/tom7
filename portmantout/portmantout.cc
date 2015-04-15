@@ -304,9 +304,11 @@ int main() {
   const unordered_map<string, GridDot> grid = LoadGrid("frame-225.txt");
   printf("%d words.\n", (int)dict.size());
 
+  #ifdef __MINGW32__
   if (!SetPriorityClass(GetCurrentProcess(), BELOW_NORMAL_PRIORITY_CLASS)) {
     LOG(FATAL) << "Unable to go to BELOW_NORMAL priority.\n";
   }
+  #endif
 
   const vector<string> p = Util::ReadFileToLines("portmantout.txt");
   CHECK_EQ(p.size(), 1) << "Expected a single line in the file.";

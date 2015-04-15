@@ -55,14 +55,14 @@ struct IntervalTree {
 
   // TODO: OverlappingInterval!
 
-  bool Empty() const { return root != NULL; }
+  bool Empty() const { return root != nullptr; }
 
   // Return the start index of the first interval, or Idx() if
   // the tree is empty.
   Idx LowerBound() const {
     bool has_idx = false;
     Idx lowest = Idx();
-    for (Node *t = root; t != NULL; t = t->left) {
+    for (Node *t = root; t != nullptr; t = t->left) {
       // First interval might be in the overlapping set.
       // If it's non-empty, then the first one is the earliest.
       if (!t->by_begin.empty()) {
@@ -82,7 +82,7 @@ struct IntervalTree {
   Idx UpperBound() const {
     bool has_idx = false;
     Idx highest = Idx();
-    for (Node *t = root; t != NULL; t = t->right) {
+    for (Node *t = root; t != nullptr; t = t->right) {
       // Last interval might be in the overlapping set.
       // If it's non-empty, then the first one is the latest.
       if (!t->by_end.empty()) {
@@ -102,7 +102,7 @@ struct IntervalTree {
   Interval *Insert(Idx start, Idx end, T t) {
     Interval *ret = new Interval(start, end, t);
     Node **tree = &root;
-    while ((*tree) != NULL) {
+    while ((*tree) != nullptr) {
       if (end < (*tree)->center) {
 	// Entirely to the left.
 	tree = &(*tree)->left;
@@ -124,12 +124,17 @@ struct IntervalTree {
 
     Idx center = Bisect()(start, end);
     (*tree)->center = center;
-    (*tree)->left = NULL;
-    (*tree)->right = NULL;
+    (*tree)->left = nullptr;
+    (*tree)->right = nullptr;
     // It contains only the new interval.
     (*tree)->by_begin.insert(std::make_pair(start, ret));
     (*tree)->by_end.insert(std::make_pair(end, ret));
     return ret;
+  }
+
+  template<class IdxJS, class TJS>
+  string ToJSON(const IdxJS &idxjs, const TJS &tjs) const {
+    return ToJSONRec(idxjs, tjs, root);
   }
 
  private:
@@ -138,7 +143,7 @@ struct IntervalTree {
     // Node in binary tree.
     Idx center;
     // Trees whose intervals that start entirely before/after
-    // the center point. If NULL, then empty.
+    // the center point. If nullptr, then empty.
     Node *left, *right;
     // Intervals that overlap the center, sorted by begin point and
     // end point. Note that multiple intervals may start or end at the
@@ -149,12 +154,52 @@ struct IntervalTree {
     ~Node();
   };
 
+
+  template<class IdxJS, class TJS>
+  static string ToJSONRec(const IdxJS &idxjs, 
+			  const TJS &tjs,
+			  const Node *n) {
+    if (n == nullptr) return "null";
+    string ret = (string)"{c:" + idxjs(n->center);
+
+    auto Subtree = [&ret, &idxjs, &tjs](const string &field,
+					const Node *t) {
+      if (t != nullptr) {
+	ret += (string)"," + field + ":";
+	ret += ToJSONRec(idxjs, tjs, t);
+      }
+    };
+
+    Subtree("l", n->left);
+    Subtree("r", n->right);
+
+    auto Intervals =
+      [&ret, &idxjs, &tjs](const string &field,
+			   const std::multimap<Idx, Interval *> &mmap) {
+      ret += (string)"," + field + ":[";
+      bool first = true;
+      for (const auto &p : mmap) {
+	if (!first) ret += ",";
+	ret += (string)"{s:" + idxjs(p.second->start) +
+	  ",e:" + idxjs(p.second->end) + ",t:" + tjs(p.second->t) +
+	  "}";
+	first = false;
+      }
+      ret += "]";
+    };
+    Intervals("b", n->by_begin);
+    Intervals("e", n->by_end);
+
+    // XXX maps.
+    return ret + "}";
+  }
+
   // Recursive is most natural, but iterative is easier and
   // faster/safer in C++.
   static std::vector<Interval *> OverlappingPointIt(Idx point,
 						    const Node *tree) {
     std::vector<Interval *> ret;
-    while (tree != NULL) {
+    while (tree != nullptr) {
       if (point < tree->center) {
 	// Since intervals in this node overlap the center, they
 	// certainly end after the point. Return all the ones that
@@ -191,7 +236,7 @@ struct IntervalTree {
     return ret;
   }
 
-  // NULL means empty.
+  // nullptr means empty.
   Node *root;
  private:
   // TODO: Could implement these.
@@ -200,7 +245,7 @@ struct IntervalTree {
 };
 
 template<class Idx, class T, class B>
-IntervalTree<Idx, T, B>::IntervalTree() : root(NULL) {}
+IntervalTree<Idx, T, B>::IntervalTree() : root(nullptr) {}
 
 template<class Idx, class T, class B>
 IntervalTree<Idx, T, B>::~IntervalTree() {
@@ -211,8 +256,8 @@ template<class Idx, class T, class B>
 IntervalTree<Idx, T, B>::Node::~Node() {
   delete left;
   delete right;
-  left = NULL;
-  right = NULL;
+  left = nullptr;
+  right = nullptr;
   // ONLY delete from the begin map. We own the intervals, but
   // the same set of pointers is in each map.
   for (auto &p : by_begin) {
