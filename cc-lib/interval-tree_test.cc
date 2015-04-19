@@ -9,6 +9,8 @@
 #include "arcfour.h"
 #include "base/logging.h"
 
+#include "interval-tree-json.h"
+
 using namespace std;
 
 template<class T>
