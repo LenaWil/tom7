@@ -19,26 +19,35 @@
 #include "base/stringprintf.h"
 
 #include "interval-tree.h"
+#include "interval-tree-json.h"
 
 using namespace std;
 
 std::mutex print_mutex;
-#define Printf(fmt, ...) do {		\
+#define Printf(fmt, ...) do {			\
   MutexLock Printf_ml(&print_mutex);		\
   printf(fmt, ##__VA_ARGS__);			\
   } while (0);
 
+#define EPrintf(fmt, ...) do {			\
+  MutexLock Printf_ml(&print_mutex);		\
+  fprintf(stderr, fmt, ##__VA_ARGS__);		\
+  } while (0);
+
 int main(int argc, char **argv) {
-  if (argc != 2) {
-    LOG(FATAL) << "Give a single filename on the command-line.";
+  ArcFour rc("spans");
+  if (argc != 3) {
+    LOG(FATAL) << "./spans.exe dict.txt portmantout.txt";
   }
-  const vector<string> p = Util::ReadFileToLines(argv[1]);
-  CHECK_EQ(p.size(), 1) << "Expected a single line in the file.";
+  vector<string> dict = Util::ReadFileToLines(argv[1]);
+  CHECK(!dict.empty()) << "Dictionary had nothing in it?";
+  Shuffle(&rc, &dict);
+
+  const vector<string> p = Util::ReadFileToLines(argv[2]);
+  CHECK_EQ(p.size(), 1) << "Expected a single line in the file " << argv[2];
   string portmantout = std::move(p[0]);
 
-  const vector<string> dict = Util::ReadFileToLines("wordlist.asc");
-
-  printf("Dictionary is %d words and portmantout is %d chars.\n",
+  EPrintf("Dictionary is %d words and portmantout is %d chars.\n",
 	 (int)dict.size(), (int)portmantout.size());
 
   // Coarse locking. Mutex protects the interval tree.
@@ -53,7 +62,7 @@ int main(int argc, char **argv) {
   // occurrences, but each word will occur at least once.
   vector<vector<int>> backward;
   backward.resize(dict.size());
-  Timer validation;
+  Timer find_timer;
   ParallelComp(dict.size(),
 	       [&portmantout, &dict, &mutex, &tree, &backward](int word_idx) {
      const string &w = dict[word_idx];
@@ -64,28 +73,44 @@ int main(int argc, char **argv) {
 	 MutexLock ml(&mutex);
 	 // PERF avoid inserting dumb ones.
 	 tree.Insert(pos, pos + w.size(), word_idx);
-	 backward[word_idx].push_back(pos);
        }
+       backward[word_idx].push_back(pos);
 
        pos = portmantout.find(w, pos + 1);
      }
 
      if (word_idx % 1000 == 0) {
-       Printf("Did %d.\n", word_idx);
+       EPrintf("Did %d.\n", word_idx);
      }
 
   }, 8);
+  double find_ms = find_timer.MS();
+  EPrintf("Found the words.\n");
 
-  Printf("Found the words.");
+  // vector<vector<int>> 
 
   // Output the tree as JSON.
-  auto IdxJS = [](int i) -> string { return StringPrintf("%d", i); };
-  auto TJS = [](int i) -> string { return StringPrintf("%d", i); };
-  printf("%s\n", tree.ToJSON(IdxJS, TJS).c_str());
+  EPrintf("Write to JSON...");
+  auto IdxJS = [](const int &i) -> string { return std::to_string(i); };
+  auto TJS = [](const int &i) -> string { return std::to_string(i); };
+  Timer json_timer;
+  IntervalTreeJSON<int, int> itjson{tree, IdxJS, TJS, 25};
+  const string json = itjson.ToCompactJSON([](const int &l, const int &r){
+    return l - r;
+  });
+  double json_ms = json_timer.MS();
+  EPrintf(" %d bytes.\n", (int)json.size());
+  Util::WriteFile("spanstest.js",
+		  StringPrintf("var spans=%s;\n", json.c_str()));
+  Util::WriteFile("portmantout.js",
+		  StringPrintf("var portmantout='%s';\n",
+			       portmantout.c_str()));
+  EPrintf("Written.\n");
 
-  double validation_ms = validation.MS();
-
-  printf("PASSED: %.1fs\n", validation_ms / 1000.0);
+  EPrintf("FIND: %.1fs\n"
+	  "JSON: %.1fs\n", 
+	  find_ms / 1000.0,
+	  json_ms / 1000.0);
 
   return 0;
 }

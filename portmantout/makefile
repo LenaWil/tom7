@@ -8,17 +8,17 @@ CXXFLAGS=-Wall -Wno-deprecated -Wno-sign-compare -I/usr/local/include -I/usr/inc
 OPT=-O2
 
 # for 64 bits on windows
-# CXX=x86_64-w64-mingw32-g++
-# CC=x86_64-w64-mingw32-g++
-CXX=g++
-CC=g++
+CXX=x86_64-w64-mingw32-g++
+CC=x86_64-w64-mingw32-g++
+# CXX=g++
+# CC=g++
 
 UTILOBJECTS=util.o arcfour.o stringprintf.o logging.o textsvg.o color-util.o stb_image_write.o stb_image.o
 
 #  -D__MINGW32__
 CPPFLAGS= -DPSS_STYLE=1 -DDUMMY_UI -DHAVE_ASPRINTF -Wno-write-strings -m64 $(OPT) -DHAVE_ALLOCA $(INCLUDES) $(PROFILE) $(FLTO) $(CLINCLUDES) -I ../cc-lib/ --std=c++11
 
-ALLDEPS=makefile ../cc-lib/interval-tree.h
+ALLDEPS=makefile ../cc-lib/interval-tree.h ../cc-lib/interval-tree-json.h
 
 %.o : %.cc $(ALLDEPS)
 	@$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
@@ -36,8 +36,8 @@ ALLDEPS=makefile ../cc-lib/interval-tree.h
 OBJECTS=${UTILOBJECTS}
 
 # without static, can't find lz or lstdcxx maybe?
-# LFLAGS= -m64 -Wl,--subsystem,console $(CLLIBS) -lz $(OPT) $(FLTO) $(PROFILE) -static
-LFLAGS = -m64 -Wl $(CLLIBS) -lz $(OPT) $(FLTO) $(PROFILE)
+LFLAGS= -m64 -Wl,--subsystem,console $(CLLIBS) -lz $(OPT) $(FLTO) $(PROFILE) -static
+# LFLAGS = -m64 -Wl $(CLLIBS) -lz $(OPT) $(FLTO) $(PROFILE)
 
 table-two.tex : join.exe
 	./join.exe
