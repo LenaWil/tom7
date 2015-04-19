@@ -16,6 +16,9 @@ struct IntervalDefaultBisect {
   }
 };
 
+template<class Idx, class T, class Bisect>
+struct IntervalTreeJSON;
+
 // TODO: Thread safety.
 //
 // An interval tree stores overlapping one-dimensional intervals in an
@@ -132,12 +135,8 @@ struct IntervalTree {
     return ret;
   }
 
-  template<class IdxJS, class TJS>
-  string ToJSON(const IdxJS &idxjs, const TJS &tjs) const {
-    return ToJSONRec(idxjs, tjs, root);
-  }
-
  private:
+  friend class IntervalTreeJSON<Idx, T, Bisect>;
 
   struct Node {
     // Node in binary tree.
@@ -150,49 +149,12 @@ struct IntervalTree {
     // exact same index. Each interval appears in both maps (and only
     // these maps). Both are sorted in increasing order, but we usually
     // do reverse iteration on by_end.
+    // PERF: Since intervals have their start/end indices in them, we
+    // can store this more compactly without duplicating keys for the
+    // map, but then we need to do a bunch of stuff manually.
     std::multimap<Idx, Interval *> by_begin, by_end;
     ~Node();
   };
-
-
-  template<class IdxJS, class TJS>
-  static string ToJSONRec(const IdxJS &idxjs, 
-			  const TJS &tjs,
-			  const Node *n) {
-    if (n == nullptr) return "null";
-    string ret = (string)"{c:" + idxjs(n->center);
-
-    auto Subtree = [&ret, &idxjs, &tjs](const string &field,
-					const Node *t) {
-      if (t != nullptr) {
-	ret += (string)"," + field + ":";
-	ret += ToJSONRec(idxjs, tjs, t);
-      }
-    };
-
-    Subtree("l", n->left);
-    Subtree("r", n->right);
-
-    auto Intervals =
-      [&ret, &idxjs, &tjs](const string &field,
-			   const std::multimap<Idx, Interval *> &mmap) {
-      ret += (string)"," + field + ":[";
-      bool first = true;
-      for (const auto &p : mmap) {
-	if (!first) ret += ",";
-	ret += (string)"{s:" + idxjs(p.second->start) +
-	  ",e:" + idxjs(p.second->end) + ",t:" + tjs(p.second->t) +
-	  "}";
-	first = false;
-      }
-      ret += "]";
-    };
-    Intervals("b", n->by_begin);
-    Intervals("e", n->by_end);
-
-    // XXX maps.
-    return ret + "}";
-  }
 
   // Recursive is most natural, but iterative is easier and
   // faster/safer in C++.
@@ -216,7 +178,8 @@ struct IntervalTree {
 	// Symetrically, intervals in this node begin before the
 	// point. Return any that end (strictly) after the point.
 
-	// (note this is a reverse iteration)
+	// (note this is a reverse iteration -- we are sorting
+	// by end point, which is the key in the multimap)
 	for (auto it = tree->by_end.rbegin();
 	     it != tree->by_end.rend() && point < it->first;
 	     ++it) {
@@ -240,8 +203,8 @@ struct IntervalTree {
   Node *root;
  private:
   // TODO: Could implement these.
-  IntervalTree(const IntervalTree &);
-  IntervalTree &operator =(const IntervalTree &);
+  IntervalTree(const IntervalTree &) = delete;
+  IntervalTree &operator =(const IntervalTree &) = delete;
 };
 
 template<class Idx, class T, class B>
