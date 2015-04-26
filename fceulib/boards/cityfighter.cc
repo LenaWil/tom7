@@ -87,7 +87,7 @@ static DECLFW(UNLCITYFIGHTWrite) {
 	case 0xE00C: chr_reg[7] = (chr_reg[7] & 0x0F) | (V << 4); break;
 	case 0xF000: IRQCount = ((IRQCount & 0x1E0) | ((V & 0xF) << 1)); break;
 	case 0xF004: IRQCount = ((IRQCount & 0x1E) | ((V & 0xF) << 5)); break;
-	case 0xF008: IRQa = V & 2; X6502_IRQEnd(FCEU_IQEXT); break;
+	case 0xF008: IRQa = V & 2; X.IRQEnd(FCEU_IQEXT); break;
 	default:
 		break;
 	}
@@ -98,7 +98,7 @@ static void UNLCITYFIGHTIRQ(int a) {
 	if (IRQa) {
 		IRQCount -= a;
 		if (IRQCount <= 0) {
-			X6502_IRQBegin(FCEU_IQEXT);
+			X.IRQBegin(FCEU_IQEXT);
 		}
 	}
 }

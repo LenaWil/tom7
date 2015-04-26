@@ -279,7 +279,7 @@ bool FCEUI_Initialize() {
   FSettings.NoiseVolume=256;            //0-256 scale (256 is max volume)
   FSettings.PCMVolume=256;              //0-256 scale (256 is max volume)
 
-  X6502_Init();
+  X.Init();
 
   return true;
 }
@@ -335,7 +335,7 @@ void ResetNES() {
   GameInterface(GI_RESETM2);
   fceulib__sound.FCEUSND_Reset();
   fceulib__ppu.FCEUPPU_Reset();
-  X6502_Reset();
+  X.Reset();
 
   // clear back baffer
   extern uint8 *XBackBuf;
@@ -386,7 +386,7 @@ void PowerNES() {
     GameInterface(GI_RESETSAVE);
 
   timestampbase = 0ULL;
-  X6502_Power();
+  X.Power();
 
   LagCounterReset();
   // clear back baffer

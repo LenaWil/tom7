@@ -59,13 +59,13 @@ static DECLFW(UNLKS7017Write)
     }
     else if (A == 0x4020)
     {
-      X6502_IRQEnd(FCEU_IQEXT);
+      X.IRQEnd(FCEU_IQEXT);
       IRQCount&=0xFF00;
       IRQCount|=V;
     }
     else if (A == 0x4021)
     {
-      X6502_IRQEnd(FCEU_IQEXT);
+      X.IRQEnd(FCEU_IQEXT);
       IRQCount&=0xFF;
       IRQCount|=V<<8;
       IRQa = 1;
@@ -78,7 +78,7 @@ static DECLFW(UNLKS7017Write)
 
 static DECLFR(FDSRead4030)
 {
-  X6502_IRQEnd(FCEU_IQEXT);
+  X.IRQEnd(FCEU_IQEXT);
   TRACEF("ks7017 irqlow %02x", X.IRQlow);
   return X.IRQlow&FCEU_IQEXT?1:0;
 }
@@ -91,7 +91,7 @@ static void UNL7017IRQ(int a)
   if(IRQCount<=0)
   {
     IRQa=0;
-    X6502_IRQBegin(FCEU_IQEXT);
+    X.IRQBegin(FCEU_IQEXT);
   }
  }
 }

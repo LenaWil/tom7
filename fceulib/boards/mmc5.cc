@@ -422,8 +422,8 @@ static DECLFW(Mapper5_write) {
     case 0x5200: fceulib__ppu.MMC5HackSPMode=V;break;
     case 0x5201: fceulib__ppu.MMC5HackSPScroll=(V>>3)&0x1F;break;
     case 0x5202: fceulib__ppu.MMC5HackSPPage=V&0x3F;break;
-    case 0x5203: X6502_IRQEnd(FCEU_IQEXT);IRQScanline=V;break;
-    case 0x5204: X6502_IRQEnd(FCEU_IQEXT);IRQEnable=V&0x80;break;
+    case 0x5203: X.IRQEnd(FCEU_IQEXT);IRQScanline=V;break;
+    case 0x5204: X.IRQEnd(FCEU_IQEXT);IRQEnable=V&0x80;break;
     case 0x5205: mul[0]=V;break;
     case 0x5206: mul[1]=V;break;
     }
@@ -466,7 +466,7 @@ static DECLFR(MMC5_read) {
   TRACEF("MMC5_read %d %02x %02x", A, mul[0], mul[1]);
   switch (A) {
   case 0x5204: {
-    X6502_IRQEnd(FCEU_IQEXT);
+    X.IRQEnd(FCEU_IQEXT);
       
     uint8 x = MMC5IRQR;
     if (!fceuindbg)
@@ -523,7 +523,7 @@ void MMC5Synco(void) {
     t=moop|(moop<<8)|(moop<<16)|(moop<<24);
     FCEU_dwmemset(MMC5fill+0x3c0,t,0x40);
   }
-  X6502_IRQEnd(FCEU_IQEXT);
+  X.IRQEnd(FCEU_IQEXT);
   fceulib__ppu.MMC5HackCHRMode=CHRMode&3;
 }
 
@@ -538,7 +538,7 @@ void MMC5_hb(int scanline) {
     if (MMC5LineCounter==IRQScanline) {
       MMC5IRQR|=0x80;
       if (IRQEnable&0x80) {
-        X6502_IRQBegin(FCEU_IQEXT);
+        X.IRQBegin(FCEU_IQEXT);
       }
     }
     MMC5LineCounter++;

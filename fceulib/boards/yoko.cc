@@ -95,7 +95,7 @@ static DECLFW(UNLYOKOWrite) {
   switch(A & 0x8C17) {
     case 0x8000: bank=V; UNLYOKOSync(); break;
     case 0x8400: mode=V; UNLYOKOSync(); break;
-    case 0x8800: IRQCount&=0xFF00; IRQCount|=V; X6502_IRQEnd(FCEU_IQEXT); break;
+    case 0x8800: IRQCount&=0xFF00; IRQCount|=V; X.IRQEnd(FCEU_IQEXT); break;
     case 0x8801: IRQa=mode&0x80; IRQCount&=0xFF; IRQCount|=V<<8; break;
     case 0x8c00: reg[0]=V; UNLYOKOSync(); break;
     case 0x8c01: reg[1]=V; UNLYOKOSync(); break;
@@ -116,7 +116,7 @@ static DECLFW(M83Write)
     case 0xB0FF:                                          // Dragon Ball Z Party [p1] BMC
     case 0xB1FF: bank=V; mode |= 0x40; M83Sync(); break;  // Dragon Ball Z Party [p1] BMC
     case 0x8100: mode=V|(mode&0x40); M83Sync(); break;
-    case 0x8200: IRQCount&=0xFF00; IRQCount|=V; X6502_IRQEnd(FCEU_IQEXT); break;
+    case 0x8200: IRQCount&=0xFF00; IRQCount|=V; X.IRQEnd(FCEU_IQEXT); break;
     case 0x8201: IRQa=mode&0x80; IRQCount&=0xFF; IRQCount|=V<<8; break;
     case 0x8300: reg[8]=V; mode &= 0xBF; M83Sync(); break;
     case 0x8301: reg[9]=V; mode &= 0xBF; M83Sync(); break;
@@ -176,52 +176,43 @@ static void M83Power(void)
   SetWriteHandler(0x8000,0xffff,M83Write);
 }
 
-static void UNLYOKOReset(void)
-{
+static void UNLYOKOReset(void) {
   dip = (dip + 1) & 3;
   mode = bank = 0;
   UNLYOKOSync();
 }
 
-static void M83Reset(void)
-{
+static void M83Reset(void) {
   dip ^= 1;
   M83Sync();
 }
 
-static void M83Close(void)
-{
+static void M83Close(void) {
   if(WRAM)
     free(WRAM);
   WRAM=NULL;
 }
 
-static void UNLYOKOIRQHook(int a)
-{
-  if(IRQa)
-  {
+static void UNLYOKOIRQHook(int a) {
+  if(IRQa) {
    IRQCount-=a;
-   if(IRQCount<0)
-   {
-     X6502_IRQBegin(FCEU_IQEXT);
+   if(IRQCount<0) {
+     X.IRQBegin(FCEU_IQEXT);
      IRQa=0;
      IRQCount=0xFFFF;
    }
   }
 }
 
-static void UNLYOKOStateRestore(int version)
-{
+static void UNLYOKOStateRestore(int version) {
   UNLYOKOSync();
 }
 
-static void M83StateRestore(int version)
-{
+static void M83StateRestore(int version) {
   M83Sync();
 }
 
-void UNLYOKO_Init(CartInfo *info)
-{
+void UNLYOKO_Init(CartInfo *info) {
   info->Power=UNLYOKOPower;
   info->Reset=UNLYOKOReset;
   MapIRQHook=UNLYOKOIRQHook;
@@ -229,8 +220,7 @@ void UNLYOKO_Init(CartInfo *info)
   AddExState(&StateRegs, ~0, 0, 0);
 }
 
-void Mapper83_Init(CartInfo *info)
-{
+void Mapper83_Init(CartInfo *info) {
   info->Power=M83Power;
   info->Reset=M83Reset;
   info->Close=M83Close;

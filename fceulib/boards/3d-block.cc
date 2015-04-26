@@ -52,7 +52,7 @@ static DECLFW(UNL3DBlockWrite)
     case 0x4800: reg[0]=V; break;
     case 0x4900: reg[1]=V; break;
     case 0x4a00: reg[2]=V; break;
-    case 0x4e00: reg[3]=V; IRQCount=Count; IRQPause=Pause; IRQa=1; X6502_IRQEnd(FCEU_IQEXT); break;
+    case 0x4e00: reg[3]=V; IRQCount=Count; IRQPause=Pause; IRQa=1; X.IRQEnd(FCEU_IQEXT); break;
   }
 }
 
@@ -81,13 +81,13 @@ static void UNL3DBlockIRQHook(int a)
       if(IRQPause>0)
       {
         IRQPause-=a;
-        X6502_IRQBegin(FCEU_IQEXT);
+        X.IRQBegin(FCEU_IQEXT);
       }
       else
       {
         IRQCount=Count;
         IRQPause=Pause;
-        X6502_IRQEnd(FCEU_IQEXT);
+        X.IRQEnd(FCEU_IQEXT);
       }
     }
   }

@@ -55,7 +55,7 @@ static DECLFW(M106Write)
   A&=0xF;
   switch(A)
   {
-    case 0xD: IRQa=0; IRQCount=0; X6502_IRQEnd(FCEU_IQEXT); break;
+    case 0xD: IRQa=0; IRQCount=0; X.IRQEnd(FCEU_IQEXT); break;
     case 0xE: IRQCount=(IRQCount&0xFF00)|V; break;
     case 0xF: IRQCount=(IRQCount&0x00FF)|(V<<8); IRQa=1; break;
     default: reg[A]=V; Sync(); break;
@@ -90,7 +90,7 @@ void M106CpuHook(int a)
     IRQCount+=a;
     if(IRQCount>0x10000)
     {
-      X6502_IRQBegin(FCEU_IQEXT);
+      X.IRQBegin(FCEU_IQEXT);
       IRQa=0;
     }
   }

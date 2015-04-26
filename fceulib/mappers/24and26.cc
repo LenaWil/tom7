@@ -42,7 +42,7 @@ static void KonamiIRQHook(int a) {
     while (acount >= LCYCS) {
       acount-=LCYCS;IRQCount++;
       if (IRQCount==0x100) {
-	X6502_IRQBegin(FCEU_IQEXT);
+	X.IRQBegin(FCEU_IQEXT);
 	IRQCount=IRQLatch;
       }
     }
@@ -100,10 +100,10 @@ static DECLFW(Mapper24_write) {
       IRQCount=IRQLatch;
       acount=0;
     }
-    X6502_IRQEnd(FCEU_IQEXT);
+    X.IRQEnd(FCEU_IQEXT);
     break;
   case 0xf002:IRQa=vrctemp;
-    X6502_IRQEnd(FCEU_IQEXT);break;
+    X.IRQEnd(FCEU_IQEXT);break;
   case 0xF003:break;
   }
 }

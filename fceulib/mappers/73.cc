@@ -58,10 +58,10 @@ static DECLFW(Mapper73_write)
 				IRQCount=IRQr;
 			}
 		}
-		X6502_IRQEnd(FCEU_IQEXT);
+		X.IRQEnd(FCEU_IQEXT);
 		break;
 	case 0xd000:
-		X6502_IRQEnd(FCEU_IQEXT);
+		X.IRQEnd(FCEU_IQEXT);
 		IRQa=IRQx;
 		break;
 
@@ -69,40 +69,31 @@ static DECLFW(Mapper73_write)
  }
 }
 
-static void Mapper73IRQHook(int a)
-{
-	for(int i=0;i<a;i++)
-	{
-		if(!IRQa) return;
-		if(IRQm)
-		{
-			uint16 temp = IRQCount;
-			temp &= 0xFF;
-			IRQCount &= 0xFF00;
-			if (temp == 0xFF)
-			{
-				IRQCount = IRQr;
-				IRQCount |= (uint16)(IRQr & 0xFF);
-				X6502_IRQBegin(FCEU_IQEXT);
-			}
-			else
-			{
-				temp++;
-				IRQCount |= temp;
-			}
-		}
-		else
-		{
-			//16 bit mode
-			if (IRQCount == 0xFFFF)
-			{
-				IRQCount = IRQr;
-				X6502_IRQBegin(FCEU_IQEXT);
-			}
-			else
-				IRQCount++;
-		}
-	}
+static void Mapper73IRQHook(int a) {
+  for(int i=0;i<a;i++) {
+    if (!IRQa) return;
+    if (IRQm) {
+      uint16 temp = IRQCount;
+      temp &= 0xFF;
+      IRQCount &= 0xFF00;
+      if (temp == 0xFF) {
+	IRQCount = IRQr;
+	IRQCount |= (uint16)(IRQr & 0xFF);
+	X.IRQBegin(FCEU_IQEXT);
+      } else {
+	temp++;
+	IRQCount |= temp;
+      }
+    } else {
+      //16 bit mode
+      if (IRQCount == 0xFFFF) {
+	IRQCount = IRQr;
+	X.IRQBegin(FCEU_IQEXT);
+      } else {
+	IRQCount++;
+      }
+    }
+  }
 }
 
 

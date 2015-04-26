@@ -173,7 +173,7 @@ DECLFW(MMC3_IRQWrite)
  {
   case 0xC000:IRQLatch=V;break;
   case 0xC001:IRQReload=1;break;
-  case 0xE000:X6502_IRQEnd(FCEU_IQEXT);IRQa=0;break;
+  case 0xE000:X.IRQEnd(FCEU_IQEXT);IRQa=0;break;
   case 0xE001:IRQa=1;break;
  }
 }
@@ -192,7 +192,7 @@ static void ClockMMC3Counter()
  {
     if (IRQa)
     {
-       X6502_IRQBegin(FCEU_IQEXT);
+       X.IRQBegin(FCEU_IQEXT);
     }
  }
 }
@@ -769,7 +769,7 @@ static DECLFW(M114Write) {
    case 0xC000: if (!cmdin) break; MMC3_CMDWrite(0x8001,V); cmdin=0; break;
    case 0xA001: IRQLatch=V; break;
    case 0xC001: IRQReload=1; break;
-   case 0xE000: X6502_IRQEnd(FCEU_IQEXT);IRQa=0; break;
+   case 0xE000: X.IRQEnd(FCEU_IQEXT);IRQa=0; break;
    case 0xE001: IRQa=1; break;
   }
 }

@@ -101,9 +101,9 @@ static DECLFW(Mapper69_write) {
 	  case 3:onemir(1);break;
 	  }
 	break;
-      case 0xd:IRQa=V;X6502_IRQEnd(FCEU_IQEXT);break;
-      case 0xe:IRQCount&=0xFF00;IRQCount|=V;X6502_IRQEnd(FCEU_IQEXT);break;
-      case 0xf:IRQCount&=0x00FF;IRQCount|=V<<8;X6502_IRQEnd(FCEU_IQEXT);break;
+      case 0xd:IRQa=V;X.IRQEnd(FCEU_IQEXT);break;
+      case 0xe:IRQCount&=0xFF00;IRQCount|=V;X.IRQEnd(FCEU_IQEXT);break;
+      case 0xf:IRQCount&=0x00FF;IRQCount|=V<<8;X.IRQEnd(FCEU_IQEXT);break;
       }
     break;
   }
@@ -197,7 +197,7 @@ static void SunIRQHook(int a)
   {
    IRQCount-=a;
    if(IRQCount<=0)
-   {X6502_IRQBegin(FCEU_IQEXT);IRQa=0;IRQCount=0xFFFF;}
+   {X.IRQBegin(FCEU_IQEXT);IRQa=0;IRQCount=0xFFFF;}
   }
 }
 

@@ -112,8 +112,8 @@ static DECLFW(M190Write)
   {
     case 0xd600:IRQLatch&=0xFF00;IRQLatch|=V;break;
     case 0xd700:IRQLatch&=0x00FF;IRQLatch|=V<<8;break;
-    case 0xd900:IRQCount=IRQLatch;IRQa=V&2;K4IRQ=V&1;X6502_IRQEnd(FCEU_IQEXT);break;
-    case 0xd800:IRQa=K4IRQ;X6502_IRQEnd(FCEU_IQEXT);break;
+    case 0xd900:IRQCount=IRQLatch;IRQa=V&2;K4IRQ=V&1;X.IRQEnd(FCEU_IQEXT);break;
+    case 0xd800:IRQa=K4IRQ;X.IRQEnd(FCEU_IQEXT);break;
   }
   Sync();
 }
@@ -130,7 +130,7 @@ static void VRC5IRQ(int a)
     IRQCount+=a;
     if(IRQCount&0x10000)
     {
-      X6502_IRQBegin(FCEU_IQEXT);
+      X.IRQBegin(FCEU_IQEXT);
 //      IRQCount=IRQLatch;
     }
   }

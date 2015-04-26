@@ -180,10 +180,10 @@ void Sound::Write_PSG_Direct(DECLFW_ARGS) {
 
     if (SIRQStat&0x80) {
       if (!(V&0x80)) {
-	X6502_IRQEnd(FCEU_IQDPCM);
+	X.IRQEnd(FCEU_IQDPCM);
 	SIRQStat&=~0x80;
       } else {
-	X6502_IRQBegin(FCEU_IQDPCM);
+	X.IRQBegin(FCEU_IQDPCM);
       }
     }
     break;
@@ -205,10 +205,10 @@ void Sound::Write_DMCRegs_Direct(DECLFW_ARGS) {
 
     if (SIRQStat&0x80) {
       if (!(V&0x80)) {
-	X6502_IRQEnd(FCEU_IQDPCM);
+	X.IRQEnd(FCEU_IQDPCM);
 	SIRQStat&=~0x80;
       } else { 
-	X6502_IRQBegin(FCEU_IQDPCM);
+	X.IRQBegin(FCEU_IQDPCM);
       }
     }
     DMCFormat=V;
@@ -248,7 +248,7 @@ void Sound::StatusWrite_Direct(DECLFW_ARGS) {
     DMCSize=0;
   }
   SIRQStat &= ~0x80;
-  X6502_IRQEnd(FCEU_IQDPCM);
+  X.IRQEnd(FCEU_IQDPCM);
   EnabledChannels = V & 0x1F;
 }
 
@@ -264,7 +264,7 @@ DECLFR_RET Sound::StatusRead_Direct(DECLFR_ARGS) {
   if (DMCSize) ret |= 0x10;
 
   SIRQStat&=~0x40;
-  X6502_IRQEnd(FCEU_IQFCOUNT);
+  X.IRQEnd(FCEU_IQFCOUNT);
   return ret;
 }
 
@@ -360,7 +360,7 @@ void Sound::FrameSoundUpdate() {
 
   if (!fcnt && !(IRQFrameMode&0x3)) {
     SIRQStat|=0x40;
-    X6502_IRQBegin(FCEU_IQFCOUNT);
+    X.IRQBegin(FCEU_IQFCOUNT);
   }
 
   if (fcnt==3) {
@@ -386,10 +386,10 @@ void Sound::Tester() {
 
 void Sound::DMCDMA() {
   if (DMCSize && !DMCHaveDMA) {
-    X6502_DMR(0x8000+DMCAddress);
-    X6502_DMR(0x8000+DMCAddress);
-    X6502_DMR(0x8000+DMCAddress);
-    DMCDMABuf=X6502_DMR(0x8000+DMCAddress);
+    X.DMR(0x8000+DMCAddress);
+    X.DMR(0x8000+DMCAddress);
+    X.DMR(0x8000+DMCAddress);
+    DMCDMABuf=X.DMR(0x8000+DMCAddress);
     DMCHaveDMA=1;
     DMCAddress=(DMCAddress+1)&0x7fff;
     DMCSize--;
@@ -399,7 +399,7 @@ void Sound::DMCDMA() {
       } else {
 	SIRQStat|=0x80;
 	if (DMCFormat&0x80)
-	  X6502_IRQBegin(FCEU_IQDPCM);
+	  X.IRQBegin(FCEU_IQDPCM);
       }
     }
   }
@@ -847,7 +847,7 @@ void Sound::Write_IRQFM_Direct(DECLFW_ARGS) {
     FrameSoundUpdate();
   fcnt=1;
   fhcnt=fhinc;
-  X6502_IRQEnd(FCEU_IQFCOUNT);
+  X.IRQEnd(FCEU_IQFCOUNT);
   SIRQStat&=~0x40;
   IRQFrameMode=V;
 }

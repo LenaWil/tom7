@@ -66,7 +66,7 @@ static void MNNNClose(void)
 */
 
 static void MNNNIRQHook() {
-  X6502_IRQBegin(FCEU_IQEXT);
+  X.IRQBegin(FCEU_IQEXT);
 }
 
 static void StateRestore(int version) {

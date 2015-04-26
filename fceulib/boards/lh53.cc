@@ -67,7 +67,7 @@ static DECLFW(LH53IRQaWrite)
   IRQa = V&2;
   IRQCount = 0;
   if(!IRQa)
-    X6502_IRQEnd(FCEU_IQEXT);
+    X.IRQEnd(FCEU_IQEXT);
 }
 
 static void LH53IRQ(int a)
@@ -76,7 +76,7 @@ static void LH53IRQ(int a)
   {
     IRQCount+=a;
     if(IRQCount>7560)
-      X6502_IRQBegin(FCEU_IQEXT);
+      X.IRQBegin(FCEU_IQEXT);
   }
 }
 

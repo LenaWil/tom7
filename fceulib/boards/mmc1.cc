@@ -206,7 +206,7 @@ static void NWCIRQHook(int a) {
     if((NWCIRQCount|(NWCDIP<<25))>=0x3e000000)
     {
       NWCIRQCount=0;
-      X6502_IRQBegin(FCEU_IQEXT);
+      X.IRQBegin(FCEU_IQEXT);
     }
   }
 }
@@ -215,7 +215,7 @@ static void NWCCHRHook(uint32 A, uint8 V) {
   if((V&0x10)) // && !(NWCRec&0x10))
   {
     NWCIRQCount=0;
-    X6502_IRQEnd(FCEU_IQEXT);
+    X.IRQEnd(FCEU_IQEXT);
   }
 
   NWCRec=V;

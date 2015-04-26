@@ -51,8 +51,8 @@ static DECLFW(M91Write1) {
   switch (A & 3) {
     case 0:
     case 1: pregs[A & 1] = V; Sync(); break;
-    case 2: IRQa = IRQCount = 0; X6502_IRQEnd(FCEU_IQEXT); break;
-    case 3: IRQa = 1; X6502_IRQEnd(FCEU_IQEXT); break;
+    case 2: IRQa = IRQCount = 0; X.IRQEnd(FCEU_IQEXT); break;
+    case 3: IRQa = 1; X.IRQEnd(FCEU_IQEXT); break;
   }
 }
 
@@ -67,7 +67,7 @@ static void M91IRQHook(void) {
   if(IRQCount<8 && IRQa) {
     IRQCount++;
     if(IRQCount>=8) {
-      X6502_IRQBegin(FCEU_IQEXT);
+      X.IRQBegin(FCEU_IQEXT);
     }
   }
 }

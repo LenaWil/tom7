@@ -70,7 +70,7 @@ static DECLFW(UNLVRC7Write)
     case 0xe000: mirr=V; Sync(); break;
     case 0xe008:
       IRQLatch=V;
-      X6502_IRQEnd(FCEU_IQEXT);
+      X.IRQEnd(FCEU_IQEXT);
       break;
     case 0xf000:
       IRQa=V&2;
@@ -78,50 +78,43 @@ static DECLFW(UNLVRC7Write)
       if(V&2)
         IRQCount=IRQLatch;
       CycleCount=0;
-      X6502_IRQEnd(FCEU_IQEXT);
+      X.IRQEnd(FCEU_IQEXT);
       break;
     case 0xf008:
       if(IRQd)
         IRQa=1;
       else
         IRQa=0;
-      X6502_IRQEnd(FCEU_IQEXT);
+      X.IRQEnd(FCEU_IQEXT);
       break;
   }
 }
 
-static void UNLVRC7Power(void)
-{
+static void UNLVRC7Power(void) {
   Sync();
   SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
   SetWriteHandler(0x8000,0xFFFF,UNLVRC7Write);
 }
 
-static void UNLVRC7IRQHook(int a)
-{
-  if(IRQa)
-  {
+static void UNLVRC7IRQHook(int a) {
+  if(IRQa) {
     CycleCount+=a*3;
-    while(CycleCount>=341)
-    {
+    while(CycleCount>=341) {
       CycleCount-=341;
       IRQCount++;
-      if(IRQCount==248)
-      {
-        X6502_IRQBegin(FCEU_IQEXT);
+      if(IRQCount==248) {
+        X.IRQBegin(FCEU_IQEXT);
         IRQCount=IRQLatch;
       }
     }
   }
 }
 
-static void StateRestore(int version)
-{
+static void StateRestore(int version) {
   Sync();
 }
 
-void UNLVRC7_Init(CartInfo *info)
-{
+void UNLVRC7_Init(CartInfo *info) {
   info->Power=UNLVRC7Power;
   MapIRQHook=UNLVRC7IRQHook;
   GameStateRestore=StateRestore;

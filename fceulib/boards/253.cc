@@ -83,9 +83,9 @@ static DECLFW(M253Write) {
     case 0x8010: prg[0] = V; Sync(); break;
     case 0xA010: prg[1] = V; Sync(); break;
     case 0x9400: mirr = V & 3; Sync(); break;
-    case 0xF000: X6502_IRQEnd(FCEU_IQEXT); IRQLatch &= 0xF0; IRQLatch |= V & 0xF; break;
-    case 0xF004: X6502_IRQEnd(FCEU_IQEXT); IRQLatch &= 0x0F; IRQLatch |= V << 4; break;
-    case 0xF008: X6502_IRQEnd(FCEU_IQEXT); IRQClock = 0; IRQCount = IRQLatch; IRQa = V & 2;break;
+    case 0xF000: X.IRQEnd(FCEU_IQEXT); IRQLatch &= 0xF0; IRQLatch |= V & 0xF; break;
+    case 0xF004: X.IRQEnd(FCEU_IQEXT); IRQLatch &= 0x0F; IRQLatch |= V << 4; break;
+    case 0xF008: X.IRQEnd(FCEU_IQEXT); IRQClock = 0; IRQCount = IRQLatch; IRQa = V & 2;break;
     }
 }
 
@@ -114,7 +114,7 @@ static void M253IRQ(int a) {
 				IRQClock -= LCYCS;
 				IRQCount++;
 				if (IRQCount & 0x100) {
-					X6502_IRQBegin(FCEU_IQEXT);
+					X.IRQBegin(FCEU_IQEXT);
 					IRQCount = IRQLatch;
 				}
 			}

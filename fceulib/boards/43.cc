@@ -51,7 +51,7 @@ static DECLFW(M43Write)
   switch(A&0xf1ff) {
     case 0x4022: reg=transo[V&7]; Sync(); break;
     case 0x8122:                                                            // hacked version
-    case 0x4122: IRQa=V&1; X6502_IRQEnd(FCEU_IQEXT); IRQCount=0; break;     // original version
+    case 0x4122: IRQa=V&1; X.IRQEnd(FCEU_IQEXT); IRQCount=0; break;     // original version
   }
 }
 
@@ -74,7 +74,7 @@ static void M43IRQHook(int a)
     if(IRQCount>=4096)
     {
       IRQa=0;
-      X6502_IRQBegin(FCEU_IQEXT);
+      X.IRQBegin(FCEU_IQEXT);
     }
 }
 

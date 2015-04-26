@@ -167,82 +167,71 @@ void FCEU_FDSSelect() {
   fprintf(stderr, "Disk %d Side %c Selected",SelectDisk>>1,(SelectDisk&1)?'B':'A');
 }
 
-static void FDSFix(int a)
-{
-	if ((IRQa&2) && IRQCount)
-	{
-		IRQCount-=a;
-		if (IRQCount<=0)
-		{
-			if (!(IRQa&1))
-			{
-				IRQa&=~2;
-				IRQCount=IRQLatch=0;
-			}
-			else
-				IRQCount=IRQLatch;
-			//IRQCount=IRQLatch; //0xFFFF;
-			X6502_IRQBegin(FCEU_IQEXT);
-			//printf("IRQ: %d\n",timestamp);
-			//   printf("IRQ: %d\n",scanline);
-		}
-	}
-	if (DiskSeekIRQ>0)
-	{
-		DiskSeekIRQ-=a;
-		if (DiskSeekIRQ<=0)
-		{
-			if (FDSRegs[5]&0x80)
-			{
-				X6502_IRQBegin(FCEU_IQEXT2);
-			}
-		}
-	}
+static void FDSFix(int a) {
+  if ((IRQa&2) && IRQCount) {
+    IRQCount-=a;
+    if (IRQCount<=0) {
+      if (!(IRQa&1)) {
+	IRQa&=~2;
+	IRQCount=IRQLatch=0;
+      }
+      else {
+	IRQCount=IRQLatch;
+      }
+      //IRQCount=IRQLatch; //0xFFFF;
+      X.IRQBegin(FCEU_IQEXT);
+      //printf("IRQ: %d\n",timestamp);
+      //   printf("IRQ: %d\n",scanline);
+    }
+  }
+  if (DiskSeekIRQ>0) {
+    DiskSeekIRQ-=a;
+    if (DiskSeekIRQ<=0) {
+      if (FDSRegs[5]&0x80) {
+	X.IRQBegin(FCEU_IQEXT2);
+      }
+    }
+  }
 }
 
-static DECLFR(FDSRead4030)
-{
-	uint8 ret=0;
+static DECLFR(FDSRead4030) {
+  uint8 ret = 0;
 
-	/* Cheap hack. */
-	TRACEF("FDSRead IRQlow %02x", X.IRQlow);
-	if (X.IRQlow&FCEU_IQEXT) ret|=1;
-	if (X.IRQlow&FCEU_IQEXT2) ret|=2;
+  /* Cheap hack. */
+  TRACEF("FDSRead IRQlow %02x", X.IRQlow);
+  if (X.IRQlow&FCEU_IQEXT) ret|=1;
+  if (X.IRQlow&FCEU_IQEXT2) ret|=2;
 
-	if (!fceuindbg)
-	{
-		X6502_IRQEnd(FCEU_IQEXT);
-		X6502_IRQEnd(FCEU_IQEXT2);
-	}
-	return ret;
+  if (!fceuindbg) {
+    X.IRQEnd(FCEU_IQEXT);
+    X.IRQEnd(FCEU_IQEXT2);
+  }
+  return ret;
 }
 
-static DECLFR(FDSRead4031)
-{
-	static uint8 z=0;
-	if (InDisk!=255)
-	{
-		z=diskdata[InDisk][DiskPtr];
-		if (!fceuindbg)
-		{
-			if (DiskPtr<64999) DiskPtr++;
-			DiskSeekIRQ=150;
-			X6502_IRQEnd(FCEU_IQEXT2);
-		}
-	}
-	return z;
+static DECLFR(FDSRead4031) {
+  static uint8 z=0;
+  if (InDisk!=255) {
+    z=diskdata[InDisk][DiskPtr];
+    if (!fceuindbg) {
+      if (DiskPtr<64999) DiskPtr++;
+      DiskSeekIRQ=150;
+      X.IRQEnd(FCEU_IQEXT2);
+    }
+  }
+  return z;
 }
-static DECLFR(FDSRead4032)
-{
-	uint8 ret;
 
-	ret=X.DB&~7;
-	if (InDisk==255)
-		ret|=5;
+static DECLFR(FDSRead4032) {
+  uint8 ret;
 
-	if (InDisk==255 || !(FDSRegs[5]&1) || (FDSRegs[5]&2))
-		ret|=2;
-	return ret;
+  ret=X.DB&~7;
+  if (InDisk==255)
+    ret|=5;
+
+  if (InDisk==255 || !(FDSRegs[5]&1) || (FDSRegs[5]&2))
+    ret|=2;
+  return ret;
 }
 
 static DECLFR(FDSRead4033)
@@ -576,19 +565,19 @@ static DECLFW(FDSWrite)
 	switch(A)
 	{
 	case 0x4020:
-		X6502_IRQEnd(FCEU_IQEXT);
+		X.IRQEnd(FCEU_IQEXT);
 		IRQLatch&=0xFF00;
 		IRQLatch|=V;
 		//  printf("$%04x:$%02x\n",A,V);
 		break;
 	case 0x4021:
-		X6502_IRQEnd(FCEU_IQEXT);
+		X.IRQEnd(FCEU_IQEXT);
 		IRQLatch&=0xFF;
 		IRQLatch|=V<<8;
 		//  printf("$%04x:$%02x\n",A,V);
 		break;
 	case 0x4022:
-		X6502_IRQEnd(FCEU_IQEXT);
+		X.IRQEnd(FCEU_IQEXT);
 		IRQCount=IRQLatch;
 		IRQa=V&3;
 		//  printf("$%04x:$%02x\n",A,V);
@@ -609,7 +598,7 @@ static DECLFW(FDSWrite)
 		}
 		break;
 	case 0x4025:
-		X6502_IRQEnd(FCEU_IQEXT2);
+		X.IRQEnd(FCEU_IQEXT2);
 		if (InDisk!=255)
 		{
 			if (!(V&0x40))
