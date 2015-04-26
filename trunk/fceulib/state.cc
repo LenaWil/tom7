@@ -59,12 +59,12 @@ static int SFEXINDEX;
 #define RLSB FCEUSTATE_RLSB	//0x80000000
 
 static constexpr SFORMAT SFCPU[] = {
-  { &X.PC, 2|RLSB, "PC\0" },
-  { &X.A, 1, "A\0\0" },
-  { &X.P, 1, "P\0\0" },
-  { &X.X, 1, "X\0\0" },
-  { &X.Y, 1, "Y\0\0" },
-  { &X.S, 1, "S\0\0" },
+  { &X.reg_PC, 2|RLSB, "PC\0" },
+  { &X.reg_A, 1, "A\0\0" },
+  { &X.reg_P, 1, "P\0\0" },
+  { &X.reg_X, 1, "X\0\0" },
+  { &X.reg_Y, 1, "Y\0\0" },
+  { &X.reg_S, 1, "S\0\0" },
   { &RAM, 0x800 | FCEUSTATE_INDIRECT, "RAM" },
   { 0 }
 };
@@ -76,7 +76,7 @@ static constexpr SFORMAT SFCPUC[] = {
   { &X.count,  4|RLSB, "ICou" },
   { &timestampbase, sizeof(timestampbase) | RLSB, "TSBS" },
   // alternative to the "quick and dirty hack"
-  { &X.mooPI, 1, "MooP" },
+  { &X.reg_PI, 1, "MooP" },
   // This was not included in FCEUltra, but I can't see any
   // reason why it shouldn't be (it's updated with each memory
   // read and used by some boards), and execution diverges if

@@ -309,8 +309,8 @@ void FCEUI_Emulate(uint8 **pXBuf, int32 **SoundBuf, int32 *SoundBufSize,
     ssize = fceulib__sound.FlushEmulateSound();
 
   // This is where cheat list stuff happened.
-  timestampbase += timestamp;
-  timestamp = 0;
+  timestampbase += X.timestamp;
+  X.timestamp = 0;
 
   if (pXBuf != nullptr) {
     *pXBuf=skip?0:XBuf;

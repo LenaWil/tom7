@@ -129,14 +129,14 @@ static DECLFW(MMC1_write) {
      precision isn't that great), but this should still work to
 	   deal with 2 writes in a row from a single RMW instruction.
 	*/
-  if((timestampbase+timestamp)<(lreset+2))
+  if((timestampbase+X.timestamp)<(lreset+2))
     return;
 //  FCEU_printf("Write %04x:%02x\n",A,V);
   if(V&0x80) {
     DRegs[0]|=0xC;
     BufferShift=Buffer=0;
     MMC1PRG();
-    lreset=timestampbase+timestamp;
+    lreset=timestampbase+X.timestamp;
     return;
   }
 

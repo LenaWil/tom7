@@ -51,7 +51,6 @@
 #define C_FLAG  0x01
 
 X6502 X;
-uint32 timestamp;
 void (*MapIRQHook)(int a);
 
 #define ADDCYC(x) {				\
@@ -60,26 +59,6 @@ void (*MapIRQHook)(int a);
     _count-=__x*48;				\
     timestamp+=__x;				\
   }
-
-// normal memory read
-static inline uint8 RdMem(unsigned int A) {
-  TRACEF("readfunc is %p", ARead[A]);
-  return X.DB=ARead[A](A);
-}
-
-// normal memory write
-static inline void WrMem(unsigned int A, uint8 V) {
-  BWrite[A](A,V);
-}
-
-static inline uint8 RdRAM(unsigned int A) {
-  // PERF: We should read directly from ram in this case (and
-  // see what other ones are possible); cheats at this level
-  // are not important. -tom7
-  //bbit edited: this was changed so cheat substitution would work
-  return (X.DB=ARead[A](A));
-  // return(_DB=RAM[A]);
-}
 
 static inline void WrRAM(unsigned int A, uint8 V) {
   RAM[A] = V;
