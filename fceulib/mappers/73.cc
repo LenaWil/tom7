@@ -24,49 +24,43 @@ static uint8 IRQx; //autoenable
 static uint8 IRQm; //mode
 static uint16 IRQr; //reload
 
-static DECLFW(Mapper73_write)
-{
- //printf("$%04x:$%02x\n",A,V);
+static DECLFW(Mapper73_write) {
+  //printf("$%04x:$%02x\n",A,V);
 
- switch(A&0xF000)
- {
- case 0x8000:
-		IRQr&=0xFFF0;IRQr|=(V&0xF);
-		break;
+  switch(A&0xF000) {
+  case 0x8000:
+    IRQr&=0xFFF0;IRQr|=(V&0xF);
+    break;
   case 0x9000:
-		IRQr&=0xFF0F;IRQr|=(V&0xF)<<4;
-		break;
+    IRQr&=0xFF0F;IRQr|=(V&0xF)<<4;
+    break;
   case 0xa000:
-		IRQr&=0xF0FF;IRQr|=(V&0xF)<<8;
-		break;
+    IRQr&=0xF0FF;IRQr|=(V&0xF)<<8;
+    break;
   case 0xb000:
-		IRQr&=0x0FFF;IRQr|=(V&0xF)<<12;
-		break;
+    IRQr&=0x0FFF;IRQr|=(V&0xF)<<12;
+    break;
   case 0xc000:
-		IRQm=V&4;
-		IRQx=V&1;
-		IRQa=V&2;
-		if(IRQa)
-		{
-			if(IRQm)
-			{
-				IRQCount&=0xFFFF;
-				IRQCount|=(IRQr&0xFF);
-			}
-			else
-			{
-				IRQCount=IRQr;
-			}
-		}
-		X.IRQEnd(FCEU_IQEXT);
-		break;
-	case 0xd000:
-		X.IRQEnd(FCEU_IQEXT);
-		IRQa=IRQx;
-		break;
+    IRQm=V&4;
+    IRQx=V&1;
+    IRQa=V&2;
+    if(IRQa) {
+      if(IRQm) {
+	IRQCount&=0xFFFF;
+	IRQCount|=(IRQr&0xFF);
+      } else {
+	IRQCount=IRQr;
+      }
+    }
+    X.IRQEnd(FCEU_IQEXT);
+    break;
+  case 0xd000:
+    X.IRQEnd(FCEU_IQEXT);
+    IRQa=IRQx;
+    break;
 
   case 0xf000:ROM_BANK16(0x8000,V);break;
- }
+  }
 }
 
 static void Mapper73IRQHook(int a) {
@@ -97,10 +91,9 @@ static void Mapper73IRQHook(int a) {
 }
 
 
-void Mapper73_init(void)
-{
+void Mapper73_init(void) {
  SetWriteHandler(0x8000,0xffff,Mapper73_write);
- MapIRQHook=Mapper73IRQHook;
-	IRQr = IRQm = IRQx = 0;
+ X.MapIRQHook = Mapper73IRQHook;
+ IRQr = IRQm = IRQx = 0;
 }
 

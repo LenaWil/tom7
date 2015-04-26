@@ -241,7 +241,7 @@ void Mapper105_Init(CartInfo *info) {
   GenMMC1Init(info, 256, 256, 8, 0);
   MMC1CHRHook4=NWCCHRHook;
   MMC1PRGHook16=NWCPRGHook;
-  MapIRQHook=NWCIRQHook;
+  X.MapIRQHook=NWCIRQHook;
   info->Power=NWCPower;
 }
 

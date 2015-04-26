@@ -77,7 +77,7 @@ static void TransformerPower(void) {
   SetWriteHandler(0x6000,0x7FFF,Cart::CartBW);
   SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
 
-  MapIRQHook=TransformerIRQHook;
+  X.MapIRQHook=TransformerIRQHook;
 }
 
 static void TransformerClose(void)

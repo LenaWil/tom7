@@ -87,7 +87,7 @@ static void StateRestore(int version)
 void UNLKS7032_Init(CartInfo *info)
 {
   info->Power=UNLKS7032Power;
-  MapIRQHook=UNLSMB2JIRQHook;
+  X.MapIRQHook=UNLSMB2JIRQHook;
   GameStateRestore=StateRestore;
   AddExState(&StateRegs, ~0, 0, 0);
 }

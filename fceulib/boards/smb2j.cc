@@ -92,7 +92,7 @@ void UNLSMB2J_Init(CartInfo *info)
 {
   info->Reset=UNLSMB2JReset;
   info->Power=UNLSMB2JPower;
-  MapIRQHook=UNLSMB2JIRQHook;
+  X.MapIRQHook=UNLSMB2JIRQHook;
   GameStateRestore=StateRestore;
   AddExState(&StateRegs, ~0, 0, 0);
 }

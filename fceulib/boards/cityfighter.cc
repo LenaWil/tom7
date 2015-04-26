@@ -117,7 +117,7 @@ static void StateRestore(int version) {
 
 void UNLCITYFIGHT_Init(CartInfo *info) {
 	info->Power = UNLCITYFIGHTPower;
-	MapIRQHook = UNLCITYFIGHTIRQ;
+	X.MapIRQHook = UNLCITYFIGHTIRQ;
 	GameStateRestore = StateRestore;
 	AddExState(&StateRegs, ~0, 0, 0);
 }

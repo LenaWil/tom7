@@ -109,7 +109,7 @@ static void StateRestore(int version)
 void Mapper17_Init(CartInfo *info)
 {
   info->Power=M17Power;
-  MapIRQHook=M17IRQHook;
+  X.MapIRQHook=M17IRQHook;
   GameStateRestore=StateRestore;
 
   AddExState(&StateRegs, ~0, 0, 0);

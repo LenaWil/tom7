@@ -184,7 +184,7 @@ void Mapper190_Init(CartInfo *info)
   info->Close=M190Close;
   GameStateRestore=StateRestore;
 
-  MapIRQHook=VRC5IRQ;
+  X.MapIRQHook=VRC5IRQ;
   //PPU_hook=Mapper190_PPU;
 
   CHRRAM=(uint8*)FCEU_gmalloc(CHRSIZE);

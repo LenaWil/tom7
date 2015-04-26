@@ -322,7 +322,7 @@ void UNLOneBus_Init(CartInfo *info) {
   }
 
   fceulib__ppu.GameHBIRQHook=UNLOneBusIRQHook;
-  MapIRQHook=UNLOneBusCpuHook;
+  X.MapIRQHook=UNLOneBusCpuHook;
   GameStateRestore=StateRestore;
   AddExState(&StateRegs, ~0, 0, 0);
 }

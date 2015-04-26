@@ -72,5 +72,5 @@ static void SunIRQHook(int a) {
 
 void Mapper67_init(void) {
   SetWriteHandler(0x8000,0xffff,Mapper67_write);
-  MapIRQHook=SunIRQHook;
+  X.MapIRQHook=SunIRQHook;
 }

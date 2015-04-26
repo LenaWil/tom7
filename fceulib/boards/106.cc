@@ -105,7 +105,7 @@ void Mapper106_Init(CartInfo *info) {
   info->Reset=M106Reset;
   info->Power=M106Power;
   info->Close=M106Close;
-  MapIRQHook=M106CpuHook;
+  X.MapIRQHook=M106CpuHook;
   GameStateRestore=StateRestore;
 
   WRAMSIZE=8192;

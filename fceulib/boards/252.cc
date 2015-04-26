@@ -113,7 +113,7 @@ static void StateRestore(int version) {
 void Mapper252_Init(CartInfo *info) {
   info->Power = M252Power;
   info->Close = M252Close;
-  MapIRQHook = M252IRQ;
+  X.MapIRQHook = M252IRQ;
 
   CHRRAMSIZE = 2048;
   CHRRAM = (uint8*)FCEU_gmalloc(CHRRAMSIZE);

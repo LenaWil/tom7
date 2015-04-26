@@ -63,7 +63,7 @@ void Mapper50_init(void) {
   SetWriteHandler(0x4020,0x5fff,M50W);
   SetReadHandler(0x6000,0xffff,Cart::CartBR);
   MapStateRestore=M50Restore;
-  MapIRQHook=Mapper50IRQ;
+  X.MapIRQHook=Mapper50IRQ;
 
   fceulib__cart.setprg8(0x6000,0xF);
   fceulib__cart.setprg8(0x8000,0x8);

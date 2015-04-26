@@ -122,7 +122,7 @@ static void StateRestore(int version)
 void UNLKS7017_Init(CartInfo *info) {
   info->Power=UNLKS7017Power;
   info->Close=UNLKS7017Close;
-  MapIRQHook=UNL7017IRQ;
+  X.MapIRQHook=UNL7017IRQ;
 
   WRAMSIZE=8192;
   WRAM=(uint8*)FCEU_gmalloc(WRAMSIZE);
