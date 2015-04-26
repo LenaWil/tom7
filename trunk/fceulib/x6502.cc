@@ -341,35 +341,35 @@ static constexpr uint8 ZNTable[256] = {
 */
 
 #define RMW_A(op) {uint8 x=_A; op; _A=x; break; }
-#define RMW_AB(op) {unsigned int A; uint8 x; GetAB(A); x=RdMem(A); WrMem(A,x); op; WrMem(A,x); break; }
-#define RMW_ABI(reg,op) {unsigned int A; uint8 x; GetABIWR(A,reg); x=RdMem(A); WrMem(A,x); op; WrMem(A,x); break; }
+#define RMW_AB(op) {unsigned int AA; uint8 x; GetAB(AA); x=RdMem(AA); WrMem(AA,x); op; WrMem(AA,x); break; }
+#define RMW_ABI(reg,op) {unsigned int AA; uint8 x; GetABIWR(AA,reg); x=RdMem(AA); WrMem(AA,x); op; WrMem(AA,x); break; }
 #define RMW_ABX(op) RMW_ABI(_X,op)
 #define RMW_ABY(op) RMW_ABI(_Y,op)
-#define RMW_IX(op) {unsigned int A; uint8 x; GetIX(A); x=RdMem(A); WrMem(A,x); op; WrMem(A,x); break; }
-#define RMW_IY(op) {unsigned int A; uint8 x; GetIYWR(A); x=RdMem(A); WrMem(A,x); op; WrMem(A,x); break; }
-#define RMW_ZP(op) {uint8 A; uint8 x; GetZP(A); x=RdRAM(A); op; WrRAM(A,x); break; }
-#define RMW_ZPX(op) {uint8 A; uint8 x; GetZPI(A,_X); x=RdRAM(A); op; WrRAM(A,x); break;}
+#define RMW_IX(op) {unsigned int AA; uint8 x; GetIX(AA); x=RdMem(AA); WrMem(AA,x); op; WrMem(AA,x); break; }
+#define RMW_IY(op) {unsigned int AA; uint8 x; GetIYWR(AA); x=RdMem(AA); WrMem(AA,x); op; WrMem(AA,x); break; }
+#define RMW_ZP(op) {uint8 AA; uint8 x; GetZP(AA); x=RdRAM(AA); op; WrRAM(AA,x); break; }
+#define RMW_ZPX(op) {uint8 AA; uint8 x; GetZPI(AA,_X); x=RdRAM(AA); op; WrRAM(AA,x); break;}
 
 #define LD_IM(op) {uint8 x; x=RdMem(_PC); TRACEN(x); _PC++; op; break;}
-#define LD_ZP(op) {uint8 A; uint8 x; GetZP(A); x=RdRAM(A); op; break;}
-#define LD_ZPX(op) {uint8 A; uint8 x; GetZPI(A,_X); x=RdRAM(A); op; break;}
-#define LD_ZPY(op) {uint8 A; uint8 x; GetZPI(A,_Y); x=RdRAM(A); op; break;}
-#define LD_AB(op) {unsigned int A; uint8 x; GetAB(A); TRACEN(A); x=RdMem(A); TRACEF("Read %d -> %02x", A, x); (void)x; op; break; }
-#define LD_ABI(reg,op) {unsigned int A; uint8 x; GetABIRD(A,reg); x=RdMem(A); (void)x; op; break;}
+#define LD_ZP(op) {uint8 AA; uint8 x; GetZP(AA); x=RdRAM(AA); op; break;}
+#define LD_ZPX(op) {uint8 AA; uint8 x; GetZPI(AA,_X); x=RdRAM(AA); op; break;}
+#define LD_ZPY(op) {uint8 AA; uint8 x; GetZPI(AA,_Y); x=RdRAM(AA); op; break;}
+#define LD_AB(op) {unsigned int AA; uint8 x; GetAB(AA); TRACEN(AA); x=RdMem(AA); TRACEF("Read %d -> %02x", AA, x); (void)x; op; break; }
+#define LD_ABI(reg, op) {unsigned int AA; uint8 x; GetABIRD(AA,reg); x=RdMem(AA); (void)x; op; break;}
 #define LD_ABX(op) LD_ABI(_X,op)
 #define LD_ABY(op) LD_ABI(_Y,op)
-#define LD_IX(op) {unsigned int A; uint8 x; GetIX(A); x=RdMem(A); op; break;}
-#define LD_IY(op) {unsigned int A; uint8 x; GetIYRD(A); x=RdMem(A); op; break;}
+#define LD_IX(op) {unsigned int AA; uint8 x; GetIX(AA); x=RdMem(AA); op; break;}
+#define LD_IY(op) {unsigned int AA; uint8 x; GetIYRD(AA); x=RdMem(AA); op; break;}
 
-#define ST_ZP(r) {uint8 A; GetZP(A); WrRAM(A,r); break;}
-#define ST_ZPX(r) {uint8 A; GetZPI(A,_X); WrRAM(A,r); break;}
-#define ST_ZPY(r) {uint8 A; GetZPI(A,_Y); WrRAM(A,r); break;}
-#define ST_AB(r) {unsigned int A; GetAB(A); WrMem(A,r); break;}
-#define ST_ABI(reg,r) {unsigned int A; GetABIWR(A,reg); WrMem(A,r); break; }
+#define ST_ZP(r) {uint8 AA; GetZP(AA); WrRAM(AA, r); break;}
+#define ST_ZPX(r) {uint8 AA; GetZPI(AA, _X); WrRAM(AA, r); break;}
+#define ST_ZPY(r) {uint8 AA; GetZPI(AA, _Y); WrRAM(AA, r); break;}
+#define ST_AB(r) {unsigned int AA; GetAB(AA); WrMem(AA, r); break;}
+#define ST_ABI(reg,r) {unsigned int AA; GetABIWR(AA, reg); WrMem(AA, r); break; }
 #define ST_ABX(r) ST_ABI(_X,r)
 #define ST_ABY(r) ST_ABI(_Y,r)
-#define ST_IX(r) {unsigned int A; GetIX(A); WrMem(A,r); break; }
-#define ST_IY(r) {unsigned int A; GetIYWR(A); WrMem(A,r); break; }
+#define ST_IX(r) {unsigned int AA; GetIX(AA); WrMem(AA, r); break; }
+#define ST_IY(r) {unsigned int AA; GetIYWR(AA); WrMem(AA, r); break; }
 
 static constexpr uint8 CycTable[256] = {
 /*0x00*/ 7,6,2,8,3,3,5,5,3,2,2,2,4,4,6,6,
@@ -979,17 +979,17 @@ void X6502_Run(int32 cycles) {
     case 0x53: RMW_IY(LSR;EOR);
 
       /* AXA - SHA */
-    case 0x93: ST_IY(_A&_X&(((A-_Y)>>8)+1));
-    case 0x9F: ST_ABY(_A&_X&(((A-_Y)>>8)+1));
+    case 0x93: ST_IY(_A&_X&(((AA-_Y)>>8)+1));
+    case 0x9F: ST_ABY(_A&_X&(((AA-_Y)>>8)+1));
 
       /* SYA */
-    case 0x9C: ST_ABX(_Y&(((A-_X)>>8)+1));
+    case 0x9C: ST_ABX(_Y&(((AA-_X)>>8)+1));
 
       /* SXA */
-    case 0x9E: ST_ABY(_X&(((A-_Y)>>8)+1));
+    case 0x9E: ST_ABY(_X&(((AA-_Y)>>8)+1));
 
       /* XAS */
-    case 0x9B: _S=_A&_X;ST_ABY(_S& (((A-_Y)>>8)+1) );
+    case 0x9B: _S=_A&_X;ST_ABY(_S& (((AA-_Y)>>8)+1) );
 
       /* TOP */
     case 0x0C: LD_AB(;);
