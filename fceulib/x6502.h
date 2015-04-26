@@ -45,8 +45,7 @@ struct X6502 {
 
 extern X6502 X;
 
-void X6502_RunDebug(int32 cycles);
-#define X6502_Run(x) X6502_RunDebug(x)
+void X6502_Run(int32 cycles);
 //------------
 
 extern uint32 timestamp;
