@@ -72,7 +72,7 @@ void Mapper6_StateRestore(int version) {
 }
 
 void Mapper6_init(void) {
-  MapIRQHook=FFEIRQHook;
+  X.MapIRQHook=FFEIRQHook;
   ROM_BANK16(0xc000,7);
 
   SetWriteHandler(0x4020,0x5fff,Mapper6_write);

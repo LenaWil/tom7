@@ -175,7 +175,7 @@ void NSFVRC7_Init(void)
 }
 
 void Mapper85_init(void) {
-  MapIRQHook=KonamiIRQHook;
+  X.MapIRQHook=KonamiIRQHook;
   SetWriteHandler(0x8000,0xffff,Mapper85_write);
   GameStateRestore=Mapper85_StateRestore;
   if(!VROM_size)

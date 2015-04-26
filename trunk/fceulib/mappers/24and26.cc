@@ -306,7 +306,7 @@ void Mapper24_init(void)
 {
         SetWriteHandler(0x8000,0xffff,Mapper24_write);
         VRC6_ESI();
-        MapIRQHook=KonamiIRQHook;
+        X.MapIRQHook=KonamiIRQHook;
         swaparoo=0;
 }
 
@@ -314,7 +314,7 @@ void Mapper26_init(void)
 {
         SetWriteHandler(0x8000,0xffff,Mapper24_write);
         VRC6_ESI();
-        MapIRQHook=KonamiIRQHook;
+        X.MapIRQHook=KonamiIRQHook;
         swaparoo=1;
 }
 

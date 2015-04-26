@@ -47,7 +47,7 @@ void Mapper40_init(void)
   ROM_BANK8(0xa000,(~0)-2);
   SetWriteHandler(0x8000,0xffff,Mapper40_write);
   SetReadHandler(0x6000,0x7fff,Cart::CartBR);
-  MapIRQHook=Mapper40IRQ;
+  X.MapIRQHook=Mapper40IRQ;
 }
 
 

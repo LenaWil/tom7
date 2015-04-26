@@ -66,6 +66,6 @@ static DECLFW(Mapper65_write)
 
 void Mapper65_init(void)
 {
- MapIRQHook=IREMIRQHook;
+ X.MapIRQHook=IREMIRQHook;
  SetWriteHandler(0x8000,0xffff,Mapper65_write);
 }

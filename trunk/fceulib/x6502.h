@@ -59,6 +59,8 @@ struct X6502 {
 
   uint32 timestamp;
 
+  void (*MapIRQHook)(int) = nullptr;
+
 private:
   // normal memory read
   inline uint8 RdMem(unsigned int A) {
@@ -81,8 +83,6 @@ private:
 };
 
 extern X6502 X;
-
-extern void (*MapIRQHook)(int a);
 
 #define NTSC_CPU 1789772.7272727272727272
 #define PAL_CPU  1662607.125

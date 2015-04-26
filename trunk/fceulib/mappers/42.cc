@@ -53,6 +53,6 @@ void Mapper42_init(void) {
   SetWriteHandler(0x6000,0xffff,Mapper42_write);
   SetReadHandler(0x6000,0x7fff,Cart::CartBR);
   MapStateRestore=Mapper42_StateRestore;
-  MapIRQHook=Mapper42IRQ;
+  X.MapIRQHook=Mapper42IRQ;
 }
 

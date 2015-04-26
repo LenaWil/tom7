@@ -51,7 +51,6 @@
 #define C_FLAG  0x01
 
 X6502 X;
-void (*MapIRQHook)(int a);
 
 #define ADDCYC(x) {				\
     int __x=x;					\

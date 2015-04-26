@@ -217,7 +217,7 @@ void Mapper21_Init(CartInfo *info) {
 	isPirate = 0;
 	is22 = 0;
 	info->Power = M21Power;
-	MapIRQHook = VRC24IRQHook;
+	X.MapIRQHook = VRC24IRQHook;
 	GameStateRestore = StateRestore;
 
 	AddExState(&StateRegs, ~0, 0, 0);
@@ -234,7 +234,7 @@ void Mapper22_Init(CartInfo *info) {
 
 void VRC24_Init(CartInfo *info) {
 	info->Close = VRC24Close;
-	MapIRQHook = VRC24IRQHook;
+	X.MapIRQHook = VRC24IRQHook;
 	GameStateRestore = StateRestore;
 
 	WRAMSIZE = 8192;

@@ -114,7 +114,7 @@ void Mapper16_Init(CartInfo *info)
 {
   is153=0;
   info->Power=BandaiPower;
-  MapIRQHook=BandaiIRQHook;
+  X.MapIRQHook=BandaiIRQHook;
   GameStateRestore=StateRestore;
   AddExState(&StateRegs, ~0, 0, 0);
 }
@@ -142,7 +142,7 @@ void Mapper153_Init(CartInfo *info)
   is153=1;
   info->Power=M153Power;
   info->Close=M153Close;
-  MapIRQHook=BandaiIRQHook;
+  X.MapIRQHook=BandaiIRQHook;
 
   WRAMSIZE=8192;
   WRAM=(uint8*)FCEU_gmalloc(WRAMSIZE);
@@ -338,7 +338,7 @@ void Mapper157_Init(CartInfo *info)
 {
   is153=0;
   info->Power=M157Power;
-  MapIRQHook=BarcodeIRQHook;
+  X.MapIRQHook=BarcodeIRQHook;
 
   GameInfo->cspecial = SIS_DATACH;
 

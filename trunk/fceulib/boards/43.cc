@@ -87,7 +87,7 @@ void Mapper43_Init(CartInfo *info)
 {
   info->Reset=M43Reset;
   info->Power=M43Power;
-  MapIRQHook=M43IRQHook;
+  X.MapIRQHook=M43IRQHook;
   GameStateRestore=StateRestore;
   AddExState(&StateRegs, ~0, 0, 0);
 }

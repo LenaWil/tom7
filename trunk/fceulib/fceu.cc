@@ -178,7 +178,7 @@ static void ResetGameLoaded() {
   memset(&fceulib__sound.GameExpSound, 0,
          sizeof (fceulib__sound.GameExpSound));
 
-  MapIRQHook = 0;
+  X.MapIRQHook = nullptr;
   fceulib__ppu.MMC5Hack = 0;
   PAL &= 1;
   fceulib__palette.pale = 0;

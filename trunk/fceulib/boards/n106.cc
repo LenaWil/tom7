@@ -403,7 +403,7 @@ void Mapper19_Init(CartInfo *info)
   battery=info->battery;
   info->Power=N106_Power;
 
-  MapIRQHook=NamcoIRQHook;
+  X.MapIRQHook=NamcoIRQHook;
   GameStateRestore=Mapper19_StateRestore;
   fceulib__sound.GameExpSound.RChange=M19SC;
 

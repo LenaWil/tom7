@@ -105,7 +105,7 @@ void LH53_Init(CartInfo *info)
 {
   info->Power=LH53Power;
   info->Close=LH53Close;
-  MapIRQHook=LH53IRQ;
+  X.MapIRQHook=LH53IRQ;
   GameStateRestore=StateRestore;
 
   WRAMSIZE=8192;

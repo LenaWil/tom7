@@ -129,7 +129,7 @@ static void StateRestore(int version) {
 void Mapper253_Init(CartInfo *info) {
   info->Power = M253Power;
   info->Close = M253Close;
-  MapIRQHook = M253IRQ;
+  X.MapIRQHook = M253IRQ;
   GameStateRestore = StateRestore;
 
   CHRRAMSIZE = 2048;

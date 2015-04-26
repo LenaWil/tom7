@@ -146,7 +146,7 @@ static void RAMBO1_init(void) {
   fceulib__cart.setmirror(1);
   Synco();
   fceulib__ppu.GameHBIRQHook=RAMBO1_hb;
-  MapIRQHook=RAMBO1_IRQHook;
+  X.MapIRQHook=RAMBO1_IRQHook;
   GameStateRestore=RAMBO1_Restore;
   SetWriteHandler(0x8000,0xffff,RAMBO1_write);
   AddExState(Rambo_StateRegs, ~0, 0, 0);

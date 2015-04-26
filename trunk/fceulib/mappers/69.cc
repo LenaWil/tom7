@@ -238,7 +238,7 @@ void Mapper69_init(void) {
  SetWriteHandler(0x6000,0x7fff,SUN5BWRAM);
  SetReadHandler(0x6000,0x7fff,SUN5AWRAM);
  Mapper69_ESI();
- MapIRQHook=SunIRQHook;
+ X.MapIRQHook=SunIRQHook;
  MapStateRestore=Mapper69_StateRestore;
 }
 

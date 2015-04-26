@@ -119,7 +119,7 @@ static void FDSInit() {
   fceulib__cart.setprg32r(1,0x6000,0);   // 32KB RAM
   fceulib__cart.setchr8(0);     // 8KB CHR RAM
 
-  MapIRQHook=FDSFix;
+  X.MapIRQHook=FDSFix;
   GameStateRestore=FDSStateRestore;
 
   SetReadHandler(0x4030,0x4030,FDSRead4030);

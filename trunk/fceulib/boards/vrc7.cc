@@ -115,7 +115,7 @@ static void StateRestore(int version) {
 
 void UNLVRC7_Init(CartInfo *info) {
   info->Power=UNLVRC7Power;
-  MapIRQHook=UNLVRC7IRQHook;
+  X.MapIRQHook=UNLVRC7IRQHook;
   GameStateRestore=StateRestore;
   AddExState(&StateRegs, ~0, 0, 0);
 }
