@@ -83,7 +83,7 @@ static void ZapperFrapper(uint8 *bg, uint8 *spr, uint32  linets, int final) {
 static inline int CheckColor() { 
   fceulib__ppu.FCEUPPU_LineUpdate();
  
-  if ((ZD.zaphit+10)>=(timestampbase+timestamp)) return 0;
+  if ((ZD.zaphit+10)>=(timestampbase+X.timestamp)) return 0;
  
   return 1;
 }

@@ -198,6 +198,6 @@ struct Sound {
 
 extern Sound fceulib__sound;
 
-#define SOUNDTS (timestamp + fceulib__sound.soundtsoffs)
+#define SOUNDTS (X.timestamp + fceulib__sound.soundtsoffs)
 
 #endif

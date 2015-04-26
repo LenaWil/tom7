@@ -22,6 +22,7 @@
 #define __X6502_H
 
 #include "tracing.h"
+#include "fceu.h"
 
 struct X6502 {
   /* Temporary cycle counter */
@@ -55,11 +56,31 @@ struct X6502 {
 
   uint8 DMR(uint32 A);
   void DMW(uint32 A, uint8 V);
+
+  uint32 timestamp;
+
+private:
+  // normal memory read
+  inline uint8 RdMem(unsigned int A) {
+    return DB = ARead[A](A);
+  }
+
+  // normal memory write
+  inline void WrMem(unsigned int A, uint8 V) {
+    BWrite[A](A,V);
+  }
+
+  inline uint8 RdRAM(unsigned int A) {
+    // PERF: We should read directly from ram in this case (and
+    // see what other ones are possible); cheats at this level
+    // are not important. -tom7
+    //bbit edited: this was changed so cheat substitution would work
+    return (DB = ARead[A](A));
+    // return (DB=RAM[A]);
+  }
 };
 
 extern X6502 X;
-
-extern uint32 timestamp;
 
 extern void (*MapIRQHook)(int a);
 

@@ -473,7 +473,7 @@ void PPU::ResetRL(uint8 *target) {
   Plinef=target;
   Pline=target;
   firsttile=0;
-  linestartts=timestamp*48+X.count;
+  linestartts=X.timestamp*48+X.count;
   tofix=0;
   FCEUPPU_LineUpdate();
   tofix=1;
@@ -481,8 +481,8 @@ void PPU::ResetRL(uint8 *target) {
 
 void PPU::FCEUPPU_LineUpdate() {
   if (Pline) {
-    const int l = (PAL? ((timestamp*48-linestartts)/15) : 
-                        ((timestamp*48-linestartts)>>4) );
+    const int l = (PAL? ((X.timestamp*48-linestartts)/15) : 
+                        ((X.timestamp*48-linestartts)>>4) );
     RefreshLine(l);
   }
 }

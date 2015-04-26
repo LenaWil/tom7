@@ -24,8 +24,7 @@ static uint8 prg[3], chr[8], mirr;
 static uint8 IRQLatch, IRQa, IRQd;
 static uint32 IRQCount, CycleCount;
 
-static SFORMAT StateRegs[]=
-{
+static SFORMAT StateRegs[]= {
   {prg, 3, "PRG"},
   {chr, 8, "CHR"},
   {&mirr, 1, "MIRR"},

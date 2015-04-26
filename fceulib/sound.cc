@@ -864,7 +864,7 @@ void Sound::SetNESSoundMap() {
 int Sound::FlushEmulateSound() {
   int32 end, left;
 
-  if (!timestamp) return 0;
+  if (!X.timestamp) return 0;
 
   if (!FSettings.SndRate) {
     left=0;
@@ -883,7 +883,7 @@ int Sound::FlushEmulateSound() {
 
     if (GameExpSound.HiFill) GameExpSound.HiFill();
 
-    for (int x = timestamp; x; x--) {
+    for (int x = X.timestamp; x; x--) {
       uint32 b=*tmpo;
       *tmpo=(b&65535)+wlookup2[(b>>16)&255]+wlookup1[b>>24];
       tmpo++;
