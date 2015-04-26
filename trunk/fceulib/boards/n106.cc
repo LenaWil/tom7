@@ -77,7 +77,7 @@ static void NamcoIRQHook(int a)
     IRQCount+=a;
     if (IRQCount>=0x7FFF)
     {
-      X6502_IRQBegin(FCEU_IQEXT);
+      X.IRQBegin(FCEU_IQEXT);
       IRQa=0;
       IRQCount=0x7FFF; //7FFF;
     }
@@ -174,11 +174,11 @@ static DECLFW(Mapper19_write) {
     case 0xf800:
       dopol=V;break;
     case 0x5000:
-      IRQCount&=0xFF00;IRQCount|=V;X6502_IRQEnd(FCEU_IQEXT);break;
+      IRQCount&=0xFF00;IRQCount|=V;X.IRQEnd(FCEU_IQEXT);break;
     case 0x5800:
       IRQCount&=0x00ff;IRQCount|=(V&0x7F)<<8;
       IRQa=V&0x80;
-      X6502_IRQEnd(FCEU_IQEXT);
+      X.IRQEnd(FCEU_IQEXT);
       break;
     case 0xE000:
       gorko=V&0xC0;

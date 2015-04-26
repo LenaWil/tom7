@@ -57,7 +57,7 @@ static DECLFW(UNLSC127Write) {
     case 0x9005: chr[5] = V; break;
     case 0x9006: chr[6] = V; break;
     case 0x9007: chr[7] = V; break;
-    case 0xC002: IRQa=0; X6502_IRQEnd(FCEU_IQEXT); break;
+    case 0xC002: IRQa=0; X.IRQEnd(FCEU_IQEXT); break;
     case 0xC005: IRQCount=V; break;
     case 0xC003: IRQa=1; break;
     case 0xD001: reg[3] = V; break;
@@ -79,7 +79,7 @@ static void UNLSC127IRQ(void) {
   if(IRQa) {
     IRQCount--;
     if(IRQCount==0) {
-      X6502_IRQBegin(FCEU_IQEXT);
+      X.IRQBegin(FCEU_IQEXT);
       IRQa=0;
     }
   }

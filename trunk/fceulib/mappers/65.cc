@@ -21,17 +21,14 @@
 #include "mapinc.h"
 
 
-void IREMIRQHook(int a)
-{
-  if(IRQa)
-  {
-   IRQCount-=a;
-   if(IRQCount<-4)
-   {
-    X6502_IRQBegin(FCEU_IQEXT);
-    IRQa=0;
-    IRQCount=0xFFFF;
-   }
+void IREMIRQHook(int a) {
+  if(IRQa) {
+    IRQCount-=a;
+    if(IRQCount<-4) {
+      X.IRQBegin(FCEU_IQEXT);
+      IRQa=0;
+      IRQCount=0xFFFF;
+    }
   }
 }
 
@@ -46,7 +43,7 @@ static DECLFW(Mapper65_write)
   case 0x8000:ROM_BANK8(0x8000,V);break;
  // case 0x9000:printf("$%04x:$%02x\n",A,V);MIRROR_SET2((V>>6)&1);break;
   case 0x9001:MIRROR_SET(V>>7);break;
-  case 0x9003:IRQa=V&0x80;X6502_IRQEnd(FCEU_IQEXT);break;
+  case 0x9003:IRQa=V&0x80;X.IRQEnd(FCEU_IQEXT);break;
   case 0x9004:IRQCount=IRQLatch;break;
   case 0x9005:          IRQLatch&=0x00FF;
                         IRQLatch|=V<<8;

@@ -326,7 +326,7 @@ void PPU::B2000_Direct(DECLFW_ARGS) {
   PPUGenLatch=V;
   if (!(PPU_values[0]&0x80) && (V&0x80) && (PPU_status&0x80)) {
     //     FCEU_printf("Trigger NMI, %d, %d\n",timestamp,ppudead);
-    TriggerNMI2();
+    X.TriggerNMI2();
   }
   PPU_values[0]=V;
   TempAddr&=0xF3FF;
@@ -460,10 +460,10 @@ static DECLFW(B4014) {
 }
 // static
 void PPU::B4014_Direct(DECLFW_ARGS) {
-  const uint32 t=V<<8;
+  const uint32 t = V << 8;
 
-  for (int x=0;x<256;x++) {
-    X6502_DMW(0x2004,X6502_DMR(t+x));
+  for (int x = 0; x < 256; x++) {
+    X.DMW(0x2004,X.DMR(t+x));
   }
 }
 
@@ -851,7 +851,7 @@ void PPU::DoLine() {
 
   if (MMC5Hack && (ScreenON || SpriteON)) MMC5_hb(scanline);
 
-  X6502_Run(256);
+  X.Run(256);
   EndRL();
 
   if (!renderbg) {
@@ -895,15 +895,15 @@ void PPU::DoLine() {
     FetchSpriteData();
 
   if (GameHBIRQHook && (ScreenON || SpriteON) && ((PPU_values[0]&0x38)!=0x18)) {
-    X6502_Run(6);
+    X.Run(6);
     Fixit2();
-    X6502_Run(4);
+    X.Run(4);
     GameHBIRQHook();
-    X6502_Run(85-16-10);
+    X.Run(85-16-10);
   } else {
-    X6502_Run(6);  // Tried 65, caused problems with Slalom(maybe others)
+    X.Run(6);  // Tried 65, caused problems with Slalom(maybe others)
     Fixit2();
-    X6502_Run(85-6-16);
+    X.Run(85-6-16);
 
     // A semi-hack for Star Trek: 25th Anniversary
     if (GameHBIRQHook && (ScreenON || SpriteON) && ((PPU_values[0]&0x38)!=0x18))
@@ -918,7 +918,7 @@ void PPU::DoLine() {
   if (scanline<240) {
     ResetRL(XBuf+(scanline<<8));
   }
-  X6502_Run(16);
+  X.Run(16);
 }
 
 #define V_FLIP  0x80
@@ -1373,11 +1373,11 @@ int PPU::FCEUPPU_Loop(int skip) {
   // Needed for Knight Rider, possibly others.
   if (ppudead) {
     memset(XBuf, 0x80, 256*240);
-    X6502_Run(scanlines_per_frame*(256+85));
+    X.Run(scanlines_per_frame*(256+85));
     ppudead--;
   } else {
     TRACELOC();
-    X6502_Run(256+85);
+    X.Run(256+85);
     TRACEA(RAM, 0x800);
 
     PPU_status |= 0x80;
@@ -1389,14 +1389,14 @@ int PPU::FCEUPPU_Loop(int skip) {
     PPU_values[3]=PPUSPL=0;
 
     // I need to figure out the true nature and length of this delay.
-    X6502_Run(12);
+    X.Run(12);
 
     if (VBlankON)
-      TriggerNMI();
+      X.TriggerNMI();
 
-    X6502_Run((scanlines_per_frame-242)*(256+85)-12);
+    X.Run((scanlines_per_frame-242)*(256+85)-12);
     PPU_status&=0x1f;
-    X6502_Run(256);
+    X.Run(256);
 
     if (ScreenON || SpriteON) {
       if (GameHBIRQHook && ((PPU_values[0]&0x38)!=0x18))
@@ -1406,7 +1406,7 @@ int PPU::FCEUPPU_Loop(int skip) {
       if (GameHBIRQHook2)
         GameHBIRQHook2();
     }
-    X6502_Run(85-16);
+    X.Run(85-16);
     if (ScreenON || SpriteON) {
       RefreshAddr=TempAddr;
       if (PPU_hook) PPU_hook(RefreshAddr&0x3fff);
@@ -1416,7 +1416,7 @@ int PPU::FCEUPPU_Loop(int skip) {
     any_sprites_on_line = numsprites = 0;
     ResetRL(XBuf);
 
-    X6502_Run(16 - cycle_parity);
+    X.Run(16 - cycle_parity);
     cycle_parity ^= 1;
 
     // n.b. FRAMESKIP results in different behavior in memory, so don't do it.
@@ -1431,7 +1431,7 @@ int PPU::FCEUPPU_Loop(int skip) {
       TRACELOC();
       PPU_status|=0x20;       // Fixes "Bee 52".  Does it break anything?
       if (GameHBIRQHook) {
-        X6502_Run(256);
+        X.Run(256);
         for (scanline=0;scanline<240;scanline++) {
           if (ScreenON || SpriteON)
             GameHBIRQHook();
@@ -1439,17 +1439,17 @@ int PPU::FCEUPPU_Loop(int skip) {
             TRACELOC();
             PPU_status|=0x40;
           }
-          X6502_Run((scanline==239)?85:(256+85));
+          X.Run((scanline==239)?85:(256+85));
         }
       } else if (y<240) {
-        X6502_Run((256+85)*y);
+        X.Run((256+85)*y);
         if (SpriteON) {
           TRACELOC();
           PPU_status|=0x40; // Quick and very dirty hack.
         }
-        X6502_Run((256+85)*(240-y));
+        X.Run((256+85)*(240-y));
       } else {
-        X6502_Run((256+85)*240);
+        X.Run((256+85)*240);
       }
     }
 #endif

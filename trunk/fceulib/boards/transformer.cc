@@ -45,7 +45,7 @@ static void TransformerIRQHook(int a)
          TransformerChar = i;
        else
          TransformerChar = i | 0x80;
-       X6502_IRQBegin(FCEU_IQEXT);
+       X.IRQBegin(FCEU_IQEXT);
        memcpy((void *)&oldkeys[0], (void *)TransformerKeys, 256);
        break;
      }
@@ -62,7 +62,7 @@ static DECLFR(TransformerRead)
     case 2: break;
     case 4: break;
   }
-  X6502_IRQEnd(FCEU_IQEXT);
+  X.IRQEnd(FCEU_IQEXT);
   return ret;
 }
 

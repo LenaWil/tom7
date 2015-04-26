@@ -89,8 +89,8 @@ static void iNES_ExecPower() {
 
   if (trainerdata) {
     for (int x=0;x<512;x++) {
-      X6502_DMW(0x7000+x,trainerdata[x]);
-      if (X6502_DMR(0x7000+x)!=trainerdata[x]) {
+      X.DMW(0x7000+x,trainerdata[x]);
+      if (X.DMR(0x7000+x)!=trainerdata[x]) {
 	SetReadHandler(0x7000,0x71FF,TrainerRead);
 	break;
       }

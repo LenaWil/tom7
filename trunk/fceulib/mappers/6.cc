@@ -31,7 +31,7 @@ static void FFEIRQHook(int a)
    IRQCount+=a;
    if(IRQCount>=0x10000)
    {
-    X6502_IRQBegin(FCEU_IQEXT);
+    X.IRQBegin(FCEU_IQEXT);
     IRQa=0;
     IRQCount=0;
    }
@@ -43,7 +43,7 @@ DECLFW(Mapper6_write) {
     switch(A) {
     case 0x42FF:MIRROR_SET((V>>4)&1);break;
     case 0x42FE:onemir((V>>3)&2); FFEmode=V&0x80;break;
-    case 0x4501:IRQa=0;X6502_IRQEnd(FCEU_IQEXT);break;
+    case 0x4501:IRQa=0;X.IRQEnd(FCEU_IQEXT);break;
     case 0x4502:IRQCount&=0xFF00;IRQCount|=V;break;
     case 0x4503:IRQCount&=0xFF;IRQCount|=V<<8;IRQa=1;break;
     }

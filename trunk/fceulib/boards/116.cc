@@ -231,7 +231,7 @@ static DECLFW(UNLSL12Write) {
       IRQReload = 1;
       break;
     case 0xE000:
-      X6502_IRQEnd(FCEU_IQEXT);
+      X.IRQEnd(FCEU_IQEXT);
       IRQa=0;
       break;
     case 0xE001:
@@ -276,7 +276,7 @@ static void UNLSL12HBIRQ(void) {
     }
     if(!IRQCount) {
       if(IRQa)
-        X6502_IRQBegin(FCEU_IQEXT);
+        X.IRQBegin(FCEU_IQEXT);
     }
   }
 }

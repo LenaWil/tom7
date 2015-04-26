@@ -54,7 +54,7 @@ static void RAMBO1_IRQHook(int a)
     smallcount-=4;
     IRQCount--;
     if (IRQCount==0xFF)
-      if (IRQa) X6502_IRQBegin(FCEU_IQEXT);
+      if (IRQa) X.IRQBegin(FCEU_IQEXT);
   }
 }
 
@@ -66,7 +66,7 @@ static void RAMBO1_hb(void) {
   if (IRQCount==0xFF) {
     if (IRQa) {
       rmode = 1;
-      X6502_IRQBegin(FCEU_IQEXT);
+      X.IRQBegin(FCEU_IQEXT);
     }
   }
 }
@@ -120,7 +120,7 @@ static DECLFW(RAMBO1_write)
                  IRQmode=V&1;
                  break;
     case 0xE000: IRQa=0;
-                 X6502_IRQEnd(FCEU_IQEXT);
+                 X.IRQEnd(FCEU_IQEXT);
                  if (rmode==1)
                    IRQCount=IRQLatch;
                  break;

@@ -30,7 +30,7 @@ static void Mapper50IRQ(int a)
         else
         {
          IRQa=0;
-         X6502_IRQBegin(FCEU_IQEXT);
+         X.IRQBegin(FCEU_IQEXT);
         }
  }
 }
@@ -48,7 +48,7 @@ static DECLFW(M50W)
   {
    IRQa=V&1;
    if(!IRQa) IRQCount=0;
-   X6502_IRQEnd(FCEU_IQEXT);
+   X.IRQEnd(FCEU_IQEXT);
   }
   else
   {

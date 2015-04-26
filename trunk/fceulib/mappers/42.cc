@@ -21,39 +21,33 @@
 #include "mapinc.h"
 
 
-static DECLFW(Mapper42_write)
-{
+static DECLFW(Mapper42_write) {
 // FCEU_printf("%04x:%04x\n",A,V);
- switch(A&0xe003)
- {
+ switch(A&0xe003) {
   case 0x8000:VROM_BANK8(V);break;
   case 0xe000:mapbyte1[0]=V;ROM_BANK8(0x6000,V&0xF);break;
   case 0xe001:MIRROR_SET((V>>3)&1);break;
-  case 0xe002:IRQa=V&2;if(!IRQa) IRQCount=0;X6502_IRQEnd(FCEU_IQEXT);break;
+  case 0xe002:IRQa=V&2;if(!IRQa) IRQCount=0;X.IRQEnd(FCEU_IQEXT);break;
  }
 }
 
-static void Mapper42IRQ(int a)
-{
- if(IRQa)
- {
-        IRQCount+=a;
-        if(IRQCount>=32768) IRQCount-=32768;
-        if(IRQCount>=24576)
-         X6502_IRQBegin(FCEU_IQEXT);
-        else
-         X6502_IRQEnd(FCEU_IQEXT);
- }
+static void Mapper42IRQ(int a) {
+  if (IRQa) {
+    IRQCount+=a;
+    if (IRQCount>=32768) IRQCount-=32768;
+    if (IRQCount>=24576)
+      X.IRQBegin(FCEU_IQEXT);
+    else
+      X.IRQEnd(FCEU_IQEXT);
+  }
 }
 
-static void Mapper42_StateRestore(int version)
-{
-    ROM_BANK8(0x6000,mapbyte1[0]&0xF);
+static void Mapper42_StateRestore(int version) {
+  ROM_BANK8(0x6000,mapbyte1[0]&0xF);
 }
 
 
-void Mapper42_init(void)
-{
+void Mapper42_init(void) {
   ROM_BANK8(0x6000,0);
   ROM_BANK32(~0);
   SetWriteHandler(0x6000,0xffff,Mapper42_write);

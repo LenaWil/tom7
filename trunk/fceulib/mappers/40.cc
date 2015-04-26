@@ -21,28 +21,23 @@
 #include "mapinc.h"
 
 
-static DECLFW(Mapper40_write)
-{
- switch(A&0xe000)
- {
-  case 0x8000:IRQa=0;IRQCount=0;X6502_IRQEnd(FCEU_IQEXT);break;
+static DECLFW(Mapper40_write) {
+  switch(A&0xe000) {
+  case 0x8000:IRQa=0;IRQCount=0;X.IRQEnd(FCEU_IQEXT);break;
   case 0xa000:IRQa=1;break;
   case 0xe000:ROM_BANK8(0xc000,V&7);break;
- }
+  }
 }
 
-static void Mapper40IRQ(int a)
-{
- if(IRQa)
- {
-        if(IRQCount<4096)
-         IRQCount+=a;
-        else
-        {
-         IRQa=0;
-         X6502_IRQBegin(FCEU_IQEXT);
-        }
- }
+static void Mapper40IRQ(int a) {
+  if(IRQa) {
+    if(IRQCount<4096) {
+      IRQCount+=a;
+    } else {
+      IRQa=0;
+      X.IRQBegin(FCEU_IQEXT);
+    }
+  }
 }
 
 void Mapper40_init(void)

@@ -81,7 +81,7 @@ static DECLFW(UNLTF1201Write) {
     case 0xF001:
     case 0xF003: 
       IRQa=V&2;
-      X6502_IRQEnd(FCEU_IQEXT); 
+      X.IRQEnd(FCEU_IQEXT); 
       if (fceulib__ppu.scanline<240) IRQCount-=8; break;
     }
   }
@@ -91,7 +91,7 @@ static void UNLTF1201IRQCounter(void) {
   if (IRQa) {
     IRQCount++;
     if (IRQCount==237) {
-      X6502_IRQBegin(FCEU_IQEXT);
+      X.IRQBegin(FCEU_IQEXT);
     }
   }
 }

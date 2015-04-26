@@ -242,9 +242,9 @@ static DECLFW(M90IRQWrite)
   switch(A&7)
   {
     case 00: //FCEU_printf("%s IRQ (C000)\n",V&1?"Enable":"Disable");
-             IRQa=V&1;if(!(V&1)) X6502_IRQEnd(FCEU_IQEXT);break;
+             IRQa=V&1;if(!(V&1)) X.IRQEnd(FCEU_IQEXT);break;
     case 02: //FCEU_printf("Disable IRQ (C002) scanline=%d\n", scanline);
-             IRQa=0;X6502_IRQEnd(FCEU_IQEXT);break;
+             IRQa=0;X.IRQEnd(FCEU_IQEXT);break;
     case 03: //FCEU_printf("Enable IRQ (C003) scanline=%d\n", scanline);
              IRQa=1;break;
     case 01: IRQMode=V;
@@ -328,7 +328,7 @@ static void CCL(void)
     IRQCount++;
     if((IRQCount == 0) && IRQa)
     {
-      X6502_IRQBegin(FCEU_IQEXT);
+      X.IRQBegin(FCEU_IQEXT);
     }
   }
   else if((IRQMode>>6) == 2) // Count down
@@ -336,7 +336,7 @@ static void CCL(void)
     IRQCount--;
     if((IRQCount == 0xFF) && IRQa)
     {
-      X6502_IRQBegin(FCEU_IQEXT);
+      X.IRQBegin(FCEU_IQEXT);
     }
   }
 }

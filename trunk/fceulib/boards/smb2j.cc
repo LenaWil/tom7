@@ -54,7 +54,7 @@ static DECLFW(UNLSMB2JWrite)
   {
     IRQa=V;
     IRQCount=0;
-    X6502_IRQEnd(FCEU_IQEXT);
+    X.IRQEnd(FCEU_IQEXT);
   }
 }
 
@@ -79,7 +79,7 @@ static void UNLSMB2JIRQHook(int a)
   {
     IRQCount+=a*3;
     if((IRQCount>>12)==IRQa)
-      X6502_IRQBegin(FCEU_IQEXT);
+      X.IRQBegin(FCEU_IQEXT);
   }
 }
 

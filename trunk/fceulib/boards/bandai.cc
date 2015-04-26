@@ -52,7 +52,7 @@ static void BandaiIRQHook(int a)
     IRQCount -= a;
     if(IRQCount<0)
     {
-      X6502_IRQBegin(FCEU_IQEXT);
+      X.IRQBegin(FCEU_IQEXT);
       IRQa = 0;
       IRQCount = -1;
     }
@@ -91,7 +91,7 @@ static DECLFW(BandaiWrite)
   else
     switch(A)
     {
-      case 0x0A: X6502_IRQEnd(FCEU_IQEXT); IRQa=V&1; IRQCount=IRQLatch; break;
+      case 0x0A: X.IRQEnd(FCEU_IQEXT); IRQa=V&1; IRQCount=IRQLatch; break;
       case 0x0B: IRQLatch&=0xFF00; IRQLatch|=V;  break;
       case 0x0C: IRQLatch&=0xFF; IRQLatch|=V<<8; break;
       case 0x0D: break;// Serial EEPROM control port

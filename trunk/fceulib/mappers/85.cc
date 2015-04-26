@@ -92,17 +92,17 @@ DECLFW(Mapper85_write)
     case 0x9010:indox=V;break;
     case 0xe000:mapbyte2[3]=V;DaMirror(V);break;
     case 0xE010:IRQLatch=V;
-      X6502_IRQEnd(FCEU_IQEXT);
+      X.IRQEnd(FCEU_IQEXT);
       break;
     case 0xF000:IRQa=V&2;
       vrctemp=V&1;
       if(V&2) {IRQCount=IRQLatch;}
       acount=0;
-      X6502_IRQEnd(FCEU_IQEXT);
+      X.IRQEnd(FCEU_IQEXT);
       break;
     case 0xf010:if(vrctemp) IRQa=1;
       else IRQa=0;
-      X6502_IRQEnd(FCEU_IQEXT);
+      X.IRQEnd(FCEU_IQEXT);
       break;
     }
   }
@@ -120,7 +120,7 @@ static void KonamiIRQHook(int a)
     {
      doagainbub:acount-=ACBOO;
      IRQCount++;
-     if(IRQCount&0x100) {X6502_IRQBegin(FCEU_IQEXT);IRQCount=IRQLatch;}
+     if(IRQCount&0x100) {X.IRQBegin(FCEU_IQEXT);IRQCount=IRQLatch;}
      if(acount>=ACBOO) goto doagainbub;
     }
  }

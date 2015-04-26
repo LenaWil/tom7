@@ -31,8 +31,8 @@ struct X6502 {
      I'll need to AND PC after increments to 0xFFFF
      when I do, though.  Perhaps an IPC() macro? */
 
-  uint16 PC;
-  uint8 A, X, Y, S, P, mooPI;
+  uint16 reg_PC;
+  uint8 reg_A, reg_X, reg_Y, reg_S, reg_P, reg_PI;
   uint8 jammed;
 
   int32 count;
@@ -41,12 +41,23 @@ struct X6502 {
   uint32 IRQlow;
   /* Data bus "cache" for reads from certain areas */
   uint8 DB;
+
+  void Run(int32 cycles);
+  void Init();
+  void Reset();
+  void Power();
+
+  void TriggerNMI();
+  void TriggerNMI2();
+
+  void IRQBegin(int w);
+  void IRQEnd(int w);
+
+  uint8 DMR(uint32 A);
+  void DMW(uint32 A, uint8 V);
 };
 
 extern X6502 X;
-
-void X6502_Run(int32 cycles);
-//------------
 
 extern uint32 timestamp;
 
@@ -64,22 +75,5 @@ extern void (*MapIRQHook)(int a);
 #define FCEU_IQDPCM     0x100
 #define FCEU_IQFCOUNT   0x200
 #define FCEU_IQTEMP     0x800
-
-void X6502_Init();
-void X6502_Reset();
-void X6502_Power();
-
-void TriggerNMI();
-void TriggerNMI2();
-
-uint8 X6502_DMR(uint32 A);
-void X6502_DMW(uint32 A, uint8 V);
-
-void X6502_IRQBegin(int w);
-// void X6502_IRQBegin_Wrapper(const std::string &where, int w);
-// #define MKSTRING(s) #s
-// #define X6502_IRQBegin(w) X6502_IRQBegin_Wrapper(FCEU_StringPrintf(__FILE__ ":%d",__LINE__), (w))
-
-void X6502_IRQEnd(int w);
 
 #endif

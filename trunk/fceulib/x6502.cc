@@ -27,18 +27,18 @@
 #include "tracing.h"
 
 // XXX get rid of this -tom7
-#define _PC        X.PC
-#define _A         X.A
-#define _X         X.X
-#define _Y         X.Y
-#define _S         X.S
-#define _P         X.P
-#define _PI        X.mooPI
-#define _DB        X.DB
-#define _count     X.count
-#define _tcount    X.tcount
-#define _IRQlow    X.IRQlow
-#define _jammed    X.jammed
+#define _PC        reg_PC
+#define _A         reg_A
+#define _X         reg_X
+#define _Y         reg_Y
+#define _S         reg_S
+#define _P         reg_P
+#define _PI        reg_PI
+#define _DB        this->DB
+#define _count     this->count
+#define _tcount    this->tcount
+#define _IRQlow    this->IRQlow
+#define _jammed    this->jammed
 
 
 #define N_FLAG  0x80
@@ -64,7 +64,7 @@ void (*MapIRQHook)(int a);
 // normal memory read
 static inline uint8 RdMem(unsigned int A) {
   TRACEF("readfunc is %p", ARead[A]);
-  return _DB=ARead[A](A);
+  return X.DB=ARead[A](A);
 }
 
 // normal memory write
@@ -77,7 +77,7 @@ static inline uint8 RdRAM(unsigned int A) {
   // see what other ones are possible); cheats at this level
   // are not important. -tom7
   //bbit edited: this was changed so cheat substitution would work
-  return (_DB=ARead[A](A));
+  return (X.DB=ARead[A](A));
   // return(_DB=RAM[A]);
 }
 
@@ -85,12 +85,12 @@ static inline void WrRAM(unsigned int A, uint8 V) {
   RAM[A] = V;
 }
 
-uint8 X6502_DMR(uint32 A) {
+uint8 X6502::DMR(uint32 A) {
   ADDCYC(1);
-  return (X.DB=ARead[A](A));
+  return (DB = ARead[A](A));
 }
 
-void X6502_DMW(uint32 A, uint8 V) {
+void X6502::DMW(uint32 A, uint8 V) {
   ADDCYC(1);
   BWrite[A](A,V);
 }
@@ -249,7 +249,7 @@ static constexpr uint8 ZNTable[256] = {
 */
 
 /* Absolute */
-#define GetAB(target) {			\
+#define GetAB(target) {				\
     target=RdMem(_PC);				\
     _PC++;					\
     target|=RdMem(_PC)<<8;			\
@@ -390,35 +390,27 @@ static constexpr uint8 CycTable[256] = {
 /*0xF0*/ 2,5,2,8,4,4,6,6,2,4,2,7,4,4,7,7,
 };
 
-#undef X6502_IRQBegin
-void X6502_IRQBegin(int w) {
+void X6502::IRQBegin(int w) {
   TRACEF("IRQBegin %d", w);
   _IRQlow |= w;
 }
 
-#if 0
-void X6502_IRQBegin_Wrapper(const std::string &where, int w) {
-  TRACEF("IRQBegin wrapper %s %d", where.c_str(), w);
-  X6502_IRQBegin(w);
-}
-#endif
-
-void X6502_IRQEnd(int w) {
+void X6502::IRQEnd(int w) {
   TRACEF("IRQEnd %d", w);
   _IRQlow &= ~w;
 }
 
-void TriggerNMI() {
+void X6502::TriggerNMI() {
   TRACEFUN();
   _IRQlow |= FCEU_IQNMI;
 }
 
-void TriggerNMI2() {
+void X6502::TriggerNMI2() {
   TRACEFUN();
   _IRQlow |= FCEU_IQNMI2;
 }
 
-void X6502_Reset() {
+void X6502::Reset() {
   TRACEFUN();
   _IRQlow = FCEU_IQRESET;
 }
@@ -426,9 +418,9 @@ void X6502_Reset() {
 /**
 * Initializes the 6502 CPU
 **/
-void X6502_Init() {
+void X6502::Init() {
   // Initialize the CPU structure
-  memset((void *)&X, 0, sizeof(X));
+  memset((void *)this, 0, sizeof(X6502));
 
   // Now initialized statically. -tom7
 #if 0
@@ -444,17 +436,17 @@ void X6502_Init() {
 #endif
 }
 
-void X6502_Power() {
+void X6502::Power() {
   _count=_tcount=_IRQlow=_PC=_A=_X=_Y=_P=_PI=_DB=_jammed=0;
   _S=0xFD;
   timestamp=0;
-  X6502_Reset();
+  Reset();
 }
 
 #define TRACE_MACHINEFMT "X: %d %04x %02x %02x %02x %02x %02x %02x / %02x %u %02x"
 #define TRACE_MACHINEARGS _count, _PC, _A, _X, _Y, _S, _P, _PI, _jammed, _IRQlow, _DB
 
-void X6502_Run(int32 cycles) {
+void X6502::Run(int32 cycles) {
   // Temporarily disable tracing unless this is the particular cycle
   // we're intereted in.
   // TRACE_SCOPED_STAY_ENABLED_IF(false);
