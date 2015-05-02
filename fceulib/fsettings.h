@@ -23,6 +23,8 @@
 //   FCEUI_SetRenderedLines(scanlinestart + 8, scanlineend - 8, 
 // 			 scanlinestart, scanlineend);
 // 
+// Note: These are not used anywhere. Maybe they are really for
+// clients.
 #define FCEUS_NTSC_FIRSTSLINE (0 + 8)
 #define FCEUS_NTSC_LASTSLINE (239 - 8)
 #define FCEUS_PAL_FIRSTSLINE 0

@@ -221,7 +221,7 @@ FCEUGI *FCEUI_LoadGameVirtual(const char *name, int OverwriteVidMode) {
     goto endlseq;
   if (UNIFLoad(name, fp))
     goto endlseq;
-  if (FDSLoad(name, fp))
+  if (fceulib__fds.FDSLoad(name, fp))
     goto endlseq;
 
   FCEU_PrintError("An error occurred while loading the file.");

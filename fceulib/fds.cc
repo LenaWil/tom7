@@ -41,7 +41,7 @@
 //  TODO:  Add code to put a delay in between the time a disk is inserted
 //	and the when it can be successfully read/written to.  This should
 //	prevent writes to wrong places OR add code to prevent disk ejects
-//	when the virtual motor is on(mmm...virtual motor).
+//	when the virtual motor is on.
 
 static DECLFR(FDSRead4030);
 static DECLFR(FDSRead4031);
@@ -58,42 +58,23 @@ static DECLFW(FDSSWrite);
 static DECLFR(FDSBIOSRead);
 static DECLFR(FDSRAMRead);
 static DECLFW(FDSRAMWrite);
-static void FDSInit();
-static void FDSFix(int a);
 
 #define FDSRAM GameMemBlock
 #define CHRRAM (GameMemBlock+32768)
 
-static uint8 FDSRegs[6];
-static int32 IRQLatch,IRQCount;
-static uint8 IRQa;
-static void FDSClose();
+static void FDSGI_Trampoline(GI h) {
+  return fceulib__fds.FDSGI(h);
+}
 
-static uint8 FDSBIOS[8192];
-
-/* Original disk data backup, to help in creating save states. */
-static uint8 *diskdatao[8]={0,0,0,0,0,0,0,0};
-
-static uint8 *diskdata[8]={0,0,0,0,0,0,0,0};
-
-static int TotalSides; //mbg merge 7/17/06 - unsignedectomy
-static uint8 DiskWritten=0;    /* Set to 1 if disk was written to. */
-static uint8 writeskip;
-static int32 DiskPtr;
-static int32 DiskSeekIRQ;
-static uint8 SelectDisk,InDisk;
-
-#define DC_INC    1
-
-void FDSGI(GI h) {
+void FDS::FDSGI(GI h) {
   switch(h) {
-  case GI_CLOSE: FDSClose();break;
-  case GI_POWER: FDSInit();break;
+  case GI_CLOSE: FDSClose(); break;
+  case GI_POWER: FDSInit(); break;
   default:;
   }
 }
 
-static void FDSStateRestore(int version) {
+void FDS::FDSStateRestore(int version) {
   fceulib__cart.setmirror(((FDSRegs[5]&8)>>3)^1);
 
   if (version >= 9810) {
@@ -105,13 +86,15 @@ static void FDSStateRestore(int version) {
   }
 }
 
-void FDSSound();
-static void FDSSoundReset();
-void FDSSoundStateAdd();
-static void RenderSound();
-static void RenderSoundHQ();
+static void FDSFix_Trampoline(int a) {
+  return fceulib__fds.FDSFix(a);
+}
 
-static void FDSInit() {
+static void FDSStateRestore_Trampoline(int version) {
+  return fceulib__fds.FDSStateRestore(version);
+}
+
+void FDS::FDSInit() {
   memset(FDSRegs,0,sizeof(FDSRegs));
   writeskip=DiskPtr=DiskSeekIRQ=0;
   fceulib__cart.setmirror(1);
@@ -120,8 +103,8 @@ static void FDSInit() {
   fceulib__cart.setprg32r(1,0x6000,0);   // 32KB RAM
   fceulib__cart.setchr8(0);     // 8KB CHR RAM
 
-  X.MapIRQHook=FDSFix;
-  GameStateRestore=FDSStateRestore;
+  X.MapIRQHook = FDSFix_Trampoline;
+  GameStateRestore=FDSStateRestore_Trampoline;
 
   SetReadHandler(0x4030,0x4030,FDSRead4030);
   SetReadHandler(0x4031,0x4031,FDSRead4031);
@@ -140,7 +123,7 @@ static void FDSInit() {
   SelectDisk=0;
 }
 
-void FCEU_FDSInsert() {
+void FDS::FCEU_FDSInsert() {
   if (TotalSides==0) {
     fprintf(stderr, "Not FDS; can't eject disk.");
     return;
@@ -154,7 +137,7 @@ void FCEU_FDSInsert() {
   }
 }
 
-void FCEU_FDSSelect() {
+void FDS::FCEU_FDSSelect() {
   if (TotalSides==0) {
     fprintf(stderr, "Not FDS; can't select disk.");
     return;
@@ -168,7 +151,7 @@ void FCEU_FDSSelect() {
   fprintf(stderr, "Disk %d Side %c Selected",SelectDisk>>1,(SelectDisk&1)?'B':'A');
 }
 
-static void FDSFix(int a) {
+void FDS::FDSFix(int a) {
   if ((IRQa&2) && IRQCount) {
     IRQCount-=a;
     if (IRQCount<=0) {
@@ -211,19 +194,26 @@ static DECLFR(FDSRead4030) {
 }
 
 static DECLFR(FDSRead4031) {
-  static uint8 z=0;
+  return fceulib__fds.FDSRead4013_Direct(DECLFR_FORWARD);
+}
+
+DECLFR_RET FDS::FDSRead4013_Direct(DECLFR_ARGS) {
   if (InDisk!=255) {
-    z=diskdata[InDisk][DiskPtr];
+    fdsread4013_z=diskdata[InDisk][DiskPtr];
     if (!fceuindbg) {
       if (DiskPtr<64999) DiskPtr++;
       DiskSeekIRQ=150;
       X.IRQEnd(FCEU_IQEXT2);
     }
   }
-  return z;
+  return fdsread4013_z;
 }
 
 static DECLFR(FDSRead4032) {
+  return fceulib__fds.FDSRead4032_Direct(DECLFR_FORWARD);
+}
+
+DECLFR_RET FDS::FDSRead4032_Direct(DECLFR_ARGS) {
   uint8 ret;
 
   ret=X.DB&~7;
@@ -235,65 +225,52 @@ static DECLFR(FDSRead4032) {
   return ret;
 }
 
-static DECLFR(FDSRead4033)
-{
+static DECLFR(FDSRead4033) {
 	return 0x80; // battery
 }
 
-static DECLFW(FDSRAMWrite)
-{
-	(FDSRAM-0x6000)[A]=V;
+static DECLFW(FDSRAMWrite) {
+  return fceulib__fds.FDSRAMWrite_Direct(DECLFW_FORWARD);
 }
 
-static DECLFR(FDSBIOSRead)
-{
-	return (FDSBIOS-0xE000)[A];
+void FDS::FDSRAMWrite_Direct(DECLFW_ARGS) {
+  (FDSRAM-0x6000)[A]=V;
 }
 
-static DECLFR(FDSRAMRead)
-{
-	return (FDSRAM-0x6000)[A];
+static DECLFR(FDSBIOSRead) {
+  return fceulib__fds.FDSBIOSRead_Direct(DECLFR_FORWARD);
+}
+
+DECLFR_RET FDS::FDSBIOSRead_Direct(DECLFR_ARGS) {
+  return (FDSBIOS-0xE000)[A];
+}
+
+static DECLFR(FDSRAMRead) {
+  return fceulib__fds.FDSRAMRead_Direct(DECLFR_FORWARD);
+}
+
+DECLFR_RET FDS::FDSRAMRead_Direct(DECLFR_ARGS) {
+  return (FDSRAM-0x6000)[A];
 }
 
 /* Begin FDS sound */
 
 #define FDSClock (1789772.7272727272727272/2)
 
-typedef struct {
-	int64 cycles;     // Cycles per PCM sample
-	int64 count;    // Cycle counter
-	int64 envcount;    // Envelope cycle counter
-	uint32 b19shiftreg60;
-	uint32 b24adder66;
-	uint32 b24latch68;
-	uint32 b17latch76;
-	int32 clockcount;  // Counter to divide frequency by 8.
-	uint8 b8shiftreg88;  // Modulation register.
-	uint8 amplitude[2];  // Current amplitudes.
-	uint8 speedo[2];
-	uint8 mwcount;
-	uint8 mwstart;
-	uint8 mwave[0x20];      // Modulation waveform
-	uint8 cwave[0x40];      // Game-defined waveform(carrier)
-	uint8 SPSG[0xB];
-} FDSSOUND;
-
-static FDSSOUND fdso;
-
-#define  SPSG  fdso.SPSG
+// XXX get rid of these
+#define SPSG  fdso.SPSG
 #define b19shiftreg60  fdso.b19shiftreg60
 #define b24adder66  fdso.b24adder66
 #define b24latch68  fdso.b24latch68
 #define b17latch76  fdso.b17latch76
 #define b8shiftreg88  fdso.b8shiftreg88
 #define clockcount  fdso.clockcount
-#define amplitude  fdso.amplitude
 #define speedo    fdso.speedo
 
-void FDSSoundStateAdd() {
+void FDS::FDSSoundStateAdd() {
   AddExState(fdso.cwave,64,0,"WAVE");
   AddExState(fdso.mwave,32,0,"MWAV");
-  AddExState(amplitude,2,0,"AMPL");
+  AddExState(fdso.amplitude,2,0,"AMPL");
   AddExState(SPSG,0xB,0,"SPSG");
 
   AddExState(&b8shiftreg88,1,0,"B88");
@@ -303,18 +280,25 @@ void FDSSoundStateAdd() {
   AddExState(&b24adder66,4,1,"B66");
   AddExState(&b24latch68,4,1,"B68");
   AddExState(&b17latch76,4,1,"B76");
-
 }
 
 static DECLFR(FDSSRead) {
+  return fceulib__fds.FDSSRead_Direct(DECLFR_FORWARD);
+}
+
+DECLFR_RET FDS::FDSSRead_Direct(DECLFR_ARGS) {
   switch(A&0xF) {
-  case 0x0:return(amplitude[0]|(X.DB&0xC0));
-  case 0x2:return(amplitude[1]|(X.DB&0xC0));
+  case 0x0:return(fdso.amplitude[0]|(X.DB&0xC0));
+  case 0x2:return(fdso.amplitude[1]|(X.DB&0xC0));
   }
   return(X.DB);
 }
 
 static DECLFW(FDSSWrite) {
+  return fceulib__fds.FDSSWrite_Direct(DECLFW_FORWARD);
+}
+
+void FDS::FDSSWrite_Direct(DECLFW_ARGS) {
   if (FCEUS_SNDRATE) {
     if (FCEUS_SOUNDQ >= 1)
       RenderSoundHQ();
@@ -325,7 +309,7 @@ static DECLFW(FDSSWrite) {
   switch(A) {
   case 0x0:
   case 0x4: if (V&0x80)
-      amplitude[(A&0xF)>>2]=V&0x3F; //)>0x20?0x20:(V&0x3F);
+      fdso.amplitude[(A&0xF)>>2]=V&0x3F; //)>0x20?0x20:(V&0x3F);
     break;
   case 0x5://printf("$%04x:$%02x\n",A,V);
     break;
@@ -353,19 +337,17 @@ static DECLFW(FDSSWrite) {
 // $4087 - Same as $4086($4087 is the upper 4 bits)
 
 
-static void DoEnv() {
+void FDS::DoEnv() {
   for (int x=0;x<2;x++) {
     if (!(SPSG[x<<2]&0x80) && !(SPSG[0x3]&0x40)) {
-      static int counto[2]={0,0};
-
       if (counto[x]<=0) {
 	if (!(SPSG[x<<2]&0x80)) {
 	  if (SPSG[x<<2]&0x40) {
-	    if (amplitude[x]<0x3F)
-	      amplitude[x]++;
+	    if (fdso.amplitude[x]<0x3F)
+	      fdso.amplitude[x]++;
 	  } else {
-	    if (amplitude[x]>0)
-	      amplitude[x]--;
+	    if (fdso.amplitude[x]>0)
+	      fdso.amplitude[x]--;
 	  }
 	}
 	counto[x]=(SPSG[x<<2]&0x3F);
@@ -377,17 +359,22 @@ static void DoEnv() {
 }
 
 static DECLFR(FDSWaveRead) {
-  return(fdso.cwave[A&0x3f]|(X.DB&0xC0));
+  return fceulib__fds.FDSWaveRead_Direct(DECLFR_FORWARD);
+}
+DECLFR_RET FDS::FDSWaveRead_Direct(DECLFR_ARGS) {
+  return fdso.cwave[A&0x3f] | (X.DB&0xC0);
 }
 
 static DECLFW(FDSWaveWrite) {
+  return fceulib__fds.FDSWaveWrite_Direct(DECLFW_FORWARD);
+}
+void FDS::FDSWaveWrite_Direct(DECLFW_ARGS) {
   //printf("$%04x:$%02x, %d\n",A,V,SPSG[0x9]&0x80);
   if (SPSG[0x9]&0x80)
     fdso.cwave[A&0x3f]=V&0x3F;
 }
 
-static int ta;
-static inline void ClockRise() {
+void FDS::ClockRise() {
   if (!clockcount) {
     ta++;
 
@@ -396,7 +383,7 @@ static inline void ClockRise() {
 
     if (!(SPSG[0x7]&0x80)) {
       int t=fdso.mwave[(b17latch76>>13)&0x1F]&7;
-      int t2=amplitude[1];
+      int t2=fdso.amplitude[1];
       int adj = 0;
 
       if ((t&3)) {
@@ -421,113 +408,87 @@ static inline void ClockRise() {
   b24adder66=(b24latch68+b19shiftreg60)&0x1FFFFFF;
 }
 
-static inline void ClockFall()
-{
-	//if (!(SPSG[0x7]&0x80))
-	{
-		if ((b8shiftreg88&1)) // || clockcount==7)
-			b24latch68=b24adder66;
-	}
-	clockcount=(clockcount+1)&7;
-}
-
-static inline int32 FDSDoSound()
-{
-	fdso.count+=fdso.cycles;
-	if (fdso.count>=((int64)1<<40))
-	{
-	  // This is mysterious to me. We entire the loop if the count exceeds
-	  // 1<<40, but also goto directly into it below if it's greater than
-	  // 32768. Since we keep gotoing here, it looks equivalent to just
-	  // while fdso.count >= 32768 ?
-dogk:
-		fdso.count-=(int64)1<<40;
-		ClockRise();
-		ClockFall();
-		fdso.envcount--;
-		if (fdso.envcount<=0)
-		{
-			fdso.envcount+=SPSG[0xA]*3;
-			DoEnv();
-		}
-	}
-	if (fdso.count>=32768) goto dogk;
-
-	// Might need to emulate applying the amplitude to the waveform a bit better...
-	{
-		int k=amplitude[0];
-		if (k>0x20) k=0x20;
-		return (fdso.cwave[b24latch68>>19]*k)*4/((SPSG[0x9]&0x3)+2);
-	}
-}
-
-static int32 FBC=0;
-
-static void RenderSound()
-{
-	int32 end, start;
-	int32 x;
-
-	start=FBC;
-	end=(SOUNDTS<<16)/fceulib__sound.soundtsinc;
-	if (end<=start)
-		return;
-	FBC=end;
-
-	if (!(SPSG[0x9]&0x80))
-		for (x=start;x<end;x++)
-		{
-			uint32 t=FDSDoSound();
-			t+=t>>1;
-			t>>=4;
-			fceulib__sound.Wave[x>>4]+=t; //(t>>2)-(t>>3); //>>3;
-		}
-}
-
-static void RenderSoundHQ()
-{
-	uint32 x; //mbg merge 7/17/06 - made this unsigned
-
-	if (!(SPSG[0x9]&0x80))
-		for (x=FBC;x<SOUNDTS;x++)
-		{
-			uint32 t=FDSDoSound();
-			t+=t>>1;
-			fceulib__sound.WaveHi[x]+=t; //(t<<2)-(t<<1);
-		}
-		FBC=SOUNDTS;
-}
-
-static void HQSync(int32 ts)
-{
-	FBC=ts;
-}
-
-void FDSSound(int c)
-{
-	RenderSound();
-	FBC=c;
-}
-
-/*
-  static DECLFR(FDSBIOSPatch)
+void FDS::ClockFall() {
+  //if (!(SPSG[0x7]&0x80))
   {
-  if (FDSRegs[5]&0x4)
-  {
-  X.X=FDSRead4031(0x4031);
-  FDSWrite(0x4024,X.A);
-  X.A=X.X;
-  return(0x60);
+    if ((b8shiftreg88&1)) // || clockcount==7)
+      b24latch68=b24adder66;
   }
-  else
-  {
-  return(0x58);
-  //puts("Write");
-  }
-  }
-*/
+  clockcount=(clockcount+1)&7;
+}
 
-static void FDS_ESI() {
+int32 FDS::FDSDoSound() {
+  fdso.count+=fdso.cycles;
+  if (fdso.count>=((int64)1<<40)) {
+    // This is mysterious to me. We entire the loop if the count exceeds
+    // 1<<40, but also goto directly into it below if it's greater than
+    // 32768. Since we keep gotoing here, it looks equivalent to just
+    // while fdso.count >= 32768 ?
+
+    // XXX do { } while...
+  dogk:
+    fdso.count-=(int64)1<<40;
+    ClockRise();
+    ClockFall();
+    fdso.envcount--;
+    if (fdso.envcount<=0) {
+      fdso.envcount+=SPSG[0xA]*3;
+      DoEnv();
+    }
+  }
+  if (fdso.count>=32768) goto dogk;
+
+  // Might need to emulate applying the amplitude to the waveform a bit better...
+  {
+    int k=fdso.amplitude[0];
+    if (k>0x20) k=0x20;
+    return (fdso.cwave[b24latch68>>19]*k)*4/((SPSG[0x9]&0x3)+2);
+  }
+}
+
+void FDS::RenderSound() {
+  int32 end, start;
+  int32 x;
+
+  start=FBC;
+  end=(SOUNDTS<<16)/fceulib__sound.soundtsinc;
+  if (end<=start)
+    return;
+  FBC=end;
+
+  if (!(SPSG[0x9]&0x80)) {
+    for (x=start;x<end;x++) {
+      uint32 t=FDSDoSound();
+      t+=t>>1;
+      t>>=4;
+      fceulib__sound.Wave[x>>4]+=t; //(t>>2)-(t>>3); //>>3;
+    }
+  }
+}
+
+void FDS::RenderSoundHQ() {
+  if (!(SPSG[0x9]&0x80)) {
+    for (uint32 x=FBC;x<SOUNDTS;x++) {
+      uint32 t=FDSDoSound();
+      t+=t>>1;
+      fceulib__sound.WaveHi[x]+=t; //(t<<2)-(t<<1);
+    }
+  }
+  // nb: formatting made this look like it was in the 'if' above,
+  // but it wasn't -tom7
+  FBC = SOUNDTS;
+}
+
+void FDS::HQSync(int32 ts) {
+  FBC = ts;
+}
+
+void FDS::FDSSound(int c) {
+  RenderSound();
+  FBC = c;
+}
+
+void FDS::FDS_ESI() {
   if (FCEUS_SNDRATE) {
     if (FCEUS_SOUNDQ>=1) {
       fdso.cycles=(int64)1<<39;
@@ -545,151 +506,143 @@ static void FDS_ESI() {
   //SetReadHandler(0xE7A3,0xE7A3,FDSBIOSPatch);
 }
 
-static void FDSSoundReset() {
+void FDS::FDSSoundReset() {
   memset(&fdso,0,sizeof(fdso));
   FDS_ESI();
-  fceulib__sound.GameExpSound.HiSync=HQSync;
-  fceulib__sound.GameExpSound.HiFill=RenderSoundHQ;
-  fceulib__sound.GameExpSound.Fill=FDSSound;
-  fceulib__sound.GameExpSound.RChange=FDS_ESI;
+  fceulib__sound.GameExpSound.HiSync = [](int32 ts){ return fceulib__fds.HQSync(ts); };
+  fceulib__sound.GameExpSound.HiFill = []() { return fceulib__fds.RenderSoundHQ(); };
+  fceulib__sound.GameExpSound.Fill = [](int i) { return fceulib__fds.FDSSound(i); };
+  fceulib__sound.GameExpSound.RChange =  []() { return fceulib__fds.FDS_ESI(); };
 }
 
-static DECLFW(FDSWrite)
-{
-	//extern int scanline;
-	//FCEU_printf("$%04x:$%02x, %d\n",A,V,scanline);
-	switch(A)
-	{
-	case 0x4020:
-		X.IRQEnd(FCEU_IQEXT);
-		IRQLatch&=0xFF00;
-		IRQLatch|=V;
-		//  printf("$%04x:$%02x\n",A,V);
-		break;
-	case 0x4021:
-		X.IRQEnd(FCEU_IQEXT);
-		IRQLatch&=0xFF;
-		IRQLatch|=V<<8;
-		//  printf("$%04x:$%02x\n",A,V);
-		break;
-	case 0x4022:
-		X.IRQEnd(FCEU_IQEXT);
-		IRQCount=IRQLatch;
-		IRQa=V&3;
-		//  printf("$%04x:$%02x\n",A,V);
-		break;
-	case 0x4023:break;
-	case 0x4024:
-		if (InDisk!=255 && !(FDSRegs[5]&0x4) && (FDSRegs[3]&0x1))
-		{
-			if (DiskPtr>=0 && DiskPtr<65500)
-			{
-				if (writeskip) writeskip--;
-				else if (DiskPtr>=2)
-				{
-					DiskWritten=1;
-					diskdata[InDisk][DiskPtr-2]=V;
-				}
-			}
-		}
-		break;
-	case 0x4025:
-		X.IRQEnd(FCEU_IQEXT2);
-		if (InDisk!=255)
-		{
-			if (!(V&0x40))
-			{
-				if (FDSRegs[5]&0x40 && !(V&0x10))
-				{
-					DiskSeekIRQ=200;
-					DiskPtr-=2;
-				}
-				if (DiskPtr<0) DiskPtr=0;
-			}
-			if (!(V&0x4)) writeskip=2;
-			if (V&2) {DiskPtr=0;DiskSeekIRQ=200;}
-			if (V&0x40) DiskSeekIRQ=200;
-		}
-		fceulib__cart.setmirror(((V>>3)&1)^1);
-		break;
+static DECLFW(FDSWrite) {
+  return fceulib__fds.FDSWrite_Direct(DECLFW_FORWARD);
+}
+
+void FDS::FDSWrite_Direct(DECLFW_ARGS) {
+  //extern int scanline;
+  //FCEU_printf("$%04x:$%02x, %d\n",A,V,scanline);
+  switch(A) {
+  case 0x4020:
+    X.IRQEnd(FCEU_IQEXT);
+    IRQLatch&=0xFF00;
+    IRQLatch|=V;
+    //  printf("$%04x:$%02x\n",A,V);
+    break;
+  case 0x4021:
+    X.IRQEnd(FCEU_IQEXT);
+    IRQLatch&=0xFF;
+    IRQLatch|=V<<8;
+    //  printf("$%04x:$%02x\n",A,V);
+    break;
+  case 0x4022:
+    X.IRQEnd(FCEU_IQEXT);
+    IRQCount=IRQLatch;
+    IRQa=V&3;
+    //  printf("$%04x:$%02x\n",A,V);
+    break;
+  case 0x4023:break;
+  case 0x4024:
+    if (InDisk!=255 && !(FDSRegs[5]&0x4) && (FDSRegs[3]&0x1)) {
+      if (DiskPtr>=0 && DiskPtr<65500) {
+	if (writeskip) writeskip--;
+	else if (DiskPtr>=2) {
+	  DiskWritten=1;
+	  diskdata[InDisk][DiskPtr-2]=V;
 	}
-	FDSRegs[A&7]=V;
+      }
+    }
+    break;
+  case 0x4025:
+    X.IRQEnd(FCEU_IQEXT2);
+    if (InDisk!=255) {
+      if (!(V&0x40)) {
+	if (FDSRegs[5]&0x40 && !(V&0x10)) {
+	  DiskSeekIRQ=200;
+	  DiskPtr-=2;
+	}
+	if (DiskPtr<0) DiskPtr=0;
+      }
+      if (!(V&0x4)) writeskip=2;
+      if (V&2) {DiskPtr=0;DiskSeekIRQ=200;}
+      if (V&0x40) DiskSeekIRQ=200;
+    }
+    fceulib__cart.setmirror(((V>>3)&1)^1);
+    break;
+  }
+  FDSRegs[A&7]=V;
 }
 
-static void FreeFDSMemory() {
-  for (int x=0;x<TotalSides;x++)
+void FDS::FreeFDSMemory() {
+  for (int x=0; x<TotalSides; x++) {
     if (diskdata[x]) {
       free(diskdata[x]);
       diskdata[x]=0;
     }
-}
-
-static int SubLoad(FceuFile *fp) {
-	struct md5_context md5;
-	uint8 header[16];
-	int x;
-
-	FCEU_fread(header,16,1,fp);
-
-	if (memcmp(header,"FDS\x1a",4))
-	{
-		if (!(memcmp(header+1,"*NINTENDO-HVC*",14)))
-		{
-			long t;
-			t=FCEU_fgetsize(fp);
-			if (t<65500)
-				t=65500;
-			TotalSides=t/65500;
-			FCEU_fseek(fp,0,SEEK_SET);
-		}
-		else
-			return(0);
-	}
-	else
-		TotalSides=header[4];
-
-	md5_starts(&md5);
-
-	if (TotalSides>8) TotalSides=8;
-	if (TotalSides<1) TotalSides=1;
-
-	for (x=0;x<TotalSides;x++)
-	{
-		diskdata[x]=(uint8 *)FCEU_malloc(65500);
-		if (!diskdata[x])
-		{
-			int zol;
-			for (zol=0;zol<x;zol++)
-				free(diskdata[zol]);
-			return 0;
-		}
-		FCEU_fread(diskdata[x],1,65500,fp);
-		md5_update(&md5,diskdata[x],65500);
-	}
-	md5_finish(&md5,GameInfo->MD5.data);
-	return(1);
-}
-
-static void PreSave() {
-  //if (DiskWritten)
-  for (int x=0;x<TotalSides;x++) {
-    for (int b=0; b<65500; b++)
-      diskdata[x][b] ^= diskdatao[x][b];
   }
 }
 
-static void PostSave() {
+int FDS::SubLoad(FceuFile *fp) {
+  struct md5_context md5;
+  uint8 header[16];
 
+  FCEU_fread(header,16,1,fp);
+
+  if (memcmp(header,"FDS\x1a",4)) {
+    if (!(memcmp(header+1,"*NINTENDO-HVC*",14))) {
+      long t;
+      t=FCEU_fgetsize(fp);
+      if (t<65500)
+	t=65500;
+      TotalSides=t/65500;
+      FCEU_fseek(fp,0,SEEK_SET);
+    } else {
+      return 0;
+    }
+  } else {
+    TotalSides=header[4];
+  }
+
+  md5_starts(&md5);
+
+  if (TotalSides>8) TotalSides=8;
+  if (TotalSides<1) TotalSides=1;
+
+  for (int x=0;x<TotalSides;x++) {
+    diskdata[x]=(uint8 *)FCEU_malloc(65500);
+    if (!diskdata[x]) {
+      int zol;
+      for (zol=0;zol<x;zol++)
+	free(diskdata[zol]);
+      return 0;
+    }
+    FCEU_fread(diskdata[x],1,65500,fp);
+    md5_update(&md5,diskdata[x],65500);
+  }
+  md5_finish(&md5,GameInfo->MD5.data);
+  return(1);
+}
+
+void FDS::PreSave() {
+  //if (DiskWritten)
+  for (int x=0;x<TotalSides;x++) {
+    for (int b=0; b<65500; b++) {
+      diskdata[x][b] ^= diskdatao[x][b];
+    }
+  }
+}
+
+void FDS::PostSave() {
   //if (DiskWritten)
   for (int x=0;x<TotalSides;x++) {
 
-    for (int b=0; b<65500; b++)
+    for (int b=0; b<65500; b++) {
       diskdata[x][b] ^= diskdatao[x][b];
+    }
   }
-
 }
 
-int FDSLoad(const char *name, FceuFile *fp) {
+int FDS::FDSLoad(const char *name, FceuFile *fp) {
   FILE *zp;
   char *fn;
 
@@ -754,12 +707,13 @@ int FDSLoad(const char *name, FceuFile *fp) {
   }
 
   GameInfo->type=GIT_FDS;
-  GameInterface=FDSGI;
+  GameInterface=FDSGI_Trampoline;
 
   SelectDisk=0;
   InDisk=255;
 
-  ResetExState(PreSave,PostSave);
+  ResetExState([]() { return fceulib__fds.PreSave(); }, 
+	       []() { return fceulib__fds.PostSave(); });
   FDSSoundStateAdd();
 
   for (int x=0;x<TotalSides;x++) {
@@ -794,7 +748,7 @@ int FDSLoad(const char *name, FceuFile *fp) {
   return 1;
 }
 
-void FDSClose() {
+void FDS::FDSClose() {
   FILE *fp;
 
   if (!DiskWritten) return;
@@ -814,3 +768,5 @@ void FDSClose() {
   FreeFDSMemory();
   fclose(fp);
 }
+
+FDS fceulib__fds;

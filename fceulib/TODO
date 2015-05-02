@@ -18,7 +18,6 @@ Stuff I should be able to get rid of:
 
       emulator.cc
       fceu.cc
-      fds.cc
       file.cc
       fm2tocc.cc
       headless-driver.cc
