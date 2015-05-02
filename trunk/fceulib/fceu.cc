@@ -295,7 +295,6 @@ void FCEUI_Kill() {
 void FCEUI_Emulate(uint8 **pXBuf, int32 **SoundBuf, int32 *SoundBufSize, 
                    int skip) {
   FCEU_UpdateInput();
-  lagFlag = 1;
 
   // fprintf(stderr, "ppu loop..\n");
 
@@ -323,10 +322,6 @@ void FCEUI_Emulate(uint8 **pXBuf, int32 **SoundBuf, int32 *SoundBufSize,
   } else {
     *SoundBuf=fceulib__sound.WaveFinal;
     *SoundBufSize=ssize;
-  }
-
-  if (lagFlag) {
-    lagCounter++;
   }
 }
 
@@ -388,7 +383,6 @@ void PowerNES() {
   timestampbase = 0ULL;
   X.Power();
 
-  LagCounterReset();
   // clear back baffer
   extern uint8 *XBackBuf;
   memset(XBackBuf,0,256*256);
