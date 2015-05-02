@@ -91,35 +91,8 @@ extern void (*GameStateRestore)(int version);
 
 #include "git.h"
 extern FCEUGI *GameInfo;
-extern int GameAttributes;
 
 extern uint8 PAL;
-
-#if 0
-struct FCEUS {
-  int PAL;
-  // Master volume.
-  int SoundVolume;
-  int TriangleVolume;
-  int Square1Volume;
-  int Square2Volume;
-  int NoiseVolume;
-  int PCMVolume;
-
-  // The currently selected first and last rendered scanlines.
-  int FirstSLine;
-  int LastSLine;
-
-  // Driver-supplied user-selected first and last rendered scanlines.
-  // Usr*SLine[0] is for NTSC, Usr*SLine[1] is for PAL.
-  int UsrFirstSLine[2];
-  int UsrLastSLine[2];
-
-  uint32 SndRate;
-  int soundq;
-  int lowpass;
-};
-#endif
 
 // XXX This used to be part of the FSettings object, which have
 // all become constant, but this one is modified when loading
@@ -127,16 +100,11 @@ struct FCEUS {
 // It's not used in many places, though. Looks like it could be
 // interpreted as "default_pal".
 extern int fsettings_pal;
-// extern FCEUS FSettings;
 
 void FCEU_PrintError(char *format, ...);
 void FCEU_printf(char *format, ...);
 
 void SetNESDeemph(uint8 d, int force);
-void FCEU_PutImage();
-#ifdef FRAMESKIP
-void FCEU_PutImageDummy();
-#endif
 
 extern uint8 Exit;
 extern uint8 vsdip;
@@ -152,6 +120,3 @@ extern uint8 vsdip;
 #endif
 
 #define ARRAY_SIZE(a) (sizeof(a)/sizeof(a[0]))
-
-/// returns a flag indicating whether emulation is paused
-int FCEUI_EmulationPaused();

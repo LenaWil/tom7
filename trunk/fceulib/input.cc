@@ -496,8 +496,8 @@ void FCEUI_PowerNES() {
 
 void FCEU_DoSimpleCommand(int cmd) {
   switch (cmd) {
-  case FCEUNPCMD_FDSINSERT: FCEU_FDSInsert();break;
-  case FCEUNPCMD_FDSSELECT: FCEU_FDSSelect();break;
+  case FCEUNPCMD_FDSINSERT: fceulib__fds.FCEU_FDSInsert();break;
+  case FCEUNPCMD_FDSSELECT: fceulib__fds.FCEU_FDSSelect();break;
   case FCEUNPCMD_VSUNICOIN: FCEU_VSUniCoin(); break;
   case FCEUNPCMD_VSUNIDIP0:
   case FCEUNPCMD_VSUNIDIP0+1:
