@@ -129,11 +129,6 @@ extern void (*PStrobe[2])(void);
 //called from PPU on scanline events.
 extern void InputScanlineHook(uint8 *bg, uint8 *spr, uint32 linets, int final);
 
-extern unsigned int lagCounter;
-extern bool lagCounterDisplay;
-extern char lagFlag;
-void LagCounterReset();
-
 extern const SFORMAT FCEUINPUT_STATEINFO[];
 
 

@@ -99,7 +99,6 @@ extern uint8 PAL;
 
 struct FCEUS {
   int PAL;
-  int NetworkPlay;
   // Master volume.
   int SoundVolume;
   int TriangleVolume;

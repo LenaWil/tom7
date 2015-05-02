@@ -74,10 +74,6 @@ extern INPUTCFC *FCEU_InitTopRider();
 extern INPUTCFC *FCEU_InitBarcodeWorld();
 //---------------
 
-// global lag variables
-char lagFlag;
-//-------------
-
 static uint8 joy_readbit[2];
 uint8 joy[4]={0,0,0,0}; //HACK - should be static but movie needs it
 static uint8 LastStrobe;
@@ -106,7 +102,6 @@ JOYPORT joyports[2] = { JOYPORT(0), JOYPORT(1) };
 FCPORT portFC;
 
 static DECLFR(JPRead) {
-  lagFlag = 0;
   uint8 ret = 0;
   static bool microphone = false;
 
@@ -293,7 +288,6 @@ void FCEU_UpdateInput() {
 }
 
 static DECLFR(VSUNIRead0) {
-  lagFlag = 0;
   uint8 ret=0;
 
   ret |= joyports[0].driver->Read(0) & 1;
@@ -305,7 +299,6 @@ static DECLFR(VSUNIRead0) {
 }
 
 static DECLFR(VSUNIRead1) {
-  lagFlag = 0;
   uint8 ret=0;
 
   ret|=(joyports[1].driver->Read(1))&1;
@@ -455,8 +448,6 @@ const SFORMAT FCEUINPUT_STATEINFO[] = {
   { &LastStrobe,	1, "LSTS"},
   { &ZD[0].bogo,	1, "ZBG0"},
   { &ZD[1].bogo,	1, "ZBG1"},
-  { &lagFlag,		1, "LAGF"},
-  { &lagCounter,	4, "LAGC"},
   { 0 }
 };
 

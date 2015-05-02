@@ -20,13 +20,6 @@
 
 #include "types.h"
 
-// Not clear who owns this; input/movie/fceu? But we need a decl somewhere.
-// Is it used for anything other than (degenerate) display? -tom7
-unsigned int lagCounter = 0;
-void LagCounterReset() {
-  lagCounter = 0;
-}
-
 /**
  * Prints an error string to STDOUT.
  */
