@@ -287,8 +287,8 @@ static void VRC6_ESI(void) {
   memset(CVBC,0,sizeof(CVBC));
   memset(vcount,0,sizeof(vcount));
   memset(dcount,0,sizeof(dcount));
-  if (FSettings.SndRate) {
-    if (FSettings.soundq>=1) {
+  if (FCEUS_SNDRATE) {
+    if (FCEUS_SOUNDQ>=1) {
       sfun[0]=DoSQV1HQ;
       sfun[1]=DoSQV2HQ;
       sfun[2]=DoSawVHQ;

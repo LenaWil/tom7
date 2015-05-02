@@ -31,13 +31,13 @@ static uint8 sunindex;
 
 static DECLFW(SUN5BWRAM)
 {
- if((sungah&0xC0)==0xC0)
+ if ((sungah&0xC0)==0xC0)
   (WRAM-0x6000)[A]=V;
 }
 
 static DECLFR(SUN5AWRAM)
 {
- if((sungah&0xC0)==0x40)
+ if ((sungah&0xC0)==0x40)
   return X.DB;
  return Cart::CartBROB(A);
 }
@@ -50,20 +50,23 @@ static DECLFW(Mapper69_SWL)
 static DECLFW(Mapper69_SWH) {
   fceulib__sound.GameExpSound.Fill=AYSound;
   fceulib__sound.GameExpSound.HiFill=AYSoundHQ;
-  if(FSettings.SndRate)
+  if (FCEUS_SNDRATE)
     switch(sunindex) {
     case 0:
     case 1:
-    case 8:if(FSettings.soundq>=1) DoAYSQHQ(0); else DoAYSQ(0);break;
+    case 8:
+      if (FCEUS_SOUNDQ>=1) DoAYSQHQ(0); else DoAYSQ(0);break;
     case 2:
     case 3:
-    case 9:if(FSettings.soundq>=1) DoAYSQHQ(1); else DoAYSQ(1);break;
+    case 9:
+      if (FCEUS_SOUNDQ>=1) DoAYSQHQ(1); else DoAYSQ(1);break;
     case 4:
     case 5:
-    case 10:if(FSettings.soundq>=1) DoAYSQHQ(2); else DoAYSQ(2);break;
+    case 10:
+      if (FCEUS_SOUNDQ>=1) DoAYSQHQ(2); else DoAYSQ(2);break;
     case 7:
-      for(int x=0;x<2;x++)
-	if(FSettings.soundq>=1) DoAYSQHQ(x); else DoAYSQ(x);
+      for (int x=0;x<2;x++)
+	if (FCEUS_SOUNDQ>=1) DoAYSQHQ(x); else DoAYSQ(x);
       break;
     }
   MapperExRAM[sunindex]=V;
@@ -74,14 +77,14 @@ static DECLFW(Mapper69_write) {
   case 0x8000:sunselect=V;break;
   case 0xa000:
     sunselect&=0xF;
-    if(sunselect<=7)
+    if (sunselect<=7)
       VROM_BANK1(sunselect<<10,V);
     else
       switch(sunselect&0x0f) {
       case 8:
 	sungah=V;
-	if(V&0x40) {
-	  if(V&0x80) {
+	if (V&0x40) {
+	  if (V&0x80) {
 	    // Select WRAM
 	    fceulib__cart.setprg8r(0x10,0x6000,0);
 	  }
@@ -124,13 +127,13 @@ static void DoAYSQ(int x)
 
     start=CAYBC[x];
     end=(SOUNDTS<<16)/fceulib__sound.soundtsinc;
-    if(end<=start) return;
+    if (end<=start) return;
     CAYBC[x]=end;
 
-    if(amp)
+    if (amp)
     for(V=start;V<end;V++)
     {
-     if(dcount[x])
+     if (dcount[x])
       fceulib__sound.Wave[V>>4]+=amp;
      vcount[x]-=fceulib__sound.nesincsize;
      while(vcount[x]<=0)
@@ -141,69 +144,59 @@ static void DoAYSQ(int x)
     }
 }
 
-static void DoAYSQHQ(int x)
-{
- uint32 V; //mbg merge 7/17/06 made uitn32
- int32 freq=((MapperExRAM[x<<1]|((MapperExRAM[(x<<1)+1]&15)<<8))+1)<<4;
- int32 amp=(MapperExRAM[0x8+x]&15)<<6;
+static void DoAYSQHQ(int x) {
+  int32 freq=((MapperExRAM[x<<1]|((MapperExRAM[(x<<1)+1]&15)<<8))+1)<<4;
+  int32 amp=(MapperExRAM[0x8+x]&15)<<6;
 
- amp+=amp>>1;
+  amp+=amp>>1;
 
- if(!(MapperExRAM[0x7]&(1<<x)))
- {
-  for(V=CAYBC[x];V<SOUNDTS;V++)
-  {
-   if(dcount[x])
-    fceulib__sound.WaveHi[V]+=amp;
-   vcount[x]--;
-   if(vcount[x]<=0)
-   {
-    dcount[x]^=1;
-    vcount[x]=freq;
-   }
+  if (!(MapperExRAM[0x7]&(1<<x))) {
+    for(uint32 V=CAYBC[x];V<SOUNDTS;V++) {
+      if (dcount[x])
+	fceulib__sound.WaveHi[V]+=amp;
+      vcount[x]--;
+      if (vcount[x]<=0) {
+	dcount[x]^=1;
+	vcount[x]=freq;
+      }
+    }
   }
- }
- CAYBC[x]=SOUNDTS;
+  CAYBC[x]=SOUNDTS;
 }
 
-static void AYSound(int Count)
-{
-    int x;
-    DoAYSQ(0);
-    DoAYSQ(1);
-    DoAYSQ(2);
-    for(x=0;x<3;x++)
-     CAYBC[x]=Count;
+static void AYSound(int Count) {
+  DoAYSQ(0);
+  DoAYSQ(1);
+  DoAYSQ(2);
+  for (int x = 0; x < 3; x++)
+    CAYBC[x]=Count;
 }
 
-static void AYSoundHQ(void)
-{
+static void AYSoundHQ(void) {
     DoAYSQHQ(0);
     DoAYSQHQ(1);
     DoAYSQHQ(2);
 }
 
-static void AYHiSync(int32 ts)
-{
- int x;
-
- for(x=0;x<3;x++)
-  CAYBC[x]=ts;
+static void AYHiSync(int32 ts) {
+  for(int x=0;x<3;x++)
+    CAYBC[x]=ts;
 }
 
-static void SunIRQHook(int a)
-{
-  if(IRQa)
-  {
-   IRQCount-=a;
-   if(IRQCount<=0)
-   {X.IRQBegin(FCEU_IQEXT);IRQa=0;IRQCount=0xFFFF;}
+static void SunIRQHook(int a) {
+  if (IRQa) {
+    IRQCount-=a;
+    if (IRQCount<=0) {
+      X.IRQBegin(FCEU_IQEXT);
+      IRQa=0;
+      IRQCount=0xFFFF;
+    }
   }
 }
 
 void Mapper69_StateRestore(int version) {
-  if(mapbyte1[1]&0x40) {
-    if(mapbyte1[1]&0x80) // Select WRAM
+  if (mapbyte1[1]&0x40) {
+    if (mapbyte1[1]&0x80) // Select WRAM
       fceulib__cart.setprg8r(0x10,0x6000,0);
   } else {
     fceulib__cart.setprg8(0x6000,mapbyte1[1]);

@@ -34,7 +34,7 @@ void DoVRC7Sound(void)
 {
  int32 z,a;
 
- if(FSettings.soundq>=1) return;
+ if (FCEUS_SOUNDQ>=1) return;
  z=((SOUNDTS<<16)/fceulib__sound.soundtsinc)>>4;
  a=z-dwave;
 
@@ -55,7 +55,7 @@ void UpdateOPL(int Count)
   z=((SOUNDTS<<16)/fceulib__sound.soundtsinc)>>4;
  a=z-dwave;
 
- if(VRC7Sound && a)
+ if (VRC7Sound && a)
   moocow(VRC7Sound, &fceulib__sound.Wave[dwave], a, 1);
 
  dwave=0;
@@ -70,7 +70,7 @@ DECLFW(Mapper85_write)
 {
   A|=(A&8)<<1;
 
-  if(A>=0xa000 && A<=0xDFFF) {
+  if (A>=0xa000 && A<=0xDFFF) {
     // printf("$%04x, $%04x\n",X.PC,A);
     A&=0xF010;
     {
@@ -78,8 +78,8 @@ DECLFW(Mapper85_write)
       mapbyte3[x]=V;
       fceulib__cart.setchr1(x<<10,V);
     }
-  } else if(A==0x9030) {
-    if(FSettings.SndRate) {
+  } else if (A==0x9030) {
+    if (FCEUS_SNDRATE) {
       OPLL_writeReg(VRC7Sound, indox, V);
       fceulib__sound.GameExpSound.Fill=UpdateOPL;
       fceulib__sound.GameExpSound.NeoFill=UpdateOPLNEO;
@@ -96,11 +96,11 @@ DECLFW(Mapper85_write)
       break;
     case 0xF000:IRQa=V&2;
       vrctemp=V&1;
-      if(V&2) {IRQCount=IRQLatch;}
+      if (V&2) {IRQCount=IRQLatch;}
       acount=0;
       X.IRQEnd(FCEU_IQEXT);
       break;
-    case 0xf010:if(vrctemp) IRQa=1;
+    case 0xf010:if (vrctemp) IRQa=1;
       else IRQa=0;
       X.IRQEnd(FCEU_IQEXT);
       break;
@@ -112,23 +112,23 @@ static void KonamiIRQHook(int a)
 {
   #define ACBOO 341
 //  #define ACBOO ((227*2)+1)
-  if(IRQa)
+  if (IRQa)
    {
     acount+=a*3;
 
-    if(acount>=ACBOO)
+    if (acount>=ACBOO)
     {
      doagainbub:acount-=ACBOO;
      IRQCount++;
-     if(IRQCount&0x100) {X.IRQBegin(FCEU_IQEXT);IRQCount=IRQLatch;}
-     if(acount>=ACBOO) goto doagainbub;
+     if (IRQCount&0x100) {X.IRQBegin(FCEU_IQEXT);IRQCount=IRQLatch;}
+     if (acount>=ACBOO) goto doagainbub;
     }
  }
 }
 
 void Mapper85_StateRestore(int version) {
 
- if(version<7200)
+ if (version<7200)
  {
   for(int x=0;x<8;x++)
    mapbyte3[x]=CHRBankList[x];
@@ -145,15 +145,13 @@ void Mapper85_StateRestore(int version) {
  //LoadOPL();
 }
 
-static void M85SC(void)
-{
- if(VRC7Sound)
-  OPLL_set_rate(VRC7Sound, FSettings.SndRate);
+static void M85SC(void) {
+  if (VRC7Sound)
+    OPLL_set_rate(VRC7Sound, FCEUS_SNDRATE);
 }
 
-static void M85SKill(void)
-{
- if(VRC7Sound)
+static void M85SKill(void) {
+ if (VRC7Sound)
   OPLL_delete(VRC7Sound);
  VRC7Sound=NULL;
 }
@@ -162,7 +160,7 @@ static void VRC7SI(void) {
   fceulib__sound.GameExpSound.RChange=M85SC;
   fceulib__sound.GameExpSound.Kill=M85SKill;
 
-  VRC7Sound=OPLL_new(3579545, FSettings.SndRate?FSettings.SndRate:44100);
+  VRC7Sound=OPLL_new(3579545, FCEUS_SNDRATE ? FCEUS_SNDRATE : 44100);
   OPLL_reset(VRC7Sound);
   OPLL_reset(VRC7Sound);
 }
@@ -178,7 +176,7 @@ void Mapper85_init(void) {
   X.MapIRQHook=KonamiIRQHook;
   SetWriteHandler(0x8000,0xffff,Mapper85_write);
   GameStateRestore=Mapper85_StateRestore;
-  if(!VROM_size)
+  if (!VROM_size)
    fceulib__cart.SetupCartCHRMapping(0, CHRRAM, 8192, 1);
   //AddExState(VRC7Instrument, 16, 0, "VC7I");
   //AddExState(VRC7Chan, sizeof(VRC7Chan), 0, "V7CH");

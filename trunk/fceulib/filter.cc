@@ -8,6 +8,7 @@
 #include "x6502.h"
 #include "fceu.h"
 #include "filter.h"
+#include "fsettings.h"
 
 // Maybe should be called "fcoeffs.inc" -tom7
 #include "fcoeffs.h"
@@ -25,12 +26,12 @@ void Filter::SexyFilter2(int32 *in, int32 count) {
 void Filter::SexyFilter(int32 *in, int32 *out, int32 count) {
   int32 mul1,mul2,vmul;
 
-  mul1=(94<<16)/FSettings.SndRate;
-  mul2=(24<<16)/FSettings.SndRate;
-  vmul=(FSettings.SoundVolume<<16)*3/4/100;
+  mul1=(94<<16)/FCEUS_SNDRATE;
+  mul2=(24<<16)/FCEUS_SNDRATE;
+  vmul=(FCEUS_SOUNDVOLUME<<16)*3/4/100;
 
   /* TODO: Increase volume in low quality sound rendering code itself */
-  if (FSettings.soundq) vmul/=4;
+  if (FCEUS_SOUNDQ) vmul/=4;
   else vmul*=2;
 
   while (count) {
@@ -69,7 +70,7 @@ int32 Filter::NeoFilterSound(int32 *in, int32 *out, uint32 inlen, int32 *leftove
 
   const uint32 max=(inlen-1)<<16;
 
-  if (FSettings.soundq==2) {
+  if (FCEUS_SOUNDQ==2) {
     for (x = mrindex;x<max;x+=mrratio) {
       int32 acc=0,acc2=0;
       const int32 *S = &in[(x>>16)-SQ2NCOEFFS];
@@ -107,7 +108,7 @@ int32 Filter::NeoFilterSound(int32 *in, int32 *out, uint32 inlen, int32 *leftove
 
   mrindex = x - max;
 
-  if (FSettings.soundq==2) {
+  if (FCEUS_SOUNDQ==2) {
     mrindex+=SQ2NCOEFFS*65536;
     *leftover=SQ2NCOEFFS+1;
   } else {
@@ -119,7 +120,7 @@ int32 Filter::NeoFilterSound(int32 *in, int32 *out, uint32 inlen, int32 *leftove
     fceulib__sound.GameExpSound.NeoFill(outsave,count);
 
   SexyFilter(outsave,outsave,count);
-  if (FSettings.lowpass)
+  if (FCEUS_LOWPASS)
     SexyFilter2(outsave,count);
   return count;
 }
@@ -130,15 +131,15 @@ void Filter::MakeFilters(int32 rate) {
   const int32 *sq2tabs[6]={SQ2C44100NTSC,SQ2C44100PAL,SQ2C48000NTSC,SQ2C48000PAL,
 			   SQ2C96000NTSC,SQ2C96000PAL};
 
-  const uint32 nco = FSettings.soundq == 2 ? SQ2NCOEFFS : NCOEFFS;
+  const uint32 nco = FCEUS_SOUNDQ == 2 ? SQ2NCOEFFS : NCOEFFS;
 
   mrindex=(nco+1)<<16;
   mrratio=(PAL?(int64)(PAL_CPU*65536):(int64)(NTSC_CPU*65536))/rate;
 
   const int idx = (PAL?1:0)|(rate==48000?2:0)|(rate==96000?4:0);
-  const int32 *tmp = (FSettings.soundq == 2) ? sq2tabs[idx] : tabs[idx];
+  const int32 *tmp = (FCEUS_SOUNDQ == 2) ? sq2tabs[idx] : tabs[idx];
 
-  if (FSettings.soundq==2)
+  if (FCEUS_SOUNDQ==2)
     for (int32 x = 0; x < SQ2NCOEFFS>>1; x++)
       sq2coeffs[x]=sq2coeffs[SQ2NCOEFFS-1-x]=tmp[x];
   else

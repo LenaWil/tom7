@@ -725,8 +725,8 @@ void MMC5RunSound(int Count) {
 
 void Mapper5_ESI(void) {
   fceulib__sound.GameExpSound.RChange=Mapper5_ESI;
-  if (FSettings.SndRate) {
-    if (FSettings.soundq>=1) {
+  if (FCEUS_SNDRATE) {
+    if (FCEUS_SOUNDQ >=1 ) {
       sfun=Do5SQHQ;
       psfun=Do5PCMHQ;
     } else {

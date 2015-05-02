@@ -2,6 +2,7 @@
 #include "../x6502.h"
 #include "../fceu.h"
 #include "../ppu.h"
+#include "../fsettings.h"
 #define INESPRIV
 #include "../cart.h"
 #include "../ines.h"

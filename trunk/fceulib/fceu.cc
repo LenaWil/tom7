@@ -57,8 +57,6 @@ using namespace std;
 // Used by some boards to do delayed memory writes, etc.
 uint64 timestampbase = 0ULL;
 
-FCEUS FSettings;
-
 FCEUGI::FCEUGI() { }
 
 FCEUGI::~FCEUGI() { }
@@ -149,7 +147,9 @@ static void FreeBuffers() {
   free(XBackBuf);
 }
 
+// TODO tom7: Merge this with fsettings_pal.
 uint8 PAL = 0;
+int fsettings_pal = 0;
 
 static DECLFW(BRAML) {
   RAM[A]=V;
@@ -260,24 +260,6 @@ bool FCEUI_Initialize() {
   srand(time(0));
 
   AllocBuffers();
-
-  // Initialize some parts of the settings structure
-  //mbg 5/7/08 - I changed the ntsc settings to match pal.
-  // this is more for precision emulation, instead of entertainment,
-  // which is what fceux is all about nowadays
-  memset(&FSettings,0,sizeof(FSettings));
-  //FSettings.UsrFirstSLine[0]=8;
-  FSettings.UsrFirstSLine[0]=0;
-  FSettings.UsrFirstSLine[1]=0;
-  //FSettings.UsrLastSLine[0]=231;
-  FSettings.UsrLastSLine[0]=239;
-  FSettings.UsrLastSLine[1]=239;
-  FSettings.SoundVolume=150;            //0-150 scale
-  FSettings.TriangleVolume=256; //0-256 scale (256 is max volume)
-  FSettings.Square1Volume=256;  //0-256 scale (256 is max volume)
-  FSettings.Square2Volume=256;  //0-256 scale (256 is max volume)
-  FSettings.NoiseVolume=256;            //0-256 scale (256 is max volume)
-  FSettings.PCMVolume=256;              //0-256 scale (256 is max volume)
 
   X.Init();
 
@@ -398,7 +380,7 @@ void FCEU_ResetVidSys() {
   else if (GameInfo->vidsys==GIV_PAL)
     w = 1;
   else
-    w = FSettings.PAL;
+    w = fsettings_pal;
 
   PAL = !!w;
   fceulib__ppu.FCEUPPU_SetVideoSystem(w);
@@ -433,35 +415,12 @@ void FCEU_PrintError(char *format, ...) {
   va_end(ap);
 }
 
-void FCEUI_SetRenderedLines(int ntscf, int ntscl, int palf, int pall) {
-  FSettings.UsrFirstSLine[0]=ntscf;
-  FSettings.UsrLastSLine[0]=ntscl;
-  FSettings.UsrFirstSLine[1]=palf;
-  FSettings.UsrLastSLine[1]=pall;
-  if (PAL) {
-    FSettings.FirstSLine=FSettings.UsrFirstSLine[1];
-    FSettings.LastSLine=FSettings.UsrLastSLine[1];
-  } else {
-    FSettings.FirstSLine=FSettings.UsrFirstSLine[0];
-    FSettings.LastSLine=FSettings.UsrLastSLine[0];
-  }
-
-}
-
 void FCEUI_SetVidSystem(int a) {
-  FSettings.PAL=a?1:0;
+  fsettings_pal = a ? 1 : 0;
   if (GameInfo) {
     FCEU_ResetVidSys();
     fceulib__palette.ResetPalette();
   }
-}
-
-int FCEUI_GetCurrentVidSystem(int *slstart, int *slend) {
-  if (slstart)
-    *slstart=FSettings.FirstSLine;
-  if (slend)
-    *slend=FSettings.LastSLine;
-  return PAL;
 }
 
 bool FCEU_IsValidUI(EFCEUI ui) {

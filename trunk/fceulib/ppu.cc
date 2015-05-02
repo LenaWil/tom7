@@ -23,26 +23,27 @@
 // http://wiki.nesdev.com/w/index.php/PPU_OAM
 // Note sprites are drawn from the end of the array to the beginning.
 
-#include  <string.h>
-#include  <stdio.h>
-#include  <stdlib.h>
-#include  <tuple>
-#include  <utility>
+#include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <tuple>
+#include <utility>
 
-#include  "types.h"
-#include  "x6502.h"
-#include  "fceu.h"
-#include  "ppu.h"
-#include  "sound.h"
-#include  "file.h"
-#include  "utils/endian.h"
-#include  "utils/memory.h"
+#include "types.h"
+#include "x6502.h"
+#include "fceu.h"
+#include "ppu.h"
+#include "sound.h"
+#include "file.h"
+#include "utils/endian.h"
+#include "utils/memory.h"
 
-#include  "cart.h"
-#include  "palette.h"
-#include  "state.h"
-#include  "input.h"
-#include  "driver.h"
+#include "cart.h"
+#include "palette.h"
+#include "state.h"
+#include "input.h"
+#include "driver.h"
+#include "fsettings.h"
 
 #define DEBUGF if (0) fprintf
 
@@ -1318,15 +1319,11 @@ void PPU::CopySprites(uint8 *target) {
   } while (n);
 }
 
-void PPU::FCEUPPU_SetVideoSystem(int w) {
-  if (w) {
-    scanlines_per_frame=312;
-    FSettings.FirstSLine=FSettings.UsrFirstSLine[1];
-    FSettings.LastSLine=FSettings.UsrLastSLine[1];
+void PPU::FCEUPPU_SetVideoSystem(int is_pal) {
+  if (is_pal) {
+    scanlines_per_frame = 312;
   } else {
-    scanlines_per_frame=262;
-    FSettings.FirstSLine=FSettings.UsrFirstSLine[0];
-    FSettings.LastSLine=FSettings.UsrLastSLine[0];
+    scanlines_per_frame = 262;
   }
 }
 

@@ -159,7 +159,7 @@ static DECLFW(Mapper19_write) {
   else switch(A) {
     case 0x4800:
       if (dopol&0x40) {
-	if (FSettings.SndRate) {
+	if (FCEUS_SNDRATE) {
 	  NamcoSoundHack();
 	  fceulib__sound.GameExpSound.Fill=NamcoSound;
 	  fceulib__sound.GameExpSound.HiFill=DoNamcoSoundHQ;
@@ -200,11 +200,9 @@ static DECLFW(Mapper19_write) {
 
 static int dwave=0;
 
-static void NamcoSoundHack(void)
-{
+static void NamcoSoundHack(void) {
   int32 z,a;
-  if (FSettings.soundq>=1)
-  {
+  if (FCEUS_SOUNDQ >= 1) {
     DoNamcoSoundHQ();
     return;
   }
@@ -214,8 +212,7 @@ static void NamcoSoundHack(void)
   dwave+=a;
 }
 
-static void NamcoSound(int Count)
-{
+static void NamcoSound(int Count) {
   int32 z,a;
   z=((SOUNDTS<<16)/fceulib__sound.soundtsinc)>>4;
   a=z-dwave;
@@ -304,7 +301,7 @@ static void DoNamcoSound(int32 *Wave, int Count) {
 
       {
         int c=((IRAM[0x7F]>>4)&7)+1;
-        inc=(long double)(FSettings.SndRate<<15)/((long double)freq*21477272/((long double)0x400000*c*45));
+        inc=(long double)(FCEUS_SNDRATE<<15)/((long double)freq*21477272/((long double)0x400000*c*45));
       }
 
       duff=IRAM[(((IRAM[0x46+(P<<3)]+PlayIndex[P])&0xFF)>>1)];
@@ -344,7 +341,7 @@ static void Mapper19_StateRestore(int version)
 
 static void M19SC(void)
 {
-  if (FSettings.SndRate)
+  if (FCEUS_SNDRATE)
     Mapper19_ESI();
 }
 
@@ -407,7 +404,7 @@ void Mapper19_Init(CartInfo *info)
   GameStateRestore=Mapper19_StateRestore;
   fceulib__sound.GameExpSound.RChange=M19SC;
 
-  if (FSettings.SndRate)
+  if (FCEUS_SNDRATE)
     Mapper19_ESI();
 
   AddExState(WRAM, 8192, 0, "WRAM");
