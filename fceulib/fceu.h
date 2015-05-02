@@ -52,8 +52,6 @@ void PowerNES();
 
 // Set video system a=0 NTSC, a=1 PAL
 void FCEUI_SetVidSystem(int a);
-// Returns currently emulated video system(0=NTSC, 1=PAL).
-int FCEUI_GetCurrentVidSystem(int *slstart, int *slend);
 
 //name=path and file to load.  returns null if it failed
 // These are exactly the same; make just one. -tom7
@@ -97,6 +95,7 @@ extern int GameAttributes;
 
 extern uint8 PAL;
 
+#if 0
 struct FCEUS {
   int PAL;
   // Master volume.
@@ -120,8 +119,15 @@ struct FCEUS {
   int soundq;
   int lowpass;
 };
+#endif
 
-extern FCEUS FSettings;
+// XXX This used to be part of the FSettings object, which have
+// all become constant, but this one is modified when loading
+// certain carts, so probably can't be a compile-time constant.
+// It's not used in many places, though. Looks like it could be
+// interpreted as "default_pal".
+extern int fsettings_pal;
+// extern FCEUS FSettings;
 
 void FCEU_PrintError(char *format, ...);
 void FCEU_printf(char *format, ...);

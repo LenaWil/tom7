@@ -34,6 +34,7 @@
 #include "file.h"
 #include "cart.h"
 #include "driver.h"
+#include "fsettings.h"
 
 #include "tracing.h"
 
@@ -314,8 +315,8 @@ static DECLFR(FDSSRead) {
 }
 
 static DECLFW(FDSSWrite) {
-  if (FSettings.SndRate) {
-    if (FSettings.soundq>=1)
+  if (FCEUS_SNDRATE) {
+    if (FCEUS_SOUNDQ >= 1)
       RenderSoundHQ();
     else
       RenderSound();
@@ -509,53 +510,48 @@ void FDSSound(int c)
 }
 
 /*
-static DECLFR(FDSBIOSPatch)
-{
-if (FDSRegs[5]&0x4)
-{
-X.X=FDSRead4031(0x4031);
-FDSWrite(0x4024,X.A);
-X.A=X.X;
-return(0x60);
-}
-else
-{
-return(0x58);
-//puts("Write");
-}
-}
+  static DECLFR(FDSBIOSPatch)
+  {
+  if (FDSRegs[5]&0x4)
+  {
+  X.X=FDSRead4031(0x4031);
+  FDSWrite(0x4024,X.A);
+  X.A=X.X;
+  return(0x60);
+  }
+  else
+  {
+  return(0x58);
+  //puts("Write");
+  }
+  }
 */
 
-static void FDS_ESI()
-{
-	if (FSettings.SndRate)
-	{
-		if (FSettings.soundq>=1)
-		{
-			fdso.cycles=(int64)1<<39;
-		}
-		else
-		{
-			fdso.cycles=((int64)1<<40)*FDSClock;
-			fdso.cycles/=FSettings.SndRate *16;
-		}
-	}
-	//  fdso.cycles=(int64)32768*FDSClock/(FSettings.SndRate *16);
-	SetReadHandler(0x4040,0x407f,FDSWaveRead);
-	SetWriteHandler(0x4040,0x407f,FDSWaveWrite);
-	SetWriteHandler(0x4080,0x408A,FDSSWrite);
-	SetReadHandler(0x4090,0x4092,FDSSRead);
+static void FDS_ESI() {
+  if (FCEUS_SNDRATE) {
+    if (FCEUS_SOUNDQ>=1) {
+      fdso.cycles=(int64)1<<39;
+    } else {
+      fdso.cycles=((int64)1<<40)*FDSClock;
+      fdso.cycles/=FCEUS_SNDRATE *16;
+    }
+  }
+  //  fdso.cycles=(int64)32768*FDSClock/(FCEUS_SNDRATE *16);
+  SetReadHandler(0x4040,0x407f,FDSWaveRead);
+  SetWriteHandler(0x4040,0x407f,FDSWaveWrite);
+  SetWriteHandler(0x4080,0x408A,FDSSWrite);
+  SetReadHandler(0x4090,0x4092,FDSSRead);
 
-	//SetReadHandler(0xE7A3,0xE7A3,FDSBIOSPatch);
+  //SetReadHandler(0xE7A3,0xE7A3,FDSBIOSPatch);
 }
 
 static void FDSSoundReset() {
-	memset(&fdso,0,sizeof(fdso));
-	FDS_ESI();
-	fceulib__sound.GameExpSound.HiSync=HQSync;
-	fceulib__sound.GameExpSound.HiFill=RenderSoundHQ;
-	fceulib__sound.GameExpSound.Fill=FDSSound;
-	fceulib__sound.GameExpSound.RChange=FDS_ESI;
+  memset(&fdso,0,sizeof(fdso));
+  FDS_ESI();
+  fceulib__sound.GameExpSound.HiSync=HQSync;
+  fceulib__sound.GameExpSound.HiFill=RenderSoundHQ;
+  fceulib__sound.GameExpSound.Fill=FDSSound;
+  fceulib__sound.GameExpSound.RChange=FDS_ESI;
 }
 
 static DECLFW(FDSWrite)

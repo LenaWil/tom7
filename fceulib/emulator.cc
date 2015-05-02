@@ -18,10 +18,6 @@
 #include "input.h"
 #include "ppu.h"
 
-// PERF: Consider the implications of using a high/low sample rate.
-// This must be set for StepFull and GetSound to function.
-static constexpr int SAMPLE_RATE = 44100;
-
 // The current contents of the screen; part of the "API".
 // extern uint8 *XBuf, *XBackBuf;
 
@@ -79,7 +75,7 @@ int Emulator::DriverInitialize(FCEUGI *gi) {
   // No fourscore support.
   // eoptions &= ~EO_FOURSCORE;
 
-  fceulib__sound.FCEUI_Sound(SAMPLE_RATE);
+  fceulib__sound.FCEUI_InitSound();
 
   // Why do both point to the same joydata? -tom
   FCEUI_SetInput(0, SI_GAMEPAD, &joydata, 0);
@@ -164,17 +160,8 @@ Emulator *Emulator::Create(const string &romfile) {
   // Set NTSC (1 = pal)
   FCEUI_SetVidSystem(GIV_NTSC);
 
-  // Default. Sound thing.
-  fceulib__sound.FCEUI_SetLowPass(0);
-
   // Default.
   fceulib__ppu.FCEUI_DisableSpriteLimitation(1);
-
-  // Defaults.
-  static constexpr int scanlinestart = 0, scanlineend = 239;
-
-  FCEUI_SetRenderedLines(scanlinestart + 8, scanlineend - 8, 
-			 scanlinestart, scanlineend);
 
   Emulator *emu = new Emulator;
   // Load the game.

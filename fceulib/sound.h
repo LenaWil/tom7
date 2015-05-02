@@ -67,12 +67,8 @@ struct Sound {
   void FCEUSND_SaveState();
   void FCEUSND_LoadState(int version);
 
-  // Sets up sound code to render sound at the specified rate, in samples
-  // per second.  Only sample rates of 44100, 48000, and 96000 are currently supported.
-  // If "Rate" equals 0, sound is disabled.
-  void FCEUI_Sound(int Rate);
-
-  void FCEUI_SetLowPass(int q);
+  // Initialize sound constants. Sampling rate comes from fsettings.h.
+  void FCEUI_InitSound();
 
   void FCEU_SoundCPUHook(int);
 

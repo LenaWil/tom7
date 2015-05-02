@@ -30,6 +30,7 @@
 #include "sound.h"
 #include "filter.h"
 #include "state.h"
+#include "fsettings.h"
 
 Sound fceulib__sound;
 
@@ -421,7 +422,7 @@ void Sound::FCEU_SoundCPUHook(int cycles) {
       int t=((DMCShift&1)<<2)-2;
 
       /* Unbelievably ugly hack */
-      if (FSettings.SndRate) {
+      if (FCEUS_SNDRATE) {
 	soundtsoffs+=DMCacc;
 	(this->*DoPCM)();
 	soundtsoffs-=DMCacc;
@@ -441,7 +442,7 @@ void Sound::FCEU_SoundCPUHook(int cycles) {
 void Sound::RDoPCM() {
   for (uint32 V=ChannelBC[4];V<SOUNDTS;V++) {
     // TODO get rid of floating calculations to binary. set log volume scaling.
-    WaveHi[V]+=(((RawDALatch<<16)/256) * FSettings.PCMVolume)&(~0xFFFF);
+    WaveHi[V]+=(((RawDALatch<<16)/256) * FCEUS_PCMVOLUME)&(~0xFFFF);
   }
   ChannelBC[4]=SOUNDTS;
 }
@@ -478,7 +479,7 @@ void Sound::RDoSQ(int x) {
   // double vales or implicit cohersion which are slower (we need
   // speed here)
   // TODO OPTIMIZE ME!
-  ampx = x ? FSettings.Square2Volume : FSettings.Square1Volume;
+  ampx = x ? FCEUS_SQUARE2VOLUME : FCEUS_SQUARE1VOLUME;
   // CaH4e3: fixed - setting up maximum volume for square2 caused
   // complete mute square2 channel
   if (ampx != 256) amp = (amp * ampx) / 256;
@@ -558,7 +559,7 @@ void Sound::RDoSQLQ() {
     // results, but is "close enough" and avoids the need for using
     // double vales or implicit cohersion which are slower (we need
     // speed here) TODO OPTIMIZE ME!
-    ampx = x ? FSettings.Square1Volume : FSettings.Square2Volume;
+    ampx = x ? FCEUS_SQUARE1VOLUME : FCEUS_SQUARE2VOLUME;
     // CaH4e3: fixed - setting up maximum volume for square2 caused
     // complete mute square2 channel
     if (ampx != 256) amp[x] = (amp[x] * ampx) / 256;
@@ -620,13 +621,13 @@ void Sound::RDoTriangle() {
   tcout=(tcout*3) << 16;
 
   if (!lengthcount[2] || !TriCount) {
-    int32 cout = (tcout/256*FSettings.TriangleVolume)&(~0xFFFF);
+    int32 cout = (tcout/256*FCEUS_TRIANGLEVOLUME)&(~0xFFFF);
     for (V=ChannelBC[2];V<SOUNDTS;V++)
       WaveHi[V]+=cout;
   } else {
     for (V=ChannelBC[2];V<SOUNDTS;V++) {
       //Modify volume based on channel volume modifiers
-      WaveHi[V]+=(tcout/256*FSettings.TriangleVolume)&(~0xFFFF);  // TODO OPTIMIZE ME!
+      WaveHi[V]+=(tcout/256*FCEUS_TRIANGLEVOLUME)&(~0xFFFF);  // TODO OPTIMIZE ME!
       wlcount[2]--;
       if (!wlcount[2]) {
 	wlcount[2]=(PSG[0xa]|((PSG[0xb]&7)<<8))+1;
@@ -675,8 +676,8 @@ void Sound::RDoTriangleNoisePCMLQ() {
   //double vales or implicit cohersion which are slower (we need speed
   //here)
   // TODO OPTIMIZE ME!
-  if (FSettings.TriangleVolume != 256)
-    amptab[0] = (amptab[0] * FSettings.TriangleVolume) / 256;
+  if (FCEUS_TRIANGLEVOLUME != 256)
+    amptab[0] = (amptab[0] * FCEUS_TRIANGLEVOLUME) / 256;
 
   amptab[1]=0;
   amptab[0]<<=1;
@@ -786,8 +787,8 @@ void Sound::RDoNoise() {
   // double vales or implicit cohersion which are slower (we need
   // speed here)
   // TODO OPTIMIZE ME!
-  if (FSettings.NoiseVolume != 256)
-    amptab[0] = (amptab[0] * FSettings.NoiseVolume) / 256;
+  if (FCEUS_NOISEVOLUME != 256)
+    amptab[0] = (amptab[0] * FCEUS_NOISEVOLUME) / 256;
   amptab[0]<<=16;
   amptab[1]=0;
 
@@ -866,7 +867,7 @@ int Sound::FlushEmulateSound() {
 
   if (!X.timestamp) return 0;
 
-  if (!FSettings.SndRate) {
+  if (!FCEUS_SNDRATE) {
     left=0;
     end=0;
     goto nosoundo;
@@ -878,7 +879,7 @@ int Sound::FlushEmulateSound() {
   (this->*DoNoise)();
   (this->*DoPCM)();
 
-  if (FSettings.soundq>=1) {
+  if (FCEUS_SOUNDQ>=1) {
     int32 *tmpo=&WaveHi[soundtsoffs];
 
     if (GameExpSound.HiFill) GameExpSound.HiFill();
@@ -903,7 +904,7 @@ int Sound::FlushEmulateSound() {
 
     fceulib__filter.SexyFilter(Wave,WaveFinal,end>>4);
 
-    //if (FSettings.lowpass)
+    //if (FCEUS_LOWPASS)
     // SexyFilter2(WaveFinal,end>>4);
     if (end&0xF)
       Wave[0]=Wave[(end>>4)];
@@ -911,7 +912,7 @@ int Sound::FlushEmulateSound() {
   }
  nosoundo:
 
-  if (FSettings.soundq>=1) {
+  if (FCEUS_SOUNDQ>=1) {
     soundtsoffs=left;
   } else {
     for (int x=0;x<5;x++)
@@ -999,18 +1000,18 @@ void Sound::SetSoundVariables() {
   fhinc=PAL?16626:14915;  // *2 CPU clock rate
   fhinc*=24;
 
-  if (FSettings.SndRate) {
+  if (FCEUS_SNDRATE) {
     wlookup1[0]=0;
     for (int x=1;x<32;x++) {
       wlookup1[x]=(double)16*16*16*4*95.52/((double)8128/(double)x+100);
-      if (!FSettings.soundq) wlookup1[x]>>=4;
+      if (!FCEUS_SOUNDQ) wlookup1[x]>>=4;
     }
     wlookup2[0]=0;
     for (int x=1;x<203;x++) {
       wlookup2[x]=(double)16*16*16*4*163.67/((double)24329/(double)x+100);
-      if (!FSettings.soundq) wlookup2[x]>>=4;
+      if (!FCEUS_SOUNDQ) wlookup2[x]>>=4;
     }
-    if (FSettings.soundq >= 1) {
+    if (FCEUS_SOUNDQ >= 1) {
       DoNoise=&Sound::RDoNoise;
       DoTriangle=&Sound::RDoTriangle;
       DoPCM=&Sound::RDoPCM;
@@ -1028,13 +1029,13 @@ void Sound::SetSoundVariables() {
     return;
   }
 
-  fceulib__filter.MakeFilters(FSettings.SndRate);
+  fceulib__filter.MakeFilters(FCEUS_SNDRATE);
 
   if (GameExpSound.RChange)
     GameExpSound.RChange();
 
   nesincsize = (int64)(((int64)1<<17)*(double)(PAL?PAL_CPU:NTSC_CPU)/
-		       (FSettings.SndRate * 16));
+		       (FCEUS_SNDRATE * 16));
   memset(sqacc,0,sizeof(sqacc));
   memset(ChannelBC,0,sizeof(ChannelBC));
 
@@ -1043,22 +1044,12 @@ void Sound::SetSoundVariables() {
   soundtsinc=(uint32)((uint64)(PAL?
 			       (long double)PAL_CPU*65536:
 			       (long double)NTSC_CPU*65536)/
-		      (FSettings.SndRate * 16));
+		      (FCEUS_SNDRATE * 16));
 }
 
-void Sound::FCEUI_Sound(int Rate) {
-  FSettings.SndRate=Rate;
+void Sound::FCEUI_InitSound() {
   SetSoundVariables();
 }
-
-void Sound::FCEUI_SetLowPass(int q) {
-  FSettings.lowpass=q;
-}
-
-// Here there used to be a load of other functions for setting the
-// FSettings fields through the UI (in the case of changing quality, also
-// calling SetSoundVariables). Deleted. Can we make the rest
-// compile-time constants? -tom7
 
 Sound::Sound() : stateinfo {
  { &fhcnt, 4|FCEUSTATE_RLSB,"FHCN"},
