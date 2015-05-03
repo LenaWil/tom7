@@ -923,7 +923,7 @@ int iNESLoad(const char *name, FceuFile *fp, int OverwriteVidMode) {
       partialmd5 |= (uint64)iNESCart.MD5[7-x] << (x * 8);
     }
 
-    FCEU_VSUniCheck(partialmd5, &MapperNo, &Mirroring);
+    fceulib__vsuni.FCEU_VSUniCheck(partialmd5, &MapperNo, &Mirroring);
   }
   /* Must remain here because above functions might change value of
      VROM_size and free(VROM).
@@ -1395,7 +1395,7 @@ static void iNESPower() {
   ResetExState(0,0);
 
   if (GameInfo->type == GIT_VSUNI)
-    AddExState(FCEUVSUNI_STATEINFO, ~0, 0, 0);
+    AddExState(fceulib__vsuni.FCEUVSUNI_STATEINFO(), ~0, 0, 0);
 
   AddExState(WRAM, 8192, 0, "WRAM");
   if (type==19 || type==6 || type==69 || type==85 || type==96)
@@ -1435,7 +1435,7 @@ static int NewiNES_Init(int num) {
   CHRRAMSize = -1;
 
   if (GameInfo->type == GIT_VSUNI)
-    AddExState(FCEUVSUNI_STATEINFO, ~0, 0, 0);
+    AddExState(fceulib__vsuni.FCEUVSUNI_STATEINFO(), ~0, 0, 0);
 
   while (tmp->init) {
     if (num == tmp->number) {

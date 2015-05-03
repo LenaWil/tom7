@@ -308,7 +308,8 @@ void FDS::FDSSWrite_Direct(DECLFW_ARGS) {
   A-=0x4080;
   switch(A) {
   case 0x0:
-  case 0x4: if (V&0x80)
+  case 0x4:
+    if (V&0x80)
       fdso.amplitude[(A&0xF)>>2]=V&0x3F; //)>0x20?0x20:(V&0x3F);
     break;
   case 0x5://printf("$%04x:$%02x\n",A,V);

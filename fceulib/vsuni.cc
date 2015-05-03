@@ -32,9 +32,18 @@
 
 #define IOPTION_GUN       0x1
 #define IOPTION_SWAPDIRAB       0x2
-
 #define IOPTION_PREDIP    0x10
-struct VsUniEntry {
+
+VSUni::VSUni() : stateinfo {
+  { &vsdip, 1, "vsdp" },
+  { &coinon, 1, "vscn" },
+  { &VSindex, 1, "vsin" },
+  { 0 }
+} { 
+  // constructor, empty
+}
+
+struct VSUni::VSUniEntry {
   const char *name;
   uint64 md5partial;
   int mapper;
@@ -44,62 +53,40 @@ struct VsUniEntry {
   int predip;
 };
 
-const VsUniEntry *curvs = nullptr;
-
-static uint8 DIPS=0;
-uint8 vsdip=0;
-
-void FCEUI_VSUniToggleDIPView() {
-  DIPS=!DIPS;
-}
-
-void FCEU_VSUniToggleDIP(int w) {
-  vsdip^=1<<w;
-}
-
-void FCEUI_VSUniSetDIP(int w, int state) {
- if (((vsdip >> w) & 1) != state)
-  FCEUI_VSUniToggleDIP(w);
-}
-
-uint8 FCEUI_VSUniGetDIPs() {
- return(vsdip);
+void VSUni::FCEU_VSUniToggleDIP(int w) {
+  vsdip ^= 1 << w;
 }
 
 static constexpr uint8 secdata[2][32]= {
- {
-  0xff, 0xbf, 0xb7, 0x97, 0x97, 0x17, 0x57, 0x4f,
-  0x6f, 0x6b, 0xeb, 0xa9, 0xb1, 0x90, 0x94, 0x14,
-  0x56, 0x4e, 0x6f, 0x6b, 0xeb, 0xa9, 0xb1, 0x90,
-  0xd4, 0x5c, 0x3e, 0x26, 0x87, 0x83, 0x13, 0x00
- },
- {
-  0x00, 0x00, 0x00, 0x00, 0xb4, 0x00, 0x00, 0x00,
-  0x00, 0x6F, 0x00, 0x00, 0x00, 0x00, 0x94, 0x00,
-  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
- }
+  {
+    0xff, 0xbf, 0xb7, 0x97, 0x97, 0x17, 0x57, 0x4f,
+    0x6f, 0x6b, 0xeb, 0xa9, 0xb1, 0x90, 0x94, 0x14,
+    0x56, 0x4e, 0x6f, 0x6b, 0xeb, 0xa9, 0xb1, 0x90,
+    0xd4, 0x5c, 0x3e, 0x26, 0x87, 0x83, 0x13, 0x00
+  },
+  {
+    0x00, 0x00, 0x00, 0x00, 0xb4, 0x00, 0x00, 0x00,
+    0x00, 0x6F, 0x00, 0x00, 0x00, 0x00, 0x94, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+  }
 };
 
-static const uint8 *secptr;
-
-static uint8 VSindex;
-
 static DECLFR(VSSecRead) {
+  return fceulib__vsuni.VSSecRead_Direct(DECLFR_FORWARD);
+}
+
+DECLFR_RET VSUni::VSSecRead_Direct(DECLFR_ARGS) {
   switch(A) {
   case 0x5e00: VSindex=0; return X.DB;
   case 0x5e01: return secptr[(VSindex++)&0x1F];
   }
   return 0x00;
 }
-uint8 coinon=0;
 
-void FCEU_VSUniCoin() {
-  coinon=6;
+void VSUni::FCEU_VSUniCoin() {
+  coinon = 6;
 }
-
-static int curppu;
-static int64 curmd5;
 
 #define RP2C04_001      1
 #define RP2C04_002      2
@@ -111,28 +98,44 @@ static int64 curmd5;
 #define RC2C05_03       8
 #define RC2C05_04       9
 
-static readfunc OldReadPPU;
-static writefunc OldWritePPU[2];
-
 static DECLFR(A2002_Gumshoe) {
+  return fceulib__vsuni.A2002_Gumshoe_Direct(DECLFR_FORWARD);
+}
+
+DECLFR_RET VSUni::A2002_Gumshoe_Direct(DECLFR_ARGS) {
   return (OldReadPPU(A)&~0x3F) | 0x1C;
 }
 
 static DECLFR(A2002_Topgun) {
+  return fceulib__vsuni.A2002_Topgun_Direct(DECLFR_FORWARD);
+}
+
+DECLFR_RET VSUni::A2002_Topgun_Direct(DECLFR_ARGS) {
   return (OldReadPPU(A)&~0x3F) | 0x1B;
 }
 
 // Mighty Bomb Jack
 static DECLFR(A2002_MBJ) {
+  return fceulib__vsuni.A2002_MBJ_Direct(DECLFR_FORWARD);
+}
+
+DECLFR_RET VSUni::A2002_MBJ_Direct(DECLFR_ARGS) {
   return (OldReadPPU(A)&~0x3F) | 0x3D;
 }
 
 static DECLFW(B2000_2001_2C05) {
+  return fceulib__vsuni.B2000_2001_2C05_Direct(DECLFW_FORWARD);
+}
+
+void VSUni::B2000_2001_2C05_Direct(DECLFW_ARGS) {
   OldWritePPU[(A&1)^1](A ^ 1, V);
 }
 
-static uint8 xevselect = 0;
 static DECLFR(XevRead) {
+  return fceulib__vsuni.XevRead_Direct(DECLFR_FORWARD);
+}
+
+DECLFR_RET VSUni::XevRead_Direct(DECLFR_ARGS) {
   //printf("%04x\n",A);
   if (A == 0x54FF) {
     return 0x5;
@@ -147,7 +150,7 @@ static DECLFR(XevRead) {
   return X.DB;
 }
 
-void FCEU_VSUniSwap(uint8 *j0, uint8 *j1) {
+void VSUni::FCEU_VSUniSwap(uint8 *j0, uint8 *j1) {
   if (curvs->ioption & IOPTION_SWAPDIRAB) {
     uint16 t = *j0;
     *j0 = (*j0&0xC)|(*j1&0xF3);
@@ -155,7 +158,7 @@ void FCEU_VSUniSwap(uint8 *j0, uint8 *j1) {
   }
 }
 
-void FCEU_VSUniPower() {
+void VSUni::FCEU_VSUniPower() {
   coinon = 0;
   VSindex = 0;
 
@@ -254,7 +257,7 @@ RC2C05-04:
 - Top Gun
 */
 
-static constexpr VsUniEntry VSUniGames[]  = {
+static constexpr VSUni::VSUniEntry VSUniGames[]  = {
   {"Baseball",    0x691d4200ea42be45LL, 99, 2,RP2C04_001,0},
   {"Battle City",  0x8540949d74c4d0ebLL, 99, 2,RP2C04_001,0},
   {"Battle City(Bootleg)",0x8093cbe7137ac031LL, 99, 2,RP2C04_001,0},
@@ -298,8 +301,8 @@ static constexpr VsUniEntry VSUniGames[]  = {
   {0}
 };
 
-void FCEU_VSUniCheck(uint64 md5partial, int *MapperNo, uint8 *Mirroring) {
-  const VsUniEntry *vs = VSUniGames;
+void VSUni::FCEU_VSUniCheck(uint64 md5partial, int *MapperNo, uint8 *Mirroring) {
+  const VSUniEntry *vs = VSUniGames;
 
   while (vs->name) {
     if (md5partial == vs->md5partial) {
@@ -316,7 +319,8 @@ void FCEU_VSUniCheck(uint64 md5partial, int *MapperNo, uint8 *Mirroring) {
       secptr = nullptr;
 
       {
-	static int64 tko=0x6e1ee06171d8ce3aULL, rbi=0x6a02d345812938afULL;
+	static constexpr uint64 tko = 0x6e1ee06171d8ce3aULL;
+	static constexpr uint64 rbi = 0x6a02d345812938afULL;
 	if (md5partial == tko)
 	  secptr = secdata[0];
 	if (md5partial == rbi)
@@ -340,10 +344,8 @@ void FCEU_VSUniCheck(uint64 md5partial, int *MapperNo, uint8 *Mirroring) {
   }
 }
 
-void FCEU_VSUniDraw(uint8 *XBuf) {
+void VSUni::FCEU_VSUniDraw(uint8 *XBuf) {
   uint32 *dest;
-
-  if (!DIPS) return;
 
   dest = (uint32 *)(XBuf+256*12+164);
   for (int y = 24 ; y; y--,dest+=(256-72)>>2) {
@@ -372,10 +374,4 @@ void FCEU_VSUniDraw(uint8 *XBuf) {
   }
 }
 
-
-SFORMAT FCEUVSUNI_STATEINFO[] = {
-  { &vsdip, 1, "vsdp" },
-  { &coinon, 1, "vscn" },
-  { &VSindex, 1, "vsin" },
-  { 0 }
-};
+VSUni fceulib__vsuni;

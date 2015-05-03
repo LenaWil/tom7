@@ -107,7 +107,6 @@ void FCEU_printf(char *format, ...);
 void SetNESDeemph(uint8 d, int force);
 
 extern uint8 Exit;
-extern uint8 vsdip;
 
 #define JOY_A   1
 #define JOY_B   2
