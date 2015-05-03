@@ -355,7 +355,7 @@ void ResetExState(void (*PreSave)(), void (*PostSave)()) {
 void AddExState(void *v, uint32 s, int type, char *desc) {
 
   if (s == ~0) {
-    const SFORMAT* sf = (const SFORMAT*)v;
+    const SFORMAT *sf = (const SFORMAT*)v;
     map<string,bool> names;
     while(sf->v) {
       char tmp[5] = {0};

@@ -85,8 +85,6 @@ uint8 FCEU_GetJoyJoy() {
   return joy[0] | joy[1] | joy[2] | joy[3];
 }
 
-extern uint8 coinon;
-
 //set to true if the fourscore is attached
 static bool FSAttached = false;
 
@@ -276,7 +274,7 @@ void FCEU_UpdateInput() {
   portFC.driver->Update(portFC.ptr,portFC.attrib);
 
   if (GameInfo->type==GIT_VSUNI)
-    if (coinon) coinon--;
+    if (fceulib__vsuni.coinon) fceulib__vsuni.coinon--;
 
   // This saved it for display, and copied it from the movie if playing. Don't
   // need that any more as it's driven externally. -tom7
@@ -284,7 +282,7 @@ void FCEU_UpdateInput() {
 
   //TODO - should this apply to the movie data? should this be displayed in the input hud?
   if (GameInfo->type==GIT_VSUNI)
-    FCEU_VSUniSwap(&joy[0],&joy[1]);
+    fceulib__vsuni.FCEU_VSUniSwap(&joy[0],&joy[1]);
 }
 
 static DECLFR(VSUNIRead0) {
@@ -292,8 +290,8 @@ static DECLFR(VSUNIRead0) {
 
   ret |= joyports[0].driver->Read(0) & 1;
 
-  ret |= (vsdip & 3) << 3;
-  if (coinon)
+  ret |= (fceulib__vsuni.vsdip & 3) << 3;
+  if (fceulib__vsuni.coinon)
     ret |= 0x4;
   return ret;
 }
@@ -302,7 +300,7 @@ static DECLFR(VSUNIRead1) {
   uint8 ret=0;
 
   ret|=(joyports[1].driver->Read(1))&1;
-  ret|=vsdip&0xFC;
+  ret|=fceulib__vsuni.vsdip & 0xFC;
   return ret;
 }
 
@@ -498,7 +496,7 @@ void FCEU_DoSimpleCommand(int cmd) {
   switch (cmd) {
   case FCEUNPCMD_FDSINSERT: fceulib__fds.FCEU_FDSInsert();break;
   case FCEUNPCMD_FDSSELECT: fceulib__fds.FCEU_FDSSelect();break;
-  case FCEUNPCMD_VSUNICOIN: FCEU_VSUniCoin(); break;
+  case FCEUNPCMD_VSUNICOIN: fceulib__vsuni.FCEU_VSUniCoin(); break;
   case FCEUNPCMD_VSUNIDIP0:
   case FCEUNPCMD_VSUNIDIP0+1:
   case FCEUNPCMD_VSUNIDIP0+2:
@@ -506,7 +504,9 @@ void FCEU_DoSimpleCommand(int cmd) {
   case FCEUNPCMD_VSUNIDIP0+4:
   case FCEUNPCMD_VSUNIDIP0+5:
   case FCEUNPCMD_VSUNIDIP0+6:
-  case FCEUNPCMD_VSUNIDIP0+7:	FCEU_VSUniToggleDIP(cmd - FCEUNPCMD_VSUNIDIP0);break;
+  case FCEUNPCMD_VSUNIDIP0+7: 
+    fceulib__vsuni.FCEU_VSUniToggleDIP(cmd - FCEUNPCMD_VSUNIDIP0);
+    break;
   case FCEUNPCMD_POWER: PowerNES();break;
   case FCEUNPCMD_RESET: ResetNES();break;
   }

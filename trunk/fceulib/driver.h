@@ -39,9 +39,9 @@ void FCEUI_FrameSkip(int x);
 //First and last scanlines to render, for ntsc and pal emulation.
 void FCEUI_SetRenderedLines(int ntscf, int ntscl, int palf, int pall);
 
-void FCEUI_VSUniToggleDIP(int w);
-uint8 FCEUI_VSUniGetDIPs();
-void FCEUI_VSUniCoin();
+// in VSUni object now
+// void FCEUI_VSUniToggleDIP(int w);
+// void FCEUI_VSUniCoin();
 
 int FCEUI_DatachSet(const uint8 *rcode);
 

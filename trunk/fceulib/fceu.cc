@@ -356,7 +356,7 @@ void PowerNES() {
   // stuff. Needed for the NSF code and VS System code.
   GameInterface(GI_POWER);
   if (GameInfo->type==GIT_VSUNI)
-    FCEU_VSUniPower();
+    fceulib__vsuni.FCEU_VSUniPower();
 
   // if we are in a movie, then reset the saveram
   if (fceulib__cart.disableBatteryLoading)
