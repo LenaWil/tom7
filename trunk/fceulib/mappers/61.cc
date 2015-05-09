@@ -45,7 +45,7 @@ static DECLFW(Mapper61_write)
   ROM_BANK16(0xC000,((A&0xF)<<1)| (((A&0x10)>>4)^1) );
  }
  #endif
- MIRROR_SET((A&0x80)>>7);
+ fceulib__ines.MIRROR_SET((A&0x80)>>7);
 }
 
 void Mapper61_init(void)

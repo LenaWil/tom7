@@ -26,14 +26,14 @@ static uint8 FFEmode;
 
 static void FFEIRQHook(int a)
 {
-  if(IRQa)
+  if(fceulib__ines.iNESIRQa)
   {
-   IRQCount+=a;
-   if(IRQCount>=0x10000)
+   fceulib__ines.iNESIRQCount+=a;
+   if(fceulib__ines.iNESIRQCount>=0x10000)
    {
     X.IRQBegin(FCEU_IQEXT);
-    IRQa=0;
-    IRQCount=0;
+    fceulib__ines.iNESIRQa=0;
+    fceulib__ines.iNESIRQCount=0;
    }
   }
 }
@@ -41,11 +41,11 @@ static void FFEIRQHook(int a)
 DECLFW(Mapper6_write) {
   if(A<0x8000) {
     switch(A) {
-    case 0x42FF:MIRROR_SET((V>>4)&1);break;
-    case 0x42FE:onemir((V>>3)&2); FFEmode=V&0x80;break;
-    case 0x4501:IRQa=0;X.IRQEnd(FCEU_IQEXT);break;
-    case 0x4502:IRQCount&=0xFF00;IRQCount|=V;break;
-    case 0x4503:IRQCount&=0xFF;IRQCount|=V<<8;IRQa=1;break;
+    case 0x42FF:fceulib__ines.MIRROR_SET((V>>4)&1);break;
+    case 0x42FE:fceulib__ines.onemir((V>>3)&2); FFEmode=V&0x80;break;
+    case 0x4501:fceulib__ines.iNESIRQa=0;X.IRQEnd(FCEU_IQEXT);break;
+    case 0x4502:fceulib__ines.iNESIRQCount&=0xFF00;fceulib__ines.iNESIRQCount|=V;break;
+    case 0x4503:fceulib__ines.iNESIRQCount&=0xFF;fceulib__ines.iNESIRQCount|=V<<8;fceulib__ines.iNESIRQa=1;break;
     }
   } else {
     switch (FFEmode) {

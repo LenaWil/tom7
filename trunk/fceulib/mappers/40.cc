@@ -23,18 +23,18 @@
 
 static DECLFW(Mapper40_write) {
   switch(A&0xe000) {
-  case 0x8000:IRQa=0;IRQCount=0;X.IRQEnd(FCEU_IQEXT);break;
-  case 0xa000:IRQa=1;break;
+  case 0x8000:fceulib__ines.iNESIRQa=0;fceulib__ines.iNESIRQCount=0;X.IRQEnd(FCEU_IQEXT);break;
+  case 0xa000:fceulib__ines.iNESIRQa=1;break;
   case 0xe000:ROM_BANK8(0xc000,V&7);break;
   }
 }
 
 static void Mapper40IRQ(int a) {
-  if(IRQa) {
-    if(IRQCount<4096) {
-      IRQCount+=a;
+  if(fceulib__ines.iNESIRQa) {
+    if(fceulib__ines.iNESIRQCount<4096) {
+      fceulib__ines.iNESIRQCount+=a;
     } else {
-      IRQa=0;
+      fceulib__ines.iNESIRQa=0;
       X.IRQBegin(FCEU_IQEXT);
     }
   }

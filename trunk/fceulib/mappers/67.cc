@@ -32,26 +32,26 @@ static DECLFW(Mapper67_write) {
     case 0xc800:
     case 0xc000:
       if(!suntoggle) {
-	IRQCount&=0xFF;
-	IRQCount|=V<<8;
+	fceulib__ines.iNESIRQCount&=0xFF;
+	fceulib__ines.iNESIRQCount|=V<<8;
       } else {
-	IRQCount&=0xFF00;
-	IRQCount|=V;
+	fceulib__ines.iNESIRQCount&=0xFF00;
+	fceulib__ines.iNESIRQCount|=V;
       }
       suntoggle^=1;
       break;
     case 0xd800:
       suntoggle=0;
-      IRQa=V&0x10;
+      fceulib__ines.iNESIRQa=V&0x10;
       X.IRQEnd(FCEU_IQEXT);
       break;
 
     case 0xe800:
       switch(V&3) {
-      case 0:MIRROR_SET2(1);break;
-      case 1:MIRROR_SET2(0);break;
-      case 2:onemir(0);break;
-      case 3:onemir(1);break;
+      case 0:fceulib__ines.MIRROR_SET2(1);break;
+      case 1:fceulib__ines.MIRROR_SET2(0);break;
+      case 2:fceulib__ines.onemir(0);break;
+      case 3:fceulib__ines.onemir(1);break;
       }
       break;
     case 0xf800:
@@ -60,12 +60,12 @@ static DECLFW(Mapper67_write) {
     }
 }
 static void SunIRQHook(int a) {
-  if(IRQa) {
-    IRQCount-=a;
-    if(IRQCount<=0) {
+  if(fceulib__ines.iNESIRQa) {
+    fceulib__ines.iNESIRQCount-=a;
+    if(fceulib__ines.iNESIRQCount<=0) {
       X.IRQBegin(FCEU_IQEXT);
-      IRQa=0;
-      IRQCount=0xFFFF;
+      fceulib__ines.iNESIRQa=0;
+      fceulib__ines.iNESIRQCount=0xFFFF;
     }
   }
 }

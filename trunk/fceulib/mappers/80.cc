@@ -37,7 +37,7 @@ static void Fudou_PPU(uint32 A)
  z=CCache[A];
  if(z!=last)
  {
-  onemir(z);
+  fceulib__ines.onemir(z);
   last=z;
  }
 }
@@ -50,9 +50,9 @@ static void mira() {
     for(int x=0;x<4;x++)
       CCache[4+x]=mapbyte2[2+x]>>7;
 
-    onemir(CCache[lastA]);
+    fceulib__ines.onemir(CCache[lastA]);
   } else {
-    MIRROR_SET2(mapbyte1[0]&1);
+    fceulib__ines.MIRROR_SET2(mapbyte1[0]&1);
   }
 }
 

@@ -29,21 +29,18 @@ static void DoAYSQHQ(int x);
 #define sungah    mapbyte1[1]
 static uint8 sunindex;
 
-static DECLFW(SUN5BWRAM)
-{
- if ((sungah&0xC0)==0xC0)
-  (WRAM-0x6000)[A]=V;
+static DECLFW(SUN5BWRAM) {
+  if ((sungah&0xC0)==0xC0)
+    (WRAM-0x6000)[A]=V;
 }
 
-static DECLFR(SUN5AWRAM)
-{
- if ((sungah&0xC0)==0x40)
-  return X.DB;
- return Cart::CartBROB(A);
+static DECLFR(SUN5AWRAM) {
+  if ((sungah&0xC0)==0x40)
+    return X.DB;
+  return Cart::CartBROB(A);
 }
 
-static DECLFW(Mapper69_SWL)
-{
+static DECLFW(Mapper69_SWL) {
   sunindex=V%14;
 }
 
@@ -51,7 +48,7 @@ static DECLFW(Mapper69_SWH) {
   fceulib__sound.GameExpSound.Fill=AYSound;
   fceulib__sound.GameExpSound.HiFill=AYSoundHQ;
   if (FCEUS_SNDRATE)
-    switch(sunindex) {
+    switch (sunindex) {
     case 0:
     case 1:
     case 8:
@@ -73,14 +70,14 @@ static DECLFW(Mapper69_SWH) {
 }
 
 static DECLFW(Mapper69_write) {
-  switch(A&0xE000) {
+  switch (A&0xE000) {
   case 0x8000:sunselect=V;break;
   case 0xa000:
     sunselect&=0xF;
     if (sunselect<=7)
       VROM_BANK1(sunselect<<10,V);
     else
-      switch(sunselect&0x0f) {
+      switch (sunselect&0x0f) {
       case 8:
 	sungah=V;
 	if (V&0x40) {
@@ -96,17 +93,27 @@ static DECLFW(Mapper69_write) {
       case 0xa:ROM_BANK8(0xa000,V);break;
       case 0xb:ROM_BANK8(0xc000,V);break;
       case 0xc:
-	switch(V&3)
-	  {
-	  case 0:MIRROR_SET2(1);break;
-	  case 1:MIRROR_SET2(0);break;
-	  case 2:onemir(0);break;
-	  case 3:onemir(1);break;
-	  }
+	switch (V&3) {
+	case 0:fceulib__ines.MIRROR_SET2(1);break;
+	case 1:fceulib__ines.MIRROR_SET2(0);break;
+	case 2:fceulib__ines.onemir(0);break;
+	case 3:fceulib__ines.onemir(1);break;
+	}
 	break;
-      case 0xd:IRQa=V;X.IRQEnd(FCEU_IQEXT);break;
-      case 0xe:IRQCount&=0xFF00;IRQCount|=V;X.IRQEnd(FCEU_IQEXT);break;
-      case 0xf:IRQCount&=0x00FF;IRQCount|=V<<8;X.IRQEnd(FCEU_IQEXT);break;
+      case 0xd:
+	fceulib__ines.iNESIRQa=V;
+	X.IRQEnd(FCEU_IQEXT);
+	break;
+      case 0xe:
+	fceulib__ines.iNESIRQCount&=0xFF00;
+	fceulib__ines.iNESIRQCount|=V;
+	X.IRQEnd(FCEU_IQEXT);
+	break;
+      case 0xf:
+	fceulib__ines.iNESIRQCount&=0x00FF;
+	fceulib__ines.iNESIRQCount|=V<<8;
+	X.IRQEnd(FCEU_IQEXT);
+	break;
       }
     break;
   }
@@ -116,32 +123,29 @@ static int32 vcount[3];
 static int32 dcount[3];
 static int CAYBC[3];
 
-static void DoAYSQ(int x)
-{
-    int32 freq=((MapperExRAM[x<<1]|((MapperExRAM[(x<<1)+1]&15)<<8))+1)<<(4+17);
-    int32 amp=(MapperExRAM[0x8+x]&15)<<2;
-    int32 start,end;
-    int V;
+static void DoAYSQ(int x) {
+  int32 freq = ((MapperExRAM[x<<1]|((MapperExRAM[(x<<1)+1]&15)<<8))+1)<<(4+17);
+  int32 amp = (MapperExRAM[0x8+x]&15)<<2;
+  int32 start, end;
 
-    amp+=amp>>1;
+  amp+=amp>>1;
 
-    start=CAYBC[x];
-    end=(SOUNDTS<<16)/fceulib__sound.soundtsinc;
-    if (end<=start) return;
-    CAYBC[x]=end;
+  start=CAYBC[x];
+  end=(SOUNDTS<<16)/fceulib__sound.soundtsinc;
+  if (end<=start) return;
+  CAYBC[x]=end;
 
-    if (amp)
-    for(V=start;V<end;V++)
-    {
-     if (dcount[x])
-      fceulib__sound.Wave[V>>4]+=amp;
-     vcount[x]-=fceulib__sound.nesincsize;
-     while(vcount[x]<=0)
-     {
-      dcount[x]^=1;
-      vcount[x]+=freq;
-     }
+  if (amp) {
+    for (int V=start;V<end;V++) {
+      if (dcount[x])
+	fceulib__sound.Wave[V>>4]+=amp;
+      vcount[x]-=fceulib__sound.nesincsize;
+      while (vcount[x]<=0) {
+	dcount[x]^=1;
+	vcount[x]+=freq;
+      }
     }
+  }
 }
 
 static void DoAYSQHQ(int x) {
@@ -151,7 +155,7 @@ static void DoAYSQHQ(int x) {
   amp+=amp>>1;
 
   if (!(MapperExRAM[0x7]&(1<<x))) {
-    for(uint32 V=CAYBC[x];V<SOUNDTS;V++) {
+    for (uint32 V=CAYBC[x];V<SOUNDTS;V++) {
       if (dcount[x])
 	fceulib__sound.WaveHi[V]+=amp;
       vcount[x]--;
@@ -173,38 +177,40 @@ static void AYSound(int Count) {
 }
 
 static void AYSoundHQ(void) {
-    DoAYSQHQ(0);
-    DoAYSQHQ(1);
-    DoAYSQHQ(2);
+  DoAYSQHQ(0);
+  DoAYSQHQ(1);
+  DoAYSQHQ(2);
 }
 
 static void AYHiSync(int32 ts) {
-  for(int x=0;x<3;x++)
+  for (int x=0;x<3;x++) {
     CAYBC[x]=ts;
+  }
 }
 
 static void SunIRQHook(int a) {
-  if (IRQa) {
-    IRQCount-=a;
-    if (IRQCount<=0) {
+  if (fceulib__ines.iNESIRQa) {
+    fceulib__ines.iNESIRQCount-=a;
+    if (fceulib__ines.iNESIRQCount<=0) {
       X.IRQBegin(FCEU_IQEXT);
-      IRQa=0;
-      IRQCount=0xFFFF;
+      fceulib__ines.iNESIRQa=0;
+      fceulib__ines.iNESIRQCount=0xFFFF;
     }
   }
 }
 
 void Mapper69_StateRestore(int version) {
   if (mapbyte1[1]&0x40) {
-    if (mapbyte1[1]&0x80) // Select WRAM
+    if (mapbyte1[1]&0x80) {
+      // Select WRAM
       fceulib__cart.setprg8r(0x10,0x6000,0);
+    }
   } else {
     fceulib__cart.setprg8(0x6000,mapbyte1[1]);
   }
 }
 
-void Mapper69_ESI(void)
-{
+void Mapper69_ESI(void) {
  fceulib__sound.GameExpSound.RChange=Mapper69_ESI;
  fceulib__sound.GameExpSound.HiSync=AYHiSync;
  memset(dcount,0,sizeof(dcount));

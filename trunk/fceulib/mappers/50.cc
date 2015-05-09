@@ -22,11 +22,11 @@
 
 
 static void Mapper50IRQ(int a) {
-  if (IRQa) {
-    if (IRQCount<4096) {
-      IRQCount+=a;
+  if (fceulib__ines.iNESIRQa) {
+    if (fceulib__ines.iNESIRQCount<4096) {
+      fceulib__ines.iNESIRQCount+=a;
     } else {
-      IRQa=0;
+      fceulib__ines.iNESIRQa=0;
       X.IRQBegin(FCEU_IQEXT);
     }
   }
@@ -39,8 +39,8 @@ static void M50Restore(int version) {
 static DECLFW(M50W) {
   if ((A&0xD060)==0x4020) {
     if (A&0x100) {
-      IRQa=V&1;
-      if (!IRQa) IRQCount=0;
+      fceulib__ines.iNESIRQa=V&1;
+      if (!fceulib__ines.iNESIRQa) fceulib__ines.iNESIRQCount=0;
       X.IRQEnd(FCEU_IQEXT);
     } else {
       V=((V&1)<<2)|((V&2)>>1)|((V&4)>>1)|(V&8);
