@@ -21,24 +21,70 @@
 
 #ifndef _INES_H_
 #define _INES_H_
+
 #include <stdlib.h>
 #include <string.h>
 #include <map>
+#include "fceu.h"
 
 struct FceuFile;
-int iNESLoad(const char *name, FceuFile *fp, int OverwriteVidMode);
+struct INesTMasterRomInfo {
+  uint64 md5lower;
+  const char* params;
+};
+
+struct INes {
+  INes();
+
+  int iNESLoad(const char *name, FceuFile *fp, int OverwriteVidMode);
+  void iNESStateRestore(int version);
+
+  void ClearMasterRomInfoParams() {
+    MasterRomInfoParams.clear();
+  }
+
+  const std::string *MasterRomInfoParam(const std::string &key) {
+    auto it = MasterRomInfoParams.find(key);
+    if (it == MasterRomInfoParams.end())
+      return nullptr;
+    else return &it->second;
+  }
+
+  DECLFR_RET TrainerRead_Direct(DECLFR_ARGS);
+
+  // INESPRV
+  void (*MapStateRestore)(int version) = nullptr;
+  void (*MapperReset)() = nullptr;
+
+ private:
+
+  uint8 *trainerdata = nullptr;
+
+  int mapper_number = 0;
+  CartInfo iNESCart = {};
+  int CHRRAMSize = -1;
+  uint32 iNESGameCRC32 = 0;
+  
+  const INesTMasterRomInfo *MasterRomInfo = nullptr;
+  std::map<std::string, std::string> MasterRomInfoParams;
+
+  void (*MapClose)() = nullptr;
+
+  int NewiNES_Init(int num);
+  void iNESPower();
+  void iNES_ExecPower();
+  void iNESGI(GI h);
+  void MapperInit();
+  void CheckHInfo();
+};
+
+extern INes fceulib__ines;
 
 // These are allowed to be accessed by mappers. -tom7
 #ifdef INESPRIV
 
-void iNESStateRestore(int version);
-
 extern uint32 VROM_size;
 extern uint32 ROM_size;
-
-extern void (*MapStateRestore)(int version);
-extern void (*MapClose)();
-extern void (*MapperReset)();
 
 /* This order is necessary */
 #define WRAM    (GameMemBlock)
@@ -73,22 +119,10 @@ extern uint8 iNESIRQa;
 
 #endif  // INESPRIV
 
-struct TMasterRomInfo {
-  uint64 md5lower;
-  const char* params;
-};
-
-class TMasterRomInfoParams : public std::map<std::string,std::string> {
-public:
-  bool ContainsKey(const std::string& key) { return find(key) != end(); }
-};
-
 extern uint8 *ROM;
 extern uint8 *VROM;
 extern uint32 VROM_size;
 extern uint32 ROM_size;
-extern const TMasterRomInfo* MasterRomInfo;
-extern TMasterRomInfoParams MasterRomInfoParams;
 
 struct iNES_HEADER {
   char ID[4]; /*NES^Z*/

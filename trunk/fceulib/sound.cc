@@ -71,15 +71,15 @@ static constexpr uint32 PALDMCTable[0x10] = {
 // $4013        -        Size register:  Size in bytes = (V+1)*64
 
 void Sound::LoadDMCPeriod(uint8 V) {
- if (PAL)
-  DMCPeriod=PALDMCTable[V];
- else
-  DMCPeriod=NTSCDMCTable[V];
+  if (PAL)
+    DMCPeriod=PALDMCTable[V];
+  else
+    DMCPeriod=NTSCDMCTable[V];
 }
 
 void Sound::PrepDPCM() {
- DMCAddress=0x4000+(DMCAddressLatch<<6);
- DMCSize=(DMCSizeLatch<<4)+1;
+  DMCAddress=0x4000+(DMCAddressLatch<<6);
+  DMCSize=(DMCSizeLatch<<4)+1;
 }
 
 /* Instantaneous? Maybe the new freq value is being calculated all of
@@ -112,7 +112,6 @@ void Sound::SQReload(int x, uint8 V) {
   //reloadfreq[x]=1;
 }
 
-// XXX needs to access through fceulib__sound.
 static DECLFW(Write_PSG) {
   return fceulib__sound.Write_PSG_Direct(DECLFW_FORWARD);
 }

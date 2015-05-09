@@ -1,6 +1,8 @@
 #ifndef __BOARDS_H
 #define __BOARDS_H
 
+struct CartInfo;
+
 void AC08_Init(CartInfo *info);
 void ANROM_Init(CartInfo *info);
 void BMC11160_Init(CartInfo *info);

@@ -43,8 +43,10 @@ VSUni::VSUni() : stateinfo {
   // constructor, empty
 }
 
+// TODO(twm): If I make these const, it complains that the table below has uninitialized
+// entries, which worries me that I disabled some default 0 initialization somewhere?
 struct VSUni::VSUniEntry {
-  const char *name;
+  const char *const name;
   uint64 md5partial;
   int mapper;
   int mirroring;
@@ -301,14 +303,14 @@ static constexpr VSUni::VSUniEntry VSUniGames[]  = {
   {0}
 };
 
-void VSUni::FCEU_VSUniCheck(uint64 md5partial, int *MapperNo, uint8 *Mirroring) {
+void VSUni::FCEU_VSUniCheck(uint64 md5partial, int *mapper_no, uint8 *Mirroring) {
   const VSUniEntry *vs = VSUniGames;
 
   while (vs->name) {
     if (md5partial == vs->md5partial) {
 
       if (vs->ppu < RCP2C03B) fceulib__palette.pale = vs->ppu;
-      *MapperNo = vs->mapper;
+      *mapper_no = vs->mapper;
       *Mirroring = vs->mirroring;
       GameInfo->type = GIT_VSUNI;
       GameInfo->cspecial = SIS_VSUNISYSTEM;
