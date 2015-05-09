@@ -91,12 +91,12 @@ DECLFW(Mapper85_write)
     case 0x9000:mapbyte2[2]=V;fceulib__cart.setprg8(0xc000,V);break;
     case 0x9010:indox=V;break;
     case 0xe000:mapbyte2[3]=V;DaMirror(V);break;
-    case 0xE010:IRQLatch=V;
+    case 0xE010:fceulib__ines.iNESIRQLatch=V;
       X.IRQEnd(FCEU_IQEXT);
       break;
     case 0xF000:fceulib__ines.iNESIRQa=V&2;
       vrctemp=V&1;
-      if (V&2) {fceulib__ines.iNESIRQCount=IRQLatch;}
+      if (V&2) {fceulib__ines.iNESIRQCount=fceulib__ines.iNESIRQLatch;}
       acount=0;
       X.IRQEnd(FCEU_IQEXT);
       break;
@@ -117,7 +117,7 @@ static void KonamiIRQHook(int a) {
     if (acount>=ACBOO) {
     doagainbub:acount-=ACBOO;
       fceulib__ines.iNESIRQCount++;
-      if (fceulib__ines.iNESIRQCount&0x100) {X.IRQBegin(FCEU_IQEXT);fceulib__ines.iNESIRQCount=IRQLatch;}
+      if (fceulib__ines.iNESIRQCount&0x100) {X.IRQBegin(FCEU_IQEXT);fceulib__ines.iNESIRQCount=fceulib__ines.iNESIRQLatch;}
       if (acount>=ACBOO) goto doagainbub;
     }
   }
@@ -127,7 +127,7 @@ void Mapper85_StateRestore(int version) {
 
   if (version<7200) {
     for(int x=0;x<8;x++)
-      mapbyte3[x]=CHRBankList[x];
+      mapbyte3[x]=fceulib__ines.iNESCHRBankList[x];
     for(int x=0;x<3;x++)
       mapbyte2[x]=PRGBankList[x];
     mapbyte2[3]=

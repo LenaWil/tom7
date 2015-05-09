@@ -22,7 +22,7 @@
 
 static uint8 FFEmode;
 
-#define FVRAM_BANK8(A,V) {fceulib__cart.VPage[0]=fceulib__cart.VPage[1]=fceulib__cart.VPage[2]=fceulib__cart.VPage[3]=fceulib__cart.VPage[4]=fceulib__cart.VPage[5]=fceulib__cart.VPage[6]=fceulib__cart.VPage[7]=V?&MapperExRAM[(V)<<13]-(A):&CHRRAM[(V)<<13]-(A);CHRBankList[0]=((V)<<3);CHRBankList[1]=((V)<<3)+1;CHRBankList[2]=((V)<<3)+2;CHRBankList[3]=((V)<<3)+3;CHRBankList[4]=((V)<<3)+4;CHRBankList[5]=((V)<<3)+5;CHRBankList[6]=((V)<<3)+6;CHRBankList[7]=((V)<<3)+7;fceulib__ppu.PPUCHRRAM=0xFF;}
+#define FVRAM_BANK8(A,V) {fceulib__cart.VPage[0]=fceulib__cart.VPage[1]=fceulib__cart.VPage[2]=fceulib__cart.VPage[3]=fceulib__cart.VPage[4]=fceulib__cart.VPage[5]=fceulib__cart.VPage[6]=fceulib__cart.VPage[7]=V?&MapperExRAM[(V)<<13]-(A):&CHRRAM[(V)<<13]-(A);fceulib__ines.iNESCHRBankList[0]=((V)<<3);fceulib__ines.iNESCHRBankList[1]=((V)<<3)+1;fceulib__ines.iNESCHRBankList[2]=((V)<<3)+2;fceulib__ines.iNESCHRBankList[3]=((V)<<3)+3;fceulib__ines.iNESCHRBankList[4]=((V)<<3)+4;fceulib__ines.iNESCHRBankList[5]=((V)<<3)+5;fceulib__ines.iNESCHRBankList[6]=((V)<<3)+6;fceulib__ines.iNESCHRBankList[7]=((V)<<3)+7;fceulib__ppu.PPUCHRRAM=0xFF;}
 
 static void FFEIRQHook(int a)
 {
@@ -62,11 +62,11 @@ DECLFW(Mapper6_write) {
 void Mapper6_StateRestore(int version) {
   for (int x=0;x<8;x++)
     if (fceulib__ppu.PPUCHRRAM&(1<<x)) {
-      if (CHRBankList[x]>7) {
+      if (fceulib__ines.iNESCHRBankList[x]>7) {
 	fceulib__cart.VPage[x] = 
-	  &MapperExRAM[(CHRBankList[x]&31)*0x400]-(x*0x400);
+	  &MapperExRAM[(fceulib__ines.iNESCHRBankList[x]&31)*0x400]-(x*0x400);
       } else {
-	fceulib__cart.VPage[x]=&CHRRAM[(CHRBankList[x]&7)*0x400]-(x*0x400);
+	fceulib__cart.VPage[x]=&CHRRAM[(fceulib__ines.iNESCHRBankList[x]&7)*0x400]-(x*0x400);
       }
     }
 }

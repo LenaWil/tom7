@@ -44,7 +44,7 @@ static void KonamiIRQHook(int a) {
       fceulib__ines.iNESIRQCount++;
       if (fceulib__ines.iNESIRQCount==0x100) {
 	X.IRQBegin(FCEU_IQEXT);
-	fceulib__ines.iNESIRQCount=IRQLatch;
+	fceulib__ines.iNESIRQCount=fceulib__ines.iNESIRQLatch;
       }
     }
   }
@@ -92,13 +92,13 @@ static DECLFW(Mapper24_write) {
   case 0xE001:VROM_BANK1(0x1400,V);break;
   case 0xE002:VROM_BANK1(0x1800,V);break;
   case 0xE003:VROM_BANK1(0x1c00,V);break;
-  case 0xF000:IRQLatch=V;
+  case 0xF000:fceulib__ines.iNESIRQLatch=V;
     //acount=0;
     break;
   case 0xF001:fceulib__ines.iNESIRQa=V&2;
     vrctemp=V&1;
     if (V&2) {
-      fceulib__ines.iNESIRQCount=IRQLatch;
+      fceulib__ines.iNESIRQCount=fceulib__ines.iNESIRQLatch;
       acount=0;
     }
     X.IRQEnd(FCEU_IQEXT);

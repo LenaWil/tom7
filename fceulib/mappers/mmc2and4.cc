@@ -25,43 +25,33 @@
 #define latcha2 mapbyte2[1]
 
 
-static void latchcheck(uint32 VAddr)
-{
-     uint8 l,h;
+static void latchcheck(uint32 VAddr) {
+  uint8 l,h;
 
-     h=VAddr>>8;
+  h=VAddr>>8;
 
-     if(h>=0x20 || ((h&0xF)!=0xF))
-      return;
+  if (h>=0x20 || ((h&0xF)!=0xF))
+    return;
 
-     l=VAddr&0xF0;
+  l=VAddr&0xF0;
 
-     if(h<0x10)
-     {
-      if(l==0xD0)
-      {
-       VROM_BANK4(0x0000,MMC4reg[0]);
-       latcha1=0xFD;
-      }
-      else if(l==0xE0)
-      {
-       VROM_BANK4(0x0000,MMC4reg[1]);
-       latcha1=0xFE;
-      }
-     }
-     else
-     {
-      if(l==0xD0)
-      {
-       VROM_BANK4(0x1000,MMC4reg[2]);
-       latcha2=0xFD;
-      }
-      else if(l==0xE0)
-      {
-       VROM_BANK4(0x1000,MMC4reg[3]);
-       latcha2=0xFE;
-      }
-     }
+  if (h<0x10) {
+    if (l==0xD0) {
+      VROM_BANK4(0x0000,MMC4reg[0]);
+      latcha1=0xFD;
+    } else if (l==0xE0) {
+      VROM_BANK4(0x0000,MMC4reg[1]);
+      latcha1=0xFE;
+    }
+  } else {
+    if (l==0xD0) {
+      VROM_BANK4(0x1000,MMC4reg[2]);
+      latcha2=0xFD;
+    } else if (l==0xE0) {
+      VROM_BANK4(0x1000,MMC4reg[3]);
+      latcha2=0xFE;
+    }
+  }
 }
 
 DECLFW(Mapper9_write)        // $Axxx
@@ -74,21 +64,21 @@ DECLFW(Mapper10_write) {
 }
 
 DECLFW(Mapper9and10_write) {
-  switch(A&0xF000) {
+  switch (A&0xF000) {
     case 0xB000:
-      if(latcha1==0xFD) { VROM_BANK4(0x0000,V);}
+      if (latcha1==0xFD) { VROM_BANK4(0x0000,V);}
       MMC4reg[0]=V;
       break;
     case 0xC000:
-      if(latcha1==0xFE) {VROM_BANK4(0x0000,V);}
+      if (latcha1==0xFE) {VROM_BANK4(0x0000,V);}
       MMC4reg[1]=V;
       break;
     case 0xD000:
-      if(latcha2==0xFD) {VROM_BANK4(0x1000,V);}
+      if (latcha2==0xFD) {VROM_BANK4(0x1000,V);}
       MMC4reg[2]=V;
       break;
     case 0xE000:
-      if(latcha2==0xFE) {VROM_BANK4(0x1000,V);}
+      if (latcha2==0xFE) {VROM_BANK4(0x1000,V);}
       MMC4reg[3]=V;
       break;
     case 0xF000:
