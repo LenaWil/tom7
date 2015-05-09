@@ -200,9 +200,9 @@ FCEUGI *FCEUI_LoadGameVirtual(const char *name, int OverwriteVidMode) {
 
   ResetGameLoaded();
 
-  // reset parameters so theyre cleared just in case a format's loader
+  // reset parameters so they're cleared just in case a format's loader
   // doesnt know to do the clearing
-  MasterRomInfoParams = TMasterRomInfoParams();
+  fceulib__ines.ClearMasterRomInfoParams();
 
   FCEU_CloseGame();
   GameInfo = new FCEUGI();
@@ -217,7 +217,7 @@ FCEUGI *FCEUI_LoadGameVirtual(const char *name, int OverwriteVidMode) {
   GameInfo->cspecial = SIS_NONE;
 
   // Try to load each different format
-  if (iNESLoad(name, fp, OverwriteVidMode))
+  if (fceulib__ines.iNESLoad(name, fp, OverwriteVidMode))
     goto endlseq;
   if (UNIFLoad(name, fp))
     goto endlseq;
@@ -332,9 +332,6 @@ void FCEU_MemoryRand(uint8 *ptr, uint32 size) {
 }
 
 void PowerNES() {
-  //void MapperInit();
-  //MapperInit();
-
   if (!GameInfo) return;
 
   FCEU_MemoryRand(RAM,0x800);

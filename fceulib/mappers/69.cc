@@ -232,6 +232,6 @@ void Mapper69_init(void) {
  SetReadHandler(0x6000,0x7fff,SUN5AWRAM);
  Mapper69_ESI();
  X.MapIRQHook=SunIRQHook;
- MapStateRestore=Mapper69_StateRestore;
+ fceulib__ines.MapStateRestore=Mapper69_StateRestore;
 }
 

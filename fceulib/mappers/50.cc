@@ -21,48 +21,39 @@
 #include "mapinc.h"
 
 
-static void Mapper50IRQ(int a)
-{
- if(IRQa)
- {
-        if(IRQCount<4096)
-         IRQCount+=a;
-        else
-        {
-         IRQa=0;
-         X.IRQBegin(FCEU_IQEXT);
-        }
- }
+static void Mapper50IRQ(int a) {
+  if (IRQa) {
+    if (IRQCount<4096) {
+      IRQCount+=a;
+    } else {
+      IRQa=0;
+      X.IRQBegin(FCEU_IQEXT);
+    }
+  }
 }
 
-static void M50Restore(int version)
-{
- fceulib__cart.setprg8(0xc000,mapbyte1[0]);
+static void M50Restore(int version) {
+  fceulib__cart.setprg8(0xc000,mapbyte1[0]);
 }
 
-static DECLFW(M50W)
-{
- if((A&0xD060)==0x4020)
- {
-  if(A&0x100)
-  {
-   IRQa=V&1;
-   if(!IRQa) IRQCount=0;
-   X.IRQEnd(FCEU_IQEXT);
+static DECLFW(M50W) {
+  if ((A&0xD060)==0x4020) {
+    if (A&0x100) {
+      IRQa=V&1;
+      if (!IRQa) IRQCount=0;
+      X.IRQEnd(FCEU_IQEXT);
+    } else {
+      V=((V&1)<<2)|((V&2)>>1)|((V&4)>>1)|(V&8);
+      mapbyte1[0]=V;
+      fceulib__cart.setprg8(0xc000,V);
+    }
   }
-  else
-  {
-   V=((V&1)<<2)|((V&2)>>1)|((V&4)>>1)|(V&8);
-   mapbyte1[0]=V;
-   fceulib__cart.setprg8(0xc000,V);
-  }
- }
 }
 
 void Mapper50_init(void) {
   SetWriteHandler(0x4020,0x5fff,M50W);
   SetReadHandler(0x6000,0xffff,Cart::CartBR);
-  MapStateRestore=M50Restore;
+  fceulib__ines.MapStateRestore=M50Restore;
   X.MapIRQHook=Mapper50IRQ;
 
   fceulib__cart.setprg8(0x6000,0xF);

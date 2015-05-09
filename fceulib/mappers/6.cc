@@ -77,5 +77,5 @@ void Mapper6_init(void) {
 
   SetWriteHandler(0x4020,0x5fff,Mapper6_write);
   SetWriteHandler(0x8000,0xffff,Mapper6_write);
-  MapStateRestore=Mapper6_StateRestore;
+  fceulib__ines.MapStateRestore=Mapper6_StateRestore;
 }

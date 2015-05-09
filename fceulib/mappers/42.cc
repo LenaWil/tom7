@@ -52,7 +52,7 @@ void Mapper42_init(void) {
   ROM_BANK32(~0);
   SetWriteHandler(0x6000,0xffff,Mapper42_write);
   SetReadHandler(0x6000,0x7fff,Cart::CartBR);
-  MapStateRestore=Mapper42_StateRestore;
+  fceulib__ines.MapStateRestore=Mapper42_StateRestore;
   X.MapIRQHook=Mapper42IRQ;
 }
 

@@ -42,27 +42,22 @@ static void Fudou_PPU(uint32 A)
  }
 }
 
-static void mira()
-{
- if(isfu)
- {
-  int x;
-  CCache[0]=CCache[1]=mapbyte2[0]>>7;
-  CCache[2]=CCache[3]=mapbyte2[1]>>7;
+static void mira() {
+  if(isfu) {
+    CCache[0]=CCache[1]=mapbyte2[0]>>7;
+    CCache[2]=CCache[3]=mapbyte2[1]>>7;
 
-  for(x=0;x<4;x++)
-   CCache[4+x]=mapbyte2[2+x]>>7;
+    for(int x=0;x<4;x++)
+      CCache[4+x]=mapbyte2[2+x]>>7;
 
-  onemir(CCache[lastA]);
- }
- else
-  MIRROR_SET2(mapbyte1[0]&1);
+    onemir(CCache[lastA]);
+  } else {
+    MIRROR_SET2(mapbyte1[0]&1);
+  }
 }
 
-static DECLFW(Mapper80_write)
-{
- switch(A)
- {
+static DECLFW(Mapper80_write) {
+  switch(A) {
   case 0x7ef0: mapbyte2[0]=V;VROM_BANK2(0x0000,(V>>1)&0x3F);mira();break;
   case 0x7ef1: mapbyte2[1]=V;VROM_BANK2(0x0800,(V>>1)&0x3f);mira();break;
 
@@ -77,20 +72,20 @@ static DECLFW(Mapper80_write)
   case 0x7efc: ROM_BANK8(0xA000,V);break;
   case 0x7efe:
   case 0x7eff: ROM_BANK8(0xC000,V);break;
- }
+  }
 }
 
-static void booga(int version)
+static void Restore(int version)
 {
  mira();
 }
 
-void Mapper80_init(void)
-{
- SetWriteHandler(0x4020,0x7eff,Mapper80_write);// 7f00-7fff battery backed ram inside mapper chip,
-                                               // controlled by 7ef8 register, A8 - enable, FF - disable (?)
- MapStateRestore=booga;
- isfu=0;
+void Mapper80_init(void) {
+  // 7f00-7fff battery backed ram inside mapper chip,
+  // controlled by 7ef8 register, A8 - enable, FF - disable (?)
+  SetWriteHandler(0x4020,0x7eff,Mapper80_write);
+  fceulib__ines.MapStateRestore = Restore;
+  isfu=0;
 }
 
 void Mapper207_init(void) {
