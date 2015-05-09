@@ -18,16 +18,15 @@ Stuff I should be able to get rid of:
 
       emulator.cc
       fceu.cc
-      file.cc
-      fm2tocc.cc
       headless-driver.cc
-      ines.cc
       input.cc
       state.cc
       unif.cc
-      x6502.cc
       boards/*
       mappers/*
+
+      A little left over in:
+      ines.cc
 
 Cleanup to do:
  - for loops with shared index variable in sound.cc

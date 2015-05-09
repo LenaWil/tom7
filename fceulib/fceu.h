@@ -23,14 +23,6 @@ static constexpr int newppu = 0;
 
 void FCEU_MemoryRand(uint8 *ptr, uint32 size);
 void SetReadHandler(int32 start, int32 end, readfunc func);
-#if 0
-#define SetReadHandler(start, end, func) \
-  SetReadHandler_Wrapped(FCEU_StringPrintf(__FILE__ ":%s:%d = %s",	\
-					   __func__, __LINE__, #func),	\
-                         start, end, func)
-void SetReadHandler_Wrapped(const std::string &what, 
-			    int32 start, int32 end, readfunc func);
-#endif
 
 void SetWriteHandler(int32 start, int32 end, writefunc func);
 writefunc GetWriteHandler(int32 a);
@@ -39,6 +31,9 @@ readfunc GetReadHandler(int32 a);
 void FCEU_CloseGame();
 void FCEU_ResetVidSys();
 bool FCEUI_Initialize();
+
+// Weird thing only used in Barcode game, but probably still working.
+int FCEUI_DatachSet(const uint8 *rcode);
 
 // Emulates a frame.
 void FCEUI_Emulate(uint8 **, int32 **, int32 *, int);
@@ -58,7 +53,6 @@ void FCEUI_SetVidSystem(int a);
 FCEUGI *FCEUI_LoadGame(const char *name, int OverwriteVidMode);
 FCEUGI *FCEUI_LoadGameVirtual(const char *name, int OverwriteVidMode);
 
-// TODO(tom7): Move these to the modules where they're defined.
 extern uint64 timestampbase;
 
 #define GAME_MEM_BLOCK_SIZE 131072
@@ -73,6 +67,7 @@ extern uint8 *GameMemBlock;
 extern uint8 *XBuf;
 extern uint8 *XBackBuf;
 
+// TODO(tom7): Move these to the modules where they're defined.
 // Hooks for reading and writing from memory locations. Each one
 // is a function pointer.
 extern readfunc ARead[0x10000];
@@ -106,7 +101,12 @@ void FCEU_printf(char *format, ...);
 
 void SetNESDeemph(uint8 d, int force);
 
-extern uint8 Exit;
+// checks whether an EFCEUI is valid right now
+enum EFCEUI {
+  FCEUI_RESET, FCEUI_POWER, 
+  FCEUI_EJECT_DISK, FCEUI_SWITCH_DISK
+};
+bool FCEU_IsValidUI(EFCEUI ui);
 
 #define JOY_A   1
 #define JOY_B   2

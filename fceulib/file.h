@@ -26,13 +26,11 @@ struct FceuFile {
   std::string fullFilename;
 
   // the size of the file
-  int size;
+  int size = 0;
 
-  FceuFile() {}
+  FceuFile();
 
-  ~FceuFile() {
-    delete stream;
-  }
+  ~FceuFile();
 
   enum {
     READ, WRITE, READWRITE
@@ -47,9 +45,7 @@ int FCEU_read32le(uint32 *Bufo, FceuFile*);
 int FCEU_fgetc(FceuFile*);
 uint64 FCEU_fgetsize(FceuFile*);
 
-// Initializes the local base name, from which we derive .sav and .pal, etc.
-void GetFileBase(const char *f);
-
+// XXX This whole thing can probably be deleted. -tom7
 // Broke MakeFName into separate functions where it remained. -tom7
 std::string FCEU_MakeSaveFilename();
 std::string FCEU_MakeFDSFilename();

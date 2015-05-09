@@ -1,3 +1,5 @@
+/* This standalone program is part of the fceulib distribution, but shouldn't
+   be compiled into it. */
 
 #include <vector>
 #include <string>

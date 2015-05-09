@@ -119,6 +119,7 @@ int Emulator::LoadGame(const string &path) {
 Emulator::~Emulator() {
   FCEU_CloseGame();
   GameInfo = nullptr;
+  FCEUI_Kill();
 }
 
 Emulator::Emulator() {
