@@ -46,19 +46,28 @@
 
 INes fceulib__ines;
 
-//mbg merge 6/29/06 - these need to be global
-uint8 *ROM = nullptr;
-uint8 *VROM = nullptr;
-iNES_HEADER head;
-
-uint32 ROM_size=0;
-uint32 VROM_size=0;
-
 INes::INes() {}
 
 /*  MapperReset() is called when the NES is reset(with the reset button).
 Mapperxxx_init is called when the NES has been powered on.
 */
+
+void INes::CleanupHeader(INes::Header *head) {
+  if (!memcmp((char *)(head)+0x7,"DiskDude",8)) {
+    memset((char *)(head)+0x7,0,0x9);
+  }
+
+  if (!memcmp((char *)(head)+0x7,"demiforce",9)) {
+    memset((char *)(head)+0x7,0,0x9);
+  }
+
+  if (!memcmp((char *)(head)+0xA,"Ni03",4)) {
+    if (!memcmp((char *)(head)+0x7,"Dis",3))
+      memset((char *)(head)+0x7,0,0x9);
+    else
+      memset((char *)(head)+0xA,0,0x6);
+  }
+}
 
 DECLFR_RET INes::TrainerRead_Direct(DECLFR_ARGS) {
   return trainerdata[A&0x1FF];
@@ -106,8 +115,11 @@ void INes::iNESGI(GI h) {
     fceulib__cart.FCEU_SaveGameSave(&iNESCart);
 
     if (iNESCart.Close) iNESCart.Close();
-    if (ROM) {free(ROM); ROM = nullptr;}
-    if (VROM) {free(VROM); VROM = nullptr;}
+    free(ROM);
+    ROM = nullptr;
+    free(VROM);
+    VROM = nullptr;
+
     if (MapClose) MapClose();
     free(trainerdata);
     trainerdata = nullptr;
@@ -118,7 +130,7 @@ void INes::iNESGI(GI h) {
 namespace {
 struct CRCMATCH  {
   const uint32 crc;
-  const char * const name;
+  const char *const name;
 };
 
 struct INPSEL {
@@ -461,7 +473,9 @@ void INes::CheckHInfo() {
   /* Games that use these iNES mappers tend to have the four-screen bit set
      when it should not be.
   */
-  if ((mapper_number==118 || mapper_number==24 || mapper_number==26) && (iNESMirroring==2)) {
+  if ((mapper_number==118 || 
+       mapper_number==24 || 
+       mapper_number==26) && (iNESMirroring==2)) {
     iNESMirroring=0;
     tofix|=2;
   }
@@ -789,7 +803,7 @@ int INes::iNESLoad(const char *name, FceuFile *fp, int OverwriteVidMode) {
   if (memcmp(&head,"NES\x1a",4))
     return 0;
 
-  head.cleanup();
+  CleanupHeader(&head);
 
   memset(&iNESCart,0,sizeof(iNESCart));
 
@@ -831,6 +845,7 @@ int INes::iNESLoad(const char *name, FceuFile *fp, int OverwriteVidMode) {
   if (head.ROM_type&8) iNESMirroring=2;
 
   if ((ROM = (uint8 *)FCEU_malloc(ROM_size<<14)) == nullptr) return 0;
+  memset(ROM,0xFF,ROM_size<<14);
 
   if (VROM_size) {
     if ((VROM = (uint8 *)FCEU_malloc(VROM_size<<13)) == nullptr) {
@@ -838,12 +853,12 @@ int INes::iNESLoad(const char *name, FceuFile *fp, int OverwriteVidMode) {
       ROM = nullptr;
       return 0;
     }
+    memset(VROM,0xFF,VROM_size<<13);
   }
-  memset(ROM,0xFF,ROM_size<<14);
-  if (VROM_size) memset(VROM,0xFF,VROM_size<<13);
+
   /* Trainer */
-  if (head.ROM_type&4) {
-    trainerdata=(uint8 *)FCEU_gmalloc(512);
+  if (head.ROM_type & 4) {
+    trainerdata = (uint8 *)FCEU_gmalloc(512);
     FCEU_fread(trainerdata,512,1,fp);
   }
 
@@ -1056,7 +1071,7 @@ void INes::MIRROR_SET(uint8 V) {
   fceulib__cart.setmirror(V);
 }
 
-static void NONE_init() {
+void INes::NONE_init() {
   ROM_BANK16(0x8000,0);
   ROM_BANK16(0xC000,~0);
 

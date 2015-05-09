@@ -20,7 +20,8 @@
 
 #include "mapinc.h"
 
-extern uint32 ROM_size;
+#include "ines.h"
+
 static uint8 latche;
 
 static void Sync(void) {
@@ -30,23 +31,20 @@ static void Sync(void) {
     else
       fceulib__cart.setprg16(0x8000,(latche&7)|8);
   } else {
-    fceulib__cart.setprg16(0x8000,7+(ROM_size>>4));
+    fceulib__cart.setprg16(0x8000,7+(fceulib__ines.ROM_size>>4));
   }
 }
 
-static DECLFW(M188Write)
-{
+static DECLFW(M188Write) {
   latche=V;
   Sync();
 }
 
-static DECLFR(ExtDev)
-{
-  return(3);
+static DECLFR(ExtDev) {
+  return 3;
 }
 
-static void Power(void)
-{
+static void Power(void) {
   latche=0;
   Sync();
   fceulib__cart.setchr8(0);
@@ -56,13 +54,11 @@ static void Power(void)
   SetWriteHandler(0x8000,0xFFFF,M188Write);
 }
 
-static void StateRestore(int version)
-{
+static void StateRestore(int version) {
   Sync();
 }
 
-void Mapper188_Init(CartInfo *info)
-{
+void Mapper188_Init(CartInfo *info) {
   info->Power=Power;
   GameStateRestore=StateRestore;
   AddExState(&latche, 1, 0, "LATC");

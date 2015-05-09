@@ -20,18 +20,16 @@
  */
 
 #include "mapinc.h"
-
-extern uint32 ROM_size;
+#include "ines.h"
 
 static uint8 prg[4], chr, sbw, we_sram;
-static uint8 *WRAM=NULL;
-static uint32 WRAMSIZE;
+static uint8 *wram176 = nullptr;
+static constexpr uint32 WRAM176SIZE = 8192;
 
-static SFORMAT StateRegs[]=
-{
+static SFORMAT StateRegs[]= {
   {prg, 4, "PRG"},
   {&chr, 1, "CHR"},
-	{&sbw, 1, "SBW"},
+  {&sbw, 1, "SBW"},
   {0}
 };
 
@@ -45,71 +43,61 @@ static void Sync(void) {
   fceulib__cart.setchr8(chr);
 }
 
-static DECLFW(M176Write_5001)
-{
-	printf("%04X = $%02X\n",A,V);
-	if(sbw)
-	{
-		prg[0] = V*4;
-		prg[1] = V*4+1;
-		prg[2] = V*4+2;
-		prg[3] = V*4+3;
-	}
+static DECLFW(M176Write_5001) {
+  printf("%04X = $%02X\n",A,V);
+  if (sbw) {
+    prg[0] = V*4;
+    prg[1] = V*4+1;
+    prg[2] = V*4+2;
+    prg[3] = V*4+3;
+  }
   Sync();
 }
 
-static DECLFW(M176Write_5010)
-{
-	printf("%04X = $%02X\n",A,V);
-	if(V == 0x24) sbw = 1;
+static DECLFW(M176Write_5010) {
+  printf("%04X = $%02X\n",A,V);
+  if (V == 0x24) sbw = 1;
   Sync();
 }
 
-static DECLFW(M176Write_5011)
-{
-	printf("%04X = $%02X\n",A,V);
-	V >>= 1;
-	if(sbw)
-	{
-		prg[0] = V*4;
-		prg[1] = V*4+1;
-		prg[2] = V*4+2;
-		prg[3] = V*4+3;
-	}
-  Sync();
-}
-
-static DECLFW(M176Write_5FF1)
-{
-	printf("%04X = $%02X\n",A,V);
+static DECLFW(M176Write_5011) {
+  printf("%04X = $%02X\n",A,V);
   V >>= 1;
-	prg[0] = V*4;
-	prg[1] = V*4+1;
-	prg[2] = V*4+2;
-	prg[3] = V*4+3;
+  if (sbw) {
+    prg[0] = V*4;
+    prg[1] = V*4+1;
+    prg[2] = V*4+2;
+    prg[3] = V*4+3;
+  }
   Sync();
 }
 
-static DECLFW(M176Write_5FF2)
-{
-	printf("%04X = $%02X\n",A,V);
+static DECLFW(M176Write_5FF1) {
+  printf("%04X = $%02X\n",A,V);
+  V >>= 1;
+  prg[0] = V*4;
+  prg[1] = V*4+1;
+  prg[2] = V*4+2;
+  prg[3] = V*4+3;
+  Sync();
+}
+
+static DECLFW(M176Write_5FF2) {
+  printf("%04X = $%02X\n",A,V);
   chr = V;
   Sync();
 }
 
-static DECLFW(M176Write_A001)
-{
+static DECLFW(M176Write_A001) {
 	we_sram = V & 0x03;
 }
 
-static DECLFW(M176Write_WriteSRAM)
-{
-//	if(we_sram)
+static DECLFW(M176Write_WriteSRAM) {
+//	if (we_sram)
   Cart::CartBW(A,V);
 }
 
-static void M176Power(void)
-{
+static void M176Power(void) {
   SetReadHandler(0x6000,0x7fff,Cart::CartBR);
   SetWriteHandler(0x6000,0x7fff,M176Write_WriteSRAM);
   SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
@@ -124,34 +112,29 @@ static void M176Power(void)
   sbw = 0;
   prg[0] = 0;
   prg[1] = 1;
-  prg[2] = (ROM_size-2)&63;
-  prg[3] = (ROM_size-1)&63;
+  prg[2] = (fceulib__ines.ROM_size - 2)&63;
+  prg[3] = (fceulib__ines.ROM_size - 1)&63;
   Sync();
 }
 
 
-static void M176Close(void)
-{
-  if(WRAM)
-    free(WRAM);
-  WRAM=NULL;
+static void M176Close(void) {
+  free(wram176);
+  wram176 = nullptr;
 }
 
-static void StateRestore(int version)
-{
+static void StateRestore(int version) {
   Sync();
 }
 
-void Mapper176_Init(CartInfo *info)
-{
+void Mapper176_Init(CartInfo *info) {
   info->Power=M176Power;
   info->Close=M176Close;
 
   GameStateRestore=StateRestore;
 
-  WRAMSIZE=8192;
-  WRAM=(uint8*)FCEU_gmalloc(WRAMSIZE);
-  fceulib__cart.SetupCartPRGMapping(0x10,WRAM,WRAMSIZE,1);
-  AddExState(WRAM, WRAMSIZE, 0, "WRAM");
+  wram176=(uint8*)FCEU_gmalloc(WRAM176SIZE);
+  fceulib__cart.SetupCartPRGMapping(0x10,wram176,WRAM176SIZE,1);
+  AddExState(wram176, WRAM176SIZE, 0, "WRAM");
   AddExState(&StateRegs, ~0, 0, 0);
 }

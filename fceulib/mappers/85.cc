@@ -175,7 +175,7 @@ void Mapper85_init(void) {
   X.MapIRQHook=KonamiIRQHook;
   SetWriteHandler(0x8000,0xffff,Mapper85_write);
   GameStateRestore=Mapper85_StateRestore;
-  if (!VROM_size)
+  if (!fceulib__ines.VROM_size)
    fceulib__cart.SetupCartCHRMapping(0, CHRRAM, 8192, 1);
   //AddExState(VRC7Instrument, 16, 0, "VC7I");
   //AddExState(VRC7Chan, sizeof(VRC7Chan), 0, "V7CH");
