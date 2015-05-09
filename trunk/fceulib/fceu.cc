@@ -56,6 +56,20 @@ using namespace std;
 
 // Used by some boards to do delayed memory writes, etc.
 uint64 timestampbase = 0ULL;
+FCEUGI *GameInfo = nullptr;
+
+void (*GameInterface)(GI h);
+void (*GameStateRestore)(int version);
+
+readfunc ARead[0x10000];
+writefunc BWrite[0x10000];
+static readfunc *AReadG;
+static writefunc *BWriteG;
+static constexpr int RWWrap = 0;
+uint8 *GameMemBlock = nullptr;
+uint8 *RAM = nullptr;
+uint8 *XBuf = nullptr;
+uint8 *XBackBuf = nullptr;
 
 FCEUGI::FCEUGI() { }
 
@@ -76,17 +90,6 @@ void FCEU_CloseGame() {
     GameInfo = nullptr;
   }
 }
-
-FCEUGI *GameInfo = nullptr;
-
-void (*GameInterface)(GI h);
-void (*GameStateRestore)(int version);
-
-readfunc ARead[0x10000];
-writefunc BWrite[0x10000];
-static readfunc *AReadG;
-static writefunc *BWriteG;
-static constexpr int RWWrap = 0;
 
 static DECLFW(BNull) {
 }
@@ -127,11 +130,6 @@ void SetWriteHandler(int32 start, int32 end, writefunc func) {
     }
   }
 }
-
-uint8 *GameMemBlock = nullptr;
-uint8 *RAM = nullptr;
-uint8 *XBuf = nullptr;
-uint8 *XBackBuf = nullptr;
 
 static void AllocBuffers() {
   GameMemBlock = (uint8*)FCEU_gmalloc(GAME_MEM_BLOCK_SIZE);
@@ -256,7 +254,7 @@ FCEUGI *FCEUI_LoadGame(const char *name, int OverwriteVidMode) {
 
 // Return: Flag that indicates whether the function was succesful or not.
 bool FCEUI_Initialize() {
-  // I think we shouldn't do anything randomly in fceulib --tom7.
+  // XXX I think we shouldn't do anything randomly in fceulib --tom7.
   srand(time(0));
 
   AllocBuffers();
@@ -449,12 +447,3 @@ void SetReadHandler(int32 start, int32 end, readfunc func) {
     }
   }
 }
-
-#if 0
-void SetReadHandler_Wrapped(const std::string &what, 
-                            int32 start, int32 end, readfunc func) {
-  TRACEF("SetReadHandler(%d, %d)  %s", start, end, what.c_str());
-  fprintf(stderr, "SetReadHandler(%d, %d)  %s = %p\n", start, end, what.c_str(), func);
-  SetReadHandler(start, end, func);
-}
-#endif

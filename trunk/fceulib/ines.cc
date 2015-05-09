@@ -491,7 +491,7 @@ void INes::CheckHInfo() {
     if (tofix & 1)
       sprintf(gigastr+strlen(gigastr),"The mapper number should be set to %d.  ",mapper_number);
     if (tofix & 2) {
-      static constexpr const char *mstr[3] = {"Horizontal", "Vertical", "Four-screen"};
+      static constexpr const char *const mstr[3] = {"Horizontal", "Vertical", "Four-screen"};
       sprintf(gigastr+strlen(gigastr),"Mirroring should be set to \"%s\".  ",mstr[iNESMirroring&3]);
     }
     if (tofix&4)

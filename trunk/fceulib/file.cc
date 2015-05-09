@@ -27,10 +27,6 @@
 #include <sys/stat.h>
 #include <fstream>
 
-#ifndef WIN32
-#include <zlib.h>
-#endif
-
 #include "types.h"
 #include "file.h"
 #include "utils/endian.h"
@@ -45,35 +41,14 @@
 
 using namespace std;
 
-static string BaseDirectory;
-static char FileBase[2048];
-static char FileBaseDirectory[2048];
+FceuFile::FceuFile() {}
 
-static uint64 FCEU_ftell(FceuFile *fp) {
+FceuFile::~FceuFile() {
+  delete stream;
+}
+
+uint64 FCEU_ftell(FceuFile *fp) {
   return fp->stream->ftell();
-}
-
-namespace {
-struct FileBaseInfo {
-  std::string filebase, filebasedirectory, ext;
-  FileBaseInfo() {}
-  FileBaseInfo(const std::string &fbd, 
-	       const std::string &fb, 
-	       const std::string &ex) {
-    filebasedirectory = fbd;
-    filebase = fb;
-    ext = ex;
-  }
-};
-}
-
-static FileBaseInfo DetermineFileBase(const char *f) {
-  char drv[PATH_MAX], dir[PATH_MAX], name[PATH_MAX], ext[PATH_MAX];
-  splitpath(f,drv,dir,name,ext);
-
-  if (dir[0] == 0) strcpy(dir,".");
-
-  return FileBaseInfo((string)drv + dir,name,ext);
 }
 
 FceuFile *FCEU_fopen(const std::string &path, char *mode, char *ext) {
@@ -96,23 +71,11 @@ FceuFile *FCEU_fopen(const std::string &path, char *mode, char *ext) {
 
   // if the archive contained no files, try to open it the old fashioned way
   EMUFILE_FILE* fp = FCEUD_UTF8_fstream(path,mode);
-  if (!fp || (fp->get_fp() == NULL)) {
+  if (!fp || (fp->get_fp() == nullptr)) {
     return 0;
   }
 
   // Here we used to try zip files. -tom7
-
-  // And here we used to try gzip. -tom7
-  if (false) {
-    uint32 magic;
-
-    // XXX can just skip these gets right? fseek
-    // is putting us back at the beginning?
-    magic = fp->fgetc();
-    magic|=fp->fgetc()<<8;
-    magic|=fp->fgetc()<<16;
-    fp->fseek(0,SEEK_SET);
-  }
 
   // open a plain old file
   FceuFile *fceufp = new FceuFile();
@@ -155,12 +118,15 @@ uint64 FCEU_fgetsize(FceuFile *fp) {
 
 // TODO(tom7): We should probably not let this thing save battery backup
 // files; they should be serialized as part of the state at most.
+//
+// These are currently producing dummy names like ".sav" always. Don't
+// let fceulib save!
 string FCEU_MakeSaveFilename() {
-  return (string)FileBase + ".sav";
+  return ".sav";
 }
 
 string FCEU_MakeFDSFilename() {
-  return (string)FileBase + ".fds";
+  return ".fds";
 }
 
 string FCEU_MakeFDSROMFilename() {
@@ -168,11 +134,5 @@ string FCEU_MakeFDSROMFilename() {
 }
 
 string FCEU_MakePaletteFilename() {
-  return (string)FileBase + ".pal";
-}
-
-void GetFileBase(const char *f) {
-  FileBaseInfo fbi = DetermineFileBase(f);
-  strcpy(FileBase,fbi.filebase.c_str());
-  strcpy(FileBaseDirectory,fbi.filebasedirectory.c_str());
+  return ".pal";
 }
