@@ -37,13 +37,14 @@ static int acount=0;
 static void KonamiIRQHook(int a) {
   static constexpr int LCYCS = 341;
   //  #define LCYCS ((227*2)+1)
-  if (IRQa) {
+  if (fceulib__ines.iNESIRQa) {
     acount+=a*3;
     while (acount >= LCYCS) {
-      acount-=LCYCS;IRQCount++;
-      if (IRQCount==0x100) {
+      acount-=LCYCS;
+      fceulib__ines.iNESIRQCount++;
+      if (fceulib__ines.iNESIRQCount==0x100) {
 	X.IRQBegin(FCEU_IQEXT);
-	IRQCount=IRQLatch;
+	fceulib__ines.iNESIRQCount=IRQLatch;
       }
     }
   }
@@ -76,10 +77,10 @@ static DECLFW(Mapper24_write) {
   case 0x8000:ROM_BANK16(0x8000,V);break;
   case 0xB003:
     switch (V&0xF) {
-    case 0x0:MIRROR_SET2(1);break;
-    case 0x4:MIRROR_SET2(0);break;
-    case 0x8:onemir(0);break;
-    case 0xC:onemir(1);break;
+    case 0x0:fceulib__ines.MIRROR_SET2(1);break;
+    case 0x4:fceulib__ines.MIRROR_SET2(0);break;
+    case 0x8:fceulib__ines.onemir(0);break;
+    case 0xC:fceulib__ines.onemir(1);break;
     }
     break;
   case 0xC000:ROM_BANK8(0xC000,V);break;
@@ -94,15 +95,15 @@ static DECLFW(Mapper24_write) {
   case 0xF000:IRQLatch=V;
     //acount=0;
     break;
-  case 0xF001:IRQa=V&2;
+  case 0xF001:fceulib__ines.iNESIRQa=V&2;
     vrctemp=V&1;
     if (V&2) {
-      IRQCount=IRQLatch;
+      fceulib__ines.iNESIRQCount=IRQLatch;
       acount=0;
     }
     X.IRQEnd(FCEU_IQEXT);
     break;
-  case 0xf002:IRQa=vrctemp;
+  case 0xf002:fceulib__ines.iNESIRQa=vrctemp;
     X.IRQEnd(FCEU_IQEXT);break;
   case 0xF003:break;
   }

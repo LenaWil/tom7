@@ -69,35 +69,32 @@ DECLFW(Mapper9_write)        // $Axxx
  ROM_BANK8(0x8000,V);
 }
 
-DECLFW(Mapper10_write)
-{
+DECLFW(Mapper10_write) {
  ROM_BANK16(0x8000,V);
 }
 
-DECLFW(Mapper9and10_write)
-{
-       switch(A&0xF000)
-       {
-        case 0xB000:
-                if(latcha1==0xFD) { VROM_BANK4(0x0000,V);}
-                MMC4reg[0]=V;
-                break;
-        case 0xC000:
-                if(latcha1==0xFE) {VROM_BANK4(0x0000,V);}
-                MMC4reg[1]=V;
-                break;
-        case 0xD000:
-                if(latcha2==0xFD) {VROM_BANK4(0x1000,V);}
-                MMC4reg[2]=V;
-                break;
-        case 0xE000:
-                if(latcha2==0xFE) {VROM_BANK4(0x1000,V);}
-                MMC4reg[3]=V;
-                break;
-        case 0xF000:
-                MIRROR_SET(V&1);
-                break;
-        }
+DECLFW(Mapper9and10_write) {
+  switch(A&0xF000) {
+    case 0xB000:
+      if(latcha1==0xFD) { VROM_BANK4(0x0000,V);}
+      MMC4reg[0]=V;
+      break;
+    case 0xC000:
+      if(latcha1==0xFE) {VROM_BANK4(0x0000,V);}
+      MMC4reg[1]=V;
+      break;
+    case 0xD000:
+      if(latcha2==0xFD) {VROM_BANK4(0x1000,V);}
+      MMC4reg[2]=V;
+      break;
+    case 0xE000:
+      if(latcha2==0xFE) {VROM_BANK4(0x1000,V);}
+      MMC4reg[3]=V;
+      break;
+    case 0xF000:
+      fceulib__ines.MIRROR_SET(V&1);
+      break;
+    }
 }
 
 void Mapper9_init(void) {

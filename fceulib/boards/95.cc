@@ -37,9 +37,9 @@ static void toot(void) {
   MirCache[0]=MirCache[1]=(DRegs[0]>>4)&1;
   MirCache[2]=MirCache[3]=(DRegs[1]>>4)&1;
 
-  for(int x=0;x<4;x++)
+  for (int x=0;x<4;x++)
     MirCache[4+x]=(DRegs[2+x]>>5)&1;
-  onemir(MirCache[lastA]);
+  fceulib__ines.onemir(MirCache[lastA]);
 }
 
 static void Sync() {
@@ -55,10 +55,10 @@ static void Sync() {
 }
 
 static DECLFW(Mapper95_write) {
-  switch(A&0xF001) {
+  switch (A&0xF001) {
     case 0x8000: cmd = V; break;
     case 0x8001:
-     switch(cmd&0x07) {
+     switch (cmd&0x07) {
        case 0: DRegs[0]=(V&0x3F)>>1; break;
        case 1: DRegs[1]=(V&0x3F)>>1; break;
        case 2: DRegs[2]=V&0x3F; break;
@@ -76,13 +76,13 @@ static void dragonbust_ppu(uint32 A) {
   static int last=-1;
   static uint8 z;
 
-  if(A>=0x2000) return;
+  if (A>=0x2000) return;
 
   A>>=10;
   lastA=A;
   z=MirCache[A];
-  if(z!=last) {
-    onemir(z);
+  if (z!=last) {
+    fceulib__ines.onemir(z);
     last=z;
   }
 }

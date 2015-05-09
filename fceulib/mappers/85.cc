@@ -94,55 +94,54 @@ DECLFW(Mapper85_write)
     case 0xE010:IRQLatch=V;
       X.IRQEnd(FCEU_IQEXT);
       break;
-    case 0xF000:IRQa=V&2;
+    case 0xF000:fceulib__ines.iNESIRQa=V&2;
       vrctemp=V&1;
-      if (V&2) {IRQCount=IRQLatch;}
+      if (V&2) {fceulib__ines.iNESIRQCount=IRQLatch;}
       acount=0;
       X.IRQEnd(FCEU_IQEXT);
       break;
-    case 0xf010:if (vrctemp) IRQa=1;
-      else IRQa=0;
+    case 0xf010:if (vrctemp) fceulib__ines.iNESIRQa=1;
+      else fceulib__ines.iNESIRQa=0;
       X.IRQEnd(FCEU_IQEXT);
       break;
     }
   }
 }
 
-static void KonamiIRQHook(int a)
-{
-  #define ACBOO 341
-//  #define ACBOO ((227*2)+1)
-  if (IRQa)
-   {
+static void KonamiIRQHook(int a) {
+#define ACBOO 341
+  //  #define ACBOO ((227*2)+1)
+  if (fceulib__ines.iNESIRQa) {
     acount+=a*3;
 
-    if (acount>=ACBOO)
-    {
-     doagainbub:acount-=ACBOO;
-     IRQCount++;
-     if (IRQCount&0x100) {X.IRQBegin(FCEU_IQEXT);IRQCount=IRQLatch;}
-     if (acount>=ACBOO) goto doagainbub;
+    if (acount>=ACBOO) {
+    doagainbub:acount-=ACBOO;
+      fceulib__ines.iNESIRQCount++;
+      if (fceulib__ines.iNESIRQCount&0x100) {X.IRQBegin(FCEU_IQEXT);fceulib__ines.iNESIRQCount=IRQLatch;}
+      if (acount>=ACBOO) goto doagainbub;
     }
- }
+  }
 }
 
 void Mapper85_StateRestore(int version) {
 
- if (version<7200)
- {
-  for(int x=0;x<8;x++)
-   mapbyte3[x]=CHRBankList[x];
-  for(int x=0;x<3;x++)
-   mapbyte2[x]=PRGBankList[x];
-  mapbyte2[3]=(Mirroring<0x10)?Mirroring:Mirroring-0xE;
- }
+  if (version<7200) {
+    for(int x=0;x<8;x++)
+      mapbyte3[x]=CHRBankList[x];
+    for(int x=0;x<3;x++)
+      mapbyte2[x]=PRGBankList[x];
+    mapbyte2[3]=
+      (fceulib__ines.iNESMirroring<0x10) ? 
+      fceulib__ines.iNESMirroring : 
+      fceulib__ines.iNESMirroring-0xE;
+  }
 
- for(int x=0;x<8;x++)
-  fceulib__cart.setchr1(x*0x400,mapbyte3[x]);
- for(int x=0;x<3;x++)
-  fceulib__cart.setprg8(0x8000+x*8192,mapbyte2[x]);
- DaMirror(mapbyte2[3]);
- //LoadOPL();
+  for(int x=0;x<8;x++)
+    fceulib__cart.setchr1(x*0x400,mapbyte3[x]);
+  for(int x=0;x<3;x++)
+    fceulib__cart.setprg8(0x8000+x*8192,mapbyte2[x]);
+  DaMirror(mapbyte2[3]);
+  //LoadOPL();
 }
 
 static void M85SC(void) {

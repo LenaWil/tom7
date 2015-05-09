@@ -42,7 +42,7 @@ static DECLFW(Mapper76_write)
                }
                break;
         case 0xA000:
-        MIRROR_SET(V&1);
+        fceulib__ines.MIRROR_SET(V&1);
         break;
  }
 }

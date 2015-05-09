@@ -27,7 +27,7 @@
 DECLFW(Mapper41_write) {
  if(A<0x8000) {
   ROM_BANK32(A&7);
-  MIRROR_SET((A>>5)&1);
+  fceulib__ines.MIRROR_SET((A>>5)&1);
   calreg=A;
   calchr&=0x3;
   calchr|=(A>>1)&0xC;

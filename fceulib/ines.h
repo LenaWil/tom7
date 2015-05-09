@@ -55,6 +55,13 @@ struct INes {
   // INESPRV
   void (*MapStateRestore)(int version) = nullptr;
   void (*MapperReset)() = nullptr;
+  void onemir(uint8 V);
+  void MIRROR_SET2(uint8 V);
+  void MIRROR_SET(uint8 V);
+
+  uint8 iNESIRQa = 0;
+  uint8 iNESMirroring = 0;
+  int32 iNESIRQCount = 0;
 
  private:
 
@@ -107,13 +114,11 @@ extern uint32 ROM_size;
 #define mapbyte3       (mapbyte2+8)
 #define mapbyte4       (mapbyte3+8)
 extern uint16 iNESCHRBankList[8];
-extern int32 iNESIRQLatch,iNESIRQCount;
-extern uint8 iNESMirroring;
-extern uint8 iNESIRQa;
+extern int32 iNESIRQLatch;
 
-#define IRQa iNESIRQa
-#define Mirroring iNESMirroring
-#define IRQCount iNESIRQCount
+// #define IRQa iNESIRQa
+// #define Mirroring iNESMirroring
+// #define IRQCount iNESIRQCount
 #define IRQLatch iNESIRQLatch
 #define CHRBankList iNESCHRBankList
 
@@ -161,10 +166,6 @@ void VROM_BANK8(uint32 V);
 void ROM_BANK8(uint32 A, uint32 V);
 void ROM_BANK16(uint32 A, uint32 V);
 void ROM_BANK32(uint32 V);
-
-void onemir(uint8 V);
-void MIRROR_SET2(uint8 V);
-void MIRROR_SET(uint8 V);
 
 void Mapper0_init();
 void Mapper1_init();

@@ -51,10 +51,8 @@ uint8 *ROM = nullptr;
 uint8 *VROM = nullptr;
 iNES_HEADER head;
 
-uint8 iNESMirroring=0;
 uint16 iNESCHRBankList[8]={0,0,0,0,0,0,0,0};
-int32 iNESIRQLatch=0,iNESIRQCount=0;
-uint8 iNESIRQa=0;
+int32 iNESIRQLatch=0;
 
 uint32 ROM_size=0;
 uint32 VROM_size=0;
@@ -433,12 +431,12 @@ void INes::CheckHInfo() {
       if (ines_correct[x].mirror>=0) {
 	if (ines_correct[x].mirror==8) {
 	  /* Anything but hard-wired(four screen). */
-	  if (Mirroring==2) {
+	  if (iNESMirroring==2) {
 	    tofix|=2;
-	    Mirroring=0;
+	    iNESMirroring=0;
 	  }
-	} else if (Mirroring!=ines_correct[x].mirror) {
-	  if (Mirroring!=(ines_correct[x].mirror&~4))
+	} else if (iNESMirroring!=ines_correct[x].mirror) {
+	  if (iNESMirroring!=(ines_correct[x].mirror&~4))
 	    if ((ines_correct[x].mirror&~4)<=2) {
 	      /* Don't complain if one-screen mirroring
 		 needs to be set (the iNES header can't
@@ -446,7 +444,7 @@ void INes::CheckHInfo() {
 	      */
 	      tofix|=2;
 	    }
-	  Mirroring=ines_correct[x].mirror;
+	  iNESMirroring=ines_correct[x].mirror;
 	}
       }
       break;
@@ -466,14 +464,14 @@ void INes::CheckHInfo() {
   /* Games that use these iNES mappers tend to have the four-screen bit set
      when it should not be.
   */
-  if ((mapper_number==118 || mapper_number==24 || mapper_number==26) && (Mirroring==2)) {
-    Mirroring=0;
+  if ((mapper_number==118 || mapper_number==24 || mapper_number==26) && (iNESMirroring==2)) {
+    iNESMirroring=0;
     tofix|=2;
   }
 
   /* Four-screen mirroring implicitly set. */
   if (mapper_number == 99)
-    Mirroring = 2;
+    iNESMirroring = 2;
 
   if (tofix) {
     char gigastr[768];
@@ -483,7 +481,7 @@ void INes::CheckHInfo() {
       sprintf(gigastr+strlen(gigastr),"The mapper number should be set to %d.  ",mapper_number);
     if (tofix & 2) {
       static constexpr const char *mstr[3] = {"Horizontal", "Vertical", "Four-screen"};
-      sprintf(gigastr+strlen(gigastr),"Mirroring should be set to \"%s\".  ",mstr[Mirroring&3]);
+      sprintf(gigastr+strlen(gigastr),"Mirroring should be set to \"%s\".  ",mstr[iNESMirroring&3]);
     }
     if (tofix&4)
       strcat(gigastr, "The battery-backed bit should be set.  ");
@@ -799,8 +797,8 @@ int INes::iNESLoad(const char *name, FceuFile *fp, int OverwriteVidMode) {
   memset(&iNESCart,0,sizeof(iNESCart));
 
   mapper_number = (head.ROM_type>>4);
-  mapper_number|=(head.ROM_type2&0xF0);
-  Mirroring = (head.ROM_type&1);
+  mapper_number |= (head.ROM_type2&0xF0);
+  iNESMirroring = (head.ROM_type&1);
 
 
   //  int ROM_size=0;
@@ -833,7 +831,7 @@ int INes::iNESLoad(const char *name, FceuFile *fp, int OverwriteVidMode) {
     VROM_size=uppow2(VROM_size);
 
 
-  if (head.ROM_type&8) Mirroring=2;
+  if (head.ROM_type&8) iNESMirroring=2;
 
   if ((ROM = (uint8 *)FCEU_malloc(ROM_size<<14)) == nullptr) return 0;
 
@@ -900,12 +898,12 @@ int INes::iNESLoad(const char *name, FceuFile *fp, int OverwriteVidMode) {
 
   FCEU_printf(" Mapper #:  %d\n Mapper name: %s\n Mirroring: %s\n",
 	      mapper_number, mappername, 
-	      Mirroring == 2 ? "None (Four-screen)" :
-	      Mirroring ? "Vertical" : "Horizontal");
+	      iNESMirroring == 2 ? "None (Four-screen)" :
+	      iNESMirroring ? "Vertical" : "Horizontal");
 
   FCEU_printf(" Battery-backed: %s\n", (head.ROM_type&2)?"Yes":"No");
   FCEU_printf(" Trained: %s\n", (head.ROM_type&4)?"Yes":"No");
-  // (head.ROM_type&8) = Mirroring: None(Four-screen)
+  // (head.ROM_type&8) = iNESMirroring: None(Four-screen)
 
   SetInput(iNESGameCRC32, GameInfo);
   CheckHInfo();
@@ -916,7 +914,7 @@ int INes::iNESLoad(const char *name, FceuFile *fp, int OverwriteVidMode) {
       partialmd5 |= (uint64)iNESCart.MD5[7-x] << (x * 8);
     }
 
-    fceulib__vsuni.FCEU_VSUniCheck(partialmd5, &mapper_number, &Mirroring);
+    fceulib__vsuni.FCEU_VSUniCheck(partialmd5, &mapper_number, &iNESMirroring);
   }
   /* Must remain here because above functions might change value of
      VROM_size and free(VROM).
@@ -924,15 +922,15 @@ int INes::iNESLoad(const char *name, FceuFile *fp, int OverwriteVidMode) {
   if (VROM_size)
     fceulib__cart.SetupCartCHRMapping(0,VROM,VROM_size*0x2000,0);
 
-  if (Mirroring == 2)
+  if (iNESMirroring == 2)
     fceulib__cart.SetupCartMirroring(4,1,ExtraNTARAM);
-  else if (Mirroring >= 0x10)
-    fceulib__cart.SetupCartMirroring(2+(Mirroring&1),1,0);
+  else if (iNESMirroring >= 0x10)
+    fceulib__cart.SetupCartMirroring(2+(iNESMirroring&1),1,0);
   else
-    fceulib__cart.SetupCartMirroring(Mirroring&1,(Mirroring&4)>>2,0);
+    fceulib__cart.SetupCartMirroring(iNESMirroring&1,(iNESMirroring&4)>>2,0);
 
   iNESCart.battery=(head.ROM_type&2)?1:0;
-  iNESCart.mirror=Mirroring;
+  iNESCart.mirror=iNESMirroring;
 
   GameInfo->mappernum = mapper_number;
   MapperInit();
@@ -1040,24 +1038,24 @@ void ROM_BANK32(uint32 V) {
   PRGBankList[3]=(V<<2)+3;
 }
 
-void onemir(uint8 V) {
-  if (Mirroring==2) return;
+void INes::onemir(uint8 V) {
+  if (iNESMirroring==2) return;
   if (V>1)
     V=1;
-  Mirroring=0x10|V;
+  iNESMirroring=0x10|V;
   fceulib__cart.setmirror(MI_0+V);
 }
 
-void MIRROR_SET2(uint8 V) {
-  if (Mirroring==2) return;
-  Mirroring=V;
+void INes::MIRROR_SET2(uint8 V) {
+  if (iNESMirroring==2) return;
+  iNESMirroring=V;
   fceulib__cart.setmirror(V);
 }
 
-void MIRROR_SET(uint8 V) {
-  if (Mirroring==2) return;
+void INes::MIRROR_SET(uint8 V) {
+  if (iNESMirroring==2) return;
   V^=1;
-  Mirroring=V;
+  iNESMirroring=V;
   fceulib__cart.setmirror(V);
 }
 
@@ -1349,7 +1347,7 @@ void INes::iNESStateRestore(int version) {
       fceulib__cart.setchr1(0x400*x,CHRBankList[x]);
 
 #if 0
-  switch(Mirroring) {
+  switch(iNESMirroring) {
   case 0:fceulib__cart.setmirror(MI_H);break;
   case 1:fceulib__cart.setmirror(MI_V);break;
   case 0x12:
@@ -1380,7 +1378,7 @@ void INes::iNESPower() {
 
   /* This statement represents atrocious code.  I need to rewrite
      all of the iNES mapper code... */
-  IRQCount=IRQLatch=IRQa=0;
+  iNESIRQCount=IRQLatch=iNESIRQa=0;
   if (head.ROM_type&2)
     memset(GameMemBlock+8192,0,GAME_MEM_BLOCK_SIZE-8192);
   else
@@ -1404,10 +1402,10 @@ void INes::iNESPower() {
      themselves. */
   if (type && type != 13 && type != 96) {
     AddExState(mapbyte1, 32, 0, "MPBY");
-    AddExState(&Mirroring, 1, 0, "MIRR");
-    AddExState(&IRQCount, 4, 1, "IRQC");
+    AddExState(&iNESMirroring, 1, 0, "MIRR");
+    AddExState(&iNESIRQCount, 4, 1, "IRQC");
     AddExState(&IRQLatch, 4, 1, "IQL1");
-    AddExState(&IRQa, 1, 0, "IRQA");
+    AddExState(&iNESIRQa, 1, 0, "IRQA");
     AddExState(PRGBankList, 4, 0, "PBL");
     for (int x = 0; x < 8; x++) {
       char tak[8];
