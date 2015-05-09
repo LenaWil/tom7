@@ -64,9 +64,26 @@ struct INes {
   int32 iNESIRQCount = 0;
   int32 iNESIRQLatch = 0;
   uint16 iNESCHRBankList[8] = {0};
+  uint32 VROM_size = 0;
+  uint32 ROM_size = 0;
+
+  uint8 *ROM = nullptr;
+  uint8 *VROM = nullptr;
 
  private:
 
+  struct Header {
+    char ID[4]; /*NES^Z*/
+    uint8 ROM_size;
+    uint8 VROM_size;
+    uint8 ROM_type;
+    uint8 ROM_type2;
+    uint8 reserve[8];
+  };
+
+  Header head;
+  void CleanupHeader(Header *h);
+  
   uint8 *trainerdata = nullptr;
 
   int mapper_number = 0;
@@ -78,6 +95,8 @@ struct INes {
   std::map<std::string, std::string> MasterRomInfoParams;
 
   void (*MapClose)() = nullptr;
+
+  void NONE_init();
 
   int NewiNES_Init(int num);
   void iNESPower();
@@ -91,9 +110,6 @@ extern INes fceulib__ines;
 
 // These are allowed to be accessed by mappers. -tom7
 #ifdef INESPRIV
-
-extern uint32 VROM_size;
-extern uint32 ROM_size;
 
 /* This order is necessary */
 #define WRAM    (GameMemBlock)
@@ -117,38 +133,6 @@ extern uint32 ROM_size;
 #define mapbyte4       (mapbyte3+8)
 
 #endif  // INESPRIV
-
-extern uint8 *ROM;
-extern uint8 *VROM;
-extern uint32 VROM_size;
-extern uint32 ROM_size;
-
-struct iNES_HEADER {
-  char ID[4]; /*NES^Z*/
-  uint8 ROM_size;
-  uint8 VROM_size;
-  uint8 ROM_type;
-  uint8 ROM_type2;
-  uint8 reserve[8];
-
-  void cleanup() {
-    if (!memcmp((char *)(this)+0x7,"DiskDude",8)) {
-      memset((char *)(this)+0x7,0,0x9);
-    }
-
-    if (!memcmp((char *)(this)+0x7,"demiforce",9)) {
-      memset((char *)(this)+0x7,0,0x9);
-    }
-
-    if (!memcmp((char *)(this)+0xA,"Ni03",4)) {
-      if (!memcmp((char *)(this)+0x7,"Dis",3))
-	memset((char *)(this)+0x7,0,0x9);
-      else
-	memset((char *)(this)+0xA,0,0x6);
-    }
-  }
-};
-extern struct iNES_HEADER head; //for mappers usage
 
 void VRAM_BANK1(uint32 A, uint8 V);
 void VRAM_BANK4(uint32 A,uint32 V);
