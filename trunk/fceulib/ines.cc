@@ -51,9 +51,6 @@ uint8 *ROM = nullptr;
 uint8 *VROM = nullptr;
 iNES_HEADER head;
 
-uint16 iNESCHRBankList[8]={0,0,0,0,0,0,0,0};
-int32 iNESIRQLatch=0;
-
 uint32 ROM_size=0;
 uint32 VROM_size=0;
 
@@ -971,49 +968,49 @@ int INes::iNESLoad(const char *name, FceuFile *fp, int OverwriteVidMode) {
 void VRAM_BANK1(uint32 A, uint8 V) {
   V&=7;
   fceulib__ppu.PPUCHRRAM|=(1<<(A>>10));
-  CHRBankList[(A)>>10]=V;
+  fceulib__ines.iNESCHRBankList[(A)>>10]=V;
   fceulib__cart.VPage[(A)>>10]=&CHRRAM[V<<10]-(A);
 }
 
 void VRAM_BANK4(uint32 A, uint32 V) {
   V&=1;
   fceulib__ppu.PPUCHRRAM|=(0xF<<(A>>10));
-  CHRBankList[(A)>>10]=(V<<2);
-  CHRBankList[((A)>>10)+1]=(V<<2)+1;
-  CHRBankList[((A)>>10)+2]=(V<<2)+2;
-  CHRBankList[((A)>>10)+3]=(V<<2)+3;
+  fceulib__ines.iNESCHRBankList[(A)>>10]=(V<<2);
+  fceulib__ines.iNESCHRBankList[((A)>>10)+1]=(V<<2)+1;
+  fceulib__ines.iNESCHRBankList[((A)>>10)+2]=(V<<2)+2;
+  fceulib__ines.iNESCHRBankList[((A)>>10)+3]=(V<<2)+3;
   fceulib__cart.VPage[(A)>>10]=&CHRRAM[V<<10]-(A);
 }
 
 void VROM_BANK1(uint32 A,uint32 V) {
   fceulib__cart.setchr1(A,V);
-  CHRBankList[(A)>>10]=V;
+  fceulib__ines.iNESCHRBankList[(A)>>10]=V;
 }
 
 void VROM_BANK2(uint32 A,uint32 V) {
   fceulib__cart.setchr2(A,V);
-  CHRBankList[(A)>>10]=(V<<1);
-  CHRBankList[((A)>>10)+1]=(V<<1)+1;
+  fceulib__ines.iNESCHRBankList[(A)>>10]=(V<<1);
+  fceulib__ines.iNESCHRBankList[((A)>>10)+1]=(V<<1)+1;
 }
 
 void VROM_BANK4(uint32 A, uint32 V) {
   fceulib__cart.setchr4(A,V);
-  CHRBankList[(A)>>10]=(V<<2);
-  CHRBankList[((A)>>10)+1]=(V<<2)+1;
-  CHRBankList[((A)>>10)+2]=(V<<2)+2;
-  CHRBankList[((A)>>10)+3]=(V<<2)+3;
+  fceulib__ines.iNESCHRBankList[(A)>>10]=(V<<2);
+  fceulib__ines.iNESCHRBankList[((A)>>10)+1]=(V<<2)+1;
+  fceulib__ines.iNESCHRBankList[((A)>>10)+2]=(V<<2)+2;
+  fceulib__ines.iNESCHRBankList[((A)>>10)+3]=(V<<2)+3;
 }
 
 void VROM_BANK8(uint32 V) {
   fceulib__cart.setchr8(V);
-  CHRBankList[0]=(V<<3);
-  CHRBankList[1]=(V<<3)+1;
-  CHRBankList[2]=(V<<3)+2;
-  CHRBankList[3]=(V<<3)+3;
-  CHRBankList[4]=(V<<3)+4;
-  CHRBankList[5]=(V<<3)+5;
-  CHRBankList[6]=(V<<3)+6;
-  CHRBankList[7]=(V<<3)+7;
+  fceulib__ines.iNESCHRBankList[0]=(V<<3);
+  fceulib__ines.iNESCHRBankList[1]=(V<<3)+1;
+  fceulib__ines.iNESCHRBankList[2]=(V<<3)+2;
+  fceulib__ines.iNESCHRBankList[3]=(V<<3)+3;
+  fceulib__ines.iNESCHRBankList[4]=(V<<3)+4;
+  fceulib__ines.iNESCHRBankList[5]=(V<<3)+5;
+  fceulib__ines.iNESCHRBankList[6]=(V<<3)+6;
+  fceulib__ines.iNESCHRBankList[7]=(V<<3)+7;
 }
 
 void ROM_BANK8(uint32 A, uint32 V) {
@@ -1344,7 +1341,7 @@ void INes::iNESStateRestore(int version) {
 
   if (VROM_size)
     for (int x = 0; x < 8; x++)
-      fceulib__cart.setchr1(0x400*x,CHRBankList[x]);
+      fceulib__cart.setchr1(0x400*x,iNESCHRBankList[x]);
 
 #if 0
   switch(iNESMirroring) {
@@ -1378,7 +1375,7 @@ void INes::iNESPower() {
 
   /* This statement represents atrocious code.  I need to rewrite
      all of the iNES mapper code... */
-  iNESIRQCount=IRQLatch=iNESIRQa=0;
+  iNESIRQCount=iNESIRQLatch=iNESIRQa=0;
   if (head.ROM_type&2)
     memset(GameMemBlock+8192,0,GAME_MEM_BLOCK_SIZE-8192);
   else
@@ -1404,13 +1401,13 @@ void INes::iNESPower() {
     AddExState(mapbyte1, 32, 0, "MPBY");
     AddExState(&iNESMirroring, 1, 0, "MIRR");
     AddExState(&iNESIRQCount, 4, 1, "IRQC");
-    AddExState(&IRQLatch, 4, 1, "IQL1");
+    AddExState(&iNESIRQLatch, 4, 1, "IQL1");
     AddExState(&iNESIRQa, 1, 0, "IRQA");
     AddExState(PRGBankList, 4, 0, "PBL");
     for (int x = 0; x < 8; x++) {
       char tak[8];
       sprintf(tak,"CBL%d",x);
-      AddExState(&CHRBankList[x], 2, 1,tak);
+      AddExState(&iNESCHRBankList[x], 2, 1,tak);
     }
   }
 

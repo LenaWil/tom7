@@ -211,33 +211,32 @@ void Mapper69_StateRestore(int version) {
 }
 
 void Mapper69_ESI(void) {
- fceulib__sound.GameExpSound.RChange=Mapper69_ESI;
- fceulib__sound.GameExpSound.HiSync=AYHiSync;
- memset(dcount,0,sizeof(dcount));
- memset(vcount,0,sizeof(vcount));
- memset(CAYBC,0,sizeof(CAYBC));
+  fceulib__sound.GameExpSound.RChange=Mapper69_ESI;
+  fceulib__sound.GameExpSound.HiSync=AYHiSync;
+  memset(dcount,0,sizeof(dcount));
+  memset(vcount,0,sizeof(vcount));
+  memset(CAYBC,0,sizeof(CAYBC));
 }
 
-void NSFAY_Init(void)
-{
- sunindex=0;
- SetWriteHandler(0xc000,0xdfff,Mapper69_SWL);
- SetWriteHandler(0xe000,0xffff,Mapper69_SWH);
- Mapper69_ESI();
+void NSFAY_Init(void) {
+  sunindex=0;
+  SetWriteHandler(0xc000,0xdfff,Mapper69_SWL);
+  SetWriteHandler(0xe000,0xffff,Mapper69_SWH);
+  Mapper69_ESI();
 }
 
 void Mapper69_init(void) {
- sunindex=0;
+  sunindex=0;
 
- fceulib__cart.SetupCartPRGMapping(0x10,WRAM,8192,1);
+  fceulib__cart.SetupCartPRGMapping(0x10,WRAM,8192,1);
 
- SetWriteHandler(0x8000,0xbfff,Mapper69_write);
- SetWriteHandler(0xc000,0xdfff,Mapper69_SWL);
- SetWriteHandler(0xe000,0xffff,Mapper69_SWH);
- SetWriteHandler(0x6000,0x7fff,SUN5BWRAM);
- SetReadHandler(0x6000,0x7fff,SUN5AWRAM);
- Mapper69_ESI();
- X.MapIRQHook=SunIRQHook;
- fceulib__ines.MapStateRestore=Mapper69_StateRestore;
+  SetWriteHandler(0x8000,0xbfff,Mapper69_write);
+  SetWriteHandler(0xc000,0xdfff,Mapper69_SWL);
+  SetWriteHandler(0xe000,0xffff,Mapper69_SWH);
+  SetWriteHandler(0x6000,0x7fff,SUN5BWRAM);
+  SetReadHandler(0x6000,0x7fff,SUN5AWRAM);
+  Mapper69_ESI();
+  X.MapIRQHook=SunIRQHook;
+  fceulib__ines.MapStateRestore=Mapper69_StateRestore;
 }
 

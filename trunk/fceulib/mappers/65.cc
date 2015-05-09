@@ -44,11 +44,11 @@ static DECLFW(Mapper65_write)
  // case 0x9000:printf("$%04x:$%02x\n",A,V);fceulib__ines.MIRROR_SET2((V>>6)&1);break;
   case 0x9001:fceulib__ines.MIRROR_SET(V>>7);break;
   case 0x9003:fceulib__ines.iNESIRQa=V&0x80;X.IRQEnd(FCEU_IQEXT);break;
-  case 0x9004:fceulib__ines.iNESIRQCount=IRQLatch;break;
-  case 0x9005:          IRQLatch&=0x00FF;
-                        IRQLatch|=V<<8;
+  case 0x9004:fceulib__ines.iNESIRQCount=fceulib__ines.iNESIRQLatch;break;
+  case 0x9005:          fceulib__ines.iNESIRQLatch&=0x00FF;
+                        fceulib__ines.iNESIRQLatch|=V<<8;
                         break;
-  case 0x9006:          IRQLatch&=0xFF00;IRQLatch|=V;
+  case 0x9006:          fceulib__ines.iNESIRQLatch&=0xFF00;fceulib__ines.iNESIRQLatch|=V;
                         break;
   case 0xB000:VROM_BANK1(0x0000,V);break;
   case 0xB001:VROM_BANK1(0x0400,V);break;

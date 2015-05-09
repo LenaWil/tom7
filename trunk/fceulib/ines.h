@@ -62,6 +62,8 @@ struct INes {
   uint8 iNESIRQa = 0;
   uint8 iNESMirroring = 0;
   int32 iNESIRQCount = 0;
+  int32 iNESIRQLatch = 0;
+  uint16 iNESCHRBankList[8] = {0};
 
  private:
 
@@ -113,14 +115,6 @@ extern uint32 ROM_size;
 #define mapbyte2       (mapbyte1+8)
 #define mapbyte3       (mapbyte2+8)
 #define mapbyte4       (mapbyte3+8)
-extern uint16 iNESCHRBankList[8];
-extern int32 iNESIRQLatch;
-
-// #define IRQa iNESIRQa
-// #define Mirroring iNESMirroring
-// #define IRQCount iNESIRQCount
-#define IRQLatch iNESIRQLatch
-#define CHRBankList iNESCHRBankList
 
 #endif  // INESPRIV
 
