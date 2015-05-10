@@ -5,6 +5,7 @@
 
 #include "git.h"
 #include "state.h"
+#include "fceu.h"
 
 // Movied from movie.h. This is just used for logging and loading using the
 // old state saving approach; we should get rid of that and expose it some
@@ -28,7 +29,9 @@ struct INPUTC {
   void Write(uint8 w) { if(_Write) _Write(w); }
   void Strobe(int w) { if(_Strobe) _Strobe(w); }
   void Update(int w, void *data, int arg) { if(_Update) _Update(w,data,arg); }
-  void SLHook(int w, uint8 *bg, uint8 *spr, uint32 linets, int final) { if(_SLHook) _SLHook(w,bg,spr,linets,final); }
+  void SLHook(int w, uint8 *bg, uint8 *spr, uint32 linets, int final) { 
+    if(_SLHook) _SLHook(w,bg,spr,linets,final); 
+  }
   void Draw(int w, uint8 *buf, int arg) { if(_Draw) _Draw(w,buf,arg); }
   void Log(int w, MovieRecord* mr) { if(_Log) _Log(w,mr); }
   void Load(int w, MovieRecord* mr) { if(_Load) _Load(w,mr); }
@@ -84,8 +87,8 @@ struct JOYPORT {
   explicit JOYPORT(int w) : w(w) {}
 
   int w;
-  int attrib;
-  ESI type;
+  int attrib = 0;
+  ESI type = SI_UNSET;
   void* ptr = nullptr;
   INPUTC* driver = nullptr;
 
@@ -94,42 +97,107 @@ struct JOYPORT {
 };
 
 struct FCPORT {
-  int attrib;
-  ESIFC type;
-  void* ptr;
-  INPUTCFC* driver;
+  int attrib = 0;
+  ESIFC type = SIFC_UNSET;
+  void *ptr = nullptr;
+  INPUTCFC *driver = nullptr;
 };
 
-// Used in movie too. -tom7
-extern JOYPORT joyports[2];
-extern FCPORT portFC;
+struct Input {
+  Input();
 
-void FCEUI_ResetNES();
-void FCEUI_PowerNES();
+  FCPORT portFC;
 
-void FCEUI_FDSInsert();
-void FCEUI_FDSSelect();
+  void FCEUI_ResetNES();
+  void FCEUI_PowerNES();
 
-// tells the emulator whether a fourscore is attached
-void FCEUI_SetInputFourscore(bool attachFourscore);
-// tells whether a fourscore is attached
-bool FCEUI_GetInputFourscore();
-// tells whether the microphone is used
-bool FCEUI_GetInputMicrophone();
+  void FCEUI_FDSInsert();
+  void FCEUI_FDSSelect();
 
-void FCEUI_SetInput(int port, ESI type, void *ptr, int attrib);
-void FCEUI_SetInputFC(ESIFC type, void *ptr, int attrib);
+  void FCEUI_VSUniCoin();
+  void FCEUI_VSUniToggleDIP(int w);
 
-void FCEU_DrawInput(uint8 *buf);
-void FCEU_UpdateInput(void);
-void InitializeInput(void);
-void FCEU_UpdateBot(void);
-extern void (*PStrobe[2])(void);
+  // tells the emulator whether a fourscore is attached
+  void FCEUI_SetInputFourscore(bool attachFourscore);
+  // tells whether a fourscore is attached
+  bool FCEUI_GetInputFourscore();
+  // tells whether the microphone is used
+  bool FCEUI_GetInputMicrophone();
 
-//called from PPU on scanline events.
-extern void InputScanlineHook(uint8 *bg, uint8 *spr, uint32 linets, int final);
+  void FCEUI_SetInput(int port, ESI type, void *ptr, int attrib);
+  void FCEUI_SetInputFC(ESIFC type, void *ptr, int attrib);
 
-extern const SFORMAT FCEUINPUT_STATEINFO[];
+  void FCEU_DrawInput(uint8 *buf);
+  void FCEU_UpdateInput();
+  void InitializeInput();
+  void FCEU_UpdateBot();
+  void (*PStrobe[2])();
 
+  // called from PPU on scanline events.
+  void InputScanlineHook(uint8 *bg, uint8 *spr, uint32 linets, int final);
+
+  DECLFR_RET VSUNIRead1_Direct(DECLFR_ARGS);
+  DECLFR_RET VSUNIRead0_Direct(DECLFR_ARGS);
+  DECLFR_RET JPRead_Direct(DECLFR_ARGS);
+  void B4016_Direct(DECLFW_ARGS);
+
+  const SFORMAT *FCEUINPUT_STATEINFO() {
+    return stateinfo.data();
+  }
+
+ private:
+
+  // Joyports are where the emulator looks to find input during simulation.
+  // They're set by FCEUI_SetInput. Each joyport knows its index (w), type,
+  // and pointer to data. I think the data pointer for two gamepads is usually
+  // the same. -tom7
+  //
+  // Ultimately these get copied into joy[4]. I don't know which is which
+  // (see the confusing UpdateGP below) but it seems joy[0] is the least significant
+  // byte of the pointer. -tom7
+  JOYPORT joyports[2] = {JOYPORT(0), JOYPORT(1)};
+
+  const std::vector<SFORMAT> stateinfo;
+
+  // Looks dead -tom7
+  bool microphone = false;
+
+  uint8 joy_readbit[2] = {0, 0};
+ //HACK - should be static but movie needs it
+  uint8 joy[4] = {0,0,0,0};
+  uint8 LastStrobe = 0;
+
+
+  // set to true if the fourscore is attached
+  bool FSAttached = false;
+
+  void SetInputStuff(int port);
+  void SetInputStuffFC();
+
+  void FCEU_DoSimpleCommand(int cmd);
+
+  void UpdateGP(int w, void *data, int arg);
+  void LogGP(int w, MovieRecord* mr);
+  void LoadGP(int w, MovieRecord* mr);
+  uint8 ReadGP(int w);
+  uint8 ReadGPVS(int w);
+  void StrobeGP(int w);
+
+  uint8 F4ReadBit[2];
+  uint8 ReadFami4(int w, uint8 ret);
+  void StrobeFami4();
+
+  uint8 FCEU_GetJoyJoy();
+
+  INPUTC GPC, GPCVS;
+
+// a main joystick port driver representing the case where nothing is plugged in
+  INPUTC DummyJPort{0,0,0,0,0,0};
+  INPUTCFC DummyPortFC{0,0,0,0,0,0};
+
+  INPUTCFC FAMI4C;
+};
+
+extern Input fceulib__input;
 
 #endif //_INPUT_H_
