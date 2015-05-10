@@ -213,7 +213,7 @@ void Emulator::GetImage(vector<uint8> *rgba) {
       uint8 r, g, b;
 
       // XBackBuf? or XBuf?
-      FCEUD_GetPalette(XBuf[(y * 256) + x], &r, &g, &b);
+      fceulib__palette.FCEUD_GetPalette(XBuf[(y * 256) + x], &r, &g, &b);
 
       (*rgba)[y * 256 * 4 + x * 4 + 0] = r;
       (*rgba)[y * 256 * 4 + x * 4 + 1] = g; // XBackBuf[(y * 256) + x] << 4;

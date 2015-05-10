@@ -60,28 +60,6 @@ void FCEUD_PrintError(const char *errormsg) {
   fprintf(stderr, "%s\n", errormsg);
 }
 
-namespace {
-struct Color {
-  Color() : r(0), g(0), b(0) {}
-  uint8 r, g, b;
-};
-}
-static Color s_psdl[256];
-
-void FCEUD_SetPalette(uint8 index, uint8 r, uint8 g, uint8 b) {
-  // fprintf(stderr, "SetPalette %d = %2x,%2x,%2x\n", index, r, g, b);
-  s_psdl[index].r = r;
-  s_psdl[index].g = g;
-  s_psdl[index].b = b;
-}
-
-// Gets the color for a particular index in the palette.
-void FCEUD_GetPalette(uint8 index, uint8 *r, uint8 *g, uint8 *b) {
-  *r = s_psdl[index].r;
-  *g = s_psdl[index].g;
-  *b = s_psdl[index].b;
-}
-
 // morally FCEUD_
 unsigned int *GetKeyboard() {
   abort();

@@ -52,6 +52,18 @@ void Palette::FCEUI_SetNTSCTH(int n, int tint, int hue) {
   ResetPalette();
 }
 
+void Palette::FCEUD_GetPalette(uint8 index, uint8 *r, uint8 *g, uint8 *b) {
+  *r = s_psdl[index].r;
+  *g = s_psdl[index].g;
+  *b = s_psdl[index].b;
+}
+
+void Palette::FCEUD_SetPalette(uint8 index, uint8 r, uint8 g, uint8 b) {
+  s_psdl[index].r = r;
+  s_psdl[index].g = g;
+  s_psdl[index].b = b;
+}
+
 void Palette::SetNESDeemph(uint8 d, int force) {
   static constexpr uint16 rtmul[7]={
     (uint16)(32768*1.239),
@@ -84,8 +96,9 @@ void Palette::SetNESDeemph(uint8 d, int force) {
      waste cpu time if the same deemphasis bits are set as the last
      call. */
   if (!force) {
-    if (d==lastd)
+    if (d == lastd) {
       return;
+    }
   } else {
     /* Only set this when palette has changed. */
     r=rtmul[6];

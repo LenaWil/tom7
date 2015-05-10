@@ -15,6 +15,9 @@ struct Palette {
   void SetNESDeemph(uint8 d, int force);
   void FCEUI_SetNTSCTH(int n, int tint, int hue);
 
+  // Gets the color for a particular index in the palette.
+  void FCEUD_GetPalette(uint8 index, uint8 *r, uint8 *g, uint8 *b);
+
  private:
   int ntsccol = 0;
   int ntsctint = 46+10;
@@ -33,6 +36,14 @@ struct Palette {
   void WritePalette();
 
   void FCEUI_GetNTSCTH(int *tint, int *hue);
+
+  void FCEUD_SetPalette(uint8 index, uint8 r, uint8 g, uint8 b);
+
+  struct Color {
+    Color() : r(0), g(0), b(0) {}
+    uint8 r, g, b;
+  };
+  Color s_psdl[256] = {};
 };
 
 extern Palette fceulib__palette;
