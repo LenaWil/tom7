@@ -35,6 +35,8 @@
 #include "fds.h"
 #include "driver.h"
 
+#include "tracing.h"
+
 // These are from netplay and should be killed
 #define FCEUNPCMD_RESET   0x01
 #define FCEUNPCMD_POWER   0x02
@@ -92,6 +94,7 @@ Input::Input() : stateinfo {
   { &ZD[1].bogo,	1, "ZBG1"},
   { 0 },
 } {
+  TRACEF("Constructing input object..");
   // Constructor body.
 
   // This is a mess -- maybe these things could be std::function, or maybe all
@@ -292,10 +295,15 @@ void Input::FCEU_DrawInput(uint8 *buf) {
 }
 
 void Input::FCEU_UpdateInput() {
+  TRACECALL();
   //tell all drivers to poll input and set up their logical states
-  for (int port=0;port<2;port++)
-    joyports[port].driver->Update(port,joyports[port].ptr,joyports[port].attrib);
-  portFC.driver->Update(portFC.ptr,portFC.attrib);
+  for (int port=0;port<2;port++) {
+    if (joyports[port].driver)
+      joyports[port].driver->Update(port,joyports[port].ptr,joyports[port].attrib);
+  }
+  if (portFC.driver)
+    portFC.driver->Update(portFC.ptr,portFC.attrib);
+
 
   if (GameInfo->type==GIT_VSUNI)
     if (fceulib__vsuni.coinon) fceulib__vsuni.coinon--;
@@ -339,6 +347,7 @@ DECLFR_RET Input::VSUNIRead1_Direct(DECLFR_ARGS) {
 // calls from the ppu;
 // calls the SLHook for any driver that needs it
 void Input::InputScanlineHook(uint8 *bg, uint8 *spr, uint32 linets, int final) {
+  TRACECALL();
   for (int port = 0; port < 2; port++)
     joyports[port].driver->SLHook(port,bg,spr,linets,final);
   portFC.driver->SLHook(bg,spr,linets,final);
@@ -373,6 +382,7 @@ void Input::SetInputStuff(int port) {
 }
 
 void Input::SetInputStuffFC() {
+  TRACEF("portfc type %d", portFC.type);
   switch (portFC.type) {
   case SIFC_NONE:
     portFC.driver=&DummyPortFC;

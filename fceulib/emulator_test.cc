@@ -309,7 +309,7 @@ static SerialResult RunGameSerially(const Game &game) {
     const uint64 cx = emu->RamChecksum();
     // This is debugging task specific. Copy and paste the target
     // in here!
-    const bool match =  false;
+    const bool match = false;
     TRACEF(".. %llu", cx);
     TRACE_SCOPED_ENABLE_IF(match);
     if (match) {
@@ -330,6 +330,7 @@ static SerialResult RunGameSerially(const Game &game) {
     step_counter++;
     vector<uint8> save;
     emu->SaveUncompressed(&save);
+    TRACEF("Saved.");
     TRACEV(save);
 
     saves.push_back(std::move(save));

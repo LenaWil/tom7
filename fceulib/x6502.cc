@@ -434,9 +434,7 @@ void X6502::Run(int32 cycles) {
 	 timestamp,
 	 TRACE_MACHINEARGS);
   TRACEA(RAM, 0x800);
-  extern uint8 PPU[4];
-  (void)PPU;
-  TRACEA(PPU, 4);
+  // TRACEA(fceulib__ppu.PPU_values, 4);
 
   if (PAL) {
     cycles *= 15;    // 15*4=60
@@ -452,7 +450,7 @@ void X6502::Run(int32 cycles) {
     TRACE_SCOPED_STAY_ENABLED_IF(false);
     TRACEF("while " TRACE_MACHINEFMT, TRACE_MACHINEARGS);
     TRACEA(RAM, 0x800);
-    TRACEA(PPU, 4);
+    // TRACEA(fceulib__PPU_values, 4);
 
     if (_IRQlow) {
       TRACEF("IRQlow set.");

@@ -38,6 +38,12 @@ extern Traces fceulib__traces;
   private: bool old; } fceu_scoped_trace_instance;              \
   fceulib__traces.SetEnabled((cond))      
 
+#define TRACECALL()							\
+  struct FceuScopedTraceCall {						\
+    FceuScopedTraceCall(const char *f) : f(f) { TRACEF("%s called", f); } \
+    ~FceuScopedTraceCall() { TRACEF("%s finished", f); }		\
+    private: const char *f; } fceu_scoped_trace_call(__func__)
+
 #else
 
 #define TRACEF(...) do { } while (0)
@@ -52,6 +58,8 @@ extern Traces fceulib__traces;
 #define TRACE_SCOPED_ENABLE_IF(cond) struct S { } fceu_scoped_trace_instance; \
   (void)fceu_scoped_trace_instance;				   	      \
   do { } while (0)
+
+#define TRACECALL() struct SC { } fceu_scoped_trace_call; (void)fceu_scoped_trace_call
 
 #endif  // TRACING
 
