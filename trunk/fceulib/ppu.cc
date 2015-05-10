@@ -470,7 +470,7 @@ void PPU::B4014_Direct(DECLFW_ARGS) {
 
 void PPU::ResetRL(uint8 *target) {
   memset(target,0xFF,256);
-  InputScanlineHook(0,0,0,0);
+  fceulib__input.InputScanlineHook(0,0,0,0);
   Plinef=target;
   Pline=target;
   firsttile=0;
@@ -685,8 +685,8 @@ void PPU::RefreshLine(int lastpixel) {
     }
 
     if ((lastpixel-16)>=0) {
-      InputScanlineHook(Plinef,any_sprites_on_line?sprlinebuf:0,
-                        linestartts,lasttile*8-16);
+      fceulib__input.InputScanlineHook(Plinef,any_sprites_on_line?sprlinebuf:0,
+				       linestartts,lasttile*8-16);
     }
     return;
   }
@@ -809,8 +809,8 @@ void PPU::RefreshLine(int lastpixel) {
   CheckSpriteHit(lastpixel);
 
   if (lastpixel - 16 >= 0) {
-    InputScanlineHook(Plinef, any_sprites_on_line ? sprlinebuf : 0,
-                      linestartts, lasttile * 8 - 16);
+    fceulib__input.InputScanlineHook(Plinef, any_sprites_on_line ? sprlinebuf : 0,
+				     linestartts, lasttile * 8 - 16);
   }
   Pline=P;
   firsttile=lasttile;

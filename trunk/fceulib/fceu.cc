@@ -274,7 +274,7 @@ void FCEUI_Kill() {
 // skip initiates frame skip if 1, or frame skip and sound skip if 2
 void FCEUI_Emulate(uint8 **pXBuf, int32 **SoundBuf, int32 *SoundBufSize, 
                    int skip) {
-  FCEU_UpdateInput();
+  fceulib__input.FCEU_UpdateInput();
 
   // fprintf(stderr, "ppu loop..\n");
 
@@ -343,7 +343,7 @@ void PowerNES() {
   SetReadHandler(0x800,0x1FFF,ARAMH); // Part of a little
   SetWriteHandler(0x800,0x1FFF,BRAMH); //hack for a small speed boost.
 
-  InitializeInput();
+  fceulib__input.InitializeInput();
   fceulib__sound.FCEUSND_Power();
   fceulib__ppu.FCEUPPU_Power();
 

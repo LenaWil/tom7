@@ -224,7 +224,7 @@ static bool ReadStateChunks(EMUFILE* is, int32 totalsize) {
 	ret=false;
       break;
     case 4:
-      if (!ReadStateChunk(is,FCEUINPUT_STATEINFO,size))
+      if (!ReadStateChunk(is,fceulib__input.FCEUINPUT_STATEINFO(),size))
 	ret=false;
       break;
     case 7:
@@ -287,7 +287,7 @@ bool FCEUSS_SaveRAW(std::vector<uint8> *out) {
   TRACEF("PPU:");
   totalsize += WriteStateChunk(&os,3,fceulib__ppu.FCEUPPU_STATEINFO());
   TRACEV(*out);
-  totalsize += WriteStateChunk(&os,4,FCEUINPUT_STATEINFO);
+  totalsize += WriteStateChunk(&os,4,fceulib__input.FCEUINPUT_STATEINFO());
   // TRACEV(*out);
   totalsize += WriteStateChunk(&os,5,fceulib__sound.FCEUSND_STATEINFO());
   // TRACEV(*out);

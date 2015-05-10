@@ -78,10 +78,10 @@ int Emulator::DriverInitialize(FCEUGI *gi) {
   fceulib__sound.FCEUI_InitSound();
 
   // Why do both point to the same joydata? -tom
-  FCEUI_SetInput(0, SI_GAMEPAD, &joydata, 0);
-  FCEUI_SetInput(1, SI_GAMEPAD, &joydata, 0);
+  fceulib__input.FCEUI_SetInput(0, SI_GAMEPAD, &joydata, 0);
+  fceulib__input.FCEUI_SetInput(1, SI_GAMEPAD, &joydata, 0);
 
-  FCEUI_SetInputFourscore(false);
+  fceulib__input.FCEUI_SetInputFourscore(false);
   return 1;
 }
 
