@@ -20,7 +20,6 @@ Stuff I should be able to get rid of:
       headless-driver.cc
       input.cc
       state.cc
-      unif.cc
       boards/*
       mappers/*
 

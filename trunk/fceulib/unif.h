@@ -29,8 +29,13 @@ struct Unif {
 
   int UNIFLoad(const char *name, FceuFile *fp);
   // So I can stop CHR RAM bank switcherooing with certain boards...
-  uint8 *UNIFchrrama;
+  uint8 *UNIFchrrama = nullptr;
  private:
+
+  struct UNIF_HEADER {
+    char ID[4];
+    uint32 info;
+  };
 
   void UNIFGI(GI h);
 
@@ -53,6 +58,18 @@ struct Unif {
 
   CartInfo UNIFCart = {};
 
+  int vramo = 0;
+  int mirrortodo = 0;
+  uint8 *boardname = nullptr;
+  uint8 *sboardname = nullptr;
+  uint32 CHRRAMSize = 0;
+  UNIF_HEADER unhead = {};
+  UNIF_HEADER uchead = {};
+
+  uint8 *malloced[32] = {0};
+  uint32 mallocedsizes[32] = {0};
+
+  uint8 exntar[2048] = {0};
 };
 
 extern Unif fceulib__unif;
