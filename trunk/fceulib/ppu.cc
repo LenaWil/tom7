@@ -763,7 +763,7 @@ void PPU::RefreshLine(int lastpixel) {
     }
   }
 
-  TRACEF("After PPU: %d %d", X.PC, refreshaddr_local);
+  TRACEF("After PPU: %d %d", X.reg_PC, refreshaddr_local);
   TRACEF("Moreover: %d %u %u %u %u %d",
          lastpixel, pshift[0], pshift[1], atlatch, refreshaddr_local,
          norecurse);

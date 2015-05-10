@@ -88,7 +88,7 @@ struct JOYPORT {
 
   int w;
   int attrib = 0;
-  ESI type = SI_UNSET;
+  ESI type = SI_NONE;
   void* ptr = nullptr;
   INPUTC* driver = nullptr;
 
@@ -98,7 +98,7 @@ struct JOYPORT {
 
 struct FCPORT {
   int attrib = 0;
-  ESIFC type = SIFC_UNSET;
+  ESIFC type = SIFC_NONE;
   void *ptr = nullptr;
   INPUTCFC *driver = nullptr;
 };
@@ -191,7 +191,7 @@ struct Input {
 
   INPUTC GPC, GPCVS;
 
-// a main joystick port driver representing the case where nothing is plugged in
+  // a main joystick port driver representing the case where nothing is plugged in
   INPUTC DummyJPort{0,0,0,0,0,0};
   INPUTCFC DummyPortFC{0,0,0,0,0,0};
 
