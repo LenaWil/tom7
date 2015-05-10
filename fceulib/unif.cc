@@ -44,15 +44,10 @@
 Unif fceulib__unif;
 
 namespace {
-struct UNIF_HEADER {
-  char ID[4];
-  uint32 info;
-};
-
 struct BMAPPING {
   const char *const name;
   void (*const init)(CartInfo *);
-  int flags;
+  const int flags;
 };
 
 struct BFMAPPING {
@@ -62,23 +57,6 @@ struct BFMAPPING {
 }
 
 Unif::Unif() {}
-
-static int vramo;
-static int mirrortodo;
-static uint8 *boardname;
-static uint8 *sboardname;
-
-static uint32 CHRRAMSize;
-uint8 *UNIFchrrama=0;
-
-static UNIF_HEADER unhead;
-static UNIF_HEADER uchead;
-
-
-static uint8 *malloced[32];
-static uint32 mallocedsizes[32];
-
-static uint8 exntar[2048];
 
 static int FixRomSize(uint32 size, uint32 minimum) {
   uint32 x = 1;
@@ -128,7 +106,7 @@ int Unif::DoMirroring(FceuFile *fp) {
   const uint8 t = FCEU_fgetc(fp);
   mirrortodo=t;
 
-  static constexpr const char *stuffo[] = {
+  static constexpr const char *const stuffo[] = {
     "Horizontal","Vertical","$2000","$2400",
     "\"Four-screen\"","Controlled by Mapper Hardware"
   };
