@@ -41,6 +41,8 @@
 #include "driver.h"
 #include "boards/boards.h"
 
+Unif fceulib__unif;
+
 namespace {
 struct UNIF_HEADER {
   char ID[4];
@@ -55,11 +57,11 @@ struct BMAPPING {
 
 struct BFMAPPING {
   const char *const name;
-  int (*const init)(FceuFile *fp);
+  int (Unif::*const init)(FceuFile *fp);
 };
 }
 
-static CartInfo UNIFCart;
+Unif::Unif() {}
 
 static int vramo;
 static int mirrortodo;
@@ -88,7 +90,7 @@ static int FixRomSize(uint32 size, uint32 minimum) {
   return x;
 }
 
-static void FreeUNIF(void) {
+void Unif::FreeUNIF() {
   free(UNIFchrrama);
   UNIFchrrama = nullptr;
 
@@ -101,7 +103,7 @@ static void FreeUNIF(void) {
   }
 }
 
-static void ResetUNIF(void) {
+void Unif::ResetUNIF() {
   for (int x=0;x<32;x++)
     malloced[x]=0;
   vramo=0;
@@ -111,7 +113,7 @@ static void ResetUNIF(void) {
   UNIFchrrama = nullptr;
 }
 
-static void MooMirroring(void) {
+void Unif::MooMirroring() {
   if (mirrortodo<0x4) {
     fceulib__cart.SetupCartMirroring(mirrortodo,1,0);
   } else if (mirrortodo==0x4) {
@@ -122,7 +124,7 @@ static void MooMirroring(void) {
   }
 }
 
-static int DoMirroring(FceuFile *fp) {
+int Unif::DoMirroring(FceuFile *fp) {
   const uint8 t = FCEU_fgetc(fp);
   mirrortodo=t;
 
@@ -137,7 +139,7 @@ static int DoMirroring(FceuFile *fp) {
 
 // Note: This used to fill in the unused name field in GameInfo, but
 // now all it does is print it out. -tom7
-static int NAME(FceuFile *fp) {
+int Unif::NAME(FceuFile *fp) {
   char namebuf[100];
   int index;
   int t;
@@ -155,7 +157,7 @@ static int NAME(FceuFile *fp) {
   return 1;
 }
 
-static int DINF(FceuFile *fp) {
+int Unif::DINF(FceuFile *fp) {
   char name[100], method[100];
   uint8 d, m;
   uint16 y;
@@ -184,7 +186,7 @@ static int DINF(FceuFile *fp) {
   return 1;
 }
 
-static int CTRL(FceuFile *fp) {
+int Unif::CTRL(FceuFile *fp) {
   int t = FCEU_fgetc(fp);
 
   if (t == EOF)
@@ -202,7 +204,7 @@ static int CTRL(FceuFile *fp) {
   return 1;
 }
 
-static int TVCI(FceuFile *fp) {
+int Unif::TVCI(FceuFile *fp) {
   int t;
   if ( (t=FCEU_fgetc(fp)) ==EOF)
     return 0;
@@ -220,7 +222,7 @@ static int TVCI(FceuFile *fp) {
   return 1;
 }
 
-static int EnableBattery(FceuFile *fp) {
+int Unif::EnableBattery(FceuFile *fp) {
   FCEU_printf(" Battery-backed.\n");
   if (FCEU_fgetc(fp)==EOF)
     return 0;
@@ -228,7 +230,7 @@ static int EnableBattery(FceuFile *fp) {
   return 1;
 }
 
-static int LoadPRG(FceuFile *fp) {
+int Unif::LoadPRG(FceuFile *fp) {
   int z = uchead.ID[3]-'0';
 
   if (z<0 || z>15)
@@ -252,7 +254,7 @@ static int LoadPRG(FceuFile *fp) {
   return 1;
 }
 
-static int SetBoardName(FceuFile *fp) {
+int Unif::SetBoardName(FceuFile *fp) {
   if (!(boardname=(uint8 *)FCEU_malloc(uchead.info+1)))
     return 0;
   FCEU_fread(boardname,1,uchead.info,fp);
@@ -269,7 +271,7 @@ static int SetBoardName(FceuFile *fp) {
   return 1;
 }
 
-static int LoadCHR(FceuFile *fp) {
+int Unif::LoadCHR(FceuFile *fp) {
   int z = uchead.ID[3]-'0';
   if (z<0 || z>15)
     return 0;
@@ -435,20 +437,20 @@ static constexpr BMAPPING bmap[] = {
   {0,0,0}
 };
 
-static constexpr BFMAPPING bfunc[] = {
-  { "CTRL", CTRL },
-  { "TVCI", TVCI },
-  { "BATR", EnableBattery },
-  { "MIRR", DoMirroring },
-  { "PRG",  LoadPRG },
-  { "CHR",  LoadCHR },
-  { "NAME", NAME  },
-  { "MAPR", SetBoardName },
-  { "DINF", DINF },
-  { 0, 0 }
-};
+int Unif::LoadUNIFChunks(FceuFile *fp) {
+  static constexpr BFMAPPING bfunc[] = {
+    { "CTRL", &Unif::CTRL },
+    { "TVCI", &Unif::TVCI },
+    { "BATR", &Unif::EnableBattery },
+    { "MIRR", &Unif::DoMirroring },
+    { "PRG",  &Unif::LoadPRG },
+    { "CHR",  &Unif::LoadCHR },
+    { "NAME", &Unif::NAME  },
+    { "MAPR", &Unif::SetBoardName },
+    { "DINF", &Unif::DINF },
+    { 0, nullptr }
+  };
 
-int LoadUNIFChunks(FceuFile *fp) {
   for (;;) {
     int t = FCEU_fread(&uchead,1,4,fp);
     if (t<4) {
@@ -463,7 +465,8 @@ int LoadUNIFChunks(FceuFile *fp) {
     //printf("Funky: %s\n",((uint8 *)&uchead));
     for (int x = 0; bfunc[x].name; x++) {
       if (!memcmp(&uchead,bfunc[x].name,strlen(bfunc[x].name))) {
-	if (!bfunc[x].init(fp))
+	auto fn = bfunc[x].init;
+	if (!(this->*fn)(fp))
 	  return 0;
 	t=1;
 	break;
@@ -477,7 +480,7 @@ int LoadUNIFChunks(FceuFile *fp) {
   }
 }
 
-static int InitializeBoard(void) {
+int Unif::InitializeBoard() {
 
   if (!sboardname) return 0;
 
@@ -511,7 +514,7 @@ static int InitializeBoard(void) {
   return 0;
 }
 
-static void UNIFGI(GI h) {
+void Unif::UNIFGI(GI h) {
   switch(h) {
   case GI_RESETSAVE:
     fceulib__cart.FCEU_ClearGameSave(&UNIFCart);
@@ -535,7 +538,7 @@ static void UNIFGI(GI h) {
   }
 }
 
-int UNIFLoad(const char *name, FceuFile *fp) {
+int Unif::UNIFLoad(const char *name, FceuFile *fp) {
   FCEU_fseek(fp,0,SEEK_SET);
   FCEU_fread(&unhead,1,4,fp);
   if (memcmp(&unhead,"UNIF",4))
@@ -575,7 +578,9 @@ int UNIFLoad(const char *name, FceuFile *fp) {
 
   fceulib__cart.FCEU_LoadGameSave(&UNIFCart);
 
-  GameInterface=UNIFGI;
+  GameInterface = [](GI gi) {
+    return fceulib__unif.UNIFGI(gi);
+  };
   return 1;
 
  aborto:

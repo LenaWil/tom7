@@ -39,7 +39,7 @@ static SFORMAT StateRegs[]=
 };
 
 static void M68NTfix(void) {
-  if((!UNIFchrrama)&&(mirr&0x10)) {
+  if((!fceulib__unif.UNIFchrrama)&&(mirr&0x10)) {
     fceulib__ppu.PPUNTARAM = 0;
     switch(mirr&3) {
      case 0: fceulib__ppu.vnapage[0]=fceulib__ppu.vnapage[2]=fceulib__cart.CHRptr[0]+(((nt1|128)&fceulib__cart.CHRmask1[0])<<10);

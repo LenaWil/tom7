@@ -7,6 +7,9 @@
 #include "emufile.h"
 
 struct FceuFile {
+  FceuFile();
+  ~FceuFile();
+
   // the stream you can use to access the data
   // std::iostream *stream;
   EMUFILE *stream = nullptr;
@@ -14,23 +17,8 @@ struct FceuFile {
   // the name of the file, or the logical name of the file within the archive
   std::string filename;
 
-  // a weirdly derived value.. maybe a path to a file, or maybe
-  // a path to a file which doesnt exist but which is in an
-  // archive in the same directory
-  std::string logicalPath;
-
-  // the filename of the archive (maybe "" if it is not in an archive)
-  std::string archiveFilename;
-
-  // a the path to the filename, possibly using | to get into the archive
-  std::string fullFilename;
-
   // the size of the file
   int size = 0;
-
-  FceuFile();
-
-  ~FceuFile();
 
   enum {
     READ, WRITE, READWRITE

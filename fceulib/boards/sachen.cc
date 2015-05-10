@@ -148,11 +148,10 @@ void S74LS374NA_Init(CartInfo *info)
 }
 
 static int type;
-static void S8259Synco(void)
-{
+static void S8259Synco(void) {
   fceulib__cart.setprg32(0x8000,latch[5]&7);
 
-  if(!UNIFchrrama) {
+  if(!fceulib__unif.UNIFchrrama) {
     // No CHR RAM?  Then BS'ing is ok.
     for(int x=0;x<4;x++) {
       int bank;

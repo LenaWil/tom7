@@ -1444,7 +1444,7 @@ int INes::NewiNES_Init(int num) {
 
   while (tmp->init) {
     if (num == tmp->number) {
-      UNIFchrrama=0; // need here for compatibility with UNIF mapper code
+      fceulib__unif.UNIFchrrama = 0; // need here for compatibility with UNIF mapper code
       if (!VROM_size) {
 	if (num==13) {
 	  CHRRAMSize=16384;
@@ -1454,7 +1454,7 @@ int INes::NewiNES_Init(int num) {
 	if ((VROM = (uint8 *)malloc(CHRRAMSize)) == nullptr) return 0;
 	FCEU_MemoryRand(VROM,CHRRAMSize);
 
-	UNIFchrrama=VROM;
+	fceulib__unif.UNIFchrrama = VROM;
 	fceulib__cart.SetupCartCHRMapping(0,VROM,CHRRAMSize,1);
 	AddExState(VROM,CHRRAMSize, 0, "CHRR");
       }

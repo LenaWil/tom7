@@ -80,8 +80,6 @@ FceuFile *FCEU_fopen(const std::string &path, char *mode, char *ext) {
   // open a plain old file
   FceuFile *fceufp = new FceuFile();
   fceufp->filename = path;
-  fceufp->logicalPath = path;
-  fceufp->fullFilename = path;
   fceufp->stream = fp;
   FCEU_fseek(fceufp,0,SEEK_END);
   fceufp->size = FCEU_ftell(fceufp);

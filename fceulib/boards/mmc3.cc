@@ -250,7 +250,7 @@ static DECLFR(MAWRAMMMC6)
 
 void GenMMC3Power()
 {
-  if (UNIFchrrama) fceulib__cart.setchr8(0);
+  if (fceulib__unif.UNIFchrrama) fceulib__cart.setchr8(0);
 
   SetWriteHandler(0x8000,0xBFFF,MMC3_CMDWrite);
   SetWriteHandler(0xC000,0xFFFF,MMC3_IRQWrite);
@@ -501,7 +501,7 @@ void Mapper44_Init(CartInfo *info)
 
 static void M45CW(uint32 A, uint8 V)
 {
- if (!UNIFchrrama)
+ if (!fceulib__unif.UNIFchrrama)
  {
    uint32 NV=V;
    if (EXPREGS[2]&8)
@@ -1249,7 +1249,7 @@ void Mapper205_Init(CartInfo *info)
 
 static void M245CW(uint32 A, uint8 V)
 {
- if (!UNIFchrrama) // Yong Zhe Dou E Long - Dragon Quest VI (As).nes NEEDS THIS for RAM cart
+ if (!fceulib__unif.UNIFchrrama) // Yong Zhe Dou E Long - Dragon Quest VI (As).nes NEEDS THIS for RAM cart
   fceulib__cart.setchr1(A,V&7);
  EXPREGS[0]=V;
  FixMMC3PRG(MMC3_cmd);
