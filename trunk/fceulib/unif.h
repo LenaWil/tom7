@@ -24,8 +24,7 @@
 struct FceuFile;
 int UNIFLoad(const char *name, FceuFile *fp);
 
-// Meh.  So I can stop CHR RAM
-// bank switcherooing with certain boards...
+// So I can stop CHR RAM bank switcherooing with certain boards...
 extern uint8 *UNIFchrrama;
 			
 #endif

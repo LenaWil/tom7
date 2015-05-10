@@ -3,3 +3,7 @@ Running comprehensive tests at SVN version 2487:2488M
 Starting at Sat, May 09, 2015 11:17:25 AM
  ... Succeeded at Sat, May 09, 2015  4:13:16 PM
 
+
+Running comprehensive tests at SVN version  2493
+Starting at Sat, May 09, 2015 5:35:11 PM
+ ...  2493  Succeeded at  Sat, May 09, 2015 10:19:38 PM
