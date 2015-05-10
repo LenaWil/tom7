@@ -21,10 +21,6 @@ inline EMUFILE_FILE* FCEUD_UTF8_fstream(const std::string &n, const char *m) {
 
 void FCEU_printf(char *format, ...);
 
-// Video interface
-void FCEUD_SetPalette(uint8 index, uint8 r, uint8 g, uint8 b);
-void FCEUD_GetPalette(uint8 i,uint8 *r, uint8 *g, uint8 *b);
-
 // Displays an error.  Can block or not.
 void FCEUD_PrintError(const char *s);
 
