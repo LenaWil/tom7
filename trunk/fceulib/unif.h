@@ -21,10 +21,40 @@
 #ifndef __UNIF_H
 #define __UNIF_H
 
-struct FceuFile;
-int UNIFLoad(const char *name, FceuFile *fp);
+#include "fceu.h"
 
-// So I can stop CHR RAM bank switcherooing with certain boards...
-extern uint8 *UNIFchrrama;
-			
+struct FceuFile;
+struct Unif {
+  Unif();
+
+  int UNIFLoad(const char *name, FceuFile *fp);
+  // So I can stop CHR RAM bank switcherooing with certain boards...
+  uint8 *UNIFchrrama;
+ private:
+
+  void UNIFGI(GI h);
+
+  void ResetUNIF();
+  int LoadUNIFChunks(FceuFile *fp);
+  int InitializeBoard();
+
+  int EnableBattery(FceuFile *fp);
+  int LoadPRG(FceuFile *fp);
+  int CTRL(FceuFile *fp);
+  int TVCI(FceuFile *fp);
+  int DoMirroring(FceuFile *fp);
+  int LoadCHR(FceuFile *fp);
+  int NAME(FceuFile *fp);
+  int SetBoardName(FceuFile *fp);
+  int DINF(FceuFile *fp);
+
+  void MooMirroring();
+  void FreeUNIF();
+
+  CartInfo UNIFCart = {};
+
+};
+
+extern Unif fceulib__unif;
+		
 #endif

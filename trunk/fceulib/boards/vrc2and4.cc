@@ -57,7 +57,7 @@ static void Sync(void) {
   }
   fceulib__cart.setprg8(0xA000, prgreg[1] | big_bank);
   fceulib__cart.setprg8(0xE000, ((~0) & 0x1F) | big_bank);
-  if (UNIFchrrama)
+  if (fceulib__unif.UNIFchrrama)
     fceulib__cart.setchr8(0);
   else{
     uint8 i;
@@ -82,18 +82,20 @@ static void Sync(void) {
 static DECLFW(VRC24Write) {
   A &= 0xF003;
   if ((A >= 0xB000) && (A <= 0xE003)) {
-    if (UNIFchrrama)
-      big_bank = (V & 8) << 2;							// my personally many-in-one feature ;) just for support pirate cart 2-in-1
-    else{
+    if (fceulib__unif.UNIFchrrama) {
+      // my personally many-in-one feature ;) just for support pirate cart 2-in-1
+      big_bank = (V & 8) << 2;
+    } else {
       uint16 i = ((A >> 1) & 1) | ((A - 0xB000) >> 11);
       uint16 nibble = ((A & 1) << 2);
       chrreg[i] &= (0xF0) >> nibble;
       chrreg[i] |= (V & 0xF) << nibble;
-      if(nibble)
-	chrhi[i] = (V & 0x10) << 4;						// another one many in one feature from pirate carts
+      // another one many in one feature from pirate carts
+      if (nibble)
+	chrhi[i] = (V & 0x10) << 4;
     }
     Sync();
-  } else
+  } else {
     switch (A & 0xF003) {
     case 0x8000:
     case 0x8001:
@@ -125,6 +127,7 @@ static DECLFW(VRC24Write) {
     case 0xF002: X.IRQEnd(FCEU_IQEXT); acount = 0; IRQCount = IRQLatch; IRQa = V & 2; irqcmd = V & 1; break;
     case 0xF003: X.IRQEnd(FCEU_IQEXT); IRQa = irqcmd; break;
     }
+  }
 }
 
 static DECLFW(M21Write) {

@@ -84,7 +84,7 @@ static int prg_mask;
 //PRG wrapper
 static void BMCFK23CPW(uint32 A, uint8 V) {
   // uint32 bank = (EXPREGS[1] & 0x1F);
-  // uint32 hiblock = ((EXPREGS[0] & 8) << 4)|((EXPREGS[0] & 0x80) << 1)|(UNIFchrrama?((EXPREGS[2] & 0x40)<<3):0);
+  // uint32 hiblock = ((EXPREGS[0] & 8) << 4)|((EXPREGS[0] & 0x80) << 1)|(fceulib__unif.UNIFchrrama?((EXPREGS[2] & 0x40)<<3):0);
   // uint32 block = (EXPREGS[1] & 0x60) | hiblock;
   // uint32 extra = (EXPREGS[3] & 2);
 
@@ -130,7 +130,7 @@ static DECLFW(BMCFK23CHiWrite) {
     }
     else
       if(A<0xC000) {
-	if(UNIFchrrama) { // hacky... strange behaviour, must be bit scramble due to pcb layot restrictions
+	if(fceulib__unif.UNIFchrrama) { // hacky... strange behaviour, must be bit scramble due to pcb layot restrictions
 	  // check if it not interfer with other dumps
 	  if((A==0x8000)&&(V==0x46))
 	    V=0x47;

@@ -10,7 +10,6 @@ Stuff I should be able to get rid of:
  - proper in-memory treatment of battery backed saves. lots of
    red herrings here! also, it leaks file descriptors.
  - autosave (fceu.cc mostly)
- - rename __dummy_mapper to not start with __.
  - get rid of _defines in x6502.cc
  - FCEUI_Initialize calls srand -- what is using random numbers?
 
@@ -28,12 +27,14 @@ Stuff I should be able to get rid of:
       A little left over in:
       ines.cc
 
+Memory todo:
+ - Need to check that various objects are actually having their Free or Kill
+   methods called, or roll those into the destructores, etc.
+
 Cleanup to do:
  - for loops with shared index variable in sound.cc
  - There are some symbols that are both #defined (e.g. ines.h) and
    declared, maybe with #undef before like in mmc3.cc. So confusing!
- - I left wrappers around IRQBegin and SetReadHandler that are
-   expensive even when not tracing.
 
 Surprisingly necessary:
  - crc32 since ines.cc has a table of games and their CRCs.

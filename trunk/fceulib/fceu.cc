@@ -217,7 +217,7 @@ FCEUGI *FCEUI_LoadGameVirtual(const char *name, int OverwriteVidMode) {
   // Try to load each different format
   if (fceulib__ines.iNESLoad(name, fp, OverwriteVidMode))
     goto endlseq;
-  if (UNIFLoad(name, fp))
+  if (fceulib__unif.UNIFLoad(name, fp))
     goto endlseq;
   if (fceulib__fds.FDSLoad(name, fp))
     goto endlseq;
