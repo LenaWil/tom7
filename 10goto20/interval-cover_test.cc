@@ -18,7 +18,6 @@
 #include "gtest/gtest.h"
 #include "base/stringprintf.h"
 
-using namespace std;
 using namespace testing;
 
 template<class T>

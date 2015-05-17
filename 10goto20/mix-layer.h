@@ -13,9 +13,9 @@
 struct MixLayer : public SampleLayer {
   static MixLayer *Create(const std::vector<SampleLayer *> &layers);
 
-  virtual bool FirstSample(int64 *t) = 0;
-  virtual bool AfterLastSample(int64 *t) = 0;
-  virtual Sample SampleAt(int64 t) = 0;
+  bool FirstSample(int64 *t) override = 0;
+  bool AfterLastSample(int64 *t) override = 0;
+  Sample SampleAt(int64 t) override = 0;
 };
 
 #endif

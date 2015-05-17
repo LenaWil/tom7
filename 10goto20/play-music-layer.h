@@ -29,9 +29,9 @@ struct PlayMusicLayer : public SampleLayer {
   static PlayMusicLayer *Create(MusicLayer *layer,
 				Instrument inst);
   
-  virtual bool FirstSample(int64 *t);
-  virtual bool AfterLastSample(int64 *t);
-  virtual Sample SampleAt(int64 t) = 0;
+  bool FirstSample(int64 *t) override;
+  bool AfterLastSample(int64 *t) override;
+  Sample SampleAt(int64 t) override = 0;
 
  protected:
   explicit PlayMusicLayer(MusicLayer *music);

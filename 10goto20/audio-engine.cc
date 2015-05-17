@@ -359,10 +359,11 @@ void AudioEngine::Init() {
   for (int i = 0; i < RENDER_THREADS; i++)
     render_threads.push_back(new RenderThread(i));
   for (RenderThread *rt : render_threads) {
-    // XXX don't discard the thread pointer; keep it in some
-    // structure (or write it into the thread object?)
     SDL_Thread *th = SDL_CreateThread(RenderThread::RunExt,
 				      (void *)rt);
+    // XXX don't discard the thread pointer; keep it in some
+    // structure (or write it into the thread object?)
+    (void)th;
     i_have_mutex.push_back(false);
   }
   

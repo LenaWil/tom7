@@ -1,3 +1,5 @@
+// TODO: There's a copy of this in cc-lib. Merge 'em.  2 Apr 2015
+
 #ifndef __INTERVAL_TREE_H
 #define __INTERVAL_TREE_H
 
@@ -11,6 +13,7 @@
 template<class T>
 struct IntervalDefaultBisect {
   T operator ()(const T &a, const T &b) {
+    // XXX I think this may be wrong for negative numbers.
     return static_cast<T>((a + b) / 2);
   }
 };

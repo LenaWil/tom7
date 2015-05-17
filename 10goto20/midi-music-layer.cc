@@ -56,19 +56,19 @@ struct RealMML : public MidiMusicLayer {
     }
   }
 
-  int MidiInstrument() const { return instrument; }
-  bool FirstSample(int64 *t) {
+  int MidiInstrument() const override { return instrument; }
+  bool FirstSample(int64 *t) override {
     *t = tree.LowerBound();
     return true;
   }
-  bool AfterLastSample(int64 *t) {
+  bool AfterLastSample(int64 *t) override {
     *t = tree.UpperBound();
     return true;
   }
 
   // PERF: Not sure we want to do all these calculations and
   // construct these objects for EVERY SAMPLE.
-  virtual vector<Controllers> NotesAt(int64 t) {
+  vector<Controllers> NotesAt(int64 t) override {
     vector<IT::Interval *> ivals = tree.OverlappingPoint(t);
     vector<Controllers> ret;
     ret.reserve(ivals.size());
