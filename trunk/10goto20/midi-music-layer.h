@@ -30,8 +30,8 @@ struct MidiMusicLayer : public MusicLayer {
   // Get the MIDI instrument for the track. Takes the first one.
   virtual int MidiInstrument() const = 0;
 
-  virtual bool FirstSample(int64 *t) = 0;
-  virtual bool AfterLastSample(int64 *t) = 0;
+  bool FirstSample(int64 *t) override = 0;
+  bool AfterLastSample(int64 *t) override = 0;
 
   virtual vector<Controllers> NotesAt(int64 t) = 0;
 

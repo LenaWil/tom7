@@ -49,8 +49,7 @@ static inline Sint16 DoubleTo16(double d) {
 // 24 hours mono
 // 12 hours stereo
 
-// XXX more digits?
-#define PI 3.141592653589
-#define TWOPI 6.28318530718
+#define PI 3.14159265358979323846264338327950288419716939937510
+#define TWOPI (2.0 * PI) // 6.28318530718
 
 #endif

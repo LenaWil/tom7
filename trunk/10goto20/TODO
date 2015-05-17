@@ -22,3 +22,5 @@ on the second loop (e.g. reverb), and perhaps then allow for an
 outro.
 
 Figure out the ownership of layers. Right now they just last forever.
+
+Pan should optionally add intraaural delay.

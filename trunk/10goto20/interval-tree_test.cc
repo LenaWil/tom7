@@ -9,8 +9,6 @@
 #include "../cc-lib/arcfour.h"
 #include "base.h"
 
-using namespace std;
-
 template<class T>
 static void Shuffle(vector<T> *v) {
   static ArcFour rc("shuffler");

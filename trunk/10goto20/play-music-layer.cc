@@ -16,7 +16,7 @@ bool PlayMusicLayer::AfterLastSample(int64 *t) {
 namespace {
 struct SineML : public PlayMusicLayer {
   SineML(MusicLayer *music) : PlayMusicLayer(music) {}
-  virtual Sample SampleAt(int64 t) {
+  Sample SampleAt(int64 t) override {
     vector<Controllers> cs = music->NotesAt(t);
     Sample ret(0.0);
     double seconds = t / (double)SAMPLINGRATE;
@@ -42,7 +42,7 @@ struct SquareML : public PlayMusicLayer {
   // Square wave requires some oversampling, or else we
   // get clicky.
   static constexpr int OVERSAMPLE = 4;
-  virtual Sample SampleAt(int64 t) {
+  Sample SampleAt(int64 t) override {
     vector<Controllers> cs = music->NotesAt(t);
     Sample ret(0.0);
     for (int i = 0; i < cs.size(); i++) {
@@ -90,7 +90,7 @@ struct SawML : public PlayMusicLayer {
   SawML(MusicLayer *music) : PlayMusicLayer(music) {}
 
   static constexpr int OVERSAMPLE = 4;
-  virtual Sample SampleAt(int64 t) {
+  Sample SampleAt(int64 t) override {
     vector<Controllers> cs = music->NotesAt(t);
     Sample ret(0.0);
     for (int i = 0; i < cs.size(); i++) {

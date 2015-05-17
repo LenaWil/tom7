@@ -1,13 +1,15 @@
 
-#include "mix-layer.h"
+#include "reverb-layer.h"
 
 #include <vector>
 
 #include "10goto20.h"
 
 namespace {
-struct MLReal : public MixLayer {
-  MLReal(const vector<SampleLayer *> &layers) : layers(layers) {
+struct RL : public ReverbLayer {
+
+  // TODO: This is a copy of mixlayer, and is garbage
+  RL(SampleLayer *layer) : layer(layer) {
     lb = ub = 0;
     bool hasl = false, hasu = false;
     right_infinite = left_infinite = false;
@@ -58,10 +60,10 @@ struct MLReal : public MixLayer {
  private:
   bool left_infinite, right_infinite;
   int64 lb, ub;
-  const vector<SampleLayer *> layers;
+  SampleLayer *layer;
 };
 }
 
-MixLayer *MixLayer::Create(const vector<SampleLayer *> &layers) {
-  return new MLReal(layers);
+ReverbLayer *ReverbLayer::Create(SampleLayer *layer) {
+  return new RL(layer);
 }

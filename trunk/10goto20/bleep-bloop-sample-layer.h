@@ -13,10 +13,10 @@ struct BleepBloopSampleLayer : public SampleLayer {
 
   static BleepBloopSampleLayer *Create();
 
-  virtual bool FirstSample(int64 *t) { return false; }
-  virtual bool AfterLastSample(int64 *t) { return false; }
+  bool FirstSample(int64 *t) override { return false; }
+  bool AfterLastSample(int64 *t) override { return false; }
 
-  virtual Sample SampleAt(int64 t);
+  Sample SampleAt(int64 t) override;
  private:
   // Use factory.
   BleepBloopSampleLayer();

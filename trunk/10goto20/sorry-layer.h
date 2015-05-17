@@ -16,9 +16,9 @@
 
 struct SorryLayer : public SampleLayer {
   explicit SorryLayer(SampleLayer *layer) : layer(layer) {}
-  bool FirstSample(int64 *t) { return layer->FirstSample(t); }
-  bool AfterLastSample(int64 *t) { return layer->AfterLastSample(t); }
-  Sample SampleAt(int64 t) {
+  bool FirstSample(int64 *t) override { return layer->FirstSample(t); }
+  bool AfterLastSample(int64 *t) override { return layer->AfterLastSample(t); }
+  Sample SampleAt(int64 t) override {
     // TODO: much better clamping, please! Should probably ease
     // into and out of the limited regions.
     Sample s = layer->SampleAt(t);
