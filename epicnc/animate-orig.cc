@@ -97,36 +97,6 @@ int main(int argc, char **argv) {
   double sun_angle = 0.0;
   double earthdriver_angle = 0.0;
 
-  struct Configuration {
-    double earth_x = 0.0, earth_y = 0.0;
-    double earth_angle = 0.0;
-    double wand_x = 0.0, wand_y = 0.0;
-  };
-
-  auto Compute = [sun_dia, earth_dia, orbit, wand_length,
-		  earth_gear_ratio, earthdriver_dia]
-    (double sun_a, double ed_a) -> Configuration {
-
-    Configuration c;
-
-    // Earth's center.
-    c.earth_x = sin(sun_a) * orbit;
-    c.earth_y = cos(sun_a) * orbit;
-
-    // The earth driver and earth would be in a normal gearing
-    // relationship, but the earth orbits the earth driver as well
-    // (because it is on the sun), causing a kind of phantom rotation.
-    const double effective_angle = ed_a - sun_a;
-    
-    c.earth_angle = effective_angle / -earth_gear_ratio;
-
-    c.wand_x = sin(c.earth_angle) * wand_length + c.earth_x;
-    c.wand_y = cos(c.earth_angle) * wand_length + c.earth_y;
-
-    return c;
-  };
-
-
   auto ToScreen = [](double x, double y) {
     static constexpr int ORIGIN_X = STARTW >> 1;
     static constexpr int ORIGIN_Y = STARTH >> 1;
@@ -167,13 +137,37 @@ int main(int argc, char **argv) {
     DrawLine(x, y, x, y);
   };
 
+  // Determine location of the earth's center.
+  auto EarthCoords = [&sun_angle, &orbit]() {
+    return make_pair(sin(sun_angle) * orbit,
+		     cos(sun_angle) * orbit);
+  };
+
+  auto EarthAngle = [&earth_gear_ratio,
+		     &sun_angle, &earthdriver_angle]() {
+    // The earth driver and earth would be in a normal gearing
+    // relationship, but the earth orbits the earth driver as well
+    // (because it is on the sun), causing a kind of phantom rotation.
+    double effective_angle = earthdriver_angle - sun_angle;
+    
+    return effective_angle / -earth_gear_ratio;
+  };
+
+  auto WandCoords = [&EarthCoords, &EarthAngle, &wand_length]() {
+    double earthx, earthy;
+    std::tie(earthx, earthy) = EarthCoords();
+    double earth_angle = EarthAngle();
+    return make_pair(sin(earth_angle) * wand_length + earthx,
+		     cos(earth_angle) * wand_length + earthy);
+  };
+
   vector<pair<double, double>> path;
 
   auto Draw = [&sun_angle,
 	       &earthdriver_dia, &earthdriver_angle,
 	       &sun_dia, &earth_dia,
 	       &path,
-	       &Compute,
+	       &EarthAngle, &EarthCoords, &WandCoords,
 	       &DrawGear, &DrawPoint, &DrawLine]() {
     sdlutil::clearsurface(screen, BACKGROUND);
 
@@ -187,21 +181,25 @@ int main(int argc, char **argv) {
       }
     }
 
-    Configuration c = Compute(sun_angle, earthdriver_angle);
-
     // Sun just depends on its angle.
     DrawGear(0, 0, sun_dia / 2.0, sun_angle, 22);
     // Same.
     DrawGear(0, 0, earthdriver_dia / 2.0, earthdriver_angle, 5);
 
-    DrawPoint(c.earth_x, c.earth_y);
+    double earthx, earthy;
+    std::tie(earthx, earthy) = EarthCoords();
+    DrawPoint(earthx, earthy);
 
-    DrawGear(c.earth_x, c.earth_y, earth_dia / 2, c.earth_angle, 20);
+    double earth_angle = EarthAngle();
+
+    DrawGear(earthx, earthy, earth_dia / 2, earth_angle, 20);
 
     // Draw the wand.
-    DrawLine(c.earth_x, c.earth_y, c.wand_x, c.wand_y, GREEN);
+    double wandx, wandy;
+    std::tie(wandx, wandy) = WandCoords();
+    DrawLine(earthx, earthy, wandx, wandy, GREEN);
     
-    path.push_back({c.wand_x, c.wand_y});
+    path.push_back({wandx, wandy});
 
     // sdlutil::fillrect(screen, BLUE, 12, 12, 100, 100);
   };
