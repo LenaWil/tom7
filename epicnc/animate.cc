@@ -83,7 +83,7 @@ int main(int argc, char **argv) {
   // Center of earth to center of sun.
   double orbit = 2.413;
   // Distance from earth's center to its wand's tip.
-  double wand_length = 2.6;
+  double wand_length = orbit;
 
   // XXX make accurate
   double earth_gear_ratio = 4.0;
@@ -94,7 +94,7 @@ int main(int argc, char **argv) {
   // has an interaction with the sun, however.
   //
   // Both in mechanism-space.
-  double sun_angle = 0.0;
+       double sun_angle = 0.0;
   double earthdriver_angle = 0.0;
 
   struct Configuration {
@@ -169,14 +169,45 @@ int main(int argc, char **argv) {
 
   vector<pair<double, double>> path;
 
+  
+  int tt = 0;
   auto Draw = [&sun_angle,
 	       &earthdriver_dia, &earthdriver_angle,
-	       &sun_dia, &earth_dia,
+	       &sun_dia, &earth_dia, &earth_gear_ratio,
+	       &wand_length, &orbit,
 	       &path,
-	       &Compute,
+	       &Compute, &tt,
 	       &DrawGear, &DrawPoint, &DrawLine]() {
     sdlutil::clearsurface(screen, BACKGROUND);
 
+    const double max_radius = wand_length + orbit;
+
+    static constexpr int SIZE = 920;
+    static constexpr int YOFF = (STARTH - SIZE) >> 1;
+    for (int y = 0; y < SIZE; y++) {
+      double sa = y * (TWOPI / SIZE);
+      const uint8 b = 255 * (y / (double)SIZE);
+      for (int x = 0; x < SIZE; x++) {
+	if ((x ^ y) == tt) {
+	  double ea = x * (TWOPI * earth_gear_ratio / SIZE);
+	  const uint8 r = 255 * (x / (double)SIZE);
+	  sdlutil::drawpixel(screen, x, YOFF + y, r, 128, b);
+
+	  Configuration c = Compute(sa, ea);
+
+	  int cx = ((c.wand_x / max_radius) + 1.0) * 0.5 * SIZE;
+	  int cy = ((c.wand_y / max_radius) + 1.0) * 0.5 * SIZE;
+	  sdlutil::drawpixel(screen, cx + SIZE + 20, YOFF + cy, r, 128, b);
+	}
+	
+      }
+
+    }
+
+    tt++;
+    tt %= SIZE;
+
+#if 0
     // Draw path.
     if (!path.empty()) {
       pair<double, double> pt = path[0];
@@ -202,8 +233,8 @@ int main(int argc, char **argv) {
     DrawLine(c.earth_x, c.earth_y, c.wand_x, c.wand_y, GREEN);
     
     path.push_back({c.wand_x, c.wand_y});
+#endif
 
-    // sdlutil::fillrect(screen, BLUE, 12, 12, 100, 100);
   };
 
   bool sun_on = true, earth_on = true;
