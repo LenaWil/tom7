@@ -1,10 +1,4 @@
 
-// Just for LoadLibrary. Maybe could use an extern decl.
-#if 0
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
-#endif
-
 #include <vector>
 #include <utility>
 #include <tuple>
@@ -13,6 +7,10 @@
 #include "SDL.h"
 #include "sdl/sdlutil.h"
 #include "math.h"
+
+#include "point.h"
+#include "inversion.h"
+#include "base/stringprintf.h"
 
 using namespace std;
 
@@ -59,6 +57,10 @@ static constexpr uint32 BACKGROUND = RGBA(0x00, 0x20, 0x00, 0xFF);
 // XXX whither?
 static SDL_Surface *screen;
 
+string ptos(Pt p) {
+  return StringPrintf("(%.4f, %.4f)", p.x, p.y);
+}
+
 int main(int argc, char **argv) {
 
   if (SDL_Init (SDL_INIT_AUDIO | SDL_INIT_VIDEO | SDL_INIT_TIMER) < 0) {
@@ -94,7 +96,7 @@ int main(int argc, char **argv) {
   // has an interaction with the sun, however.
   //
   // Both in mechanism-space.
-       double sun_angle = 0.0;
+  double sun_angle = 0.0;
   double earthdriver_angle = 0.0;
 
   struct Configuration {
@@ -104,7 +106,7 @@ int main(int argc, char **argv) {
   };
 
   auto Compute = [sun_dia, earth_dia, orbit, wand_length,
-		  earth_gear_ratio, earthdriver_dia]
+                  earth_gear_ratio, earthdriver_dia]
     (double sun_a, double ed_a) -> Configuration {
 
     Configuration c;
@@ -126,29 +128,48 @@ int main(int argc, char **argv) {
     return c;
   };
 
+  const double max_radius = wand_length + orbit;
+
+  auto ComputeFn = [Compute, earth_gear_ratio, max_radius](Pt in) -> Pt {
+    Configuration c = Compute(in.x * TWOPI, 
+			      in.y * earth_gear_ratio * TWOPI);
+
+    return Pt{((c.wand_x / max_radius) + 1.0) * 0.5,
+              ((c.wand_y / max_radius) + 1.0) * 0.5};
+  };
+
+  Inversion<decltype(ComputeFn)> inv{
+    ComputeFn, 20000, (int)(earth_gear_ratio * 200), 900, 900};
+
+  static constexpr int ORIGIN_X = STARTW >> 1;
+  static constexpr int ORIGIN_Y = STARTH >> 1;
+  static constexpr double PIXELS_PER_UNIT = STARTH / 12.0;
+  static constexpr double UNITS_PER_PIXEL = 12.0 / STARTH;
 
   auto ToScreen = [](double x, double y) {
-    static constexpr int ORIGIN_X = STARTW >> 1;
-    static constexpr int ORIGIN_Y = STARTH >> 1;
-    static constexpr double PIXELS_PER_UNIT = STARTH / 12.0;
     return make_pair(x * PIXELS_PER_UNIT + ORIGIN_X,
-		     y * PIXELS_PER_UNIT + ORIGIN_Y);
+                     y * PIXELS_PER_UNIT + ORIGIN_Y);
+  };
+
+  auto ToMechanism = [](int x, int y) -> Pt {
+    return Pt{(x - ORIGIN_X) * UNITS_PER_PIXEL,
+	      (y - ORIGIN_Y) * UNITS_PER_PIXEL};
   };
 
   // All of these draw functions take mechanism-space coordinates.
   auto DrawLine = [&ToScreen](double x0, double y0, double x1, double y1,
-			      uint32 color = WHITE) {
+                              uint32 color = WHITE) {
     int sx0, sy0, sx1, sy1;
     std::tie(sx0, sy0) = ToScreen(x0, y0);
     std::tie(sx1, sy1) = ToScreen(x1, y1);
     sdlutil::drawclipline(screen, sx0, sy0, sx1, sy1, 
-			  (color >> 24) & 255,
-			  (color >> 16) & 255,
-			  (color >> 8) & 255);
+                          (color >> 24) & 255,
+                          (color >> 16) & 255,
+                          (color >> 8) & 255);
   };
 
   auto DrawGear = [&DrawLine](double cx, double cy, double radius, 
-			      double angle, int sides) {
+                              double angle, int sides) {
     double radians_per_edge = TWOPI / (double)sides;
 
     double x = sin(angle) * radius + cx;
@@ -167,54 +188,77 @@ int main(int argc, char **argv) {
     DrawLine(x, y, x, y);
   };
 
-  vector<pair<double, double>> path;
+  Pt prev{0.0, 0.0};
+  vector<Pt> path;
 
+  auto ScreenToNorm = [&ToMechanism, max_radius](int x, int y) -> Pt {
+    // In mechanism space.
+    const Pt mech = ToMechanism(x, y);
+    
+    // And in 0-1.
+    return Pt{((mech.x / max_radius) + 1.0) * 0.5,
+  	      ((mech.y / max_radius) + 1.0) * 0.5};
+  };
   
   int tt = 0;
   auto Draw = [&sun_angle,
-	       &earthdriver_dia, &earthdriver_angle,
-	       &sun_dia, &earth_dia, &earth_gear_ratio,
-	       &wand_length, &orbit,
-	       &path,
-	       &Compute, &tt,
-	       &DrawGear, &DrawPoint, &DrawLine]() {
+               &earthdriver_dia, &earthdriver_angle,
+               &sun_dia, &earth_dia, &earth_gear_ratio,
+               &wand_length, &orbit,
+               &prev, &path,
+               &Compute, &tt,
+	       &ScreenToNorm, &inv,
+               &DrawGear, &DrawPoint, &DrawLine]() {
     sdlutil::clearsurface(screen, BACKGROUND);
 
+#if 0
+    for (int y = 0; y < STARTH; y++) {
+      for (int x = 0; x < STARTW; x++) {
+	Pt out = ScreenToNorm(x, y);
+	Pt input;
+	if (inv.Invert({0.0, 0.0}, out, &input)) {
+	  sdlutil::drawpixel(screen, x, y, 0, 200, 0);
+	}
+      }
+    }
+#endif
+
+#if 0
+    // Draws mapping.
     const double max_radius = wand_length + orbit;
 
-    static constexpr int SIZE = 920;
+    static constexpr int SIZE = 800;
     static constexpr int YOFF = (STARTH - SIZE) >> 1;
     for (int y = 0; y < SIZE; y++) {
       double sa = y * (TWOPI / SIZE);
       const uint8 b = 255 * (y / (double)SIZE);
       for (int x = 0; x < SIZE; x++) {
-	if ((x ^ y) == tt) {
-	  double ea = x * (TWOPI * earth_gear_ratio / SIZE);
-	  const uint8 r = 255 * (x / (double)SIZE);
-	  sdlutil::drawpixel(screen, x, YOFF + y, r, 128, b);
+        if ((x - y) == tt) {
+          double ea = x * (TWOPI * earth_gear_ratio / SIZE);
+          const uint8 r = 255 * (x / (double)SIZE);
+          sdlutil::drawpixel(screen, x, YOFF + y, r, 128, b);
 
-	  Configuration c = Compute(sa, ea);
+          Configuration c = Compute(sa, ea);
 
-	  int cx = ((c.wand_x / max_radius) + 1.0) * 0.5 * SIZE;
-	  int cy = ((c.wand_y / max_radius) + 1.0) * 0.5 * SIZE;
-	  sdlutil::drawpixel(screen, cx + SIZE + 20, YOFF + cy, r, 128, b);
-	}
-	
+          int cx = ((c.wand_x / max_radius) + 1.0) * 0.5 * SIZE;
+          int cy = ((c.wand_y / max_radius) + 1.0) * 0.5 * SIZE;
+          sdlutil::drawpixel(screen, cx + SIZE + 20, YOFF + cy, r, 128, b);
+        }
+        
       }
 
     }
 
     tt++;
     tt %= SIZE;
+#endif
 
-#if 0
     // Draw path.
     if (!path.empty()) {
-      pair<double, double> pt = path[0];
+      Pt pt = path[0];
       for (int i = 1; i < path.size(); i++) {
-	DrawLine(pt.first, pt.second, path[i].first, path[i].second,
-		 BLUE);
-	pt = path[i];
+        DrawLine(pt.x, pt.y, path[i].x, path[i].y, BLUE);
+        pt = path[i];
       }
     }
 
@@ -231,63 +275,95 @@ int main(int argc, char **argv) {
 
     // Draw the wand.
     DrawLine(c.earth_x, c.earth_y, c.wand_x, c.wand_y, GREEN);
-    
-    path.push_back({c.wand_x, c.wand_y});
-#endif
-
   };
 
   bool sun_on = true, earth_on = true;
   double t = 0.0;
   while(1) {
-    SDL_Event e;
+    SDL_Event event;
     /* event loop */
-    while (SDL_PollEvent(&e)) {
-      switch(e.type) {
+    while (SDL_PollEvent(&event)) {
+      switch(event.type) {
       case SDL_QUIT:
-	return 0;
+        return 0;
 
-      case SDL_KEYDOWN: {
-	int key = e.key.keysym.sym;
-	switch(key) {
-	case SDLK_s:
-	  sun_on = !sun_on;
-	  break;
-	case SDLK_e:
-	  earth_on = !earth_on;
-	  break;
-	case SDLK_z:
-	  sun_angle -= 0.01;
-	  break;
-	case SDLK_x:
-	  sun_angle += 0.01;
-	  break;
-	case SDLK_COMMA:
-	  earthdriver_angle -= 0.01;
-	  break;
-	case SDLK_PERIOD:
-	  earthdriver_angle += 0.01;
-	  break;
-	case SDLK_SPACE: {
-	  if (sun_on || earth_on) {
-	    sun_on = earth_on = false;
-	  } else {
-	    sun_on = earth_on = true;
+      case SDL_MOUSEMOTION: {
+	SDL_MouseMotionEvent *e = (SDL_MouseMotionEvent*)&event;
+	int mousex = e->x;
+	int mousey = e->y;
+
+	Pt output = ScreenToNorm(mousex, mousey);
+
+	/*
+	printf("mouse %d %d norm %f %f\n",
+	       mousex, mousey,
+	       output.x, output.y);
+	*/
+
+	Configuration cur = Compute(sun_angle, earthdriver_angle);
+
+	Pt input;
+	// XXX store current...
+	if (inv.Invert({cur.wand_x, cur.wand_y}, output, &input)) {
+	  // printf("%s <- %s\n", ptos(output).c_str(),
+	  // ptos(input).c_str());
+
+	  sun_angle = input.x * TWOPI;
+	  earthdriver_angle = input.y * earth_gear_ratio * TWOPI;
+
+	  if (e->state & SDL_BUTTON_LMASK) {
+	    Configuration updated = Compute(sun_angle, earthdriver_angle);
+	    path.push_back(Pt{updated.wand_x, updated.wand_y});
 	  }
-	  break;
-	}
-	case SDLK_ESCAPE:
-	  return 0;
-	default:;
+
+	} else {
+	  printf("%s unreachable!\n", ptos(output).c_str());
 	}
       }
-	
+
+      case SDL_KEYDOWN: {
+        int key = event.key.keysym.sym;
+        switch(key) {
+        case SDLK_s:
+          sun_on = !sun_on;
+          break;
+        case SDLK_e:
+          earth_on = !earth_on;
+          break;
+        case SDLK_z:
+          sun_angle -= 0.01;
+          break;
+        case SDLK_x:
+          sun_angle += 0.01;
+          break;
+        case SDLK_COMMA:
+          earthdriver_angle -= 0.01;
+          break;
+        case SDLK_PERIOD:
+          earthdriver_angle += 0.01;
+          break;
+        case SDLK_SPACE: {
+          if (sun_on || earth_on) {
+            sun_on = earth_on = false;
+          } else {
+            sun_on = earth_on = true;
+          }
+          break;
+        }
+        case SDLK_ESCAPE:
+          return 0;
+        default:;
+        }
+      }
+        
       default:;
       }
     }
 
+    #if 0
     if (sun_on) sun_angle += -0.04 + 0.01 * sin(t/33);
     if (earth_on) earthdriver_angle += 0.02 * sin(t / 50) * sin(t / 21);
+    #endif
 
     t += 1.0;
     Draw();
