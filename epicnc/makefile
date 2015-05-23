@@ -15,6 +15,13 @@ DEBUGGING=-DDEBUG=1 -g -fno-omit-frame-pointer
 # XXX OPT mode with fomit-frame-pointer.
 CCSDL= -I SDL/include -I SDL_net
 
+ALLDEPS=makefile inversion.h point.h
+
+%.o : %.cc $(ALLDEPS)
+	@$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
+	@echo -n "."
+
+
 # old: (gcc 4.5) -mno-cygwin
 LINKSDL= -lm -mthreads -luser32 -lgdi32 -lwinmm -ldxguid -lpthread
 SDLOPATH=SDL/build
@@ -33,7 +40,7 @@ INCLUDES=-I "../cc-lib"
 # (maybe its own internal implementation). LGTM.
 CPPFLAGS= $(DEBUGGING) -D__USE_MINGW_ANSI_STDIO=1 $(CCSDL) -DPSS_STYLE=1 -DDUMMY_UI -DHAVE_ASPRINTF -Wno-write-strings -m64 $(OPT) -D__MINGW32__ -DHAVE_ALLOCA -DNOWINSTUFF $(INCLUDES) $(PROFILE) $(FLTO) --std=c++0x
 
-CCLIB_OBJECTS=../cc-lib/util.o ../cc-lib/arcfour.o ../cc-lib/base/stringprintf.o ../cc-lib/city/city.o ../cc-lib/textsvg.o ../cc-lib/stb_image.o ../cc-lib/wavesave.o
+CCLIB_OBJECTS=../cc-lib/util.o ../cc-lib/arcfour.o ../cc-lib/base/stringprintf.o ../cc-lib/stb_image.o
 
 CCLIBSDL_OBJECTS=../cc-lib/sdl/sdlutil.o ../cc-lib/sdl/font.o
 
@@ -48,7 +55,7 @@ LFLAGS=$(LINKSDL)  -m64 -Wl,--subsystem,console -lz $(OPT) $(FLTO) $(PROFILE) -s
 # -Wl,--subsystem,console
 # -static -fwhole-program
 
-animate.exe : $(OBJECTS) animate.o
+animate.exe : $(OBJECTS) animate.o 
 	$(CXX) $^ -o $@ $(LFLAGS)
 
 clean :
