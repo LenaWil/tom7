@@ -138,8 +138,9 @@ int main(int argc, char **argv) {
               ((c.wand_y / max_radius) + 1.0) * 0.5};
   };
 
+  // PERF We currently aren't using the table.
   Inversion<decltype(ComputeFn)> inv{
-    ComputeFn, 20000, (int)(earth_gear_ratio * 200), 900, 900};
+    ComputeFn, 200, (int)(earth_gear_ratio * 200), 900, 900};
 
   static constexpr int ORIGIN_X = STARTW >> 1;
   static constexpr int ORIGIN_Y = STARTH >> 1;
@@ -299,6 +300,49 @@ int main(int argc, char **argv) {
       case SDL_QUIT:
         return 0;
 
+      case SDL_MOUSEBUTTONDOWN: {
+	SDL_MouseButtonEvent *e = (SDL_MouseButtonEvent*)&event;
+	if (e->button == SDL_BUTTON_RIGHT) {
+	  int mousex = e->x;
+	  int mousey = e->y;
+
+	  Pt output = ScreenToNorm(mousex, mousey);
+
+	  printf("mouse %d %d norm %f %f\n",
+		 mousex, mousey,
+		 output.x, output.y);
+
+	  Configuration cur = Compute(sun_angle, earthdriver_angle);
+
+	  vector<Pt> solve_path;
+	  Pt input;
+	  if (inv.Invert2({sun_angle / TWOPI, 
+	  	           earthdriver_angle / (earth_gear_ratio * TWOPI)}, 
+	                  output, &input, &solve_path)) {
+	    // printf("%s <- %s\n", ptos(output).c_str(),
+	    // ptos(input).c_str());
+
+	    printf("Path size %d\n", solve_path.size());
+	    for (Pt point : solve_path) {
+	      sun_angle = point.x * TWOPI;
+	      earthdriver_angle = point.y * earth_gear_ratio * TWOPI;
+
+	      Draw();
+
+	      SDL_Flip(screen);
+	      SDL_Delay(10);
+	    }
+
+	    sun_angle = input.x * TWOPI;
+	    earthdriver_angle = input.y * earth_gear_ratio * TWOPI;
+
+	  } else {
+	    printf("Cannot get to %s\n", ptos(output).c_str());
+	  }
+
+	}
+      }
+
       case SDL_MOUSEMOTION: {
 	SDL_MouseMotionEvent *e = (SDL_MouseMotionEvent*)&event;
 	int mousex = e->x;
@@ -314,10 +358,32 @@ int main(int argc, char **argv) {
 
 	Configuration cur = Compute(sun_angle, earthdriver_angle);
 
+	vector<Pt> solve_path;
 	Pt input;
-	if (inv.Invert2({cur.wand_x, cur.wand_y}, output, &input)) {
+	if (inv.Invert2({sun_angle / TWOPI, 
+		         earthdriver_angle / (earth_gear_ratio * TWOPI)}, 
+	                output, &input, nullptr)) {
 	  // printf("%s <- %s\n", ptos(output).c_str(),
 	  // ptos(input).c_str());
+	  #if 0
+	  printf("Path size %d\n", solve_path.size());
+	  for (Pt point : solve_path) {
+	    sun_angle = point.x * TWOPI;
+	    earthdriver_angle = point.y * earth_gear_ratio * TWOPI;
+
+	    /*
+	    if (e->state & SDL_BUTTON_LMASK) {
+	      Configuration updated = Compute(sun_angle, earthdriver_angle);
+	      path.emplace_back(Pt{cur.wand_x, cur.wand_y},
+				Pt{updated.wand_x, updated.wand_y});
+	    }
+	    */
+	    Draw();
+	   
+	    SDL_Flip(screen);
+	    SDL_Delay(10);
+	  }
+	  #endif
 
 	  sun_angle = input.x * TWOPI;
 	  earthdriver_angle = input.y * earth_gear_ratio * TWOPI;
