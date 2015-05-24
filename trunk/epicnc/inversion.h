@@ -6,6 +6,8 @@
 #include <cmath>
 
 #include "point.h"
+#include "arcfour.h"
+#include "randutil.h"
 
 using namespace std;
 
@@ -33,13 +35,62 @@ struct Inversion {
   // false if there are none "close" enough.
   bool Invert(Pt current, Pt output, Pt *input) const;
 
+  // Same, not using table, just search from current point.
+  bool Invert2(Pt current, Pt output, Pt *input);
+
 private:
+  ArcFour rc;
+  const F &f;
   const int xsteps, ysteps, xres, yres;
   vector<vector<vector<Pt>>> backward;
 };
 
 
 // Template implementations follow.
+
+template<class F>
+bool Inversion<F>::Invert2(Pt current, Pt output, Pt *input) {
+  static constexpr double ERROR_TARGET = 0.01;
+  static constexpr double SQ_ERROR_TARGET = ERROR_TARGET * ERROR_TARGET;
+
+  double last_stride = 1.0;
+  double current_error;
+
+  int count = 0;
+  while ( (current_error = SqDistance(output, f(current))) > SQ_ERROR_TARGET) {
+    // Get a new guess. Ideally we'd have the derivative at
+    // this point, which maybe is what we should really be
+    // inserting in a table.
+    
+    // Pick a random point within the circle of radius last_stride;
+    // rejection sampling is likely to be fastest here.
+    double v1, v2, sqnorm;
+    do {
+      v1 = 2.0 * RandDouble(&rc) - 1.0;
+      v2 = 2.0 * RandDouble(&rc) - 1.0;
+      sqnorm = v1 * v1 + v2 * v2;
+    } while (sqnorm >= 1.0 || sqnorm == 0.0);
+    v1 *= last_stride;
+    v2 *= last_stride;
+
+    Pt candidate{output.x + v1, output.y + v2};
+    Pt cand_res = f(candidate);
+    if (SqDistance(output, f(candidate)) < current_error) {
+      //      printf("Accepted %f %f sqerror %f.\n", cand_res.x, cand_res.y,
+      //	     SqDistance(output, f(candidate)));
+      current = candidate;
+      // PERF we immediately recompute f(candidate) and distance..
+    }
+    last_stride = sqrt(sqnorm);
+
+    count++;
+    if (count > 1000)
+      return false;
+  }
+
+  *input = current;
+  return true;
+}
 
 template<class F>
 bool Inversion<F>::Invert(Pt current, Pt output, Pt *input) const {
@@ -81,6 +132,8 @@ bool Inversion<F>::Invert(Pt current, Pt output, Pt *input) const {
 template<class F>
 Inversion<F>::Inversion(const F &f, int xsteps, int ysteps,
 			int xres, int yres) :
+  rc("inv"),
+  f(f),
   xsteps(xsteps), ysteps(ysteps),
   xres(xres), yres(yres),
   backward(yres, vector<vector<Pt>>(yres, vector<Pt>{})) {

@@ -43,9 +43,9 @@ static_assert(sizeof(Uint8) == sizeof(uint8), "uint 8");
 // correct for the platform.
 static constexpr uint32 RGBA(uint8 r, uint8 g, uint8 b, uint8 a) {
   return (a << 24) |
-    (r << 16) |
+    (b << 16) |
     (g << 8) |
-    b;
+    r;
 }
 static constexpr uint32 RED = RGBA(0xFF, 0x0, 0x0, 0xFF);
 static constexpr uint32 BLACK = RGBA(0x0, 0x0, 0x0, 0xFF);
@@ -68,12 +68,12 @@ int main(int argc, char **argv) {
     abort();
   }
 
-  SDL_EnableKeyRepeat(SDL_DEFAULT_REPEAT_DELAY, 
+  SDL_EnableKeyRepeat(SDL_DEFAULT_REPEAT_DELAY,
                       SDL_DEFAULT_REPEAT_INTERVAL);
 
   SDL_EnableUNICODE(1);
   screen = sdlutil::makescreen(STARTW, STARTH);
-  sdlutil::clearsurface(screen, BACKGROUND); 
+  sdlutil::clearsurface(screen, BACKGROUND);
   SDL_Flip(screen);
 
   // All angles in radians, distances in "units".
@@ -119,7 +119,7 @@ int main(int argc, char **argv) {
     // relationship, but the earth orbits the earth driver as well
     // (because it is on the sun), causing a kind of phantom rotation.
     const double effective_angle = ed_a - sun_a;
-    
+
     c.earth_angle = effective_angle / -earth_gear_ratio;
 
     c.wand_x = sin(c.earth_angle) * wand_length + c.earth_x;
@@ -131,7 +131,7 @@ int main(int argc, char **argv) {
   const double max_radius = wand_length + orbit;
 
   auto ComputeFn = [Compute, earth_gear_ratio, max_radius](Pt in) -> Pt {
-    Configuration c = Compute(in.x * TWOPI, 
+    Configuration c = Compute(in.x * TWOPI,
 			      in.y * earth_gear_ratio * TWOPI);
 
     return Pt{((c.wand_x / max_radius) + 1.0) * 0.5,
@@ -162,13 +162,29 @@ int main(int argc, char **argv) {
     int sx0, sy0, sx1, sy1;
     std::tie(sx0, sy0) = ToScreen(x0, y0);
     std::tie(sx1, sy1) = ToScreen(x1, y1);
-    sdlutil::drawclipline(screen, sx0, sy0, sx1, sy1, 
+    sdlutil::drawclipline(screen, sx0, sy0, sx1, sy1,
                           (color >> 24) & 255,
                           (color >> 16) & 255,
                           (color >> 8) & 255);
   };
 
-  auto DrawGear = [&DrawLine](double cx, double cy, double radius, 
+  auto DrawThickLine = [&ToScreen](double x0, double y0, double x1, double y1,
+				   uint32 color = WHITE) {
+    int sx0, sy0, sx1, sy1;
+    std::tie(sx0, sy0) = ToScreen(x0, y0);
+    std::tie(sx1, sy1) = ToScreen(x1, y1);
+    for (int dx = -1; dx <= 1; dx++) {
+      for (int dy = -1; dy <= 1; dy++) {
+	sdlutil::drawclipline(screen, sx0 + dx, sy0 + dy, sx1 + dx, sy1 + dy,
+			      (color >> 24) & 255,
+			      (color >> 16) & 255,
+			      (color >> 8) & 255);
+      }
+    }
+  };
+
+
+  auto DrawGear = [&DrawLine](double cx, double cy, double radius,
                               double angle, int sides) {
     double radians_per_edge = TWOPI / (double)sides;
 
@@ -189,17 +205,17 @@ int main(int argc, char **argv) {
   };
 
   Pt prev{0.0, 0.0};
-  vector<Pt> path;
+  vector<pair<Pt, Pt>> path;
 
   auto ScreenToNorm = [&ToMechanism, max_radius](int x, int y) -> Pt {
     // In mechanism space.
     const Pt mech = ToMechanism(x, y);
-    
+
     // And in 0-1.
     return Pt{((mech.x / max_radius) + 1.0) * 0.5,
   	      ((mech.y / max_radius) + 1.0) * 0.5};
   };
-  
+
   int tt = 0;
   auto Draw = [&sun_angle,
                &earthdriver_dia, &earthdriver_angle,
@@ -208,15 +224,15 @@ int main(int argc, char **argv) {
                &prev, &path,
                &Compute, &tt,
 	       &ScreenToNorm, &inv,
-               &DrawGear, &DrawPoint, &DrawLine]() {
+               &DrawGear, &DrawPoint, &DrawLine, &DrawThickLine]() {
     sdlutil::clearsurface(screen, BACKGROUND);
 
 #if 0
+    Pt prev;
     for (int y = 0; y < STARTH; y++) {
       for (int x = 0; x < STARTW; x++) {
 	Pt out = ScreenToNorm(x, y);
-	Pt input;
-	if (inv.Invert({0.0, 0.0}, out, &input)) {
+	if (inv.Invert2(prev, out, &prev)) {
 	  sdlutil::drawpixel(screen, x, y, 0, 200, 0);
 	}
       }
@@ -244,7 +260,7 @@ int main(int argc, char **argv) {
           int cy = ((c.wand_y / max_radius) + 1.0) * 0.5 * SIZE;
           sdlutil::drawpixel(screen, cx + SIZE + 20, YOFF + cy, r, 128, b);
         }
-        
+
       }
 
     }
@@ -254,12 +270,8 @@ int main(int argc, char **argv) {
 #endif
 
     // Draw path.
-    if (!path.empty()) {
-      Pt pt = path[0];
-      for (int i = 1; i < path.size(); i++) {
-        DrawLine(pt.x, pt.y, path[i].x, path[i].y, BLUE);
-        pt = path[i];
-      }
+    for (const auto p : path) {
+      DrawThickLine(p.first.x, p.first.y, p.second.x, p.second.y, BLUE);
     }
 
     Configuration c = Compute(sun_angle, earthdriver_angle);
@@ -303,8 +315,7 @@ int main(int argc, char **argv) {
 	Configuration cur = Compute(sun_angle, earthdriver_angle);
 
 	Pt input;
-	// XXX store current...
-	if (inv.Invert({cur.wand_x, cur.wand_y}, output, &input)) {
+	if (inv.Invert2({cur.wand_x, cur.wand_y}, output, &input)) {
 	  // printf("%s <- %s\n", ptos(output).c_str(),
 	  // ptos(input).c_str());
 
@@ -313,7 +324,8 @@ int main(int argc, char **argv) {
 
 	  if (e->state & SDL_BUTTON_LMASK) {
 	    Configuration updated = Compute(sun_angle, earthdriver_angle);
-	    path.push_back(Pt{updated.wand_x, updated.wand_y});
+	    path.emplace_back(Pt{cur.wand_x, cur.wand_y},
+			      Pt{updated.wand_x, updated.wand_y});
 	  }
 
 	} else {
@@ -355,7 +367,7 @@ int main(int argc, char **argv) {
         default:;
         }
       }
-        
+
       default:;
       }
     }

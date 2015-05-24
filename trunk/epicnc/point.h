@@ -12,11 +12,13 @@ struct Pt {
 };
 
 inline double SqDistance(Pt a, Pt b) {
-  return (a.x - b.x) * (a.y - b.y);
+  double dx = a.x - b.x, dy = a.y - b.y;
+  return dx * dx + dy * dy;
 }
 
 inline double Distance(Pt a, Pt b) {
-  return sqrt((a.x - b.x) * (a.y - b.y));
+  double dx = a.x - b.x, dy = a.y - b.y;
+  return sqrt(dx * dx + dy * dy);
 }
 
 #endif
