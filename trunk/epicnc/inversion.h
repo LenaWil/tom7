@@ -36,9 +36,13 @@ struct Inversion {
   bool Invert(Pt current, Pt output, Pt *input) const;
 
   // Same, not using table, just search from current point.
-  bool Invert2(Pt current, Pt output, Pt *input);
+  bool Invert2(Pt current, Pt output, Pt *input,
+	       vector<Pt> *path);
 
 private:
+  static constexpr double PI = 3.14159265358979323846264338327950288419716939937510;
+  static constexpr double TWOPI = (2.0 * PI); // 6.28318530718
+
   ArcFour rc;
   const F &f;
   const int xsteps, ysteps, xres, yres;
@@ -49,43 +53,66 @@ private:
 // Template implementations follow.
 
 template<class F>
-bool Inversion<F>::Invert2(Pt current, Pt output, Pt *input) {
-  static constexpr double ERROR_TARGET = 0.01;
+bool Inversion<F>::Invert2(Pt current, Pt output, Pt *input,
+			   vector<Pt> *path) {
+  static constexpr double ERROR_TARGET = 0.0005;
   static constexpr double SQ_ERROR_TARGET = ERROR_TARGET * ERROR_TARGET;
 
-  double last_stride = 1.0;
+  // TODO: This constant should be tuned at initialization time, or the
+  // algorithm should be able to start with a high value but be robust
+  // against jumping to a slighly better match that's super far away;
+  // we're trying to minimize both the error and the jump from the
+  // current location.
+
+  double current_stride = 0.001;
   double current_error;
 
+  auto ErrorFn = [this, output, current](Pt cand) -> double {
+    // Take into account both the error how far we've gone?
+    return SqDistance(output, f(cand)); /* + SqDistance(cand, current) / 100.0; */
+  };
+
   int count = 0;
-  while ( (current_error = SqDistance(output, f(current))) > SQ_ERROR_TARGET) {
-    // Get a new guess. Ideally we'd have the derivative at
-    // this point, which maybe is what we should really be
-    // inserting in a table.
+  while ( (current_error = ErrorFn(current)) > SQ_ERROR_TARGET) {
+    // Inspect a small area around the current guess.
+
+    static constexpr int NUM_PTS = 9;
+    static_assert(NUM_PTS >= 3, "With fewer than 3 points, we may never "
+		  "even have an angle that makes progress (actually maybe "
+		  "3 is not even enough...)");
     
-    // Pick a random point within the circle of radius last_stride;
-    // rejection sampling is likely to be fastest here.
-    double v1, v2, sqnorm;
-    do {
-      v1 = 2.0 * RandDouble(&rc) - 1.0;
-      v2 = 2.0 * RandDouble(&rc) - 1.0;
-      sqnorm = v1 * v1 + v2 * v2;
-    } while (sqnorm >= 1.0 || sqnorm == 0.0);
-    v1 *= last_stride;
-    v2 *= last_stride;
+    double angle = RandDouble(&rc) * TWOPI;
+    static constexpr double STEP_RADIANS = TWOPI / NUM_PTS;
 
-    Pt candidate{output.x + v1, output.y + v2};
-    Pt cand_res = f(candidate);
-    if (SqDistance(output, f(candidate)) < current_error) {
-      //      printf("Accepted %f %f sqerror %f.\n", cand_res.x, cand_res.y,
-      //	     SqDistance(output, f(candidate)));
-      current = candidate;
-      // PERF we immediately recompute f(candidate) and distance..
+    bool found_next = false;
+    Pt next;
+    for (int i = 0; i < NUM_PTS; i++) {
+      Pt candidate(current.x + sin(angle) * current_stride,
+		   current.y + cos(angle) * current_stride);
+      double cand_err = ErrorFn(candidate);
+      if (cand_err < current_error) {
+	found_next = true;
+	next = candidate;
+      }
+      angle += STEP_RADIANS;
     }
-    last_stride = sqrt(sqnorm);
 
-    count++;
-    if (count > 1000)
-      return false;
+    if (found_next) {
+      current = next;
+      if (path != nullptr) {
+	path->push_back(current);
+      }
+    } else {
+      // Assume that all points jump over the local minimum, and
+      // narrow.
+      if (!found_next) current_stride *= 0.7;
+
+      count++;
+      if (count > 1000)
+	return false;
+    }
+
+    // PERF we could save f(next) and error which we already computed.
   }
 
   *input = current;
