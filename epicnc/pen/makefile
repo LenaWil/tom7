@@ -48,7 +48,7 @@ BASE_OBJECTS=$(CCLIB_OBJECTS)
 
 GTEST_OBJECTS=../cc-lib/gtest/gtest-all.o
 
-OBJECTS=$(BASE_OBJECTS) $(SDL_OBJECTS) $(CCLIBSDL_OBJECTS) mesh.o
+OBJECTS=$(BASE_OBJECTS) $(SDL_OBJECTS) $(CCLIBSDL_OBJECTS)
 
 # without static, can't find lz or lstdcxx maybe?
 LFLAGS=$(LINKSDL)  -m64 -Wl,--subsystem,console -lz $(OPT) $(FLTO) $(PROFILE) -static
