@@ -11,7 +11,6 @@
 #include "point.h"
 #include "inversion.h"
 #include "base/stringprintf.h"
-#include "mesh.h"
 
 using namespace std;
 
@@ -35,7 +34,7 @@ static_assert(sizeof(Uint8) == sizeof(uint8), "uint 8");
 
 #define PI 3.14159265358979323846264338327950288419716939937510
 #define TWOPI (2.0 * PI) // 6.28318530718
-#define SQRT_2 1.41421356237309504880168872420969807856967187537694807317667
+
 
 #define STARTW 1920
 #define STARTH 1080
@@ -206,9 +205,6 @@ int main(int argc, char **argv) {
     DrawLine(x, y, x, y);
   };
 
-  // Very low res!!!
-  Mesh mesh{sun_dia, sun_dia, 640, 640};
-
   Pt prev{0.0, 0.0};
   vector<pair<Pt, Pt>> path;
 
@@ -221,33 +217,6 @@ int main(int argc, char **argv) {
   	      ((mech.y / max_radius) + 1.0) * 0.5};
   };
 
-
-  // XXX this also needs a rotation..
-  auto DrawMesh = [&ToScreen, &ToMechanism](const Mesh &m, double x, double y) {
-
-    int sx0, sy0, sx1, sy1;
-    std::tie(sx0, sy0) = ToScreen(x, y);
-    std::tie(sx1, sy1) = ToScreen(x + m.Width(), y + m.Height());
-    
-    //    printf("%d %d to %d %d\n", sx0, sy0, sx1, sy1);
-
-    // Circle of size SQRT_2 can't miss pixels in a square grid.
-    static constexpr double TEST_RADIUS = UNITS_PER_PIXEL * SQRT_2;
-
-    // Loop over screen pixels.
-    for (int py = sy0; py < sy1; py++) {
-      double mesh_y = ((py - sy0) + 0.5) * UNITS_PER_PIXEL;
-      for (int px = sx0; px < sx1; px++) {
-	double mesh_x = ((px - sx0) + 0.5) * UNITS_PER_PIXEL;
-	double dens = m.Density(mesh_x, mesh_y, TEST_RADIUS);
-	uint8 red = dens * 255;
-	sdlutil::drawpixel(screen, px, py, red, 0, 0);
-      }
-    }
-
-  };
-
-
   int tt = 0;
   auto Draw = [&sun_angle,
                &earthdriver_dia, &earthdriver_angle,
@@ -256,12 +225,8 @@ int main(int argc, char **argv) {
                &prev, &path,
                &Compute, &tt,
 	       &ScreenToNorm, &inv,
-	       &mesh, &DrawMesh,
                &DrawGear, &DrawPoint, &DrawLine, &DrawThickLine]() {
     sdlutil::clearsurface(screen, BACKGROUND);
-
-    DrawMesh(mesh, sun_dia * -0.5, sun_dia * -0.5);
-    
 
 #if 0
     Pt prev;
@@ -335,6 +300,49 @@ int main(int argc, char **argv) {
       case SDL_QUIT:
         return 0;
 
+      case SDL_MOUSEBUTTONDOWN: {
+	SDL_MouseButtonEvent *e = (SDL_MouseButtonEvent*)&event;
+	if (e->button == SDL_BUTTON_RIGHT) {
+	  int mousex = e->x;
+	  int mousey = e->y;
+
+	  Pt output = ScreenToNorm(mousex, mousey);
+
+	  printf("mouse %d %d norm %f %f\n",
+		 mousex, mousey,
+		 output.x, output.y);
+
+	  Configuration cur = Compute(sun_angle, earthdriver_angle);
+
+	  vector<Pt> solve_path;
+	  Pt input;
+	  if (inv.Invert2({sun_angle / TWOPI, 
+	  	           earthdriver_angle / (earth_gear_ratio * TWOPI)}, 
+	                  output, &input, &solve_path)) {
+	    // printf("%s <- %s\n", ptos(output).c_str(),
+	    // ptos(input).c_str());
+
+	    printf("Path size %d\n", solve_path.size());
+	    for (Pt point : solve_path) {
+	      sun_angle = point.x * TWOPI;
+	      earthdriver_angle = point.y * earth_gear_ratio * TWOPI;
+
+	      Draw();
+
+	      SDL_Flip(screen);
+	      SDL_Delay(10);
+	    }
+
+	    sun_angle = input.x * TWOPI;
+	    earthdriver_angle = input.y * earth_gear_ratio * TWOPI;
+
+	  } else {
+	    printf("Cannot get to %s\n", ptos(output).c_str());
+	  }
+
+	}
+      }
+
       case SDL_MOUSEMOTION: {
 	SDL_MouseMotionEvent *e = (SDL_MouseMotionEvent*)&event;
 	int mousex = e->x;
@@ -342,14 +350,6 @@ int main(int argc, char **argv) {
 
 	Pt output = ScreenToNorm(mousex, mousey);
 
-	if (e->state & SDL_BUTTON_RMASK) {
-	  // Carve from mesh; test.
-	  Pt pos = ToMechanism(mousex, mousey);
-	  double mesh_x = pos.x + (sun_dia / 2.0);
-	  double mesh_y = pos.y + (sun_dia / 2.0);
-	  mesh.Carve(mesh_x, mesh_y, 0.05);
-	}
-	  
 	/*
 	printf("mouse %d %d norm %f %f\n",
 	       mousex, mousey,
@@ -363,6 +363,27 @@ int main(int argc, char **argv) {
 	if (inv.Invert2({sun_angle / TWOPI, 
 		         earthdriver_angle / (earth_gear_ratio * TWOPI)}, 
 	                output, &input, nullptr)) {
+	  // printf("%s <- %s\n", ptos(output).c_str(),
+	  // ptos(input).c_str());
+	  #if 0
+	  printf("Path size %d\n", solve_path.size());
+	  for (Pt point : solve_path) {
+	    sun_angle = point.x * TWOPI;
+	    earthdriver_angle = point.y * earth_gear_ratio * TWOPI;
+
+	    /*
+	    if (e->state & SDL_BUTTON_LMASK) {
+	      Configuration updated = Compute(sun_angle, earthdriver_angle);
+	      path.emplace_back(Pt{cur.wand_x, cur.wand_y},
+				Pt{updated.wand_x, updated.wand_y});
+	    }
+	    */
+	    Draw();
+	   
+	    SDL_Flip(screen);
+	    SDL_Delay(10);
+	  }
+	  #endif
 
 	  sun_angle = input.x * TWOPI;
 	  earthdriver_angle = input.y * earth_gear_ratio * TWOPI;
@@ -374,7 +395,7 @@ int main(int argc, char **argv) {
 	  }
 
 	} else {
-	  // printf("%s unreachable!\n", ptos(output).c_str());
+	  printf("%s unreachable!\n", ptos(output).c_str());
 	}
       }
 
