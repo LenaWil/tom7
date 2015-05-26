@@ -36,6 +36,14 @@ struct Mesh {
   double Width() const { return width; } 
   double Height() const { return height; } 
 
+  int XRes() const { return xres; }
+  int YRes() const { return yres; }
+  bool PixelAt(int x, int y) const {
+    if (x < 0 || y < 0 || x >= xres || y >= yres)
+      return false;
+    return pixels[y * xres + x];
+  }
+
 private:
   const double width, height;
   const int xres, yres;

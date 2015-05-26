@@ -207,7 +207,7 @@ int main(int argc, char **argv) {
   };
 
   // Very low res!!!
-  Mesh mesh{sun_dia, sun_dia, 640, 640};
+  Mesh mesh{sun_dia, sun_dia, 512, 512};
 
   Pt prev{0.0, 0.0};
   vector<pair<Pt, Pt>> path;
@@ -223,7 +223,9 @@ int main(int argc, char **argv) {
 
 
   // XXX this also needs a rotation..
-  auto DrawMesh = [&ToScreen, &ToMechanism](const Mesh &m, double x, double y) {
+  // x,y are its top left
+  auto DrawMeshAligned = 
+    [&ToScreen, &ToMechanism](const Mesh &m, double x, double y) {
 
     int sx0, sy0, sx1, sy1;
     std::tie(sx0, sy0) = ToScreen(x, y);
@@ -246,9 +248,81 @@ int main(int argc, char **argv) {
     }
 
   };
+  (void)DrawMeshAligned;
+
+  // Draw a mesh with its center at world coordinates x,y and
+  // at the given angle.
+  auto DrawMesh = 
+    [&ToScreen, &ToMechanism](const Mesh &m, double cx, double cy,
+			      double angle) {
+    // Don't do trig for each pixel. Compute the locations of the
+    // corners and interpolate between them.
+    //
+    // Length of the vector from the center to any corner.
+    double len = 0.5 * sqrt(m.Width() * m.Width() + 
+			    m.Height() * m.Height());
+    
+    // angle of top-left corner. Note both should be scaled by 0.5, but
+    // this is the same angle. Note atan2 takes y, x.
+    //
+    // Be careful here since to atan2, -inf,-inf is the bottom-left
+    // quadrant, not the top-left.
+    double top_left_angle = atan2(-m.Height(), +m.Width()) + angle;
+    double top_right_angle = atan2(-m.Height(), -m.Width()) + angle;
+    double bottom_right_angle = top_left_angle + PI;
+    double bottom_left_angle = top_right_angle + PI;
+
+    // In world coordinates.
+    // PERF some opportunity to reduce trig here.
+    Pt top_left(cx + sin(top_left_angle) * len,
+		cy + cos(top_left_angle) * len);
+    Pt top_right(cx + sin(top_right_angle) * len,
+		 cy + cos(top_right_angle) * len);
+    Pt bottom_left(cx + sin(bottom_left_angle) * len,
+		   cy + cos(bottom_left_angle) * len);
+    Pt bottom_right(cx + sin(bottom_right_angle) * len,
+		    cy + cos(bottom_right_angle) * len);
+
+    Pt vecx(top_right.x - top_left.x,
+	    top_right.y - top_left.y);
+    Pt vecy(bottom_left.x - top_left.x,
+	    bottom_left.y - top_left.y);
+
+    for (int y = 0; y < m.YRes(); y++) {
+      double yf = y / (double)m.YRes();
+      for (int x = 0; x < m.XRes(); x++) {
+	double xf = x / (double)m.XRes();
+
+	const bool pixel = m.PixelAt(x, y);
+	if (pixel) {
+	  // XXX draw a rectangle if bigger than a pixel.
+
+	  int px, py;
+	  // XXX put in center of mesh cell.
+	  std::tie(px, py) = ToScreen(top_left.x + 
+				        vecx.x * xf + vecy.x * yf,
+				      top_left.y +
+				        vecx.y * xf + vecy.y * yf);
+	  sdlutil::drawpixel(screen, px, py, 255, 0, 0);
+	}
+      }
+    }
+
+    // draws x and y axes; not necessary...
+    {
+      int tx, ty, bx, by, cx, cy;
+      std::tie(tx, ty) = ToScreen(top_left.x, top_left.y);
+      std::tie(bx, by) = ToScreen(top_left.x + vecx.x,
+				  top_left.y + vecx.y);
+      std::tie(cx, cy) = ToScreen(top_left.x + vecy.x,
+				  top_left.y + vecy.y);
+      sdlutil::drawclipline(screen, tx, ty, bx, by, 0, 255, 255);
+      sdlutil::drawclipline(screen, tx, ty, cx, cy, 255, 0, 255);
+    }
+  };
 
 
-  int tt = 0;
+  double tt = 0;
   auto Draw = [&sun_angle,
                &earthdriver_dia, &earthdriver_angle,
                &sun_dia, &earth_dia, &earth_gear_ratio,
@@ -260,8 +334,10 @@ int main(int argc, char **argv) {
                &DrawGear, &DrawPoint, &DrawLine, &DrawThickLine]() {
     sdlutil::clearsurface(screen, BACKGROUND);
 
-    DrawMesh(mesh, sun_dia * -0.5, sun_dia * -0.5);
-    
+    DrawMesh(mesh, 0.0, 0.0, tt);
+    tt += 0.012;
+    if (tt > TWOPI) tt -= TWOPI;
+
 
 #if 0
     Pt prev;
@@ -347,7 +423,7 @@ int main(int argc, char **argv) {
 	  Pt pos = ToMechanism(mousex, mousey);
 	  double mesh_x = pos.x + (sun_dia / 2.0);
 	  double mesh_y = pos.y + (sun_dia / 2.0);
-	  mesh.Carve(mesh_x, mesh_y, 0.05);
+	  mesh.Carve(mesh_x, mesh_y, 0.25);
 	}
 	  
 	/*
