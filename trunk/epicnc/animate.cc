@@ -88,6 +88,9 @@ int main(int argc, char **argv) {
   // Distance from earth's center to its wand's tip.
   double wand_length = orbit;
 
+  double drill_dia = 0.25;
+  double drill_angle = 0;
+
   // XXX make accurate
   double earth_gear_ratio = 4.0;
   const double earthdriver_dia = earth_dia / earth_gear_ratio;
@@ -243,7 +246,7 @@ int main(int argc, char **argv) {
 	double mesh_x = ((px - sx0) + 0.5) * UNITS_PER_PIXEL;
 	double dens = m.Density(mesh_x, mesh_y, TEST_RADIUS);
 	uint8 red = dens * 255;
-	sdlutil::drawpixel(screen, px, py, red, 0, 0);
+	sdlutil::drawclippixel(screen, px, py, red, 0, 0);
       }
     }
 
@@ -303,7 +306,7 @@ int main(int argc, char **argv) {
 				        vecx.x * xf + vecy.x * yf,
 				      top_left.y +
 				        vecx.y * xf + vecy.y * yf);
-	  sdlutil::drawpixel(screen, px, py, 255, 0, 0);
+	  sdlutil::drawclippixel(screen, px, py, 255, 0, 0);
 	}
       }
     }
@@ -331,13 +334,9 @@ int main(int argc, char **argv) {
                &Compute, &tt,
 	       &ScreenToNorm, &inv,
 	       &mesh, &DrawMesh,
+	       &drill_dia, &drill_angle,
                &DrawGear, &DrawPoint, &DrawLine, &DrawThickLine]() {
     sdlutil::clearsurface(screen, BACKGROUND);
-
-    DrawMesh(mesh, 0.0, 0.0, tt);
-    tt += 0.012;
-    if (tt > TWOPI) tt -= TWOPI;
-
 
 #if 0
     Pt prev;
@@ -345,7 +344,7 @@ int main(int argc, char **argv) {
       for (int x = 0; x < STARTW; x++) {
 	Pt out = ScreenToNorm(x, y);
 	if (inv.Invert2(prev, out, &prev)) {
-	  sdlutil::drawpixel(screen, x, y, 0, 200, 0);
+	  sdlutil::drawclippixel(screen, x, y, 0, 200, 0);
 	}
       }
     }
@@ -364,13 +363,14 @@ int main(int argc, char **argv) {
         if ((x - y) == tt) {
           double ea = x * (TWOPI * earth_gear_ratio / SIZE);
           const uint8 r = 255 * (x / (double)SIZE);
-          sdlutil::drawpixel(screen, x, YOFF + y, r, 128, b);
+          sdlutil::drawclippixel(screen, x, YOFF + y, r, 128, b);
 
           Configuration c = Compute(sa, ea);
 
           int cx = ((c.wand_x / max_radius) + 1.0) * 0.5 * SIZE;
           int cy = ((c.wand_y / max_radius) + 1.0) * 0.5 * SIZE;
-          sdlutil::drawpixel(screen, cx + SIZE + 20, YOFF + cy, r, 128, b);
+          sdlutil::drawclippixel(screen, cx + SIZE + 20, YOFF + cy, 
+				 r, 128, b);
         }
 
       }
@@ -388,6 +388,9 @@ int main(int argc, char **argv) {
 
     Configuration c = Compute(sun_angle, earthdriver_angle);
 
+    // Mesh is centered on the Earth.
+    DrawMesh(mesh, c.earth_x, c.earth_y, c.earth_angle);
+
     // Sun just depends on its angle.
     DrawGear(0, 0, sun_dia / 2.0, sun_angle, 22);
     // Same.
@@ -397,9 +400,14 @@ int main(int argc, char **argv) {
 
     DrawGear(c.earth_x, c.earth_y, earth_dia / 2, c.earth_angle, 20);
 
+    // Draw the drill bit.
+    DrawGear(orbit, 0, drill_dia / 2, drill_angle, 9);
+
     // Draw the wand.
     DrawLine(c.earth_x, c.earth_y, c.wand_x, c.wand_y, GREEN);
   };
+
+  bool holding_rmb = false;
 
   bool sun_on = true, earth_on = true;
   double t = 0.0;
@@ -410,6 +418,15 @@ int main(int argc, char **argv) {
       switch(event.type) {
       case SDL_QUIT:
         return 0;
+	
+      case SDL_MOUSEBUTTONUP:
+      case SDL_MOUSEBUTTONDOWN: {
+	SDL_MouseButtonEvent *e = (SDL_MouseButtonEvent*)&event;
+	if (e->button == SDL_BUTTON_RIGHT) {
+	  holding_rmb = e->type == SDL_MOUSEBUTTONDOWN;
+	}
+	break;
+      }
 
       case SDL_MOUSEMOTION: {
 	SDL_MouseMotionEvent *e = (SDL_MouseMotionEvent*)&event;
@@ -417,14 +434,6 @@ int main(int argc, char **argv) {
 	int mousey = e->y;
 
 	Pt output = ScreenToNorm(mousex, mousey);
-
-	if (e->state & SDL_BUTTON_RMASK) {
-	  // Carve from mesh; test.
-	  Pt pos = ToMechanism(mousex, mousey);
-	  double mesh_x = pos.x + (sun_dia / 2.0);
-	  double mesh_y = pos.y + (sun_dia / 2.0);
-	  mesh.Carve(mesh_x, mesh_y, 0.25);
-	}
 	  
 	/*
 	printf("mouse %d %d norm %f %f\n",
@@ -452,6 +461,7 @@ int main(int argc, char **argv) {
 	} else {
 	  // printf("%s unreachable!\n", ptos(output).c_str());
 	}
+	break;
       }
 
       case SDL_KEYDOWN: {
@@ -498,8 +508,65 @@ int main(int argc, char **argv) {
     if (earth_on) earthdriver_angle += 0.02 * sin(t / 50) * sin(t / 21);
     #endif
 
+    // Decorative
+    if (holding_rmb) drill_angle += TWOPI * 0.1;
+
+    // XXX move to end
     t += 1.0;
     Draw();
+
+
+    if (holding_rmb) {
+      // Carve from mesh; test.
+      // XXX HERE. Move to mesh ...
+
+      // Find the drill's position relative to earth; this will
+      // draw into the mesh.
+      //
+      // Just pretend earth is at angle 0, and find the coordinates
+      // of the drill relative to to earth's center.
+      
+      Configuration c = Compute(sun_angle, earthdriver_angle);
+      
+      // in world coordinates
+      double drillx = orbit; // sin(0) * orbit
+      double drilly = 0.0; // cos(0)
+      
+      double drillx_in_earth = drillx - c.earth_x;
+      double drilly_in_earth = drilly - c.earth_y;
+      
+      /*
+      DrawLine(c.earth_x, c.earth_y, 
+	       c.earth_x + drillx_in_earth,
+	       c.earth_y + drilly_in_earth);
+      */
+
+      // Now, we can rotate it around earth's center. It has the
+      // same center as earth, so its angle is just earth's angle.
+      
+      double sint = sin(c.earth_angle + PI*0.5);
+      double cost = cos(c.earth_angle + PI*0.5);
+      double dxx = drillx_in_earth * cost - drilly_in_earth * sint;
+      double dyy = drillx_in_earth * sint + drilly_in_earth * cost;
+
+      /*
+      DrawLine(c.earth_x, c.earth_y,
+	       c.earth_x + dxx,
+	       c.earth_y + dyy);
+      */
+
+      // And the mesh's 0,0 is actually its top left.
+      mesh.Carve(dxx + mesh.Width() * 0.5, 
+		 dyy + mesh.Height() * 0.5,
+		 drill_dia * 0.5);
+      /*
+      Pt pos = ToMechanism(mousex, mousey);
+      double mesh_x = pos.x + (sun_dia / 2.0);
+      double mesh_y = pos.y + (sun_dia / 2.0);
+      mesh.Carve(mesh_x, mesh_y, 0.25);
+      */
+    }
+
     SDL_Flip(screen);
 
     SDL_Delay(0);
