@@ -3,15 +3,18 @@
 #include <utility>
 #include <tuple>
 #include <cstdint>
+#include <math.h>
 
 #include "SDL.h"
 #include "sdl/sdlutil.h"
-#include "math.h"
+#include "../cc-lib/sdl/chars.h"
+#include "../cc-lib/sdl/font.h"
 
 #include "point.h"
 #include "inversion.h"
 #include "base/stringprintf.h"
 #include "mesh.h"
+
 
 using namespace std;
 
@@ -37,8 +40,14 @@ static_assert(sizeof(Uint8) == sizeof(uint8), "uint 8");
 #define TWOPI (2.0 * PI) // 6.28318530718
 #define SQRT_2 1.41421356237309504880168872420969807856967187537694807317667
 
+#define FONTWIDTH 9
+#define FONTHEIGHT 16
+
 #define STARTW 1920
 #define STARTH 1080
+
+#define DRAWMARGINX 12
+#define DRAWMARGINY 12
 
 // TODO: Make into little library. Make constexpr mixcolor that's
 // correct for the platform.
@@ -48,12 +57,12 @@ static constexpr uint32 RGBA(uint8 r, uint8 g, uint8 b, uint8 a) {
     (g << 8) |
     r;
 }
-static constexpr uint32 RED = RGBA(0xFF, 0x0, 0x0, 0xFF);
-static constexpr uint32 BLACK = RGBA(0x0, 0x0, 0x0, 0xFF);
-static constexpr uint32 WHITE = RGBA(0xFF, 0xFF, 0xFF, 0xFF);
-static constexpr uint32 GREEN = RGBA(0x0, 0xFF, 0x0, 0xFF);
-static constexpr uint32 BLUE = RGBA(0x0, 0x0, 0xFF, 0xFF);
-static constexpr uint32 BACKGROUND = RGBA(0x00, 0x20, 0x00, 0xFF);
+static constexpr uint32 C_RED = RGBA(0xFF, 0x0, 0x0, 0xFF);
+static constexpr uint32 C_BLACK = RGBA(0x0, 0x0, 0x0, 0xFF);
+static constexpr uint32 C_WHITE = RGBA(0xFF, 0xFF, 0xFF, 0xFF);
+static constexpr uint32 C_GREEN = RGBA(0x0, 0xFF, 0x0, 0xFF);
+static constexpr uint32 C_BLUE = RGBA(0x0, 0x0, 0xFF, 0xFF);
+static constexpr uint32 C_BACKGROUND = RGBA(0x00, 0x20, 0x00, 0xFF);
 
 // XXX whither?
 static SDL_Surface *screen;
@@ -74,8 +83,13 @@ int main(int argc, char **argv) {
 
   SDL_EnableUNICODE(1);
   screen = sdlutil::makescreen(STARTW, STARTH);
-  sdlutil::clearsurface(screen, BACKGROUND);
+  sdlutil::clearsurface(screen, C_BACKGROUND);
   SDL_Flip(screen);
+
+  Font *font = Font::create(screen,
+			    "font.png",
+			    FONTCHARS,
+			    FONTWIDTH, FONTHEIGHT, FONTSTYLES, 1, 3);
 
   // All angles in radians, distances in "units".
 
@@ -143,6 +157,7 @@ int main(int argc, char **argv) {
   };
 
   // PERF We currently aren't using the table.
+  // TODO: Use InvertRect.
   Inversion<decltype(ComputeFn)> inv{
     ComputeFn, 200, (int)(earth_gear_ratio * 200), 900, 900};
 
@@ -163,7 +178,7 @@ int main(int argc, char **argv) {
 
   // All of these draw functions take mechanism-space coordinates.
   auto DrawLine = [&ToScreen](double x0, double y0, double x1, double y1,
-                              uint32 color = WHITE) {
+                              uint32 color = C_WHITE) {
     int sx0, sy0, sx1, sy1;
     std::tie(sx0, sy0) = ToScreen(x0, y0);
     std::tie(sx1, sy1) = ToScreen(x1, y1);
@@ -174,7 +189,7 @@ int main(int argc, char **argv) {
   };
 
   auto DrawThickLine = [&ToScreen](double x0, double y0, double x1, double y1,
-				   uint32 color = WHITE) {
+				   uint32 color = C_WHITE) {
     int sx0, sy0, sx1, sy1;
     std::tie(sx0, sy0) = ToScreen(x0, y0);
     std::tie(sx1, sy1) = ToScreen(x1, y1);
@@ -199,7 +214,7 @@ int main(int argc, char **argv) {
       double xx = sin(angle + radians_per_edge * i) * radius + cx;
       double yy = cos(angle + radians_per_edge * i) * radius + cy;
 
-      DrawLine(x, y, xx, yy, WHITE);
+      DrawLine(x, y, xx, yy, C_WHITE);
       x = xx;
       y = yy;
     }
@@ -208,9 +223,6 @@ int main(int argc, char **argv) {
   auto DrawPoint = [&DrawLine](double x, double y) {
     DrawLine(x, y, x, y);
   };
-
-  // Very low res!!!
-  Mesh mesh{sun_dia, sun_dia, 512, 512};
 
   Pt prev{0.0, 0.0};
   vector<pair<Pt, Pt>> path;
@@ -223,7 +235,6 @@ int main(int argc, char **argv) {
     return Pt{((mech.x / max_radius) + 1.0) * 0.5,
   	      ((mech.y / max_radius) + 1.0) * 0.5};
   };
-
 
   // XXX this also needs a rotation..
   // x,y are its top left
@@ -253,7 +264,7 @@ int main(int argc, char **argv) {
   };
   (void)DrawMeshAligned;
 
-  // Draw a mesh with its center at world coordinates x,y and
+  // Draw a mesh with its CENTER at world coordinates x,y and
   // at the given angle.
   auto DrawMesh = 
     [&ToScreen, &ToMechanism](const Mesh &m, double cx, double cy,
@@ -324,19 +335,72 @@ int main(int argc, char **argv) {
     }
   };
 
+  // Very low res!!!
+  Mesh mesh{sun_dia, sun_dia, 512, 512};
+
+  auto MapDrill = [orbit, &mesh, &Compute](Pt in) -> Pt {
+    // Find the drill's position relative to earth; this will
+    // draw into the mesh.
+    //
+    // Just pretend earth is at angle 0, and find the coordinates
+    // of the drill relative to to earth's center.
+    const Configuration c = Compute(in.x, in.y);
+      
+    // in world coordinates
+    const double drillx = orbit; // sin(0) * orbit
+    const double drilly = 0.0; // cos(0)
+      
+    const double drillx_in_earth = drillx - c.earth_x;
+    const double drilly_in_earth = drilly - c.earth_y;
+      
+    // Now, we can rotate it around earth's center. It has the
+    // same center as earth, so its angle is just earth's angle.
+      
+    const double sint = sin(c.earth_angle + PI*0.5);
+    const double cost = cos(c.earth_angle + PI*0.5);
+    const double dxx = drillx_in_earth * cost - drilly_in_earth * sint;
+    const double dyy = drillx_in_earth * sint + drilly_in_earth * cost;
+
+    // And the mesh's 0,0 is actually its top left.
+    return Pt(dxx + mesh.Width() * 0.5,
+	      dyy + mesh.Height() * 0.5);
+  };
+
+  InvertRect<decltype(MapDrill)> inv_drill{
+    MapDrill,
+      // Min/max angles for sun, earth drivers
+      0.0, TWOPI,
+      0.0, TWOPI * earth_gear_ratio,
+      drill_dia * -0.5, mesh.Width() + drill_dia * 0.5,
+      drill_dia * -0.5, mesh.Height() + drill_dia * 0.5};
+
+  enum Mode {
+    MODE_WAND,
+    MODE_DRAW,
+  };
+
+  Mode mode = MODE_DRAW;
 
   double tt = 0;
-  auto Draw = [&sun_angle,
+  auto Draw = [&font,
+	       &sun_angle,
                &earthdriver_dia, &earthdriver_angle,
                &sun_dia, &earth_dia, &earth_gear_ratio,
                &wand_length, &orbit,
                &prev, &path,
                &Compute, &tt,
 	       &ScreenToNorm, &inv,
-	       &mesh, &DrawMesh,
+	       &ToMechanism,
+	       &mesh, &DrawMesh, &DrawMeshAligned,
 	       &drill_dia, &drill_angle,
-               &DrawGear, &DrawPoint, &DrawLine, &DrawThickLine]() {
-    sdlutil::clearsurface(screen, BACKGROUND);
+               &DrawGear, &DrawPoint, &DrawLine, &DrawThickLine,
+	       &mode]() {
+    sdlutil::clearsurface(screen, C_BACKGROUND);
+
+    font->drawto(screen, STARTW / 2, 0,
+		 (mode == MODE_WAND) ? 
+		 "[W]and mode  [d]raw mode" :
+		 "[w]and mode  [D]raw mode");
 
 #if 0
     Pt prev;
@@ -383,8 +447,11 @@ int main(int argc, char **argv) {
 
     // Draw path.
     for (const auto p : path) {
-      DrawThickLine(p.first.x, p.first.y, p.second.x, p.second.y, BLUE);
+      DrawThickLine(p.first.x, p.first.y, p.second.x, p.second.y, C_BLUE);
     }
+
+    const Pt top_left = ToMechanism(DRAWMARGINX, DRAWMARGINY);
+    DrawMeshAligned(mesh, top_left.x, top_left.y);
 
     Configuration c = Compute(sun_angle, earthdriver_angle);
 
@@ -404,7 +471,7 @@ int main(int argc, char **argv) {
     DrawGear(orbit, 0, drill_dia / 2, drill_angle, 9);
 
     // Draw the wand.
-    DrawLine(c.earth_x, c.earth_y, c.wand_x, c.wand_y, GREEN);
+    DrawLine(c.earth_x, c.earth_y, c.wand_x, c.wand_y, C_GREEN);
   };
 
   bool holding_rmb = false;
@@ -433,33 +500,57 @@ int main(int argc, char **argv) {
 	int mousex = e->x;
 	int mousey = e->y;
 
-	Pt output = ScreenToNorm(mousex, mousey);
-	  
-	/*
-	printf("mouse %d %d norm %f %f\n",
-	       mousex, mousey,
-	       output.x, output.y);
-	*/
+	if (mode == MODE_DRAW) {
+	  double mx = (mousex - DRAWMARGINX) * UNITS_PER_PIXEL;
+	  double my = (mousey - DRAWMARGINY) * UNITS_PER_PIXEL;
 
-	Configuration cur = Compute(sun_angle, earthdriver_angle);
+	  // Only do this if we're on the mesh.
+	  if (mx >= drill_dia * -0.5 && 
+	      my >= drill_dia * -0.5 &&
+	      mx <= mesh.Width() + drill_dia * 0.5 &&
+	      my <= mesh.Height() + drill_dia * 0.5) {
 
-	vector<Pt> solve_path;
-	Pt input;
-	if (inv.Invert2({sun_angle / TWOPI, 
-		         earthdriver_angle / (earth_gear_ratio * TWOPI)}, 
-	                output, &input, nullptr)) {
+	    // mx, my are correct (I plotted them)
 
-	  sun_angle = input.x * TWOPI;
-	  earthdriver_angle = input.y * earth_gear_ratio * TWOPI;
-
-	  if (e->state & SDL_BUTTON_LMASK) {
-	    Configuration updated = Compute(sun_angle, earthdriver_angle);
-	    path.emplace_back(Pt{cur.wand_x, cur.wand_y},
-			      Pt{updated.wand_x, updated.wand_y});
+	    Pt current{sun_angle, earthdriver_angle};
+	    Pt output{mx, my};
+	    Pt input;
+	    if (inv_drill.Invert(current, output, &input)) {
+	      sun_angle = input.x;
+	      earthdriver_angle = input.y;
+	    }
 	  }
 
-	} else {
-	  // printf("%s unreachable!\n", ptos(output).c_str());
+	} else if (mode == MODE_WAND) {
+
+	  Pt output = ScreenToNorm(mousex, mousey);
+
+	  /*
+	  printf("mouse %d %d norm %f %f\n",
+		 mousex, mousey,
+		 output.x, output.y);
+	  */
+
+	  Configuration cur = Compute(sun_angle, earthdriver_angle);
+
+	  vector<Pt> solve_path;
+	  Pt input;
+	  if (inv.Invert2({sun_angle / TWOPI, 
+			   earthdriver_angle / (earth_gear_ratio * TWOPI)}, 
+			  output, &input, nullptr)) {
+
+	    sun_angle = input.x * TWOPI;
+	    earthdriver_angle = input.y * earth_gear_ratio * TWOPI;
+
+	    if (e->state & SDL_BUTTON_LMASK) {
+	      Configuration updated = Compute(sun_angle, earthdriver_angle);
+	      path.emplace_back(Pt{cur.wand_x, cur.wand_y},
+				Pt{updated.wand_x, updated.wand_y});
+	    }
+
+	  } else {
+	    // printf("%s unreachable!\n", ptos(output).c_str());
+	  }
 	}
 	break;
       }
@@ -467,6 +558,14 @@ int main(int argc, char **argv) {
       case SDL_KEYDOWN: {
         int key = event.key.keysym.sym;
         switch(key) {
+	case SDLK_w:
+	  mode = MODE_WAND;
+	  break;
+
+	case SDLK_d:
+	  mode = MODE_DRAW;
+	  break;
+
         case SDLK_s:
           sun_on = !sun_on;
           break;
@@ -519,52 +618,8 @@ int main(int argc, char **argv) {
     if (holding_rmb) {
       // Carve from mesh; test.
       // XXX HERE. Move to mesh ...
-
-      // Find the drill's position relative to earth; this will
-      // draw into the mesh.
-      //
-      // Just pretend earth is at angle 0, and find the coordinates
-      // of the drill relative to to earth's center.
-      
-      Configuration c = Compute(sun_angle, earthdriver_angle);
-      
-      // in world coordinates
-      double drillx = orbit; // sin(0) * orbit
-      double drilly = 0.0; // cos(0)
-      
-      double drillx_in_earth = drillx - c.earth_x;
-      double drilly_in_earth = drilly - c.earth_y;
-      
-      /*
-      DrawLine(c.earth_x, c.earth_y, 
-	       c.earth_x + drillx_in_earth,
-	       c.earth_y + drilly_in_earth);
-      */
-
-      // Now, we can rotate it around earth's center. It has the
-      // same center as earth, so its angle is just earth's angle.
-      
-      double sint = sin(c.earth_angle + PI*0.5);
-      double cost = cos(c.earth_angle + PI*0.5);
-      double dxx = drillx_in_earth * cost - drilly_in_earth * sint;
-      double dyy = drillx_in_earth * sint + drilly_in_earth * cost;
-
-      /*
-      DrawLine(c.earth_x, c.earth_y,
-	       c.earth_x + dxx,
-	       c.earth_y + dyy);
-      */
-
-      // And the mesh's 0,0 is actually its top left.
-      mesh.Carve(dxx + mesh.Width() * 0.5, 
-		 dyy + mesh.Height() * 0.5,
-		 drill_dia * 0.5);
-      /*
-      Pt pos = ToMechanism(mousex, mousey);
-      double mesh_x = pos.x + (sun_dia / 2.0);
-      double mesh_y = pos.y + (sun_dia / 2.0);
-      mesh.Carve(mesh_x, mesh_y, 0.25);
-      */
+      Pt meshcarve = MapDrill(Pt(sun_angle, earthdriver_angle));
+      mesh.Carve(meshcarve.x, meshcarve.y, drill_dia * 0.5);
     }
 
     SDL_Flip(screen);

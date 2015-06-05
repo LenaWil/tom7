@@ -49,6 +49,31 @@ private:
   vector<vector<vector<Pt>>> backward;
 };
 
+template<class F>
+struct InvertRect {
+  // Since invert2 works best right now, we ignore the
+  InvertRect(const F &f,
+	     double xin_min, double xin_max,
+	     double yin_min, double yin_max,
+	     double xout_min, double xout_max,
+	     double yout_min, double yout_max);
+
+  bool Invert(Pt current, Pt Output, Pt *input);
+
+private:
+  Pt NormOut(Pt out);
+  Pt NormIn(Pt in);
+  Pt UnNormIn(Pt in);
+  Inversion<F> inversion;
+  static constexpr int BOGUS_STEPS = 10;
+  static constexpr int BOGUS_RESOLUTION = 2;
+
+  const double xin_min, xin_len, yin_min, yin_len;
+  const double xin_len_inv, yin_len_inv;
+  const double xout_min, xout_len_inv, yout_min, yout_len_inv;
+};
+
+
 
 // Template implementations follow.
 
@@ -174,15 +199,60 @@ Inversion<F>::Inversion(const F &f, int xsteps, int ysteps,
       Pt res = f(Pt{xx, yy});
       int xb = round(res.x * (xres - 1));
       int yb = round(res.y * (yres - 1));
-      if (xb < 0 || xb >= xres || 
-	  yb < 0 || yb >= yres) {
-	fprintf(stderr, "F returned value out of range!\n");
-	abort();
+      if (xb >= 0 && xb < xres &&
+	  yb >= 0 && yb << yres) {
+	backward[yb][xb].emplace_back(xx, yy);
+      } else {
+	// fprintf(stderr, "F returned value out of range!\n");
+	// abort();
       }
-      backward[yb][xb].emplace_back(xx, yy);
     }
   }
   
+}
+
+template<class F>
+InvertRect<F>::InvertRect(const F &f,
+			  double xin_min, double xin_max,
+			  double yin_min, double yin_max,
+			  double xout_min, double xout_max,
+			  double yout_min, double yout_max)
+  : inversion(f, BOGUS_STEPS, BOGUS_STEPS,
+	      BOGUS_RESOLUTION, BOGUS_RESOLUTION),
+    xin_min(xin_min), xin_len(xin_max - xin_min),
+    yin_min(yin_min), yin_len(yin_max - yin_min),
+    xin_len_inv(1.0 / xin_len),
+    yin_len_inv(1.0 / yin_len),
+    xout_min(xout_min), xout_len_inv(1.0 / (xout_max - xout_min)),
+    yout_min(yout_min), yout_len_inv(1.0 / (yout_max - yout_min)) {}
+
+template<class F>
+bool InvertRect<F>::Invert(Pt current, Pt output, Pt *input) {
+  Pt ninput;
+  if (inversion.Invert2(NormIn(current), NormOut(output),
+			&ninput, nullptr)) {
+    *input = UnNormIn(ninput);
+    return true;
+  }
+  return false;
+}
+
+template<class F>
+Pt InvertRect<F>::NormOut(Pt out) {
+  return Pt((out.x - xout_min) * xout_len_inv,
+	    (out.y - yout_min) * yout_len_inv);
+}
+
+template<class F>
+Pt InvertRect<F>::NormIn(Pt in) {
+  return Pt((in.x - xin_min) * xin_len_inv,
+	    (in.y - yin_min) * yin_len_inv);
+}
+
+template<class F>
+Pt InvertRect<F>::UnNormIn(Pt in) {
+  return Pt(in.x * xin_len + xin_min,
+	    in.y * yin_len + yin_min);
 }
 
 #endif
