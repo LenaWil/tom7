@@ -3,6 +3,7 @@
 #define __POINT_H
 
 #include <cmath>
+#include "base/stringprintf.h"
 
 struct Pt {
   double x = 0.0;
@@ -20,5 +21,10 @@ inline double Distance(Pt a, Pt b) {
   double dx = a.x - b.x, dy = a.y - b.y;
   return sqrt(dx * dx + dy * dy);
 }
+
+inline std::string Ptos(Pt p) {
+  return StringPrintf("%.1f,%.1f", p.x, p.y);
+};
+
 
 #endif

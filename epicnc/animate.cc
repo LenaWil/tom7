@@ -148,19 +148,6 @@ int main(int argc, char **argv) {
 
   const double max_radius = wand_length + orbit;
 
-  auto ComputeFn = [Compute, earth_gear_ratio, max_radius](Pt in) -> Pt {
-    Configuration c = Compute(in.x * TWOPI,
-			      in.y * earth_gear_ratio * TWOPI);
-
-    return Pt{((c.wand_x / max_radius) + 1.0) * 0.5,
-              ((c.wand_y / max_radius) + 1.0) * 0.5};
-  };
-
-  // PERF We currently aren't using the table.
-  // TODO: Use InvertRect.
-  Inversion<decltype(ComputeFn)> inv{
-    ComputeFn, 200, (int)(earth_gear_ratio * 200), 900, 900};
-
   static constexpr int ORIGIN_X = STARTW >> 1;
   static constexpr int ORIGIN_Y = STARTH >> 1;
   static constexpr double PIXELS_PER_UNIT = STARTH / 12.0;
@@ -366,6 +353,22 @@ int main(int argc, char **argv) {
 	      dyy + mesh.Height() * 0.5);
   };
 
+
+  auto MapWand = [&Compute](Pt in) {
+    const Configuration c = Compute(in.x, in.y);
+    return Pt{c.wand_x, c.wand_y};
+  };
+
+  printf("Creating inversions...\n");
+  // TODO: Use InvertRect.
+  InvertRect<decltype(MapWand)> inv_wand{
+    MapWand,
+      0.0, TWOPI,
+      0.0, TWOPI * earth_gear_ratio,
+      -max_radius, max_radius,
+      -max_radius, max_radius};
+  printf("1 done.\n");
+
   InvertRect<decltype(MapDrill)> inv_drill{
     MapDrill,
       // Min/max angles for sun, earth drivers
@@ -373,6 +376,7 @@ int main(int argc, char **argv) {
       0.0, TWOPI * earth_gear_ratio,
       drill_dia * -0.5, mesh.Width() + drill_dia * 0.5,
       drill_dia * -0.5, mesh.Height() + drill_dia * 0.5};
+  printf("Done.\n");
 
   enum Mode {
     MODE_WAND,
@@ -389,7 +393,7 @@ int main(int argc, char **argv) {
                &wand_length, &orbit,
                &prev, &path,
                &Compute, &tt,
-	       &ScreenToNorm, &inv,
+	       &ScreenToNorm, &inv_wand,
 	       &ToMechanism,
 	       &mesh, &DrawMesh, &DrawMeshAligned,
 	       &drill_dia, &drill_angle,
@@ -401,6 +405,10 @@ int main(int argc, char **argv) {
 		 (mode == MODE_WAND) ? 
 		 "[W]and mode  [d]raw mode" :
 		 "[w]and mode  [D]raw mode");
+
+    font->drawto(screen, STARTW - 300, 0,
+		 StringPrintf("sun ^2%.4f^< earthd ^3%.4f^<",
+			      sun_angle, earthdriver_angle));
 
 #if 0
     Pt prev;
@@ -523,6 +531,26 @@ int main(int argc, char **argv) {
 
 	} else if (mode == MODE_WAND) {
 
+	  Configuration old = Compute(sun_angle, earthdriver_angle);
+	  Pt output = ToMechanism(mousex, mousey);
+	  Pt cur{sun_angle, earthdriver_angle};
+	  Pt input;
+	  if (inv_wand.Invert(cur, output, &input)) {
+
+	    sun_angle = input.x;
+	    earthdriver_angle = input.y;
+
+	    if (e->state & SDL_BUTTON_LMASK) {
+	      Configuration updated = Compute(sun_angle, earthdriver_angle);
+	      path.emplace_back(Pt{old.wand_x, old.wand_y},
+				Pt{updated.wand_x, updated.wand_y});
+	    }
+
+	  } else {
+
+	  }
+
+	  #if 0
 	  Pt output = ScreenToNorm(mousex, mousey);
 
 	  /*
@@ -551,6 +579,7 @@ int main(int argc, char **argv) {
 	  } else {
 	    // printf("%s unreachable!\n", ptos(output).c_str());
 	  }
+	  #endif
 	}
 	break;
       }

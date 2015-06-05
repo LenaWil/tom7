@@ -4,6 +4,8 @@
 
 #include <vector>
 #include <cmath>
+#include <functional>
+#include <memory>
 
 #include "point.h"
 #include "arcfour.h"
@@ -51,7 +53,8 @@ private:
 
 template<class F>
 struct InvertRect {
-  // Since invert2 works best right now, we ignore the
+  // Since invert2 works best right now, we ignore the resolution
+  // and pass small dummy values.
   InvertRect(const F &f,
 	     double xin_min, double xin_max,
 	     double yin_min, double yin_max,
@@ -64,13 +67,14 @@ private:
   Pt NormOut(Pt out);
   Pt NormIn(Pt in);
   Pt UnNormIn(Pt in);
-  Inversion<F> inversion;
   static constexpr int BOGUS_STEPS = 10;
   static constexpr int BOGUS_RESOLUTION = 2;
 
   const double xin_min, xin_len, yin_min, yin_len;
   const double xin_len_inv, yin_len_inv;
   const double xout_min, xout_len_inv, yout_min, yout_len_inv;
+  std::function<Pt(Pt)> mapped_f;
+  std::unique_ptr<Inversion<std::function<Pt(Pt)>>> inversion;
 };
 
 
@@ -94,7 +98,8 @@ bool Inversion<F>::Invert2(Pt current, Pt output, Pt *input,
 
   auto ErrorFn = [this, output, current](Pt cand) -> double {
     // Take into account both the error how far we've gone?
-    return SqDistance(output, f(cand)); /* + SqDistance(cand, current) / 100.0; */
+    /* + SqDistance(cand, current) / 100.0; */
+    return SqDistance(output, f(cand));
   };
 
   int count = 0;
@@ -200,7 +205,7 @@ Inversion<F>::Inversion(const F &f, int xsteps, int ysteps,
       int xb = round(res.x * (xres - 1));
       int yb = round(res.y * (yres - 1));
       if (xb >= 0 && xb < xres &&
-	  yb >= 0 && yb << yres) {
+	  yb >= 0 && yb < yres) {
 	backward[yb][xb].emplace_back(xx, yy);
       } else {
 	// fprintf(stderr, "F returned value out of range!\n");
@@ -217,20 +222,27 @@ InvertRect<F>::InvertRect(const F &f,
 			  double yin_min, double yin_max,
 			  double xout_min, double xout_max,
 			  double yout_min, double yout_max)
-  : inversion(f, BOGUS_STEPS, BOGUS_STEPS,
-	      BOGUS_RESOLUTION, BOGUS_RESOLUTION),
-    xin_min(xin_min), xin_len(xin_max - xin_min),
+  : xin_min(xin_min), xin_len(xin_max - xin_min),
     yin_min(yin_min), yin_len(yin_max - yin_min),
     xin_len_inv(1.0 / xin_len),
     yin_len_inv(1.0 / yin_len),
     xout_min(xout_min), xout_len_inv(1.0 / (xout_max - xout_min)),
-    yout_min(yout_min), yout_len_inv(1.0 / (yout_max - yout_min)) {}
+    yout_min(yout_min), yout_len_inv(1.0 / (yout_max - yout_min)) {
+  mapped_f = [this, &f](Pt in) {
+    return NormOut(f(UnNormIn(in)));
+  };
+  inversion.reset(new Inversion<std::function<Pt(Pt)>>
+		  (mapped_f,
+		   BOGUS_STEPS, BOGUS_STEPS,
+		   BOGUS_RESOLUTION, BOGUS_RESOLUTION));
+}
 
 template<class F>
 bool InvertRect<F>::Invert(Pt current, Pt output, Pt *input) {
+  Pt ncur = NormIn(current);
+  Pt nout = NormOut(output);
   Pt ninput;
-  if (inversion.Invert2(NormIn(current), NormOut(output),
-			&ninput, nullptr)) {
+  if (inversion->Invert2(ncur, nout, &ninput, nullptr)) {
     *input = UnNormIn(ninput);
     return true;
   }
