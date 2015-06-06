@@ -109,34 +109,48 @@ int main(int argc, char **argv) {
   double earth_gear_ratio = 4.0;
   const double earthdriver_dia = earth_dia / earth_gear_ratio;
 
-  // Externally driven. Sun is actually driven by a little gear,
-  // but we can pretend it's driven directly. The earth's driver
-  // has an interaction with the sun, however.
+  double sun_gear_ratio = 6.0;
+  const double sundriver_dia = sun_dia / sun_gear_ratio;
+
+  const double sundriver_location_angle = (5.0 / 8.0) * TWOPI;
+  const double sundriver_center_distance = (sun_dia + sundriver_dia) * 0.5;
+  const double sundriver_x = sin(sundriver_location_angle) *
+    sundriver_center_distance;
+  const double sundriver_y = cos(sundriver_location_angle) *
+    sundriver_center_distance;
+
+  // Both sun and earth are externally driven. The sun is a simple
+  // gear mesh. The earth's driver has an interaction with the sun,
+  // however.
   //
   // Both in mechanism-space.
-  double sun_angle = 0.0;
+  double sundriver_angle = 0.0;
   double earthdriver_angle = 0.0;
 
   struct Configuration {
+    double sun_angle = 0.0;
     double earth_x = 0.0, earth_y = 0.0;
     double earth_angle = 0.0;
     double wand_x = 0.0, wand_y = 0.0;
   };
 
   auto Compute = [sun_dia, earth_dia, orbit, wand_length,
+		  sun_gear_ratio,
                   earth_gear_ratio, earthdriver_dia]
-    (double sun_a, double ed_a) -> Configuration {
+    (double sd_a, double ed_a) -> Configuration {
 
     Configuration c;
 
+    c.sun_angle = sd_a / -sun_gear_ratio;
+
     // Earth's center.
-    c.earth_x = sin(sun_a) * orbit;
-    c.earth_y = cos(sun_a) * orbit;
+    c.earth_x = sin(c.sun_angle) * orbit;
+    c.earth_y = cos(c.sun_angle) * orbit;
 
     // The earth driver and earth would be in a normal gearing
     // relationship, but the earth orbits the earth driver as well
     // (because it is on the sun), causing a kind of phantom rotation.
-    const double effective_angle = ed_a - sun_a;
+    const double effective_angle = ed_a - c.sun_angle;
 
     c.earth_angle = effective_angle / -earth_gear_ratio;
 
@@ -352,7 +366,7 @@ int main(int argc, char **argv) {
 
   InvertRect<decltype(MapWand)> inv_wand{
     MapWand,
-      0.0, TWOPI,
+      0.0, TWOPI * sun_gear_ratio,
       0.0, TWOPI * earth_gear_ratio,
       -max_radius, max_radius,
       -max_radius, max_radius};
@@ -360,7 +374,7 @@ int main(int argc, char **argv) {
   InvertRect<decltype(MapDrill)> inv_drill{
     MapDrill,
       // Min/max angles for sun, earth drivers
-      0.0, TWOPI,
+      0.0, TWOPI * sun_gear_ratio,
       0.0, TWOPI * earth_gear_ratio,
       drill_dia * -0.5, mesh.Width() + drill_dia * 0.5,
       drill_dia * -0.5, mesh.Height() + drill_dia * 0.5};
@@ -375,7 +389,8 @@ int main(int argc, char **argv) {
 
   double tt = 0;
   auto Draw = [&font,
-	       &sun_angle,
+	       &sundriver_angle, &sundriver_x, &sundriver_y,
+	       &sundriver_dia,
                &earthdriver_dia, &earthdriver_angle,
                &sun_dia, &earth_dia, &earth_gear_ratio,
                &wand_length, &orbit,
@@ -389,45 +404,17 @@ int main(int argc, char **argv) {
 	       &mode]() {
     sdlutil::clearsurface(screen, C_BACKGROUND);
 
+    Configuration c = Compute(sundriver_angle, earthdriver_angle);
+
     font->drawto(screen, STARTW / 2, 0,
 		 (mode == MODE_WAND) ? 
 		 "[W]and mode  [d]raw mode" :
 		 "[w]and mode  [D]raw mode");
 
     font->drawto(screen, STARTW - 300, 0,
-		 StringPrintf("sun ^2%.4f^< earthd ^3%.4f^<",
-			      sun_angle, earthdriver_angle));
-
-#if 0
-    // Draws mapping.
-    const double max_radius = wand_length + orbit;
-
-    static constexpr int SIZE = 800;
-    static constexpr int YOFF = (STARTH - SIZE) >> 1;
-    for (int y = 0; y < SIZE; y++) {
-      double sa = y * (TWOPI / SIZE);
-      const uint8 b = 255 * (y / (double)SIZE);
-      for (int x = 0; x < SIZE; x++) {
-        if ((x - y) == tt) {
-          double ea = x * (TWOPI * earth_gear_ratio / SIZE);
-          const uint8 r = 255 * (x / (double)SIZE);
-          sdlutil::drawclippixel(screen, x, YOFF + y, r, 128, b);
-
-          Configuration c = Compute(sa, ea);
-
-          int cx = ((c.wand_x / max_radius) + 1.0) * 0.5 * SIZE;
-          int cy = ((c.wand_y / max_radius) + 1.0) * 0.5 * SIZE;
-          sdlutil::drawclippixel(screen, cx + SIZE + 20, YOFF + cy, 
-				 r, 128, b);
-        }
-
-      }
-
-    }
-
-    tt++;
-    tt %= SIZE;
-#endif
+		 StringPrintf("sund ^2%.4f^< earthd ^3%.4f^<",
+			      sundriver_angle, earthdriver_angle));
+    // TODO more derived parameters.
 
     // Draw path.
     for (const auto p : path) {
@@ -437,14 +424,15 @@ int main(int argc, char **argv) {
     const Pt top_left = ToMechanism(DRAWMARGINX, DRAWMARGINY);
     DrawMeshAligned(mesh, top_left.x, top_left.y);
 
-    Configuration c = Compute(sun_angle, earthdriver_angle);
-
     // Mesh is centered on the Earth.
     DrawMesh(mesh, c.earth_x, c.earth_y, c.earth_angle);
 
-    // Sun just depends on its angle.
-    DrawGear(0, 0, sun_dia / 2.0, sun_angle, 22);
-    // Same.
+    // Sun driver.
+    DrawGear(sundriver_x, sundriver_y, sundriver_dia / 2.0,
+	     sundriver_angle, 9);
+    // Sun.
+    DrawGear(0, 0, sun_dia / 2.0, c.sun_angle, 19);
+    // Earth driver.
     DrawGear(0, 0, earthdriver_dia / 2.0, earthdriver_angle, 5);
 
     DrawPoint(c.earth_x, c.earth_y);
@@ -496,28 +484,29 @@ int main(int argc, char **argv) {
 
 	    // mx, my are correct (I plotted them)
 
-	    Pt current{sun_angle, earthdriver_angle};
+	    Pt current{sundriver_angle, earthdriver_angle};
 	    Pt output{mx, my};
 	    Pt input;
 	    if (inv_drill.Invert(current, output, &input)) {
-	      sun_angle = input.x;
+	      sundriver_angle = input.x;
 	      earthdriver_angle = input.y;
 	    }
 	  }
 
 	} else if (mode == MODE_WAND) {
 
-	  Configuration old = Compute(sun_angle, earthdriver_angle);
+	  Configuration old = Compute(sundriver_angle, earthdriver_angle);
 	  Pt output = ToMechanism(mousex, mousey);
-	  Pt cur{sun_angle, earthdriver_angle};
+	  Pt cur{sundriver_angle, earthdriver_angle};
 	  Pt input;
 	  if (inv_wand.Invert(cur, output, &input)) {
 
-	    sun_angle = input.x;
+	    sundriver_angle = input.x;
 	    earthdriver_angle = input.y;
 
 	    if (e->state & SDL_BUTTON_LMASK) {
-	      Configuration updated = Compute(sun_angle, earthdriver_angle);
+	      Configuration updated = Compute(sundriver_angle,
+					      earthdriver_angle);
 	      path.emplace_back(Pt{old.wand_x, old.wand_y},
 				Pt{updated.wand_x, updated.wand_y});
 	    }
@@ -547,10 +536,10 @@ int main(int argc, char **argv) {
           earth_on = !earth_on;
           break;
         case SDLK_z:
-          sun_angle -= 0.01;
+          sundriver_angle -= 0.01;
           break;
         case SDLK_x:
-          sun_angle += 0.01;
+          sundriver_angle += 0.01;
           break;
         case SDLK_COMMA:
           earthdriver_angle -= 0.01;
@@ -577,7 +566,7 @@ int main(int argc, char **argv) {
     }
 
     #if 0
-    if (sun_on) sun_angle += -0.04 + 0.01 * sin(t/33);
+    if (sun_on) sundriver_angle += -0.04 + 0.01 * sin(t/33);
     if (earth_on) earthdriver_angle += 0.02 * sin(t / 50) * sin(t / 21);
     #endif
 
@@ -591,7 +580,7 @@ int main(int argc, char **argv) {
 
     if (holding_rmb) {
       // Carve from mesh; test.
-      Pt meshcarve = MapDrill(Pt(sun_angle, earthdriver_angle));
+      Pt meshcarve = MapDrill(Pt(sundriver_angle, earthdriver_angle));
       mesh.Carve(meshcarve.x, meshcarve.y, drill_dia * 0.5);
     }
 
