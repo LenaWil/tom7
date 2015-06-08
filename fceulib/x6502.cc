@@ -34,12 +34,6 @@
 #define _S         reg_S
 #define _P         reg_P
 #define _PI        reg_PI
-#define _DB        this->DB
-#define _count     this->count
-#define _tcount    this->tcount
-#define _IRQlow    this->IRQlow
-#define _jammed    this->jammed
-
 
 #define N_FLAG  0x80
 #define V_FLAG  0x40
@@ -54,8 +48,8 @@ X6502 X;
 
 #define ADDCYC(x) {				\
     int __x=x;					\
-    _tcount+=__x;				\
-    _count-=__x*48;				\
+    this->tcount+=__x;				\
+    this->count-=__x*48;			\
     timestamp+=__x;				\
   }
 
@@ -370,27 +364,27 @@ static constexpr uint8 CycTable[256] = {
 
 void X6502::IRQBegin(int w) {
   TRACEF("IRQBegin %d", w);
-  _IRQlow |= w;
+  IRQlow |= w;
 }
 
 void X6502::IRQEnd(int w) {
   TRACEF("IRQEnd %d", w);
-  _IRQlow &= ~w;
+  IRQlow &= ~w;
 }
 
 void X6502::TriggerNMI() {
   TRACEFUN();
-  _IRQlow |= FCEU_IQNMI;
+  IRQlow |= FCEU_IQNMI;
 }
 
 void X6502::TriggerNMI2() {
   TRACEFUN();
-  _IRQlow |= FCEU_IQNMI2;
+  IRQlow |= FCEU_IQNMI2;
 }
 
 void X6502::Reset() {
   TRACEFUN();
-  _IRQlow = FCEU_IQRESET;
+  IRQlow = FCEU_IQRESET;
 }
 
 /**
@@ -415,14 +409,14 @@ void X6502::Init() {
 }
 
 void X6502::Power() {
-  _count=_tcount=_IRQlow=_PC=_A=_X=_Y=_P=_PI=_DB=_jammed=0;
+  count = tcount=IRQlow=_PC=_A=_X=_Y=_P=_PI=DB= jammed = 0;
   _S=0xFD;
   timestamp=0;
   Reset();
 }
 
 #define TRACE_MACHINEFMT "X: %d %04x %02x %02x %02x %02x %02x %02x / %02x %u %02x"
-#define TRACE_MACHINEARGS _count, _PC, _A, _X, _Y, _S, _P, _PI, _jammed, _IRQlow, _DB
+#define TRACE_MACHINEARGS count, _PC, _A, _X, _Y, _S, _P, _PI, jammed, IRQlow, DB
 
 void X6502::Run(int32 cycles) {
   // Temporarily disable tracing unless this is the particular cycle
@@ -442,9 +436,9 @@ void X6502::Run(int32 cycles) {
     cycles *= 16;    // 16*4=64
   }
 
-  _count += cycles;
+  count += cycles;
 
-  while (_count > 0) {
+  while (count > 0) {
     int32 temp;
 
     TRACE_SCOPED_STAY_ENABLED_IF(false);
@@ -452,19 +446,19 @@ void X6502::Run(int32 cycles) {
     TRACEA(RAM, 0x800);
     // TRACEA(fceulib__PPU_values, 4);
 
-    if (_IRQlow) {
+    if (IRQlow) {
       TRACEF("IRQlow set.");
-      if (_IRQlow&FCEU_IQRESET) {
+      if (IRQlow&FCEU_IQRESET) {
 	_PC=RdMem(0xFFFC);
 	_PC|=RdMem(0xFFFD)<<8;
-	_jammed=0;
+	jammed = 0;
 	_PI=_P=I_FLAG;
-	_IRQlow&=~FCEU_IQRESET;
-      } else if (_IRQlow&FCEU_IQNMI2) {
-	_IRQlow&=~FCEU_IQNMI2;
-	_IRQlow|=FCEU_IQNMI;
-      } else if (_IRQlow&FCEU_IQNMI) {
-	if (!_jammed) {
+	IRQlow&=~FCEU_IQRESET;
+      } else if (IRQlow&FCEU_IQNMI2) {
+	IRQlow&=~FCEU_IQNMI2;
+	IRQlow|=FCEU_IQNMI;
+      } else if (IRQlow&FCEU_IQNMI) {
+	if (!jammed) {
 	  ADDCYC(7);
 	  PUSH(_PC>>8);
 	  PUSH(_PC);
@@ -472,10 +466,10 @@ void X6502::Run(int32 cycles) {
 	  _P|=I_FLAG;
 	  _PC=RdMem(0xFFFA);
 	  _PC|=RdMem(0xFFFB)<<8;
-	  _IRQlow&=~FCEU_IQNMI;
+	  IRQlow&=~FCEU_IQNMI;
 	}
       } else {
-	if (!(_PI&I_FLAG) && !_jammed) {
+	if (!(_PI&I_FLAG) && !jammed) {
 	  ADDCYC(7);
 	  PUSH(_PC>>8);
 	  PUSH(_PC);
@@ -485,8 +479,8 @@ void X6502::Run(int32 cycles) {
 	  _PC|=RdMem(0xFFFF)<<8;
 	}
       }
-      _IRQlow&=~(FCEU_IQTEMP);
-      if (_count<=0) {
+      IRQlow &= ~(FCEU_IQTEMP);
+      if (count <= 0) {
 	_PI=_P;
 	return;
 	// Should increase accuracy without a
@@ -499,8 +493,8 @@ void X6502::Run(int32 cycles) {
 
     ADDCYC(CycTable[b1]);
 
-    temp=_tcount;
-    _tcount=0;
+    temp = tcount;
+    tcount = 0;
     if (MapIRQHook) MapIRQHook(temp);
     fceulib__sound.FCEU_SoundCPUHook(temp);
     _PC++;
@@ -887,7 +881,7 @@ void X6502::Run(int32 cycles) {
     case 0xB2:
     case 0xD2:
     case 0xF2:ADDCYC(0xFF);
-      _jammed=1;
+      jammed = 1;
       _PC--;
       break;
 

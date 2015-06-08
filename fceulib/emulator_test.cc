@@ -768,8 +768,8 @@ int main(int argc, char **argv) {
                 filename.c_str());
         fflush(out);
         nlines++;
-        fprintf(stderr, "Did %d/%lld = %.1f%%.\n",
-                nlines, romlines.size(),
+        fprintf(stderr, "Did %d/%d = %.1f%%.\n",
+                nlines, (int)romlines.size(),
                 nlines * 100. / romlines.size());
 	// In this case we've already aborted (unless
 	// MAKE_COMPREHENSIVE is set).

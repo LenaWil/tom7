@@ -285,7 +285,7 @@ void Sound::FrameSoundStuff(int V) {
       if (lengthcount[3]>0)
 	lengthcount[3]--;
 
-    for (int P=0;P<2;P++) {
+    for (int P = 0; P < 2; P++) {
       /* Make sure loop flag is not set. */
       if (!(PSG[P<<2]&0x20))
 	if (lengthcount[P]>0)
@@ -538,8 +538,6 @@ void Sound::RDoSQLQ() {
   ChannelBC[0]=end;
 
   for (int x=0;x<2;x++) {
-    int y;
-
     inie[x]=nesincsize;
     if (curfreq[x]<8 || curfreq[x]>0x7ff)
       inie[x]=0;
@@ -567,7 +565,7 @@ void Sound::RDoSQLQ() {
 
     rthresh[x]=RectDuties[(PSG[x*4]&0xC0)>>6];
 
-    for (y=0;y<8;y++) {
+    for (int y=0;y<8;y++) {
       if (y < rthresh[x])
 	ttable[x][y] = amp[x];
       else
@@ -612,7 +610,6 @@ void Sound::RDoSQLQ() {
 }
 
 void Sound::RDoTriangle() {
-  uint32 V;
   int32 tcout;
 
   tcout=(tristep&0xF);
@@ -621,10 +618,10 @@ void Sound::RDoTriangle() {
 
   if (!lengthcount[2] || !TriCount) {
     int32 cout = (tcout/256*FCEUS_TRIANGLEVOLUME)&(~0xFFFF);
-    for (V=ChannelBC[2];V<SOUNDTS;V++)
+    for (uint32 V=ChannelBC[2];V<SOUNDTS;V++)
       WaveHi[V]+=cout;
   } else {
-    for (V=ChannelBC[2];V<SOUNDTS;V++) {
+    for (uint32 V=ChannelBC[2];V<SOUNDTS;V++) {
       //Modify volume based on channel volume modifiers
       WaveHi[V]+=(tcout/256*FCEUS_TRIANGLEVOLUME)&(~0xFFFF);  // TODO OPTIMIZE ME!
       wlcount[2]--;
@@ -978,8 +975,6 @@ void Sound::FCEUSND_Reset() {
 }
 
 void Sound::FCEUSND_Power() {
-  int x;
-
   SetNESSoundMap();
   memset(PSG,0x00,sizeof(PSG));
   FCEUSND_Reset();
@@ -988,7 +983,7 @@ void Sound::FCEUSND_Power() {
   memset(WaveHi,0,sizeof(WaveHi));
   memset(&EnvUnits,0,sizeof(EnvUnits));
 
-  for (x=0;x<5;x++)
+  for (int x=0;x<5;x++)
     ChannelBC[x]=0;
   soundtsoffs=0;
   LoadDMCPeriod(DMCFormat&0xF);
