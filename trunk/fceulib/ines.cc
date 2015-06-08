@@ -128,7 +128,7 @@ void INes::iNESGI(GI h) {
 }
 
 namespace {
-struct CRCMATCH  {
+struct CRCMATCH {
   const uint32 crc;
   const char *const name;
 };
@@ -142,7 +142,7 @@ struct INPSEL {
 }
 
 static void SetInput(uint32 gamecrc, FCEUGI *gi) {
-  static constexpr struct INPSEL input_sel[] = {
+  static constexpr struct INPSEL const input_sel[] = {
     {0x29de87af, SI_GAMEPAD, SI_GAMEPAD, SIFC_FTRAINERB }, // Aerobics Studio
     {0xd89e5a67, SI_UNSET, SI_UNSET, SIFC_ARKANOID }, // Arkanoid (J)
     {0x0f141525, SI_UNSET, SI_UNSET, SIFC_ARKANOID }, // Arkanoid 2(J)
@@ -238,7 +238,7 @@ struct BADINF {
 };
 }
 
-static constexpr BADINF BadROMImages[] = {
+static constexpr BADINF const BadROMImages[] = {
   { 0xecf78d8a13a030a6LL, "Ai Sensei no Oshiete", INESB_HACKED },
   { 0x4712856d3e12f21fLL, "Akumajou Densetsu", INESB_HACKED },
   { 0x10f90ba5bd55c22eLL, "Alien Syndrome", INESB_HACKED },
@@ -317,7 +317,7 @@ void INes::MapperInit() {
   }
 }
 
-static constexpr INesTMasterRomInfo sMasterRomInfo[] = {
+static constexpr INesTMasterRomInfo const sMasterRomInfo[] = {
   { 0x62b51b108a01d2beLL, "bonus=0" }, //4-in-1 (FK23C8021)[p1][!].nes
   { 0x8bb48490d8d22711LL, "bonus=0" }, //4-in-1 (FK23C8033)[p1][!].nes
   { 0xc75888d7b48cd378LL, "bonus=0" }, //4-in-1 (FK23C8043)[p1][!].nes
@@ -339,7 +339,7 @@ void INes::CheckHInfo() {
      Lower 64 bits of the MD5 hash.
   */
 
-  static constexpr uint64 savie[] = {
+  static constexpr uint64 const savie[] = {
     0x498c10dc463cfe95LL,  /* Battle Fleet */
     0x6917ffcaca2d8466LL,  /* Famista '90 */
 
@@ -392,7 +392,7 @@ void INes::CheckHInfo() {
 	      64-bits of its MD5 hash */
   };
 
-  static constexpr struct CHINF ines_correct[] = {
+  static constexpr struct CHINF const ines_correct[] = {
 #include "ines-correct.h"
   };
   uint64 partialmd5 = 0ULL;
@@ -511,7 +511,7 @@ struct BoardMapping {
 };
 }
 
-static constexpr BoardMapping board_map[] = {
+static constexpr BoardMapping const board_map[] = {
   {"NROM", 0, NROM_Init},
   {"MMC1", 1, Mapper1_Init},
   {"UNROM", 2, UNROM_Init},
@@ -777,7 +777,7 @@ static constexpr BoardMapping board_map[] = {
 // that are not in the power of 2 tends to come
 // in obscure mappers themselves which supports such
 // size
-static constexpr int not_power2[] = {
+static constexpr int const not_power2[] = {
   228
 };
 
@@ -805,7 +805,7 @@ int INes::iNESLoad(const char *name, FceuFile *fp, int OverwriteVidMode) {
 
   CleanupHeader(&head);
 
-  memset(&iNESCart,0,sizeof(iNESCart));
+  memset(&iNESCart, 0, sizeof(iNESCart));
 
   mapper_number = (head.ROM_type>>4);
   mapper_number |= (head.ROM_type2&0xF0);
@@ -863,7 +863,7 @@ int INes::iNESLoad(const char *name, FceuFile *fp, int OverwriteVidMode) {
   }
 
   fceulib__cart.ResetCartMapping();
-  ResetExState(0,0);
+  ResetExState(0, 0);
 
   fceulib__cart.SetupCartPRGMapping(0,ROM,ROM_size*0x4000,0);
   // SetupCartPRGMapping(1,WRAM,8192,1);
