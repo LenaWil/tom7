@@ -31,7 +31,6 @@ Memory todo:
    methods called, or roll those into the destructores, etc.
 
 Cleanup to do:
- - for loops with shared index variable in sound.cc
  - There are some symbols that are both #defined (e.g. ines.h) and
    declared, maybe with #undef before like in mmc3.cc. So confusing!
  - clang format?
