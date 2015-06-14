@@ -17,7 +17,6 @@ Stuff I should be able to get rid of:
 
       emulator.cc
       fceu.cc
-      headless-driver.cc
       state.cc
       input/*
       boards/*

@@ -9,7 +9,6 @@ all: emulator_test.exe fm2tocc.exe difftrace.exe dumptrace.exe
 # -std=c++11
 CXXFLAGS=-Wall -Wno-deprecated -Wno-sign-compare -I/usr/local/include 
 # XXX -O2
-# XXX -O2 causes divergence. Should track this down.
 OPT=-O2  # -O3 -fno-strict-aliasing
 
 ifdef OSX
