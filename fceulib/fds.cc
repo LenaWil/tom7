@@ -645,26 +645,19 @@ void FDS::PostSave() {
 
 int FDS::FDSLoad(const char *name, FceuFile *fp) {
   FILE *zp;
-  char *fn;
 
   FCEU_fseek(fp,0,SEEK_SET);
 
   if (!SubLoad(fp))
     return(0);
 
+  const std::string fn = FCEU_MakeFDSFilename();
 
-  // XXX use std::string -tom7
-  fn = strdup(FCEU_MakeFDSFilename().c_str());
-
-  if (!(zp=FCEUD_UTF8fopen(fn,"rb"))) {
-    FCEU_PrintError("FDS BIOS ROM image missing: %s", 
-		    FCEU_MakeFDSFilename().c_str());
+  if (!(zp=FCEUD_UTF8fopen(fn, "rb"))) {
+    FCEU_PrintError("FDS BIOS ROM image missing: %s", fn.c_str());
     FreeFDSMemory();
-    free(fn);
     return 0;
   }
-
-  free(fn);
 
   fseek( zp, 0L, SEEK_END );
   if (ftell( zp ) != 8192 ) {
@@ -687,24 +680,22 @@ int FDS::FDSLoad(const char *name, FceuFile *fp) {
 
   if (!fceulib__cart.disableBatteryLoading) {
     FceuFile *tp;
-    char *fn=strdup(FCEU_MakeFDSFilename().c_str());
+    const std::string fn2 = FCEU_MakeFDSFilename();
 
     for (int x=0;x<TotalSides;x++) {
       diskdatao[x]=(uint8 *)FCEU_malloc(65500);
       memcpy(diskdatao[x],diskdata[x],65500);
     }
 
-    if ((tp=FCEU_fopen(fn,"wb",0))) {
+    if ((tp = FCEU_fopen(fn2, "wb", 0))) {
       FreeFDSMemory();
       if (!SubLoad(tp)) {
 	FCEU_PrintError("Error reading auxillary FDS file.");
-	free(fn);
 	return(0);
       }
       FCEU_fclose(tp);
       DiskWritten=1;  /* For save state handling. */
     }
-    free(fn);
   }
 
   GameInfo->type=GIT_FDS;
@@ -755,7 +746,7 @@ void FDS::FDSClose() {
   if (!DiskWritten) return;
 
   const std::string fn = FCEU_MakeFDSFilename();
-  if (!(fp=FCEUD_UTF8fopen(fn.c_str(),"wb"))) {
+  if (!(fp=FCEUD_UTF8fopen(fn,"wb"))) {
     return;
   }
 

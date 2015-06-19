@@ -27,6 +27,11 @@
 #include <map>
 #include "fceu.h"
 
+// This is the iNES ROM image format (probably actually NES 2.0), the
+// most popular one.
+//
+// http://wiki.nesdev.com/w/index.php/INES
+
 struct FceuFile;
 struct INesTMasterRomInfo {
   uint64 md5lower;
@@ -145,8 +150,13 @@ void ROM_BANK8(uint32 A, uint32 V);
 void ROM_BANK16(uint32 A, uint32 V);
 void ROM_BANK32(uint32 V);
 
-void Mapper0_init();
-void Mapper1_init();
+// This list is pretty weird, I guess part of some transition
+// to the capital-i Init methods. Many of these are not even
+// defined anywhere. If there's a space after // then I was
+// the one who commented it out -tom7.
+
+// void Mapper0_init();
+// void Mapper1_init();
 //void Mapper2_init();
 //void Mapper3_init();
 void Mapper6_init();
@@ -172,14 +182,14 @@ void Mapper24_init();
 void Mapper26_init();
 //void Mapper27_init();
 void Mapper28_init();
-void Mapper29_init();
-void Mapper30_init();
-void Mapper31_init();
+// void Mapper29_init();
+// void Mapper30_init();
+// void Mapper31_init();
 //void Mapper32_init();
 //void Mapper33_init();
 //void Mapper34_init();
-void Mapper35_init();
-void Mapper36_init();
+// void Mapper35_init();
+// void Mapper36_init();
 //void Mapper37_init();
 //void Mapper38_init();
 //void Mapper39_init();
@@ -358,13 +368,16 @@ void Mapper251_init();
 //void Mapper253_init();
 //void Mapper255_init();
 
+// Probably can kill NSF code? -tom7
 void NSFVRC6_Init();
 void NSFMMC5_Init();
 void NSFAY_Init();
 void NSFN106_Init();
 void NSFVRC7_Init();
+
 void Mapper19_ESI();
 
+// These are presumably the new mappers. 
 void Mapper1_Init(CartInfo *);
 void Mapper4_Init(CartInfo *);
 void Mapper5_Init(CartInfo *);

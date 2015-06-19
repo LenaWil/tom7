@@ -5,6 +5,13 @@
 #include "types.h"
 #include "fceu.h"
 
+// This is the VS. UniSystem, I believe, an arcade machine that runs
+// modified NES games.
+//
+// https://en.wikipedia.org/wiki/Nintendo_VS._System
+//
+// I don't really test this one, so it may not work.
+
 struct VSUni {
 
   VSUni();

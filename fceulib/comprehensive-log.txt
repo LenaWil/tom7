@@ -13,3 +13,6 @@ Starting at Sun, May 10, 2015 11:26:19 AM
 Running comprehensive tests at SVN version  2493:2498
 Starting at Sun, May 10, 2015 12:17:43 PM
  ...  2493:2498  Succeeded at  Sun, May 10, 2015 5:05:53 PM
+Running comprehensive tests at SVN version  2521
+Starting at Sun, Jun 14, 2015 10:01:38 AM
+ ...  2521  Succeeded at  Sun, Jun 14, 2015 2:52:22 PM

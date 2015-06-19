@@ -12,6 +12,7 @@ Stuff I should be able to get rid of:
  - autosave (fceu.cc mostly)
  - get rid of _defines in x6502.cc
  - FCEUI_Initialize calls srand -- what is using random numbers?
+ - NSF code in mapper.h and the uncalled functions therein?
 
       Still to objectify:
 

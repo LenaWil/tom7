@@ -24,6 +24,12 @@
 #include "fceu.h"
 
 struct FceuFile;
+
+// The "Universal NES Image Format" is a basically deprecated ROM
+// image format.
+//
+// http://wiki.nesdev.com/w/index.php/UNIF
+
 struct Unif {
   Unif();
 
