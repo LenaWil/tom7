@@ -6,6 +6,11 @@
 
 struct FceuFile;
 
+// This is the Famicom Disk System, a fairly exotic but awesome
+// expansion for the Famicom.
+//
+// https://en.wikipedia.org/wiki/Family_Computer_Disk_System
+
 struct FDS {
   void FCEU_FDSInsert();
   void FCEU_FDSSelect();
