@@ -27,7 +27,7 @@ static bool FULL = false;
 static bool COMPREHENSIVE = false;
 // Turn this on to have it generate the whole roms file
 // without failing if there's a checksum mismatch.
-static bool MAKE_COMPREHENSIVE = true;
+static bool MAKE_COMPREHENSIVE = false;
 
 struct Game {
   string cart;

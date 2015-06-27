@@ -79,7 +79,7 @@ static DECLFR(TrainerRead) {
 
 void INes::iNES_ExecPower() {
   if (CHRRAMSize != -1)
-    FCEU_MemoryRand(VROM,CHRRAMSize);
+    FCEU_InitMemory(VROM, CHRRAMSize);
 
   if (iNESCart.Power)
     iNESCart.Power();
@@ -1455,7 +1455,7 @@ int INes::NewiNES_Init(int num) {
 	  CHRRAMSize=8192;
 	}
 	if ((VROM = (uint8 *)malloc(CHRRAMSize)) == nullptr) return 0;
-	FCEU_MemoryRand(VROM,CHRRAMSize);
+	FCEU_InitMemory(VROM,CHRRAMSize);
 
 	fceulib__unif.UNIFchrrama = VROM;
 	fceulib__cart.SetupCartCHRMapping(0,VROM,CHRRAMSize,1);

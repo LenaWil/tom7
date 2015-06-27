@@ -299,7 +299,7 @@ void FCEU::ResetNES() {
 void FCEU::PowerNES() {
   if (GameInfo == nullptr) return;
 
-  FCEU_MemoryRand(RAM,0x800);
+  FCEU_InitMemory(RAM,0x800);
 
   SetReadHandler(0x0000,0xFFFF,ANull);
   SetWriteHandler(0x0000,0xFFFF,BNull);
@@ -414,7 +414,7 @@ void FCEU_PrintError(char *format, ...) {
   va_end(ap);
 }
 
-void FCEU_MemoryRand(uint8 *ptr, uint32 size) {
+void FCEU_InitMemory(uint8 *ptr, uint32 size) {
   int x=0;
   while(size) {
     *ptr = (x&4) ? 0xFF : 0x00;

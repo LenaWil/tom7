@@ -120,9 +120,8 @@ extern FCEU fceulib__fceu;
 // Stateless stuff that should probably be in its own header..
 void FCEU_PrintError(char *format, ...);
 void FCEU_printf(char *format, ...);
-// Note: This is not random at all; it initializes in the
-// same stripes of 0xFF and 0x00 every time.
-void FCEU_MemoryRand(uint8 *ptr, uint32 size);
+// Initialize memory to stripes of 0xFF and 0x00.
+void FCEU_InitMemory(uint8 *ptr, uint32 size);
 
 #define JOY_A   1
 #define JOY_B   2
