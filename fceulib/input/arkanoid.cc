@@ -47,8 +47,8 @@ static uint8 ReadARKFC(int w,uint8 ret)
   else
   {
    ret|=((FCArk.mzx>>(7-FCArk.readbit))&1)<<1;
-   if(!fceuindbg)
-    FCArk.readbit++;
+
+   FCArk.readbit++;
   }
  }
  else
@@ -89,8 +89,8 @@ static uint8 ReadARK(int w)
  else
  {
   ret|=((NESArk[w].mzx>>(7-NESArk[w].readbit))&1)<<4;
-  if(!fceuindbg)
-   NESArk[w].readbit++;
+
+  NESArk[w].readbit++;
  }
  ret|=(NESArk[w].mzb&1)<<3;
  return(ret);

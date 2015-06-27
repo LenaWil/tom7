@@ -186,10 +186,8 @@ static DECLFR(FDSRead4030) {
   if (X.IRQlow&FCEU_IQEXT) ret|=1;
   if (X.IRQlow&FCEU_IQEXT2) ret|=2;
 
-  if (!fceuindbg) {
-    X.IRQEnd(FCEU_IQEXT);
-    X.IRQEnd(FCEU_IQEXT2);
-  }
+  X.IRQEnd(FCEU_IQEXT);
+  X.IRQEnd(FCEU_IQEXT2);
   return ret;
 }
 
@@ -200,11 +198,10 @@ static DECLFR(FDSRead4031) {
 DECLFR_RET FDS::FDSRead4013_Direct(DECLFR_ARGS) {
   if (InDisk!=255) {
     fdsread4013_z=diskdata[InDisk][DiskPtr];
-    if (!fceuindbg) {
-      if (DiskPtr<64999) DiskPtr++;
-      DiskSeekIRQ=150;
-      X.IRQEnd(FCEU_IQEXT2);
-    }
+
+    if (DiskPtr<64999) DiskPtr++;
+    DiskSeekIRQ=150;
+    X.IRQEnd(FCEU_IQEXT2);
   }
   return fdsread4013_z;
 }

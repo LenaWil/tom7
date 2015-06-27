@@ -30,7 +30,7 @@ static uint8 MJ_Read(int w, uint8 ret)
 //  ret|=(MRet&1)<<1;
   ret|=((MRet&0x80)>>6)&2;
 //  MRet>>=1;
- if(!fceuindbg)
+
   MRet<<=1;
  }
  return(ret);
