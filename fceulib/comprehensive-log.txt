@@ -23,3 +23,8 @@ Starting at Sat, Jun 27, 2015 9:48:04 AM
 Running comprehensive tests at SVN version  2527
 Starting at Sat, Jun 27, 2015 11:14:08 AM
  ... (aborted at 70% to run in parallel -tom7)
+
+Running comprehensive tests at SVN version  2528
+Starting at Sat, Jun 27, 2015 2:54:45 PM
+Revision 2528 shard  2  FAILED
+ ...  2528  Finished at  Sat, Jun 27, 2015 3:36:47 PM
