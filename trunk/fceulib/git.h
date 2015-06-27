@@ -23,7 +23,7 @@ enum ESIS {
   SIS_NSF = 4,
 };
 
-//input device types for the standard joystick port
+// input device types for the standard joystick port
 enum ESI {
   SI_UNSET = -1,
   SI_NONE = 0,
@@ -36,23 +36,9 @@ enum ESI {
   SI_COUNT = SI_MOUSE
 };
 
-inline const char* ESI_Name(ESI esi) {
-  static constexpr char * const names[] = {
-    "<none>",
-    "Gamepad",
-    "Zapper",
-    "Power Pad A",
-    "Power Pad B",
-    "Arkanoid Paddle",
-    "Mouse"
-  };
+const char* ESI_Name(ESI esi);
 
-  if(esi >= SI_NONE && esi <= SI_COUNT)
-    return names[esi];
-  else return "<invalid ESI>";
-}
-
-//input device types for the expansion port
+// input device types for the expansion port
 enum ESIFC {
   SIFC_UNSET = -1,
   SIFC_NONE = 0,
@@ -72,29 +58,7 @@ enum ESIFC {
   SIFC_COUNT = SIFC_TOPRIDER
 };
 
-
-inline const char* ESIFC_Name(ESIFC esifc) {
-  static constexpr char * const names[] = {
-    "<none>",
-    "Arkanoid Paddle",
-    "Hyper Shot gun",
-    "4-Player Adapter",
-    "Family Keyboard",
-    "Subor Keyboard",
-    "HyperShot Pads",
-    "Mahjong",
-    "Quiz King Buzzers",
-    "Family Trainer A",
-    "Family Trainer B",
-    "Oeka Kids Tablet",
-    "Barcode World",
-    "Top Rider"
-  };
-
-  if (esifc >= SIFC_NONE && esifc <= SIFC_COUNT)
-    return names[esifc];
-  else return "<invalid ESIFC>";
-}
+const char *ESIFC_Name(ESIFC esifc);
 
 struct FCEUGI {
   FCEUGI();
@@ -115,12 +79,6 @@ struct FCEUGI {
   ESIS cspecial;
 
   MD5DATA MD5;
-
-  // mbg 6/8/08 - ???
-  // For Ogg Vorbis expansion sound wacky support.  0 for default.
-  int soundrate;
-  // Number of sound channels.
-  int soundchan;
 };
 
 #endif

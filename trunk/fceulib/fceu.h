@@ -7,6 +7,8 @@
 #include <string>
 #include "stringprintf.h"
 
+#include "git.h"
+
 static constexpr int newppu = 0;
 
 // TODO(tom7): Fix this junk. These have to take a Fceulib object.
@@ -20,92 +22,96 @@ static constexpr int newppu = 0;
 #define DECLFW_FORWARD A, V
 #define DECLFW_ARGS uint32 A, uint8 V
 
-void FCEU_MemoryRand(uint8 *ptr, uint32 size);
-void SetReadHandler(int32 start, int32 end, readfunc func);
+// struct FCEU {
 
-void SetWriteHandler(int32 start, int32 end, writefunc func);
-writefunc GetWriteHandler(int32 a);
-readfunc GetReadHandler(int32 a);
+  void FCEU_MemoryRand(uint8 *ptr, uint32 size);
+  void SetReadHandler(int32 start, int32 end, readfunc func);
 
-void FCEU_CloseGame();
-void FCEU_ResetVidSys();
-bool FCEUI_Initialize();
+  void SetWriteHandler(int32 start, int32 end, writefunc func);
+  writefunc GetWriteHandler(int32 a);
+  readfunc GetReadHandler(int32 a);
 
-// Weird thing only used in Barcode game, but probably still working.
-int FCEUI_DatachSet(const uint8 *rcode);
+  void FCEU_CloseGame();
+  void FCEU_ResetVidSys();
+  bool FCEUI_Initialize();
 
-// Emulates a frame.
-void FCEUI_Emulate(uint8 **, int32 **, int32 *, int);
+  // Weird thing only used in Barcode game, but probably still working.
+  int FCEUI_DatachSet(const uint8 *rcode);
 
-// Deallocates all allocated memory.  Call after FCEUI_Emulate() returns.
-void FCEUI_Kill();
+  // Emulates a frame.
+  void FCEUI_Emulate(uint8 **, int32 **, int32 *, int);
 
-void ResetMapping();
-void ResetNES();
-void PowerNES();
+  // Deallocates all allocated memory.  Call after FCEUI_Emulate() returns.
+  void FCEUI_Kill();
 
-// Set video system a=0 NTSC, a=1 PAL
-void FCEUI_SetVidSystem(int a);
+  void ResetMapping();
+  void ResetNES();
+  void PowerNES();
 
-//name=path and file to load.  returns null if it failed
-// These are exactly the same; make just one. -tom7
-FCEUGI *FCEUI_LoadGame(const char *name, int OverwriteVidMode);
-FCEUGI *FCEUI_LoadGameVirtual(const char *name, int OverwriteVidMode);
+  // Set video system a=0 NTSC, a=1 PAL
+  void FCEUI_SetVidSystem(int a);
 
-extern uint64 timestampbase;
+  //name=path and file to load.  returns null if it failed
+  // These are exactly the same; make just one. -tom7
+  FCEUGI *FCEUI_LoadGame(const char *name, int OverwriteVidMode);
+  FCEUGI *FCEUI_LoadGameVirtual(const char *name, int OverwriteVidMode);
 
-#define GAME_MEM_BLOCK_SIZE 131072
+  extern uint64 timestampbase;
 
-// Basic RAM of the system. RAM has size 0x800.
-// GameMemBlock has the size above, though most games don't use
-// all of it.
-extern uint8 *RAM;
-extern uint8 *GameMemBlock;
+  #define GAME_MEM_BLOCK_SIZE 131072
 
-// Current frame buffer. 256x256
-extern uint8 *XBuf;
-extern uint8 *XBackBuf;
+  // Basic RAM of the system. RAM has size 0x800.
+  // GameMemBlock has the size above, though most games don't use
+  // all of it.
+  extern uint8 *RAM;
+  extern uint8 *GameMemBlock;
 
-// TODO(tom7): Move these to the modules where they're defined.
-// Hooks for reading and writing from memory locations. Each one
-// is a function pointer.
-extern readfunc ARead[0x10000];
-extern writefunc BWrite[0x10000];
+  // Current frame buffer. 256x256
+  extern uint8 *XBuf;
+  extern uint8 *XBackBuf;
 
-enum GI {
-  GI_RESETM2 = 1,
-  GI_POWER = 2,
-  GI_CLOSE = 3,
-  GI_RESETSAVE = 4,
-};
+  // TODO(tom7): Move these to the modules where they're defined.
+  // Hooks for reading and writing from memory locations. Each one
+  // is a function pointer.
+  extern readfunc ARead[0x10000];
+  extern writefunc BWrite[0x10000];
 
-extern void (*GameInterface)(GI h);
-extern void (*GameStateRestore)(int version);
+  enum GI {
+    GI_RESETM2 = 1,
+    GI_POWER = 2,
+    GI_CLOSE = 3,
+    GI_RESETSAVE = 4,
+  };
 
+  extern void (*GameInterface)(GI h);
+  extern void (*GameStateRestore)(int version);
 
-#include "git.h"
-extern FCEUGI *GameInfo;
+  extern FCEUGI *GameInfo;
 
-extern uint8 PAL;
+  extern uint8 PAL;
 
-// XXX This used to be part of the FSettings object, which have
-// all become constant, but this one is modified when loading
-// certain carts, so probably can't be a compile-time constant.
-// It's not used in many places, though. Looks like it could be
-// interpreted as "default_pal".
-extern int fsettings_pal;
+  // XXX This used to be part of the FSettings object, which have
+  // all become constant, but this one is modified when loading
+  // certain carts, so probably can't be a compile-time constant.
+  // It's not used in many places, though. Looks like it could be
+  // interpreted as "default_pal".
+  extern int fsettings_pal;
 
-void FCEU_PrintError(char *format, ...);
-void FCEU_printf(char *format, ...);
+  void FCEU_PrintError(char *format, ...);
+  void FCEU_printf(char *format, ...);
 
-void SetNESDeemph(uint8 d, int force);
+  void SetNESDeemph(uint8 d, int force);
 
-// checks whether an EFCEUI is valid right now
-enum EFCEUI {
-  FCEUI_RESET, FCEUI_POWER, 
-  FCEUI_EJECT_DISK, FCEUI_SWITCH_DISK
-};
-bool FCEU_IsValidUI(EFCEUI ui);
+  // checks whether an EFCEUI is valid right now
+  enum EFCEUI {
+    FCEUI_RESET, FCEUI_POWER, 
+    FCEUI_EJECT_DISK, FCEUI_SWITCH_DISK
+  };
+  bool FCEU_IsValidUI(EFCEUI ui);
+
+// private:
+// };
+
 
 #define JOY_A   1
 #define JOY_B   2
