@@ -212,7 +212,7 @@ void Palette::LoadGamePalette() {
 }
 
 void Palette::ResetPalette() {
-  if (GameInfo) {
+  if (fceulib__fceu.GameInfo != nullptr) {
     ChoosePalette();
     WritePalette();
   }
@@ -221,7 +221,8 @@ void Palette::ResetPalette() {
 void Palette::ChoosePalette() {
   if (ipalette) {
     palo=palettei;
-  } else if (ntsccol && !PAL && GameInfo->type!=GIT_VSUNI) {
+  } else if (ntsccol && !fceulib__fceu.PAL && 
+	     fceulib__fceu.GameInfo->type!=GIT_VSUNI) {
     palo=paletten;
     CalculatePalette();
   } else {

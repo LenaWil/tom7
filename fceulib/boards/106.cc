@@ -66,10 +66,10 @@ static void M106Power(void)
 {
   reg[8]=reg[9]=reg[0xa]=reg[0xb]=-1;
   Sync();
-  SetReadHandler(0x6000,0x7FFF,Cart::CartBR);
-  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
-  SetWriteHandler(0x6000,0x7FFF,Cart::CartBW);
-  SetWriteHandler(0x8000,0xFFFF,M106Write);
+  fceulib__fceu.SetReadHandler(0x6000,0x7FFF,Cart::CartBR);
+  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__fceu.SetWriteHandler(0x6000,0x7FFF,Cart::CartBW);
+  fceulib__fceu.SetWriteHandler(0x8000,0xFFFF,M106Write);
 }
 
 static void M106Reset(void)
@@ -106,7 +106,7 @@ void Mapper106_Init(CartInfo *info) {
   info->Power=M106Power;
   info->Close=M106Close;
   X.MapIRQHook=M106CpuHook;
-  GameStateRestore=StateRestore;
+  fceulib__fceu.GameStateRestore=StateRestore;
 
   WRAMSIZE=8192;
   WRAM=(uint8*)FCEU_gmalloc(WRAMSIZE);

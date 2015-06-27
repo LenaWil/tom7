@@ -17,7 +17,6 @@ Stuff I should be able to get rid of:
       Still to objectify:
 
       emulator.cc
-      fceu.cc
       state.cc
       input/*
       boards/*
@@ -28,12 +27,12 @@ Stuff I should be able to get rid of:
 
 Memory todo:
  - Need to check that various objects are actually having their Free or Kill
-   methods called, or roll those into the destructores, etc.
+   methods called, or roll those into the destructors, etc.
 
 Cleanup to do:
  - There are some symbols that are both #defined (e.g. ines.h) and
    declared, maybe with #undef before like in mmc3.cc. So confusing!
- - clang format?
+ - clang format on the worst offenders
 
 Surprisingly necessary:
  - crc32 since ines.cc has a table of games and their CRCs.
@@ -81,12 +80,12 @@ alias files="/bin/find . -type f | grep -v roms/ | grep -v roms_crash/ | grep -v
 
 // (global-set-key "\C-xm" 'find-mentions)
 
-(defun insert-ppu ()
+(defun insert-fceu ()
   (interactive "")
-  (save-excursion  (insert "fceulib__ppu."))
+  (save-excursion  (insert "fceulib__fceu."))
 )
 
-(global-set-key "\C-xx" 'insert-ppu)
+(global-set-key "\C-xx" 'insert-fceu)
 
 (defun set-cart-rectangle ()
   (interactive "")

@@ -36,7 +36,7 @@ static void M189Power(void)
 {
   EXPREGS[0]=EXPREGS[1]=0;
   GenMMC3Power();
-  SetWriteHandler(0x4120,0x7FFF,M189Write);
+  fceulib__fceu.SetWriteHandler(0x4120,0x7FFF,M189Write);
 }
 
 void Mapper189_Init(CartInfo *info)

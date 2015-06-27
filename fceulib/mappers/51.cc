@@ -57,8 +57,8 @@ static DECLFW(Write)
 }
 
 void Mapper51_init(void) {
- SetWriteHandler(0x6000,0xFFFF,Write);
- SetReadHandler(0x6000,0xFFFF,Cart::CartBR);
+ fceulib__fceu.SetWriteHandler(0x6000,0xFFFF,Write);
+ fceulib__fceu.SetReadHandler(0x6000,0xFFFF,Cart::CartBR);
  mapbyte1[0]=1;
  mapbyte1[1]=0;
  Synco();

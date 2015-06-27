@@ -80,8 +80,8 @@ static DECLFW(UNLKS7057Write)
 static void UNLKS7057Power(void)
 {
   Sync();
-  SetReadHandler(0x6000,0xFFFF,Cart::CartBR);
-  SetWriteHandler(0x8000,0xFFFF,UNLKS7057Write);
+  fceulib__fceu.SetReadHandler(0x6000,0xFFFF,Cart::CartBR);
+  fceulib__fceu.SetWriteHandler(0x8000,0xFFFF,UNLKS7057Write);
 }
 
 static void UNLKS7057Reset(void)

@@ -165,27 +165,27 @@ void VSUni::FCEU_VSUniPower() {
   VSindex = 0;
 
   if (secptr)
-    SetReadHandler(0x5e00,0x5e01,VSSecRead);
+    fceulib__fceu.SetReadHandler(0x5e00,0x5e01,VSSecRead);
 
   if (curppu == RC2C05_04) {
-    OldReadPPU = GetReadHandler(0x2002);
-    SetReadHandler(0x2002, 0x2002, A2002_Topgun);
+    OldReadPPU = fceulib__fceu.GetReadHandler(0x2002);
+    fceulib__fceu.SetReadHandler(0x2002, 0x2002, A2002_Topgun);
   } else if (curppu == RC2C05_03) {
-    OldReadPPU = GetReadHandler(0x2002);
-    SetReadHandler(0x2002, 0x2002, A2002_Gumshoe);
+    OldReadPPU = fceulib__fceu.GetReadHandler(0x2002);
+    fceulib__fceu.SetReadHandler(0x2002, 0x2002, A2002_Gumshoe);
   } else if (curppu == RC2C05_02) {
-    OldReadPPU = GetReadHandler(0x2002);
-    SetReadHandler(0x2002, 0x2002, A2002_MBJ);
+    OldReadPPU = fceulib__fceu.GetReadHandler(0x2002);
+    fceulib__fceu.SetReadHandler(0x2002, 0x2002, A2002_MBJ);
   }
   if (curppu == RC2C05_04 || curppu == RC2C05_01 || 
       curppu == RC2C05_03 || curppu == RC2C05_02) {
-    OldWritePPU[0] = GetWriteHandler(0x2000);
-    OldWritePPU[1] = GetWriteHandler(0x2001);
-    SetWriteHandler(0x2000, 0x2001, B2000_2001_2C05);
+    OldWritePPU[0] = fceulib__fceu.GetWriteHandler(0x2000);
+    OldWritePPU[1] = fceulib__fceu.GetWriteHandler(0x2001);
+    fceulib__fceu.SetWriteHandler(0x2000, 0x2001, B2000_2001_2C05);
   }
   /* Super Xevious */
   if (curmd5 == 0x2d396247cf58f9faLL) {
-    SetReadHandler(0x5400, 0x57FF, XevRead);
+    fceulib__fceu.SetReadHandler(0x5400, 0x57FF, XevRead);
   }
 }
 
@@ -312,9 +312,9 @@ void VSUni::FCEU_VSUniCheck(uint64 md5partial, int *mapper_no, uint8 *Mirroring)
       if (vs->ppu < RCP2C03B) fceulib__palette.pale = vs->ppu;
       *mapper_no = vs->mapper;
       *Mirroring = vs->mirroring;
-      GameInfo->type = GIT_VSUNI;
-      GameInfo->cspecial = SIS_VSUNISYSTEM;
-      GameInfo->inputfc = SIFC_NONE;
+      fceulib__fceu.GameInfo->type = GIT_VSUNI;
+      fceulib__fceu.GameInfo->cspecial = SIS_VSUNISYSTEM;
+      fceulib__fceu.GameInfo->inputfc = SIFC_NONE;
       curppu = vs->ppu;
       curmd5 = md5partial;
 
@@ -334,10 +334,11 @@ void VSUni::FCEU_VSUniCheck(uint64 md5partial, int *mapper_no, uint8 *Mirroring)
 	vsdip= vs->predip;
       }
       if (vs->ioption & IOPTION_GUN) {
-	GameInfo->input[0] = SI_ZAPPER;
-	GameInfo->input[1] = SI_NONE;
+	fceulib__fceu.GameInfo->input[0] = SI_ZAPPER;
+	fceulib__fceu.GameInfo->input[1] = SI_NONE;
       } else {
-	GameInfo->input[0] = GameInfo->input[1] = SI_GAMEPAD;
+	fceulib__fceu.GameInfo->input[0] =
+	  fceulib__fceu.GameInfo->input[1] = SI_GAMEPAD;
       }
       curvs = vs;
       return;

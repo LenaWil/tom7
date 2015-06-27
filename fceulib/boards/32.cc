@@ -67,13 +67,13 @@ static DECLFW(M32Write3) {
 
 static void M32Power(void) {
 	Sync();
-	SetReadHandler(0x6000,0x7fff, Cart::CartBR);
-	SetWriteHandler(0x6000,0x7fff, Cart::CartBW);
-	SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
-	SetWriteHandler(0x8000, 0x8FFF, M32Write0);
-	SetWriteHandler(0x9000, 0x9FFF, M32Write1);
-	SetWriteHandler(0xA000, 0xAFFF, M32Write2);
-	SetWriteHandler(0xB000, 0xBFFF, M32Write3);
+	fceulib__fceu.SetReadHandler(0x6000,0x7fff, Cart::CartBR);
+	fceulib__fceu.SetWriteHandler(0x6000,0x7fff, Cart::CartBW);
+	fceulib__fceu.SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
+	fceulib__fceu.SetWriteHandler(0x8000, 0x8FFF, M32Write0);
+	fceulib__fceu.SetWriteHandler(0x9000, 0x9FFF, M32Write1);
+	fceulib__fceu.SetWriteHandler(0xA000, 0xAFFF, M32Write2);
+	fceulib__fceu.SetWriteHandler(0xB000, 0xBFFF, M32Write3);
 }
 
 static void M32Close(void)
@@ -90,7 +90,7 @@ static void StateRestore(int version) {
 void Mapper32_Init(CartInfo *info) {
   info->Power = M32Power;
   info->Close = M32Close;
-  GameStateRestore = StateRestore;
+  fceulib__fceu.GameStateRestore = StateRestore;
 
   WRAMSIZE = 8192;
   WRAM = (uint8*)FCEU_gmalloc(WRAMSIZE);

@@ -83,10 +83,10 @@ static void M18Power(void)
   preg[2] = ~1;
   preg[3] = ~0;
   Sync();
-  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
-  SetWriteHandler(0x8000,0x9FFF,M18WritePrg);
-  SetWriteHandler(0xA000,0xDFFF,M18WriteChr);
-  SetWriteHandler(0xE000,0xFFFF,M18WriteIRQ);
+  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__fceu.SetWriteHandler(0x8000,0x9FFF,M18WritePrg);
+  fceulib__fceu.SetWriteHandler(0xA000,0xDFFF,M18WriteChr);
+  fceulib__fceu.SetWriteHandler(0xE000,0xFFFF,M18WriteIRQ);
 }
 
 static void M18IRQHook(int a)
@@ -112,7 +112,7 @@ void Mapper18_Init(CartInfo *info)
 {
   info->Power=M18Power;
   X.MapIRQHook=M18IRQHook;
-  GameStateRestore=StateRestore;
+  fceulib__fceu.GameStateRestore=StateRestore;
 
   AddExState(&StateRegs, ~0, 0, 0);
 }

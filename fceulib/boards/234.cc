@@ -62,9 +62,9 @@ static void M234Reset(void) {
 
 static void M234Power(void) {
   M234Reset();
-  SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
-  SetReadHandler(0xFF80, 0xFF9F, M234ReadBank);
-  SetReadHandler(0xFFE8, 0xFFF7, M234ReadPreg);
+  fceulib__fceu.SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
+  fceulib__fceu.SetReadHandler(0xFF80, 0xFF9F, M234ReadBank);
+  fceulib__fceu.SetReadHandler(0xFFE8, 0xFFF7, M234ReadPreg);
 }
 
 static void StateRestore(int version) {
@@ -75,5 +75,5 @@ void Mapper234_Init(CartInfo *info) {
 	info->Power = M234Power;
 	info->Reset = M234Reset;
 	AddExState(&StateRegs, ~0, 0, 0);
-	GameStateRestore = StateRestore;
+	fceulib__fceu.GameStateRestore = StateRestore;
 }

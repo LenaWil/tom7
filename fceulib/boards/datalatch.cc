@@ -40,12 +40,12 @@ static void LatchPower(void) {
   latche = latcheinit;
   WSync();
   if (WRAM) {
-    SetReadHandler(0x6000, 0xFFFF, Cart::CartBR);
-    SetWriteHandler(0x6000, 0x7FFF, Cart::CartBW);
+    fceulib__fceu.SetReadHandler(0x6000, 0xFFFF, Cart::CartBR);
+    fceulib__fceu.SetWriteHandler(0x6000, 0x7FFF, Cart::CartBW);
   } else {
-    SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
+    fceulib__fceu.SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
   }
-  SetWriteHandler(addrreg0, addrreg1, LatchWrite);
+  fceulib__fceu.SetWriteHandler(addrreg0, addrreg1, LatchWrite);
 }
 
 static void LatchClose(void) {
@@ -66,7 +66,7 @@ static void Latch_Init(CartInfo *info, void (*proc)(void), uint8 init, uint16 ad
   WSync = proc;
   info->Power = LatchPower;
   info->Close = LatchClose;
-  GameStateRestore = StateRestore;
+  fceulib__fceu.GameStateRestore = StateRestore;
   if (wram) {
     WRAMSIZE = 8192;
     WRAM = (uint8*)FCEU_gmalloc(WRAMSIZE);
@@ -96,12 +96,12 @@ static void NROMPower(void) {
   fceulib__cart.setprg16(0xC000, ~0);
   fceulib__cart.setchr8(0);
 
-  SetReadHandler(0x6000, 0x7FFF, Cart::CartBR);
-  SetWriteHandler(0x6000, 0x7FFF, Cart::CartBW);
-  SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
+  fceulib__fceu.SetReadHandler(0x6000, 0x7FFF, Cart::CartBR);
+  fceulib__fceu.SetWriteHandler(0x6000, 0x7FFF, Cart::CartBW);
+  fceulib__fceu.SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
 
 #ifdef DEBUG_MAPPER
-  SetWriteHandler(0x4020, 0xFFFF, NROMWrite);
+  fceulib__fceu.SetWriteHandler(0x4020, 0xFFFF, NROMWrite);
 #endif
 }
 

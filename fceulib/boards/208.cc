@@ -68,10 +68,10 @@ static void M208Power(void)
 {
   EXPREGS[5]=3;
   GenMMC3Power();
-  SetWriteHandler(0x4800,0x4FFF,M208Write);
-  SetWriteHandler(0x5000,0x5fff,M208ProtWrite);
-  SetReadHandler(0x5800,0x5FFF,M208ProtRead);
-  SetReadHandler(0x8000,0xffff,Cart::CartBR);
+  fceulib__fceu.SetWriteHandler(0x4800,0x4FFF,M208Write);
+  fceulib__fceu.SetWriteHandler(0x5000,0x5fff,M208ProtWrite);
+  fceulib__fceu.SetReadHandler(0x5800,0x5FFF,M208ProtRead);
+  fceulib__fceu.SetReadHandler(0x8000,0xffff,Cart::CartBR);
 }
 
 void Mapper208_Init(CartInfo *info)

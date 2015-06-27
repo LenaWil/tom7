@@ -55,11 +55,11 @@ static void M179Power(void)
 {
   reg[0]=reg[1]=0;
   Sync();
-  SetWriteHandler(0x4020,0x5fff,M179WriteLo);
-  SetReadHandler(0x6000,0x7fff,Cart::CartBR);
-  SetWriteHandler(0x6000,0x7fff,Cart::CartBW);
-  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
-  SetWriteHandler(0x8000,0xFFFF,M179Write);
+  fceulib__fceu.SetWriteHandler(0x4020,0x5fff,M179WriteLo);
+  fceulib__fceu.SetReadHandler(0x6000,0x7fff,Cart::CartBR);
+  fceulib__fceu.SetWriteHandler(0x6000,0x7fff,Cart::CartBW);
+  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__fceu.SetWriteHandler(0x8000,0xFFFF,M179Write);
 }
 
 static void M179Close(void)
@@ -78,7 +78,7 @@ void Mapper179_Init(CartInfo *info)
 {
   info->Power=M179Power;
   info->Close=M179Close;
-  GameStateRestore=StateRestore;
+  fceulib__fceu.GameStateRestore=StateRestore;
 
   WRAMSIZE=8192;
   WRAM=(uint8*)FCEU_gmalloc(WRAMSIZE);

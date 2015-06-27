@@ -119,9 +119,9 @@ static void M121Power(void)
   EXPREGS[3] = 0x80;
   EXPREGS[5] = 0;
   GenMMC3Power();
-  SetReadHandler(0x5000,0x5FFF,M121Read);
-  SetWriteHandler(0x5000,0x5FFF,M121LoWrite);
-  SetWriteHandler(0x8000,0x9FFF,M121Write);
+  fceulib__fceu.SetReadHandler(0x5000,0x5FFF,M121Read);
+  fceulib__fceu.SetWriteHandler(0x5000,0x5FFF,M121LoWrite);
+  fceulib__fceu.SetWriteHandler(0x8000,0x9FFF,M121Write);
 }
 
 void Mapper121_Init(CartInfo *info)

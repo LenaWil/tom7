@@ -134,9 +134,9 @@ void Filter::MakeFilters(int32 rate) {
   const uint32 nco = FCEUS_SOUNDQ == 2 ? SQ2NCOEFFS : NCOEFFS;
 
   mrindex=(nco+1)<<16;
-  mrratio=(PAL?(int64)(PAL_CPU*65536):(int64)(NTSC_CPU*65536))/rate;
+  mrratio=(fceulib__fceu.PAL?(int64)(PAL_CPU*65536):(int64)(NTSC_CPU*65536))/rate;
 
-  const int idx = (PAL?1:0)|(rate==48000?2:0)|(rate==96000?4:0);
+  const int idx = (fceulib__fceu.PAL?1:0)|(rate==48000?2:0)|(rate==96000?4:0);
   const int32 *tmp = (FCEUS_SOUNDQ == 2) ? sq2tabs[idx] : tabs[idx];
 
   if (FCEUS_SOUNDQ==2)

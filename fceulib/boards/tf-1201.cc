@@ -98,8 +98,8 @@ static void UNLTF1201IRQCounter(void) {
 
 static void UNLTF1201Power(void) {
   IRQPre=IRQCount=IRQa=0;
-  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
-  SetWriteHandler(0x8000,0xFFFF,UNLTF1201Write);
+  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__fceu.SetWriteHandler(0x8000,0xFFFF,UNLTF1201Write);
   SyncPrg();
   SyncChr();
 }
@@ -107,6 +107,6 @@ static void UNLTF1201Power(void) {
 void UNLTF1201_Init(CartInfo *info) {
   info->Power=UNLTF1201Power;
   fceulib__ppu.GameHBIRQHook=UNLTF1201IRQCounter;
-  GameStateRestore=StateRestore;
+  fceulib__fceu.GameStateRestore=StateRestore;
   AddExState(&StateRegs, ~0, 0, 0);
 }

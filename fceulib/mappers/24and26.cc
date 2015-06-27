@@ -305,7 +305,7 @@ static void VRC6_ESI(void) {
 
 void Mapper24_init(void)
 {
-        SetWriteHandler(0x8000,0xffff,Mapper24_write);
+        fceulib__fceu.SetWriteHandler(0x8000,0xffff,Mapper24_write);
         VRC6_ESI();
         X.MapIRQHook=KonamiIRQHook;
         swaparoo=0;
@@ -313,7 +313,7 @@ void Mapper24_init(void)
 
 void Mapper26_init(void)
 {
-        SetWriteHandler(0x8000,0xffff,Mapper24_write);
+        fceulib__fceu.SetWriteHandler(0x8000,0xffff,Mapper24_write);
         VRC6_ESI();
         X.MapIRQHook=KonamiIRQHook;
         swaparoo=1;
@@ -322,5 +322,5 @@ void Mapper26_init(void)
 void NSFVRC6_Init(void)
 {
         VRC6_ESI();
-        SetWriteHandler(0x8000,0xbfff,VRC6SW);
+        fceulib__fceu.SetWriteHandler(0x8000,0xbfff,VRC6SW);
 }

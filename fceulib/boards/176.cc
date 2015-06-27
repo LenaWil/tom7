@@ -98,15 +98,15 @@ static DECLFW(M176Write_WriteSRAM) {
 }
 
 static void M176Power(void) {
-  SetReadHandler(0x6000,0x7fff,Cart::CartBR);
-  SetWriteHandler(0x6000,0x7fff,M176Write_WriteSRAM);
-  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
-  SetWriteHandler(0xA001,0xA001,M176Write_A001);
-  SetWriteHandler(0x5001,0x5001,M176Write_5001);
-  SetWriteHandler(0x5010,0x5010,M176Write_5010);
-  SetWriteHandler(0x5011,0x5011,M176Write_5011);
-  SetWriteHandler(0x5ff1,0x5ff1,M176Write_5FF1);
-  SetWriteHandler(0x5ff2,0x5ff2,M176Write_5FF2);
+  fceulib__fceu.SetReadHandler(0x6000,0x7fff,Cart::CartBR);
+  fceulib__fceu.SetWriteHandler(0x6000,0x7fff,M176Write_WriteSRAM);
+  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__fceu.SetWriteHandler(0xA001,0xA001,M176Write_A001);
+  fceulib__fceu.SetWriteHandler(0x5001,0x5001,M176Write_5001);
+  fceulib__fceu.SetWriteHandler(0x5010,0x5010,M176Write_5010);
+  fceulib__fceu.SetWriteHandler(0x5011,0x5011,M176Write_5011);
+  fceulib__fceu.SetWriteHandler(0x5ff1,0x5ff1,M176Write_5FF1);
+  fceulib__fceu.SetWriteHandler(0x5ff2,0x5ff2,M176Write_5FF2);
 
   we_sram = 0;
   sbw = 0;
@@ -131,7 +131,7 @@ void Mapper176_Init(CartInfo *info) {
   info->Power=M176Power;
   info->Close=M176Close;
 
-  GameStateRestore=StateRestore;
+  fceulib__fceu.GameStateRestore=StateRestore;
 
   wram176=(uint8*)FCEU_gmalloc(WRAM176SIZE);
   fceulib__cart.SetupCartPRGMapping(0x10,wram176,WRAM176SIZE,1);

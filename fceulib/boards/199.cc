@@ -77,7 +77,7 @@ static void M199Power(void)
   EXPREGS[2]=1;
   EXPREGS[3]=3;
   GenMMC3Power();
-  SetWriteHandler(0x8000,0xFFFF,M199Write);
+  fceulib__fceu.SetWriteHandler(0x8000,0xFFFF,M199Write);
 }
 
 static void M199Close(void)

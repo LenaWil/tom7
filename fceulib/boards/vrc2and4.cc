@@ -158,14 +158,14 @@ static DECLFW(M23Write) {
 
 static void M21Power(void) {
 	Sync();
-	SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
-	SetWriteHandler(0x8000, 0xFFFF, M21Write);
+	fceulib__fceu.SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
+	fceulib__fceu.SetWriteHandler(0x8000, 0xFFFF, M21Write);
 }
 
 static void M22Power(void) {
 	Sync();
-	SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
-	SetWriteHandler(0x8000, 0xFFFF, M22Write);
+	fceulib__fceu.SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
+	fceulib__fceu.SetWriteHandler(0x8000, 0xFFFF, M22Write);
 }
 
 static void M23Power(void) {
@@ -173,20 +173,20 @@ static void M23Power(void) {
 	Sync();
 	fceulib__cart.setprg8r(0x10, 0x6000, 0);	// Only two Goemon games are have battery backed RAM, three more shooters
 								// (Parodius Da!, Gradius 2 and Crisis Force uses 2k or SRAM at 6000-67FF only
-	SetReadHandler(0x6000, 0x7FFF, Cart::CartBR);
-	SetWriteHandler(0x6000, 0x7FFF, Cart::CartBW);
-	SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
-	SetWriteHandler(0x8000, 0xFFFF, M23Write);
+	fceulib__fceu.SetReadHandler(0x6000, 0x7FFF, Cart::CartBR);
+	fceulib__fceu.SetWriteHandler(0x6000, 0x7FFF, Cart::CartBW);
+	fceulib__fceu.SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
+	fceulib__fceu.SetWriteHandler(0x8000, 0xFFFF, M23Write);
 }
 
 static void M25Power(void) {
 	big_bank = 0x20;
 	Sync();
 	fceulib__cart.setprg8r(0x10, 0x6000, 0);
-	SetReadHandler(0x6000, 0x7FFF, Cart::CartBR);
-	SetWriteHandler(0x6000, 0x7FFF, Cart::CartBW);
-	SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
-	SetWriteHandler(0x8000, 0xFFFF, M22Write);
+	fceulib__fceu.SetReadHandler(0x6000, 0x7FFF, Cart::CartBR);
+	fceulib__fceu.SetWriteHandler(0x6000, 0x7FFF, Cart::CartBW);
+	fceulib__fceu.SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
+	fceulib__fceu.SetWriteHandler(0x8000, 0xFFFF, M22Write);
 }
 
 void VRC24IRQHook(int a) {
@@ -221,7 +221,7 @@ void Mapper21_Init(CartInfo *info) {
 	is22 = 0;
 	info->Power = M21Power;
 	X.MapIRQHook = VRC24IRQHook;
-	GameStateRestore = StateRestore;
+	fceulib__fceu.GameStateRestore = StateRestore;
 
 	AddExState(&StateRegs, ~0, 0, 0);
 }
@@ -230,7 +230,7 @@ void Mapper22_Init(CartInfo *info) {
 	isPirate = 0;
 	is22 = 1;
 	info->Power = M22Power;
-	GameStateRestore = StateRestore;
+	fceulib__fceu.GameStateRestore = StateRestore;
 
 	AddExState(&StateRegs, ~0, 0, 0);
 }
@@ -238,7 +238,7 @@ void Mapper22_Init(CartInfo *info) {
 void VRC24_Init(CartInfo *info) {
 	info->Close = VRC24Close;
 	X.MapIRQHook = VRC24IRQHook;
-	GameStateRestore = StateRestore;
+	fceulib__fceu.GameStateRestore = StateRestore;
 
 	WRAMSIZE = 8192;
 	WRAM = (uint8*)FCEU_gmalloc(WRAMSIZE);

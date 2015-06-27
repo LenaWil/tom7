@@ -59,7 +59,7 @@ static void BMC830118CPower(void)
 {
   EXPREGS[0] = 0;
   GenMMC3Power();
-  SetWriteHandler(0x6800,0x68FF,BMC830118CLoWrite);
+  fceulib__fceu.SetWriteHandler(0x6800,0x68FF,BMC830118CLoWrite);
 }
 
 void BMC830118C_Init(CartInfo *info)

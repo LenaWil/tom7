@@ -71,7 +71,7 @@ static constexpr uint32 PALDMCTable[0x10] = {
 // $4013        -        Size register:  Size in bytes = (V+1)*64
 
 void Sound::LoadDMCPeriod(uint8 V) {
-  if (PAL)
+  if (fceulib__fceu.PAL)
     DMCPeriod=PALDMCTable[V];
   else
     DMCPeriod=NTSCDMCTable[V];
@@ -713,7 +713,7 @@ void Sound::RDoTriangleNoisePCMLQ() {
 	do {
 	  // used to added <<(16+2) when the noise table
 	  // values were half.
-	  if (PAL)
+	  if (fceulib__fceu.PAL)
 	    triangle_noise_noiseacc+=NoiseFreqTablePAL[PSG[0xE]&0xF]<<(16+1);
 	  else
 	    triangle_noise_noiseacc+=NoiseFreqTableNTSC[PSG[0xE]&0xF]<<(16+1);
@@ -749,7 +749,7 @@ void Sound::RDoTriangleNoisePCMLQ() {
 	do {
 	  //used to be added <<(16+2) when the noise table
 	  //values were half.
-	  if (PAL)
+	  if (fceulib__fceu.PAL)
 	    triangle_noise_noiseacc+=NoiseFreqTablePAL[PSG[0xE]&0xF]<<(16+1);
 	  else
 	    triangle_noise_noiseacc+=NoiseFreqTableNTSC[PSG[0xE]&0xF]<<(16+1);
@@ -803,7 +803,7 @@ void Sound::RDoNoise() {
       wlcount[3]--;
       if (!wlcount[3]) {
 	uint8 feedback;
-	if (PAL)
+	if (fceulib__fceu.PAL)
 	  wlcount[3]=NoiseFreqTablePAL[PSG[0xE]&0xF];
 	else
 	  wlcount[3]=NoiseFreqTableNTSC[PSG[0xE]&0xF];
@@ -819,7 +819,7 @@ void Sound::RDoNoise() {
       wlcount[3]--;
       if (!wlcount[3]) {
 	uint8 feedback;
-	if (PAL)
+	if (fceulib__fceu.PAL)
 	  wlcount[3]=NoiseFreqTablePAL[PSG[0xE]&0xF];
 	else
 	  wlcount[3]=NoiseFreqTableNTSC[PSG[0xE]&0xF];
@@ -850,12 +850,12 @@ void Sound::Write_IRQFM_Direct(DECLFW_ARGS) {
 }
 
 void Sound::SetNESSoundMap() {
-  SetWriteHandler(0x4000,0x400F,Write_PSG);
-  SetWriteHandler(0x4010,0x4013,Write_DMCRegs);
-  SetWriteHandler(0x4017,0x4017,Write_IRQFM);
+  fceulib__fceu.SetWriteHandler(0x4000,0x400F,Write_PSG);
+  fceulib__fceu.SetWriteHandler(0x4010,0x4013,Write_DMCRegs);
+  fceulib__fceu.SetWriteHandler(0x4017,0x4017,Write_IRQFM);
 
-  SetWriteHandler(0x4015,0x4015,StatusWrite);
-  SetReadHandler(0x4015,0x4015,StatusRead);
+  fceulib__fceu.SetWriteHandler(0x4015,0x4015,StatusWrite);
+  fceulib__fceu.SetReadHandler(0x4015,0x4015,StatusRead);
 }
 
 int Sound::FlushEmulateSound() {
@@ -991,7 +991,7 @@ void Sound::FCEUSND_Power() {
 
 
 void Sound::SetSoundVariables() {
-  fhinc=PAL?16626:14915;  // *2 CPU clock rate
+  fhinc=fceulib__fceu.PAL ? 16626 : 14915;  // *2 CPU clock rate
   fhinc*=24;
 
   if (FCEUS_SNDRATE) {
@@ -1028,14 +1028,14 @@ void Sound::SetSoundVariables() {
   if (GameExpSound.RChange)
     GameExpSound.RChange();
 
-  nesincsize = (int64)(((int64)1<<17)*(double)(PAL?PAL_CPU:NTSC_CPU)/
+  nesincsize = (int64)(((int64)1<<17)*(double)(fceulib__fceu.PAL?PAL_CPU:NTSC_CPU)/
 		       (FCEUS_SNDRATE * 16));
   memset(sqacc,0,sizeof(sqacc));
   memset(ChannelBC,0,sizeof(ChannelBC));
 
   LoadDMCPeriod(DMCFormat & 0xF);  // For changing from PAL to NTSC
 
-  soundtsinc=(uint32)((uint64)(PAL?
+  soundtsinc=(uint32)((uint64)(fceulib__fceu.PAL ?
 			       (long double)PAL_CPU*65536:
 			       (long double)NTSC_CPU*65536)/
 		      (FCEUS_SNDRATE * 16));

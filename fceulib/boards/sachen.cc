@@ -76,9 +76,9 @@ static void S74LS374NPower(void)
    dip=0;
    latch[0]=latch[1]=latch[2]=latch[3]=latch[4]=0;
    S74LS374NSynco();
-   SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
-   SetWriteHandler(0x4100,0x7FFF,S74LS374NWrite);
-   SetReadHandler(0x4100,0x5fff,S74LS374NRead);
+   fceulib__fceu.SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+   fceulib__fceu.SetWriteHandler(0x4100,0x7FFF,S74LS374NWrite);
+   fceulib__fceu.SetReadHandler(0x4100,0x5fff,S74LS374NRead);
 }
 
 static void S74LS374NReset(void)
@@ -97,7 +97,7 @@ void S74LS374N_Init(CartInfo *info)
 {
   info->Power=S74LS374NPower;
   info->Reset=S74LS374NReset;
-  GameStateRestore=S74LS374NRestore;
+  fceulib__fceu.GameStateRestore=S74LS374NRestore;
   AddExState(latch, 5, 0, "LATC");
   AddExState(&cmd, 1, 0, "CMD");
   AddExState(&dip, 1, 0, "DIP");
@@ -135,14 +135,14 @@ static void S74LS374NAPower(void)
    latch[0]=latch[2]=latch[3]=latch[4]=0;
    latch[1]=3;
    S74LS374NASynco();
-   SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
-   SetWriteHandler(0x4100,0x7FFF,S74LS374NAWrite);
+   fceulib__fceu.SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+   fceulib__fceu.SetWriteHandler(0x4100,0x7FFF,S74LS374NAWrite);
 }
 
 void S74LS374NA_Init(CartInfo *info)
 {
   info->Power=S74LS374NAPower;
-  GameStateRestore=S74LS374NRestore;
+  fceulib__fceu.GameStateRestore=S74LS374NRestore;
   AddExState(latch, 5, 0, "LATC");
   AddExState(&cmd, 1, 0, "CMD");
 }
@@ -201,8 +201,8 @@ static void S8259Reset(void)
   fceulib__cart.setchr8(0);
 
   S8259Synco();
-  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
-  SetWriteHandler(0x4100,0x7FFF,S8259Write);
+  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__fceu.SetWriteHandler(0x4100,0x7FFF,S8259Write);
 }
 
 static void S8259Restore(int version)
@@ -213,7 +213,7 @@ static void S8259Restore(int version)
 void S8259A_Init(CartInfo *info) // Kevin's Horton 141 mapper
 {
   info->Power=S8259Reset;
-  GameStateRestore=S8259Restore;
+  fceulib__fceu.GameStateRestore=S8259Restore;
   AddExState(latch, 8, 0, "LATC");
   AddExState(&cmd, 1, 0, "CMD");
   type=0;
@@ -222,7 +222,7 @@ void S8259A_Init(CartInfo *info) // Kevin's Horton 141 mapper
 void S8259B_Init(CartInfo *info) // Kevin's Horton 138 mapper
 {
   info->Power=S8259Reset;
-  GameStateRestore=S8259Restore;
+  fceulib__fceu.GameStateRestore=S8259Restore;
   AddExState(latch, 8, 0, "LATC");
   AddExState(&cmd, 1, 0, "CMD");
   type=1;
@@ -231,7 +231,7 @@ void S8259B_Init(CartInfo *info) // Kevin's Horton 138 mapper
 void S8259C_Init(CartInfo *info) // Kevin's Horton 139 mapper
 {
   info->Power=S8259Reset;
-  GameStateRestore=S8259Restore;
+  fceulib__fceu.GameStateRestore=S8259Restore;
   AddExState(latch, 8, 0, "LATC");
   AddExState(&cmd, 1, 0, "CMD");
   type=2;
@@ -240,7 +240,7 @@ void S8259C_Init(CartInfo *info) // Kevin's Horton 139 mapper
 void S8259D_Init(CartInfo *info) // Kevin's Horton 137 mapper
 {
   info->Power=S8259Reset;
-  GameStateRestore=S8259Restore;
+  fceulib__fceu.GameStateRestore=S8259Restore;
   AddExState(latch, 8, 0, "LATC");
   AddExState(&cmd, 1, 0, "CMD");
   type=3;
@@ -261,8 +261,8 @@ static void SAPower(void)
 {
   latch[0]=0;
   WSync();
-  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
-  SetWriteHandler(0x4100,0x5FFF,SAWrite);
+  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__fceu.SetWriteHandler(0x4100,0x5FFF,SAWrite);
 }
 
 static void SARestore(int version)
@@ -280,8 +280,8 @@ static void SADPower(void)
 {
   latch[0]=0;
   WSync();
-  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
-  SetWriteHandler(0x8000,0xFFFF,SADWrite);
+  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__fceu.SetWriteHandler(0x8000,0xFFFF,SADWrite);
 }
 
 static void SA0161MSynco()
@@ -311,7 +311,7 @@ static void SA72008Synco()
 void SA0161M_Init(CartInfo *info)
 {
   WSync=SA0161MSynco;
-  GameStateRestore=SARestore;
+  fceulib__fceu.GameStateRestore=SARestore;
   info->Power=SAPower;
   AddExState(&latch[0], 1, 0, "LATC");
 }
@@ -319,7 +319,7 @@ void SA0161M_Init(CartInfo *info)
 void SA72007_Init(CartInfo *info)
 {
   WSync=SA72007Synco;
-  GameStateRestore=SARestore;
+  fceulib__fceu.GameStateRestore=SARestore;
   info->Power=SAPower;
   AddExState(&latch[0], 1, 0, "LATC");
 }
@@ -327,7 +327,7 @@ void SA72007_Init(CartInfo *info)
 void SA72008_Init(CartInfo *info)
 {
   WSync=SA72008Synco;
-  GameStateRestore=SARestore;
+  fceulib__fceu.GameStateRestore=SARestore;
   info->Power=SAPower;
   AddExState(&latch[0], 1, 0, "LATC");
 }
@@ -335,7 +335,7 @@ void SA72008_Init(CartInfo *info)
 void SA009_Init(CartInfo *info)
 {
   WSync=SA009Synco;
-  GameStateRestore=SARestore;
+  fceulib__fceu.GameStateRestore=SARestore;
   info->Power=SAPower;
   AddExState(&latch[0], 1, 0, "LATC");
 }
@@ -343,7 +343,7 @@ void SA009_Init(CartInfo *info)
 void SA0036_Init(CartInfo *info)
 {
   WSync=SA72007Synco;
-  GameStateRestore=SARestore;
+  fceulib__fceu.GameStateRestore=SARestore;
   info->Power=SADPower;
   AddExState(&latch[0], 1, 0, "LATC");
 }
@@ -351,7 +351,7 @@ void SA0036_Init(CartInfo *info)
 void SA0037_Init(CartInfo *info)
 {
   WSync=SA0161MSynco;
-  GameStateRestore=SARestore;
+  fceulib__fceu.GameStateRestore=SARestore;
   info->Power=SADPower;
   AddExState(&latch[0], 1, 0, "LATC");
 }
@@ -376,8 +376,8 @@ static DECLFW(TCU01Write)
 static void TCU01Power(void)
 {
   latch[0]=0;
-  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
-  SetWriteHandler(0x4100,0xFFFF,TCU01Write);
+  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__fceu.SetWriteHandler(0x4100,0xFFFF,TCU01Write);
   TCU01Synco();
 }
 
@@ -388,7 +388,7 @@ static void TCU01Restore(int version)
 
 void TCU01_Init(CartInfo *info)
 {
-  GameStateRestore=TCU01Restore;
+  fceulib__fceu.GameStateRestore=TCU01Restore;
   info->Power=TCU01Power;
   AddExState(&latch[0], 1, 0, "LATC");
 }
@@ -418,9 +418,9 @@ static DECLFR(TCU02Read)
 static void TCU02Power(void)
 {
   latch[0]=0;
-  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
-  SetReadHandler(0x4100,0x4100,TCU02Read);
-  SetWriteHandler(0x4100,0xFFFF,TCU02Write);
+  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__fceu.SetReadHandler(0x4100,0x4100,TCU02Read);
+  fceulib__fceu.SetWriteHandler(0x4100,0xFFFF,TCU02Write);
   TCU02Synco();
 }
 
@@ -431,7 +431,7 @@ static void TCU02Restore(int version)
 
 void TCU02_Init(CartInfo *info)
 {
-  GameStateRestore=TCU02Restore;
+  fceulib__fceu.GameStateRestore=TCU02Restore;
   info->Power=TCU02Power;
   AddExState(&latch[0], 1, 0, "LATC");
 }
@@ -453,8 +453,8 @@ static void TCA01Power(void)
   fceulib__cart.setprg16(0x8000,0);
   fceulib__cart.setprg16(0xC000,1);
   fceulib__cart.setchr8(0);
-  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
-  SetReadHandler(0x4100,0x5FFF,TCA01Read);
+  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__fceu.SetReadHandler(0x4100,0x5FFF,TCA01Read);
 }
 
 void TCA01_Init(CartInfo *info)

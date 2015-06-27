@@ -72,10 +72,10 @@ static void TransformerPower(void) {
   fceulib__cart.setprg16(0xC000,~0);
   fceulib__cart.setchr8(0);
 
-  SetReadHandler(0x5000,0x5004,TransformerRead);
-  SetReadHandler(0x6000,0x7FFF,Cart::CartBR);
-  SetWriteHandler(0x6000,0x7FFF,Cart::CartBW);
-  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__fceu.SetReadHandler(0x5000,0x5004,TransformerRead);
+  fceulib__fceu.SetReadHandler(0x6000,0x7FFF,Cart::CartBR);
+  fceulib__fceu.SetWriteHandler(0x6000,0x7FFF,Cart::CartBW);
+  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
 
   X.MapIRQHook=TransformerIRQHook;
 }

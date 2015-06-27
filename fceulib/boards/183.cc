@@ -91,9 +91,9 @@ static void M183IRQCounter(void) {
 
 static void M183Power(void) {
   IRQPre=IRQCount=IRQa=0;
-  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
-  SetWriteHandler(0x8000,0xFFFF,M183Write);
-  SetReadHandler(0x6000,0x7FFF,Cart::CartBR);
+  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__fceu.SetWriteHandler(0x8000,0xFFFF,M183Write);
+  fceulib__fceu.SetReadHandler(0x6000,0x7FFF,Cart::CartBR);
   SyncPrg();
   SyncChr();
 }
@@ -101,6 +101,6 @@ static void M183Power(void) {
 void Mapper183_Init(CartInfo *info) {
   info->Power=M183Power;
   fceulib__ppu.GameHBIRQHook=M183IRQCounter;
-  GameStateRestore=StateRestore;
+  fceulib__fceu.GameStateRestore=StateRestore;
   AddExState(&StateRegs, ~0, 0, 0);
 }

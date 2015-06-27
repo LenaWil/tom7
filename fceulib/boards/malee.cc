@@ -25,10 +25,10 @@ static uint8 WRAM[2048];
 static void MALEEPower(void)
 {
   fceulib__cart.setprg2r(0x10,0x7000,0);
-  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
-  SetReadHandler(0x6000,0x67FF,Cart::CartBR);
-  SetReadHandler(0x7000,0x77FF,Cart::CartBR);
-  SetWriteHandler(0x7000,0x77FF,Cart::CartBW);
+  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__fceu.SetReadHandler(0x6000,0x67FF,Cart::CartBR);
+  fceulib__fceu.SetReadHandler(0x7000,0x77FF,Cart::CartBR);
+  fceulib__fceu.SetWriteHandler(0x7000,0x77FF,Cart::CartBW);
   fceulib__cart.setprg2r(1,0x6000,0);
   fceulib__cart.setprg32(0x8000,0);
   fceulib__cart.setchr8(0);

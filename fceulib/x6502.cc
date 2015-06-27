@@ -53,18 +53,19 @@ X6502 X;
     timestamp += __x;        \
   }
 
+// XXX needs to take FCEU object as argument.
 static inline void WrRAM(unsigned int A, uint8 V) {
-  RAM[A] = V;
+  fceulib__fceu.RAM[A] = V;
 }
 
 uint8 X6502::DMR(uint32 A) {
   ADDCYC(1);
-  return (DB = ARead[A](A));
+  return (DB = fceulib__fceu.ARead[A](A));
 }
 
 void X6502::DMW(uint32 A, uint8 V) {
   ADDCYC(1);
-  BWrite[A](A, V);
+  fceulib__fceu.BWrite[A](A, V);
 }
 
 #define PUSH(V)              \
@@ -649,7 +650,7 @@ void X6502::Run(int32 cycles) {
   TRACEA(RAM, 0x800);
   // TRACEA(fceulib__ppu.PPU_values, 4);
 
-  if (PAL) {
+  if (fceulib__fceu.PAL) {
     cycles *= 15;  // 15*4=60
   } else {
     cycles *= 16;  // 16*4=64

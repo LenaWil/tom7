@@ -170,8 +170,8 @@ static void UNL8237Power(void)
   EXPREGS[0]=EXPREGS[2]=0;
   EXPREGS[1]=3;
   GenMMC3Power();
-  SetWriteHandler(0x8000,0xFFFF,UNL8237Write);
-  SetWriteHandler(0x5000,0x7FFF,UNL8237ExWrite);
+  fceulib__fceu.SetWriteHandler(0x8000,0xFFFF,UNL8237Write);
+  fceulib__fceu.SetWriteHandler(0x5000,0x7FFF,UNL8237ExWrite);
 }
 
 void UNL8237_Init(CartInfo *info)

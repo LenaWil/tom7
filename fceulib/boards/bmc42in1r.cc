@@ -58,8 +58,8 @@ static DECLFW(M226Write) {
 static void M226Power(void) {
 	latche[0] = latche[1] = reset = 0;
 	Sync();
-	SetWriteHandler(0x8000, 0xFFFF, M226Write);
-	SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
+	fceulib__fceu.SetWriteHandler(0x8000, 0xFFFF, M226Write);
+	fceulib__fceu.SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
 }
 
 static void StateRestore(int version) {
@@ -70,7 +70,7 @@ void Mapper226_Init(CartInfo *info) {
 	isresetbased = 0;
 	info->Power = M226Power;
 	AddExState(&StateRegs, ~0, 0, 0);
-	GameStateRestore = StateRestore;
+	fceulib__fceu.GameStateRestore = StateRestore;
 }
 
 static void M233Reset(void) {
@@ -83,5 +83,5 @@ void Mapper233_Init(CartInfo *info) {
 	info->Power = M226Power;
 	info->Reset = M233Reset;
 	AddExState(&StateRegs, ~0, 0, 0);
-	GameStateRestore = StateRestore;
+	fceulib__fceu.GameStateRestore = StateRestore;
 }

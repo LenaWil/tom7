@@ -69,7 +69,7 @@ static DECLFW(UNLA9746Write)
 static void UNLA9746Power(void)
 {
   GenMMC3Power();
-  SetWriteHandler(0x8000,0xbfff,UNLA9746Write);
+  fceulib__fceu.SetWriteHandler(0x8000,0xbfff,UNLA9746Write);
 }
 
 void UNLA9746_Init(CartInfo *info)

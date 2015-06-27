@@ -92,8 +92,8 @@ static void BMCT2271Power(void)
 {
   EXPREGS[0] = 0x00;
   GenMMC3Power();
-  SetWriteHandler(0x6000,0x7FFF,BMCT2271LoWrite);
-  SetReadHandler(0x8000,0xFFFF,BMCT2271HiRead);
+  fceulib__fceu.SetWriteHandler(0x6000,0x7FFF,BMCT2271LoWrite);
+  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,BMCT2271HiRead);
 }
 
 void BMCT2271_Init(CartInfo *info)

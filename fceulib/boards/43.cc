@@ -59,8 +59,8 @@ static void M43Power(void)
 {
   reg=0;
   Sync();
-  SetReadHandler(0x5000,0xffff,Cart::CartBR);
-  SetWriteHandler(0x4020,0xffff,M43Write);
+  fceulib__fceu.SetReadHandler(0x5000,0xffff,Cart::CartBR);
+  fceulib__fceu.SetWriteHandler(0x4020,0xffff,M43Write);
 }
 
 static void M43Reset(void)
@@ -88,6 +88,6 @@ void Mapper43_Init(CartInfo *info)
   info->Reset=M43Reset;
   info->Power=M43Power;
   X.MapIRQHook=M43IRQHook;
-  GameStateRestore=StateRestore;
+  fceulib__fceu.GameStateRestore=StateRestore;
   AddExState(&StateRegs, ~0, 0, 0);
 }

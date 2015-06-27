@@ -58,9 +58,9 @@ static DECLFW(M91Write1) {
 
 static void M91Power(void) {
   Sync();
-  SetWriteHandler(0x6000,0x6fff,M91Write0);
-  SetWriteHandler(0x7000,0x7fff,M91Write1);
-  SetReadHandler(0x8000,0xffff,Cart::CartBR);
+  fceulib__fceu.SetWriteHandler(0x6000,0x6fff,M91Write0);
+  fceulib__fceu.SetWriteHandler(0x7000,0x7fff,M91Write1);
+  fceulib__fceu.SetReadHandler(0x8000,0xffff,Cart::CartBR);
 }
 
 static void M91IRQHook(void) {
@@ -79,6 +79,6 @@ static void StateRestore(int version) {
 void Mapper91_Init(CartInfo *info) {
   info->Power=M91Power;
   fceulib__ppu.GameHBIRQHook=M91IRQHook;
-  GameStateRestore=StateRestore;
+  fceulib__fceu.GameStateRestore=StateRestore;
   AddExState(&StateRegs, ~0, 0, 0);
 }

@@ -70,12 +70,12 @@ static DECLFW(BSWRAM)
 static void M186Power(void)
 {
   fceulib__cart.setchr8(0);
-  SetReadHandler(0x6000,0xFFFF,Cart::CartBR);
-  SetWriteHandler(0x6000,0xFFFF,Cart::CartBW);
-  SetReadHandler(0x4200,0x43FF,M186Read);
-  SetWriteHandler(0x4200,0x43FF,M186Write);
-  SetReadHandler(0x4400,0x4EFF,ASWRAM);
-  SetWriteHandler(0x4400,0x4EFF,BSWRAM);
+  fceulib__fceu.SetReadHandler(0x6000,0xFFFF,Cart::CartBR);
+  fceulib__fceu.SetWriteHandler(0x6000,0xFFFF,Cart::CartBW);
+  fceulib__fceu.SetReadHandler(0x4200,0x43FF,M186Read);
+  fceulib__fceu.SetWriteHandler(0x4200,0x43FF,M186Write);
+  fceulib__fceu.SetReadHandler(0x4400,0x4EFF,ASWRAM);
+  fceulib__fceu.SetWriteHandler(0x4400,0x4EFF,BSWRAM);
   regs[0]=regs[1]=regs[2]=regs[3];
   Sync();
 }
@@ -96,7 +96,7 @@ void Mapper186_Init(CartInfo *info)
 {
   info->Power=M186Power;
   info->Close=M186Close;
-  GameStateRestore=M186Restore;
+  fceulib__fceu.GameStateRestore=M186Restore;
   WRAM=(uint8*)FCEU_gmalloc(32768);
   fceulib__cart.SetupCartPRGMapping(0x10,WRAM,32768,1);
   AddExState(WRAM, 32768, 0, "WRAM");

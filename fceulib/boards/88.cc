@@ -59,8 +59,8 @@ static DECLFW(M88Write)
 
 static void M88Power(void) {
   fceulib__cart.setprg16(0xC000,~0);
-  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
-  SetWriteHandler(0x8000,0xFFFF,M88Write);
+  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__fceu.SetWriteHandler(0x8000,0xFFFF,M88Write);
 }
 
 static void StateRestore(int version)
@@ -73,7 +73,7 @@ void Mapper88_Init(CartInfo *info)
 {
   is154=0;
   info->Power=M88Power;
-  GameStateRestore=StateRestore;
+  fceulib__fceu.GameStateRestore=StateRestore;
   AddExState(&StateRegs, ~0, 0, 0);
 }
 
@@ -81,6 +81,6 @@ void Mapper154_Init(CartInfo *info)
 {
   is154=1;
   info->Power=M88Power;
-  GameStateRestore=StateRestore;
+  fceulib__fceu.GameStateRestore=StateRestore;
   AddExState(&StateRegs, ~0, 0, 0);
 }

@@ -91,8 +91,8 @@ static DECLFW(UNLVRC7Write)
 
 static void UNLVRC7Power(void) {
   Sync();
-  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
-  SetWriteHandler(0x8000,0xFFFF,UNLVRC7Write);
+  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__fceu.SetWriteHandler(0x8000,0xFFFF,UNLVRC7Write);
 }
 
 static void UNLVRC7IRQHook(int a) {
@@ -116,6 +116,6 @@ static void StateRestore(int version) {
 void UNLVRC7_Init(CartInfo *info) {
   info->Power=UNLVRC7Power;
   X.MapIRQHook=UNLVRC7IRQHook;
-  GameStateRestore=StateRestore;
+  fceulib__fceu.GameStateRestore=StateRestore;
   AddExState(&StateRegs, ~0, 0, 0);
 }

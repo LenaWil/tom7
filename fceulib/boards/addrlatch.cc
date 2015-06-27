@@ -42,12 +42,12 @@ static void LatchPower(void) {
   latche = latcheinit;
   WSync();
   if (WRAM) {
-    SetReadHandler(0x6000, 0x7FFF, Cart::CartBR);
-    SetWriteHandler(0x6000, 0x7FFF, Cart::CartBW);
+    fceulib__fceu.SetReadHandler(0x6000, 0x7FFF, Cart::CartBR);
+    fceulib__fceu.SetWriteHandler(0x6000, 0x7FFF, Cart::CartBW);
   } else {
-    SetReadHandler(0x6000, 0xFFFF, defread);
+    fceulib__fceu.SetReadHandler(0x6000, 0xFFFF, defread);
   }
-  SetWriteHandler(addrreg0, addrreg1, LatchWrite);
+  fceulib__fceu.SetWriteHandler(addrreg0, addrreg1, LatchWrite);
 }
 
 static void LatchClose(void) {
@@ -84,7 +84,7 @@ static void Latch_Init(CartInfo *info, void (*proc)(void),
     }
     AddExState(WRAM, WRAMSIZE, 0, "WRAM");
   }
-  GameStateRestore = StateRestore;
+  fceulib__fceu.GameStateRestore = StateRestore;
   AddExState(&latche, 2, 0, "LATC");
 }
 

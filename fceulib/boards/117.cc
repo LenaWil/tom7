@@ -66,8 +66,8 @@ static void M117Power(void)
 {
   prgreg[0]=~3; prgreg[1]=~2; prgreg[2]=~1; prgreg[3]=~0;
   Sync();
-  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
-  SetWriteHandler(0x8000,0xFFFF,M117Write);
+  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__fceu.SetWriteHandler(0x8000,0xFFFF,M117Write);
 }
 
 static void M117IRQHook(void)
@@ -91,7 +91,7 @@ static void StateRestore(int version)
 void Mapper117_Init(CartInfo *info) {
   info->Power=M117Power;
   fceulib__ppu.GameHBIRQHook=M117IRQHook;
-  GameStateRestore=StateRestore;
+  fceulib__fceu.GameStateRestore=StateRestore;
   AddExState(&StateRegs, ~0, 0, 0);
 }
 

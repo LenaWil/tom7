@@ -59,8 +59,8 @@ static DECLFR(FDSBIOSRead);
 static DECLFR(FDSRAMRead);
 static DECLFW(FDSRAMWrite);
 
-#define FDSRAM GameMemBlock
-#define CHRRAM (GameMemBlock+32768)
+#define FDSRAM fceulib__fceu.GameMemBlock
+#define CHRRAM (fceulib__fceu.GameMemBlock+32768)
 
 static void FDSGI_Trampoline(GI h) {
   return fceulib__fds.FDSGI(h);
@@ -104,18 +104,18 @@ void FDS::FDSInit() {
   fceulib__cart.setchr8(0);     // 8KB CHR RAM
 
   X.MapIRQHook = FDSFix_Trampoline;
-  GameStateRestore=FDSStateRestore_Trampoline;
+  fceulib__fceu.GameStateRestore=FDSStateRestore_Trampoline;
 
-  SetReadHandler(0x4030,0x4030,FDSRead4030);
-  SetReadHandler(0x4031,0x4031,FDSRead4031);
-  SetReadHandler(0x4032,0x4032,FDSRead4032);
-  SetReadHandler(0x4033,0x4033,FDSRead4033);
+  fceulib__fceu.SetReadHandler(0x4030,0x4030,FDSRead4030);
+  fceulib__fceu.SetReadHandler(0x4031,0x4031,FDSRead4031);
+  fceulib__fceu.SetReadHandler(0x4032,0x4032,FDSRead4032);
+  fceulib__fceu.SetReadHandler(0x4033,0x4033,FDSRead4033);
 
-  SetWriteHandler(0x4020,0x4025,FDSWrite);
+  fceulib__fceu.SetWriteHandler(0x4020,0x4025,FDSWrite);
 
-  SetWriteHandler(0x6000,0xdfff,FDSRAMWrite);
-  SetReadHandler(0x6000,0xdfff,FDSRAMRead);
-  SetReadHandler(0xE000,0xFFFF,FDSBIOSRead);
+  fceulib__fceu.SetWriteHandler(0x6000,0xdfff,FDSRAMWrite);
+  fceulib__fceu.SetReadHandler(0x6000,0xdfff,FDSRAMRead);
+  fceulib__fceu.SetReadHandler(0xE000,0xFFFF,FDSBIOSRead);
   IRQCount=IRQLatch=IRQa=0;
 
   FDSSoundReset();
@@ -496,10 +496,10 @@ void FDS::FDS_ESI() {
     }
   }
   //  fdso.cycles=(int64)32768*FDSClock/(FCEUS_SNDRATE *16);
-  SetReadHandler(0x4040,0x407f,FDSWaveRead);
-  SetWriteHandler(0x4040,0x407f,FDSWaveWrite);
-  SetWriteHandler(0x4080,0x408A,FDSSWrite);
-  SetReadHandler(0x4090,0x4092,FDSSRead);
+  fceulib__fceu.SetReadHandler(0x4040,0x407f,FDSWaveRead);
+  fceulib__fceu.SetWriteHandler(0x4040,0x407f,FDSWaveWrite);
+  fceulib__fceu.SetWriteHandler(0x4080,0x408A,FDSSWrite);
+  fceulib__fceu.SetReadHandler(0x4090,0x4092,FDSSRead);
 
   //SetReadHandler(0xE7A3,0xE7A3,FDSBIOSPatch);
 }
@@ -617,7 +617,7 @@ int FDS::SubLoad(FceuFile *fp) {
     FCEU_fread(diskdata[x],1,65500,fp);
     md5_update(&md5,diskdata[x],65500);
   }
-  md5_finish(&md5,GameInfo->MD5.data);
+  md5_finish(&md5,fceulib__fceu.GameInfo->MD5.data);
   return(1);
 }
 
@@ -695,8 +695,8 @@ int FDS::FDSLoad(const char *name, FceuFile *fp) {
     }
   }
 
-  GameInfo->type=GIT_FDS;
-  GameInterface=FDSGI_Trampoline;
+  fceulib__fceu.GameInfo->type=GIT_FDS;
+  fceulib__fceu.GameInterface=FDSGI_Trampoline;
 
   SelectDisk=0;
   InDisk=255;
@@ -732,7 +732,7 @@ int FDS::FDSLoad(const char *name, FceuFile *fp) {
 
   FCEU_printf(" Sides: %d\n\n",TotalSides);
 
-  FCEUI_SetVidSystem(0);
+  fceulib__fceu.FCEUI_SetVidSystem(0);
 
   return 1;
 }

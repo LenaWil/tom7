@@ -60,10 +60,10 @@ static void H2288Power(void)
 {
   EXPREGS[0]=EXPREGS[1]=0;
   GenMMC3Power();
-//  SetReadHandler(0x5000,0x5FFF,H2288Read);
-  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
-  SetWriteHandler(0x5000,0x5FFF,H2288WriteLo);
-  SetWriteHandler(0x8000,0x9FFF,H2288WriteHi);
+//  fceulib__fceu.SetReadHandler(0x5000,0x5FFF,H2288Read);
+  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__fceu.SetWriteHandler(0x5000,0x5FFF,H2288WriteLo);
+  fceulib__fceu.SetWriteHandler(0x8000,0x9FFF,H2288WriteHi);
 }
 
 void UNLH2288_Init(CartInfo *info)

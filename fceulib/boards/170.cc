@@ -48,11 +48,11 @@ static DECLFR(M170ProtR)
 static void M170Power(void)
 {
   Sync();
-  SetWriteHandler(0x6502,0x6502,M170ProtW);
-  SetWriteHandler(0x7000,0x7000,M170ProtW);
-  SetReadHandler(0x7001,0x7001,M170ProtR);
-  SetReadHandler(0x7777,0x7777,M170ProtR);
-  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__fceu.SetWriteHandler(0x6502,0x6502,M170ProtW);
+  fceulib__fceu.SetWriteHandler(0x7000,0x7000,M170ProtW);
+  fceulib__fceu.SetReadHandler(0x7001,0x7001,M170ProtR);
+  fceulib__fceu.SetReadHandler(0x7777,0x7777,M170ProtR);
+  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
 }
 
 static void StateRestore(int version)
@@ -63,6 +63,6 @@ static void StateRestore(int version)
 void Mapper170_Init(CartInfo *info)
 {
   info->Power=M170Power;
-  GameStateRestore=StateRestore;
+  fceulib__fceu.GameStateRestore=StateRestore;
   AddExState(&StateRegs, ~0, 0, 0);
 }

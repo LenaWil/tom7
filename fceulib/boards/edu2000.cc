@@ -48,9 +48,9 @@ static DECLFW(UNLEDU2000HiWrite)
 static void UNLEDU2000Power(void)
 {
   fceulib__cart.setmirror(MI_0);
-  SetReadHandler(0x6000,0xFFFF,Cart::CartBR);
-  SetWriteHandler(0x6000,0xFFFF,Cart::CartBW);
-  SetWriteHandler(0x8000,0xFFFF,UNLEDU2000HiWrite);
+  fceulib__fceu.SetReadHandler(0x6000,0xFFFF,Cart::CartBR);
+  fceulib__fceu.SetWriteHandler(0x6000,0xFFFF,Cart::CartBW);
+  fceulib__fceu.SetWriteHandler(0x8000,0xFFFF,UNLEDU2000HiWrite);
   reg=0;
   Sync();
 }
@@ -71,7 +71,7 @@ void UNLEDU2000_Init(CartInfo *info)
 {
   info->Power=UNLEDU2000Power;
   info->Close=UNLEDU2000Close;
-  GameStateRestore=UNLEDU2000Restore;
+  fceulib__fceu.GameStateRestore=UNLEDU2000Restore;
   WRAM=(uint8*)FCEU_gmalloc(32768);
   fceulib__cart.SetupCartPRGMapping(0x10,WRAM,32768,1);
   if(info->battery)

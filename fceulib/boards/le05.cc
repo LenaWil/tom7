@@ -55,8 +55,8 @@ static DECLFW(LE05Write)
 static void LE05Power(void)
 {
   Sync();
-  SetReadHandler(0x6000,0xFFFF,Cart::CartBR);
-  SetWriteHandler(0x8000,0xFFFF,LE05Write);
+  fceulib__fceu.SetReadHandler(0x6000,0xFFFF,Cart::CartBR);
+  fceulib__fceu.SetWriteHandler(0x8000,0xFFFF,LE05Write);
 }
 
 void LE05_Init(CartInfo *info)

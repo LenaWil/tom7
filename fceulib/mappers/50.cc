@@ -51,8 +51,8 @@ static DECLFW(M50W) {
 }
 
 void Mapper50_init(void) {
-  SetWriteHandler(0x4020,0x5fff,M50W);
-  SetReadHandler(0x6000,0xffff,Cart::CartBR);
+  fceulib__fceu.SetWriteHandler(0x4020,0x5fff,M50W);
+  fceulib__fceu.SetReadHandler(0x6000,0xffff,Cart::CartBR);
   fceulib__ines.MapStateRestore=M50Restore;
   X.MapIRQHook=Mapper50IRQ;
 

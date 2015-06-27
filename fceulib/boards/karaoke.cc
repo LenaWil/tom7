@@ -49,9 +49,9 @@ static void Power(void) {
   Sync();
   fceulib__cart.setchr8(0);
   fceulib__cart.setprg16(0xc000,0x7);
-  SetReadHandler(0x6000,0x7FFF,ExtDev);
-  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
-  SetWriteHandler(0x8000,0xFFFF,M188Write);
+  fceulib__fceu.SetReadHandler(0x6000,0x7FFF,ExtDev);
+  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__fceu.SetWriteHandler(0x8000,0xFFFF,M188Write);
 }
 
 static void StateRestore(int version) {
@@ -60,6 +60,6 @@ static void StateRestore(int version) {
 
 void Mapper188_Init(CartInfo *info) {
   info->Power=Power;
-  GameStateRestore=StateRestore;
+  fceulib__fceu.GameStateRestore=StateRestore;
   AddExState(&latche, 1, 0, "LATC");
 }

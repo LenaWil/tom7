@@ -50,5 +50,5 @@ static DECLFW(Mapper61_write)
 
 void Mapper61_init(void)
 {
- SetWriteHandler(0x8000,0xffff,Mapper61_write);
+ fceulib__fceu.SetWriteHandler(0x8000,0xffff,Mapper61_write);
 }

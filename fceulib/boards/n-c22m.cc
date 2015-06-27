@@ -66,8 +66,8 @@ static void MCN22MPower(void)
 {
   reg[0]=reg[1]=reg[2]=0;
   Sync();
-  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
-  SetWriteHandler(0x8000,0xFFFF,MCN22MWrite);
+  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__fceu.SetWriteHandler(0x8000,0xFFFF,MCN22MWrite);
 }
 /*
 static void MCN22MIRQHook(void)
@@ -98,6 +98,6 @@ void UNLCN22M_Init(CartInfo *info)
 {
   info->Power=MCN22MPower;
 //  GameHBIRQHook=MCN22MIRQHook;
-  GameStateRestore=StateRestore;
+  fceulib__fceu.GameStateRestore=StateRestore;
   AddExState(&StateRegs, ~0, 0, 0);
 }

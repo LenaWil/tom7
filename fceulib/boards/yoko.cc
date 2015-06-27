@@ -152,11 +152,11 @@ static void UNLYOKOPower(void)
   mode = bank = 0;
   dip = 3;
   UNLYOKOSync();
-  SetReadHandler(0x5000,0x53FF,UNLYOKOReadDip);
-  SetReadHandler(0x5400,0x5FFF,UNLYOKOReadLow);
-  SetWriteHandler(0x5400,0x5FFF,UNLYOKOWriteLow);
-  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
-  SetWriteHandler(0x8000,0xFFFF,UNLYOKOWrite);
+  fceulib__fceu.SetReadHandler(0x5000,0x53FF,UNLYOKOReadDip);
+  fceulib__fceu.SetReadHandler(0x5400,0x5FFF,UNLYOKOReadLow);
+  fceulib__fceu.SetWriteHandler(0x5400,0x5FFF,UNLYOKOWriteLow);
+  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__fceu.SetWriteHandler(0x8000,0xFFFF,UNLYOKOWrite);
 }
 
 static void M83Power(void)
@@ -166,14 +166,14 @@ static void M83Power(void)
   mode = bank = 0;
   dip = 0;
   M83Sync();
-  SetReadHandler(0x5000,0x5000,UNLYOKOReadDip);
-  SetReadHandler(0x5100,0x5103,UNLYOKOReadLow);
-  SetWriteHandler(0x5100,0x5103,UNLYOKOWriteLow);
-  SetReadHandler(0x6000,0x7fff,Cart::CartBR);
+  fceulib__fceu.SetReadHandler(0x5000,0x5000,UNLYOKOReadDip);
+  fceulib__fceu.SetReadHandler(0x5100,0x5103,UNLYOKOReadLow);
+  fceulib__fceu.SetWriteHandler(0x5100,0x5103,UNLYOKOWriteLow);
+  fceulib__fceu.SetReadHandler(0x6000,0x7fff,Cart::CartBR);
  // Pirate Dragon Ball Z Party [p1] used if for saves instead of serial EEPROM
-  SetWriteHandler(0x6000,0x7fff,Cart::CartBW);
-  SetReadHandler(0x8000,0xffff,Cart::CartBR);
-  SetWriteHandler(0x8000,0xffff,M83Write);
+  fceulib__fceu.SetWriteHandler(0x6000,0x7fff,Cart::CartBW);
+  fceulib__fceu.SetReadHandler(0x8000,0xffff,Cart::CartBR);
+  fceulib__fceu.SetWriteHandler(0x8000,0xffff,M83Write);
 }
 
 static void UNLYOKOReset(void) {
@@ -216,7 +216,7 @@ void UNLYOKO_Init(CartInfo *info) {
   info->Power=UNLYOKOPower;
   info->Reset=UNLYOKOReset;
   X.MapIRQHook=UNLYOKOIRQHook;
-  GameStateRestore=UNLYOKOStateRestore;
+  fceulib__fceu.GameStateRestore=UNLYOKOStateRestore;
   AddExState(&StateRegs, ~0, 0, 0);
 }
 
@@ -225,7 +225,7 @@ void Mapper83_Init(CartInfo *info) {
   info->Reset=M83Reset;
   info->Close=M83Close;
   X.MapIRQHook=UNLYOKOIRQHook;
-  GameStateRestore=M83StateRestore;
+  fceulib__fceu.GameStateRestore=M83StateRestore;
 
   WRAMSIZE=8192;
   WRAM=(uint8*)FCEU_gmalloc(WRAMSIZE);

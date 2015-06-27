@@ -96,8 +96,8 @@ static void DBPower(void) {
   fceulib__cart.setprg8(0xc000,0x3E);
   fceulib__cart.setprg8(0xe000,0x3F);
 
-  SetReadHandler(0x8000,0xffff,Cart::CartBR);
-  SetWriteHandler(0x8000,0xffff,Mapper95_write);
+  fceulib__fceu.SetReadHandler(0x8000,0xffff,Cart::CartBR);
+  fceulib__fceu.SetWriteHandler(0x8000,0xffff,Mapper95_write);
 }
 
 static void StateRestore(int version) {
@@ -108,6 +108,6 @@ void Mapper95_Init(CartInfo *info) {
   info->Power=DBPower;
   AddExState(DB_StateRegs, ~0, 0, 0);
   fceulib__ppu.PPU_hook=dragonbust_ppu;
-  GameStateRestore=StateRestore;
+  fceulib__fceu.GameStateRestore=StateRestore;
 }
 

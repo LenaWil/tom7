@@ -66,8 +66,8 @@ static DECLFW(UNLKS7031Write)
 
 static void UNLKS7031Power(void) {
   Sync();
-  SetReadHandler(0x6000,0xFFFF,Cart::CartBR);
-  SetWriteHandler(0x8000,0xffff,UNLKS7031Write);
+  fceulib__fceu.SetReadHandler(0x6000,0xFFFF,Cart::CartBR);
+  fceulib__fceu.SetWriteHandler(0x8000,0xffff,UNLKS7031Write);
 }
 
 static void StateRestore(int version)
@@ -78,6 +78,6 @@ static void StateRestore(int version)
 void UNLKS7031_Init(CartInfo *info)
 {
   info->Power=UNLKS7031Power;
-  GameStateRestore=StateRestore;
+  fceulib__fceu.GameStateRestore=StateRestore;
   AddExState(&StateRegs, ~0, 0, 0);
 }

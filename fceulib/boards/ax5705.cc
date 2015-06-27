@@ -102,8 +102,8 @@ static DECLFW(UNLAX5705Write)
 static void UNLAX5705Power(void)
 {
   Sync();
-  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
-  SetWriteHandler(0x8000,0xFFFF,UNLAX5705Write);
+  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__fceu.SetWriteHandler(0x8000,0xFFFF,UNLAX5705Write);
 }
 
 static void StateRestore(int version)
@@ -115,6 +115,6 @@ void UNLAX5705_Init(CartInfo *info)
 {
   info->Power=UNLAX5705Power;
 //  GameHBIRQHook=UNLAX5705IRQ;
-  GameStateRestore=StateRestore;
+  fceulib__fceu.GameStateRestore=StateRestore;
   AddExState(&StateRegs, ~0, 0, 0);
 }

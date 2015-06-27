@@ -77,8 +77,8 @@ void Mapper166_init(void)
   mode=1;
   DRegs[0]=DRegs[1]=DRegs[2]=DRegs[3]=0;
   Sync();
-  SetWriteHandler(0x8000,0xFFFF,Mapper167_write);
-  GameStateRestore=StateRestore;
+  fceulib__fceu.SetWriteHandler(0x8000,0xFFFF,Mapper167_write);
+  fceulib__fceu.GameStateRestore=StateRestore;
   AddExState(&StateRegs, ~0, 0, 0);
 }
 
@@ -87,7 +87,7 @@ void Mapper167_init(void)
   mode=0;
   DRegs[0]=DRegs[1]=DRegs[2]=DRegs[3]=0;
   Sync();
-  SetWriteHandler(0x8000,0xFFFF,Mapper167_write);
-  GameStateRestore=StateRestore;
+  fceulib__fceu.SetWriteHandler(0x8000,0xFFFF,Mapper167_write);
+  fceulib__fceu.GameStateRestore=StateRestore;
   AddExState(&StateRegs, ~0, 0, 0);
 }

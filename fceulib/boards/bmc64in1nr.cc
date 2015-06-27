@@ -68,9 +68,9 @@ static void BMC64in1nrPower(void)
   regs[1]=0x43;
   regs[2]=regs[3]=0;
   Sync();
-  SetWriteHandler(0x5000,0x5003,BMC64in1nrWriteLo);
-  SetWriteHandler(0x8000,0xFFFF,BMC64in1nrWriteHi);
-  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__fceu.SetWriteHandler(0x5000,0x5003,BMC64in1nrWriteLo);
+  fceulib__fceu.SetWriteHandler(0x8000,0xFFFF,BMC64in1nrWriteHi);
+  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
 }
 
 static void StateRestore(int version)
@@ -82,7 +82,7 @@ void BMC64in1nr_Init(CartInfo *info)
 {
   info->Power=BMC64in1nrPower;
   AddExState(&StateRegs, ~0, 0, 0);
-  GameStateRestore=StateRestore;
+  fceulib__fceu.GameStateRestore=StateRestore;
 }
 
 

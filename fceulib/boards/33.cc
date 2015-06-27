@@ -75,15 +75,15 @@ static DECLFW(M48Write) {
 
 static void M33Power(void) {
 	Sync();
-	SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
-	SetWriteHandler(0x8000, 0xFFFF, M33Write);
+	fceulib__fceu.SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
+	fceulib__fceu.SetWriteHandler(0x8000, 0xFFFF, M33Write);
 }
 
 static void M48Power(void) {
 	Sync();
-	SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
-	SetWriteHandler(0x8000, 0xBFFF, M33Write);
-	SetWriteHandler(0xC000, 0xFFFF, M48Write);
+	fceulib__fceu.SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
+	fceulib__fceu.SetWriteHandler(0x8000, 0xBFFF, M33Write);
+	fceulib__fceu.SetWriteHandler(0xC000, 0xFFFF, M48Write);
 }
 
 static void M48IRQ(void) {
@@ -103,7 +103,7 @@ static void StateRestore(int version) {
 void Mapper33_Init(CartInfo *info) {
   is48 = 0;
   info->Power = M33Power;
-  GameStateRestore = StateRestore;
+  fceulib__fceu.GameStateRestore = StateRestore;
   AddExState(&StateRegs, ~0, 0, 0);
 }
 
@@ -111,7 +111,7 @@ void Mapper48_Init(CartInfo *info) {
   is48 = 1;
   info->Power = M48Power;
   fceulib__ppu.GameHBIRQHook = M48IRQ;
-  GameStateRestore = StateRestore;
+  fceulib__fceu.GameStateRestore = StateRestore;
   AddExState(&StateRegs, ~0, 0, 0);
 }
 

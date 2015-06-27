@@ -88,7 +88,7 @@ void INes::iNES_ExecPower() {
     for (int x=0;x<512;x++) {
       X.DMW(0x7000+x,trainerdata[x]);
       if (X.DMR(0x7000+x)!=trainerdata[x]) {
-	SetReadHandler(0x7000,0x71FF,TrainerRead);
+	fceulib__fceu.SetReadHandler(0x7000,0x71FF,TrainerRead);
 	break;
       }
     }
@@ -886,7 +886,7 @@ int INes::iNESLoad(const char *name, FceuFile *fp, int OverwriteVidMode) {
     md5_update(&md5,VROM,VROM_size<<13);
   }
   md5_finish(&md5,iNESCart.MD5);
-  memcpy(&GameInfo->MD5,&iNESCart.MD5,sizeof(iNESCart.MD5));
+  memcpy(&fceulib__fceu.GameInfo->MD5,&iNESCart.MD5,sizeof(iNESCart.MD5));
 
   iNESCart.CRC32 = iNESGameCRC32;
 
@@ -920,7 +920,7 @@ int INes::iNESLoad(const char *name, FceuFile *fp, int OverwriteVidMode) {
   FCEU_printf(" Trained: %s\n", (head.ROM_type&4)?"Yes":"No");
   // (head.ROM_type&8) = iNESMirroring: None(Four-screen)
 
-  SetInput(iNESGameCRC32, GameInfo);
+  SetInput(iNESGameCRC32, fceulib__fceu.GameInfo);
   CheckHInfo();
   {
     uint64 partialmd5 = 0ULL;
@@ -947,7 +947,7 @@ int INes::iNESLoad(const char *name, FceuFile *fp, int OverwriteVidMode) {
   iNESCart.battery=(head.ROM_type&2)?1:0;
   iNESCart.mirror=iNESMirroring;
 
-  GameInfo->mappernum = mapper_number;
+  fceulib__fceu.GameInfo->mappernum = mapper_number;
   MapperInit();
   
   fceulib__cart.FCEU_LoadGameSave(&iNESCart);
@@ -960,7 +960,7 @@ int INes::iNESLoad(const char *name, FceuFile *fp, int OverwriteVidMode) {
     name = strrchr(name, '\\') + 1;
   }
 
-  GameInterface = [](GI h) {
+  fceulib__fceu.GameInterface = [](GI h) {
     return fceulib__ines.iNESGI(h);
   };
   FCEU_printf("\n");
@@ -974,9 +974,9 @@ int INes::iNESLoad(const char *name, FceuFile *fp, int OverwriteVidMode) {
 	|| strstr(name,"(F)") || strstr(name,"(f)")
 	|| strstr(name,"(G)") || strstr(name,"(g)")
 	|| strstr(name,"(I)") || strstr(name,"(i)")) {
-      FCEUI_SetVidSystem(1);
+      fceulib__fceu.FCEUI_SetVidSystem(1);
     } else {
-      FCEUI_SetVidSystem(0);
+      fceulib__fceu.FCEUI_SetVidSystem(0);
     }
   }
 
@@ -1378,8 +1378,8 @@ void INes::iNESPower() {
   TRACEF("iNESPower %d", mapper_number);
   int type = mapper_number;
 
-  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
-  GameStateRestore = [](int v) {
+  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__fceu.GameStateRestore = [](int v) {
     return fceulib__ines.iNESStateRestore(v);
   };
   MapClose=0;
@@ -1388,21 +1388,21 @@ void INes::iNESPower() {
 
   fceulib__cart.setprg8r(1,0x6000,0);
 
-  SetReadHandler(0x6000,0x7FFF,AWRAM);
-  SetWriteHandler(0x6000,0x7FFF,BWRAM);
+  fceulib__fceu.SetReadHandler(0x6000,0x7FFF,AWRAM);
+  fceulib__fceu.SetWriteHandler(0x6000,0x7FFF,BWRAM);
 
   /* This statement represents atrocious code.  I need to rewrite
      all of the iNES mapper code... */
   iNESIRQCount=iNESIRQLatch=iNESIRQa=0;
   if (head.ROM_type&2)
-    memset(GameMemBlock+8192,0,GAME_MEM_BLOCK_SIZE-8192);
+    memset(fceulib__fceu.GameMemBlock+8192,0,GAME_MEM_BLOCK_SIZE-8192);
   else
-    memset(GameMemBlock,0,GAME_MEM_BLOCK_SIZE);
+    memset(fceulib__fceu.GameMemBlock,0,GAME_MEM_BLOCK_SIZE);
 
   NONE_init();
   ResetExState(0,0);
 
-  if (GameInfo->type == GIT_VSUNI)
+  if (fceulib__fceu.GameInfo->type == GIT_VSUNI)
     AddExState(fceulib__vsuni.FCEUVSUNI_STATEINFO(), ~0, 0, 0);
 
   AddExState(WRAM, 8192, 0, "WRAM");
@@ -1442,7 +1442,7 @@ int INes::NewiNES_Init(int num) {
 
   CHRRAMSize = -1;
 
-  if (GameInfo->type == GIT_VSUNI)
+  if (fceulib__fceu.GameInfo->type == GIT_VSUNI)
     AddExState(fceulib__vsuni.FCEUVSUNI_STATEINFO(), ~0, 0, 0);
 
   while (tmp->init) {

@@ -303,7 +303,7 @@ void Input::FCEU_UpdateInput() {
     portFC.driver->Update(portFC.ptr,portFC.attrib);
 
 
-  if (GameInfo->type==GIT_VSUNI)
+  if (fceulib__fceu.GameInfo->type==GIT_VSUNI)
     if (fceulib__vsuni.coinon) fceulib__vsuni.coinon--;
 
   // This saved it for display, and copied it from the movie if playing. Don't
@@ -311,7 +311,7 @@ void Input::FCEU_UpdateInput() {
   // FCEUMOV_AddInputState();
 
   //TODO - should this apply to the movie data? should this be displayed in the input hud?
-  if (GameInfo->type==GIT_VSUNI)
+  if (fceulib__fceu.GameInfo->type==GIT_VSUNI)
     fceulib__vsuni.FCEU_VSUniSwap(&joy[0],&joy[1]);
 }
 
@@ -355,7 +355,7 @@ void Input::InputScanlineHook(uint8 *bg, uint8 *spr, uint32 linets, int final) {
 void Input::SetInputStuff(int port) {
   switch (joyports[port].type) {
   case SI_GAMEPAD:
-    if (GameInfo->type==GIT_VSUNI)
+    if (fceulib__fceu.GameInfo->type==GIT_VSUNI)
       joyports[port].driver = &GPCVS;
     else
       joyports[port].driver = &GPC;
@@ -450,14 +450,14 @@ void Input::InitializeInput() {
   memset(joy,0,sizeof(joy));
   LastStrobe = 0;
 
-  if (GameInfo->type==GIT_VSUNI) {
-    SetReadHandler(0x4016,0x4016,VSUNIRead0);
-    SetReadHandler(0x4017,0x4017,VSUNIRead1);
+  if (fceulib__fceu.GameInfo->type==GIT_VSUNI) {
+    fceulib__fceu.SetReadHandler(0x4016,0x4016,VSUNIRead0);
+    fceulib__fceu.SetReadHandler(0x4017,0x4017,VSUNIRead1);
   } else {
-    SetReadHandler(0x4016,0x4017,JPRead);
+    fceulib__fceu.SetReadHandler(0x4016,0x4017,JPRead);
   }
 
-  SetWriteHandler(0x4016,0x4016,B4016);
+  fceulib__fceu.SetWriteHandler(0x4016,0x4016,B4016);
 
   //force the port drivers to be setup
   SetInputStuff(0);
@@ -479,7 +479,7 @@ void Input::FCEUI_SetInputFourscore(bool attachFourscore) {
 }
 
 void Input::FCEUI_FDSSelect() {
-  if (!FCEU_IsValidUI(FCEUI_SWITCH_DISK))
+  if (!fceulib__fceu.FCEU_IsValidUI(FCEUI_SWITCH_DISK))
     return;
 
   fprintf(stderr, "Command: Switch disk side");
@@ -487,7 +487,7 @@ void Input::FCEUI_FDSSelect() {
 }
 
 void Input::FCEUI_FDSInsert() {
-  if (!FCEU_IsValidUI(FCEUI_EJECT_DISK))
+  if (!fceulib__fceu.FCEU_IsValidUI(FCEUI_EJECT_DISK))
     return;
 
   fprintf(stderr, "Command: Insert/Eject disk");
@@ -504,7 +504,7 @@ void Input::FCEUI_VSUniCoin() {
 
 // Resets the NES
 void Input::FCEUI_ResetNES() {
-  if (!FCEU_IsValidUI(FCEUI_RESET))
+  if (!fceulib__fceu.FCEU_IsValidUI(FCEUI_RESET))
     return;
 
   fprintf(stderr, "Command: Soft reset");
@@ -513,7 +513,7 @@ void Input::FCEUI_ResetNES() {
 
 // Powers off the NES
 void Input::FCEUI_PowerNES() {
-  if (!FCEU_IsValidUI(FCEUI_POWER))
+  if (!fceulib__fceu.FCEU_IsValidUI(FCEUI_POWER))
     return;
 
   fprintf(stderr, "Command: Power switch");
@@ -522,8 +522,8 @@ void Input::FCEUI_PowerNES() {
 
 void Input::FCEU_DoSimpleCommand(int cmd) {
   switch (cmd) {
-  case FCEUNPCMD_FDSINSERT: fceulib__fds.FCEU_FDSInsert();break;
-  case FCEUNPCMD_FDSSELECT: fceulib__fds.FCEU_FDSSelect();break;
+  case FCEUNPCMD_FDSINSERT: fceulib__fds.FCEU_FDSInsert(); break;
+  case FCEUNPCMD_FDSSELECT: fceulib__fds.FCEU_FDSSelect(); break;
   case FCEUNPCMD_VSUNICOIN: fceulib__vsuni.FCEU_VSUniCoin(); break;
   case FCEUNPCMD_VSUNIDIP0:
   case FCEUNPCMD_VSUNIDIP0+1:
@@ -535,7 +535,7 @@ void Input::FCEU_DoSimpleCommand(int cmd) {
   case FCEUNPCMD_VSUNIDIP0+7: 
     fceulib__vsuni.FCEU_VSUniToggleDIP(cmd - FCEUNPCMD_VSUNIDIP0);
     break;
-  case FCEUNPCMD_POWER: PowerNES();break;
-  case FCEUNPCMD_RESET: ResetNES();break;
+  case FCEUNPCMD_POWER: fceulib__fceu.PowerNES(); break;
+  case FCEUNPCMD_RESET: fceulib__fceu.ResetNES(); break;
   }
 }

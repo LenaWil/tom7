@@ -46,6 +46,6 @@ static void M41Reset(void) {
 void Mapper41_init(void) {
  fceulib__ines.MapperReset=M41Reset;
  ROM_BANK32(0);
- SetWriteHandler(0x8000,0xffff,Mapper41_write);
- SetWriteHandler(0x6000,0x67ff,Mapper41_write);
+ fceulib__fceu.SetWriteHandler(0x8000,0xffff,Mapper41_write);
+ fceulib__fceu.SetWriteHandler(0x6000,0x67ff,Mapper41_write);
 }

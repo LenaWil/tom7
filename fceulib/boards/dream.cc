@@ -37,8 +37,8 @@ static void DREAMPower(void) {
   latche=0;
   Sync();
   fceulib__cart.setchr8(0);
-  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
-  SetWriteHandler(0x5020,0x5020,DREAMWrite);
+  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__fceu.SetWriteHandler(0x5020,0x5020,DREAMWrite);
 }
 
 static void Restore(int version)
@@ -48,7 +48,7 @@ static void Restore(int version)
 
 void DreamTech01_Init(CartInfo *info)
 {
-  GameStateRestore=Restore;
+  fceulib__fceu.GameStateRestore=Restore;
   info->Power=DREAMPower;
   AddExState(&latche, 1, 0, "LATC");
 }

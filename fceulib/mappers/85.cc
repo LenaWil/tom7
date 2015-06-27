@@ -166,15 +166,15 @@ static void VRC7SI(void) {
 
 void NSFVRC7_Init(void)
 {
-    SetWriteHandler(0x9010,0x901F,Mapper85_write);
-    SetWriteHandler(0x9030,0x903F,Mapper85_write);
+    fceulib__fceu.SetWriteHandler(0x9010,0x901F,Mapper85_write);
+    fceulib__fceu.SetWriteHandler(0x9030,0x903F,Mapper85_write);
     VRC7SI();
 }
 
 void Mapper85_init(void) {
   X.MapIRQHook=KonamiIRQHook;
-  SetWriteHandler(0x8000,0xffff,Mapper85_write);
-  GameStateRestore=Mapper85_StateRestore;
+  fceulib__fceu.SetWriteHandler(0x8000,0xffff,Mapper85_write);
+  fceulib__fceu.GameStateRestore=Mapper85_StateRestore;
   if (!fceulib__ines.VROM_size)
    fceulib__cart.SetupCartCHRMapping(0, CHRRAM, 8192, 1);
   //AddExState(VRC7Instrument, 16, 0, "VC7I");

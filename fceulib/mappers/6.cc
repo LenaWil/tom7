@@ -75,7 +75,7 @@ void Mapper6_init(void) {
   X.MapIRQHook=FFEIRQHook;
   ROM_BANK16(0xc000,7);
 
-  SetWriteHandler(0x4020,0x5fff,Mapper6_write);
-  SetWriteHandler(0x8000,0xffff,Mapper6_write);
+  fceulib__fceu.SetWriteHandler(0x4020,0x5fff,Mapper6_write);
+  fceulib__fceu.SetWriteHandler(0x8000,0xffff,Mapper6_write);
   fceulib__ines.MapStateRestore=Mapper6_StateRestore;
 }

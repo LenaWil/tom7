@@ -49,9 +49,9 @@ static void UNLBBPower(void)
   chr = 0;
   reg = ~0;
   Sync();
-  SetReadHandler(0x6000,0x7FFF,Cart::CartBR);
-  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
-  SetWriteHandler(0x8000,0xFFFF,UNLBBWrite);
+  fceulib__fceu.SetReadHandler(0x6000,0x7FFF,Cart::CartBR);
+  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__fceu.SetWriteHandler(0x8000,0xFFFF,UNLBBWrite);
 }
 
 static void StateRestore(int version)
@@ -62,6 +62,6 @@ static void StateRestore(int version)
 void UNLBB_Init(CartInfo *info)
 {
   info->Power=UNLBBPower;
-  GameStateRestore=StateRestore;
+  fceulib__fceu.GameStateRestore=StateRestore;
   AddExState(&StateRegs, ~0, 0, 0);
 }

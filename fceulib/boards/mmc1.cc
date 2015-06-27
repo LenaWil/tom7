@@ -119,7 +119,7 @@ static void MMC1MIRROR(void) {
 static uint64 lreset;
 static DECLFW(MMC1_write) {
   int n=(A>>13)-4;
-  //FCEU_DispMessage("%016x",timestampbase+timestamp);
+  //FCEU_DispMessage("%016x",fceulib__fceu.timestampbase+X.timestamp);
 //  FCEU_printf("$%04x:$%02x, $%04x\n",A,V,X.PC);
   //DumpMem("out",0xe000,0xffff);
 
@@ -129,14 +129,14 @@ static DECLFW(MMC1_write) {
      precision isn't that great), but this should still work to
 	   deal with 2 writes in a row from a single RMW instruction.
 	*/
-  if((timestampbase+X.timestamp)<(lreset+2))
+  if((fceulib__fceu.timestampbase+X.timestamp)<(lreset+2))
     return;
 //  FCEU_printf("Write %04x:%02x\n",A,V);
   if(V&0x80) {
     DRegs[0]|=0xC;
     BufferShift=Buffer=0;
     MMC1PRG();
-    lreset=timestampbase+X.timestamp;
+    lreset=fceulib__fceu.timestampbase+X.timestamp;
     return;
   }
 
@@ -255,13 +255,13 @@ static void GenMMC1Power(void) {
       FCEU_dwmemset(WRAM,0,8192);
     }
   }
-  SetWriteHandler(0x8000,0xFFFF,MMC1_write);
-  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__fceu.SetWriteHandler(0x8000,0xFFFF,MMC1_write);
+  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
 
   if(mmc1opts&1)
   {
-    SetReadHandler(0x6000,0x7FFF,MAWRAM);
-    SetWriteHandler(0x6000,0x7FFF,MBWRAM);
+    fceulib__fceu.SetReadHandler(0x6000,0x7FFF,MAWRAM);
+    fceulib__fceu.SetWriteHandler(0x6000,0x7FFF,MBWRAM);
     fceulib__cart.setprg8r(0x10,0x6000,0);
   }
 
@@ -311,7 +311,7 @@ static void GenMMC1Init(CartInfo *info, int prg, int chr, int wram, int battery)
   AddExState(DRegs, 4, 0, "DREG");
 
   info->Power=GenMMC1Power;
-  GameStateRestore=MMC1_Restore;
+  fceulib__fceu.GameStateRestore=MMC1_Restore;
   AddExState(&lreset, 8, 1, "LRST");
   AddExState(&Buffer, 1, 1, "BFFR");
   AddExState(&BufferShift, 1, 1, "BFRS");

@@ -67,9 +67,9 @@ static DECLFR(M175Read)
 static void M175Power(void)
 {
   reg = mirr = delay = 0;
-  SetReadHandler(0x8000,0xFFFF,M175Read);
-  SetWriteHandler(0x8000,0x8000,M175Write1);
-  SetWriteHandler(0xA000,0xA000,M175Write2);
+  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,M175Read);
+  fceulib__fceu.SetWriteHandler(0x8000,0x8000,M175Write1);
+  fceulib__fceu.SetWriteHandler(0xA000,0xA000,M175Write2);
   Sync();
 }
 
@@ -81,7 +81,7 @@ static void StateRestore(int version)
 void Mapper175_Init(CartInfo *info)
 {
   info->Power=M175Power;
-  GameStateRestore=StateRestore;
+  fceulib__fceu.GameStateRestore=StateRestore;
 
   AddExState(&StateRegs, ~0, 0, 0);
 }

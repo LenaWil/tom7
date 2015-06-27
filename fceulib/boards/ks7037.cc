@@ -71,21 +71,21 @@ static void UNLKS7037Power(void)
 {
   reg[0]=reg[1]=reg[2]=reg[3]=reg[4]=reg[5]=reg[6]=reg[7]=0;
   WSync();
-  SetReadHandler(0x6000,0xFFFF,Cart::CartBR);
-  SetWriteHandler(0x6000,0x7FFF,Cart::CartBW);
-  SetWriteHandler(0x8000,0x9FFF,UNLKS7037Write);
-  SetWriteHandler(0xA000,0xBFFF,Cart::CartBW);
-  SetWriteHandler(0xC000,0xFFFF,UNLKS7037Write);
+  fceulib__fceu.SetReadHandler(0x6000,0xFFFF,Cart::CartBR);
+  fceulib__fceu.SetWriteHandler(0x6000,0x7FFF,Cart::CartBW);
+  fceulib__fceu.SetWriteHandler(0x8000,0x9FFF,UNLKS7037Write);
+  fceulib__fceu.SetWriteHandler(0xA000,0xBFFF,Cart::CartBW);
+  fceulib__fceu.SetWriteHandler(0xC000,0xFFFF,UNLKS7037Write);
 }
 
 static void LH10Power(void)
 {
   reg[0]=reg[1]=reg[2]=reg[3]=reg[4]=reg[5]=reg[6]=reg[7]=0;
   WSync();
-  SetReadHandler(0x6000,0xFFFF,Cart::CartBR);
-  SetWriteHandler(0x8000,0xBFFF,UNLKS7037Write);
-  SetWriteHandler(0xC000,0xDFFF,Cart::CartBW);
-  SetWriteHandler(0xE000,0xFFFF,UNLKS7037Write);
+  fceulib__fceu.SetReadHandler(0x6000,0xFFFF,Cart::CartBR);
+  fceulib__fceu.SetWriteHandler(0x8000,0xBFFF,UNLKS7037Write);
+  fceulib__fceu.SetWriteHandler(0xC000,0xDFFF,Cart::CartBW);
+  fceulib__fceu.SetWriteHandler(0xE000,0xFFFF,UNLKS7037Write);
 }
 
 static void Close(void)
@@ -112,7 +112,7 @@ void UNLKS7037_Init(CartInfo *info)
   fceulib__cart.SetupCartPRGMapping(0x10,WRAM,WRAMSIZE,1);
   AddExState(WRAM, WRAMSIZE, 0, "WRAM");
 
-  GameStateRestore=StateRestore;
+  fceulib__fceu.GameStateRestore=StateRestore;
   AddExState(&StateRegs, ~0, 0, 0);
 }
 
@@ -128,6 +128,6 @@ void LH10_Init(CartInfo *info)
   fceulib__cart.SetupCartPRGMapping(0x10,WRAM,WRAMSIZE,1);
   AddExState(WRAM, WRAMSIZE, 0, "WRAM");
 
-  GameStateRestore=StateRestore;
+  fceulib__fceu.GameStateRestore=StateRestore;
   AddExState(&StateRegs, ~0, 0, 0);
 }

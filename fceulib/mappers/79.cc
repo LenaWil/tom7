@@ -35,7 +35,7 @@ DECLFW(Mapper79_write)
 void Mapper79_init(void)
 {
  ROM_BANK32(~0);
- SetWriteHandler(0x8000,0xffff,Mapper79_write);
- SetWriteHandler(0x4020,0x5fff,Mapper79_write);
+ fceulib__fceu.SetWriteHandler(0x8000,0xffff,Mapper79_write);
+ fceulib__fceu.SetWriteHandler(0x4020,0x5fff,Mapper79_write);
 }
 

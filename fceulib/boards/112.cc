@@ -68,11 +68,11 @@ static void M112Power(void) {
   bank=0;
   fceulib__cart.setprg16(0xC000,~0);
   fceulib__cart.setprg8r(0x10,0x6000,0);
-  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
-  SetWriteHandler(0x8000,0xFFFF,M112Write);
-  SetWriteHandler(0x4020,0x5FFF,M112Write);
-  SetReadHandler(0x6000,0x7FFF,Cart::CartBR);
-  SetWriteHandler(0x6000,0x7FFF,Cart::CartBW);
+  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__fceu.SetWriteHandler(0x8000,0xFFFF,M112Write);
+  fceulib__fceu.SetWriteHandler(0x4020,0x5FFF,M112Write);
+  fceulib__fceu.SetReadHandler(0x6000,0x7FFF,Cart::CartBR);
+  fceulib__fceu.SetWriteHandler(0x6000,0x7FFF,Cart::CartBW);
 }
 
 static void StateRestore(int version) {
@@ -83,7 +83,7 @@ void Mapper112_Init(CartInfo *info)
 {
   info->Power=M112Power;
   info->Close=M112Close;
-  GameStateRestore=StateRestore;
+  fceulib__fceu.GameStateRestore=StateRestore;
   WRAM=(uint8*)FCEU_gmalloc(8192);
   fceulib__cart.SetupCartPRGMapping(0x10,WRAM,8192,1);
   AddExState(WRAM, 8192, 0, "WRAM");

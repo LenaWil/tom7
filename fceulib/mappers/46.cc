@@ -43,6 +43,6 @@ void Mapper46_init(void)
 {
  fceulib__ines.MIRROR_SET(0);
  ROM_BANK32(0);
- SetWriteHandler(0x8000,0xffff,Mapper46_write);
- SetWriteHandler(0x6000,0x7fff,Mapper46_writel);
+ fceulib__fceu.SetWriteHandler(0x8000,0xffff,Mapper46_write);
+ fceulib__fceu.SetWriteHandler(0x6000,0x7fff,Mapper46_writel);
 }

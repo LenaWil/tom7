@@ -67,8 +67,8 @@ static void BMCGhostbusters63in1Power(void)
 {
   reg[0]=reg[1]=0;
   Sync();
-  SetReadHandler(0x8000,0xFFFF,BMCGhostbusters63in1Read);
-  SetWriteHandler(0x8000,0xFFFF,BMCGhostbusters63in1Write);
+  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,BMCGhostbusters63in1Read);
+  fceulib__fceu.SetWriteHandler(0x8000,0xFFFF,BMCGhostbusters63in1Write);
 }
 
 static void BMCGhostbusters63in1Reset(void)
@@ -99,6 +99,6 @@ void BMCGhostbusters63in1_Init(CartInfo *info)
   fceulib__cart.SetupCartPRGMapping(0x10,CHRROM,CHRROMSIZE,0);
   AddExState(CHRROM, CHRROMSIZE, 0, "CROM");
 
-  GameStateRestore=StateRestore;
+  fceulib__fceu.GameStateRestore=StateRestore;
   AddExState(&StateRegs, ~0, 0, 0);
 }

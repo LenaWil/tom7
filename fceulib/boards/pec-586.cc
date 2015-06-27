@@ -74,11 +74,11 @@ static void UNLPEC586Power(void)
   reg[0]=0x0E;
   Sync();
   fceulib__cart.setchr8(0);
-  SetReadHandler(0x6000,0x7FFF,Cart::CartBR);
-  SetWriteHandler(0x6000,0x7FFF,Cart::CartBW);
-  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
-  SetWriteHandler(0x5000,0x5fff,UNLPEC586Write);
-  SetReadHandler(0x5000,0x5fff,UNLPEC586Read);
+  fceulib__fceu.SetReadHandler(0x6000,0x7FFF,Cart::CartBR);
+  fceulib__fceu.SetWriteHandler(0x6000,0x7FFF,Cart::CartBW);
+  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__fceu.SetWriteHandler(0x5000,0x5fff,UNLPEC586Write);
+  fceulib__fceu.SetReadHandler(0x5000,0x5fff,UNLPEC586Read);
 }
 
 static void UNLPEC586IRQ(void) {
@@ -105,7 +105,7 @@ void UNLPEC586Init(CartInfo *info) {
   info->Power=UNLPEC586Power;
   info->Close=UNLPEC586Close;
   fceulib__ppu.GameHBIRQHook=UNLPEC586IRQ;
-  GameStateRestore=StateRestore;
+  fceulib__fceu.GameStateRestore=StateRestore;
 
   WRAMSIZE=8192;
   WRAM=(uint8*)FCEU_gmalloc(WRAMSIZE);

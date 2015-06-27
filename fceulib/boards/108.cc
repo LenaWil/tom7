@@ -41,10 +41,10 @@ static DECLFW(M108Write) {
 
 static void M108Power(void) {
   Sync();
-  SetReadHandler(0x6000,0x7FFF,Cart::CartBR);
-  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
-  SetWriteHandler(0x8000,0x8FFF,M108Write); // regular 108
-  SetWriteHandler(0xF000,0xFFFF,M108Write); // simplified Kaiser BB Hack
+  fceulib__fceu.SetReadHandler(0x6000,0x7FFF,Cart::CartBR);
+  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__fceu.SetWriteHandler(0x8000,0x8FFF,M108Write); // regular 108
+  fceulib__fceu.SetWriteHandler(0xF000,0xFFFF,M108Write); // simplified Kaiser BB Hack
 }
 
 static void StateRestore(int version) {
@@ -54,6 +54,6 @@ static void StateRestore(int version) {
 void Mapper108_Init(CartInfo *info)
 {
   info->Power=M108Power;
-  GameStateRestore=StateRestore;
+  fceulib__fceu.GameStateRestore=StateRestore;
   AddExState(&StateRegs, ~0, 0, 0);
 }
