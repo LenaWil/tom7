@@ -52,11 +52,11 @@ static void M168Power(void)
 {
   reg=0;
   Sync();
-  SetWriteHandler(0x4020,0x7fff,M168Dummy);
-  SetWriteHandler(0xB000,0xB000,M168Write);
-  SetWriteHandler(0xF000,0xF000,M168Dummy);
-  SetWriteHandler(0xF080,0xF080,M168Dummy);
-  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__fceu.SetWriteHandler(0x4020,0x7fff,M168Dummy);
+  fceulib__fceu.SetWriteHandler(0xB000,0xB000,M168Write);
+  fceulib__fceu.SetWriteHandler(0xF000,0xF000,M168Dummy);
+  fceulib__fceu.SetWriteHandler(0xF080,0xF080,M168Dummy);
+  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
 }
 
 static void MNNNClose(void)
@@ -75,7 +75,7 @@ void Mapper168_Init(CartInfo *info)
 {
   info->Power=M168Power;
   info->Close=MNNNClose;
-  GameStateRestore=StateRestore;
+  fceulib__fceu.GameStateRestore=StateRestore;
   AddExState(&StateRegs, ~0, 0, 0);
 
   CHRRAMSIZE=8192*8;

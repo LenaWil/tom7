@@ -432,18 +432,18 @@ static void M90Restore(int version)
 
 static void M90Power(void)
 {
-  SetWriteHandler(0x5000,0x5fff,M90TekWrite);
-  SetWriteHandler(0x8000,0x8ff0,M90PRGWrite);
-  SetWriteHandler(0x9000,0x9fff,M90CHRlowWrite);
-  SetWriteHandler(0xA000,0xAfff,M90CHRhiWrite);
-  SetWriteHandler(0xB000,0xBfff,M90NTWrite);
-  SetWriteHandler(0xC000,0xCfff,M90IRQWrite);
-  SetWriteHandler(0xD000,0xD5ff,M90ModeWrite);
-  SetWriteHandler(0xE000,0xFfff,M90DummyWrite);
+  fceulib__fceu.SetWriteHandler(0x5000,0x5fff,M90TekWrite);
+  fceulib__fceu.SetWriteHandler(0x8000,0x8ff0,M90PRGWrite);
+  fceulib__fceu.SetWriteHandler(0x9000,0x9fff,M90CHRlowWrite);
+  fceulib__fceu.SetWriteHandler(0xA000,0xAfff,M90CHRhiWrite);
+  fceulib__fceu.SetWriteHandler(0xB000,0xBfff,M90NTWrite);
+  fceulib__fceu.SetWriteHandler(0xC000,0xCfff,M90IRQWrite);
+  fceulib__fceu.SetWriteHandler(0xD000,0xD5ff,M90ModeWrite);
+  fceulib__fceu.SetWriteHandler(0xE000,0xFfff,M90DummyWrite);
 
 
-  SetReadHandler(0x5000,0x5fff,M90TekRead);
-  SetReadHandler(0x6000,0xffff,Cart::CartBR);
+  fceulib__fceu.SetReadHandler(0x5000,0x5fff,M90TekRead);
+  fceulib__fceu.SetReadHandler(0x6000,0xffff,Cart::CartBR);
 
   mul[0]=mul[1]=regie=0xFF;
 
@@ -471,7 +471,7 @@ void Mapper90_Init(CartInfo *info) {
   fceulib__ppu.PPU_hook=M90PPU;
   X.MapIRQHook=CPUWrap;
   fceulib__ppu.GameHBIRQHook2=SLWrap;
-  GameStateRestore=M90Restore;
+  fceulib__fceu.GameStateRestore=M90Restore;
   AddExState(Tek_StateRegs, ~0, 0, 0);
 }
 
@@ -483,7 +483,7 @@ void Mapper209_Init(CartInfo *info) {
   fceulib__ppu.PPU_hook=M90PPU;
   X.MapIRQHook=CPUWrap;
   fceulib__ppu.GameHBIRQHook2=SLWrap;
-  GameStateRestore=M90Restore;
+  fceulib__fceu.GameStateRestore=M90Restore;
   AddExState(Tek_StateRegs, ~0, 0, 0);
 }
 
@@ -494,6 +494,6 @@ void Mapper211_Init(CartInfo *info) {
   fceulib__ppu.PPU_hook=M90PPU;
   X.MapIRQHook=CPUWrap;
   fceulib__ppu.GameHBIRQHook2=SLWrap;
-  GameStateRestore=M90Restore;
+  fceulib__fceu.GameStateRestore=M90Restore;
   AddExState(Tek_StateRegs, ~0, 0, 0);
 }

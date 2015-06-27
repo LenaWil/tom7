@@ -62,10 +62,10 @@ static DECLFR(UNLD2000Read) {
 static void UNLD2000Power(void) {
   prg = prgmode = 0;
   Sync();
-  SetReadHandler(0x6000,0x7FFF,Cart::CartBR);
-  SetWriteHandler(0x6000,0x7FFF,Cart::CartBW);
-  SetReadHandler(0x8000,0xFFFF,UNLD2000Read);
-  SetWriteHandler(0x4020,0x5FFF,UNLD2000Write);
+  fceulib__fceu.SetReadHandler(0x6000,0x7FFF,Cart::CartBR);
+  fceulib__fceu.SetWriteHandler(0x6000,0x7FFF,Cart::CartBW);
+  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,UNLD2000Read);
+  fceulib__fceu.SetWriteHandler(0x4020,0x5FFF,UNLD2000Write);
 }
 
 static void UNLAX5705IRQ(void) {
@@ -88,7 +88,7 @@ void UNLD2000_Init(CartInfo *info) {
   info->Power=UNLD2000Power;
   info->Close=UNLD2000Close;
   fceulib__ppu.GameHBIRQHook=UNLAX5705IRQ;
-  GameStateRestore=StateRestore;
+  fceulib__fceu.GameStateRestore=StateRestore;
 
   WRAMSIZE=8192;
   WRAM=(uint8*)FCEU_gmalloc(WRAMSIZE);

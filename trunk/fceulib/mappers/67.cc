@@ -71,6 +71,6 @@ static void SunIRQHook(int a) {
 }
 
 void Mapper67_init(void) {
-  SetWriteHandler(0x8000,0xffff,Mapper67_write);
+  fceulib__fceu.SetWriteHandler(0x8000,0xffff,Mapper67_write);
   X.MapIRQHook=SunIRQHook;
 }

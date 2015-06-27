@@ -482,8 +482,9 @@ void PPU::ResetRL(uint8 *target) {
 
 void PPU::FCEUPPU_LineUpdate() {
   if (Pline) {
-    const int l = (PAL? ((X.timestamp*48-linestartts)/15) : 
-                        ((X.timestamp*48-linestartts)>>4) );
+    const int l = (fceulib__fceu.PAL ? 
+		   ((X.timestamp*48-linestartts)/15) : 
+		   ((X.timestamp*48-linestartts)>>4) );
     RefreshLine(l);
   }
 }
@@ -848,7 +849,7 @@ void PPU::Fixit1() {
 
 void MMC5_hb(int);     //Ugh ugh ugh.
 void PPU::DoLine() {
-  uint8 *target = XBuf + (scanline << 8);
+  uint8 *target = fceulib__fceu.XBuf + (scanline << 8);
 
   if (MMC5Hack && (ScreenON || SpriteON)) MMC5_hb(scanline);
 
@@ -917,7 +918,7 @@ void PPU::DoLine() {
     GameHBIRQHook2();
   scanline++;
   if (scanline<240) {
-    ResetRL(XBuf+(scanline<<8));
+    ResetRL(fceulib__fceu.XBuf+(scanline<<8));
   }
   X.Run(16);
 }
@@ -1346,30 +1347,30 @@ void PPU::FCEUPPU_Power() {
   FCEUPPU_Reset();
 
   for (int x = 0x2000; x < 0x4000; x += 8) {
-    ARead[x]=A200x;
-    BWrite[x]=B2000;
-    ARead[x+1]=A200x;
-    BWrite[x+1]=B2001;
-    ARead[x+2]=A2002;
-    BWrite[x+2]=B2002;
-    ARead[x+3]=A200x;
-    BWrite[x+3]=B2003;
-    ARead[x+4]=A2004; //A2004;
-    BWrite[x+4]=B2004;
-    ARead[x+5]=A200x;
-    BWrite[x+5]=B2005;
-    ARead[x+6]=A200x;
-    BWrite[x+6]=B2006;
-    ARead[x+7]=A2007;
-    BWrite[x+7]=B2007;
+    fceulib__fceu.ARead[x]=A200x;
+    fceulib__fceu.BWrite[x]=B2000;
+    fceulib__fceu.ARead[x+1]=A200x;
+    fceulib__fceu.BWrite[x+1]=B2001;
+    fceulib__fceu.ARead[x+2]=A2002;
+    fceulib__fceu.BWrite[x+2]=B2002;
+    fceulib__fceu.ARead[x+3]=A200x;
+    fceulib__fceu.BWrite[x+3]=B2003;
+    fceulib__fceu.ARead[x+4]=A2004; //A2004;
+    fceulib__fceu.BWrite[x+4]=B2004;
+    fceulib__fceu.ARead[x+5]=A200x;
+    fceulib__fceu.BWrite[x+5]=B2005;
+    fceulib__fceu.ARead[x+6]=A200x;
+    fceulib__fceu.BWrite[x+6]=B2006;
+    fceulib__fceu.ARead[x+7]=A2007;
+    fceulib__fceu.BWrite[x+7]=B2007;
   }
-  BWrite[0x4014]=B4014;
+  fceulib__fceu.BWrite[0x4014]=B4014;
 }
 
 int PPU::FCEUPPU_Loop(int skip) {
   // Needed for Knight Rider, possibly others.
   if (ppudead) {
-    memset(XBuf, 0x80, 256*240);
+    memset(fceulib__fceu.XBuf, 0x80, 256*240);
     X.Run(scanlines_per_frame*(256+85));
     ppudead--;
   } else {
@@ -1411,7 +1412,7 @@ int PPU::FCEUPPU_Loop(int skip) {
 
     //Clean this stuff up later.
     any_sprites_on_line = numsprites = 0;
-    ResetRL(XBuf);
+    ResetRL(fceulib__fceu.XBuf);
 
     X.Run(16 - cycle_parity);
     cycle_parity ^= 1;

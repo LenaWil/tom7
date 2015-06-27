@@ -48,8 +48,8 @@ static void M120Power(void)
 {
   reg=0;
   Sync();
-  SetReadHandler(0x6000,0xFFFF,Cart::CartBR);
-  SetWriteHandler(0x4100,0x5FFF,M120Write);
+  fceulib__fceu.SetReadHandler(0x6000,0xFFFF,Cart::CartBR);
+  fceulib__fceu.SetWriteHandler(0x4100,0x5FFF,M120Write);
 }
 
 static void StateRestore(int version)
@@ -60,6 +60,6 @@ static void StateRestore(int version)
 void Mapper120_Init(CartInfo *info)
 {
   info->Power=M120Power;
-  GameStateRestore=StateRestore;
+  fceulib__fceu.GameStateRestore=StateRestore;
   AddExState(&StateRegs, ~0, 0, 0);
 }

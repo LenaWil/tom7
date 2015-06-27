@@ -58,8 +58,8 @@ static DECLFW(UNL3DBlockWrite)
 
 static void UNL3DBlockPower(void) {
   Sync();
-  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
-  SetWriteHandler(0x4800,0x4E00,UNL3DBlockWrite);
+  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__fceu.SetWriteHandler(0x4800,0x4E00,UNL3DBlockWrite);
 }
 
 static void UNL3DBlockReset(void)
@@ -103,6 +103,6 @@ void UNL3DBlock_Init(CartInfo *info)
   info->Power=UNL3DBlockPower;
   info->Reset=UNL3DBlockReset;
   X.MapIRQHook=UNL3DBlockIRQHook;
-  GameStateRestore=StateRestore;
+  fceulib__fceu.GameStateRestore=StateRestore;
   AddExState(&StateRegs, ~0, 0, 0);
 }

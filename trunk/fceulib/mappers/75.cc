@@ -42,6 +42,6 @@ switch(A&0xF000)
 
 void Mapper75_init(void)
 {
-SetWriteHandler(0x8000,0xffff,Mapper75_write);
+fceulib__fceu.SetWriteHandler(0x8000,0xffff,Mapper75_write);
 }
 

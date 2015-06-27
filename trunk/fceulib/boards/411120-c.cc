@@ -54,7 +54,7 @@ static void BMC411120CPower(void)
 {
   EXPREGS[0] = 0;
   GenMMC3Power();
-  SetWriteHandler(0x6000,0x7FFF,BMC411120CLoWrite);
+  fceulib__fceu.SetWriteHandler(0x6000,0x7FFF,BMC411120CLoWrite);
 }
 
 void BMC411120C_Init(CartInfo *info)

@@ -47,9 +47,9 @@ static void M99Power(void)
 {
   latch = 0;
   Sync();
-  old4016=GetWriteHandler(0x4016);
-  SetWriteHandler(0x4016,0x4016,M99Write);
-  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  old4016=fceulib__fceu.GetWriteHandler(0x4016);
+  fceulib__fceu.SetWriteHandler(0x4016,0x4016,M99Write);
+  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
 }
 
 static void StateRestore(int version)
@@ -60,6 +60,6 @@ static void StateRestore(int version)
 void Mapper99_Init(CartInfo *info)
 {
   info->Power=M99Power;
-  GameStateRestore=StateRestore;
+  fceulib__fceu.GameStateRestore=StateRestore;
   AddExState(&StateRegs, ~0, 0, 0);
 }

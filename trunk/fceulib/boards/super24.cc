@@ -63,8 +63,8 @@ static void Super24Power(void)
   EXPREGS[1]=159;
   EXPREGS[2]=0;
   GenMMC3Power();
-  SetWriteHandler(0x5000,0x7FFF,Super24Write);
-  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__fceu.SetWriteHandler(0x5000,0x7FFF,Super24Write);
+  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
 }
 
 static void Super24Reset(void)

@@ -259,7 +259,7 @@ static void UNLOneBusCpuHook(int a)
  	  }
 	  else
  	  {
-	    uint8 raw_pcm = ARead[pcm_addr](pcm_addr) >> 1;
+	    uint8 raw_pcm = fceulib__fceu.ARead[pcm_addr](pcm_addr) >> 1;
 	    defapuwrite[0x11](0x4011,raw_pcm);
 		pcm_addr++;
 		pcm_addr&=0x7FFF;
@@ -282,16 +282,16 @@ static void UNLOneBusPower(void)
 
   for(i=0; i<64; i++)
   {
-    defapuread[i] = GetReadHandler(0x4000|i);
-    defapuwrite[i] = GetWriteHandler(0x4000|i);
+    defapuread[i] = fceulib__fceu.GetReadHandler(0x4000|i);
+    defapuwrite[i] = fceulib__fceu.GetWriteHandler(0x4000|i);
   }
-  SetReadHandler(0x4000,0x403f,UNLOneBusReadAPU40XX);
-  SetWriteHandler(0x4000,0x403f,UNLOneBusWriteAPU40XX);
+  fceulib__fceu.SetReadHandler(0x4000,0x403f,UNLOneBusReadAPU40XX);
+  fceulib__fceu.SetWriteHandler(0x4000,0x403f,UNLOneBusWriteAPU40XX);
 
-  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
-  SetWriteHandler(0x2010,0x201f,UNLOneBusWritePPU201X);
-  SetWriteHandler(0x4100,0x410f,UNLOneBusWriteCPU410X);
-  SetWriteHandler(0x8000,0xffff,UNLOneBusWriteMMC3);
+  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__fceu.SetWriteHandler(0x2010,0x201f,UNLOneBusWritePPU201X);
+  fceulib__fceu.SetWriteHandler(0x4100,0x410f,UNLOneBusWriteCPU410X);
+  fceulib__fceu.SetWriteHandler(0x8000,0xffff,UNLOneBusWriteMMC3);
 
   Sync();
 }
@@ -323,6 +323,6 @@ void UNLOneBus_Init(CartInfo *info) {
 
   fceulib__ppu.GameHBIRQHook=UNLOneBusIRQHook;
   X.MapIRQHook=UNLOneBusCpuHook;
-  GameStateRestore=StateRestore;
+  fceulib__fceu.GameStateRestore=StateRestore;
   AddExState(&StateRegs, ~0, 0, 0);
 }

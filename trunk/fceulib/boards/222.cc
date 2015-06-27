@@ -85,8 +85,8 @@ static DECLFW(M222Write)
 
 static void M222Power(void) {
   fceulib__cart.setprg16(0xC000,~0);
-  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
-  SetWriteHandler(0x8000,0xFFFF,M222Write);
+  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__fceu.SetWriteHandler(0x8000,0xFFFF,M222Write);
 }
 
 static void StateRestore(int version) {
@@ -96,6 +96,6 @@ static void StateRestore(int version) {
 void Mapper222_Init(CartInfo *info) {
   info->Power=M222Power;
   fceulib__ppu.GameHBIRQHook=M222IRQ;
-  GameStateRestore=StateRestore;
+  fceulib__fceu.GameStateRestore=StateRestore;
   AddExState(&StateRegs, ~0, 0, 0);
 }

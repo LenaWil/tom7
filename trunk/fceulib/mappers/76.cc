@@ -49,6 +49,6 @@ static DECLFW(Mapper76_write)
 
 void Mapper76_init(void)
 {
-SetWriteHandler(0x8000,0xffff,Mapper76_write);
+fceulib__fceu.SetWriteHandler(0x8000,0xffff,Mapper76_write);
 }
 

@@ -36,8 +36,8 @@ static DECLFW(NovelWrite)
 
 static void NovelReset(void)
 {
-  SetWriteHandler(0x8000,0xFFFF,NovelWrite);
-  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__fceu.SetWriteHandler(0x8000,0xFFFF,NovelWrite);
+  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
   fceulib__cart.setprg32(0x8000,0);
   fceulib__cart.setchr8(0);
 }
@@ -51,5 +51,5 @@ void Novel_Init(CartInfo *info)
 {
   AddExState(&latch, 1, 0,"L1");
   info->Power=NovelReset;
-  GameStateRestore=NovelRestore;
+  fceulib__fceu.GameStateRestore=NovelRestore;
 }

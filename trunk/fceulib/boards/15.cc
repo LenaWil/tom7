@@ -79,10 +79,10 @@ static void M15Power(void)
   latched=0;
   fceulib__cart.setchr8(0);
   fceulib__cart.setprg8r(0x10,0x6000,0);
-  SetReadHandler(0x6000,0x7FFF,Cart::CartBR);
-  SetWriteHandler(0x6000,0x7FFF,Cart::CartBW);
-  SetWriteHandler(0x8000,0xFFFF,M15Write);
-  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__fceu.SetReadHandler(0x6000,0x7FFF,Cart::CartBR);
+  fceulib__fceu.SetWriteHandler(0x6000,0x7FFF,Cart::CartBW);
+  fceulib__fceu.SetWriteHandler(0x8000,0xFFFF,M15Write);
+  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
   Sync();
 }
 
@@ -105,7 +105,7 @@ void Mapper15_Init(CartInfo *info)
   info->Power=M15Power;
   info->Reset=M15Reset;
   info->Close=M15Close;
-  GameStateRestore=StateRestore;
+  fceulib__fceu.GameStateRestore=StateRestore;
   WRAMSIZE=8192;
   WRAM=(uint8*)FCEU_gmalloc(WRAMSIZE);
   fceulib__cart.SetupCartPRGMapping(0x10,WRAM,WRAMSIZE,1);

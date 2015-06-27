@@ -170,15 +170,15 @@ static void M28Power(void) {
   prg_mask_16k = fceulib__cart.PRGsize[0] - 1;
 
   //EXP
-  SetWriteHandler(0x4020,0x5FFF,WriteEXP);
+  fceulib__fceu.SetWriteHandler(0x4020,0x5FFF,WriteEXP);
   
   //PRG
-  SetWriteHandler(0x8000,0xFFFF,WritePRG);
-  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__fceu.SetWriteHandler(0x8000,0xFFFF,WritePRG);
+  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
 	
   //WRAM
-  SetReadHandler(0x6000,0x7FFF,Cart::CartBR);
-  SetWriteHandler(0x6000,0x7FFF,Cart::CartBW);
+  fceulib__fceu.SetReadHandler(0x6000,0x7FFF,Cart::CartBR);
+  fceulib__fceu.SetWriteHandler(0x6000,0x7FFF,Cart::CartBW);
 
   M28Reset();
 }
@@ -207,6 +207,6 @@ void Mapper28_Init(CartInfo* info)
 	info->Power=M28Power;
 	info->Reset=M28Reset;
 	info->Close=M28Close;
-	GameStateRestore=StateRestore;
+	fceulib__fceu.GameStateRestore=StateRestore;
 	AddExState(&StateRegs, ~0, 0, 0);
 }

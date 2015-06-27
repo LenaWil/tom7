@@ -77,10 +77,10 @@ static void M187Power(void)
 {
   EXPREGS[0]=EXPREGS[1]=0;
   GenMMC3Power();
-  SetReadHandler(0x5000,0x5FFF,M187Read);
-  SetWriteHandler(0x5000,0x6FFF,M187WriteLo);
-  SetWriteHandler(0x8000,0x8000,M187Write8000);
-  SetWriteHandler(0x8001,0x8001,M187Write8001);
+  fceulib__fceu.SetReadHandler(0x5000,0x5FFF,M187Read);
+  fceulib__fceu.SetWriteHandler(0x5000,0x6FFF,M187WriteLo);
+  fceulib__fceu.SetWriteHandler(0x8000,0x8000,M187Write8000);
+  fceulib__fceu.SetWriteHandler(0x8001,0x8001,M187Write8001);
 }
 
 void Mapper187_Init(CartInfo *info)

@@ -316,15 +316,15 @@ static void UNLSL12Power(void) {
   mmc1_buffer = 0;
   mmc1_shift = 0;
   Sync();
-  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
-  SetWriteHandler(0x4100,0x7FFF,UNLSL12ModeWrite);
-  SetWriteHandler(0x8000,0xFFFF,UNLSL12Write);
+  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__fceu.SetWriteHandler(0x4100,0x7FFF,UNLSL12ModeWrite);
+  fceulib__fceu.SetWriteHandler(0x8000,0xFFFF,UNLSL12Write);
 }
 
 void UNLSL12_Init(CartInfo *info) {
   info->Power = UNLSL12Power;
   fceulib__ppu.GameHBIRQHook = UNLSL12HBIRQ;
-  GameStateRestore = StateRestore;
+  fceulib__fceu.GameStateRestore = StateRestore;
   AddExState(&StateRegs, ~0, 0, 0);
 }
 

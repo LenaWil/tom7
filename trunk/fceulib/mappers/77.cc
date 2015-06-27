@@ -49,6 +49,6 @@ void Mapper77_init(void)
  ROM_BANK32(0);
  for(x=2;x<8;x++)
   VRAM_BANK1(x*0x400,x);
- SetWriteHandler(0x6000,0xffff,Mapper77_write);
+ fceulib__fceu.SetWriteHandler(0x6000,0xffff,Mapper77_write);
  fceulib__ines.MapStateRestore=Mapper77_StateRestore;
 }

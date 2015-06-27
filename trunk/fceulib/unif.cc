@@ -173,11 +173,11 @@ int Unif::CTRL(FceuFile *fp) {
      better than nothing...maybe.
   */
 
-  if (t&1) GameInfo->input[0]=GameInfo->input[1]=SI_GAMEPAD;
-  else GameInfo->input[0]=GameInfo->input[1]=SI_NONE;
+  if (t&1) fceulib__fceu.GameInfo->input[0]=fceulib__fceu.GameInfo->input[1]=SI_GAMEPAD;
+  else fceulib__fceu.GameInfo->input[0]=fceulib__fceu.GameInfo->input[1]=SI_NONE;
 
-  if (t&2) GameInfo->input[1]=SI_ZAPPER;
-  //else if (t&0x10) GameInfo->input[1]=SI_POWERPAD;
+  if (t&2) fceulib__fceu.GameInfo->input[1]=SI_ZAPPER;
+  //else if (t&0x10) fceulib__fceu.GameInfo->input[1]=SI_POWERPAD;
 
   return 1;
 }
@@ -187,13 +187,15 @@ int Unif::TVCI(FceuFile *fp) {
   if ( (t=FCEU_fgetc(fp)) ==EOF)
     return 0;
   if (t<=2) {
-    char *stuffo[3]={"NTSC","PAL","NTSC and PAL"};
+    static constexpr const char *const stuffo[3] = {
+      "NTSC", "PAL", "NTSC and PAL"
+    };
     if (t==0) {
-      GameInfo->vidsys=GIV_NTSC;
-      FCEUI_SetVidSystem(0);
+      fceulib__fceu.GameInfo->vidsys=GIV_NTSC;
+      fceulib__fceu.FCEUI_SetVidSystem(0);
     } else if (t==1) {
-      GameInfo->vidsys=GIV_PAL;
-      FCEUI_SetVidSystem(1);
+      fceulib__fceu.GameInfo->vidsys=GIV_PAL;
+      fceulib__fceu.FCEUI_SetVidSystem(1);
     }
     FCEU_printf(" TV Standard Compatibility: %s\n",stuffo[t]);
   }
@@ -548,7 +550,7 @@ int Unif::UNIFLoad(const char *name, FceuFile *fp) {
     for (int x=0; x < 16; x++)
       FCEU_printf("%02x",UNIFCart.MD5[x]);
     FCEU_printf("\n");
-    memcpy(&GameInfo->MD5,&UNIFCart.MD5,sizeof(UNIFCart.MD5));
+    memcpy(&fceulib__fceu.GameInfo->MD5,&UNIFCart.MD5,sizeof(UNIFCart.MD5));
   }
 
   if (!InitializeBoard())
@@ -556,7 +558,7 @@ int Unif::UNIFLoad(const char *name, FceuFile *fp) {
 
   fceulib__cart.FCEU_LoadGameSave(&UNIFCart);
 
-  GameInterface = [](GI gi) {
+  fceulib__fceu.GameInterface = [](GI gi) {
     return fceulib__unif.UNIFGI(gi);
   };
   return 1;

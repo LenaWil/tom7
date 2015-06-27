@@ -69,10 +69,10 @@ static void UNLSC127Power(void) {
   Sync();
   fceulib__cart.setprg8r(0x10,0x6000,0);
   fceulib__cart.setprg8(0xE000,~0);
-  SetReadHandler(0x6000,0x7fff,Cart::CartBR);
-  SetWriteHandler(0x6000,0x7fff,Cart::CartBW);
-  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
-  SetWriteHandler(0x8000,0xFFFF,UNLSC127Write);
+  fceulib__fceu.SetReadHandler(0x6000,0x7fff,Cart::CartBR);
+  fceulib__fceu.SetWriteHandler(0x6000,0x7fff,Cart::CartBW);
+  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__fceu.SetWriteHandler(0x8000,0xFFFF,UNLSC127Write);
 }
 
 static void UNLSC127IRQ(void) {
@@ -102,7 +102,7 @@ void UNLSC127_Init(CartInfo *info) {
   info->Power=UNLSC127Power;
   info->Close=UNLSC127Close;
   fceulib__ppu.GameHBIRQHook=UNLSC127IRQ;
-  GameStateRestore=StateRestore;
+  fceulib__fceu.GameStateRestore=StateRestore;
   WRAMSIZE=8192;
   WRAM=(uint8*)FCEU_gmalloc(WRAMSIZE);
   fceulib__cart.SetupCartPRGMapping(0x10,WRAM,WRAMSIZE,1);

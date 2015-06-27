@@ -92,7 +92,7 @@ static void Mapper73IRQHook(int a) {
 
 
 void Mapper73_init(void) {
- SetWriteHandler(0x8000,0xffff,Mapper73_write);
+ fceulib__fceu.SetWriteHandler(0x8000,0xffff,Mapper73_write);
  X.MapIRQHook = Mapper73IRQHook;
  IRQr = IRQm = IRQx = 0;
 }

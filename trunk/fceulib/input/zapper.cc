@@ -65,7 +65,7 @@ static void ZapperFrapper(int w, uint8 *bg, uint8 *spr,
 	  fceulib__palette.palo[a1].g + 
 	  fceulib__palette.palo[a1].b;
 	if (sum>=100*3) {
-	  ZD[w].zaphit=((uint64)linets+(xs+16)*(PAL?15:16))/48+timestampbase; 
+	  ZD[w].zaphit=((uint64)linets+(xs+16)*(fceulib__fceu.PAL?15:16))/48+fceulib__fceu.timestampbase; 
 	  goto endo;
 	}
       }   
@@ -84,7 +84,7 @@ static void ZapperFrapper(int w, uint8 *bg, uint8 *spr,
 static inline int CheckColor(int w) {
   fceulib__ppu.FCEUPPU_LineUpdate();
 
-  if ((ZD[w].zaphit+100)>=(timestampbase+X.timestamp)) {
+  if ((ZD[w].zaphit+100)>=(fceulib__fceu.timestampbase+X.timestamp)) {
     return 0;
   }
 
@@ -171,7 +171,7 @@ static INPUTC ZAPVSC =
 
 INPUTC *FCEU_InitZapper(int w) {
   memset(&ZD[w],0,sizeof(ZAPPER));
-  if (GameInfo->type == GIT_VSUNI)
+  if (fceulib__fceu.GameInfo->type == GIT_VSUNI)
     return(&ZAPVSC);
   else
     return(&ZAPC);

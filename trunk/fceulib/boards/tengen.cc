@@ -147,8 +147,8 @@ static void RAMBO1_init(void) {
   Synco();
   fceulib__ppu.GameHBIRQHook=RAMBO1_hb;
   X.MapIRQHook=RAMBO1_IRQHook;
-  GameStateRestore=RAMBO1_Restore;
-  SetWriteHandler(0x8000,0xffff,RAMBO1_write);
+  fceulib__fceu.GameStateRestore=RAMBO1_Restore;
+  fceulib__fceu.SetWriteHandler(0x8000,0xffff,RAMBO1_write);
   AddExState(Rambo_StateRegs, ~0, 0, 0);
 }
 

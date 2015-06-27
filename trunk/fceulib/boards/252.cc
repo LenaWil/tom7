@@ -75,10 +75,10 @@ static DECLFW(M252Write) {
 
 static void M252Power(void) {
   Sync();
-  SetReadHandler(0x6000, 0x7FFF, Cart::CartBR);
-  SetWriteHandler(0x6000, 0x7FFF, Cart::CartBW);
-  SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
-  SetWriteHandler(0x8000, 0xFFFF, M252Write);
+  fceulib__fceu.SetReadHandler(0x6000, 0x7FFF, Cart::CartBR);
+  fceulib__fceu.SetWriteHandler(0x6000, 0x7FFF, Cart::CartBW);
+  fceulib__fceu.SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
+  fceulib__fceu.SetWriteHandler(0x8000, 0xFFFF, M252Write);
 }
 
 static void M252IRQ(int a) {
@@ -128,6 +128,6 @@ void Mapper252_Init(CartInfo *info) {
     info->SaveGame[0] = WRAM;
     info->SaveGameLen[0] = WRAMSIZE;
   }
-  GameStateRestore = StateRestore;
+  fceulib__fceu.GameStateRestore = StateRestore;
   AddExState(&StateRegs, ~0, 0, 0);
 }

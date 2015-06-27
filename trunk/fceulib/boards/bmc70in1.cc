@@ -101,8 +101,8 @@ static void BMC70in1Power(void)
   bank_mode=0;
   large_bank=0;
   Sync();
-  SetReadHandler(0x8000,0xFFFF,BMC70in1Read);
-  SetWriteHandler(0x8000,0xffff,BMC70in1Write);
+  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,BMC70in1Read);
+  fceulib__fceu.SetWriteHandler(0x8000,0xffff,BMC70in1Write);
 }
 
 static void StateRestore(int version)
@@ -116,7 +116,7 @@ void BMC70in1_Init(CartInfo *info)
   hw_switch=0xd;
   info->Power=BMC70in1Power;
   info->Reset=BMC70in1Reset;
-  GameStateRestore=StateRestore;
+  fceulib__fceu.GameStateRestore=StateRestore;
   AddExState(&StateRegs, ~0, 0, 0);
 }
 
@@ -126,6 +126,6 @@ void BMC70in1B_Init(CartInfo *info)
   hw_switch=0x6;
   info->Power=BMC70in1Power;
   info->Reset=BMC70in1Reset;
-  GameStateRestore=StateRestore;
+  fceulib__fceu.GameStateRestore=StateRestore;
   AddExState(&StateRegs, ~0, 0, 0);
 }

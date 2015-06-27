@@ -62,10 +62,10 @@ static void M34Power(void) {
 	regs[0] = regs[1] = 0;
 	regs[2] = 1;
 	Sync();
-	SetReadHandler(0x6000, 0x7ffc, Cart::CartBR);
-	SetWriteHandler(0x6000, 0x7ffc, Cart::CartBW);
-	SetReadHandler(0x8000, 0xffff, Cart::CartBR);
-	SetWriteHandler(0x7ffd, 0xffff, M34Write);
+	fceulib__fceu.SetReadHandler(0x6000, 0x7ffc, Cart::CartBR);
+	fceulib__fceu.SetWriteHandler(0x6000, 0x7ffc, Cart::CartBW);
+	fceulib__fceu.SetReadHandler(0x8000, 0xffff, Cart::CartBR);
+	fceulib__fceu.SetWriteHandler(0x7ffd, 0xffff, M34Write);
 }
 
 static void M34Close(void) {
@@ -81,7 +81,7 @@ static void StateRestore(int version) {
 void Mapper34_Init(CartInfo *info) {
   info->Power = M34Power;
   info->Close = M34Close;
-  GameStateRestore = StateRestore;
+  fceulib__fceu.GameStateRestore = StateRestore;
 
   WRAMSIZE = 8192;
   WRAM = (uint8*)FCEU_gmalloc(WRAMSIZE);

@@ -54,9 +54,9 @@ static void M193Power(void)
 {
   bank=0;
   Sync();
-  SetWriteHandler(0x6000,0x6003,M193Write);
-  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
-  SetWriteHandler(0x8000,0xFFFF,Cart::CartBW);
+  fceulib__fceu.SetWriteHandler(0x6000,0x6003,M193Write);
+  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__fceu.SetWriteHandler(0x8000,0xFFFF,Cart::CartBW);
 }
 
 static void M193Reset(void)
@@ -72,6 +72,6 @@ void Mapper193_Init(CartInfo *info)
 {
   info->Reset=M193Reset;
   info->Power=M193Power;
-  GameStateRestore=StateRestore;
+  fceulib__fceu.GameStateRestore=StateRestore;
   AddExState(&StateRegs, ~0, 0, 0);
 }

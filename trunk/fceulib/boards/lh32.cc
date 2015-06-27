@@ -52,9 +52,9 @@ static DECLFW(LH32Write)
 static void LH32Power(void)
 {
   Sync();
-  SetReadHandler(0x6000,0xFFFF,Cart::CartBR);
-  SetWriteHandler(0xC000,0xDFFF,Cart::CartBW);
-  SetWriteHandler(0x6000,0x6000,LH32Write);
+  fceulib__fceu.SetReadHandler(0x6000,0xFFFF,Cart::CartBR);
+  fceulib__fceu.SetWriteHandler(0xC000,0xDFFF,Cart::CartBW);
+  fceulib__fceu.SetWriteHandler(0x6000,0x6000,LH32Write);
 }
 
 static void LH32Close(void)
@@ -79,6 +79,6 @@ void LH32_Init(CartInfo *info)
   fceulib__cart.SetupCartPRGMapping(0x10,WRAM,WRAMSIZE,1);
   AddExState(WRAM, WRAMSIZE, 0, "WRAM");
 
-  GameStateRestore=StateRestore;
+  fceulib__fceu.GameStateRestore=StateRestore;
   AddExState(&StateRegs, ~0, 0, 0);
 }

@@ -54,8 +54,8 @@ static DECLFW(BMCT262Write)
 static void BMCT262Power(void)
 {
   fceulib__cart.setchr8(0);
-  SetWriteHandler(0x8000,0xFFFF,BMCT262Write);
-  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__fceu.SetWriteHandler(0x8000,0xFFFF,BMCT262Write);
+  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
   busy=0;
   addrreg=0;
   datareg=0xff;
@@ -79,6 +79,6 @@ void BMCT262_Init(CartInfo *info)
 {
   info->Power=BMCT262Power;
   info->Reset=BMCT262Reset;
-  GameStateRestore=BMCT262Restore;
+  fceulib__fceu.GameStateRestore=BMCT262Restore;
   AddExState(&StateRegs, ~0, 0, 0);
 }

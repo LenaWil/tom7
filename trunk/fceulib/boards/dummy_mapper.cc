@@ -45,10 +45,10 @@ static DECLFW(MNNNWrite) {
 }
 
 static void MNNNPower(void) {
-//	SetReadHandler(0x6000,0x7fff,CartBR);
-//	SetWriteHandler(0x6000,0x7fff,CartBW);
-  SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
-  SetWriteHandler(0x8000, 0xFFFF, MNNNWrite);
+//	fceulib__fceu.SetReadHandler(0x6000,0x7fff,CartBR);
+//	fceulib__fceu.SetWriteHandler(0x6000,0x7fff,CartBW);
+  fceulib__fceu.SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
+  fceulib__fceu.SetWriteHandler(0x8000, 0xFFFF, MNNNWrite);
 }
 
 static void MNNNReset(void) {
@@ -78,7 +78,7 @@ void MapperNNN_Init(CartInfo *info) {
   info->Power = MNNNPower;
   //	info->Close = MNNNClose;
   fceulib__ppu.GameHBIRQHook = MNNNIRQHook;
-  GameStateRestore = StateRestore;
+  fceulib__fceu.GameStateRestore = StateRestore;
   /*
     CHRRAMSIZE = 8192;
     CHRRAM = (uint8*)FCEU_gmalloc(CHRRAMSIZE);

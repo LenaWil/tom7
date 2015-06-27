@@ -51,8 +51,8 @@ static void SA9602BPower(void)
 {
   EXPREGS[0]=EXPREGS[1]=0;
   GenMMC3Power();
-  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
-  SetWriteHandler(0x8000,0xBFFF,SA9602BWrite);
+  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__fceu.SetWriteHandler(0x8000,0xBFFF,SA9602BWrite);
 }
 
 void SA9602B_Init(CartInfo *info)

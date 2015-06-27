@@ -74,9 +74,9 @@ static void UNLSMB2JIRQHook(int a)
 static void UNLKS7032Power(void)
 {
   Sync();
-  SetReadHandler(0x6000,0x7FFF,Cart::CartBR);
-  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
-  SetWriteHandler(0x4020,0xFFFF,UNLKS7032Write);
+  fceulib__fceu.SetReadHandler(0x6000,0x7FFF,Cart::CartBR);
+  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__fceu.SetWriteHandler(0x4020,0xFFFF,UNLKS7032Write);
 }
 
 static void StateRestore(int version)
@@ -88,6 +88,6 @@ void UNLKS7032_Init(CartInfo *info)
 {
   info->Power=UNLKS7032Power;
   X.MapIRQHook=UNLSMB2JIRQHook;
-  GameStateRestore=StateRestore;
+  fceulib__fceu.GameStateRestore=StateRestore;
   AddExState(&StateRegs, ~0, 0, 0);
 }

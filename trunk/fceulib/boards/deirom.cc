@@ -68,14 +68,14 @@ static void DEIPower(void)
   cmd=0;
   memset(DRegs,0,8);
   Sync();
-  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
-  SetWriteHandler(0x8000,0xFFFF,DEIWrite);
+  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__fceu.SetWriteHandler(0x8000,0xFFFF,DEIWrite);
 }
 
 
 void DEIROM_Init(CartInfo *info)
 {
   info->Power=DEIPower;
-  GameStateRestore=StateRestore;
+  fceulib__fceu.GameStateRestore=StateRestore;
   AddExState(&DEI_StateRegs, ~0, 0, 0);
 }

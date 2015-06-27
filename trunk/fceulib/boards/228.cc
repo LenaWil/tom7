@@ -66,10 +66,10 @@ static void M228Reset(void) {
 
 static void M228Power(void) {
   M228Reset();
-  SetReadHandler(0x5000,0x5FFF,M228RamRead);
-  SetWriteHandler(0x5000,0x5FFF,M228RamWrite);
-  SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
-  SetWriteHandler(0x8000, 0xFFFF, M228Write);
+  fceulib__fceu.SetReadHandler(0x5000,0x5FFF,M228RamRead);
+  fceulib__fceu.SetWriteHandler(0x5000,0x5FFF,M228RamWrite);
+  fceulib__fceu.SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
+  fceulib__fceu.SetWriteHandler(0x8000, 0xFFFF, M228Write);
 }
 
 static void StateRestore(int version) {
@@ -79,6 +79,6 @@ static void StateRestore(int version) {
 void Mapper228_Init(CartInfo *info) {
 	info->Reset = M228Reset;
 	info->Power = M228Power;
-	GameStateRestore = StateRestore;
+	fceulib__fceu.GameStateRestore = StateRestore;
 	AddExState(&StateRegs, ~0, 0, 0);
 }

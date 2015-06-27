@@ -70,14 +70,14 @@ static void SSSNROMPower(void) {
   regs[7]=0xff;
   Sync();
   memset(WRAM,0x00,WRAMSIZE);
-//  SetWriteHandler(0x0000,0x1FFF,SSSNROMRamWrite);
-  SetReadHandler(0x0800,0x1FFF,Cart::CartBR);
-  SetWriteHandler(0x0800,0x1FFF,Cart::CartBW);
-  SetReadHandler(0x5000,0x5FFF,SSSNROMRead);
-  SetWriteHandler(0x5000,0x5FFF,SSSNROMWrite);
-  SetReadHandler(0x6000,0x7FFF,Cart::CartBR);
-  SetWriteHandler(0x6000,0x7FFF,Cart::CartBW);
-  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+//  fceulib__fceu.SetWriteHandler(0x0000,0x1FFF,SSSNROMRamWrite);
+  fceulib__fceu.SetReadHandler(0x0800,0x1FFF,Cart::CartBR);
+  fceulib__fceu.SetWriteHandler(0x0800,0x1FFF,Cart::CartBW);
+  fceulib__fceu.SetReadHandler(0x5000,0x5FFF,SSSNROMRead);
+  fceulib__fceu.SetWriteHandler(0x5000,0x5FFF,SSSNROMWrite);
+  fceulib__fceu.SetReadHandler(0x6000,0x7FFF,Cart::CartBR);
+  fceulib__fceu.SetWriteHandler(0x6000,0x7FFF,Cart::CartBW);
+  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
 }
 
 static void SSSNROMReset(void) {
@@ -102,7 +102,7 @@ void SSSNROM_Init(CartInfo *info) {
   info->Power=SSSNROMPower;
   info->Close=SSSNROMClose;
   fceulib__ppu.GameHBIRQHook=SSSNROMIRQHook;
-  GameStateRestore=StateRestore;
+  fceulib__fceu.GameStateRestore=StateRestore;
 
   WRAMSIZE=16384;
   WRAM=(uint8*)FCEU_gmalloc(WRAMSIZE);

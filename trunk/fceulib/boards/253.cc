@@ -91,10 +91,10 @@ static DECLFW(M253Write) {
 
 static void M253Power(void) {
   Sync();
-  SetReadHandler(0x6000, 0x7FFF, Cart::CartBR);
-  SetWriteHandler(0x6000, 0x7FFF, Cart::CartBW);
-  SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
-  SetWriteHandler(0x8000, 0xFFFF, M253Write);
+  fceulib__fceu.SetReadHandler(0x6000, 0x7FFF, Cart::CartBR);
+  fceulib__fceu.SetWriteHandler(0x6000, 0x7FFF, Cart::CartBW);
+  fceulib__fceu.SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
+  fceulib__fceu.SetWriteHandler(0x8000, 0xFFFF, M253Write);
 }
 
 static void M253Close(void) {
@@ -130,7 +130,7 @@ void Mapper253_Init(CartInfo *info) {
   info->Power = M253Power;
   info->Close = M253Close;
   X.MapIRQHook = M253IRQ;
-  GameStateRestore = StateRestore;
+  fceulib__fceu.GameStateRestore = StateRestore;
 
   CHRRAMSIZE = 2048;
   CHRRAM = (uint8*)FCEU_gmalloc(CHRRAMSIZE);

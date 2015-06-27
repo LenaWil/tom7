@@ -109,7 +109,7 @@ static void StateRestore(int version)
 static void UNLSL1632Power(void)
 {
   GenMMC3Power();
-  SetWriteHandler(0x4100,0xFFFF,UNLSL1632CMDWrite);
+  fceulib__fceu.SetWriteHandler(0x4100,0xFFFF,UNLSL1632CMDWrite);
 }
 
 void UNLSL1632_Init(CartInfo *info)
@@ -117,6 +117,6 @@ void UNLSL1632_Init(CartInfo *info)
   GenMMC3_Init(info, 256, 512, 0, 0);
   cwrap=UNLSL1632CW;
   info->Power=UNLSL1632Power;
-  GameStateRestore=StateRestore;
+  fceulib__fceu.GameStateRestore=StateRestore;
   AddExState(&StateRegs, ~0, 0, 0);
 }

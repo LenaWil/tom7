@@ -22,9 +22,20 @@ static constexpr int newppu = 0;
 #define DECLFW_FORWARD A, V
 #define DECLFW_ARGS uint32 A, uint8 V
 
-// struct FCEU {
+enum GI {
+  GI_RESETM2 = 1,
+  GI_POWER = 2,
+  GI_CLOSE = 3,
+  GI_RESETSAVE = 4,
+};
 
-  void FCEU_MemoryRand(uint8 *ptr, uint32 size);
+enum EFCEUI {
+  FCEUI_RESET, FCEUI_POWER, 
+  FCEUI_EJECT_DISK, FCEUI_SWITCH_DISK
+};
+
+struct FCEU {
+
   void SetReadHandler(int32 start, int32 end, readfunc func);
 
   void SetWriteHandler(int32 start, int32 end, writefunc func);
@@ -52,66 +63,66 @@ static constexpr int newppu = 0;
   void FCEUI_SetVidSystem(int a);
 
   //name=path and file to load.  returns null if it failed
-  // These are exactly the same; make just one. -tom7
   FCEUGI *FCEUI_LoadGame(const char *name, int OverwriteVidMode);
-  FCEUGI *FCEUI_LoadGameVirtual(const char *name, int OverwriteVidMode);
 
-  extern uint64 timestampbase;
+  // Used by some boards to do delayed memory writes, etc.
+  uint64 timestampbase = 0ULL;
 
   #define GAME_MEM_BLOCK_SIZE 131072
 
   // Basic RAM of the system. RAM has size 0x800.
-  // GameMemBlock has the size above, though most games don't use
-  // all of it.
-  extern uint8 *RAM;
-  extern uint8 *GameMemBlock;
+  // GameMemBlock has size GAME_MEM_BLOCK_SIZE, though most games
+  // don't use all of it.
+  uint8 *RAM = nullptr;
+  uint8 *GameMemBlock = nullptr;
 
   // Current frame buffer. 256x256
-  extern uint8 *XBuf;
-  extern uint8 *XBackBuf;
+  uint8 *XBuf = nullptr;
+  uint8 *XBackBuf = nullptr;
 
   // TODO(tom7): Move these to the modules where they're defined.
   // Hooks for reading and writing from memory locations. Each one
   // is a function pointer.
-  extern readfunc ARead[0x10000];
-  extern writefunc BWrite[0x10000];
+  readfunc ARead[0x10000];
+  writefunc BWrite[0x10000];
 
-  enum GI {
-    GI_RESETM2 = 1,
-    GI_POWER = 2,
-    GI_CLOSE = 3,
-    GI_RESETSAVE = 4,
-  };
+  void (*GameInterface)(GI h);
+  void (*GameStateRestore)(int version);
 
-  extern void (*GameInterface)(GI h);
-  extern void (*GameStateRestore)(int version);
-
-  extern FCEUGI *GameInfo;
-
-  extern uint8 PAL;
+  FCEUGI *GameInfo = nullptr;
 
   // XXX This used to be part of the FSettings object, which have
   // all become constant, but this one is modified when loading
   // certain carts, so probably can't be a compile-time constant.
   // It's not used in many places, though. Looks like it could be
   // interpreted as "default_pal".
-  extern int fsettings_pal;
-
-  void FCEU_PrintError(char *format, ...);
-  void FCEU_printf(char *format, ...);
+  // TODO: Reconcile with PAL variable.
+  int fsettings_pal = 0;
+  uint8 PAL = 0;
 
   void SetNESDeemph(uint8 d, int force);
 
   // checks whether an EFCEUI is valid right now
-  enum EFCEUI {
-    FCEUI_RESET, FCEUI_POWER, 
-    FCEUI_EJECT_DISK, FCEUI_SWITCH_DISK
-  };
   bool FCEU_IsValidUI(EFCEUI ui);
 
-// private:
-// };
+private:
+  readfunc *AReadG = nullptr;
+  writefunc *BWriteG = nullptr;
 
+
+  void AllocBuffers();
+  void FreeBuffers();
+  void ResetGameLoaded();
+};
+
+extern FCEU fceulib__fceu;
+
+// Stateless stuff that should probably be in its own header..
+void FCEU_PrintError(char *format, ...);
+void FCEU_printf(char *format, ...);
+// Note: This is not random at all; it initializes in the
+// same stripes of 0xFF and 0x00 every time.
+void FCEU_MemoryRand(uint8 *ptr, uint32 size);
 
 #define JOY_A   1
 #define JOY_B   2

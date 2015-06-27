@@ -77,10 +77,10 @@ static DECLFR(UNL22211ReadLo) {
 
 static void UNL22211Power(void) {
   Sync();
-  SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
-  SetReadHandler(0x4100, 0x4100, UNL22211ReadLo);
-  SetWriteHandler(0x4100, 0x4103, UNL22211WriteLo);
-  SetWriteHandler(0x8000, 0xFFFF, UNL22211WriteHi);
+  fceulib__fceu.SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
+  fceulib__fceu.SetReadHandler(0x4100, 0x4100, UNL22211ReadLo);
+  fceulib__fceu.SetWriteHandler(0x4100, 0x4103, UNL22211WriteLo);
+  fceulib__fceu.SetWriteHandler(0x8000, 0xFFFF, UNL22211WriteHi);
 }
 
 static void StateRestore(int version) {
@@ -91,7 +91,7 @@ void UNL22211_Init(CartInfo *info) {
 	is172 = 0;
 	is173 = 0;
 	info->Power = UNL22211Power;
-	GameStateRestore = StateRestore;
+	fceulib__fceu.GameStateRestore = StateRestore;
 	AddExState(&StateRegs, ~0, 0, 0);
 }
 
@@ -99,7 +99,7 @@ void Mapper172_Init(CartInfo *info) {
 	is172 = 1;
 	is173 = 0;
 	info->Power = UNL22211Power;
-	GameStateRestore = StateRestore;
+	fceulib__fceu.GameStateRestore = StateRestore;
 	AddExState(&StateRegs, ~0, 0, 0);
 }
 
@@ -107,7 +107,7 @@ void Mapper173_Init(CartInfo *info) {
 	is172 = 0;
 	is173 = 1;
 	info->Power = UNL22211Power;
-	GameStateRestore = StateRestore;
+	fceulib__fceu.GameStateRestore = StateRestore;
 	AddExState(&StateRegs, ~0, 0, 0);
 }
 

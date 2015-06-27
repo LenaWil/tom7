@@ -85,13 +85,13 @@ static void M103Power(void)
 {
   reg0=reg1=0; reg2=0;
   Sync();
-  SetReadHandler(0x6000,0x7FFF,Cart::CartBR);
-  SetWriteHandler(0x6000,0x7FFF,M103RamWrite0);
-  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
-  SetWriteHandler(0xB800,0xD7FF,M103RamWrite1);
-  SetWriteHandler(0x8000,0x8FFF,M103Write0);
-  SetWriteHandler(0xE000,0xEFFF,M103Write1);
-  SetWriteHandler(0xF000,0xFFFF,M103Write2);
+  fceulib__fceu.SetReadHandler(0x6000,0x7FFF,Cart::CartBR);
+  fceulib__fceu.SetWriteHandler(0x6000,0x7FFF,M103RamWrite0);
+  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__fceu.SetWriteHandler(0xB800,0xD7FF,M103RamWrite1);
+  fceulib__fceu.SetWriteHandler(0x8000,0x8FFF,M103Write0);
+  fceulib__fceu.SetWriteHandler(0xE000,0xEFFF,M103Write1);
+  fceulib__fceu.SetWriteHandler(0xF000,0xFFFF,M103Write2);
 }
 
 static void M103Close(void)
@@ -110,7 +110,7 @@ void Mapper103_Init(CartInfo *info)
 {
   info->Power=M103Power;
   info->Close=M103Close;
-  GameStateRestore=StateRestore;
+  fceulib__fceu.GameStateRestore=StateRestore;
 
   WRAMSIZE=16384;
   WRAM=(uint8*)FCEU_gmalloc(WRAMSIZE);

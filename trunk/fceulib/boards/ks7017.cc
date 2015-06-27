@@ -100,11 +100,11 @@ static void UNLKS7017Power(void) {
   Sync();
   fceulib__cart.setchr8(0);
   fceulib__cart.setprg8r(0x10,0x6000,0);
-  SetReadHandler(0x6000,0x7FFF,Cart::CartBR);
-  SetWriteHandler(0x6000,0x7FFF,Cart::CartBW);
-  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
-  SetReadHandler(0x4030,0x4030,FDSRead4030);
-  SetWriteHandler(0x4020,0x5FFF,UNLKS7017Write);
+  fceulib__fceu.SetReadHandler(0x6000,0x7FFF,Cart::CartBR);
+  fceulib__fceu.SetWriteHandler(0x6000,0x7FFF,Cart::CartBW);
+  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__fceu.SetReadHandler(0x4030,0x4030,FDSRead4030);
+  fceulib__fceu.SetWriteHandler(0x4020,0x5FFF,UNLKS7017Write);
 }
 
 static void UNLKS7017Close(void)
@@ -129,6 +129,6 @@ void UNLKS7017_Init(CartInfo *info) {
   fceulib__cart.SetupCartPRGMapping(0x10,WRAM,WRAMSIZE,1);
   AddExState(WRAM, WRAMSIZE, 0, "WRAM");
 
-  GameStateRestore=StateRestore;
+  fceulib__fceu.GameStateRestore=StateRestore;
   AddExState(&StateRegs, ~0, 0, 0);
 }

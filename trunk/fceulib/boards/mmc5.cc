@@ -747,12 +747,12 @@ void NSFMMC5_Init(void) {
   mul[0]=mul[1]=0;
   ExRAM=(uint8*)FCEU_gmalloc(1024);
   Mapper5_ESI();
-  SetWriteHandler(0x5c00,0x5fef,MMC5_ExRAMWr);
-  SetReadHandler(0x5c00,0x5fef,MMC5_ExRAMRd);
+  fceulib__fceu.SetWriteHandler(0x5c00,0x5fef,MMC5_ExRAMWr);
+  fceulib__fceu.SetReadHandler(0x5c00,0x5fef,MMC5_ExRAMRd);
   fceulib__ppu.MMC5HackCHRMode=2;
-  SetWriteHandler(0x5000,0x5015,Mapper5_SW);
-  SetWriteHandler(0x5205,0x5206,Mapper5_write);
-  SetReadHandler(0x5205,0x5206,MMC5_read);
+  fceulib__fceu.SetWriteHandler(0x5000,0x5015,Mapper5_SW);
+  fceulib__fceu.SetWriteHandler(0x5205,0x5206,Mapper5_write);
+  fceulib__fceu.SetReadHandler(0x5205,0x5206,MMC5_read);
 }
 
 void NSFMMC5_Close(void) {
@@ -773,18 +773,18 @@ static void GenMMC5Reset(void) {
 
   MMC5Synco();
 
-  SetWriteHandler(0x4020,0x5bff,Mapper5_write);
-  SetReadHandler(0x4020,0x5bff,MMC5_read);
+  fceulib__fceu.SetWriteHandler(0x4020,0x5bff,Mapper5_write);
+  fceulib__fceu.SetReadHandler(0x4020,0x5bff,MMC5_read);
 
-  SetWriteHandler(0x5c00,0x5fff,MMC5_ExRAMWr);
-  SetReadHandler(0x5c00,0x5fff,MMC5_ExRAMRd);
+  fceulib__fceu.SetWriteHandler(0x5c00,0x5fff,MMC5_ExRAMWr);
+  fceulib__fceu.SetReadHandler(0x5c00,0x5fff,MMC5_ExRAMRd);
 
-  SetWriteHandler(0x6000,0xFFFF,MMC5_WriteROMRAM);
-  SetReadHandler(0x6000,0xFFFF,MMC5_ReadROMRAM);
+  fceulib__fceu.SetWriteHandler(0x6000,0xFFFF,MMC5_WriteROMRAM);
+  fceulib__fceu.SetReadHandler(0x6000,0xFFFF,MMC5_ReadROMRAM);
 
-  SetWriteHandler(0x5000,0x5015,Mapper5_SW);
-  SetWriteHandler(0x5205,0x5206,Mapper5_write);
-  SetReadHandler(0x5205,0x5206,MMC5_read);
+  fceulib__fceu.SetWriteHandler(0x5000,0x5015,Mapper5_SW);
+  fceulib__fceu.SetWriteHandler(0x5205,0x5206,Mapper5_write);
+  fceulib__fceu.SetReadHandler(0x5205,0x5206,MMC5_read);
 
   //GameHBIRQHook=MMC5_hb;
   // FCEU_CheatAddRAM(8,0x6000,WRAM);
@@ -843,7 +843,7 @@ static void GenMMC5_Init(CartInfo *info, int wsize, int battery) {
 
   MMC5WRAMsize=wsize/8;
   BuildWRAMSizeTable();
-  GameStateRestore=MMC5_StateRestore;
+  fceulib__fceu.GameStateRestore=MMC5_StateRestore;
   info->Power=GenMMC5Reset;
 
   if (battery) {

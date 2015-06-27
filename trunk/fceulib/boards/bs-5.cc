@@ -69,8 +69,8 @@ static void MBS5Power(void)
   dip_switch=0;
   reg_prg[0]=reg_prg[1]=reg_prg[2]=reg_prg[3]=~0;
   Sync();
-  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
-  SetWriteHandler(0x8000,0xFFFF,MBS5Write);
+  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__fceu.SetWriteHandler(0x8000,0xFFFF,MBS5Write);
 }
 
 static void StateRestore(int version)
@@ -82,6 +82,6 @@ void BMCBS5_Init(CartInfo *info)
 {
   info->Power=MBS5Power;
   info->Reset=MBS5Reset;
-  GameStateRestore=StateRestore;
+  fceulib__fceu.GameStateRestore=StateRestore;
   AddExState(&StateRegs, ~0, 0, 0);
 }

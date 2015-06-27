@@ -83,7 +83,7 @@ static void Restore(int version)
 void Mapper80_init(void) {
   // 7f00-7fff battery backed ram inside mapper chip,
   // controlled by 7ef8 register, A8 - enable, FF - disable (?)
-  SetWriteHandler(0x4020,0x7eff,Mapper80_write);
+  fceulib__fceu.SetWriteHandler(0x4020,0x7eff,Mapper80_write);
   fceulib__ines.MapStateRestore = Restore;
   isfu=0;
 }

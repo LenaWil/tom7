@@ -63,8 +63,8 @@ static void M230Reset(void) {
 static void M230Power(void) {
 	latche = reset = 0;
 	Sync();
-	SetWriteHandler(0x8000, 0xFFFF, M230Write);
-	SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
+	fceulib__fceu.SetWriteHandler(0x8000, 0xFFFF, M230Write);
+	fceulib__fceu.SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
 }
 
 static void StateRestore(int version) {
@@ -75,5 +75,5 @@ void Mapper230_Init(CartInfo *info) {
 	info->Power = M230Power;
 	info->Reset = M230Reset;
 	AddExState(&StateRegs, ~0, 0, 0);
-	GameStateRestore = StateRestore;
+	fceulib__fceu.GameStateRestore = StateRestore;
 }

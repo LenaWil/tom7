@@ -61,8 +61,8 @@ static void MSHPower(void)
 {
   tekker=0x00;
   GenMMC3Power();
-  SetWriteHandler(0x4100,0x4100,MSHWrite);
-  SetReadHandler(0x4100,0x4100,MSHRead);
+  fceulib__fceu.SetWriteHandler(0x4100,0x4100,MSHWrite);
+  fceulib__fceu.SetReadHandler(0x4100,0x4100,MSHRead);
 }
 
 static void MSHClose(void)

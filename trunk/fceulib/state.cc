@@ -65,7 +65,7 @@ static constexpr SFORMAT SFCPU[] = {
   { &X.reg_X, 1, "X\0\0" },
   { &X.reg_Y, 1, "Y\0\0" },
   { &X.reg_S, 1, "S\0\0" },
-  { &RAM, 0x800 | FCEUSTATE_INDIRECT, "RAM" },
+  { &fceulib__fceu.RAM, 0x800 | FCEUSTATE_INDIRECT, "RAM" },
   { 0 }
 };
 
@@ -74,7 +74,8 @@ static constexpr SFORMAT SFCPUC[] = {
   { &X.IRQlow, 4|RLSB, "IQLB" },
   { &X.tcount, 4|RLSB, "ICoa" },
   { &X.count,  4|RLSB, "ICou" },
-  { &timestampbase, sizeof(timestampbase) | RLSB, "TSBS" },
+  { &fceulib__fceu.timestampbase, 
+    sizeof (fceulib__fceu.timestampbase) | RLSB, "TSBS" },
   // alternative to the "quick and dirty hack"
   { &X.reg_PI, 1, "MooP" },
   // This was not included in FCEUltra, but I can't see any
@@ -245,8 +246,7 @@ static bool ReadStateChunks(EMUFILE* is, int32 totalsize) {
     case 8:
       // load back buffer
       {
-	extern uint8 *XBackBuf;
-	if (is->fread((char*)XBackBuf,size) != size)
+	if (is->fread((char*)fceulib__fceu.XBackBuf,size) != size)
 	  ret = false;
       }
       break;
@@ -323,8 +323,8 @@ bool FCEUSS_LoadRAW(std::vector<uint8> *in) {
 
   bool success = (ReadStateChunks(&is, totalsize) != 0);
 
-  if (GameStateRestore) {
-    GameStateRestore(stateversion);
+  if (fceulib__fceu.GameStateRestore != nullptr) {
+    fceulib__fceu.GameStateRestore(stateversion);
   }
 
   if (success) {

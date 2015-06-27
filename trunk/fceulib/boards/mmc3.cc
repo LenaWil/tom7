@@ -252,20 +252,20 @@ void GenMMC3Power()
 {
   if (fceulib__unif.UNIFchrrama) fceulib__cart.setchr8(0);
 
-  SetWriteHandler(0x8000,0xBFFF,MMC3_CMDWrite);
-  SetWriteHandler(0xC000,0xFFFF,MMC3_IRQWrite);
-  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__fceu.SetWriteHandler(0x8000,0xBFFF,MMC3_CMDWrite);
+  fceulib__fceu.SetWriteHandler(0xC000,0xFFFF,MMC3_IRQWrite);
+  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
   A001B=A000B=0;
   fceulib__cart.setmirror(1);
   if (mmc3opts&1) {
     if (wrams==1024) {
       // FCEU_CheatAddRAM(1,0x7000,MMC3_WRAM);
-      SetReadHandler(0x7000,0x7FFF,MAWRAMMMC6);
-      SetWriteHandler(0x7000,0x7FFF,MBWRAMMMC6);
+      fceulib__fceu.SetReadHandler(0x7000,0x7FFF,MAWRAMMMC6);
+      fceulib__fceu.SetWriteHandler(0x7000,0x7FFF,MBWRAMMMC6);
     } else {
       // FCEU_CheatAddRAM((wrams&0x1fff)>>10,0x6000,MMC3_WRAM);
-      SetWriteHandler(0x6000,0x6000 + ((wrams - 1) & 0x1fff),Cart::CartBW);
-      SetReadHandler(0x6000,0x6000 + ((wrams - 1) & 0x1fff),Cart::CartBR);
+      fceulib__fceu.SetWriteHandler(0x6000,0x6000 + ((wrams - 1) & 0x1fff),Cart::CartBW);
+      fceulib__fceu.SetReadHandler(0x6000,0x6000 + ((wrams - 1) & 0x1fff),Cart::CartBR);
       fceulib__cart.setprg8r(0x10,0x6000,0);
     }
     if (!(mmc3opts&2))
@@ -335,7 +335,7 @@ void GenMMC3_Init(CartInfo *info, int prg, int chr, int wram, int battery) {
   } else {
     fceulib__ppu.GameHBIRQHook = MMC3_hb;
   }
-  GameStateRestore = GenMMC3Restore;
+  fceulib__fceu.GameStateRestore = GenMMC3Restore;
  
   TRACEF("MMC3_WRAM is %d...", wrams);
   TRACEA(MMC3_WRAM, wrams);
@@ -387,7 +387,7 @@ static void M12Power()
 {
  EXPREGS[0]=EXPREGS[1]=0;
  GenMMC3Power();
- SetWriteHandler(0x4100,0x5FFF,M12Write);
+ fceulib__fceu.SetWriteHandler(0x4100,0x5FFF,M12Write);
 }
 
 void Mapper12_Init(CartInfo *info)
@@ -437,7 +437,7 @@ static void M37Power()
 {
   EXPREGS[0]=0;
   GenMMC3Power();
-  SetWriteHandler(0x6000,0x7FFF,M37Write);
+  fceulib__fceu.SetWriteHandler(0x6000,0x7FFF,M37Write);
 }
 
 void Mapper37_Init(CartInfo *info)
@@ -485,7 +485,7 @@ static void M44Power()
 {
  EXPREGS[0]=0;
  GenMMC3Power();
- SetWriteHandler(0xA000,0xBFFF,M44Write);
+ fceulib__fceu.SetWriteHandler(0xA000,0xBFFF,M44Write);
 }
 
 void Mapper44_Init(CartInfo *info)
@@ -565,8 +565,8 @@ static void M45Power()
  fceulib__cart.setchr8(0);
  GenMMC3Power();
  EXPREGS[0]=EXPREGS[1]=EXPREGS[2]=EXPREGS[3]=EXPREGS[4]=EXPREGS[5]=0;
- SetWriteHandler(0x5000,0x7FFF,M45Write);
- SetReadHandler(0x5000,0x5FFF,M45Read);
+ fceulib__fceu.SetWriteHandler(0x5000,0x7FFF,M45Write);
+ fceulib__fceu.SetReadHandler(0x5000,0x5FFF,M45Read);
 }
 
 void Mapper45_Init(CartInfo *info)
@@ -607,8 +607,8 @@ static void M47Power()
 {
  EXPREGS[0]=0;
  GenMMC3Power();
- SetWriteHandler(0x6000,0x7FFF,M47Write);
-// SetReadHandler(0x6000,0x7FFF,0);
+ fceulib__fceu.SetWriteHandler(0x6000,0x7FFF,M47Write);
+// fceulib__fceu.SetReadHandler(0x6000,0x7FFF,0);
 }
 
 void Mapper47_Init(CartInfo *info)
@@ -662,8 +662,8 @@ static void M49Power()
 {
  M49Reset();
  GenMMC3Power();
- SetWriteHandler(0x6000,0x7FFF,M49Write);
- SetReadHandler(0x6000,0x7FFF,0);
+ fceulib__fceu.SetWriteHandler(0x6000,0x7FFF,M49Write);
+ fceulib__fceu.SetReadHandler(0x6000,0x7FFF,0);
 }
 
 void Mapper49_Init(CartInfo *info)
@@ -715,7 +715,7 @@ static void M52Power()
 {
  M52Reset();
  GenMMC3Power();
- SetWriteHandler(0x6000,0x7FFF,M52Write);
+ fceulib__fceu.SetWriteHandler(0x6000,0x7FFF,M52Write);
 }
 
 void Mapper52_Init(CartInfo *info)
@@ -786,8 +786,8 @@ static DECLFW(M114ExWrite)
 static void M114Power()
 {
   GenMMC3Power();
-  SetWriteHandler(0x8000,0xFFFF,M114Write);
-  SetWriteHandler(0x5000,0x7FFF,M114ExWrite);
+  fceulib__fceu.SetWriteHandler(0x8000,0xFFFF,M114Write);
+  fceulib__fceu.SetWriteHandler(0x5000,0x7FFF,M114ExWrite);
 }
 
 static void M114Reset()
@@ -841,8 +841,8 @@ static DECLFR(M115Read)
 static void M115Power()
 {
  GenMMC3Power();
- SetWriteHandler(0x4100,0x7FFF,M115Write);
- SetReadHandler(0x5000,0x5FFF,M115Read);
+ fceulib__fceu.SetWriteHandler(0x4100,0x7FFF,M115Write);
+ fceulib__fceu.SetReadHandler(0x5000,0x5FFF,M115Read);
 }
 
 void Mapper115_Init(CartInfo *info)
@@ -914,7 +914,7 @@ static void M134Power()
 {
  EXPREGS[0]=0;
  GenMMC3Power();
- SetWriteHandler(0x6001,0x6001,M134Write);
+ fceulib__fceu.SetWriteHandler(0x6001,0x6001,M134Write);
 }
 
 static void M134Reset()
@@ -1074,8 +1074,8 @@ static void M195Power()
 {
  GenMMC3Power();
  fceulib__cart.setprg4r(0x10,0x5000,0);
- SetWriteHandler(0x5000,0x5fff,Cart::CartBW);
- SetReadHandler(0x5000,0x5fff,Cart::CartBR);
+ fceulib__fceu.SetWriteHandler(0x5000,0x5fff,Cart::CartBW);
+ fceulib__fceu.SetReadHandler(0x5000,0x5fff,Cart::CartBR);
 }
 
 static void M195Close()
@@ -1145,8 +1145,8 @@ static void Mapper196Power()
 {
   GenMMC3Power();
   EXPREGS[0] = EXPREGS[1] = 0;
-  SetWriteHandler(0x6000,0x6FFF,Mapper196WriteLo);
-  SetWriteHandler(0x8000,0xFFFF,Mapper196Write);
+  fceulib__fceu.SetWriteHandler(0x6000,0x6FFF,Mapper196WriteLo);
+  fceulib__fceu.SetWriteHandler(0x8000,0xFFFF,Mapper196Write);
 }
 
 void Mapper196_Init(CartInfo *info)
@@ -1232,7 +1232,7 @@ static void M205Reset()
 static void M205Power()
 {
  GenMMC3Power();
- SetWriteHandler(0x6000,0x6fff,M205Write);
+ fceulib__fceu.SetWriteHandler(0x6000,0x6fff,M205Write);
 }
 
 void Mapper205_Init(CartInfo *info)
@@ -1310,7 +1310,7 @@ static void M249Power()
 {
  EXPREGS[0]=0;
  GenMMC3Power();
- SetWriteHandler(0x5000,0x5000,M249Write);
+ fceulib__fceu.SetWriteHandler(0x5000,0x5000,M249Write);
 }
 
 void Mapper249_Init(CartInfo *info)
@@ -1337,8 +1337,8 @@ static DECLFW(M250IRQWrite)
 static void M250_Power()
 {
  GenMMC3Power();
- SetWriteHandler(0x8000,0xBFFF,M250Write);
- SetWriteHandler(0xC000,0xFFFF,M250IRQWrite);
+ fceulib__fceu.SetWriteHandler(0x8000,0xBFFF,M250Write);
+ fceulib__fceu.SetWriteHandler(0xC000,0xFFFF,M250IRQWrite);
 }
 
 void Mapper250_Init(CartInfo *info)
@@ -1370,8 +1370,8 @@ static DECLFW(M254Write)
 static void M254_Power()
 {
  GenMMC3Power();
- SetWriteHandler(0x8000,0xBFFF,M254Write);
- SetReadHandler(0x6000,0x7FFF,MR254WRAM);
+ fceulib__fceu.SetWriteHandler(0x8000,0xBFFF,M254Write);
+ fceulib__fceu.SetReadHandler(0x6000,0x7FFF,MR254WRAM);
 }
 
 void Mapper254_Init(CartInfo *info)

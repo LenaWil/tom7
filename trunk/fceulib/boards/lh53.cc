@@ -83,10 +83,10 @@ static void LH53IRQ(int a)
 static void LH53Power(void)
 {
   Sync();
-  SetReadHandler(0x6000,0xFFFF,Cart::CartBR);
-  SetWriteHandler(0xB800,0xD7FF,LH53RamWrite);
-  SetWriteHandler(0xE000,0xEFFF,LH53IRQaWrite);
-  SetWriteHandler(0xF000,0xFFFF,LH53Write);
+  fceulib__fceu.SetReadHandler(0x6000,0xFFFF,Cart::CartBR);
+  fceulib__fceu.SetWriteHandler(0xB800,0xD7FF,LH53RamWrite);
+  fceulib__fceu.SetWriteHandler(0xE000,0xEFFF,LH53IRQaWrite);
+  fceulib__fceu.SetWriteHandler(0xF000,0xFFFF,LH53Write);
 }
 
 static void LH53Close(void)
@@ -106,7 +106,7 @@ void LH53_Init(CartInfo *info)
   info->Power=LH53Power;
   info->Close=LH53Close;
   X.MapIRQHook=LH53IRQ;
-  GameStateRestore=StateRestore;
+  fceulib__fceu.GameStateRestore=StateRestore;
 
   WRAMSIZE=8192;
   WRAM=(uint8*)FCEU_gmalloc(WRAMSIZE);

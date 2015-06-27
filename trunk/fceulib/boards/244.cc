@@ -62,8 +62,8 @@ static DECLFW(M244Write) {
 static void M244Power(void) {
 	preg = creg = 0;
 	Sync();
-	SetWriteHandler(0x8000, 0xFFFF, M244Write);
-	SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
+	fceulib__fceu.SetWriteHandler(0x8000, 0xFFFF, M244Write);
+	fceulib__fceu.SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
 }
 
 static void StateRestore(int version) {
@@ -73,5 +73,5 @@ static void StateRestore(int version) {
 void Mapper244_Init(CartInfo *info) {
 	info->Power = M244Power;
 	AddExState(&StateRegs, ~0, 0, 0);
-	GameStateRestore = StateRestore;
+	fceulib__fceu.GameStateRestore = StateRestore;
 }

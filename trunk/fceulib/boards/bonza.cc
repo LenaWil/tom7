@@ -112,16 +112,16 @@ static void Power(void)
   prg_reg = 0;
   chr_reg = 0;
   Sync();
-  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
-  SetWriteHandler(0x8000,0xFFFF,M216WriteHi);
-  SetWriteHandler(0x5000,0x5000,M216Write5000);
-  SetReadHandler(0x5000,0x5000,M216Read5000);
+  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__fceu.SetWriteHandler(0x8000,0xFFFF,M216WriteHi);
+  fceulib__fceu.SetWriteHandler(0x5000,0x5000,M216Write5000);
+  fceulib__fceu.SetReadHandler(0x5000,0x5000,M216Read5000);
 }
 
 
 void Mapper216_Init(CartInfo *info)
 {
   info->Power=Power;
-  GameStateRestore=StateRestore;
+  fceulib__fceu.GameStateRestore=StateRestore;
   AddExState(&StateRegs, ~0, 0, 0);
 }

@@ -355,9 +355,9 @@ void Mapper19_ESI(void)
 
 void NSFN106_Init(void)
 {
-  SetWriteHandler(0xf800,0xffff,Mapper19_write);
-  SetWriteHandler(0x4800,0x4fff,Mapper19_write);
-  SetReadHandler(0x4800,0x4fff,Namco_Read4800);
+  fceulib__fceu.SetWriteHandler(0xf800,0xffff,Mapper19_write);
+  fceulib__fceu.SetWriteHandler(0x4800,0x4fff,Mapper19_write);
+  fceulib__fceu.SetReadHandler(0x4800,0x4fff,Namco_Read4800);
   Mapper19_ESI();
 }
 
@@ -366,20 +366,20 @@ static int battery=0;
 static void N106_Power(void)
 {
   int x;
-  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
-  SetWriteHandler(0x8000,0xffff,Mapper19_write);
-  SetWriteHandler(0x4020,0x5fff,Mapper19_write);
+  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__fceu.SetWriteHandler(0x8000,0xffff,Mapper19_write);
+  fceulib__fceu.SetWriteHandler(0x4020,0x5fff,Mapper19_write);
   if (!is210) {
-    SetWriteHandler(0xc000,0xdfff,Mapper19C0D8_write);
-    SetReadHandler(0x4800,0x4fff,Namco_Read4800);
-    SetReadHandler(0x5000,0x57ff,Namco_Read5000);
-    SetReadHandler(0x5800,0x5fff,Namco_Read5800);
+    fceulib__fceu.SetWriteHandler(0xc000,0xdfff,Mapper19C0D8_write);
+    fceulib__fceu.SetReadHandler(0x4800,0x4fff,Namco_Read4800);
+    fceulib__fceu.SetReadHandler(0x5000,0x57ff,Namco_Read5000);
+    fceulib__fceu.SetReadHandler(0x5800,0x5fff,Namco_Read5800);
     NTAPage[0]=NTAPage[1]=NTAPage[2]=NTAPage[3]=0xFF;
     FixNTAR();
   }
 
-  SetReadHandler(0x6000,0x7FFF,AWRAM);
-  SetWriteHandler(0x6000,0x7FFF,BWRAM);
+  fceulib__fceu.SetReadHandler(0x6000,0x7FFF,AWRAM);
+  fceulib__fceu.SetWriteHandler(0x6000,0x7FFF,BWRAM);
   // FCEU_CheatAddRAM(8,0x6000,WRAM);
 
   gorfus=0xFF;
@@ -401,7 +401,7 @@ void Mapper19_Init(CartInfo *info)
   info->Power=N106_Power;
 
   X.MapIRQHook=NamcoIRQHook;
-  GameStateRestore=Mapper19_StateRestore;
+  fceulib__fceu.GameStateRestore=Mapper19_StateRestore;
   fceulib__sound.GameExpSound.RChange=M19SC;
 
   if (FCEUS_SNDRATE)
@@ -428,7 +428,7 @@ static void Mapper210_StateRestore(int version)
 void Mapper210_Init(CartInfo *info)
 {
   is210=1;
-  GameStateRestore=Mapper210_StateRestore;
+  fceulib__fceu.GameStateRestore=Mapper210_StateRestore;
   info->Power=N106_Power;
   AddExState(WRAM, 8192, 0, "WRAM");
   AddExState(N106_StateRegs, ~0, 0, 0);

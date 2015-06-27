@@ -49,10 +49,10 @@ static void M177Power(void)
 {
   reg=0;
   Sync();
-  SetReadHandler(0x6000,0x7fff,Cart::CartBR);
-  SetWriteHandler(0x6000,0x7fff,Cart::CartBW);
-  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
-  SetWriteHandler(0x8000,0xFFFF,M177Write);
+  fceulib__fceu.SetReadHandler(0x6000,0x7fff,Cart::CartBR);
+  fceulib__fceu.SetWriteHandler(0x6000,0x7fff,Cart::CartBW);
+  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__fceu.SetWriteHandler(0x8000,0xFFFF,M177Write);
 }
 
 static void M177Close(void)
@@ -71,7 +71,7 @@ void Mapper177_Init(CartInfo *info)
 {
   info->Power=M177Power;
   info->Close=M177Close;
-  GameStateRestore=StateRestore;
+  fceulib__fceu.GameStateRestore=StateRestore;
 
   WRAMSIZE=8192;
   WRAM=(uint8*)FCEU_gmalloc(WRAMSIZE);

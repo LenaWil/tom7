@@ -198,8 +198,8 @@ static void BMCFK23CPower(void) {
   EXPREGS[0]=EXPREGS[1]=EXPREGS[2]=EXPREGS[3]=0;
   EXPREGS[4]=EXPREGS[5]=EXPREGS[6]=EXPREGS[7]=0xFF;
   GenMMC3Power();
-  SetWriteHandler(0x5000,0x5fff,BMCFK23CWrite);
-  SetWriteHandler(0x8000,0xFFFF,BMCFK23CHiWrite);
+  fceulib__fceu.SetWriteHandler(0x5000,0x5fff,BMCFK23CWrite);
+  fceulib__fceu.SetWriteHandler(0x8000,0xFFFF,BMCFK23CHiWrite);
   FixMMC3PRG(MMC3_cmd);
   FixMMC3CHR(MMC3_cmd);
 }
@@ -209,8 +209,8 @@ static void BMCFK23CAPower(void) {
   dipswitch = 0;
   EXPREGS[0]=EXPREGS[1]=EXPREGS[2]=EXPREGS[3]=0;
   EXPREGS[4]=EXPREGS[5]=EXPREGS[6]=EXPREGS[7]=0xFF;
-  SetWriteHandler(0x5000,0x5fff,BMCFK23CWrite);
-  SetWriteHandler(0x8000,0xFFFF,BMCFK23CHiWrite);
+  fceulib__fceu.SetWriteHandler(0x5000,0x5fff,BMCFK23CWrite);
+  fceulib__fceu.SetWriteHandler(0x8000,0xFFFF,BMCFK23CHiWrite);
   FixMMC3PRG(MMC3_cmd);
   FixMMC3CHR(MMC3_cmd);
 }

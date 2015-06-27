@@ -152,14 +152,14 @@ static DECLFW(M1902007Wrap)
 static void M190Power(void) {
   fceulib__cart.setprg4r(0x10,0x7000,2);
 
-  old2007wrap=GetWriteHandler(0x2007);
-  SetWriteHandler(0x2007,0x2007,M1902007Wrap);
+  old2007wrap=fceulib__fceu.GetWriteHandler(0x2007);
+  fceulib__fceu.SetWriteHandler(0x2007,0x2007,M1902007Wrap);
 
-  SetReadHandler(0x6000,0xFFFF,fceulib__cart.CartBR);
-  SetWriteHandler(0x6000,0x7FFF,fceulib__cart.CartBW);
-  SetWriteHandler(0x8000,0xFFFF,M190Write);
-  SetReadHandler(0xDC00,0xDC00,M190Read);
-  SetReadHandler(0xDD00,0xDD00,M190Read);
+  fceulib__fceu.SetReadHandler(0x6000,0xFFFF,fceulib__cart.CartBR);
+  fceulib__fceu.SetWriteHandler(0x6000,0x7FFF,fceulib__cart.CartBW);
+  fceulib__fceu.SetWriteHandler(0x8000,0xFFFF,M190Write);
+  fceulib__fceu.SetReadHandler(0xDC00,0xDC00,M190Read);
+  fceulib__fceu.SetReadHandler(0xDD00,0xDD00,M190Read);
   Sync();
 }
 
@@ -182,7 +182,7 @@ void Mapper190_Init(CartInfo *info)
 {
   info->Power=M190Power;
   info->Close=M190Close;
-  GameStateRestore=StateRestore;
+  fceulib__fceu.GameStateRestore=StateRestore;
 
   X.MapIRQHook=VRC5IRQ;
   //PPU_hook=Mapper190_PPU;

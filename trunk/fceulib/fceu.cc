@@ -54,35 +54,20 @@
 
 using namespace std;
 
-// Used by some boards to do delayed memory writes, etc.
-uint64 timestampbase = 0ULL;
-FCEUGI *GameInfo = nullptr;
-
-void (*GameInterface)(GI h);
-void (*GameStateRestore)(int version);
-
-readfunc ARead[0x10000];
-writefunc BWrite[0x10000];
-static readfunc *AReadG;
-static writefunc *BWriteG;
+// TODO: Delete.
 static constexpr int RWWrap = 0;
-uint8 *GameMemBlock = nullptr;
-uint8 *RAM = nullptr;
-uint8 *XBuf = nullptr;
-uint8 *XBackBuf = nullptr;
 
 FCEUGI::FCEUGI() { }
 
 FCEUGI::~FCEUGI() { }
 
-void FCEU_CloseGame() {
-  if (GameInfo) {
+void FCEU::FCEU_CloseGame() {
+  if (GameInfo != nullptr) {
     GameInterface(GI_CLOSE);
 
     ResetExState(0,0);
 
     //clear screen when game is closed
-    extern uint8 *XBuf;
     if (XBuf)
       memset(XBuf,0,256*256);
 
@@ -99,21 +84,21 @@ static DECLFR(ANull) {
   return X.DB;
 }
 
-readfunc GetReadHandler(int32 a) {
+readfunc FCEU::GetReadHandler(int32 a) {
   if (a>=0x8000 && RWWrap)
     return AReadG[a-0x8000];
   else
     return ARead[a];
 }
 
-writefunc GetWriteHandler(int32 a) {
+writefunc FCEU::GetWriteHandler(int32 a) {
   if (RWWrap && a >= 0x8000)
     return BWriteG[a - 0x8000];
   else
     return BWrite[a];
 }
 
-void SetWriteHandler(int32 start, int32 end, writefunc func) {
+void FCEU::SetWriteHandler(int32 start, int32 end, writefunc func) {
   if (!func)
     func = BNull;
 
@@ -131,41 +116,37 @@ void SetWriteHandler(int32 start, int32 end, writefunc func) {
   }
 }
 
-static void AllocBuffers() {
+void FCEU::AllocBuffers() {
   GameMemBlock = (uint8*)FCEU_gmalloc(GAME_MEM_BLOCK_SIZE);
   RAM = (uint8*)FCEU_gmalloc(0x800);
   XBuf = (uint8*)FCEU_gmalloc(256 * 256);
   XBackBuf = (uint8*)FCEU_gmalloc(256 * 256);
 }
 
-static void FreeBuffers() {
+void FCEU::FreeBuffers() {
   free(GameMemBlock);
   free(RAM);
   free(XBuf);
   free(XBackBuf);
 }
 
-// TODO tom7: Merge this with fsettings_pal.
-uint8 PAL = 0;
-int fsettings_pal = 0;
-
 static DECLFW(BRAML) {
-  RAM[A]=V;
+  fceulib__fceu.RAM[A]=V;
 }
 
 static DECLFW(BRAMH) {
-  RAM[A&0x7FF]=V;
+  fceulib__fceu.RAM[A&0x7FF]=V;
 }
 
 static DECLFR(ARAML) {
-  return RAM[A];
+  return fceulib__fceu.RAM[A];
 }
 
 static DECLFR(ARAMH) {
-  return RAM[A&0x7FF];
+  return fceulib__fceu.RAM[A&0x7FF];
 }
 
-static void ResetGameLoaded() {
+void FCEU::ResetGameLoaded() {
   if (GameInfo) FCEU_CloseGame();
   GameStateRestore=0;
   fceulib__ppu.PPU_hook=0;
@@ -182,7 +163,7 @@ static void ResetGameLoaded() {
   fceulib__palette.pale = 0;
 }
 
-FCEUGI *FCEUI_LoadGameVirtual(const char *name, int OverwriteVidMode) {
+FCEUGI *FCEU::FCEUI_LoadGame(const char *name, int OverwriteVidMode) {
   //----------
   //attempt to open the files
   FCEU_printf("Loading %s...\n\n",name);
@@ -224,9 +205,9 @@ FCEUGI *FCEUI_LoadGameVirtual(const char *name, int OverwriteVidMode) {
   FCEU_fclose(fp);
 
   delete GameInfo;
-  GameInfo = 0;
+  GameInfo = nullptr;
 
-  return 0;
+  return nullptr;
 
 endlseq:
 
@@ -245,14 +226,12 @@ endlseq:
   return GameInfo;
 }
 
-FCEUGI *FCEUI_LoadGame(const char *name, int OverwriteVidMode) {
-  return FCEUI_LoadGameVirtual(name, OverwriteVidMode);
-}
-
 
 // Return: Flag that indicates whether the function was succesful or not.
-bool FCEUI_Initialize() {
+bool FCEU::FCEUI_Initialize() {
   // XXX I think we shouldn't do anything randomly in fceulib --tom7.
+  // (There don't appear to be any calls to rand(), but I checked during
+  // the FCEU objectification and don't want to mess with it now)
   srand(time(0));
 
   AllocBuffers();
@@ -262,7 +241,7 @@ bool FCEUI_Initialize() {
   return true;
 }
 
-void FCEUI_Kill() {
+void FCEU::FCEUI_Kill() {
   FreeBuffers();
 }
 
@@ -270,8 +249,9 @@ void FCEUI_Kill() {
 // Skip may be passed in, if FRAMESKIP is #defined, to cause this to
 // emulate more than one frame
 // skip initiates frame skip if 1, or frame skip and sound skip if 2
-void FCEUI_Emulate(uint8 **pXBuf, int32 **SoundBuf, int32 *SoundBufSize, 
-                   int skip) {
+void FCEU::FCEUI_Emulate(uint8 **pXBuf, 
+			 int32 **SoundBuf, int32 *SoundBufSize, 
+			 int skip) {
   fceulib__input.FCEU_UpdateInput();
 
   // fprintf(stderr, "ppu loop..\n");
@@ -303,32 +283,21 @@ void FCEUI_Emulate(uint8 **pXBuf, int32 **SoundBuf, int32 *SoundBufSize,
   }
 }
 
-void ResetNES() {
-  if (!GameInfo) return;
+void FCEU::ResetNES() {
+  if (GameInfo == nullptr) return;
   GameInterface(GI_RESETM2);
   fceulib__sound.FCEUSND_Reset();
   fceulib__ppu.FCEUPPU_Reset();
   X.Reset();
 
   // clear back baffer
-  extern uint8 *XBackBuf;
   memset(XBackBuf,0,256*256);
 
   fprintf(stderr, "Reset\n");
 }
 
-void FCEU_MemoryRand(uint8 *ptr, uint32 size) {
-  int x=0;
-  while(size) {
-    *ptr = (x&4) ? 0xFF : 0x00;
-    x++;
-    size--;
-    ptr++;
-  }
-}
-
-void PowerNES() {
-  if (!GameInfo) return;
+void FCEU::PowerNES() {
+  if (GameInfo == nullptr) return;
 
   FCEU_MemoryRand(RAM,0x800);
 
@@ -359,13 +328,12 @@ void PowerNES() {
   X.Power();
 
   // clear back baffer
-  extern uint8 *XBackBuf;
   memset(XBackBuf,0,256*256);
 
   fprintf(stderr, "Power on\n");
 }
 
-void FCEU_ResetVidSys() {
+void FCEU::FCEU_ResetVidSys() {
   int w;
 
   if (GameInfo->vidsys==GIV_NTSC)
@@ -378,6 +346,44 @@ void FCEU_ResetVidSys() {
   PAL = !!w;
   fceulib__ppu.FCEUPPU_SetVideoSystem(w);
   fceulib__sound.SetSoundVariables();
+}
+
+void FCEU::FCEUI_SetVidSystem(int a) {
+  fsettings_pal = a ? 1 : 0;
+  if (GameInfo) {
+    FCEU_ResetVidSys();
+    fceulib__palette.ResetPalette();
+  }
+}
+
+bool FCEU::FCEU_IsValidUI(EFCEUI ui) {
+  switch(ui) {
+  case FCEUI_RESET:
+  case FCEUI_POWER:
+  case FCEUI_EJECT_DISK:
+  case FCEUI_SWITCH_DISK:
+    if (!GameInfo) return false;
+    break;
+  }
+  return true;
+}
+
+void FCEU::SetReadHandler(int32 start, int32 end, readfunc func) {
+  if (!func)
+    func = ANull;
+
+  if (RWWrap) {
+    for (int32 x = end; x >= start; x--) {
+      if (x >= 0x8000)
+        AReadG[x - 0x8000] = func;
+      else
+        ARead[x]=func;
+    }
+  } else {
+    for (int x = end; x >= start; x--) {
+      ARead[x] = func;
+    }
+  }
 }
 
 // This is kind of silly since it just eta-expands printf with
@@ -408,40 +414,14 @@ void FCEU_PrintError(char *format, ...) {
   va_end(ap);
 }
 
-void FCEUI_SetVidSystem(int a) {
-  fsettings_pal = a ? 1 : 0;
-  if (GameInfo) {
-    FCEU_ResetVidSys();
-    fceulib__palette.ResetPalette();
+void FCEU_MemoryRand(uint8 *ptr, uint32 size) {
+  int x=0;
+  while(size) {
+    *ptr = (x&4) ? 0xFF : 0x00;
+    x++;
+    size--;
+    ptr++;
   }
 }
 
-bool FCEU_IsValidUI(EFCEUI ui) {
-  switch(ui) {
-  case FCEUI_RESET:
-  case FCEUI_POWER:
-  case FCEUI_EJECT_DISK:
-  case FCEUI_SWITCH_DISK:
-    if (!GameInfo) return false;
-    break;
-  }
-  return true;
-}
-
-void SetReadHandler(int32 start, int32 end, readfunc func) {
-  if (!func)
-    func = ANull;
-
-  if (RWWrap) {
-    for (int32 x = end; x >= start; x--) {
-      if (x >= 0x8000)
-        AReadG[x - 0x8000] = func;
-      else
-        ARead[x]=func;
-    }
-  } else {
-    for (int x = end; x >= start; x--) {
-      ARead[x] = func;
-    }
-  }
-}
+FCEU fceulib__fceu;

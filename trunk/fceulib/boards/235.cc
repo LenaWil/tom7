@@ -51,8 +51,8 @@ static DECLFW(M235Write)
 static void M235Power(void)
 {
   fceulib__cart.setchr8(0);
-  SetWriteHandler(0x8000,0xFFFF,M235Write);
-  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__fceu.SetWriteHandler(0x8000,0xFFFF,M235Write);
+  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
   cmdreg=0;
   Sync();
 }
@@ -65,6 +65,6 @@ static void M235Restore(int version)
 void Mapper235_Init(CartInfo *info)
 {
   info->Power=M235Power;
-  GameStateRestore=M235Restore;
+  fceulib__fceu.GameStateRestore=M235Restore;
   AddExState(&StateRegs, ~0, 0, 0);
 }

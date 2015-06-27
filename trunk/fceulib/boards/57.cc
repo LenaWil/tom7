@@ -65,9 +65,9 @@ static void M57Power(void)
   prg_reg=0;
   chr_reg=0;
   hrd_flag=0;
-  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
-  SetWriteHandler(0x8000,0xFFFF,M57Write);
-  SetReadHandler(0x6000,0x6000,M57Read);
+  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__fceu.SetWriteHandler(0x8000,0xFFFF,M57Write);
+  fceulib__fceu.SetReadHandler(0x6000,0x6000,M57Read);
   Sync();
 }
 
@@ -87,6 +87,6 @@ void Mapper57_Init(CartInfo *info)
 {
   info->Power=M57Power;
   info->Reset=M57Reset;
-  GameStateRestore=StateRestore;
+  fceulib__fceu.GameStateRestore=StateRestore;
   AddExState(&StateRegs, ~0, 0, 0);
 }

@@ -52,8 +52,8 @@ static DECLFW(UNL8157Write)
 
 static void UNL8157Power(void) {
   fceulib__cart.setchr8(0);
-  SetWriteHandler(0x8000,0xFFFF,UNL8157Write);
-  SetReadHandler(0x8000,0xFFFF,UNL8157Read);
+  fceulib__fceu.SetWriteHandler(0x8000,0xFFFF,UNL8157Write);
+  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,UNL8157Read);
   cmdreg=0x200;
   invalid_data=1;
   Sync();
@@ -75,6 +75,6 @@ void UNL8157_Init(CartInfo *info)
 {
   info->Power=UNL8157Power;
   info->Reset=UNL8157Reset;
-  GameStateRestore=UNL8157Restore;
+  fceulib__fceu.GameStateRestore=UNL8157Restore;
   AddExState(&StateRegs, ~0, 0, 0);
 }

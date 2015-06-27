@@ -83,8 +83,8 @@ static void BMC13in1JY110Power(void)
   bank_value=0;
   fceulib__cart.setprg32(0x8000,0);
   fceulib__cart.setchr8(0);
-  SetWriteHandler(0x8000,0xFFFF,BMC13in1JY110Write);
-  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__fceu.SetWriteHandler(0x8000,0xFFFF,BMC13in1JY110Write);
+  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
 }
 
 static void StateRestore(int version)
@@ -96,7 +96,7 @@ void BMC13in1JY110_Init(CartInfo *info)
 {
   info->Power=BMC13in1JY110Power;
   AddExState(&StateRegs, ~0, 0, 0);
-  GameStateRestore=StateRestore;
+  fceulib__fceu.GameStateRestore=StateRestore;
 }
 
 

@@ -64,12 +64,12 @@ struct X6502 {
 private:
   // normal memory read
   inline uint8 RdMem(unsigned int A) {
-    return DB = ARead[A](A);
+    return DB = fceulib__fceu.ARead[A](A);
   }
 
   // normal memory write
   inline void WrMem(unsigned int A, uint8 V) {
-    BWrite[A](A,V);
+    fceulib__fceu.BWrite[A](A,V);
   }
 
   inline uint8 RdRAM(unsigned int A) {
@@ -77,7 +77,7 @@ private:
     // see what other ones are possible); cheats at this level
     // are not important. -tom7
     //bbit edited: this was changed so cheat substitution would work
-    return (DB = ARead[A](A));
+    return (DB = fceulib__fceu.ARead[A](A));
     // return (DB=RAM[A]);
   }
 };

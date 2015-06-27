@@ -62,9 +62,9 @@ static void UNLSMB2JPower(void)
 {
   prg=~0;
   Sync();
-  SetReadHandler(0x5000,0x7FFF,Cart::CartBR);
-  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
-  SetWriteHandler(0x4020,0xffff,UNLSMB2JWrite);
+  fceulib__fceu.SetReadHandler(0x5000,0x7FFF,Cart::CartBR);
+  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__fceu.SetWriteHandler(0x4020,0xffff,UNLSMB2JWrite);
 }
 
 static void UNLSMB2JReset(void)
@@ -93,6 +93,6 @@ void UNLSMB2J_Init(CartInfo *info)
   info->Reset=UNLSMB2JReset;
   info->Power=UNLSMB2JPower;
   X.MapIRQHook=UNLSMB2JIRQHook;
-  GameStateRestore=StateRestore;
+  fceulib__fceu.GameStateRestore=StateRestore;
   AddExState(&StateRegs, ~0, 0, 0);
 }

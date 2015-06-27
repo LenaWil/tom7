@@ -44,9 +44,9 @@ static void BMCGS2013Power(void)
 {
   reg=~0;
   Sync();
-  SetReadHandler(0x6000,0x7FFF,Cart::CartBR);
-  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
-  SetWriteHandler(0x8000,0xFFFF,BMCGS2013Write);
+  fceulib__fceu.SetReadHandler(0x6000,0x7FFF,Cart::CartBR);
+  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__fceu.SetWriteHandler(0x8000,0xFFFF,BMCGS2013Write);
 }
 
 static void BMCGS2013Reset(void)
@@ -63,6 +63,6 @@ void BMCGS2013_Init(CartInfo *info)
 {
   info->Reset=BMCGS2013Reset;
   info->Power=BMCGS2013Power;
-  GameStateRestore=StateRestore;
+  fceulib__fceu.GameStateRestore=StateRestore;
   AddExState(&StateRegs, ~0, 0, 0);
 }

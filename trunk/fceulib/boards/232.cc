@@ -52,9 +52,9 @@ static DECLFW(M232WritePreg) {
 static void M232Power(void) {
   bank = preg = 0;
   Sync();
-  SetWriteHandler(0x8000, 0xBFFF, M232WriteBank);
-  SetWriteHandler(0xC000, 0xFFFF, M232WritePreg);
-  SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
+  fceulib__fceu.SetWriteHandler(0x8000, 0xBFFF, M232WriteBank);
+  fceulib__fceu.SetWriteHandler(0xC000, 0xFFFF, M232WritePreg);
+  fceulib__fceu.SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
 }
 
 static void StateRestore(int version) {
@@ -64,5 +64,5 @@ static void StateRestore(int version) {
 void Mapper232_Init(CartInfo *info) {
 	info->Power = M232Power;
 	AddExState(&StateRegs, ~0, 0, 0);
-	GameStateRestore = StateRestore;
+	fceulib__fceu.GameStateRestore = StateRestore;
 }

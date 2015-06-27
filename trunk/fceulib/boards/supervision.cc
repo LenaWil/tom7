@@ -51,9 +51,9 @@ static DECLFW(SuperHi)
 
 static void SuperReset(void)
 {
-  SetWriteHandler(0x6000,0x7FFF,SuperWrite);
-  SetWriteHandler(0x8000,0xFFFF,SuperHi);
-  SetReadHandler(0x6000,0xFFFF,Cart::CartBR);
+  fceulib__fceu.SetWriteHandler(0x6000,0x7FFF,SuperWrite);
+  fceulib__fceu.SetWriteHandler(0x8000,0xFFFF,SuperHi);
+  fceulib__fceu.SetReadHandler(0x6000,0xFFFF,Cart::CartBR);
   cmd0=cmd1=0;
   fceulib__cart.setprg32r(4,0x8000,0);
   fceulib__cart.setchr8(0);
@@ -69,5 +69,5 @@ void Supervision16_Init(CartInfo *info)
   AddExState(&cmd0, 1, 0,"L1");
   AddExState(&cmd1, 1, 0,"L2");
   info->Power=SuperReset;
-  GameStateRestore=SuperRestore;
+  fceulib__fceu.GameStateRestore=SuperRestore;
 }

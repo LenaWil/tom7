@@ -220,8 +220,8 @@ void Mapper69_ESI(void) {
 
 void NSFAY_Init(void) {
   sunindex=0;
-  SetWriteHandler(0xc000,0xdfff,Mapper69_SWL);
-  SetWriteHandler(0xe000,0xffff,Mapper69_SWH);
+  fceulib__fceu.SetWriteHandler(0xc000,0xdfff,Mapper69_SWL);
+  fceulib__fceu.SetWriteHandler(0xe000,0xffff,Mapper69_SWH);
   Mapper69_ESI();
 }
 
@@ -230,11 +230,11 @@ void Mapper69_init(void) {
 
   fceulib__cart.SetupCartPRGMapping(0x10,WRAM,8192,1);
 
-  SetWriteHandler(0x8000,0xbfff,Mapper69_write);
-  SetWriteHandler(0xc000,0xdfff,Mapper69_SWL);
-  SetWriteHandler(0xe000,0xffff,Mapper69_SWH);
-  SetWriteHandler(0x6000,0x7fff,SUN5BWRAM);
-  SetReadHandler(0x6000,0x7fff,SUN5AWRAM);
+  fceulib__fceu.SetWriteHandler(0x8000,0xbfff,Mapper69_write);
+  fceulib__fceu.SetWriteHandler(0xc000,0xdfff,Mapper69_SWL);
+  fceulib__fceu.SetWriteHandler(0xe000,0xffff,Mapper69_SWH);
+  fceulib__fceu.SetWriteHandler(0x6000,0x7fff,SUN5BWRAM);
+  fceulib__fceu.SetReadHandler(0x6000,0x7fff,SUN5AWRAM);
   Mapper69_ESI();
   X.MapIRQHook=SunIRQHook;
   fceulib__ines.MapStateRestore=Mapper69_StateRestore;

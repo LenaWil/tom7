@@ -66,9 +66,9 @@ static DECLFW(M82Write)
 static void M82Power(void)
 {
   Sync();
-  SetReadHandler(0x6000,0xffff,Cart::CartBR);
-  SetWriteHandler(0x6000,0x7fff,Cart::CartBW);
-  SetWriteHandler(0x7ef0,0x7efc,M82Write);  // external WRAM might end at $73FF
+  fceulib__fceu.SetReadHandler(0x6000,0xffff,Cart::CartBR);
+  fceulib__fceu.SetWriteHandler(0x6000,0x7fff,Cart::CartBW);
+  fceulib__fceu.SetWriteHandler(0x7ef0,0x7efc,M82Write);  // external WRAM might end at $73FF
 }
 
 static void M82Close(void)
@@ -97,6 +97,6 @@ void Mapper82_Init(CartInfo *info)
     info->SaveGame[0]=WRAM;
     info->SaveGameLen[0]=WRAMSIZE;
   }
-  GameStateRestore=StateRestore;
+  fceulib__fceu.GameStateRestore=StateRestore;
   AddExState(&StateRegs, ~0, 0, 0);
 }

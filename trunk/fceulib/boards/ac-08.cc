@@ -56,9 +56,9 @@ static void AC08Power(void)
 {
   reg = 0;
   Sync();
-  SetReadHandler(0x6000,0xFFFF,Cart::CartBR);
-  SetWriteHandler(0x4025,0x4025,AC08Mirr);
-  SetWriteHandler(0x8000,0xFFFF,AC08Write);
+  fceulib__fceu.SetReadHandler(0x6000,0xFFFF,Cart::CartBR);
+  fceulib__fceu.SetWriteHandler(0x4025,0x4025,AC08Mirr);
+  fceulib__fceu.SetWriteHandler(0x8000,0xFFFF,AC08Write);
 }
 
 static void StateRestore(int version)
@@ -69,6 +69,6 @@ static void StateRestore(int version)
 void AC08_Init(CartInfo *info)
 {
   info->Power=AC08Power;
-  GameStateRestore=StateRestore;
+  fceulib__fceu.GameStateRestore=StateRestore;
   AddExState(&StateRegs, ~0, 0, 0);
 }

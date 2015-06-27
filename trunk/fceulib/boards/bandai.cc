@@ -101,8 +101,8 @@ static DECLFW(BandaiWrite)
 static void BandaiPower(void)
 {
   BandaiSync();
-  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
-  SetWriteHandler(0x6000,0xFFFF,BandaiWrite);
+  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__fceu.SetWriteHandler(0x6000,0xFFFF,BandaiWrite);
 }
 
 static void StateRestore(int version)
@@ -115,7 +115,7 @@ void Mapper16_Init(CartInfo *info)
   is153=0;
   info->Power=BandaiPower;
   X.MapIRQHook=BandaiIRQHook;
-  GameStateRestore=StateRestore;
+  fceulib__fceu.GameStateRestore=StateRestore;
   AddExState(&StateRegs, ~0, 0, 0);
 }
 
@@ -123,10 +123,10 @@ static void M153Power(void)
 {
   BandaiSync();
   fceulib__cart.setprg8r(0x10,0x6000,0);
-  SetReadHandler(0x6000,0x7FFF,Cart::CartBR);
-  SetWriteHandler(0x6000,0x7FFF,Cart::CartBW);
-  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
-  SetWriteHandler(0x8000,0xFFFF,BandaiWrite);
+  fceulib__fceu.SetReadHandler(0x6000,0x7FFF,Cart::CartBR);
+  fceulib__fceu.SetWriteHandler(0x6000,0x7FFF,Cart::CartBW);
+  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__fceu.SetWriteHandler(0x8000,0xFFFF,BandaiWrite);
 }
 
 
@@ -155,7 +155,7 @@ void Mapper153_Init(CartInfo *info)
     info->SaveGameLen[0]=WRAMSIZE;
   }
 
-  GameStateRestore=StateRestore;
+  fceulib__fceu.GameStateRestore=StateRestore;
   AddExState(&StateRegs, ~0, 0, 0);
 }
 
@@ -329,9 +329,9 @@ static void M157Power(void)
 
   BandaiSync();
 
-  SetWriteHandler(0x6000,0xFFFF,BandaiWrite);
-  SetReadHandler(0x6000,0x7FFF,BarcodeRead);
-  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__fceu.SetWriteHandler(0x6000,0xFFFF,BandaiWrite);
+  fceulib__fceu.SetReadHandler(0x6000,0x7FFF,BarcodeRead);
+  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
 }
 
 void Mapper157_Init(CartInfo *info)
@@ -340,8 +340,8 @@ void Mapper157_Init(CartInfo *info)
   info->Power=M157Power;
   X.MapIRQHook=BarcodeIRQHook;
 
-  GameInfo->cspecial = SIS_DATACH;
+  fceulib__fceu.GameInfo->cspecial = SIS_DATACH;
 
-  GameStateRestore=StateRestore;
+  fceulib__fceu.GameStateRestore=StateRestore;
   AddExState(&StateRegs, ~0, 0, 0);
 }

@@ -112,13 +112,13 @@ static void UNLKS7030Power(void)
 {
   reg0=reg1=~0;
   Sync();
-  SetReadHandler(0x6000,0x7FFF,UNLKS7030RamRead0);
-  SetWriteHandler(0x6000,0x7FFF,UNLKS7030RamWrite0);
-  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
-  SetWriteHandler(0x8000,0x8FFF,UNLKS7030Write0);
-  SetWriteHandler(0x9000,0x9FFF,UNLKS7030Write1);
-  SetReadHandler(0xB800,0xD7FF,UNLKS7030RamRead1);
-  SetWriteHandler(0xB800,0xD7FF,UNLKS7030RamWrite1);
+  fceulib__fceu.SetReadHandler(0x6000,0x7FFF,UNLKS7030RamRead0);
+  fceulib__fceu.SetWriteHandler(0x6000,0x7FFF,UNLKS7030RamWrite0);
+  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__fceu.SetWriteHandler(0x8000,0x8FFF,UNLKS7030Write0);
+  fceulib__fceu.SetWriteHandler(0x9000,0x9FFF,UNLKS7030Write1);
+  fceulib__fceu.SetReadHandler(0xB800,0xD7FF,UNLKS7030RamRead1);
+  fceulib__fceu.SetWriteHandler(0xB800,0xD7FF,UNLKS7030RamWrite1);
 }
 
 static void UNLKS7030Close(void) {
@@ -136,7 +136,7 @@ void UNLKS7030_Init(CartInfo *info)
 {
   info->Power=UNLKS7030Power;
   info->Close=UNLKS7030Close;
-  GameStateRestore=StateRestore;
+  fceulib__fceu.GameStateRestore=StateRestore;
 
   WRAMSIZE=8192;
   WRAM=(uint8*)FCEU_gmalloc(WRAMSIZE);

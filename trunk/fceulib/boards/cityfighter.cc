@@ -106,9 +106,9 @@ static void UNLCITYFIGHTIRQ(int a) {
 static void UNLCITYFIGHTPower(void) {
 	prg_reg = 0;
 	Sync();
-	pcmwrite = GetWriteHandler(0x4011);
-	SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
-	SetWriteHandler(0x8000, 0xFFFF, UNLCITYFIGHTWrite);
+	pcmwrite = fceulib__fceu.GetWriteHandler(0x4011);
+	fceulib__fceu.SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
+	fceulib__fceu.SetWriteHandler(0x8000, 0xFFFF, UNLCITYFIGHTWrite);
 }
 
 static void StateRestore(int version) {
@@ -118,6 +118,6 @@ static void StateRestore(int version) {
 void UNLCITYFIGHT_Init(CartInfo *info) {
 	info->Power = UNLCITYFIGHTPower;
 	X.MapIRQHook = UNLCITYFIGHTIRQ;
-	GameStateRestore = StateRestore;
+	fceulib__fceu.GameStateRestore = StateRestore;
 	AddExState(&StateRegs, ~0, 0, 0);
 }

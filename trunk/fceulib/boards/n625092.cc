@@ -71,9 +71,9 @@ static void UNLN625092Power(void)
   cmd=0;
   bank=0;
   Sync();
-  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
-  SetWriteHandler(0x8000,0xBFFF,UNLN625092WriteCommand);
-  SetWriteHandler(0xC000,0xFFFF,UNLN625092WriteBank);
+  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__fceu.SetWriteHandler(0x8000,0xBFFF,UNLN625092WriteCommand);
+  fceulib__fceu.SetWriteHandler(0xC000,0xFFFF,UNLN625092WriteBank);
 }
 
 static void UNLN625092Reset(void)
@@ -93,6 +93,6 @@ void UNLN625092_Init(CartInfo *info)
 {
   info->Reset=UNLN625092Reset;
   info->Power=UNLN625092Power;
-  GameStateRestore=StateRestore;
+  fceulib__fceu.GameStateRestore=StateRestore;
   AddExState(&StateRegs, ~0, 0, 0);
 }

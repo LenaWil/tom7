@@ -70,8 +70,8 @@ static void MPower(void)
   Sync();
   fceulib__cart.setprg16(0x8000,0);
   fceulib__cart.setprg16(0xC000,~0);
-  SetWriteHandler(0x8000,0xFFFF,MWrite);
-  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__fceu.SetWriteHandler(0x8000,0xFFFF,MWrite);
+  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
 }
 
 static void MClose(void)
@@ -91,7 +91,7 @@ void Mapper185_Init(CartInfo *info)
   Sync=Sync185;
   info->Power=MPower;
   info->Close=MClose;
-  GameStateRestore=MRestore;
+  fceulib__fceu.GameStateRestore=MRestore;
   DummyCHR=(uint8*)FCEU_gmalloc(8192);
   for(int x=0;x<8192;x++)
      DummyCHR[x]=0xff;
@@ -104,7 +104,7 @@ void Mapper181_Init(CartInfo *info)
   Sync=Sync181;
   info->Power=MPower;
   info->Close=MClose;
-  GameStateRestore=MRestore;
+  fceulib__fceu.GameStateRestore=MRestore;
   DummyCHR=(uint8*)FCEU_gmalloc(8192);
   for(int x=0;x<8192;x++)
      DummyCHR[x]=0xff;

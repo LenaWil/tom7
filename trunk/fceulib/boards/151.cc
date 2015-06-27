@@ -47,8 +47,8 @@ static DECLFW(M151Write)
 static void M151Power(void)
 {
   Sync();
-  SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
-  SetWriteHandler(0x8000,0xFFFF,M151Write);
+  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__fceu.SetWriteHandler(0x8000,0xFFFF,M151Write);
 }
 
 static void StateRestore(int version)
@@ -59,6 +59,6 @@ static void StateRestore(int version)
 void Mapper151_Init(CartInfo *info)
 {
   info->Power=M151Power;
-  GameStateRestore=StateRestore;
+  fceulib__fceu.GameStateRestore=StateRestore;
   AddExState(&StateRegs, ~0, 0, 0);
 }
