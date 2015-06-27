@@ -43,8 +43,7 @@ static uint8 ReadMOUSE(int w)
   else
   {
     ret|=(Mouse.data>>Mouse.readbit)&1;
-    if(!fceuindbg)
-      Mouse.readbit++;
+    Mouse.readbit++;
   }
   return(ret);
 }

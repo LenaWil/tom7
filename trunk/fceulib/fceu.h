@@ -7,7 +7,6 @@
 #include <string>
 #include "stringprintf.h"
 
-static constexpr bool fceuindbg = false;
 static constexpr int newppu = 0;
 
 // TODO(tom7): Fix this junk. These have to take a Fceulib object.
@@ -116,6 +115,7 @@ bool FCEU_IsValidUI(EFCEUI ui);
 #define JOY_DOWN        0x20
 #define JOY_LEFT        0x40
 #define JOY_RIGHT       0x80
-#endif
 
 #define ARRAY_SIZE(a) (sizeof(a)/sizeof(a[0]))
+
+#endif

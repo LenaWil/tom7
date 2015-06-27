@@ -104,8 +104,7 @@ static uint8 ReadZapperVS(int w) {
     if (!CheckColor(w))
       ret|=0x1;
   }
-  if (!fceuindbg)
-    ZD[w].zap_readbit++; 
+  ZD[w].zap_readbit++; 
   return ret;
 }
 

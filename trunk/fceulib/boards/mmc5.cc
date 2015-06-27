@@ -469,8 +469,8 @@ static DECLFR(MMC5_read) {
     X.IRQEnd(FCEU_IQEXT);
       
     uint8 x = MMC5IRQR;
-    if (!fceuindbg)
-      MMC5IRQR &= 0x40;
+
+    MMC5IRQR &= 0x40;
     return x;
   }
   case 0x5205: return (mul[0]*mul[1]);
