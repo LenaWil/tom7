@@ -18,3 +18,8 @@ Starting at Sun, Jun 14, 2015 10:01:38 AM
  ...  2521  Succeeded at  Sun, Jun 14, 2015 2:52:22 PM
 Running comprehensive tests at SVN version  2524
 Starting at Sat, Jun 27, 2015 9:48:04 AM
+ ... (ok -- manually verified tom7 27 Jun 2015 14:53:06)
+
+Running comprehensive tests at SVN version  2527
+Starting at Sat, Jun 27, 2015 11:14:08 AM
+ ... (aborted at 70% to run in parallel -tom7)

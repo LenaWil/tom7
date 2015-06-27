@@ -137,12 +137,12 @@ struct Collage {
   static constexpr int WIDTH = 256 * 10;
   static constexpr int HEIGHT = 240 * 6;
 
-  const string filename_base = "collage";
+  const string filename_base;
   int file_number = 0;
   int nextx = 0;
   int nexty = 0;
   vector<uint8> cur;
-  Collage() {
+  explicit Collage(string prefix) : filename_base(prefix + "collage") {
     cur.reserve(WIDTH * HEIGHT * 4);
     for (int i = 0; i < WIDTH * HEIGHT; i++) {
       cur.push_back(0);
@@ -467,6 +467,9 @@ static SerialResult RunGameSerially(const Game &game) {
 }
 
 int main(int argc, char **argv) {
+  int modulus = 1;
+  int my_index = 0;
+
   for (int i = 1; i < argc; i++) {
     string arg = argv[i];
     if (arg == "--full" || arg == "-full") {
@@ -474,6 +477,14 @@ int main(int argc, char **argv) {
     } else if (arg == "--comprehensive" || arg == "-comprehensive") {
       FULL = true;
       COMPREHENSIVE = true;
+    } else if (arg == "--modulus") {
+      CHECK(i + 1 < argc);
+      i++;
+      modulus = atoi(argv[i]);
+    } else if (arg == "--index") {
+      CHECK(i + 1 < argc);
+      i++;
+      my_index = atoi(argv[i]);
     }
   }
   if (COMPREHENSIVE) { 
@@ -482,6 +493,14 @@ int main(int argc, char **argv) {
     fprintf(stderr, "Running FULL tests.\n");
   } else {
     fprintf(stderr, "Running 'fast' tests.\n");
+  }
+
+  if (modulus != 1) {
+    CHECK(COMPREHENSIVE) << "modulus is only allowed in COMPREHENSIVE mode.";
+    CHECK(modulus > 1);
+    CHECK(my_index >= 0);
+    CHECK(my_index < modulus);
+    fprintf(stderr, "This will be index %d mod %d.\n", my_index, modulus);
   }
 
   // First, ensure that we have preserved the single-threaded
@@ -657,7 +676,7 @@ int main(int argc, char **argv) {
       13007242309738173365ULL,
       };
 
-  // XXX Uses battery-backed NVROM. Do something more hygeinic than simply
+  // XXX Uses battery-backed NVROM. Do something more hygienic than simply
   // unlinking ".sav" before the test.
   Game kirby{
     "kirby.nes",
@@ -705,7 +724,7 @@ int main(int argc, char **argv) {
 
   TRACE_DISABLE();
 
-  Collage collage;
+  Collage collage(modulus == 1 ? "" : StringPrintf("%d.", my_index));
   auto RunGameToCollage = [&collage](const Game &game) {
     SerialResult sr = RunGameSerially(game);
     if (!sr.final_image.empty()) {
@@ -715,30 +734,39 @@ int main(int argc, char **argv) {
   };
 
   TRACE_ENABLE();
- 
-  RunGameToCollage(dw4);
-  RunGameToCollage(kirby);
-  RunGameToCollage(banditkings);
-  RunGameToCollage(castlevania3);
-  RunGameToCollage(ubasketball);
-  RunGameToCollage(karate);
-  RunGameToCollage(mario);
-  RunGameToCollage(arkanoid);
-  RunGameToCollage(escape);
-  RunGameToCollage(skull);
-  RunGameToCollage(escape);
+
+  // Only run the intro tests for the first index in
+  // sharded comprehensive mode.
+  if (my_index == 0) { 
+    RunGameToCollage(dw4);
+    RunGameToCollage(kirby);
+    RunGameToCollage(banditkings);
+    RunGameToCollage(castlevania3);
+    RunGameToCollage(ubasketball);
+    RunGameToCollage(karate);
+    RunGameToCollage(mario);
+    RunGameToCollage(arkanoid);
+    RunGameToCollage(escape);
+    RunGameToCollage(skull);
+    RunGameToCollage(escape);
+  }
  
   collage.Flush();
 
   if (COMPREHENSIVE) {
     printf("Now COMPREHENSIVE tests.\n");
     vector<string> romlines = ReadFileToLines("roms/roms.txt");
+    const string id = 
+      (modulus == 1) ? "" : StringPrintf("(%d|%d) ", my_index, modulus);
     // We write this each time we run the comprehensive test because
     // it's so expensive anyway, but it shouldn't ever change now.
-    FILE *out = fopen("all-roms.txt", "wb");
+    const string logfile = StringPrintf("comprehensive-%d-of-%d.txt",
+					my_index, modulus);
+    FILE *out = fopen(logfile.c_str(), "wb");
     if (!out) abort();
-    int nlines = 0;
-    for (string line : romlines) {
+    for (int line_num = 0; line_num < romlines.size(); line_num++) {
+      if (line_num % modulus != my_index) continue;
+      string line = romlines[line_num];
       string a = Chop(line);
       string b = Chop(line);
       string c = Chop(line);
@@ -767,10 +795,10 @@ int main(int argc, char **argv) {
 		sr.image_after_inputs, sr.image_after_random,
                 filename.c_str());
         fflush(out);
-        nlines++;
-        fprintf(stderr, "Did %d/%d = %.1f%%.\n",
-                nlines, (int)romlines.size(),
-                nlines * 100. / romlines.size());
+        fprintf(stderr, "%sDid %d/%d = %.1f%%.\n",
+		id.c_str(),
+                line_num + 1, (int)romlines.size(),
+                (line_num + 1) * 100. / romlines.size());
 	// In this case we've already aborted (unless
 	// MAKE_COMPREHENSIVE is set).
 	if (sr.after_inputs != after_inputs ||
