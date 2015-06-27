@@ -206,8 +206,6 @@ FCEUGI *FCEUI_LoadGameVirtual(const char *name, int OverwriteVidMode) {
   GameInfo = new FCEUGI();
   memset(GameInfo, 0, sizeof(FCEUGI));
 
-  GameInfo->soundchan = 0;
-  GameInfo->soundrate = 0;
   GameInfo->type = GIT_CART;
   GameInfo->vidsys = GIV_USER;
   GameInfo->input[0] = GameInfo->input[1] = SI_UNSET;
