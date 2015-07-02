@@ -4,6 +4,7 @@
 #include "arcfour.h"
 #include <cmath>
 #include <cstdint>
+#include <vector>
 
 using uint8 = uint8_t;
 using uint64 = uint64_t;
@@ -11,7 +12,7 @@ using uint32 = uint32_t;
 
 // Caller owns new-ly allocated pointer.
 inline ArcFour *Substream(ArcFour *rc, int n) {
-  vector<uint8> buf;
+  std::vector<uint8> buf;
   buf.resize(64);
   for (int i = 0; i < 4; i++) {
     buf[i] = n & 255;
@@ -25,23 +26,6 @@ inline ArcFour *Substream(ArcFour *rc, int n) {
   ArcFour *nrc = new ArcFour(buf);
   nrc->Discard(256);
   return nrc;
-}
-
-template<class T>
-static void Shuffle(ArcFour *rc, vector<T> *v) {
-  for (int i = 0; i < v->size(); i++) {
-    uint32 h = 0;
-    h = (h << 8) | rc->Byte();
-    h = (h << 8) | rc->Byte();
-    h = (h << 8) | rc->Byte();
-    h = (h << 8) | rc->Byte();
-
-    // XXX BIAS!
-    int j = h % v->size();
-    if (i != j) {
-      swap((*v)[i], (*v)[j]);
-    }
-  }
 }
 
 // In [0, 1].
@@ -121,6 +105,23 @@ inline uint32 RandTo(ArcFour *rc, uint32 n) {
   for (;;) {
     const uint32 x = Rand32(rc) & mask;
     if (x < n) return x;
+  }
+}
+
+template<class T>
+static void Shuffle(ArcFour *rc, std::vector<T> *v) {
+  for (int i = 0; i < v->size(); i++) {
+    uint32 h = 0;
+    h = (h << 8) | rc->Byte();
+    h = (h << 8) | rc->Byte();
+    h = (h << 8) | rc->Byte();
+    h = (h << 8) | rc->Byte();
+
+    // XXX only works for 4 billion elements or fewer!
+    int j = RandTo(rc, v->size());
+    if (i != j) {
+      swap((*v)[i], (*v)[j]);
+    }
   }
 }
 

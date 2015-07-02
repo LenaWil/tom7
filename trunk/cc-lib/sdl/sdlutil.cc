@@ -662,6 +662,28 @@ void sdlutil::drawline(SDL_Surface * screen, int x0, int y0,
   l->destroy();
 }
 
+void sdlutil::drawclipline(SDL_Surface * screen, int x0, int y0,
+			   int x1, int y1, 
+			   Uint8 R, Uint8 G, Uint8 B) {
+  /* PERF could maprgb once */
+  /* PERF clipping can be much more efficient */
+
+  line * l = line::create(x0, y0, x1, y1);
+  if (!l) return;
+
+  /* direct pixel access */
+  slock(screen);
+  int x, y;
+  if (x0 >= 0 && y0 >= 0 && x0 < screen->w && y0 < screen->h)
+    drawpixel(screen, x0, y0, R, G, B);
+  while (l->next(x, y)) {
+    if (x >= 0 && y >= 0 && x < screen->w && y < screen->h)
+      drawpixel(screen, x, y, R, G, B);
+  }
+  sulock(screen);
+  l->destroy();
+}
+
 
 /* XXX change to use function pointer? */
 /* lock before calling */
@@ -706,6 +728,13 @@ void sdlutil::drawpixel(SDL_Surface *screen, int x, int y,
       }
       break;
     }
+}
+
+void sdlutil::drawclippixel(SDL_Surface *screen, int x, int y,
+			    Uint8 R, Uint8 G, Uint8 B) {
+  if (x < 0 || y < 0 || x >= screen->w || y >= screen->h)
+    return;
+  drawpixel(screen, x, y, R, G, B);
 }
 
 
