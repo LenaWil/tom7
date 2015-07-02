@@ -25,6 +25,8 @@ struct sdlutil {
   /* for direct pixel access: lock first, unlock after */
   static void drawpixel(SDL_Surface *surf, int x, int y,
                         Uint8 R, Uint8 G, Uint8 B);
+  static void drawclippixel(SDL_Surface *surf, int x, int y,
+			    Uint8 R, Uint8 G, Uint8 B);
   static Uint32 getpixel(SDL_Surface *, int x, int y);
   static void   setpixel(SDL_Surface *, int x, int y,
                          Uint32 color);
@@ -34,8 +36,12 @@ struct sdlutil {
 
   static SDL_Surface * duplicate(SDL_Surface * surf);
 
+  // Unchecked--don't draw outside the surface!
   static void drawline(SDL_Surface *, int x1, int y1, int x2, int y2,
                        Uint8 R, Uint8 G, Uint8 B);
+
+  static void drawclipline(SDL_Surface *, int x1, int y1, int x2, int y2,
+			   Uint8 R, Uint8 G, Uint8 B);
 
   static void clearsurface(SDL_Surface *, Uint32);
 
