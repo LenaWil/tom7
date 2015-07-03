@@ -96,6 +96,7 @@ void INes::iNES_ExecPower() {
 }
 
 void INes::iNESGI(GI h) {
+  fprintf(stderr, "iNESGI %d\n", (int)h);
   switch(h) {
   case GI_RESETSAVE:
     fceulib__cart.FCEU_ClearGameSave(&iNESCart);
@@ -961,6 +962,7 @@ int INes::iNESLoad(const char *name, FceuFile *fp, int OverwriteVidMode) {
   }
 
   fceulib__fceu.GameInterface = [](GI h) {
+    // fprintf(stderr, "ines GameInterface %d\n", (int)h);
     return fceulib__ines.iNESGI(h);
   };
   FCEU_printf("\n");

@@ -28,3 +28,7 @@ Running comprehensive tests at SVN version  2528
 Starting at Sat, Jun 27, 2015 2:54:45 PM
 Revision 2528 shard  2  FAILED
  ...  2528  Finished at  Sat, Jun 27, 2015 3:36:47 PM
+Running comprehensive tests at SVN version  2529
+Starting at Sat, Jun 27, 2015 4:49:10 PM
+Revision 2529 shard  0  FAILED
+ ...  2529  Finished at  Sat, Jun 27, 2015 5:04:52 PM
