@@ -33,6 +33,7 @@ struct SFORMAT {
   
   // a string description of the element
   char *desc;
+  // const char *src = nullptr;
 };
 
 // Tom 7's simplified versions. These should only be used for in-memory saves!
@@ -41,7 +42,12 @@ bool FCEUSS_LoadRAW(std::vector<uint8> *in);
 
 // I think these add additional locations to the set of saved memories.
 void ResetExState(void (*PreSave)(),void (*PostSave)());
-void AddExState(void *v, uint32 s, int type, char *desc);
+void AddExStateReal(void *v, uint32 s, int type, char *desc, const char *src);
+
+#define STRINGIFY_LINE_2(x) #x
+#define STRINGIFY_LINE(x) STRINGIFY_LINE_2(x)
+#define AddExState(v, s, t, d) \
+  AddExStateReal(v, s, t, d, __FILE__ ":" STRINGIFY_LINE(__LINE__) )
 
 // indicates that the value is a multibyte integer that needs to be
 // put in the correct byte order

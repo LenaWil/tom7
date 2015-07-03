@@ -349,15 +349,15 @@ void ResetExState(void (*PreSave)(), void (*PostSave)()) {
 
   SPreSave = PreSave;
   SPostSave = PostSave;
-  SFEXINDEX=0;
+  SFEXINDEX = 0;
 }
 
-void AddExState(void *v, uint32 s, int type, char *desc) {
+void AddExStateReal(void *v, uint32 s, int type, char *desc, const char *src) {
 
   if (s == ~0) {
     const SFORMAT *sf = (const SFORMAT*)v;
-    map<string,bool> names;
-    while(sf->v) {
+    map<string, bool> names;
+    while (sf->v) {
       char tmp[5] = {0};
       memcpy(tmp,sf->desc,4);
       std::string desc = tmp;
@@ -370,15 +370,27 @@ void AddExState(void *v, uint32 s, int type, char *desc) {
     }
   }
 
-  if (desc) {
+  if (desc != nullptr) {
+    // PERF: n^2 paranoia. Should rewrite this to keep a regular
+    // std::map or something.
+    for (int i = 0; i < SFEXINDEX; i++) {
+      if (SFMDATA[i].desc != nullptr &&
+	  0 == strcmp(SFMDATA[i].desc, desc)) {
+	fprintf(stderr, "AddExState: The key '%s' was registered twice.\n"
+		"Second was from %s.\n",
+		desc, src);
+	abort();
+      }
+    }
+
     SFMDATA[SFEXINDEX].desc=(char *)FCEU_malloc(strlen(desc)+1);
     strcpy(SFMDATA[SFEXINDEX].desc,desc);
   } else {
-    SFMDATA[SFEXINDEX].desc=0;
+    SFMDATA[SFEXINDEX].desc = nullptr;
   }
-  SFMDATA[SFEXINDEX].v=v;
-  SFMDATA[SFEXINDEX].s=s;
-  if (type) SFMDATA[SFEXINDEX].s|=RLSB;
+  SFMDATA[SFEXINDEX].v = v;
+  SFMDATA[SFEXINDEX].s = s;
+  if (type) SFMDATA[SFEXINDEX].s |= RLSB;
   if (SFEXINDEX < SFMDATA_SIZE-1) {
     SFEXINDEX++;
   } else {

@@ -826,7 +826,9 @@ static void GenMMC5_Init(CartInfo *info, int wsize, int battery) {
   if (wsize) {
     WRAM=(uint8*)FCEU_gmalloc(wsize*1024);
     fceulib__cart.SetupCartPRGMapping(0x10,WRAM,wsize*1024,1);
-    AddExState(WRAM, wsize*1024, 0, "WRAM");
+    // This was registered twice for some reason? (There's another
+    // copy of this line unconditionally below.) -tom7
+    // AddExState(WRAM, wsize*1024, 0, "WRM5");
   }
 
   MMC5fill=(uint8*)FCEU_gmalloc(1024);

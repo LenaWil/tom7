@@ -21,8 +21,8 @@
 #include "mapinc.h"
 
 static uint8 regs[9], ctrl;
-static uint8 *WRAM=NULL;
-static uint32 WRAMSIZE;
+static uint8 *WRAM82=NULL;
+static uint32 WRAM82SIZE;
 
 static SFORMAT StateRegs[]=
 {
@@ -68,35 +68,30 @@ static void M82Power(void)
   Sync();
   fceulib__fceu.SetReadHandler(0x6000,0xffff,Cart::CartBR);
   fceulib__fceu.SetWriteHandler(0x6000,0x7fff,Cart::CartBW);
-  fceulib__fceu.SetWriteHandler(0x7ef0,0x7efc,M82Write);  // external WRAM might end at $73FF
+  fceulib__fceu.SetWriteHandler(0x7ef0,0x7efc,M82Write);  // external WRAM82 might end at $73FF
 }
 
-static void M82Close(void)
-{
-  if(WRAM)
-    free(WRAM);
-  WRAM=NULL;
+static void M82Close(void) {
+  free(WRAM82);
+  WRAM82=NULL;
 }
 
-static void StateRestore(int version)
-{
+static void StateRestore(int version) {
   Sync();
 }
 
-void Mapper82_Init(CartInfo *info)
-{
+void Mapper82_Init(CartInfo *info) {
   info->Power=M82Power;
   info->Power=M82Close;
 
-  WRAMSIZE=8192;
-  WRAM=(uint8*)FCEU_gmalloc(WRAMSIZE);
-  fceulib__cart.SetupCartPRGMapping(0x10,WRAM,WRAMSIZE,1);
-  AddExState(WRAM, WRAMSIZE, 0, "WRAM");
-  if(info->battery)
-  {
-    info->SaveGame[0]=WRAM;
-    info->SaveGameLen[0]=WRAMSIZE;
+  WRAM82SIZE=8192;
+  WRAM82=(uint8*)FCEU_gmalloc(WRAM82SIZE);
+  fceulib__cart.SetupCartPRGMapping(0x10, WRAM82, WRAM82SIZE, 1);
+  AddExState(WRAM82, WRAM82SIZE, 0, "WR82");
+  if (info->battery) {
+    info->SaveGame[0]=WRAM82;
+    info->SaveGameLen[0]=WRAM82SIZE;
   }
-  fceulib__fceu.GameStateRestore=StateRestore;
+  fceulib__fceu.GameStateRestore = StateRestore;
   AddExState(&StateRegs, ~0, 0, 0);
 }

@@ -1402,12 +1402,17 @@ void INes::iNESPower() {
     memset(fceulib__fceu.GameMemBlock,0,GAME_MEM_BLOCK_SIZE);
 
   NONE_init();
-  ResetExState(0,0);
+  ResetExState(0, 0);
 
   if (fceulib__fceu.GameInfo->type == GIT_VSUNI)
     AddExState(fceulib__vsuni.FCEUVSUNI_STATEINFO(), ~0, 0, 0);
 
-  AddExState(WRAM, 8192, 0, "WRAM");
+  // Note: This used to save as "WRAM", but this is also used by
+  // many mappers. In some situation (I didn't dig in too deeply)
+  // the two could get confused, and e.g. Mapper 82 would some
+  // memory that was read during destruction. Gave it a unique name.
+  // -tom7
+  AddExState(WRAM, 8192, 0, "iNWR");
   if (type==19 || type==6 || type==69 || type==85 || type==96)
     AddExState(MapperExRAM, 32768, 0, "MEXR");
   if ((!VROM_size || type==6 || type==19) && (type!=13 && type!=96))
