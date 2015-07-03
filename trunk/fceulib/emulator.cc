@@ -320,12 +320,14 @@ void Emulator::LoadEx(vector<uint8> *state, const vector<uint8> *basis) {
   int uncomprlen = *(uint32*)&(*state)[0];
   vector<uint8> uncompressed;
   uncompressed.resize(uncomprlen);
- 
-  switch (uncompress(uncompressed.data(), (uLongf*)&uncomprlen,
+  uLongf uncomprlenf = uncomprlen;
+  
+  switch (uncompress(uncompressed.data(), &uncomprlenf,
 		     &(*state)[4], state->size() - 4)) {
   case Z_OK: break;
   case Z_BUF_ERROR:
-    fprintf(stderr, "Not enough room in output\n");
+    fprintf(stderr, "zlib: Not enough room in output. Uncompressed length\n"
+	    "is supposedly %d.\n", uncomprlen);
     abort();
     break;
   case Z_MEM_ERROR:
