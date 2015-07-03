@@ -82,7 +82,9 @@ static void StateRestore(int version) {
 
 void Mapper82_Init(CartInfo *info) {
   info->Power=M82Power;
-  info->Power=M82Close;
+  // Note: This used to set Power a second time, which has got to be
+  // a mistake. Changed to Close. -tom7
+  info->Close=M82Close;
 
   WRAM82SIZE=8192;
   WRAM82=(uint8*)FCEU_gmalloc(WRAM82SIZE);
