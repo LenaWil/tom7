@@ -2,7 +2,7 @@
 # Makefile made by tom7.
 default: emulator_test.exe difftrace.exe
 
-all: emulator_test.exe fm2tocc.exe difftrace.exe dumptrace.exe
+all: emulator_test.exe fm2tocc.exe difftrace.exe dumptrace.exe make-comprehensive-history.exe
 
 # -fno-strict-aliasing
 # -Wstrict-overflow=3
@@ -69,6 +69,10 @@ LFLAGS= -m64 $(WINLINK) $(LINKNETWORKING) -lz $(OPT) $(FLTO) $(PROFILE)
 # -static -fwhole-program
 # -static
 
+# $* means the text matched by %.
+results-%.txt : make-comprehensive-history.exe
+	./make-comprehensive-history.exe --rev $*
+
 fm2tocc.exe : $(OBJECTS) fm2tocc.o simplefm2.o
 	$(CXX) $^ -o $@ $(LFLAGS)
 
@@ -79,6 +83,9 @@ dumptrace.exe : stringprintf.o trace.o dumptrace.o
 	$(CXX) $^ -o $@ $(LFLAGS)
 
 emulator_test.exe : $(OBJECTS) test-util.o emulator_test.o simplefm2.o
+	$(CXX) $^ -o $@ $(LFLAGS)
+
+make-comprehensive-history.exe : $(BASEOBJECTS) make-comprehensive-history.o
 	$(CXX) $^ -o $@ $(LFLAGS)
 
 test : emulator_test.exe

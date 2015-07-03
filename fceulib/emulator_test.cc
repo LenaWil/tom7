@@ -22,11 +22,11 @@
 static constexpr uint64 kEveryGameUponLoad =
   204558985997460734ULL;
 
-// Set by command-line --full.
+// Don't change these here! I've had serious bugs from unintentionally
+// leaving this in make_comprehensive mode. There are command line
+// flags for all of them.
 static bool FULL = false;
 static bool COMPREHENSIVE = false;
-// Turn this on to have it generate the whole roms file
-// without failing if there's a checksum mismatch.
 static bool MAKE_COMPREHENSIVE = false;
 
 struct Game {
@@ -124,12 +124,6 @@ struct InputStream {
   decltype(v.begin()) begin() { return v.begin(); }
   decltype(v.end()) end() { return v.end(); }
 };
-
-// XXXXXXX
-// #undef CHECK
-// #undef CHECK_EQ
-// #define CHECK(exp) if (true) { (void)(exp); } else cerr
-// #define CHECK_EQ(a, b) if (true) { (void)(a); (void)(b); } else cerr
 
 struct Collage {
   static constexpr int NUMW = 10;
@@ -463,20 +457,34 @@ static SerialResult RunGameSerially(const Game &game) {
   if (FULL && images.size() > 0) {
     sr.final_image = std::move(images[images.size() - 1]);
   }
+
+  fprintf(stderr, "Returning...\n");
   return sr;
 }
 
 int main(int argc, char **argv) {
   int modulus = 1;
   int my_index = 0;
-
+  string output_file;
+  string romdir = "roms/";
+  bool write_collage = true;
+  
   for (int i = 1; i < argc; i++) {
     string arg = argv[i];
     if (arg == "--full" || arg == "-full") {
       FULL = true;
+    } else if (arg == "--output-file") {
+      COMPREHENSIVE = true;
+      MAKE_COMPREHENSIVE = true;
+      CHECK(i + 1 < argc);
+      i++;
+      output_file = argv[i];
     } else if (arg == "--comprehensive" || arg == "-comprehensive") {
+      CHECK(output_file.empty()) << "--output-file implies "
+	"make-comprehensive mode, which is not what --comprehensive does.";
       FULL = true;
       COMPREHENSIVE = true;
+      MAKE_COMPREHENSIVE = false;
     } else if (arg == "--modulus") {
       CHECK(i + 1 < argc);
       i++;
@@ -485,10 +493,23 @@ int main(int argc, char **argv) {
       CHECK(i + 1 < argc);
       i++;
       my_index = atoi(argv[i]);
+    } else if (arg == "--romdir") {
+      CHECK(i + 1 < argc);
+      i++;
+      romdir = argv[i];
+      CHECK(!romdir.empty());
+      if (romdir[romdir.size() - 1] != '/') romdir += '/';
+    } else if (arg == "--nocollage") {
+      write_collage = false;
     }
   }
   if (COMPREHENSIVE) { 
-    fprintf(stderr, "Running COMPREHENSIVE tests!\n");
+    if (MAKE_COMPREHENSIVE) {
+      fprintf(stderr, "Generating comprehensive file to %s!\n",
+	      output_file.c_str());
+    } else {
+      fprintf(stderr, "Running COMPREHENSIVE tests!\n");
+    }
   } else if (FULL) {
     fprintf(stderr, "Running FULL tests.\n");
   } else {
@@ -497,6 +518,8 @@ int main(int argc, char **argv) {
 
   if (modulus != 1) {
     CHECK(COMPREHENSIVE) << "modulus is only allowed in COMPREHENSIVE mode.";
+    CHECK(!MAKE_COMPREHENSIVE) << "this would have to make writes to the "
+      "same file from multiple processes, so it's not implemented yet.";
     CHECK(modulus > 1);
     CHECK(my_index >= 0);
     CHECK(my_index < modulus);
@@ -525,7 +548,7 @@ int main(int argc, char **argv) {
     13068962115749660119ULL,
     14414055657961427423ULL,
     7065287229454446029ULL,
-    "roms/Ultimate Basketball.nes",
+    romdir + "Ultimate Basketball.nes",
     };
 
   Game dw4{
@@ -725,10 +748,12 @@ int main(int argc, char **argv) {
   TRACE_DISABLE();
 
   Collage collage(modulus == 1 ? "" : StringPrintf("%d.", my_index));
-  auto RunGameToCollage = [&collage](const Game &game) {
+  auto RunGameToCollage = [&collage, write_collage](const Game &game) {
     SerialResult sr = RunGameSerially(game);
-    if (!sr.final_image.empty()) {
-      collage.Push(sr.final_image);
+    if (write_collage) {
+      if (!sr.final_image.empty()) {
+	collage.Push(sr.final_image);
+      }
     }
     return sr;
   };
@@ -737,7 +762,7 @@ int main(int argc, char **argv) {
 
   // Only run the intro tests for the first index in
   // sharded comprehensive mode.
-  if (my_index == 0) { 
+  if (!MAKE_COMPREHENSIVE && my_index == 0) { 
     RunGameToCollage(dw4);
     RunGameToCollage(kirby);
     RunGameToCollage(banditkings);
@@ -751,19 +776,22 @@ int main(int argc, char **argv) {
     RunGameToCollage(escape);
   }
  
-  collage.Flush();
+  if (write_collage)
+    collage.Flush();
 
   if (COMPREHENSIVE) {
     printf("Now COMPREHENSIVE tests.\n");
-    vector<string> romlines = ReadFileToLines("roms/roms.txt");
+    vector<string> romlines = ReadFileToLines(romdir + "roms.txt");
     const string id = 
       (modulus == 1) ? "" : StringPrintf("(%d|%d) ", my_index, modulus);
     // We write this each time we run the comprehensive test because
-    // it's so expensive anyway, but it shouldn't ever change now.
-    const string logfile = StringPrintf("comprehensive-%d-of-%d.txt",
-					my_index, modulus);
-    FILE *out = fopen(logfile.c_str(), "wb");
-    if (!out) abort();
+    // it's so expensive anyway.
+    output_file = output_file.empty() ?
+      StringPrintf("comprehensive-%d-of-%d.txt",
+		   my_index, modulus) : output_file;
+    
+    FILE *out = fopen(output_file.c_str(), "wb");
+    CHECK(out != nullptr) << "Unable to open file " << output_file;
     for (int line_num = 0; line_num < romlines.size(); line_num++) {
       if (line_num % modulus != my_index) continue;
       string line = romlines[line_num];
@@ -781,7 +809,7 @@ int main(int argc, char **argv) {
 	stringstream(c) >> image_after_inputs;
 	stringstream(d) >> image_after_random;
         Game game{
-          (string)"roms/" + filename,
+          romdir + filename,
             RLE::Decompress({ 101, 0, 4, 2, 3, 3, 2, 1, 50, 0, }),
             kEveryGameUponLoad,
             after_inputs,
@@ -811,7 +839,9 @@ int main(int argc, char **argv) {
       }
     }
     fclose(out);
-    collage.Flush();
+    if (write_collage) {
+      collage.Flush();
+    }
   }
 
   const int64 end_us = TimeUsec();

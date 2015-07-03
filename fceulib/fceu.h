@@ -86,8 +86,8 @@ struct FCEU {
   readfunc ARead[0x10000];
   writefunc BWrite[0x10000];
 
-  void (*GameInterface)(GI h);
-  void (*GameStateRestore)(int version);
+  void (*GameInterface)(GI h) = nullptr;
+  void (*GameStateRestore)(int version) = nullptr;
 
   FCEUGI *GameInfo = nullptr;
 

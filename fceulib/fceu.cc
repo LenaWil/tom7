@@ -52,6 +52,9 @@
 #include <fstream>
 #include <sstream>
 
+// XXX
+#include "base/logging.h"
+
 using namespace std;
 
 // TODO: Delete.
@@ -62,9 +65,13 @@ FCEUGI::FCEUGI() { }
 FCEUGI::~FCEUGI() { }
 
 void FCEU::FCEU_CloseGame() {
+  fprintf(stderr, "FCEU_CloseGame.. %p\n", GameInfo);
   if (GameInfo != nullptr) {
+    fprintf(stderr, "GameInterface %p.\n", GameInterface);
+    CHECK(GameInterface != nullptr);
     GameInterface(GI_CLOSE);
 
+    fprintf(stderr, "ResetExState.\n");
     ResetExState(0,0);
 
     //clear screen when game is closed
@@ -74,6 +81,7 @@ void FCEU::FCEU_CloseGame() {
     delete GameInfo;
     GameInfo = nullptr;
   }
+  fprintf(stderr, "Closegame done.\n");
 }
 
 static DECLFW(BNull) {
@@ -124,6 +132,8 @@ void FCEU::AllocBuffers() {
 }
 
 void FCEU::FreeBuffers() {
+  fprintf(stderr, "FreeBuffers %p %p %p %p\n",
+	  GameMemBlock, RAM, XBuf, XBackBuf);
   free(GameMemBlock);
   free(RAM);
   free(XBuf);
@@ -200,7 +210,7 @@ FCEUGI *FCEU::FCEUI_LoadGame(const char *name, int OverwriteVidMode) {
     goto endlseq;
   if (fceulib__fds.FDSLoad(name, fp))
     goto endlseq;
-
+  
   FCEU_PrintError("An error occurred while loading the file.");
   FCEU_fclose(fp);
 
@@ -236,6 +246,9 @@ bool FCEU::FCEUI_Initialize() {
 
   AllocBuffers();
 
+  // XXX.
+  GameInterface = (void (*)(GI))0xDEADBEEF;
+  
   X.Init();
 
   return true;
@@ -316,6 +329,7 @@ void FCEU::PowerNES() {
 
   // Have the external game hardware "powered" after the internal NES
   // stuff. Needed for the NSF code and VS System code.
+  fprintf(stderr, "GameInterface on power: %p\n", GameInterface);
   GameInterface(GI_POWER);
   if (GameInfo->type==GIT_VSUNI)
     fceulib__vsuni.FCEU_VSUniPower();
