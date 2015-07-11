@@ -80,7 +80,7 @@ static DECLFR(VSSecRead) {
 
 DECLFR_RET VSUni::VSSecRead_Direct(DECLFR_ARGS) {
   switch(A) {
-  case 0x5e00: VSindex=0; return X.DB;
+  case 0x5e00: VSindex=0; return fceulib__.X->DB;
   case 0x5e01: return secptr[(VSindex++)&0x1F];
   }
   return 0x00;
@@ -149,7 +149,7 @@ DECLFR_RET VSUni::XevRead_Direct(DECLFR_ARGS) {
     xevselect ^= 1;
     return xevselect ? 0x37 : 0x3E;
   }
-  return X.DB;
+  return fceulib__.X->DB;
 }
 
 void VSUni::FCEU_VSUniSwap(uint8 *j0, uint8 *j1) {

@@ -52,7 +52,7 @@ static void BandaiIRQHook(int a)
     IRQCount -= a;
     if(IRQCount<0)
     {
-      X.IRQBegin(FCEU_IQEXT);
+      fceulib__.X->IRQBegin(FCEU_IQEXT);
       IRQa = 0;
       IRQCount = -1;
     }
@@ -91,7 +91,7 @@ static DECLFW(BandaiWrite)
   else
     switch(A)
     {
-      case 0x0A: X.IRQEnd(FCEU_IQEXT); IRQa=V&1; IRQCount=IRQLatch; break;
+      case 0x0A: fceulib__.X->IRQEnd(FCEU_IQEXT); IRQa=V&1; IRQCount=IRQLatch; break;
       case 0x0B: IRQLatch&=0xFF00; IRQLatch|=V;  break;
       case 0x0C: IRQLatch&=0xFF; IRQLatch|=V<<8; break;
       case 0x0D: break;// Serial EEPROM control port
@@ -114,7 +114,7 @@ void Mapper16_Init(CartInfo *info)
 {
   is153=0;
   info->Power=BandaiPower;
-  X.MapIRQHook=BandaiIRQHook;
+  fceulib__.X->MapIRQHook=BandaiIRQHook;
   fceulib__.fceu->GameStateRestore=StateRestore;
   AddExState(&StateRegs, ~0, 0, 0);
 }
@@ -142,7 +142,7 @@ void Mapper153_Init(CartInfo *info)
   is153=1;
   info->Power=M153Power;
   info->Close=M153Close;
-  X.MapIRQHook=BandaiIRQHook;
+  fceulib__.X->MapIRQHook=BandaiIRQHook;
 
   WRAMSIZE=8192;
   WRAM=(uint8*)FCEU_gmalloc(WRAMSIZE);
@@ -338,7 +338,7 @@ void Mapper157_Init(CartInfo *info)
 {
   is153=0;
   info->Power=M157Power;
-  X.MapIRQHook=BarcodeIRQHook;
+  fceulib__.X->MapIRQHook=BarcodeIRQHook;
 
   fceulib__.fceu->GameInfo->cspecial = SIS_DATACH;
 

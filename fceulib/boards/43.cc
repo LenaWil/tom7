@@ -51,7 +51,7 @@ static DECLFW(M43Write)
   switch(A&0xf1ff) {
     case 0x4022: reg=transo[V&7]; Sync(); break;
     case 0x8122:                                                            // hacked version
-    case 0x4122: IRQa=V&1; X.IRQEnd(FCEU_IQEXT); IRQCount=0; break;     // original version
+    case 0x4122: IRQa=V&1; fceulib__.X->IRQEnd(FCEU_IQEXT); IRQCount=0; break;     // original version
   }
 }
 
@@ -74,7 +74,7 @@ static void M43IRQHook(int a)
     if(IRQCount>=4096)
     {
       IRQa=0;
-      X.IRQBegin(FCEU_IQEXT);
+      fceulib__.X->IRQBegin(FCEU_IQEXT);
     }
 }
 
@@ -87,7 +87,7 @@ void Mapper43_Init(CartInfo *info)
 {
   info->Reset=M43Reset;
   info->Power=M43Power;
-  X.MapIRQHook=M43IRQHook;
+  fceulib__.X->MapIRQHook=M43IRQHook;
   fceulib__.fceu->GameStateRestore=StateRestore;
   AddExState(&StateRegs, ~0, 0, 0);
 }

@@ -43,7 +43,7 @@ static DECLFW(Mapper67_write) {
     case 0xd800:
       suntoggle=0;
       fceulib__.ines->iNESIRQa=V&0x10;
-      X.IRQEnd(FCEU_IQEXT);
+      fceulib__.X->IRQEnd(FCEU_IQEXT);
       break;
 
     case 0xe800:
@@ -63,7 +63,7 @@ static void SunIRQHook(int a) {
   if(fceulib__.ines->iNESIRQa) {
     fceulib__.ines->iNESIRQCount-=a;
     if(fceulib__.ines->iNESIRQCount<=0) {
-      X.IRQBegin(FCEU_IQEXT);
+      fceulib__.X->IRQBegin(FCEU_IQEXT);
       fceulib__.ines->iNESIRQa=0;
       fceulib__.ines->iNESIRQCount=0xFFFF;
     }
@@ -72,5 +72,5 @@ static void SunIRQHook(int a) {
 
 void Mapper67_init(void) {
   fceulib__.fceu->SetWriteHandler(0x8000,0xffff,Mapper67_write);
-  X.MapIRQHook=SunIRQHook;
+  fceulib__.X->MapIRQHook=SunIRQHook;
 }

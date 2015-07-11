@@ -64,10 +64,10 @@ static DECLFR(S74LS374NRead)
 {
   uint8 ret;
   if((A&0x4100)==0x4100)
-//	  ret=(X.DB&0xC0)|((~cmd)&0x3F);
+//	  ret=(fceulib__.X->DB&0xC0)|((~cmd)&0x3F);
     ret=((~cmd)&0x3F)^dip;
   else
-    ret=X.DB;
+    ret=fceulib__.X->DB;
   return ret;
 }
 
@@ -412,7 +412,7 @@ static DECLFW(TCU02Write)
 
 static DECLFR(TCU02Read)
 {
-  return (latch[0]&0x3F)|(X.DB&0xC0);
+  return (latch[0]&0x3F)|(fceulib__.X->DB&0xC0);
 }
 
 static void TCU02Power(void)
@@ -442,9 +442,9 @@ static DECLFR(TCA01Read)
 {
   uint8 ret;
   if((A&0x4100)==0x4100)
-    ret=(X.DB&0xC0)|((~A)&0x3F);
+    ret=(fceulib__.X->DB&0xC0)|((~A)&0x3F);
   else
-    ret=X.DB;
+    ret=fceulib__.X->DB;
   return ret;
 }
 

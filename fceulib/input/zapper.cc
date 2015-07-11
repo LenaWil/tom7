@@ -27,64 +27,66 @@
 
 ZAPPER ZD[2];
 
-static void ZapperFrapper(int w, uint8 *bg, uint8 *spr, 
-			  uint32 linets, int final) {
-  int xs,xe;
-  int zx,zy;
+static void ZapperFrapper(int w, uint8 *bg, uint8 *spr, uint32 linets,
+                          int final) {
+  int xs, xe;
+  int zx, zy;
 
   if (!bg) {
     // New line, so reset stuff.
-    ZD[w].zappo=0;
+    ZD[w].zappo = 0;
     return;
   }
-  xs=ZD[w].zappo;
-  xe=final;
+  xs = ZD[w].zappo;
+  xe = final;
 
-  zx=ZD[w].mzx;
-  zy=ZD[w].mzy;
+  zx = ZD[w].mzx;
+  zy = ZD[w].mzy;
 
-  if (xe>256) xe=256;
+  if (xe > 256) xe = 256;
 
-  if (fceulib__.ppu->scanline>=(zy-4) && fceulib__.ppu->scanline<=(zy+4)) {
-    while (xs<xe) {
-      uint8 a1,a2;
+  if (fceulib__.ppu->scanline >= (zy - 4) &&
+      fceulib__.ppu->scanline <= (zy + 4)) {
+    while (xs < xe) {
+      uint8 a1, a2;
       uint32 sum;
-      if (xs<=(zx+4) && xs>=(zx-4)) {
-	a1=bg[xs];
-	if (spr) {
-	  a2=spr[xs];
+      if (xs <= (zx + 4) && xs >= (zx - 4)) {
+        a1 = bg[xs];
+        if (spr) {
+          a2 = spr[xs];
 
-	  if (!(a2&0x80))
-	    if (!(a2&0x40) || (a1&64))
-	      a1=a2;
-	}
-	a1&=63;
+          if (!(a2 & 0x80))
+            if (!(a2 & 0x40) || (a1 & 64)) a1 = a2;
+        }
+        a1 &= 63;
 
-	sum = 
-	  fceulib__.palette->palo[a1].r + 
-	  fceulib__.palette->palo[a1].g + 
+        sum =
+	  fceulib__.palette->palo[a1].r +
+	  fceulib__.palette->palo[a1].g +
 	  fceulib__.palette->palo[a1].b;
-	if (sum>=100*3) {
-	  ZD[w].zaphit=((uint64)linets+(xs+16)*(fceulib__.fceu->PAL?15:16))/48+fceulib__.fceu->timestampbase; 
-	  goto endo;
-	}
-      }   
+        if (sum >= 100 * 3) {
+          ZD[w].zaphit =
+              ((uint64)linets + (xs + 16) * (fceulib__.fceu->PAL ? 15 : 16)) /
+                  48 +
+              fceulib__.fceu->timestampbase;
+          goto endo;
+        }
+      }
       xs++;
     }
   }
- endo:
-  ZD[w].zappo=final;
+endo:
+  ZD[w].zappo = final;
 
-  //if this was a miss, clear out the hit
-  if (ZD[w].mzb&2)
-    ZD[w].zaphit=0;
-        
-}      
+  // if this was a miss, clear out the hit
+  if (ZD[w].mzb & 2) ZD[w].zaphit = 0;
+}
 
 static inline int CheckColor(int w) {
   fceulib__.ppu->FCEUPPU_LineUpdate();
 
-  if ((ZD[w].zaphit+100)>=(fceulib__.fceu->timestampbase+X.timestamp)) {
+  if ((ZD[w].zaphit + 100) >=
+      (fceulib__.fceu->timestampbase + fceulib__.X->timestamp)) {
     return 0;
   }
 
@@ -92,61 +94,57 @@ static inline int CheckColor(int w) {
 }
 
 static uint8 ReadZapperVS(int w) {
-  uint8 ret=0;
+  uint8 ret = 0;
 
-  if (ZD[w].zap_readbit==4) ret=1;
+  if (ZD[w].zap_readbit == 4) ret = 1;
 
-  if (ZD[w].zap_readbit==7) {
-    if (ZD[w].bogo)
-      ret|=0x1;
+  if (ZD[w].zap_readbit == 7) {
+    if (ZD[w].bogo) ret |= 0x1;
   }
-  if (ZD[w].zap_readbit==6) {
-    if (!CheckColor(w))
-      ret|=0x1;
+  if (ZD[w].zap_readbit == 6) {
+    if (!CheckColor(w)) ret |= 0x1;
   }
-  ZD[w].zap_readbit++; 
+  ZD[w].zap_readbit++;
   return ret;
 }
 
-static void StrobeZapperVS(int w) {                        
-  ZD[w].zap_readbit=0;
+static void StrobeZapperVS(int w) {
+  ZD[w].zap_readbit = 0;
 }
 
 static uint8 ReadZapper(int w) {
-  uint8 ret=0;
-  if (ZD[w].bogo)
-    ret|=0x10;
-  if (CheckColor(w))
-    ret|=0x8;
+  uint8 ret = 0;
+  if (ZD[w].bogo) ret |= 0x10;
+  if (CheckColor(w)) ret |= 0x8;
   return ret;
 }
 
 static void DrawZapper(int w, uint8 *buf, int arg) {
-  FCEU_DrawGunSight(buf, ZD[w].mzx,ZD[w].mzy);
+  FCEU_DrawGunSight(buf, ZD[w].mzx, ZD[w].mzy);
 }
 
 static void UpdateZapper(int w, void *data, int arg) {
-  uint32 *ptr=(uint32 *)data;
+  uint32 *ptr = (uint32 *)data;
 
-  bool newclicked = (ptr[2]&3)!=0;
-  bool oldclicked = (ZD[w].lastInput)!=0;
+  bool newclicked = (ptr[2] & 3) != 0;
+  bool oldclicked = (ZD[w].lastInput) != 0;
 
   if (ZD[w].bogo) {
-    ZD[w].bogo--;	
+    ZD[w].bogo--;
   }
 
-  ZD[w].lastInput = ptr[2]&3;
+  ZD[w].lastInput = ptr[2] & 3;
 
-  //woah.. this looks like broken bit logic.
+  // woah.. this looks like broken bit logic.
   if (newclicked && !oldclicked) {
-    ZD[w].bogo=5;
-    ZD[w].mzb=ptr[2];
-    ZD[w].mzx=ptr[0];
-    ZD[w].mzy=ptr[1];
+    ZD[w].bogo = 5;
+    ZD[w].mzb = ptr[2];
+    ZD[w].mzx = ptr[0];
+    ZD[w].mzy = ptr[1];
   }
 }
 
-static void LogZapper(int w, MovieRecord* mr) {
+static void LogZapper(int w, MovieRecord *mr) {
   mr->zappers[w].x = ZD[w].mzx;
   mr->zappers[w].y = ZD[w].mzy;
   mr->zappers[w].b = ZD[w].mzb;
@@ -154,7 +152,7 @@ static void LogZapper(int w, MovieRecord* mr) {
   mr->zappers[w].zaphit = ZD[w].zaphit;
 }
 
-static void LoadZapper(int w, MovieRecord* mr) {
+static void LoadZapper(int w, MovieRecord *mr) {
   ZD[w].mzx = mr->zappers[w].x;
   ZD[w].mzy = mr->zappers[w].y;
   ZD[w].mzb = mr->zappers[w].b;
@@ -162,17 +160,15 @@ static void LoadZapper(int w, MovieRecord* mr) {
   ZD[w].zaphit = mr->zappers[w].zaphit;
 }
 
-
-static INPUTC ZAPC = 
-  {ReadZapper,0,0,UpdateZapper,ZapperFrapper,DrawZapper,LogZapper,LoadZapper};
-static INPUTC ZAPVSC = 
-  {ReadZapperVS,0,StrobeZapperVS,UpdateZapper,ZapperFrapper,DrawZapper,
-   LogZapper,LoadZapper};
+static INPUTC ZAPC = {ReadZapper,    0,          0,         UpdateZapper,
+                      ZapperFrapper, DrawZapper, LogZapper, LoadZapper};
+static INPUTC ZAPVSC = {ReadZapperVS,  0,          StrobeZapperVS, UpdateZapper,
+                        ZapperFrapper, DrawZapper, LogZapper,      LoadZapper};
 
 INPUTC *FCEU_InitZapper(int w) {
-  memset(&ZD[w],0,sizeof(ZAPPER));
+  memset(&ZD[w], 0, sizeof(ZAPPER));
   if (fceulib__.fceu->GameInfo->type == GIT_VSUNI)
-    return(&ZAPVSC);
+    return &ZAPVSC;
   else
-    return(&ZAPC);
+    return &ZAPC;
 }

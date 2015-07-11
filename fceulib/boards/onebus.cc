@@ -133,7 +133,7 @@ static DECLFW(UNLOneBusWriteCPU410X)
   {
   case 0x1: IRQLatch = V & 0xfe; break;
   case 0x2: IRQReload = 1; break;
-  case 0x3: X.IRQEnd(FCEU_IQEXT); IRQa = 0; break;
+  case 0x3: fceulib__.X->IRQEnd(FCEU_IQEXT); IRQa = 0; break;
   case 0x4: IRQa = 1; break;
   default:
     cpu410x[A & 0xf] = V;
@@ -172,7 +172,7 @@ static DECLFW(UNLOneBusWriteMMC3)
   case 0xa000: mirror = V; CSync(); break;
   case 0xc000: IRQLatch = V & 0xfe; break;
   case 0xc001: IRQReload = 1; break;
-  case 0xe000: X.IRQEnd(FCEU_IQEXT); IRQa = 0; break;
+  case 0xe000: fceulib__.X->IRQEnd(FCEU_IQEXT); IRQa = 0; break;
   case 0xe001: IRQa = 1; break;
   }
 }
@@ -190,7 +190,7 @@ static void UNLOneBusIRQHook(void)
  if(count && !IRQCount)
  {
     if(IRQa)
-       X.IRQBegin(FCEU_IQEXT);
+       fceulib__.X->IRQBegin(FCEU_IQEXT);
  }
 }
 
@@ -216,7 +216,7 @@ static DECLFW(UNLOneBusWriteAPU40XX)
       pcm_enable = V&0x10;
       if(pcm_irq)
       {
-        X.IRQEnd(FCEU_IQEXT);
+        fceulib__.X->IRQEnd(FCEU_IQEXT);
         pcm_irq = 0;
       }
       if(pcm_enable)
@@ -255,7 +255,7 @@ static void UNLOneBusCpuHook(int a)
 	  {
 	    pcm_irq = 0x80;
 		pcm_enable = 0;
-	    X.IRQBegin(FCEU_IQEXT);
+	    fceulib__.X->IRQBegin(FCEU_IQEXT);
  	  }
 	  else
  	  {
@@ -322,7 +322,7 @@ void UNLOneBus_Init(CartInfo *info) {
   }
 
   fceulib__.ppu->GameHBIRQHook=UNLOneBusIRQHook;
-  X.MapIRQHook=UNLOneBusCpuHook;
+  fceulib__.X->MapIRQHook=UNLOneBusCpuHook;
   fceulib__.fceu->GameStateRestore=StateRestore;
   AddExState(&StateRegs, ~0, 0, 0);
 }

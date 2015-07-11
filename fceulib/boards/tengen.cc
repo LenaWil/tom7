@@ -54,7 +54,7 @@ static void RAMBO1_IRQHook(int a)
     smallcount-=4;
     IRQCount--;
     if (IRQCount==0xFF)
-      if (IRQa) X.IRQBegin(FCEU_IQEXT);
+      if (IRQa) fceulib__.X->IRQBegin(FCEU_IQEXT);
   }
 }
 
@@ -66,7 +66,7 @@ static void RAMBO1_hb(void) {
   if (IRQCount==0xFF) {
     if (IRQa) {
       rmode = 1;
-      X.IRQBegin(FCEU_IQEXT);
+      fceulib__.X->IRQBegin(FCEU_IQEXT);
     }
   }
 }
@@ -120,7 +120,7 @@ static DECLFW(RAMBO1_write)
                  IRQmode=V&1;
                  break;
     case 0xE000: IRQa=0;
-                 X.IRQEnd(FCEU_IQEXT);
+                 fceulib__.X->IRQEnd(FCEU_IQEXT);
                  if (rmode==1)
                    IRQCount=IRQLatch;
                  break;
@@ -146,7 +146,7 @@ static void RAMBO1_init(void) {
   fceulib__.cart->setmirror(1);
   Synco();
   fceulib__.ppu->GameHBIRQHook=RAMBO1_hb;
-  X.MapIRQHook=RAMBO1_IRQHook;
+  fceulib__.X->MapIRQHook=RAMBO1_IRQHook;
   fceulib__.fceu->GameStateRestore=RAMBO1_Restore;
   fceulib__.fceu->SetWriteHandler(0x8000,0xffff,RAMBO1_write);
   AddExState(Rambo_StateRegs, ~0, 0, 0);

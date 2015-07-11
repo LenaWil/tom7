@@ -31,7 +31,7 @@ static void FFEIRQHook(int a)
    fceulib__.ines->iNESIRQCount+=a;
    if(fceulib__.ines->iNESIRQCount>=0x10000)
    {
-    X.IRQBegin(FCEU_IQEXT);
+    fceulib__.X->IRQBegin(FCEU_IQEXT);
     fceulib__.ines->iNESIRQa=0;
     fceulib__.ines->iNESIRQCount=0;
    }
@@ -43,7 +43,7 @@ DECLFW(Mapper6_write) {
     switch(A) {
     case 0x42FF:fceulib__.ines->MIRROR_SET((V>>4)&1);break;
     case 0x42FE:fceulib__.ines->onemir((V>>3)&2); FFEmode=V&0x80;break;
-    case 0x4501:fceulib__.ines->iNESIRQa=0;X.IRQEnd(FCEU_IQEXT);break;
+    case 0x4501:fceulib__.ines->iNESIRQa=0;fceulib__.X->IRQEnd(FCEU_IQEXT);break;
     case 0x4502:fceulib__.ines->iNESIRQCount&=0xFF00;fceulib__.ines->iNESIRQCount|=V;break;
     case 0x4503:fceulib__.ines->iNESIRQCount&=0xFF;fceulib__.ines->iNESIRQCount|=V<<8;fceulib__.ines->iNESIRQa=1;break;
     }
@@ -72,7 +72,7 @@ void Mapper6_StateRestore(int version) {
 }
 
 void Mapper6_init(void) {
-  X.MapIRQHook=FFEIRQHook;
+  fceulib__.X->MapIRQHook=FFEIRQHook;
   ROM_BANK16(0xc000,7);
 
   fceulib__.fceu->SetWriteHandler(0x4020,0x5fff,Mapper6_write);

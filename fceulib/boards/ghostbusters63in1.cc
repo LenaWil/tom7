@@ -58,7 +58,7 @@ static DECLFW(BMCGhostbusters63in1Write) {
 static DECLFR(BMCGhostbusters63in1Read)
 {
   if(bank==1)
-    return X.DB;
+    return fceulib__.X->DB;
   else
     return Cart::CartBR(A);
 }

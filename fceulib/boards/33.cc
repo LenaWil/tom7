@@ -67,7 +67,7 @@ static DECLFW(M48Write) {
 	switch (A & 0xF003) {
 	case 0xC000: IRQLatch = V; break;
 	case 0xC001: IRQCount = IRQLatch; break;
-	case 0xC003: IRQa = 0; X.IRQEnd(FCEU_IQEXT); break;
+	case 0xC003: IRQa = 0; fceulib__.X->IRQEnd(FCEU_IQEXT); break;
 	case 0xC002: IRQa = 1; break;
 	case 0xE000: mirr = ((V >> 6) & 1) ^ 1; Sync(); break;
 	}
@@ -90,7 +90,7 @@ static void M48IRQ(void) {
 	if (IRQa) {
 		IRQCount++;
 		if (IRQCount == 0x100) {
-			X.IRQBegin(FCEU_IQEXT);
+			fceulib__.X->IRQBegin(FCEU_IQEXT);
 			IRQa = 0;
 		}
 	}

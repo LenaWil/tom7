@@ -52,10 +52,10 @@ static DECLFW(Mapper73_write) {
 	fceulib__.ines->iNESIRQCount=IRQr;
       }
     }
-    X.IRQEnd(FCEU_IQEXT);
+    fceulib__.X->IRQEnd(FCEU_IQEXT);
     break;
   case 0xd000:
-    X.IRQEnd(FCEU_IQEXT);
+    fceulib__.X->IRQEnd(FCEU_IQEXT);
     fceulib__.ines->iNESIRQa=IRQx;
     break;
 
@@ -73,7 +73,7 @@ static void Mapper73IRQHook(int a) {
       if (temp == 0xFF) {
 	fceulib__.ines->iNESIRQCount = IRQr;
 	fceulib__.ines->iNESIRQCount |= (uint16)(IRQr & 0xFF);
-	X.IRQBegin(FCEU_IQEXT);
+	fceulib__.X->IRQBegin(FCEU_IQEXT);
       } else {
 	temp++;
 	fceulib__.ines->iNESIRQCount |= temp;
@@ -82,7 +82,7 @@ static void Mapper73IRQHook(int a) {
       //16 bit mode
       if (fceulib__.ines->iNESIRQCount == 0xFFFF) {
 	fceulib__.ines->iNESIRQCount = IRQr;
-	X.IRQBegin(FCEU_IQEXT);
+	fceulib__.X->IRQBegin(FCEU_IQEXT);
       } else {
 	fceulib__.ines->iNESIRQCount++;
       }
@@ -93,7 +93,7 @@ static void Mapper73IRQHook(int a) {
 
 void Mapper73_init(void) {
  fceulib__.fceu->SetWriteHandler(0x8000,0xffff,Mapper73_write);
- X.MapIRQHook = Mapper73IRQHook;
+ fceulib__.X->MapIRQHook = Mapper73IRQHook;
  IRQr = IRQm = IRQx = 0;
 }
 

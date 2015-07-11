@@ -65,31 +65,31 @@ static vector<SFORMAT> sfcpu, sfcpuc;
 static void InitState() {
   if (state_initialized) return;
   sfcpu = {
-    { &X.reg_PC, 2|RLSB, "PC\0" },
-    { &X.reg_A, 1, "A\0\0" },
-    { &X.reg_P, 1, "P\0\0" },
-    { &X.reg_X, 1, "X\0\0" },
-    { &X.reg_Y, 1, "Y\0\0" },
-    { &X.reg_S, 1, "S\0\0" },
+    { &fceulib__.X->reg_PC, 2|RLSB, "PC\0" },
+    { &fceulib__.X->reg_A, 1, "A\0\0" },
+    { &fceulib__.X->reg_P, 1, "P\0\0" },
+    { &fceulib__.X->reg_X, 1, "X\0\0" },
+    { &fceulib__.X->reg_Y, 1, "Y\0\0" },
+    { &fceulib__.X->reg_S, 1, "S\0\0" },
     { &fceulib__.fceu->RAM, 0x800 | FCEUSTATE_INDIRECT, "RAM" },
     { 0 },
   };
 
   sfcpuc = {
-    { &X.jammed, 1, "JAMM" },
-    { &X.IRQlow, 4|RLSB, "IQLB" },
-    { &X.tcount, 4|RLSB, "ICoa" },
-    { &X.count,  4|RLSB, "ICou" },
+    { &fceulib__.X->jammed, 1, "JAMM" },
+    { &fceulib__.X->IRQlow, 4|RLSB, "IQLB" },
+    { &fceulib__.X->tcount, 4|RLSB, "ICoa" },
+    { &fceulib__.X->count,  4|RLSB, "ICou" },
     { &fceulib__.fceu->timestampbase, 
       sizeof (fceulib__.fceu->timestampbase) | RLSB, "TSBS" },
     // alternative to the "quick and dirty hack"
-    { &X.reg_PI, 1, "MooP" },
+    { &fceulib__.X->reg_PI, 1, "MooP" },
     // This was not included in FCEUltra, but I can't see any
     // reason why it shouldn't be (it's updated with each memory
     // read and used by some boards), and execution diverges if
     // it's not saved/restored. (See "Skull & Crossbones" around
     // FCEUlib revision 2379.)
-    { &X.DB, 1, "DBDB" },
+    { &fceulib__.X->DB, 1, "DBDB" },
     { 0 }
   };
 

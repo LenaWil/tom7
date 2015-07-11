@@ -1206,5 +1206,3 @@ void X6502::Run(int32 cycles) {
   TRACEF("Exiting X6502_Run normally: " TRACE_MACHINEFMT, TRACE_MACHINEARGS);
   TRACEA(RAM, 0x800);
 }
-
-X6502 X;

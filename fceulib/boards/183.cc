@@ -75,7 +75,7 @@ static DECLFW(M183Write) {
       break;
     case 0xF000: IRQCount=((IRQCount&0xF0)|(V&0xF)); break;
     case 0xF004: IRQCount=((IRQCount&0x0F)|((V&0xF)<<4)); break;
-    case 0xF008: IRQa=V; if (!V)IRQPre=0; X.IRQEnd(FCEU_IQEXT); break;
+    case 0xF008: IRQa=V; if (!V)IRQPre=0; fceulib__.X->IRQEnd(FCEU_IQEXT); break;
     case 0xF00C: IRQPre=16; break;
     }
   }
@@ -85,7 +85,7 @@ static void M183IRQCounter(void) {
   if (IRQa) {
     IRQCount++;
     if ((IRQCount-IRQPre)==238)
-      X.IRQBegin(FCEU_IQEXT);
+      fceulib__.X->IRQBegin(FCEU_IQEXT);
   }
 }
 

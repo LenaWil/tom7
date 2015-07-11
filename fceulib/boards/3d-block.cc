@@ -52,7 +52,7 @@ static DECLFW(UNL3DBlockWrite)
     case 0x4800: reg[0]=V; break;
     case 0x4900: reg[1]=V; break;
     case 0x4a00: reg[2]=V; break;
-    case 0x4e00: reg[3]=V; IRQCount=Count; IRQPause=Pause; IRQa=1; X.IRQEnd(FCEU_IQEXT); break;
+    case 0x4e00: reg[3]=V; IRQCount=Count; IRQPause=Pause; IRQa=1; fceulib__.X->IRQEnd(FCEU_IQEXT); break;
   }
 }
 
@@ -81,13 +81,13 @@ static void UNL3DBlockIRQHook(int a)
       if(IRQPause>0)
       {
         IRQPause-=a;
-        X.IRQBegin(FCEU_IQEXT);
+        fceulib__.X->IRQBegin(FCEU_IQEXT);
       }
       else
       {
         IRQCount=Count;
         IRQPause=Pause;
-        X.IRQEnd(FCEU_IQEXT);
+        fceulib__.X->IRQEnd(FCEU_IQEXT);
       }
     }
   }
@@ -102,7 +102,7 @@ void UNL3DBlock_Init(CartInfo *info)
 {
   info->Power=UNL3DBlockPower;
   info->Reset=UNL3DBlockReset;
-  X.MapIRQHook=UNL3DBlockIRQHook;
+  fceulib__.X->MapIRQHook=UNL3DBlockIRQHook;
   fceulib__.fceu->GameStateRestore=StateRestore;
   AddExState(&StateRegs, ~0, 0, 0);
 }

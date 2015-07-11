@@ -103,7 +103,7 @@ void FDS::FDSInit() {
   fceulib__.cart->setprg32r(1,0x6000,0);   // 32KB RAM
   fceulib__.cart->setchr8(0);     // 8KB CHR RAM
 
-  X.MapIRQHook = FDSFix_Trampoline;
+  fceulib__.X->MapIRQHook = FDSFix_Trampoline;
   fceulib__.fceu->GameStateRestore=FDSStateRestore_Trampoline;
 
   fceulib__.fceu->SetReadHandler(0x4030,0x4030,FDSRead4030);
@@ -163,7 +163,7 @@ void FDS::FDSFix(int a) {
 	IRQCount=IRQLatch;
       }
       //IRQCount=IRQLatch; //0xFFFF;
-      X.IRQBegin(FCEU_IQEXT);
+      fceulib__.X->IRQBegin(FCEU_IQEXT);
       //printf("IRQ: %d\n",timestamp);
       //   printf("IRQ: %d\n",scanline);
     }
@@ -172,7 +172,7 @@ void FDS::FDSFix(int a) {
     DiskSeekIRQ-=a;
     if (DiskSeekIRQ<=0) {
       if (FDSRegs[5]&0x80) {
-	X.IRQBegin(FCEU_IQEXT2);
+	fceulib__.X->IRQBegin(FCEU_IQEXT2);
       }
     }
   }
@@ -182,12 +182,12 @@ static DECLFR(FDSRead4030) {
   uint8 ret = 0;
 
   /* Cheap hack. */
-  TRACEF("FDSRead IRQlow %02x", X.IRQlow);
-  if (X.IRQlow&FCEU_IQEXT) ret|=1;
-  if (X.IRQlow&FCEU_IQEXT2) ret|=2;
+  TRACEF("FDSRead IRQlow %02x", fceulib__.X->IRQlow);
+  if (fceulib__.X->IRQlow&FCEU_IQEXT) ret|=1;
+  if (fceulib__.X->IRQlow&FCEU_IQEXT2) ret|=2;
 
-  X.IRQEnd(FCEU_IQEXT);
-  X.IRQEnd(FCEU_IQEXT2);
+  fceulib__.X->IRQEnd(FCEU_IQEXT);
+  fceulib__.X->IRQEnd(FCEU_IQEXT2);
   return ret;
 }
 
@@ -201,7 +201,7 @@ DECLFR_RET FDS::FDSRead4013_Direct(DECLFR_ARGS) {
 
     if (DiskPtr<64999) DiskPtr++;
     DiskSeekIRQ=150;
-    X.IRQEnd(FCEU_IQEXT2);
+    fceulib__.X->IRQEnd(FCEU_IQEXT2);
   }
   return fdsread4013_z;
 }
@@ -213,7 +213,7 @@ static DECLFR(FDSRead4032) {
 DECLFR_RET FDS::FDSRead4032_Direct(DECLFR_ARGS) {
   uint8 ret;
 
-  ret=X.DB&~7;
+  ret=fceulib__.X->DB&~7;
   if (InDisk==255)
     ret|=5;
 
@@ -285,10 +285,10 @@ static DECLFR(FDSSRead) {
 
 DECLFR_RET FDS::FDSSRead_Direct(DECLFR_ARGS) {
   switch(A&0xF) {
-  case 0x0:return(fdso.amplitude[0]|(X.DB&0xC0));
-  case 0x2:return(fdso.amplitude[1]|(X.DB&0xC0));
+  case 0x0:return(fdso.amplitude[0]|(fceulib__.X->DB&0xC0));
+  case 0x2:return(fdso.amplitude[1]|(fceulib__.X->DB&0xC0));
   }
-  return(X.DB);
+  return(fceulib__.X->DB);
 }
 
 static DECLFW(FDSSWrite) {
@@ -360,7 +360,7 @@ static DECLFR(FDSWaveRead) {
   return fceulib__.fds->FDSWaveRead_Direct(DECLFR_FORWARD);
 }
 DECLFR_RET FDS::FDSWaveRead_Direct(DECLFR_ARGS) {
-  return fdso.cwave[A&0x3f] | (X.DB&0xC0);
+  return fdso.cwave[A&0x3f] | (fceulib__.X->DB&0xC0);
 }
 
 static DECLFW(FDSWaveWrite) {
@@ -522,19 +522,19 @@ void FDS::FDSWrite_Direct(DECLFW_ARGS) {
   //FCEU_printf("$%04x:$%02x, %d\n",A,V,scanline);
   switch(A) {
   case 0x4020:
-    X.IRQEnd(FCEU_IQEXT);
+    fceulib__.X->IRQEnd(FCEU_IQEXT);
     IRQLatch&=0xFF00;
     IRQLatch|=V;
     //  printf("$%04x:$%02x\n",A,V);
     break;
   case 0x4021:
-    X.IRQEnd(FCEU_IQEXT);
+    fceulib__.X->IRQEnd(FCEU_IQEXT);
     IRQLatch&=0xFF;
     IRQLatch|=V<<8;
     //  printf("$%04x:$%02x\n",A,V);
     break;
   case 0x4022:
-    X.IRQEnd(FCEU_IQEXT);
+    fceulib__.X->IRQEnd(FCEU_IQEXT);
     IRQCount=IRQLatch;
     IRQa=V&3;
     //  printf("$%04x:$%02x\n",A,V);
@@ -552,7 +552,7 @@ void FDS::FDSWrite_Direct(DECLFW_ARGS) {
     }
     break;
   case 0x4025:
-    X.IRQEnd(FCEU_IQEXT2);
+    fceulib__.X->IRQEnd(FCEU_IQEXT2);
     if (InDisk!=255) {
       if (!(V&0x40)) {
 	if (FDSRegs[5]&0x40 && !(V&0x10)) {

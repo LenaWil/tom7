@@ -47,11 +47,11 @@ static DECLFW(UNLKS7032Write)
   switch(A&0xF000)
   {
 //    case 0x8FFF: reg[4]=V; Sync(); break;
-    case 0x8000: X.IRQEnd(FCEU_IQEXT); IRQCount=(IRQCount&0x000F)|(V&0x0F); isirqused = 1; break;
-    case 0x9000: X.IRQEnd(FCEU_IQEXT); IRQCount=(IRQCount&0x00F0)|((V&0x0F)<<4); isirqused = 1; break;
-    case 0xA000: X.IRQEnd(FCEU_IQEXT); IRQCount=(IRQCount&0x0F00)|((V&0x0F)<<8); isirqused = 1; break;
-    case 0xB000: X.IRQEnd(FCEU_IQEXT); IRQCount=(IRQCount&0xF000)|(V<<12); isirqused = 1; break;
-    case 0xC000: if(isirqused) { X.IRQEnd(FCEU_IQEXT); IRQa=1; } break;
+    case 0x8000: fceulib__.X->IRQEnd(FCEU_IQEXT); IRQCount=(IRQCount&0x000F)|(V&0x0F); isirqused = 1; break;
+    case 0x9000: fceulib__.X->IRQEnd(FCEU_IQEXT); IRQCount=(IRQCount&0x00F0)|((V&0x0F)<<4); isirqused = 1; break;
+    case 0xA000: fceulib__.X->IRQEnd(FCEU_IQEXT); IRQCount=(IRQCount&0x0F00)|((V&0x0F)<<8); isirqused = 1; break;
+    case 0xB000: fceulib__.X->IRQEnd(FCEU_IQEXT); IRQCount=(IRQCount&0xF000)|(V<<12); isirqused = 1; break;
+    case 0xC000: if(isirqused) { fceulib__.X->IRQEnd(FCEU_IQEXT); IRQa=1; } break;
     case 0xE000: cmd=V&7; break;
     case 0xF000: reg[cmd]=V; Sync(); break;
   }
@@ -66,7 +66,7 @@ static void UNLSMB2JIRQHook(int a)
     {
       IRQa=0;
       IRQCount=0;
-      X.IRQBegin(FCEU_IQEXT);
+      fceulib__.X->IRQBegin(FCEU_IQEXT);
     }
   }
 }
@@ -87,7 +87,7 @@ static void StateRestore(int version)
 void UNLKS7032_Init(CartInfo *info)
 {
   info->Power=UNLKS7032Power;
-  X.MapIRQHook=UNLSMB2JIRQHook;
+  fceulib__.X->MapIRQHook=UNLSMB2JIRQHook;
   fceulib__.fceu->GameStateRestore=StateRestore;
   AddExState(&StateRegs, ~0, 0, 0);
 }

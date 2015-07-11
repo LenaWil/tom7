@@ -67,7 +67,7 @@ static DECLFW(LH53IRQaWrite)
   IRQa = V&2;
   IRQCount = 0;
   if(!IRQa)
-    X.IRQEnd(FCEU_IQEXT);
+    fceulib__.X->IRQEnd(FCEU_IQEXT);
 }
 
 static void LH53IRQ(int a)
@@ -76,7 +76,7 @@ static void LH53IRQ(int a)
   {
     IRQCount+=a;
     if(IRQCount>7560)
-      X.IRQBegin(FCEU_IQEXT);
+      fceulib__.X->IRQBegin(FCEU_IQEXT);
   }
 }
 
@@ -105,7 +105,7 @@ void LH53_Init(CartInfo *info)
 {
   info->Power=LH53Power;
   info->Close=LH53Close;
-  X.MapIRQHook=LH53IRQ;
+  fceulib__.X->MapIRQHook=LH53IRQ;
   fceulib__.fceu->GameStateRestore=StateRestore;
 
   WRAMSIZE=8192;

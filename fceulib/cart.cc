@@ -127,7 +127,7 @@ DECLFR_RET Cart::CartBROB(DECLFR_ARGS) {
 }
 
 DECLFR_RET Cart::CartBROB_Direct(DECLFR_ARGS) {
-  if (!Page[A>>11]) return X.DB;
+  if (!Page[A>>11]) return fceulib__.X->DB;
   return Page[A>>11][A];
 }
 

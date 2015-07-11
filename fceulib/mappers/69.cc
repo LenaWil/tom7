@@ -36,7 +36,7 @@ static DECLFW(SUN5BWRAM) {
 
 static DECLFR(SUN5AWRAM) {
   if ((sungah&0xC0)==0x40)
-    return X.DB;
+    return fceulib__.X->DB;
   return Cart::CartBROB(A);
 }
 
@@ -102,17 +102,17 @@ static DECLFW(Mapper69_write) {
 	break;
       case 0xd:
 	fceulib__.ines->iNESIRQa=V;
-	X.IRQEnd(FCEU_IQEXT);
+	fceulib__.X->IRQEnd(FCEU_IQEXT);
 	break;
       case 0xe:
 	fceulib__.ines->iNESIRQCount&=0xFF00;
 	fceulib__.ines->iNESIRQCount|=V;
-	X.IRQEnd(FCEU_IQEXT);
+	fceulib__.X->IRQEnd(FCEU_IQEXT);
 	break;
       case 0xf:
 	fceulib__.ines->iNESIRQCount&=0x00FF;
 	fceulib__.ines->iNESIRQCount|=V<<8;
-	X.IRQEnd(FCEU_IQEXT);
+	fceulib__.X->IRQEnd(FCEU_IQEXT);
 	break;
       }
     break;
@@ -192,7 +192,7 @@ static void SunIRQHook(int a) {
   if (fceulib__.ines->iNESIRQa) {
     fceulib__.ines->iNESIRQCount-=a;
     if (fceulib__.ines->iNESIRQCount<=0) {
-      X.IRQBegin(FCEU_IQEXT);
+      fceulib__.X->IRQBegin(FCEU_IQEXT);
       fceulib__.ines->iNESIRQa=0;
       fceulib__.ines->iNESIRQCount=0xFFFF;
     }
@@ -236,7 +236,7 @@ void Mapper69_init(void) {
   fceulib__.fceu->SetWriteHandler(0x6000,0x7fff,SUN5BWRAM);
   fceulib__.fceu->SetReadHandler(0x6000,0x7fff,SUN5AWRAM);
   Mapper69_ESI();
-  X.MapIRQHook=SunIRQHook;
+  fceulib__.X->MapIRQHook=SunIRQHook;
   fceulib__.ines->MapStateRestore=Mapper69_StateRestore;
 }
 

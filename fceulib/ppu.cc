@@ -327,7 +327,7 @@ void PPU::B2000_Direct(DECLFW_ARGS) {
   PPUGenLatch=V;
   if (!(PPU_values[0]&0x80) && (V&0x80) && (PPU_status&0x80)) {
     //     FCEU_printf("Trigger NMI, %d, %d\n",timestamp,ppudead);
-    X.TriggerNMI2();
+    fceulib__.X->TriggerNMI2();
   }
   PPU_values[0]=V;
   TempAddr&=0xF3FF;
@@ -450,7 +450,7 @@ void PPU::B2007_Direct(DECLFW_ARGS) {
     if (PPUNTARAM&(1<<((tmp&0xF00)>>10)))
       vnapage[((tmp&0xF00)>>10)][tmp&0x3FF]=V;
   }
-  //      FCEU_printf("ppu (%04x) %04x:%04x %d, %d\n",X.PC,RefreshAddr,PPUGenLatch,scanline,timestamp);
+  //      FCEU_printf("ppu (%04x) %04x:%04x %d, %d\n",fceulib__.X->PC,RefreshAddr,PPUGenLatch,scanline,timestamp);
   if (INC32) RefreshAddr+=32;
   else RefreshAddr++;
   if (PPU_hook) PPU_hook(RefreshAddr&0x3fff);
@@ -464,7 +464,7 @@ void PPU::B4014_Direct(DECLFW_ARGS) {
   const uint32 t = V << 8;
 
   for (int x = 0; x < 256; x++) {
-    X.DMW(0x2004,X.DMR(t+x));
+    fceulib__.X->DMW(0x2004,fceulib__.X->DMR(t+x));
   }
 }
 
@@ -474,7 +474,7 @@ void PPU::ResetRL(uint8 *target) {
   Plinef=target;
   Pline=target;
   firsttile=0;
-  linestartts=X.timestamp*48+X.count;
+  linestartts=fceulib__.X->timestamp*48+fceulib__.X->count;
   tofix=0;
   FCEUPPU_LineUpdate();
   tofix=1;
@@ -483,8 +483,8 @@ void PPU::ResetRL(uint8 *target) {
 void PPU::FCEUPPU_LineUpdate() {
   if (Pline) {
     const int l = (fceulib__.fceu->PAL ? 
-		   ((X.timestamp*48-linestartts)/15) : 
-		   ((X.timestamp*48-linestartts)>>4) );
+		   ((fceulib__.X->timestamp*48-linestartts)/15) : 
+		   ((fceulib__.X->timestamp*48-linestartts)>>4) );
     RefreshLine(l);
   }
 }
@@ -764,7 +764,7 @@ void PPU::RefreshLine(int lastpixel) {
     }
   }
 
-  TRACEF("After PPU: %d %d", X.reg_PC, refreshaddr_local);
+  TRACEF("After PPU: %d %d", fceulib__.X->reg_PC, refreshaddr_local);
   TRACEF("Moreover: %d %u %u %u %u %d",
          lastpixel, pshift[0], pshift[1], atlatch, refreshaddr_local,
          norecurse);
@@ -853,7 +853,7 @@ void PPU::DoLine() {
 
   if (MMC5Hack && (ScreenON || SpriteON)) MMC5_hb(scanline);
 
-  X.Run(256);
+  fceulib__.X->Run(256);
   EndRL();
 
   if (!renderbg) {
@@ -897,15 +897,15 @@ void PPU::DoLine() {
     FetchSpriteData();
 
   if (GameHBIRQHook && (ScreenON || SpriteON) && ((PPU_values[0]&0x38)!=0x18)) {
-    X.Run(6);
+    fceulib__.X->Run(6);
     Fixit2();
-    X.Run(4);
+    fceulib__.X->Run(4);
     GameHBIRQHook();
-    X.Run(85-16-10);
+    fceulib__.X->Run(85-16-10);
   } else {
-    X.Run(6);  // Tried 65, caused problems with Slalom(maybe others)
+    fceulib__.X->Run(6);  // Tried 65, caused problems with Slalom(maybe others)
     Fixit2();
-    X.Run(85-6-16);
+    fceulib__.X->Run(85-6-16);
 
     // A semi-hack for Star Trek: 25th Anniversary
     if (GameHBIRQHook && (ScreenON || SpriteON) && ((PPU_values[0]&0x38)!=0x18))
@@ -920,7 +920,7 @@ void PPU::DoLine() {
   if (scanline<240) {
     ResetRL(fceulib__.fceu->XBuf+(scanline<<8));
   }
-  X.Run(16);
+  fceulib__.X->Run(16);
 }
 
 #define V_FLIP  0x80
@@ -1371,11 +1371,11 @@ int PPU::FCEUPPU_Loop(int skip) {
   // Needed for Knight Rider, possibly others.
   if (ppudead) {
     memset(fceulib__.fceu->XBuf, 0x80, 256*240);
-    X.Run(scanlines_per_frame*(256+85));
+    fceulib__.X->Run(scanlines_per_frame*(256+85));
     ppudead--;
   } else {
     TRACELOC();
-    X.Run(256+85);
+    fceulib__.X->Run(256+85);
     TRACEA(RAM, 0x800);
 
     PPU_status |= 0x80;
@@ -1387,14 +1387,14 @@ int PPU::FCEUPPU_Loop(int skip) {
     PPU_values[3]=PPUSPL=0;
 
     // I need to figure out the true nature and length of this delay.
-    X.Run(12);
+    fceulib__.X->Run(12);
 
     if (VBlankON)
-      X.TriggerNMI();
+      fceulib__.X->TriggerNMI();
 
-    X.Run((scanlines_per_frame-242)*(256+85)-12);
+    fceulib__.X->Run((scanlines_per_frame-242)*(256+85)-12);
     PPU_status&=0x1f;
-    X.Run(256);
+    fceulib__.X->Run(256);
 
     if (ScreenON || SpriteON) {
       if (GameHBIRQHook && ((PPU_values[0]&0x38)!=0x18))
@@ -1404,7 +1404,7 @@ int PPU::FCEUPPU_Loop(int skip) {
       if (GameHBIRQHook2)
         GameHBIRQHook2();
     }
-    X.Run(85-16);
+    fceulib__.X->Run(85-16);
     if (ScreenON || SpriteON) {
       RefreshAddr=TempAddr;
       if (PPU_hook) PPU_hook(RefreshAddr&0x3fff);
@@ -1414,7 +1414,7 @@ int PPU::FCEUPPU_Loop(int skip) {
     any_sprites_on_line = numsprites = 0;
     ResetRL(fceulib__.fceu->XBuf);
 
-    X.Run(16 - cycle_parity);
+    fceulib__.X->Run(16 - cycle_parity);
     cycle_parity ^= 1;
 
     // n.b. FRAMESKIP results in different behavior in memory, so don't do it.
@@ -1429,7 +1429,7 @@ int PPU::FCEUPPU_Loop(int skip) {
       TRACELOC();
       PPU_status|=0x20;       // Fixes "Bee 52".  Does it break anything?
       if (GameHBIRQHook) {
-        X.Run(256);
+        fceulib__.X->Run(256);
         for (scanline=0;scanline<240;scanline++) {
           if (ScreenON || SpriteON)
             GameHBIRQHook();
@@ -1437,17 +1437,17 @@ int PPU::FCEUPPU_Loop(int skip) {
             TRACELOC();
             PPU_status|=0x40;
           }
-          X.Run((scanline==239)?85:(256+85));
+          fceulib__.X->Run((scanline==239)?85:(256+85));
         }
       } else if (y<240) {
-        X.Run((256+85)*y);
+        fceulib__.X->Run((256+85)*y);
         if (SpriteON) {
           TRACELOC();
           PPU_status|=0x40; // Quick and very dirty hack.
         }
-        X.Run((256+85)*(240-y));
+        fceulib__.X->Run((256+85)*(240-y));
       } else {
-        X.Run((256+85)*240);
+        fceulib__.X->Run((256+85)*240);
       }
     }
 #endif

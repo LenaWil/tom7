@@ -66,7 +66,7 @@ static DECLFW(UNLPEC586Write)
 static DECLFR(UNLPEC586Read)
 {
   FCEU_printf("read %04x\n",A);
-  return (X.DB & 0xD8) | br_tbl[reg[4]>>4];
+  return (fceulib__.X->DB & 0xD8) | br_tbl[reg[4]>>4];
 }
 
 static void UNLPEC586Power(void)

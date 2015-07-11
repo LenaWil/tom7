@@ -45,7 +45,7 @@ static void TransformerIRQHook(int a)
          TransformerChar = i;
        else
          TransformerChar = i | 0x80;
-       X.IRQBegin(FCEU_IQEXT);
+       fceulib__.X->IRQBegin(FCEU_IQEXT);
        memcpy((void *)&oldkeys[0], (void *)TransformerKeys, 256);
        break;
      }
@@ -62,7 +62,7 @@ static DECLFR(TransformerRead)
     case 2: break;
     case 4: break;
   }
-  X.IRQEnd(FCEU_IQEXT);
+  fceulib__.X->IRQEnd(FCEU_IQEXT);
   return ret;
 }
 
@@ -77,7 +77,7 @@ static void TransformerPower(void) {
   fceulib__.fceu->SetWriteHandler(0x6000,0x7FFF,Cart::CartBW);
   fceulib__.fceu->SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
 
-  X.MapIRQHook=TransformerIRQHook;
+  fceulib__.X->MapIRQHook=TransformerIRQHook;
 }
 
 static void TransformerClose(void)

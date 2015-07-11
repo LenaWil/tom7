@@ -27,7 +27,7 @@ static void Mapper50IRQ(int a) {
       fceulib__.ines->iNESIRQCount+=a;
     } else {
       fceulib__.ines->iNESIRQa=0;
-      X.IRQBegin(FCEU_IQEXT);
+      fceulib__.X->IRQBegin(FCEU_IQEXT);
     }
   }
 }
@@ -41,7 +41,7 @@ static DECLFW(M50W) {
     if (A&0x100) {
       fceulib__.ines->iNESIRQa=V&1;
       if (!fceulib__.ines->iNESIRQa) fceulib__.ines->iNESIRQCount=0;
-      X.IRQEnd(FCEU_IQEXT);
+      fceulib__.X->IRQEnd(FCEU_IQEXT);
     } else {
       V=((V&1)<<2)|((V&2)>>1)|((V&4)>>1)|(V&8);
       mapbyte1[0]=V;
@@ -54,7 +54,7 @@ void Mapper50_init(void) {
   fceulib__.fceu->SetWriteHandler(0x4020,0x5fff,M50W);
   fceulib__.fceu->SetReadHandler(0x6000,0xffff,Cart::CartBR);
   fceulib__.ines->MapStateRestore=M50Restore;
-  X.MapIRQHook=Mapper50IRQ;
+  fceulib__.X->MapIRQHook=Mapper50IRQ;
 
   fceulib__.cart->setprg8(0x6000,0xF);
   fceulib__.cart->setprg8(0x8000,0x8);

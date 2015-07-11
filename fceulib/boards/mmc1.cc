@@ -43,7 +43,7 @@ static DECLFW(MBWRAM) {
 
 static DECLFR(MAWRAM) {
   if((DRegs[3]&0x10)&&!is155)
-    return X.DB;          // WRAM is disabled
+    return fceulib__.X->DB;          // WRAM is disabled
   return fceulib__.cart->Page[A>>11][A];
 }
 
@@ -119,8 +119,8 @@ static void MMC1MIRROR(void) {
 static uint64 lreset;
 static DECLFW(MMC1_write) {
   int n=(A>>13)-4;
-  //FCEU_DispMessage("%016x",fceulib__.fceu->timestampbase+X.timestamp);
-//  FCEU_printf("$%04x:$%02x, $%04x\n",A,V,X.PC);
+  //FCEU_DispMessage("%016x",fceulib__.fceu->timestampbase+fceulib__.X->timestamp);
+//  FCEU_printf("$%04x:$%02x, $%04x\n",A,V,fceulib__.X->PC);
   //DumpMem("out",0xe000,0xffff);
 
   /* The MMC1 is busy so ignore the write. */
@@ -129,14 +129,14 @@ static DECLFW(MMC1_write) {
      precision isn't that great), but this should still work to
 	   deal with 2 writes in a row from a single RMW instruction.
 	*/
-  if((fceulib__.fceu->timestampbase+X.timestamp)<(lreset+2))
+  if((fceulib__.fceu->timestampbase+fceulib__.X->timestamp)<(lreset+2))
     return;
 //  FCEU_printf("Write %04x:%02x\n",A,V);
   if(V&0x80) {
     DRegs[0]|=0xC;
     BufferShift=Buffer=0;
     MMC1PRG();
-    lreset=fceulib__.fceu->timestampbase+X.timestamp;
+    lreset=fceulib__.fceu->timestampbase+fceulib__.X->timestamp;
     return;
   }
 
@@ -206,7 +206,7 @@ static void NWCIRQHook(int a) {
     if((NWCIRQCount|(NWCDIP<<25))>=0x3e000000)
     {
       NWCIRQCount=0;
-      X.IRQBegin(FCEU_IQEXT);
+      fceulib__.X->IRQBegin(FCEU_IQEXT);
     }
   }
 }
@@ -215,7 +215,7 @@ static void NWCCHRHook(uint32 A, uint8 V) {
   if((V&0x10)) // && !(NWCRec&0x10))
   {
     NWCIRQCount=0;
-    X.IRQEnd(FCEU_IQEXT);
+    fceulib__.X->IRQEnd(FCEU_IQEXT);
   }
 
   NWCRec=V;
@@ -241,7 +241,7 @@ void Mapper105_Init(CartInfo *info) {
   GenMMC1Init(info, 256, 256, 8, 0);
   MMC1CHRHook4=NWCCHRHook;
   MMC1PRGHook16=NWCPRGHook;
-  X.MapIRQHook=NWCIRQHook;
+  fceulib__.X->MapIRQHook=NWCIRQHook;
   info->Power=NWCPower;
 }
 
