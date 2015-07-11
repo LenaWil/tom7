@@ -269,7 +269,7 @@ static bool ReadStateChunks(EMUFILE* is, int32 totalsize) {
       // XXX should probably just abort here since we don't try to provide
       // save-state compatibility. -tom7
       if (!warned) {
-	char str [256];
+	char str[256];
 	sprintf(str, "Warning: Found unknown save chunk of type %d.\n"
 		"This could indicate the save state is corrupted\n"
 		"or made with a different (incompatible) emulator version.", t);
