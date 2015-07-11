@@ -37,7 +37,7 @@ static void Fudou_PPU(uint32 A)
  z=CCache[A];
  if(z!=last)
  {
-  fceulib__ines.onemir(z);
+  fceulib__.ines->onemir(z);
   last=z;
  }
 }
@@ -50,9 +50,9 @@ static void mira() {
     for(int x=0;x<4;x++)
       CCache[4+x]=mapbyte2[2+x]>>7;
 
-    fceulib__ines.onemir(CCache[lastA]);
+    fceulib__.ines->onemir(CCache[lastA]);
   } else {
-    fceulib__ines.MIRROR_SET2(mapbyte1[0]&1);
+    fceulib__.ines->MIRROR_SET2(mapbyte1[0]&1);
   }
 }
 
@@ -83,13 +83,13 @@ static void Restore(int version)
 void Mapper80_init(void) {
   // 7f00-7fff battery backed ram inside mapper chip,
   // controlled by 7ef8 register, A8 - enable, FF - disable (?)
-  fceulib__fceu.SetWriteHandler(0x4020,0x7eff,Mapper80_write);
-  fceulib__ines.MapStateRestore = Restore;
+  fceulib__.fceu->SetWriteHandler(0x4020,0x7eff,Mapper80_write);
+  fceulib__.ines->MapStateRestore = Restore;
   isfu=0;
 }
 
 void Mapper207_init(void) {
   Mapper80_init();
   isfu=1;
-  fceulib__ppu.PPU_hook=Fudou_PPU;
+  fceulib__.ppu->PPU_hook=Fudou_PPU;
 }

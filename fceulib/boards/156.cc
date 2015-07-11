@@ -35,14 +35,14 @@ static SFORMAT StateRegs[]=
 
 static void Sync(void) {
   for(uint32 i=0; i<8; i++)
-    fceulib__cart.setchr1(i<<10, chrlo[i]|(chrhi[i] << 8));
-  fceulib__cart.setprg8r(0x10,0x6000,0);
-  fceulib__cart.setprg16(0x8000,prg);
-  fceulib__cart.setprg16(0xC000,~0);
+    fceulib__.cart->setchr1(i<<10, chrlo[i]|(chrhi[i] << 8));
+  fceulib__.cart->setprg8r(0x10,0x6000,0);
+  fceulib__.cart->setprg16(0x8000,prg);
+  fceulib__.cart->setprg16(0xC000,~0);
   if(mirrisused)
-    fceulib__cart.setmirror(mirr ^ 1);
+    fceulib__.cart->setmirror(mirr ^ 1);
   else
-    fceulib__cart.setmirror(MI_0);
+    fceulib__.cart->setmirror(MI_0);
 }
 
 static DECLFW(M156Write) {
@@ -82,9 +82,9 @@ static void M156Power(void)
 {
   M156Reset();
   Sync();
-  fceulib__fceu.SetReadHandler(0x6000,0xFFFF,Cart::CartBR);
-  fceulib__fceu.SetWriteHandler(0x6000,0x7FFF,Cart::CartBW);
-  fceulib__fceu.SetWriteHandler(0xC000,0xCFFF,M156Write);
+  fceulib__.fceu->SetReadHandler(0x6000,0xFFFF,Cart::CartBR);
+  fceulib__.fceu->SetWriteHandler(0x6000,0x7FFF,Cart::CartBW);
+  fceulib__.fceu->SetWriteHandler(0xC000,0xCFFF,M156Write);
 }
 
 static void M156Close(void)
@@ -106,9 +106,9 @@ void Mapper156_Init(CartInfo *info) {
 
   WRAMSIZE=8192;
   WRAM=(uint8*)FCEU_gmalloc(WRAMSIZE);
-  fceulib__cart.SetupCartPRGMapping(0x10,WRAM,WRAMSIZE,1);
+  fceulib__.cart->SetupCartPRGMapping(0x10,WRAM,WRAMSIZE,1);
   AddExState(WRAM, WRAMSIZE, 0, "WRAM");
 
-  fceulib__fceu.GameStateRestore=StateRestore;
+  fceulib__.fceu->GameStateRestore=StateRestore;
   AddExState(&StateRegs, ~0, 0, 0);
 }

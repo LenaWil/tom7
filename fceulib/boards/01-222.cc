@@ -44,15 +44,15 @@ static SFORMAT StateRegs[] =
 };
 
 static void Sync(void) {
-  fceulib__cart.setprg32(0x8000, (reg[2] >> 2) & 1);
+  fceulib__.cart->setprg32(0x8000, (reg[2] >> 2) & 1);
   if (is172) {
     // 1991 DU MA Racing probably CHR bank sequence is WRONG, so it is
     // possible to rearrange CHR banks for normal UNIF board and
     // mapper 172 is unneccessary
-    fceulib__cart.setchr8((((cmd ^ reg[2]) >> 3) & 2) | 
+    fceulib__.cart->setchr8((((cmd ^ reg[2]) >> 3) & 2) | 
 			  (((cmd ^ reg[2]) >> 5) & 1));
   } else {
-    fceulib__cart.setchr8(reg[2] & 3);
+    fceulib__.cart->setchr8(reg[2] & 3);
   }
 }
 
@@ -77,10 +77,10 @@ static DECLFR(UNL22211ReadLo) {
 
 static void UNL22211Power(void) {
   Sync();
-  fceulib__fceu.SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
-  fceulib__fceu.SetReadHandler(0x4100, 0x4100, UNL22211ReadLo);
-  fceulib__fceu.SetWriteHandler(0x4100, 0x4103, UNL22211WriteLo);
-  fceulib__fceu.SetWriteHandler(0x8000, 0xFFFF, UNL22211WriteHi);
+  fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
+  fceulib__.fceu->SetReadHandler(0x4100, 0x4100, UNL22211ReadLo);
+  fceulib__.fceu->SetWriteHandler(0x4100, 0x4103, UNL22211WriteLo);
+  fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, UNL22211WriteHi);
 }
 
 static void StateRestore(int version) {
@@ -91,7 +91,7 @@ void UNL22211_Init(CartInfo *info) {
 	is172 = 0;
 	is173 = 0;
 	info->Power = UNL22211Power;
-	fceulib__fceu.GameStateRestore = StateRestore;
+	fceulib__.fceu->GameStateRestore = StateRestore;
 	AddExState(&StateRegs, ~0, 0, 0);
 }
 
@@ -99,7 +99,7 @@ void Mapper172_Init(CartInfo *info) {
 	is172 = 1;
 	is173 = 0;
 	info->Power = UNL22211Power;
-	fceulib__fceu.GameStateRestore = StateRestore;
+	fceulib__.fceu->GameStateRestore = StateRestore;
 	AddExState(&StateRegs, ~0, 0, 0);
 }
 
@@ -107,7 +107,7 @@ void Mapper173_Init(CartInfo *info) {
 	is172 = 0;
 	is173 = 1;
 	info->Power = UNL22211Power;
-	fceulib__fceu.GameStateRestore = StateRestore;
+	fceulib__.fceu->GameStateRestore = StateRestore;
 	AddExState(&StateRegs, ~0, 0, 0);
 }
 

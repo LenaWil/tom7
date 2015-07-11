@@ -32,10 +32,10 @@ static SFORMAT StateRegs[]=
 
 static void Sync(void)
 {
-  fceulib__cart.setchr8(0);
-  fceulib__cart.setprg8r(0x10,0x6000,(reg&0xC0)>>6);
-  fceulib__cart.setprg32(0x8000,reg&0x1F);
-//  fceulib__cart.setmirror(((reg&0x20)>>5));
+  fceulib__.cart->setchr8(0);
+  fceulib__.cart->setprg8r(0x10,0x6000,(reg&0xC0)>>6);
+  fceulib__.cart->setprg32(0x8000,reg&0x1F);
+//  fceulib__.cart->setmirror(((reg&0x20)>>5));
 }
 
 static DECLFW(UNLEDU2000HiWrite)
@@ -47,10 +47,10 @@ static DECLFW(UNLEDU2000HiWrite)
 
 static void UNLEDU2000Power(void)
 {
-  fceulib__cart.setmirror(MI_0);
-  fceulib__fceu.SetReadHandler(0x6000,0xFFFF,Cart::CartBR);
-  fceulib__fceu.SetWriteHandler(0x6000,0xFFFF,Cart::CartBW);
-  fceulib__fceu.SetWriteHandler(0x8000,0xFFFF,UNLEDU2000HiWrite);
+  fceulib__.cart->setmirror(MI_0);
+  fceulib__.fceu->SetReadHandler(0x6000,0xFFFF,Cart::CartBR);
+  fceulib__.fceu->SetWriteHandler(0x6000,0xFFFF,Cart::CartBW);
+  fceulib__.fceu->SetWriteHandler(0x8000,0xFFFF,UNLEDU2000HiWrite);
   reg=0;
   Sync();
 }
@@ -71,9 +71,9 @@ void UNLEDU2000_Init(CartInfo *info)
 {
   info->Power=UNLEDU2000Power;
   info->Close=UNLEDU2000Close;
-  fceulib__fceu.GameStateRestore=UNLEDU2000Restore;
+  fceulib__.fceu->GameStateRestore=UNLEDU2000Restore;
   WRAM=(uint8*)FCEU_gmalloc(32768);
-  fceulib__cart.SetupCartPRGMapping(0x10,WRAM,32768,1);
+  fceulib__.cart->SetupCartPRGMapping(0x10,WRAM,32768,1);
   if(info->battery)
   {
     info->SaveGame[0]=WRAM;

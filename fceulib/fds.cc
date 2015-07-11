@@ -59,11 +59,11 @@ static DECLFR(FDSBIOSRead);
 static DECLFR(FDSRAMRead);
 static DECLFW(FDSRAMWrite);
 
-#define FDSRAM fceulib__fceu.GameMemBlock
-#define CHRRAM (fceulib__fceu.GameMemBlock+32768)
+#define FDSRAM fceulib__.fceu->GameMemBlock
+#define CHRRAM (fceulib__.fceu->GameMemBlock+32768)
 
 static void FDSGI_Trampoline(GI h) {
-  return fceulib__fds.FDSGI(h);
+  return fceulib__.fds->FDSGI(h);
 }
 
 void FDS::FDSGI(GI h) {
@@ -75,7 +75,7 @@ void FDS::FDSGI(GI h) {
 }
 
 void FDS::FDSStateRestore(int version) {
-  fceulib__cart.setmirror(((FDSRegs[5]&8)>>3)^1);
+  fceulib__.cart->setmirror(((FDSRegs[5]&8)>>3)^1);
 
   if (version >= 9810) {
     for (int x=0;x<TotalSides;x++) {
@@ -87,35 +87,35 @@ void FDS::FDSStateRestore(int version) {
 }
 
 static void FDSFix_Trampoline(int a) {
-  return fceulib__fds.FDSFix(a);
+  return fceulib__.fds->FDSFix(a);
 }
 
 static void FDSStateRestore_Trampoline(int version) {
-  return fceulib__fds.FDSStateRestore(version);
+  return fceulib__.fds->FDSStateRestore(version);
 }
 
 void FDS::FDSInit() {
   memset(FDSRegs,0,sizeof(FDSRegs));
   writeskip=DiskPtr=DiskSeekIRQ=0;
-  fceulib__cart.setmirror(1);
+  fceulib__.cart->setmirror(1);
 
-  fceulib__cart.setprg8r(0,0xe000,0);    // BIOS
-  fceulib__cart.setprg32r(1,0x6000,0);   // 32KB RAM
-  fceulib__cart.setchr8(0);     // 8KB CHR RAM
+  fceulib__.cart->setprg8r(0,0xe000,0);    // BIOS
+  fceulib__.cart->setprg32r(1,0x6000,0);   // 32KB RAM
+  fceulib__.cart->setchr8(0);     // 8KB CHR RAM
 
   X.MapIRQHook = FDSFix_Trampoline;
-  fceulib__fceu.GameStateRestore=FDSStateRestore_Trampoline;
+  fceulib__.fceu->GameStateRestore=FDSStateRestore_Trampoline;
 
-  fceulib__fceu.SetReadHandler(0x4030,0x4030,FDSRead4030);
-  fceulib__fceu.SetReadHandler(0x4031,0x4031,FDSRead4031);
-  fceulib__fceu.SetReadHandler(0x4032,0x4032,FDSRead4032);
-  fceulib__fceu.SetReadHandler(0x4033,0x4033,FDSRead4033);
+  fceulib__.fceu->SetReadHandler(0x4030,0x4030,FDSRead4030);
+  fceulib__.fceu->SetReadHandler(0x4031,0x4031,FDSRead4031);
+  fceulib__.fceu->SetReadHandler(0x4032,0x4032,FDSRead4032);
+  fceulib__.fceu->SetReadHandler(0x4033,0x4033,FDSRead4033);
 
-  fceulib__fceu.SetWriteHandler(0x4020,0x4025,FDSWrite);
+  fceulib__.fceu->SetWriteHandler(0x4020,0x4025,FDSWrite);
 
-  fceulib__fceu.SetWriteHandler(0x6000,0xdfff,FDSRAMWrite);
-  fceulib__fceu.SetReadHandler(0x6000,0xdfff,FDSRAMRead);
-  fceulib__fceu.SetReadHandler(0xE000,0xFFFF,FDSBIOSRead);
+  fceulib__.fceu->SetWriteHandler(0x6000,0xdfff,FDSRAMWrite);
+  fceulib__.fceu->SetReadHandler(0x6000,0xdfff,FDSRAMRead);
+  fceulib__.fceu->SetReadHandler(0xE000,0xFFFF,FDSBIOSRead);
   IRQCount=IRQLatch=IRQa=0;
 
   FDSSoundReset();
@@ -192,7 +192,7 @@ static DECLFR(FDSRead4030) {
 }
 
 static DECLFR(FDSRead4031) {
-  return fceulib__fds.FDSRead4013_Direct(DECLFR_FORWARD);
+  return fceulib__.fds->FDSRead4013_Direct(DECLFR_FORWARD);
 }
 
 DECLFR_RET FDS::FDSRead4013_Direct(DECLFR_ARGS) {
@@ -207,7 +207,7 @@ DECLFR_RET FDS::FDSRead4013_Direct(DECLFR_ARGS) {
 }
 
 static DECLFR(FDSRead4032) {
-  return fceulib__fds.FDSRead4032_Direct(DECLFR_FORWARD);
+  return fceulib__.fds->FDSRead4032_Direct(DECLFR_FORWARD);
 }
 
 DECLFR_RET FDS::FDSRead4032_Direct(DECLFR_ARGS) {
@@ -227,7 +227,7 @@ static DECLFR(FDSRead4033) {
 }
 
 static DECLFW(FDSRAMWrite) {
-  return fceulib__fds.FDSRAMWrite_Direct(DECLFW_FORWARD);
+  return fceulib__.fds->FDSRAMWrite_Direct(DECLFW_FORWARD);
 }
 
 void FDS::FDSRAMWrite_Direct(DECLFW_ARGS) {
@@ -235,7 +235,7 @@ void FDS::FDSRAMWrite_Direct(DECLFW_ARGS) {
 }
 
 static DECLFR(FDSBIOSRead) {
-  return fceulib__fds.FDSBIOSRead_Direct(DECLFR_FORWARD);
+  return fceulib__.fds->FDSBIOSRead_Direct(DECLFR_FORWARD);
 }
 
 DECLFR_RET FDS::FDSBIOSRead_Direct(DECLFR_ARGS) {
@@ -243,7 +243,7 @@ DECLFR_RET FDS::FDSBIOSRead_Direct(DECLFR_ARGS) {
 }
 
 static DECLFR(FDSRAMRead) {
-  return fceulib__fds.FDSRAMRead_Direct(DECLFR_FORWARD);
+  return fceulib__.fds->FDSRAMRead_Direct(DECLFR_FORWARD);
 }
 
 DECLFR_RET FDS::FDSRAMRead_Direct(DECLFR_ARGS) {
@@ -280,7 +280,7 @@ void FDS::FDSSoundStateAdd() {
 }
 
 static DECLFR(FDSSRead) {
-  return fceulib__fds.FDSSRead_Direct(DECLFR_FORWARD);
+  return fceulib__.fds->FDSSRead_Direct(DECLFR_FORWARD);
 }
 
 DECLFR_RET FDS::FDSSRead_Direct(DECLFR_ARGS) {
@@ -292,7 +292,7 @@ DECLFR_RET FDS::FDSSRead_Direct(DECLFR_ARGS) {
 }
 
 static DECLFW(FDSSWrite) {
-  return fceulib__fds.FDSSWrite_Direct(DECLFW_FORWARD);
+  return fceulib__.fds->FDSSWrite_Direct(DECLFW_FORWARD);
 }
 
 void FDS::FDSSWrite_Direct(DECLFW_ARGS) {
@@ -357,14 +357,14 @@ void FDS::DoEnv() {
 }
 
 static DECLFR(FDSWaveRead) {
-  return fceulib__fds.FDSWaveRead_Direct(DECLFR_FORWARD);
+  return fceulib__.fds->FDSWaveRead_Direct(DECLFR_FORWARD);
 }
 DECLFR_RET FDS::FDSWaveRead_Direct(DECLFR_ARGS) {
   return fdso.cwave[A&0x3f] | (X.DB&0xC0);
 }
 
 static DECLFW(FDSWaveWrite) {
-  return fceulib__fds.FDSWaveWrite_Direct(DECLFW_FORWARD);
+  return fceulib__.fds->FDSWaveWrite_Direct(DECLFW_FORWARD);
 }
 void FDS::FDSWaveWrite_Direct(DECLFW_ARGS) {
   //printf("$%04x:$%02x, %d\n",A,V,SPSG[0x9]&0x80);
@@ -449,7 +449,7 @@ void FDS::RenderSound() {
   int32 x;
 
   start=FBC;
-  end=(SOUNDTS<<16)/fceulib__sound.soundtsinc;
+  end=(SOUNDTS<<16)/fceulib__.sound->soundtsinc;
   if (end<=start)
     return;
   FBC=end;
@@ -459,7 +459,7 @@ void FDS::RenderSound() {
       uint32 t=FDSDoSound();
       t+=t>>1;
       t>>=4;
-      fceulib__sound.Wave[x>>4]+=t; //(t>>2)-(t>>3); //>>3;
+      fceulib__.sound->Wave[x>>4]+=t; //(t>>2)-(t>>3); //>>3;
     }
   }
 }
@@ -469,7 +469,7 @@ void FDS::RenderSoundHQ() {
     for (uint32 x=FBC;x<SOUNDTS;x++) {
       uint32 t=FDSDoSound();
       t+=t>>1;
-      fceulib__sound.WaveHi[x]+=t; //(t<<2)-(t<<1);
+      fceulib__.sound->WaveHi[x]+=t; //(t<<2)-(t<<1);
     }
   }
   // nb: formatting made this look like it was in the 'if' above,
@@ -496,10 +496,10 @@ void FDS::FDS_ESI() {
     }
   }
   //  fdso.cycles=(int64)32768*FDSClock/(FCEUS_SNDRATE *16);
-  fceulib__fceu.SetReadHandler(0x4040,0x407f,FDSWaveRead);
-  fceulib__fceu.SetWriteHandler(0x4040,0x407f,FDSWaveWrite);
-  fceulib__fceu.SetWriteHandler(0x4080,0x408A,FDSSWrite);
-  fceulib__fceu.SetReadHandler(0x4090,0x4092,FDSSRead);
+  fceulib__.fceu->SetReadHandler(0x4040,0x407f,FDSWaveRead);
+  fceulib__.fceu->SetWriteHandler(0x4040,0x407f,FDSWaveWrite);
+  fceulib__.fceu->SetWriteHandler(0x4080,0x408A,FDSSWrite);
+  fceulib__.fceu->SetReadHandler(0x4090,0x4092,FDSSRead);
 
   //SetReadHandler(0xE7A3,0xE7A3,FDSBIOSPatch);
 }
@@ -507,14 +507,14 @@ void FDS::FDS_ESI() {
 void FDS::FDSSoundReset() {
   memset(&fdso,0,sizeof(fdso));
   FDS_ESI();
-  fceulib__sound.GameExpSound.HiSync = [](int32 ts){ return fceulib__fds.HQSync(ts); };
-  fceulib__sound.GameExpSound.HiFill = []() { return fceulib__fds.RenderSoundHQ(); };
-  fceulib__sound.GameExpSound.Fill = [](int i) { return fceulib__fds.FDSSound(i); };
-  fceulib__sound.GameExpSound.RChange =  []() { return fceulib__fds.FDS_ESI(); };
+  fceulib__.sound->GameExpSound.HiSync = [](int32 ts){ return fceulib__.fds->HQSync(ts); };
+  fceulib__.sound->GameExpSound.HiFill = []() { return fceulib__.fds->RenderSoundHQ(); };
+  fceulib__.sound->GameExpSound.Fill = [](int i) { return fceulib__.fds->FDSSound(i); };
+  fceulib__.sound->GameExpSound.RChange =  []() { return fceulib__.fds->FDS_ESI(); };
 }
 
 static DECLFW(FDSWrite) {
-  return fceulib__fds.FDSWrite_Direct(DECLFW_FORWARD);
+  return fceulib__.fds->FDSWrite_Direct(DECLFW_FORWARD);
 }
 
 void FDS::FDSWrite_Direct(DECLFW_ARGS) {
@@ -565,7 +565,7 @@ void FDS::FDSWrite_Direct(DECLFW_ARGS) {
       if (V&2) {DiskPtr=0;DiskSeekIRQ=200;}
       if (V&0x40) DiskSeekIRQ=200;
     }
-    fceulib__cart.setmirror(((V>>3)&1)^1);
+    fceulib__.cart->setmirror(((V>>3)&1)^1);
     break;
   }
   FDSRegs[A&7]=V;
@@ -617,7 +617,7 @@ int FDS::SubLoad(FceuFile *fp) {
     FCEU_fread(diskdata[x],1,65500,fp);
     md5_update(&md5,diskdata[x],65500);
   }
-  md5_finish(&md5,fceulib__fceu.GameInfo->MD5.data);
+  md5_finish(&md5,fceulib__.fceu->GameInfo->MD5.data);
   return(1);
 }
 
@@ -675,7 +675,7 @@ int FDS::FDSLoad(const char *name, FceuFile *fp) {
 
   fclose(zp);
 
-  if (!fceulib__cart.disableBatteryLoading) {
+  if (!fceulib__.cart->disableBatteryLoading) {
     FceuFile *tp;
     const std::string fn2 = FCEU_MakeFDSFilename();
 
@@ -695,14 +695,14 @@ int FDS::FDSLoad(const char *name, FceuFile *fp) {
     }
   }
 
-  fceulib__fceu.GameInfo->type=GIT_FDS;
-  fceulib__fceu.GameInterface=FDSGI_Trampoline;
+  fceulib__.fceu->GameInfo->type=GIT_FDS;
+  fceulib__.fceu->GameInterface=FDSGI_Trampoline;
 
   SelectDisk=0;
   InDisk=255;
 
-  ResetExState([]() { return fceulib__fds.PreSave(); }, 
-	       []() { return fceulib__fds.PostSave(); });
+  ResetExState([]() { return fceulib__.fds->PreSave(); }, 
+	       []() { return fceulib__.fds->PostSave(); });
   FDSSoundStateAdd();
 
   for (int x=0;x<TotalSides;x++) {
@@ -724,15 +724,15 @@ int FDS::FDSLoad(const char *name, FceuFile *fp) {
   AddExState(&InDisk,1,0,"INDI");
   AddExState(&DiskWritten,1,0,"DSKW");
 
-  fceulib__cart.ResetCartMapping();
-  fceulib__cart.SetupCartCHRMapping(0,CHRRAM,8192,1);
-  fceulib__cart.SetupCartMirroring(0,0,0);
+  fceulib__.cart->ResetCartMapping();
+  fceulib__.cart->SetupCartCHRMapping(0,CHRRAM,8192,1);
+  fceulib__.cart->SetupCartMirroring(0,0,0);
   memset(CHRRAM,0,8192);
   memset(FDSRAM,0,32768);
 
   FCEU_printf(" Sides: %d\n\n",TotalSides);
 
-  fceulib__fceu.FCEUI_SetVidSystem(0);
+  fceulib__.fceu->FCEUI_SetVidSystem(0);
 
   return 1;
 }
@@ -758,4 +758,3 @@ void FDS::FDSClose() {
   fclose(fp);
 }
 
-FDS fceulib__fds;

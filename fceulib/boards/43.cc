@@ -34,13 +34,13 @@ static SFORMAT StateRegs[]=
 };
 
 static void Sync(void) {
-  fceulib__cart.setprg4(0x5000,16);    // Only YS-612 advdnced version
-  fceulib__cart.setprg8(0x6000,2);
-  fceulib__cart.setprg8(0x8000,1);
-  fceulib__cart.setprg8(0xa000,0);
-  fceulib__cart.setprg8(0xc000,reg);
-  fceulib__cart.setprg8(0xe000,9);
-  fceulib__cart.setchr8(0);
+  fceulib__.cart->setprg4(0x5000,16);    // Only YS-612 advdnced version
+  fceulib__.cart->setprg8(0x6000,2);
+  fceulib__.cart->setprg8(0x8000,1);
+  fceulib__.cart->setprg8(0xa000,0);
+  fceulib__.cart->setprg8(0xc000,reg);
+  fceulib__.cart->setprg8(0xe000,9);
+  fceulib__.cart->setchr8(0);
 }
 
 static DECLFW(M43Write)
@@ -59,8 +59,8 @@ static void M43Power(void)
 {
   reg=0;
   Sync();
-  fceulib__fceu.SetReadHandler(0x5000,0xffff,Cart::CartBR);
-  fceulib__fceu.SetWriteHandler(0x4020,0xffff,M43Write);
+  fceulib__.fceu->SetReadHandler(0x5000,0xffff,Cart::CartBR);
+  fceulib__.fceu->SetWriteHandler(0x4020,0xffff,M43Write);
 }
 
 static void M43Reset(void)
@@ -88,6 +88,6 @@ void Mapper43_Init(CartInfo *info)
   info->Reset=M43Reset;
   info->Power=M43Power;
   X.MapIRQHook=M43IRQHook;
-  fceulib__fceu.GameStateRestore=StateRestore;
+  fceulib__.fceu->GameStateRestore=StateRestore;
   AddExState(&StateRegs, ~0, 0, 0);
 }

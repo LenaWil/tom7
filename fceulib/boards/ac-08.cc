@@ -31,10 +31,10 @@ static SFORMAT StateRegs[]=
 
 static void Sync(void)
 {
-  fceulib__cart.setprg8(0x6000, reg);
-  fceulib__cart.setprg32r(1, 0x8000, 0);
-  fceulib__cart.setchr8(0);
-  fceulib__cart.setmirror(mirr);
+  fceulib__.cart->setprg8(0x6000, reg);
+  fceulib__.cart->setprg32r(1, 0x8000, 0);
+  fceulib__.cart->setchr8(0);
+  fceulib__.cart->setmirror(mirr);
 }
 
 static DECLFW(AC08Mirr)
@@ -56,9 +56,9 @@ static void AC08Power(void)
 {
   reg = 0;
   Sync();
-  fceulib__fceu.SetReadHandler(0x6000,0xFFFF,Cart::CartBR);
-  fceulib__fceu.SetWriteHandler(0x4025,0x4025,AC08Mirr);
-  fceulib__fceu.SetWriteHandler(0x8000,0xFFFF,AC08Write);
+  fceulib__.fceu->SetReadHandler(0x6000,0xFFFF,Cart::CartBR);
+  fceulib__.fceu->SetWriteHandler(0x4025,0x4025,AC08Mirr);
+  fceulib__.fceu->SetWriteHandler(0x8000,0xFFFF,AC08Write);
 }
 
 static void StateRestore(int version)
@@ -69,6 +69,6 @@ static void StateRestore(int version)
 void AC08_Init(CartInfo *info)
 {
   info->Power=AC08Power;
-  fceulib__fceu.GameStateRestore=StateRestore;
+  fceulib__.fceu->GameStateRestore=StateRestore;
   AddExState(&StateRegs, ~0, 0, 0);
 }

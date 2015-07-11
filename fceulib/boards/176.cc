@@ -34,13 +34,13 @@ static SFORMAT StateRegs[]= {
 };
 
 static void Sync(void) {
-  fceulib__cart.setprg8r(0x10,0x6000,0);
-  fceulib__cart.setprg8(0x8000,prg[0]);
-  fceulib__cart.setprg8(0xA000,prg[1]);
-  fceulib__cart.setprg8(0xC000,prg[2]);
-  fceulib__cart.setprg8(0xE000,prg[3]);
+  fceulib__.cart->setprg8r(0x10,0x6000,0);
+  fceulib__.cart->setprg8(0x8000,prg[0]);
+  fceulib__.cart->setprg8(0xA000,prg[1]);
+  fceulib__.cart->setprg8(0xC000,prg[2]);
+  fceulib__.cart->setprg8(0xE000,prg[3]);
 
-  fceulib__cart.setchr8(chr);
+  fceulib__.cart->setchr8(chr);
 }
 
 static DECLFW(M176Write_5001) {
@@ -98,22 +98,22 @@ static DECLFW(M176Write_WriteSRAM) {
 }
 
 static void M176Power(void) {
-  fceulib__fceu.SetReadHandler(0x6000,0x7fff,Cart::CartBR);
-  fceulib__fceu.SetWriteHandler(0x6000,0x7fff,M176Write_WriteSRAM);
-  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
-  fceulib__fceu.SetWriteHandler(0xA001,0xA001,M176Write_A001);
-  fceulib__fceu.SetWriteHandler(0x5001,0x5001,M176Write_5001);
-  fceulib__fceu.SetWriteHandler(0x5010,0x5010,M176Write_5010);
-  fceulib__fceu.SetWriteHandler(0x5011,0x5011,M176Write_5011);
-  fceulib__fceu.SetWriteHandler(0x5ff1,0x5ff1,M176Write_5FF1);
-  fceulib__fceu.SetWriteHandler(0x5ff2,0x5ff2,M176Write_5FF2);
+  fceulib__.fceu->SetReadHandler(0x6000,0x7fff,Cart::CartBR);
+  fceulib__.fceu->SetWriteHandler(0x6000,0x7fff,M176Write_WriteSRAM);
+  fceulib__.fceu->SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__.fceu->SetWriteHandler(0xA001,0xA001,M176Write_A001);
+  fceulib__.fceu->SetWriteHandler(0x5001,0x5001,M176Write_5001);
+  fceulib__.fceu->SetWriteHandler(0x5010,0x5010,M176Write_5010);
+  fceulib__.fceu->SetWriteHandler(0x5011,0x5011,M176Write_5011);
+  fceulib__.fceu->SetWriteHandler(0x5ff1,0x5ff1,M176Write_5FF1);
+  fceulib__.fceu->SetWriteHandler(0x5ff2,0x5ff2,M176Write_5FF2);
 
   we_sram = 0;
   sbw = 0;
   prg[0] = 0;
   prg[1] = 1;
-  prg[2] = (fceulib__ines.ROM_size - 2)&63;
-  prg[3] = (fceulib__ines.ROM_size - 1)&63;
+  prg[2] = (fceulib__.ines->ROM_size - 2)&63;
+  prg[3] = (fceulib__.ines->ROM_size - 1)&63;
   Sync();
 }
 
@@ -131,10 +131,10 @@ void Mapper176_Init(CartInfo *info) {
   info->Power=M176Power;
   info->Close=M176Close;
 
-  fceulib__fceu.GameStateRestore=StateRestore;
+  fceulib__.fceu->GameStateRestore=StateRestore;
 
   wram176=(uint8*)FCEU_gmalloc(WRAM176SIZE);
-  fceulib__cart.SetupCartPRGMapping(0x10,wram176,WRAM176SIZE,1);
+  fceulib__.cart->SetupCartPRGMapping(0x10,wram176,WRAM176SIZE,1);
   AddExState(wram176, WRAM176SIZE, 0, "WRAM");
   AddExState(&StateRegs, ~0, 0, 0);
 }

@@ -192,8 +192,6 @@ struct Sound {
   void SetNESSoundMap();
 };
 
-extern Sound fceulib__sound;
-
-#define SOUNDTS (X.timestamp + fceulib__sound.soundtsoffs)
+#define SOUNDTS (X.timestamp + fceulib__.sound->soundtsoffs)
 
 #endif

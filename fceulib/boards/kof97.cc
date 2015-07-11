@@ -39,8 +39,8 @@ static DECLFW(UNLKOF97IRQWrite)
 static void UNLKOF97Power(void)
 {
   GenMMC3Power();
-  fceulib__fceu.SetWriteHandler(0x8000,0xA000,UNLKOF97CMDWrite);
-  fceulib__fceu.SetWriteHandler(0xC000,0xF000,UNLKOF97IRQWrite);
+  fceulib__.fceu->SetWriteHandler(0x8000,0xA000,UNLKOF97CMDWrite);
+  fceulib__.fceu->SetWriteHandler(0xC000,0xF000,UNLKOF97IRQWrite);
 }
 
 void UNLKOF97_Init(CartInfo *info)

@@ -41,9 +41,9 @@ static SFORMAT StateRegs[]=
 };
 
 static void Sync(void) {
-  fceulib__cart.setprg16(0x8000,reg);
-  fceulib__cart.setprg16(0xC000,2);
-  fceulib__cart.setmirror(mirr);
+  fceulib__.cart->setprg16(0x8000,reg);
+  fceulib__.cart->setprg16(0xC000,2);
+  fceulib__.cart->setmirror(mirr);
 }
 
 static DECLFW(UNLKS7017Write)
@@ -98,13 +98,13 @@ static void UNL7017IRQ(int a)
 
 static void UNLKS7017Power(void) {
   Sync();
-  fceulib__cart.setchr8(0);
-  fceulib__cart.setprg8r(0x10,0x6000,0);
-  fceulib__fceu.SetReadHandler(0x6000,0x7FFF,Cart::CartBR);
-  fceulib__fceu.SetWriteHandler(0x6000,0x7FFF,Cart::CartBW);
-  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
-  fceulib__fceu.SetReadHandler(0x4030,0x4030,FDSRead4030);
-  fceulib__fceu.SetWriteHandler(0x4020,0x5FFF,UNLKS7017Write);
+  fceulib__.cart->setchr8(0);
+  fceulib__.cart->setprg8r(0x10,0x6000,0);
+  fceulib__.fceu->SetReadHandler(0x6000,0x7FFF,Cart::CartBR);
+  fceulib__.fceu->SetWriteHandler(0x6000,0x7FFF,Cart::CartBW);
+  fceulib__.fceu->SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__.fceu->SetReadHandler(0x4030,0x4030,FDSRead4030);
+  fceulib__.fceu->SetWriteHandler(0x4020,0x5FFF,UNLKS7017Write);
 }
 
 static void UNLKS7017Close(void)
@@ -126,9 +126,9 @@ void UNLKS7017_Init(CartInfo *info) {
 
   WRAMSIZE=8192;
   WRAM=(uint8*)FCEU_gmalloc(WRAMSIZE);
-  fceulib__cart.SetupCartPRGMapping(0x10,WRAM,WRAMSIZE,1);
+  fceulib__.cart->SetupCartPRGMapping(0x10,WRAM,WRAMSIZE,1);
   AddExState(WRAM, WRAMSIZE, 0, "WRAM");
 
-  fceulib__fceu.GameStateRestore=StateRestore;
+  fceulib__.fceu->GameStateRestore=StateRestore;
   AddExState(&StateRegs, ~0, 0, 0);
 }

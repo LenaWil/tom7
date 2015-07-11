@@ -22,44 +22,44 @@
 
 
 static void Mapper50IRQ(int a) {
-  if (fceulib__ines.iNESIRQa) {
-    if (fceulib__ines.iNESIRQCount<4096) {
-      fceulib__ines.iNESIRQCount+=a;
+  if (fceulib__.ines->iNESIRQa) {
+    if (fceulib__.ines->iNESIRQCount<4096) {
+      fceulib__.ines->iNESIRQCount+=a;
     } else {
-      fceulib__ines.iNESIRQa=0;
+      fceulib__.ines->iNESIRQa=0;
       X.IRQBegin(FCEU_IQEXT);
     }
   }
 }
 
 static void M50Restore(int version) {
-  fceulib__cart.setprg8(0xc000,mapbyte1[0]);
+  fceulib__.cart->setprg8(0xc000,mapbyte1[0]);
 }
 
 static DECLFW(M50W) {
   if ((A&0xD060)==0x4020) {
     if (A&0x100) {
-      fceulib__ines.iNESIRQa=V&1;
-      if (!fceulib__ines.iNESIRQa) fceulib__ines.iNESIRQCount=0;
+      fceulib__.ines->iNESIRQa=V&1;
+      if (!fceulib__.ines->iNESIRQa) fceulib__.ines->iNESIRQCount=0;
       X.IRQEnd(FCEU_IQEXT);
     } else {
       V=((V&1)<<2)|((V&2)>>1)|((V&4)>>1)|(V&8);
       mapbyte1[0]=V;
-      fceulib__cart.setprg8(0xc000,V);
+      fceulib__.cart->setprg8(0xc000,V);
     }
   }
 }
 
 void Mapper50_init(void) {
-  fceulib__fceu.SetWriteHandler(0x4020,0x5fff,M50W);
-  fceulib__fceu.SetReadHandler(0x6000,0xffff,Cart::CartBR);
-  fceulib__ines.MapStateRestore=M50Restore;
+  fceulib__.fceu->SetWriteHandler(0x4020,0x5fff,M50W);
+  fceulib__.fceu->SetReadHandler(0x6000,0xffff,Cart::CartBR);
+  fceulib__.ines->MapStateRestore=M50Restore;
   X.MapIRQHook=Mapper50IRQ;
 
-  fceulib__cart.setprg8(0x6000,0xF);
-  fceulib__cart.setprg8(0x8000,0x8);
-  fceulib__cart.setprg8(0xa000,0x9);
-  fceulib__cart.setprg8(0xc000,0x0);
-  fceulib__cart.setprg8(0xe000,0xB);
+  fceulib__.cart->setprg8(0x6000,0xF);
+  fceulib__.cart->setprg8(0x8000,0x8);
+  fceulib__.cart->setprg8(0xa000,0x9);
+  fceulib__.cart->setprg8(0xc000,0x0);
+  fceulib__.cart->setprg8(0xe000,0xB);
 }
 

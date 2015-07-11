@@ -33,12 +33,12 @@ static SFORMAT StateRegs[]=
 };
 
 static void Sync(void) {
-  fceulib__cart.setprg8(0x6000,reg[4]);
-  fceulib__cart.setprg8(0x8000,reg[1]);
-  fceulib__cart.setprg8(0xA000,reg[2]);
-  fceulib__cart.setprg8(0xC000,reg[3]);
-  fceulib__cart.setprg8(0xE000,~0);
-  fceulib__cart.setchr8(0);
+  fceulib__.cart->setprg8(0x6000,reg[4]);
+  fceulib__.cart->setprg8(0x8000,reg[1]);
+  fceulib__.cart->setprg8(0xA000,reg[2]);
+  fceulib__.cart->setprg8(0xC000,reg[3]);
+  fceulib__.cart->setprg8(0xE000,~0);
+  fceulib__.cart->setchr8(0);
 }
 
 static DECLFW(UNLKS7032Write)
@@ -74,9 +74,9 @@ static void UNLSMB2JIRQHook(int a)
 static void UNLKS7032Power(void)
 {
   Sync();
-  fceulib__fceu.SetReadHandler(0x6000,0x7FFF,Cart::CartBR);
-  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
-  fceulib__fceu.SetWriteHandler(0x4020,0xFFFF,UNLKS7032Write);
+  fceulib__.fceu->SetReadHandler(0x6000,0x7FFF,Cart::CartBR);
+  fceulib__.fceu->SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__.fceu->SetWriteHandler(0x4020,0xFFFF,UNLKS7032Write);
 }
 
 static void StateRestore(int version)
@@ -88,6 +88,6 @@ void UNLKS7032_Init(CartInfo *info)
 {
   info->Power=UNLKS7032Power;
   X.MapIRQHook=UNLSMB2JIRQHook;
-  fceulib__fceu.GameStateRestore=StateRestore;
+  fceulib__.fceu->GameStateRestore=StateRestore;
   AddExState(&StateRegs, ~0, 0, 0);
 }

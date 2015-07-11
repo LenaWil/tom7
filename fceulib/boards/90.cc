@@ -77,24 +77,24 @@ static void mira(void) {
     if(tkcom[0]&0x40)        // Name tables are ROM-only
       {
 	for(x=0;x<4;x++)
-	  fceulib__cart.setntamem(fceulib__cart.CHRptr[0]+(((names[x])&fceulib__cart.CHRmask1[0])<<10),0,x);
+	  fceulib__.cart->setntamem(fceulib__.cart->CHRptr[0]+(((names[x])&fceulib__.cart->CHRmask1[0])<<10),0,x);
       }
     else                        // Name tables can be RAM or ROM.
       {
 	for(x=0;x<4;x++)
 	  {
 	    if((tkcom[1]&0x80)==(names[x]&0x80))        // RAM selected.
-	      fceulib__cart.setntamem(fceulib__ppu.NTARAM+((names[x]&0x1)<<10),1,x);
+	      fceulib__.cart->setntamem(fceulib__.ppu->NTARAM+((names[x]&0x1)<<10),1,x);
 	    else
-	      fceulib__cart.setntamem(fceulib__cart.CHRptr[0]+(((names[x])&fceulib__cart.CHRmask1[0])<<10),0,x);
+	      fceulib__.cart->setntamem(fceulib__.cart->CHRptr[0]+(((names[x])&fceulib__.cart->CHRmask1[0])<<10),0,x);
 	  }
       }
   } else {
     switch(tkcom[1]&3) {
-    case 0: fceulib__cart.setmirror(MI_V); break;
-    case 1: fceulib__cart.setmirror(MI_H); break;
-    case 2: fceulib__cart.setmirror(MI_0); break;
-    case 3: fceulib__cart.setmirror(MI_1); break;
+    case 0: fceulib__.cart->setmirror(MI_V); break;
+    case 1: fceulib__.cart->setmirror(MI_H); break;
+    case 2: fceulib__.cart->setmirror(MI_0); break;
+    case 3: fceulib__.cart->setmirror(MI_1); break;
     }
   }
 }
@@ -105,38 +105,38 @@ static void tekprom(void)
   switch(tkcom[0]&7)
   {
     case 00: if(tkcom[0]&0x80)
-               fceulib__cart.setprg8(0x6000,(((prgb[3]<<2)+3)&0x3F)|bankmode);
-             fceulib__cart.setprg32(0x8000,0x0F|((tkcom[3]&6)<<3));
+               fceulib__.cart->setprg8(0x6000,(((prgb[3]<<2)+3)&0x3F)|bankmode);
+             fceulib__.cart->setprg32(0x8000,0x0F|((tkcom[3]&6)<<3));
              break;
     case 01: if(tkcom[0]&0x80)
-               fceulib__cart.setprg8(0x6000,(((prgb[3]<<1)+1)&0x3F)|bankmode);
-             fceulib__cart.setprg16(0x8000,(prgb[1]&0x1F)|((tkcom[3]&6)<<4));
-             fceulib__cart.setprg16(0xC000,0x1F|((tkcom[3]&6)<<4));
+               fceulib__.cart->setprg8(0x6000,(((prgb[3]<<1)+1)&0x3F)|bankmode);
+             fceulib__.cart->setprg16(0x8000,(prgb[1]&0x1F)|((tkcom[3]&6)<<4));
+             fceulib__.cart->setprg16(0xC000,0x1F|((tkcom[3]&6)<<4));
              break;
     case 03: // bit reversion
     case 02: if(tkcom[0]&0x80)
-               fceulib__cart.setprg8(0x6000,(prgb[3]&0x3F)|bankmode);
-             fceulib__cart.setprg8(0x8000,(prgb[0]&0x3F)|bankmode);
-             fceulib__cart.setprg8(0xa000,(prgb[1]&0x3F)|bankmode);
-             fceulib__cart.setprg8(0xc000,(prgb[2]&0x3F)|bankmode);
-             fceulib__cart.setprg8(0xe000,0x3F|bankmode);
+               fceulib__.cart->setprg8(0x6000,(prgb[3]&0x3F)|bankmode);
+             fceulib__.cart->setprg8(0x8000,(prgb[0]&0x3F)|bankmode);
+             fceulib__.cart->setprg8(0xa000,(prgb[1]&0x3F)|bankmode);
+             fceulib__.cart->setprg8(0xc000,(prgb[2]&0x3F)|bankmode);
+             fceulib__.cart->setprg8(0xe000,0x3F|bankmode);
              break;
     case 04: if(tkcom[0]&0x80)
-               fceulib__cart.setprg8(0x6000,(((prgb[3]<<2)+3)&0x3F)|bankmode);
-             fceulib__cart.setprg32(0x8000,(prgb[3]&0x0F)|((tkcom[3]&6)<<3));
+               fceulib__.cart->setprg8(0x6000,(((prgb[3]<<2)+3)&0x3F)|bankmode);
+             fceulib__.cart->setprg32(0x8000,(prgb[3]&0x0F)|((tkcom[3]&6)<<3));
              break;
     case 05: if(tkcom[0]&0x80)
-               fceulib__cart.setprg8(0x6000,(((prgb[3]<<1)+1)&0x3F)|bankmode);
-             fceulib__cart.setprg16(0x8000,(prgb[1]&0x1F)|((tkcom[3]&6)<<4));
-             fceulib__cart.setprg16(0xC000,(prgb[3]&0x1F)|((tkcom[3]&6)<<4));
+               fceulib__.cart->setprg8(0x6000,(((prgb[3]<<1)+1)&0x3F)|bankmode);
+             fceulib__.cart->setprg16(0x8000,(prgb[1]&0x1F)|((tkcom[3]&6)<<4));
+             fceulib__.cart->setprg16(0xC000,(prgb[3]&0x1F)|((tkcom[3]&6)<<4));
              break;
     case 07: // bit reversion
     case 06: if(tkcom[0]&0x80)
-               fceulib__cart.setprg8(0x6000,(prgb[3]&0x3F)|bankmode);
-             fceulib__cart.setprg8(0x8000,(prgb[0]&0x3F)|bankmode);
-             fceulib__cart.setprg8(0xa000,(prgb[1]&0x3F)|bankmode);
-             fceulib__cart.setprg8(0xc000,(prgb[2]&0x3F)|bankmode);
-             fceulib__cart.setprg8(0xe000,(prgb[3]&0x3F)|bankmode);
+               fceulib__.cart->setprg8(0x6000,(prgb[3]&0x3F)|bankmode);
+             fceulib__.cart->setprg8(0x8000,(prgb[0]&0x3F)|bankmode);
+             fceulib__.cart->setprg8(0xa000,(prgb[1]&0x3F)|bankmode);
+             fceulib__.cart->setprg8(0xc000,(prgb[2]&0x3F)|bankmode);
+             fceulib__.cart->setprg8(0xe000,(prgb[3]&0x3F)|bankmode);
              break;
   }
 }
@@ -158,21 +158,21 @@ static void tekvrom(void)
   switch(tkcom[0]&0x18)
   {
     case 0x00:      // 8KB
-         fceulib__cart.setchr8(((chrlow[0]|(chrhigh[0]<<8))&mask)|bank);
+         fceulib__.cart->setchr8(((chrlow[0]|(chrhigh[0]<<8))&mask)|bank);
          break;
     case 0x08:      // 4KB
 //         for(x=0;x<8;x+=4)
-//            fceulib__cart.setchr4(x<<10,((chrlow[x]|(chrhigh[x]<<8))&mask)|bank);
-         fceulib__cart.setchr4(0x0000,((chrlow[chr[0]]|(chrhigh[chr[0]]<<8))&mask)|bank);
-         fceulib__cart.setchr4(0x1000,((chrlow[chr[1]]|(chrhigh[chr[1]]<<8))&mask)|bank);
+//            fceulib__.cart->setchr4(x<<10,((chrlow[x]|(chrhigh[x]<<8))&mask)|bank);
+         fceulib__.cart->setchr4(0x0000,((chrlow[chr[0]]|(chrhigh[chr[0]]<<8))&mask)|bank);
+         fceulib__.cart->setchr4(0x1000,((chrlow[chr[1]]|(chrhigh[chr[1]]<<8))&mask)|bank);
          break;
     case 0x10:      // 2KB
          for(x=0;x<8;x+=2)
-            fceulib__cart.setchr2(x<<10,((chrlow[x]|(chrhigh[x]<<8))&mask)|bank);
+            fceulib__.cart->setchr2(x<<10,((chrlow[x]|(chrhigh[x]<<8))&mask)|bank);
          break;
     case 0x18:      // 1KB
          for(x=0;x<8;x++)
-            fceulib__cart.setchr1(x<<10,((chrlow[x]|(chrhigh[x]<<8))&mask)|bank);
+            fceulib__.cart->setchr1(x<<10,((chrlow[x]|(chrhigh[x]<<8))&mask)|bank);
          break;
   }
 }
@@ -432,18 +432,18 @@ static void M90Restore(int version)
 
 static void M90Power(void)
 {
-  fceulib__fceu.SetWriteHandler(0x5000,0x5fff,M90TekWrite);
-  fceulib__fceu.SetWriteHandler(0x8000,0x8ff0,M90PRGWrite);
-  fceulib__fceu.SetWriteHandler(0x9000,0x9fff,M90CHRlowWrite);
-  fceulib__fceu.SetWriteHandler(0xA000,0xAfff,M90CHRhiWrite);
-  fceulib__fceu.SetWriteHandler(0xB000,0xBfff,M90NTWrite);
-  fceulib__fceu.SetWriteHandler(0xC000,0xCfff,M90IRQWrite);
-  fceulib__fceu.SetWriteHandler(0xD000,0xD5ff,M90ModeWrite);
-  fceulib__fceu.SetWriteHandler(0xE000,0xFfff,M90DummyWrite);
+  fceulib__.fceu->SetWriteHandler(0x5000,0x5fff,M90TekWrite);
+  fceulib__.fceu->SetWriteHandler(0x8000,0x8ff0,M90PRGWrite);
+  fceulib__.fceu->SetWriteHandler(0x9000,0x9fff,M90CHRlowWrite);
+  fceulib__.fceu->SetWriteHandler(0xA000,0xAfff,M90CHRhiWrite);
+  fceulib__.fceu->SetWriteHandler(0xB000,0xBfff,M90NTWrite);
+  fceulib__.fceu->SetWriteHandler(0xC000,0xCfff,M90IRQWrite);
+  fceulib__.fceu->SetWriteHandler(0xD000,0xD5ff,M90ModeWrite);
+  fceulib__.fceu->SetWriteHandler(0xE000,0xFfff,M90DummyWrite);
 
 
-  fceulib__fceu.SetReadHandler(0x5000,0x5fff,M90TekRead);
-  fceulib__fceu.SetReadHandler(0x6000,0xffff,Cart::CartBR);
+  fceulib__.fceu->SetReadHandler(0x5000,0x5fff,M90TekRead);
+  fceulib__.fceu->SetReadHandler(0x6000,0xffff,Cart::CartBR);
 
   mul[0]=mul[1]=regie=0xFF;
 
@@ -468,10 +468,10 @@ void Mapper90_Init(CartInfo *info) {
   is209=0;
   info->Reset=togglie;
   info->Power=M90Power;
-  fceulib__ppu.PPU_hook=M90PPU;
+  fceulib__.ppu->PPU_hook=M90PPU;
   X.MapIRQHook=CPUWrap;
-  fceulib__ppu.GameHBIRQHook2=SLWrap;
-  fceulib__fceu.GameStateRestore=M90Restore;
+  fceulib__.ppu->GameHBIRQHook2=SLWrap;
+  fceulib__.fceu->GameStateRestore=M90Restore;
   AddExState(Tek_StateRegs, ~0, 0, 0);
 }
 
@@ -480,10 +480,10 @@ void Mapper209_Init(CartInfo *info) {
   is209=1;
   info->Reset=togglie;
   info->Power=M90Power;
-  fceulib__ppu.PPU_hook=M90PPU;
+  fceulib__.ppu->PPU_hook=M90PPU;
   X.MapIRQHook=CPUWrap;
-  fceulib__ppu.GameHBIRQHook2=SLWrap;
-  fceulib__fceu.GameStateRestore=M90Restore;
+  fceulib__.ppu->GameHBIRQHook2=SLWrap;
+  fceulib__.fceu->GameStateRestore=M90Restore;
   AddExState(Tek_StateRegs, ~0, 0, 0);
 }
 
@@ -491,9 +491,9 @@ void Mapper211_Init(CartInfo *info) {
   is211=1;
   info->Reset=togglie;
   info->Power=M90Power;
-  fceulib__ppu.PPU_hook=M90PPU;
+  fceulib__.ppu->PPU_hook=M90PPU;
   X.MapIRQHook=CPUWrap;
-  fceulib__ppu.GameHBIRQHook2=SLWrap;
-  fceulib__fceu.GameStateRestore=M90Restore;
+  fceulib__.ppu->GameHBIRQHook2=SLWrap;
+  fceulib__.fceu->GameStateRestore=M90Restore;
   AddExState(Tek_StateRegs, ~0, 0, 0);
 }

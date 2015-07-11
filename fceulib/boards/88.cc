@@ -33,19 +33,19 @@ static SFORMAT StateRegs[]=
 
 static void Sync(void)
 {
-  fceulib__cart.setchr2(0x0000,reg[0]>>1);
-  fceulib__cart.setchr2(0x0800,reg[1]>>1);
-  fceulib__cart.setchr1(0x1000,reg[2]|0x40);
-  fceulib__cart.setchr1(0x1400,reg[3]|0x40);
-  fceulib__cart.setchr1(0x1800,reg[4]|0x40);
-  fceulib__cart.setchr1(0x1C00,reg[5]|0x40);
-  fceulib__cart.setprg8(0x8000,reg[6]);
-  fceulib__cart.setprg8(0xA000,reg[7]);
+  fceulib__.cart->setchr2(0x0000,reg[0]>>1);
+  fceulib__.cart->setchr2(0x0800,reg[1]>>1);
+  fceulib__.cart->setchr1(0x1000,reg[2]|0x40);
+  fceulib__.cart->setchr1(0x1400,reg[3]|0x40);
+  fceulib__.cart->setchr1(0x1800,reg[4]|0x40);
+  fceulib__.cart->setchr1(0x1C00,reg[5]|0x40);
+  fceulib__.cart->setprg8(0x8000,reg[6]);
+  fceulib__.cart->setprg8(0xA000,reg[7]);
 }
 
 static void MSync(void)
 {
-  if(is154) fceulib__cart.setmirror(MI_0+(mirror&1));
+  if(is154) fceulib__.cart->setmirror(MI_0+(mirror&1));
 }
 
 static DECLFW(M88Write)
@@ -58,9 +58,9 @@ static DECLFW(M88Write)
 }
 
 static void M88Power(void) {
-  fceulib__cart.setprg16(0xC000,~0);
-  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
-  fceulib__fceu.SetWriteHandler(0x8000,0xFFFF,M88Write);
+  fceulib__.cart->setprg16(0xC000,~0);
+  fceulib__.fceu->SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__.fceu->SetWriteHandler(0x8000,0xFFFF,M88Write);
 }
 
 static void StateRestore(int version)
@@ -73,7 +73,7 @@ void Mapper88_Init(CartInfo *info)
 {
   is154=0;
   info->Power=M88Power;
-  fceulib__fceu.GameStateRestore=StateRestore;
+  fceulib__.fceu->GameStateRestore=StateRestore;
   AddExState(&StateRegs, ~0, 0, 0);
 }
 
@@ -81,6 +81,6 @@ void Mapper154_Init(CartInfo *info)
 {
   is154=1;
   info->Power=M88Power;
-  fceulib__fceu.GameStateRestore=StateRestore;
+  fceulib__.fceu->GameStateRestore=StateRestore;
   AddExState(&StateRegs, ~0, 0, 0);
 }

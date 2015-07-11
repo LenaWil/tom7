@@ -82,7 +82,7 @@ DECLFW(Mapper9and10_write) {
       MMC4reg[3]=V;
       break;
     case 0xF000:
-      fceulib__ines.MIRROR_SET(V&1);
+      fceulib__.ines->MIRROR_SET(V&1);
       break;
     }
 }
@@ -92,15 +92,15 @@ void Mapper9_init(void) {
   latcha2=0xFE;
   ROM_BANK8(0xA000,~2);
   ROM_BANK8(0x8000,0);
-  fceulib__fceu.SetWriteHandler(0xA000,0xAFFF,Mapper9_write);
-  fceulib__fceu.SetWriteHandler(0xB000,0xFFFF,Mapper9and10_write);
-  fceulib__ppu.PPU_hook=latchcheck;
+  fceulib__.fceu->SetWriteHandler(0xA000,0xAFFF,Mapper9_write);
+  fceulib__.fceu->SetWriteHandler(0xB000,0xFFFF,Mapper9and10_write);
+  fceulib__.ppu->PPU_hook=latchcheck;
 }
 
 void Mapper10_init(void) {
   latcha1=latcha2=0xFE;
-  fceulib__fceu.SetWriteHandler(0xA000,0xAFFF,Mapper10_write);
-  fceulib__fceu.SetWriteHandler(0xB000,0xFFFF,Mapper9and10_write);
-  fceulib__ppu.PPU_hook=latchcheck;
+  fceulib__.fceu->SetWriteHandler(0xA000,0xAFFF,Mapper10_write);
+  fceulib__.fceu->SetWriteHandler(0xB000,0xFFFF,Mapper9and10_write);
+  fceulib__.ppu->PPU_hook=latchcheck;
 }
 

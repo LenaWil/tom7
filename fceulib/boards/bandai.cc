@@ -63,20 +63,20 @@ static void BandaiSync(void)
 {
   if(is153) {
     int base=(reg[0]&1)<<4;
-    fceulib__cart.setchr8(0);
-    fceulib__cart.setprg16(0x8000,(reg[8]&0x0F)|base);
-    fceulib__cart.setprg16(0xC000,0x0F|base);
+    fceulib__.cart->setchr8(0);
+    fceulib__.cart->setprg16(0x8000,(reg[8]&0x0F)|base);
+    fceulib__.cart->setprg16(0xC000,0x0F|base);
   } else {
     for(int i=0; i<8; i++)
-      fceulib__cart.setchr1(i<<10,reg[i]);
-    fceulib__cart.setprg16(0x8000,reg[8]);
-    fceulib__cart.setprg16(0xC000,~0);
+      fceulib__.cart->setchr1(i<<10,reg[i]);
+    fceulib__.cart->setprg16(0x8000,reg[8]);
+    fceulib__.cart->setprg16(0xC000,~0);
   }
   switch(reg[9]&3) {
-    case 0: fceulib__cart.setmirror(MI_V); break;
-    case 1: fceulib__cart.setmirror(MI_H); break;
-    case 2: fceulib__cart.setmirror(MI_0); break;
-    case 3: fceulib__cart.setmirror(MI_1); break;
+    case 0: fceulib__.cart->setmirror(MI_V); break;
+    case 1: fceulib__.cart->setmirror(MI_H); break;
+    case 2: fceulib__.cart->setmirror(MI_0); break;
+    case 3: fceulib__.cart->setmirror(MI_1); break;
   }
 }
 
@@ -101,8 +101,8 @@ static DECLFW(BandaiWrite)
 static void BandaiPower(void)
 {
   BandaiSync();
-  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
-  fceulib__fceu.SetWriteHandler(0x6000,0xFFFF,BandaiWrite);
+  fceulib__.fceu->SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__.fceu->SetWriteHandler(0x6000,0xFFFF,BandaiWrite);
 }
 
 static void StateRestore(int version)
@@ -115,18 +115,18 @@ void Mapper16_Init(CartInfo *info)
   is153=0;
   info->Power=BandaiPower;
   X.MapIRQHook=BandaiIRQHook;
-  fceulib__fceu.GameStateRestore=StateRestore;
+  fceulib__.fceu->GameStateRestore=StateRestore;
   AddExState(&StateRegs, ~0, 0, 0);
 }
 
 static void M153Power(void)
 {
   BandaiSync();
-  fceulib__cart.setprg8r(0x10,0x6000,0);
-  fceulib__fceu.SetReadHandler(0x6000,0x7FFF,Cart::CartBR);
-  fceulib__fceu.SetWriteHandler(0x6000,0x7FFF,Cart::CartBW);
-  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
-  fceulib__fceu.SetWriteHandler(0x8000,0xFFFF,BandaiWrite);
+  fceulib__.cart->setprg8r(0x10,0x6000,0);
+  fceulib__.fceu->SetReadHandler(0x6000,0x7FFF,Cart::CartBR);
+  fceulib__.fceu->SetWriteHandler(0x6000,0x7FFF,Cart::CartBW);
+  fceulib__.fceu->SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__.fceu->SetWriteHandler(0x8000,0xFFFF,BandaiWrite);
 }
 
 
@@ -146,7 +146,7 @@ void Mapper153_Init(CartInfo *info)
 
   WRAMSIZE=8192;
   WRAM=(uint8*)FCEU_gmalloc(WRAMSIZE);
-  fceulib__cart.SetupCartPRGMapping(0x10,WRAM,WRAMSIZE,1);
+  fceulib__.cart->SetupCartPRGMapping(0x10,WRAM,WRAMSIZE,1);
   AddExState(WRAM, WRAMSIZE, 0, "WRAM");
 
   if(info->battery)
@@ -155,7 +155,7 @@ void Mapper153_Init(CartInfo *info)
     info->SaveGameLen[0]=WRAMSIZE;
   }
 
-  fceulib__fceu.GameStateRestore=StateRestore;
+  fceulib__.fceu->GameStateRestore=StateRestore;
   AddExState(&StateRegs, ~0, 0, 0);
 }
 
@@ -329,9 +329,9 @@ static void M157Power(void)
 
   BandaiSync();
 
-  fceulib__fceu.SetWriteHandler(0x6000,0xFFFF,BandaiWrite);
-  fceulib__fceu.SetReadHandler(0x6000,0x7FFF,BarcodeRead);
-  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__.fceu->SetWriteHandler(0x6000,0xFFFF,BandaiWrite);
+  fceulib__.fceu->SetReadHandler(0x6000,0x7FFF,BarcodeRead);
+  fceulib__.fceu->SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
 }
 
 void Mapper157_Init(CartInfo *info)
@@ -340,8 +340,8 @@ void Mapper157_Init(CartInfo *info)
   info->Power=M157Power;
   X.MapIRQHook=BarcodeIRQHook;
 
-  fceulib__fceu.GameInfo->cspecial = SIS_DATACH;
+  fceulib__.fceu->GameInfo->cspecial = SIS_DATACH;
 
-  fceulib__fceu.GameStateRestore=StateRestore;
+  fceulib__.fceu->GameStateRestore=StateRestore;
   AddExState(&StateRegs, ~0, 0, 0);
 }

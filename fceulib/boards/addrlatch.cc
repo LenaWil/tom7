@@ -42,12 +42,12 @@ static void LatchPower(void) {
   latche = latcheinit;
   WSync();
   if (WRAM) {
-    fceulib__fceu.SetReadHandler(0x6000, 0x7FFF, Cart::CartBR);
-    fceulib__fceu.SetWriteHandler(0x6000, 0x7FFF, Cart::CartBW);
+    fceulib__.fceu->SetReadHandler(0x6000, 0x7FFF, Cart::CartBR);
+    fceulib__.fceu->SetWriteHandler(0x6000, 0x7FFF, Cart::CartBW);
   } else {
-    fceulib__fceu.SetReadHandler(0x6000, 0xFFFF, defread);
+    fceulib__.fceu->SetReadHandler(0x6000, 0xFFFF, defread);
   }
-  fceulib__fceu.SetWriteHandler(addrreg0, addrreg1, LatchWrite);
+  fceulib__.fceu->SetWriteHandler(addrreg0, addrreg1, LatchWrite);
 }
 
 static void LatchClose(void) {
@@ -77,23 +77,23 @@ static void Latch_Init(CartInfo *info, void (*proc)(void),
   if (wram) {
     WRAMSIZE = 8192;
     WRAM = (uint8*)FCEU_gmalloc(WRAMSIZE);
-    fceulib__cart.SetupCartPRGMapping(0x10, WRAM, WRAMSIZE, 1);
+    fceulib__.cart->SetupCartPRGMapping(0x10, WRAM, WRAMSIZE, 1);
     if (info->battery) {
       info->SaveGame[0] = WRAM;
       info->SaveGameLen[0] = WRAMSIZE;
     }
     AddExState(WRAM, WRAMSIZE, 0, "WRAM");
   }
-  fceulib__fceu.GameStateRestore = StateRestore;
+  fceulib__.fceu->GameStateRestore = StateRestore;
   AddExState(&latche, 2, 0, "LATC");
 }
 
 //------------------ UNLCC21 ---------------------------
 
 static void UNLCC21Sync(void) {
-  fceulib__cart.setprg32(0x8000, 0);
-  fceulib__cart.setchr8(latche & 1);
-  fceulib__cart.setmirror(MI_0 + ((latche & 2) >> 1));
+  fceulib__.cart->setprg32(0x8000, 0);
+  fceulib__.cart->setchr8(latche & 1);
+  fceulib__.cart->setmirror(MI_0 + ((latche & 2) >> 1));
 }
 
 void UNLCC21_Init(CartInfo *info) {
@@ -104,13 +104,13 @@ void UNLCC21_Init(CartInfo *info) {
 
 static void BMCD1038Sync(void) {
   if (latche & 0x80) {
-    fceulib__cart.setprg16(0x8000, (latche & 0x70) >> 4);
-    fceulib__cart.setprg16(0xC000, (latche & 0x70) >> 4);
+    fceulib__.cart->setprg16(0x8000, (latche & 0x70) >> 4);
+    fceulib__.cart->setprg16(0xC000, (latche & 0x70) >> 4);
   } else {
-    fceulib__cart.setprg32(0x8000, (latche & 0x60) >> 5);
+    fceulib__.cart->setprg32(0x8000, (latche & 0x60) >> 5);
   }
-  fceulib__cart.setchr8(latche & 7);
-  fceulib__cart.setmirror(((latche & 8) >> 3) ^ 1);
+  fceulib__.cart->setchr8(latche & 7);
+  fceulib__.cart->setmirror(((latche & 8) >> 3) ^ 1);
 }
 
 static DECLFR(BMCD1038Read) {
@@ -135,11 +135,11 @@ void BMCD1038_Init(CartInfo *info) {
 // mapper much complex, including 16K bankswitching
 static void UNL43272Sync(void) {
   if ((latche & 0x81) == 0x81) {
-    fceulib__cart.setprg32(0x8000, (latche & 0x38) >> 3);
+    fceulib__.cart->setprg32(0x8000, (latche & 0x38) >> 3);
   } else
     FCEU_printf("unrecognized command %04!\n", latche);
-  fceulib__cart.setchr8(0);
-  fceulib__cart.setmirror(0);
+  fceulib__.cart->setchr8(0);
+  fceulib__.cart->setmirror(0);
 }
 
 static DECLFR(UNL43272Read) {
@@ -164,13 +164,13 @@ void UNL43272_Init(CartInfo *info) {
 
 static void BMCGK192Sync(void) {
   if (latche & 0x40) {
-    fceulib__cart.setprg16(0x8000, latche & 7);
-    fceulib__cart.setprg16(0xC000, latche & 7);
+    fceulib__.cart->setprg16(0x8000, latche & 7);
+    fceulib__.cart->setprg16(0xC000, latche & 7);
   } else {
-    fceulib__cart.setprg32(0x8000, (latche >> 1) & 3);
+    fceulib__.cart->setprg32(0x8000, (latche >> 1) & 3);
   }
-  fceulib__cart.setchr8((latche >> 3) & 7);
-  fceulib__cart.setmirror(((latche & 0x80) >> 7) ^ 1);
+  fceulib__.cart->setchr8((latche >> 3) & 7);
+  fceulib__.cart->setmirror(((latche & 0x80) >> 7) ^ 1);
 }
 
 void BMCGK192_Init(CartInfo *info) {
@@ -180,9 +180,9 @@ void BMCGK192_Init(CartInfo *info) {
 //------------------ Map 059 ---------------------------
 // One more forbidden mapper
 static void M59Sync(void) {
-  fceulib__cart.setprg32(0x8000, (latche >> 4) & 7);
-  fceulib__cart.setchr8(latche & 0x7);
-  fceulib__cart.setmirror((latche >> 3) & 1);
+  fceulib__.cart->setprg32(0x8000, (latche >> 4) & 7);
+  fceulib__.cart->setchr8(latche & 0x7);
+  fceulib__.cart->setmirror((latche >> 3) & 1);
 }
 
 static DECLFR(M59Read) {
@@ -204,16 +204,16 @@ void Mapper59_Init(CartInfo *info) {
 
 static void M92Sync(void) {
   uint8 reg = latche & 0xF0;
-  fceulib__cart.setprg16(0x8000, 0);
+  fceulib__.cart->setprg16(0x8000, 0);
   if (latche >= 0x9000) {
     switch (reg) {
-    case 0xD0: fceulib__cart.setprg16(0xc000, latche & 15); break;
-    case 0xE0: fceulib__cart.setchr8(latche & 15); break;
+    case 0xD0: fceulib__.cart->setprg16(0xc000, latche & 15); break;
+    case 0xE0: fceulib__.cart->setchr8(latche & 15); break;
     }
   } else {
     switch (reg) {
-    case 0xB0: fceulib__cart.setprg16(0xc000, latche & 15); break;
-    case 0x70: fceulib__cart.setchr8(latche & 15); break;
+    case 0xB0: fceulib__.cart->setprg16(0xc000, latche & 15); break;
+    case 0x70: fceulib__.cart->setchr8(latche & 15); break;
     }
   }
 }
@@ -225,10 +225,10 @@ void Mapper92_Init(CartInfo *info) {
 //------------------ Map 200 ---------------------------
 
 static void M200Sync(void) {
-  fceulib__cart.setprg16(0x8000, latche & 7);
-  fceulib__cart.setprg16(0xC000, latche & 7);
-  fceulib__cart.setchr8(latche & 7);
-  fceulib__cart.setmirror((latche & 8) >> 3);
+  fceulib__.cart->setprg16(0x8000, latche & 7);
+  fceulib__.cart->setprg16(0xC000, latche & 7);
+  fceulib__.cart->setchr8(latche & 7);
+  fceulib__.cart->setmirror((latche & 8) >> 3);
 }
 
 void Mapper200_Init(CartInfo *info) {
@@ -239,11 +239,11 @@ void Mapper200_Init(CartInfo *info) {
 
 static void M201Sync(void) {
   if(latche & 8) {
-    fceulib__cart.setprg32(0x8000, latche & 3);
-    fceulib__cart.setchr8(latche & 3);
+    fceulib__.cart->setprg32(0x8000, latche & 3);
+    fceulib__.cart->setchr8(latche & 3);
   } else {
-    fceulib__cart.setprg32(0x8000, 0);
-    fceulib__cart.setchr8(0);
+    fceulib__.cart->setprg32(0x8000, 0);
+    fceulib__.cart->setchr8(0);
   }
 }
 
@@ -258,10 +258,10 @@ static void M202Sync(void) {
   int32 mirror = latche & 1;
   int32 bank = (latche >> 1) & 0x7;
   int32 select = (mirror & (bank >> 2));
-  fceulib__cart.setprg16(0x8000, select ? (bank & 6) | 0 : bank);
-  fceulib__cart.setprg16(0xc000, select ? (bank & 6) | 1 : bank);
-  fceulib__cart.setmirror(mirror ^ 1);
-  fceulib__cart.setchr8(bank);
+  fceulib__.cart->setprg16(0x8000, select ? (bank & 6) | 0 : bank);
+  fceulib__.cart->setprg16(0xc000, select ? (bank & 6) | 1 : bank);
+  fceulib__.cart->setmirror(mirror ^ 1);
+  fceulib__.cart->setchr8(bank);
 }
 
 void Mapper202_Init(CartInfo *info) {
@@ -273,10 +273,10 @@ void Mapper202_Init(CartInfo *info) {
 static void M204Sync(void) {
   int32 tmp2 = latche & 0x6;
   int32 tmp1 = tmp2 + ((tmp2 == 0x6) ? 0 : (latche & 1));
-  fceulib__cart.setprg16(0x8000, tmp1);
-  fceulib__cart.setprg16(0xc000, tmp2 + ((tmp2 == 0x6) ? 1 : (latche & 1)));
-  fceulib__cart.setchr8(tmp1);
-  fceulib__cart.setmirror(((latche >> 4) & 1) ^ 1);
+  fceulib__.cart->setprg16(0x8000, tmp1);
+  fceulib__.cart->setprg16(0xc000, tmp2 + ((tmp2 == 0x6) ? 1 : (latche & 1)));
+  fceulib__.cart->setchr8(tmp1);
+  fceulib__.cart->setmirror(((latche >> 4) & 1) ^ 1);
 }
 
 void Mapper204_Init(CartInfo *info) {
@@ -294,13 +294,13 @@ static DECLFR(M212Read) {
 
 static void M212Sync(void) {
   if(latche & 0x4000) {
-    fceulib__cart.setprg32(0x8000, (latche >> 1) & 3);
+    fceulib__.cart->setprg32(0x8000, (latche >> 1) & 3);
   } else {
-    fceulib__cart.setprg16(0x8000, latche & 7);
-    fceulib__cart.setprg16(0xC000, latche & 7);
+    fceulib__.cart->setprg16(0x8000, latche & 7);
+    fceulib__.cart->setprg16(0xC000, latche & 7);
   }
-  fceulib__cart.setchr8(latche & 7);
-  fceulib__cart.setmirror(((latche >> 3) & 1)^1);
+  fceulib__.cart->setchr8(latche & 7);
+  fceulib__.cart->setmirror(((latche >> 3) & 1)^1);
 }
 
 void Mapper212_Init(CartInfo *info) {
@@ -310,8 +310,8 @@ void Mapper212_Init(CartInfo *info) {
 //------------------ Map 213 ---------------------------
 
 static void M213Sync(void) {
-  fceulib__cart.setprg32(0x8000, (latche >> 1) & 3);
-  fceulib__cart.setchr8((latche >> 3) & 7);
+  fceulib__.cart->setprg32(0x8000, (latche >> 1) & 3);
+  fceulib__.cart->setchr8((latche >> 3) & 7);
 }
 
 void Mapper213_Init(CartInfo *info) {
@@ -321,9 +321,9 @@ void Mapper213_Init(CartInfo *info) {
 //------------------ Map 214 ---------------------------
 
 static void M214Sync(void) {
-  fceulib__cart.setprg16(0x8000, (latche >> 2) & 3);
-  fceulib__cart.setprg16(0xC000, (latche >> 2) & 3);
-  fceulib__cart.setchr8(latche & 3);
+  fceulib__.cart->setprg16(0x8000, (latche >> 2) & 3);
+  fceulib__.cart->setprg16(0xC000, (latche >> 2) & 3);
+  fceulib__.cart->setchr8(latche & 3);
 }
 
 void Mapper214_Init(CartInfo *info) {
@@ -333,8 +333,8 @@ void Mapper214_Init(CartInfo *info) {
 //------------------ Map 217 ---------------------------
 
 static void M217Sync(void) {
-  fceulib__cart.setprg32(0x8000, (latche >> 2) & 3);
-  fceulib__cart.setchr8(latche & 7);
+  fceulib__.cart->setprg32(0x8000, (latche >> 2) & 3);
+  fceulib__.cart->setchr8(latche & 7);
 }
 
 void Mapper217_Init(CartInfo *info) {
@@ -350,34 +350,34 @@ static void M227Sync(void) {
 
   if ((latche >> 7) & 1) {
     if (S) {
-      fceulib__cart.setprg32(0x8000, p >> 1);
+      fceulib__.cart->setprg32(0x8000, p >> 1);
     } else {
-      fceulib__cart.setprg16(0x8000, p);
-      fceulib__cart.setprg16(0xC000, p);
+      fceulib__.cart->setprg16(0x8000, p);
+      fceulib__.cart->setprg16(0xC000, p);
     }
   } else {
     if (S) {
       if (L) {
-	fceulib__cart.setprg16(0x8000, p & 0x3E);
-	fceulib__cart.setprg16(0xC000, p | 7);
+	fceulib__.cart->setprg16(0x8000, p & 0x3E);
+	fceulib__.cart->setprg16(0xC000, p | 7);
       } else {
-	fceulib__cart.setprg16(0x8000, p & 0x3E);
-	fceulib__cart.setprg16(0xC000, p & 0x38);
+	fceulib__.cart->setprg16(0x8000, p & 0x3E);
+	fceulib__.cart->setprg16(0xC000, p & 0x38);
       }
     } else {
       if (L) {
-	fceulib__cart.setprg16(0x8000, p);
-	fceulib__cart.setprg16(0xC000, p | 7);
+	fceulib__.cart->setprg16(0x8000, p);
+	fceulib__.cart->setprg16(0xC000, p | 7);
       } else {
-	fceulib__cart.setprg16(0x8000, p);
-	fceulib__cart.setprg16(0xC000, p & 0x38);
+	fceulib__.cart->setprg16(0x8000, p);
+	fceulib__.cart->setprg16(0xC000, p & 0x38);
       }
     }
   }
 
-  fceulib__cart.setmirror(((latche >> 1) & 1)^1);
-  fceulib__cart.setchr8(0);
-  fceulib__cart.setprg8r(0x10, 0x6000, 0);
+  fceulib__.cart->setmirror(((latche >> 1) & 1)^1);
+  fceulib__.cart->setchr8(0);
+  fceulib__.cart->setprg8r(0x10, 0x6000, 0);
 }
 
 void Mapper227_Init(CartInfo *info) {
@@ -387,14 +387,14 @@ void Mapper227_Init(CartInfo *info) {
 //------------------ Map 229 ---------------------------
 
 static void M229Sync(void) {
-  fceulib__cart.setchr8(latche);
+  fceulib__.cart->setchr8(latche);
   if(!(latche & 0x1e)) {
-    fceulib__cart.setprg32(0x8000, 0);
+    fceulib__.cart->setprg32(0x8000, 0);
   } else {
-    fceulib__cart.setprg16(0x8000, latche & 0x1F);
-    fceulib__cart.setprg16(0xC000, latche & 0x1F);
+    fceulib__.cart->setprg16(0x8000, latche & 0x1F);
+    fceulib__.cart->setprg16(0xC000, latche & 0x1F);
   }
-  fceulib__cart.setmirror(((latche >> 5) & 1)^1);
+  fceulib__.cart->setmirror(((latche >> 5) & 1)^1);
 }
 
 void Mapper229_Init(CartInfo *info) {
@@ -404,14 +404,14 @@ void Mapper229_Init(CartInfo *info) {
 //------------------ Map 231 ---------------------------
 
 static void M231Sync(void) {
-  fceulib__cart.setchr8(0);
+  fceulib__.cart->setchr8(0);
   if(latche & 0x20) {
-		fceulib__cart.setprg32(0x8000, (latche >> 1) & 0x0F);
+		fceulib__.cart->setprg32(0x8000, (latche >> 1) & 0x0F);
   } else {
-    fceulib__cart.setprg16(0x8000, latche & 0x1E);
-    fceulib__cart.setprg16(0xC000, latche & 0x1E);
+    fceulib__.cart->setprg16(0x8000, latche & 0x1E);
+    fceulib__.cart->setprg16(0xC000, latche & 0x1E);
   }
-  fceulib__cart.setmirror(((latche >> 7) & 1)^1);
+  fceulib__.cart->setmirror(((latche >> 7) & 1)^1);
 }
 
 void Mapper231_Init(CartInfo *info) {
@@ -421,10 +421,10 @@ void Mapper231_Init(CartInfo *info) {
 //------------------ Map 242 ---------------------------
 
 static void M242Sync(void) {
-  fceulib__cart.setchr8(0);
-  fceulib__cart.setprg8r(0x10, 0x6000, 0);
-  fceulib__cart.setprg32(0x8000, (latche >> 3) & 0xf);
-  fceulib__cart.setmirror(((latche >> 1) & 1) ^ 1);
+  fceulib__.cart->setchr8(0);
+  fceulib__.cart->setprg8r(0x10, 0x6000, 0);
+  fceulib__.cart->setprg32(0x8000, (latche >> 3) & 0xf);
+  fceulib__.cart->setmirror(((latche >> 1) & 1) ^ 1);
 }
 
 void Mapper242_Init(CartInfo *info) {
@@ -434,10 +434,10 @@ void Mapper242_Init(CartInfo *info) {
 //------------------ 190in1 ---------------------------
 
 static void BMC190in1Sync(void) {
-  fceulib__cart.setprg16(0x8000, (latche >> 2) & 7);
-  fceulib__cart.setprg16(0xC000, (latche >> 2) & 7);
-  fceulib__cart.setchr8((latche >> 2) & 7);
-  fceulib__cart.setmirror((latche & 1) ^ 1);
+  fceulib__.cart->setprg16(0x8000, (latche >> 2) & 7);
+  fceulib__.cart->setprg16(0xC000, (latche >> 2) & 7);
+  fceulib__.cart->setchr8((latche >> 2) & 7);
+  fceulib__.cart->setmirror((latche & 1) ^ 1);
 }
 
 void BMC190in1_Init(CartInfo *info) {
@@ -449,13 +449,13 @@ void BMC190in1_Init(CartInfo *info) {
 static void BMC810544CA1Sync(void) {
   uint32 bank = latche >> 7;
   if (latche & 0x40) {
-    fceulib__cart.setprg32(0x8000, bank);
+    fceulib__.cart->setprg32(0x8000, bank);
   } else {
-    fceulib__cart.setprg16(0x8000, (bank << 1) | ((latche >> 5) & 1));
-    fceulib__cart.setprg16(0xC000, (bank << 1) | ((latche >> 5) & 1));
+    fceulib__.cart->setprg16(0x8000, (bank << 1) | ((latche >> 5) & 1));
+    fceulib__.cart->setprg16(0xC000, (bank << 1) | ((latche >> 5) & 1));
   }
-  fceulib__cart.setchr8(latche & 0x0f);
-  fceulib__cart.setmirror(((latche >> 4) & 1) ^ 1);
+  fceulib__.cart->setchr8(latche & 0x0f);
+  fceulib__.cart->setmirror(((latche >> 4) & 1) ^ 1);
 }
 
 void BMC810544CA1_Init(CartInfo *info) {
@@ -472,13 +472,13 @@ static void BMCNTD03Sync(void) {
   uint32 prg = ((latche >> 10) & 0x1e);
   uint32 chr = ((latche & 0x0300) >> 5) | (latche & 7);
   if (latche & 0x80) {
-    fceulib__cart.setprg16(0x8000, prg | ((latche >> 6) & 1));
-    fceulib__cart.setprg16(0xC000, prg | ((latche >> 6) & 1));
+    fceulib__.cart->setprg16(0x8000, prg | ((latche >> 6) & 1));
+    fceulib__.cart->setprg16(0xC000, prg | ((latche >> 6) & 1));
   } else {
-    fceulib__cart.setprg32(0x8000, prg >> 1);
+    fceulib__.cart->setprg32(0x8000, prg >> 1);
   }
-  fceulib__cart.setchr8(chr);
-  fceulib__cart.setmirror(((latche >> 10) & 1) ^ 1);
+  fceulib__.cart->setchr8(chr);
+  fceulib__.cart->setmirror(((latche >> 10) & 1) ^ 1);
 }
 
 void BMCNTD03_Init(CartInfo *info) {
@@ -488,19 +488,19 @@ void BMCNTD03_Init(CartInfo *info) {
 //-------------- BMCG-146 ------------------------
 
 static void BMCG146Sync(void) {
-  fceulib__cart.setchr8(0);
+  fceulib__.cart->setchr8(0);
   if (latche & 0x800) {   	// UNROM mode
-    fceulib__cart.setprg16(0x8000, (latche & 0x1F) | (latche & ((latche & 0x40) >> 6)));
-    fceulib__cart.setprg16(0xC000, (latche & 0x18) | 7);
+    fceulib__.cart->setprg16(0x8000, (latche & 0x1F) | (latche & ((latche & 0x40) >> 6)));
+    fceulib__.cart->setprg16(0xC000, (latche & 0x18) | 7);
   } else {
     if (latche & 0x40) {    // 16K mode
-      fceulib__cart.setprg16(0x8000, latche & 0x1F);
-      fceulib__cart.setprg16(0xC000, latche & 0x1F);
+      fceulib__.cart->setprg16(0x8000, latche & 0x1F);
+      fceulib__.cart->setprg16(0xC000, latche & 0x1F);
     } else {
-      fceulib__cart.setprg32(0x8000, (latche >> 1) & 0x0F);
+      fceulib__.cart->setprg32(0x8000, (latche >> 1) & 0x0F);
     }
   }
-  fceulib__cart.setmirror(((latche & 0x80) >> 7) ^ 1);
+  fceulib__.cart->setmirror(((latche & 0x80) >> 7) ^ 1);
 }
 
 void BMCG146_Init(CartInfo *info) {

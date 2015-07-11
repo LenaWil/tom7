@@ -141,36 +141,36 @@ void FCEU::FreeBuffers() {
 }
 
 static DECLFW(BRAML) {
-  fceulib__fceu.RAM[A]=V;
+  fceulib__.fceu->RAM[A]=V;
 }
 
 static DECLFW(BRAMH) {
-  fceulib__fceu.RAM[A&0x7FF]=V;
+  fceulib__.fceu->RAM[A&0x7FF]=V;
 }
 
 static DECLFR(ARAML) {
-  return fceulib__fceu.RAM[A];
+  return fceulib__.fceu->RAM[A];
 }
 
 static DECLFR(ARAMH) {
-  return fceulib__fceu.RAM[A&0x7FF];
+  return fceulib__.fceu->RAM[A&0x7FF];
 }
 
 void FCEU::ResetGameLoaded() {
   if (GameInfo) FCEU_CloseGame();
   GameStateRestore=0;
-  fceulib__ppu.PPU_hook=0;
-  fceulib__ppu.GameHBIRQHook=0;
+  fceulib__.ppu->PPU_hook=0;
+  fceulib__.ppu->GameHBIRQHook=0;
   // Probably this should happen within sound itself.
-  if (fceulib__sound.GameExpSound.Kill)
-    fceulib__sound.GameExpSound.Kill();
-  memset(&fceulib__sound.GameExpSound, 0,
-         sizeof (fceulib__sound.GameExpSound));
+  if (fceulib__.sound->GameExpSound.Kill)
+    fceulib__.sound->GameExpSound.Kill();
+  memset(&fceulib__.sound->GameExpSound, 0,
+         sizeof (fceulib__.sound->GameExpSound));
 
   X.MapIRQHook = nullptr;
-  fceulib__ppu.MMC5Hack = 0;
+  fceulib__.ppu->MMC5Hack = 0;
   PAL &= 1;
-  fceulib__palette.pale = 0;
+  fceulib__.palette->pale = 0;
 }
 
 FCEUGI *FCEU::FCEUI_LoadGame(const char *name, int OverwriteVidMode) {
@@ -191,7 +191,7 @@ FCEUGI *FCEU::FCEUI_LoadGame(const char *name, int OverwriteVidMode) {
 
   // reset parameters so they're cleared just in case a format's loader
   // doesnt know to do the clearing
-  fceulib__ines.ClearMasterRomInfoParams();
+  fceulib__.ines->ClearMasterRomInfoParams();
 
   FCEU_CloseGame();
   GameInfo = new FCEUGI();
@@ -204,11 +204,11 @@ FCEUGI *FCEU::FCEUI_LoadGame(const char *name, int OverwriteVidMode) {
   GameInfo->cspecial = SIS_NONE;
 
   // Try to load each different format
-  if (fceulib__ines.iNESLoad(name, fp, OverwriteVidMode))
+  if (fceulib__.ines->iNESLoad(name, fp, OverwriteVidMode))
     goto endlseq;
-  if (fceulib__unif.UNIFLoad(name, fp))
+  if (fceulib__.unif->UNIFLoad(name, fp))
     goto endlseq;
-  if (fceulib__fds.FDSLoad(name, fp))
+  if (fceulib__.fds->FDSLoad(name, fp))
     goto endlseq;
   
   FCEU_PrintError("An error occurred while loading the file.");
@@ -230,8 +230,8 @@ endlseq:
   TRACEF("PowerNES done.");
   // TRACEA(WRAM, sizeofWRAM);
 
-  fceulib__palette.LoadGamePalette();
-  fceulib__palette.ResetPalette();
+  fceulib__.palette->LoadGamePalette();
+  fceulib__.palette->ResetPalette();
 
   return GameInfo;
 }
@@ -265,18 +265,18 @@ void FCEU::FCEUI_Kill() {
 void FCEU::FCEUI_Emulate(uint8 **pXBuf, 
 			 int32 **SoundBuf, int32 *SoundBufSize, 
 			 int skip) {
-  fceulib__input.FCEU_UpdateInput();
+  fceulib__.input->FCEU_UpdateInput();
 
   // fprintf(stderr, "ppu loop..\n");
 
-  (void)fceulib__ppu.FCEUPPU_Loop(skip);
+  (void)fceulib__.ppu->FCEUPPU_Loop(skip);
 
   // fprintf(stderr, "sound thing loop skip=%d..\n", skip);
 
   int ssize = 0;
   // If skip = 2 we are skipping sound processing
   if (skip != 2)
-    ssize = fceulib__sound.FlushEmulateSound();
+    ssize = fceulib__.sound->FlushEmulateSound();
 
   // This is where cheat list stuff happened.
   timestampbase += X.timestamp;
@@ -291,7 +291,7 @@ void FCEU::FCEUI_Emulate(uint8 **pXBuf,
     *SoundBuf=0;
     *SoundBufSize=0;
   } else {
-    *SoundBuf=fceulib__sound.WaveFinal;
+    *SoundBuf=fceulib__.sound->WaveFinal;
     *SoundBufSize=ssize;
   }
 }
@@ -299,8 +299,8 @@ void FCEU::FCEUI_Emulate(uint8 **pXBuf,
 void FCEU::ResetNES() {
   if (GameInfo == nullptr) return;
   GameInterface(GI_RESETM2);
-  fceulib__sound.FCEUSND_Reset();
-  fceulib__ppu.FCEUPPU_Reset();
+  fceulib__.sound->FCEUSND_Reset();
+  fceulib__.ppu->FCEUPPU_Reset();
   X.Reset();
 
   // clear back baffer
@@ -323,19 +323,19 @@ void FCEU::PowerNES() {
   SetReadHandler(0x800,0x1FFF,ARAMH); // Part of a little
   SetWriteHandler(0x800,0x1FFF,BRAMH); //hack for a small speed boost.
 
-  fceulib__input.InitializeInput();
-  fceulib__sound.FCEUSND_Power();
-  fceulib__ppu.FCEUPPU_Power();
+  fceulib__.input->InitializeInput();
+  fceulib__.sound->FCEUSND_Power();
+  fceulib__.ppu->FCEUPPU_Power();
 
   // Have the external game hardware "powered" after the internal NES
   // stuff. Needed for the NSF code and VS System code.
   fprintf(stderr, "GameInterface on power: %p\n", GameInterface);
   GameInterface(GI_POWER);
   if (GameInfo->type==GIT_VSUNI)
-    fceulib__vsuni.FCEU_VSUniPower();
+    fceulib__.vsuni->FCEU_VSUniPower();
 
   // if we are in a movie, then reset the saveram
-  if (fceulib__cart.disableBatteryLoading)
+  if (fceulib__.cart->disableBatteryLoading)
     GameInterface(GI_RESETSAVE);
 
   timestampbase = 0ULL;
@@ -358,15 +358,15 @@ void FCEU::FCEU_ResetVidSys() {
     w = fsettings_pal;
 
   PAL = !!w;
-  fceulib__ppu.FCEUPPU_SetVideoSystem(w);
-  fceulib__sound.SetSoundVariables();
+  fceulib__.ppu->FCEUPPU_SetVideoSystem(w);
+  fceulib__.sound->SetSoundVariables();
 }
 
 void FCEU::FCEUI_SetVidSystem(int a) {
   fsettings_pal = a ? 1 : 0;
   if (GameInfo) {
     FCEU_ResetVidSys();
-    fceulib__palette.ResetPalette();
+    fceulib__.palette->ResetPalette();
   }
 }
 
@@ -437,5 +437,3 @@ void FCEU_InitMemory(uint8 *ptr, uint32 size) {
     ptr++;
   }
 }
-
-FCEU fceulib__fceu;

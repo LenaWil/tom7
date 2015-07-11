@@ -23,12 +23,12 @@
 
 static void SA9602BPW(uint32 A, uint8 V)
 {
-  fceulib__cart.setprg8r(EXPREGS[1],A,V&0x3F);
+  fceulib__.cart->setprg8r(EXPREGS[1],A,V&0x3F);
   if(MMC3_cmd&0x40)
-    fceulib__cart.setprg8r(0,0x8000,~(1));
+    fceulib__.cart->setprg8r(0,0x8000,~(1));
   else
-    fceulib__cart.setprg8r(0,0xc000,~(1));
-  fceulib__cart.setprg8r(0,0xe000,~(0));
+    fceulib__.cart->setprg8r(0,0xc000,~(1));
+  fceulib__.cart->setprg8r(0,0xe000,~(0));
 }
 
 static DECLFW(SA9602BWrite)
@@ -51,8 +51,8 @@ static void SA9602BPower(void)
 {
   EXPREGS[0]=EXPREGS[1]=0;
   GenMMC3Power();
-  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
-  fceulib__fceu.SetWriteHandler(0x8000,0xBFFF,SA9602BWrite);
+  fceulib__.fceu->SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__.fceu->SetWriteHandler(0x8000,0xBFFF,SA9602BWrite);
 }
 
 void SA9602B_Init(CartInfo *info)
@@ -60,7 +60,7 @@ void SA9602B_Init(CartInfo *info)
   GenMMC3_Init(info, 512, 0, 0, 0);
   pwrap=SA9602BPW;
   mmc3opts|=2;
-  info->SaveGame[0]=fceulib__unif.UNIFchrrama;
+  info->SaveGame[0]=fceulib__.unif->UNIFchrrama;
   info->SaveGameLen[0]=32 * 1024;
   info->Power=SA9602BPower;
   AddExState(EXPREGS, 2, 0, "EXPR");

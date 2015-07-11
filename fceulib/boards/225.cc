@@ -34,13 +34,13 @@ static SFORMAT StateRegs[]=
 
 static void Sync(void) {
   if(mode) {
-    fceulib__cart.setprg16(0x8000,prg);
-    fceulib__cart.setprg16(0xC000,prg);
+    fceulib__.cart->setprg16(0x8000,prg);
+    fceulib__.cart->setprg16(0xC000,prg);
   } else {
-    fceulib__cart.setprg32(0x8000,prg>>1);
+    fceulib__.cart->setprg32(0x8000,prg>>1);
   }
-  fceulib__cart.setchr8(chr);
-  fceulib__cart.setmirror(mirr);
+  fceulib__.cart->setchr8(chr);
+  fceulib__.cart->setmirror(mirr);
 }
 
 static DECLFW(M225Write)
@@ -67,10 +67,10 @@ static void M225Power(void)
   prg = 0;
   mode = 0;
   Sync();
-  fceulib__fceu.SetReadHandler(0x5000,0x5fff,M225LoRead);
-  fceulib__fceu.SetWriteHandler(0x5000,0x5fff,M225LoWrite);
-  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
-  fceulib__fceu.SetWriteHandler(0x8000,0xFFFF,M225Write);
+  fceulib__.fceu->SetReadHandler(0x5000,0x5fff,M225LoRead);
+  fceulib__.fceu->SetWriteHandler(0x5000,0x5fff,M225LoWrite);
+  fceulib__.fceu->SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__.fceu->SetWriteHandler(0x8000,0xFFFF,M225Write);
 }
 
 static void M225Reset(void)
@@ -89,6 +89,6 @@ void Mapper225_Init(CartInfo *info)
 {
   info->Reset=M225Reset;
   info->Power=M225Power;
-  fceulib__fceu.GameStateRestore=StateRestore;
+  fceulib__.fceu->GameStateRestore=StateRestore;
   AddExState(&StateRegs, ~0, 0, 0);
 }

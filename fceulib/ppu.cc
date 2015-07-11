@@ -202,10 +202,10 @@ static constexpr uint32 ppulut3[128] = {
 0xcccccccc, 0xcccccccc, };
 
 static inline uint8 *MMC5SPRVRAMADR(uint32 v) {
-  return &fceulib__cart.MMC5SPRVPage[v >> 10][v];
+  return &fceulib__.cart->MMC5SPRVPage[v >> 10][v];
 }
 static inline uint8 *VRAMADR(uint32 v) {
-  return &fceulib__cart.VPage[v >> 10][v];
+  return &fceulib__.cart->VPage[v >> 10][v];
 }
 
 // mbg 8/6/08 - fix a bug relating to
@@ -217,13 +217,13 @@ uint8 *PPU::MMC5BGVRAMADR(uint32 V) {
     if (mmc5ABMode==0)
       return MMC5SPRVRAMADR(V);
     else
-      return &fceulib__cart.MMC5BGVPage[(V)>>10][(V)];
-  } else return &fceulib__cart.MMC5BGVPage[(V)>>10][(V)];
+      return &fceulib__.cart->MMC5BGVPage[(V)>>10][(V)];
+  } else return &fceulib__.cart->MMC5BGVPage[(V)>>10][(V)];
 }
 
 // static 
 DECLFR_RET PPU::A2002(DECLFR_ARGS) {
-  return fceulib__ppu.A2002_Direct(DECLFR_FORWARD);
+  return fceulib__.ppu->A2002_Direct(DECLFR_FORWARD);
 }
 
 DECLFR_RET PPU::A2002_Direct(DECLFR_ARGS) {
@@ -244,7 +244,7 @@ DECLFR_RET PPU::A2002_Direct(DECLFR_ARGS) {
 }
 
 DECLFR_RET PPU::A2004(DECLFR_ARGS) {
-  return fceulib__ppu.A2004_Direct(DECLFR_FORWARD);
+  return fceulib__.ppu->A2004_Direct(DECLFR_FORWARD);
 }
 // static
 DECLFR_RET PPU::A2004_Direct(DECLFR_ARGS) {
@@ -254,7 +254,7 @@ DECLFR_RET PPU::A2004_Direct(DECLFR_ARGS) {
 
 /* Not correct for $2004 reads. */
 DECLFR_RET PPU::A200x(DECLFR_ARGS) {
-  return fceulib__ppu.A200x_Direct(DECLFR_FORWARD);
+  return fceulib__.ppu->A200x_Direct(DECLFR_FORWARD);
 }
 // static
 DECLFR_RET PPU::A200x_Direct(DECLFR_ARGS) {
@@ -263,7 +263,7 @@ DECLFR_RET PPU::A200x_Direct(DECLFR_ARGS) {
 }
 
 DECLFR_RET PPU::A2007(DECLFR_ARGS) {
-  return fceulib__ppu.A2007_Direct(DECLFR_FORWARD);
+  return fceulib__.ppu->A2007_Direct(DECLFR_FORWARD);
 }
 // static
 DECLFR_RET PPU::A2007_Direct(DECLFR_ARGS) {
@@ -277,7 +277,7 @@ DECLFR_RET PPU::A2007_Direct(DECLFR_ARGS) {
   if (PPU_hook) PPU_hook(tmp);
   PPUGenLatch=VRAMBuffer;
   if (tmp < 0x2000) {
-    VRAMBuffer=fceulib__cart.VPage[tmp>>10][tmp];
+    VRAMBuffer=fceulib__.cart->VPage[tmp>>10][tmp];
   } else if (tmp < 0x3F00) {
     VRAMBuffer=vnapage[(tmp>>10)&0x3][tmp&0x3FF];
   }
@@ -312,12 +312,12 @@ DECLFR_RET PPU::A2007_Direct(DECLFR_ARGS) {
 
 
 //static DECLFW(Write_PSG) {
-//  return fceulib__sound.Write_PSG_Direct(DECLFW_FORWARD);
+//  return fceulib__.sound->Write_PSG_Direct(DECLFW_FORWARD);
 //}
 //void Sound::Write_PSG_Direct(DECLFW_ARGS) {
 
 static DECLFW(B2000) {
-  fceulib__ppu.B2000_Direct(DECLFW_FORWARD);
+  fceulib__.ppu->B2000_Direct(DECLFW_FORWARD);
 }
 // static
 void PPU::B2000_Direct(DECLFW_ARGS) {
@@ -335,7 +335,7 @@ void PPU::B2000_Direct(DECLFW_ARGS) {
 }
 
 static DECLFW(B2001) {
-  fceulib__ppu.B2001_Direct(DECLFW_FORWARD);
+  fceulib__.ppu->B2001_Direct(DECLFW_FORWARD);
 }
 // static
 void PPU::B2001_Direct(DECLFW_ARGS) {
@@ -348,7 +348,7 @@ void PPU::B2001_Direct(DECLFW_ARGS) {
 }
 
 static DECLFW(B2002) {
-  fceulib__ppu.B2002_Direct(DECLFW_FORWARD);
+  fceulib__.ppu->B2002_Direct(DECLFW_FORWARD);
 }
 // static
 void PPU::B2002_Direct(DECLFW_ARGS) {
@@ -356,7 +356,7 @@ void PPU::B2002_Direct(DECLFW_ARGS) {
 }
 
 static DECLFW(B2003) {
-  fceulib__ppu.B2003_Direct(DECLFW_FORWARD);
+  fceulib__.ppu->B2003_Direct(DECLFW_FORWARD);
 }
 // static
 void PPU::B2003_Direct(DECLFW_ARGS) {
@@ -367,7 +367,7 @@ void PPU::B2003_Direct(DECLFW_ARGS) {
 }
 
 static DECLFW(B2004) {
-  fceulib__ppu.B2004_Direct(DECLFW_FORWARD);
+  fceulib__.ppu->B2004_Direct(DECLFW_FORWARD);
 }
 // static
 void PPU::B2004_Direct(DECLFW_ARGS) {
@@ -385,7 +385,7 @@ void PPU::B2004_Direct(DECLFW_ARGS) {
 }
 
 static DECLFW(B2005) {
-  fceulib__ppu.B2005_Direct(DECLFW_FORWARD);
+  fceulib__.ppu->B2005_Direct(DECLFW_FORWARD);
 }
 // static
 void PPU::B2005_Direct(DECLFW_ARGS) {
@@ -407,7 +407,7 @@ void PPU::B2005_Direct(DECLFW_ARGS) {
 
 
 static DECLFW(B2006) {
-  fceulib__ppu.B2006_Direct(DECLFW_FORWARD);
+  fceulib__.ppu->B2006_Direct(DECLFW_FORWARD);
 }
 // static
 void PPU::B2006_Direct(DECLFW_ARGS) {
@@ -431,7 +431,7 @@ void PPU::B2006_Direct(DECLFW_ARGS) {
 }
 
 static DECLFW(B2007) {
-  fceulib__ppu.B2007_Direct(DECLFW_FORWARD);
+  fceulib__.ppu->B2007_Direct(DECLFW_FORWARD);
 }
 // static
 void PPU::B2007_Direct(DECLFW_ARGS) {
@@ -445,7 +445,7 @@ void PPU::B2007_Direct(DECLFW_ARGS) {
     else if (tmp&3) PALRAM[(tmp&0x1f)]=V&0x3f;
   } else if (tmp<0x2000) {
     if (PPUCHRRAM&(1<<(tmp>>10)))
-      fceulib__cart.VPage[tmp>>10][tmp]=V;
+      fceulib__.cart->VPage[tmp>>10][tmp]=V;
   } else {
     if (PPUNTARAM&(1<<((tmp&0xF00)>>10)))
       vnapage[((tmp&0xF00)>>10)][tmp&0x3FF]=V;
@@ -457,7 +457,7 @@ void PPU::B2007_Direct(DECLFW_ARGS) {
 }
 
 static DECLFW(B4014) {
-  fceulib__ppu.B4014_Direct(DECLFW_FORWARD);
+  fceulib__.ppu->B4014_Direct(DECLFW_FORWARD);
 }
 // static
 void PPU::B4014_Direct(DECLFW_ARGS) {
@@ -470,7 +470,7 @@ void PPU::B4014_Direct(DECLFW_ARGS) {
 
 void PPU::ResetRL(uint8 *target) {
   memset(target,0xFF,256);
-  fceulib__input.InputScanlineHook(0,0,0,0);
+  fceulib__.input->InputScanlineHook(0,0,0,0);
   Plinef=target;
   Pline=target;
   firsttile=0;
@@ -482,7 +482,7 @@ void PPU::ResetRL(uint8 *target) {
 
 void PPU::FCEUPPU_LineUpdate() {
   if (Pline) {
-    const int l = (fceulib__fceu.PAL ? 
+    const int l = (fceulib__.fceu->PAL ? 
 		   ((X.timestamp*48-linestartts)/15) : 
 		   ((X.timestamp*48-linestartts)>>4) );
     RefreshLine(l);
@@ -686,7 +686,7 @@ void PPU::RefreshLine(int lastpixel) {
     }
 
     if ((lastpixel-16)>=0) {
-      fceulib__input.InputScanlineHook(Plinef,any_sprites_on_line?sprlinebuf:0,
+      fceulib__.input->InputScanlineHook(Plinef,any_sprites_on_line?sprlinebuf:0,
 				       linestartts,lasttile*8-16);
     }
     return;
@@ -810,7 +810,7 @@ void PPU::RefreshLine(int lastpixel) {
   CheckSpriteHit(lastpixel);
 
   if (lastpixel - 16 >= 0) {
-    fceulib__input.InputScanlineHook(Plinef, any_sprites_on_line ? sprlinebuf : 0,
+    fceulib__.input->InputScanlineHook(Plinef, any_sprites_on_line ? sprlinebuf : 0,
 				     linestartts, lasttile * 8 - 16);
   }
   Pline=P;
@@ -849,7 +849,7 @@ void PPU::Fixit1() {
 
 void MMC5_hb(int);     //Ugh ugh ugh.
 void PPU::DoLine() {
-  uint8 *target = fceulib__fceu.XBuf + (scanline << 8);
+  uint8 *target = fceulib__.fceu->XBuf + (scanline << 8);
 
   if (MMC5Hack && (ScreenON || SpriteON)) MMC5_hb(scanline);
 
@@ -918,7 +918,7 @@ void PPU::DoLine() {
     GameHBIRQHook2();
   scanline++;
   if (scanline<240) {
-    ResetRL(fceulib__fceu.XBuf+(scanline<<8));
+    ResetRL(fceulib__.fceu->XBuf+(scanline<<8));
   }
   X.Run(16);
 }
@@ -1347,30 +1347,30 @@ void PPU::FCEUPPU_Power() {
   FCEUPPU_Reset();
 
   for (int x = 0x2000; x < 0x4000; x += 8) {
-    fceulib__fceu.ARead[x]=A200x;
-    fceulib__fceu.BWrite[x]=B2000;
-    fceulib__fceu.ARead[x+1]=A200x;
-    fceulib__fceu.BWrite[x+1]=B2001;
-    fceulib__fceu.ARead[x+2]=A2002;
-    fceulib__fceu.BWrite[x+2]=B2002;
-    fceulib__fceu.ARead[x+3]=A200x;
-    fceulib__fceu.BWrite[x+3]=B2003;
-    fceulib__fceu.ARead[x+4]=A2004; //A2004;
-    fceulib__fceu.BWrite[x+4]=B2004;
-    fceulib__fceu.ARead[x+5]=A200x;
-    fceulib__fceu.BWrite[x+5]=B2005;
-    fceulib__fceu.ARead[x+6]=A200x;
-    fceulib__fceu.BWrite[x+6]=B2006;
-    fceulib__fceu.ARead[x+7]=A2007;
-    fceulib__fceu.BWrite[x+7]=B2007;
+    fceulib__.fceu->ARead[x]=A200x;
+    fceulib__.fceu->BWrite[x]=B2000;
+    fceulib__.fceu->ARead[x+1]=A200x;
+    fceulib__.fceu->BWrite[x+1]=B2001;
+    fceulib__.fceu->ARead[x+2]=A2002;
+    fceulib__.fceu->BWrite[x+2]=B2002;
+    fceulib__.fceu->ARead[x+3]=A200x;
+    fceulib__.fceu->BWrite[x+3]=B2003;
+    fceulib__.fceu->ARead[x+4]=A2004; //A2004;
+    fceulib__.fceu->BWrite[x+4]=B2004;
+    fceulib__.fceu->ARead[x+5]=A200x;
+    fceulib__.fceu->BWrite[x+5]=B2005;
+    fceulib__.fceu->ARead[x+6]=A200x;
+    fceulib__.fceu->BWrite[x+6]=B2006;
+    fceulib__.fceu->ARead[x+7]=A2007;
+    fceulib__.fceu->BWrite[x+7]=B2007;
   }
-  fceulib__fceu.BWrite[0x4014]=B4014;
+  fceulib__.fceu->BWrite[0x4014]=B4014;
 }
 
 int PPU::FCEUPPU_Loop(int skip) {
   // Needed for Knight Rider, possibly others.
   if (ppudead) {
-    memset(fceulib__fceu.XBuf, 0x80, 256*240);
+    memset(fceulib__.fceu->XBuf, 0x80, 256*240);
     X.Run(scanlines_per_frame*(256+85));
     ppudead--;
   } else {
@@ -1412,7 +1412,7 @@ int PPU::FCEUPPU_Loop(int skip) {
 
     //Clean this stuff up later.
     any_sprites_on_line = numsprites = 0;
-    ResetRL(fceulib__fceu.XBuf);
+    ResetRL(fceulib__.fceu->XBuf);
 
     X.Run(16 - cycle_parity);
     cycle_parity ^= 1;
@@ -1474,7 +1474,7 @@ int PPU::FCEUPPU_Loop(int skip) {
       //                  deempcnt[3],deempcnt[4],deempcnt[5],
       //                  deempcnt[6],deempcnt[7],maxref);
       // memset(deempcnt,0,sizeof(deempcnt));
-      fceulib__palette.SetNESDeemph(maxref,0);
+      fceulib__.palette->SetNESDeemph(maxref,0);
     }
   } //else... to if (ppudead)
 
@@ -1520,5 +1520,3 @@ void PPU::FCEUPPU_SaveState() {
   TempAddrT = TempAddr;
   RefreshAddrT = RefreshAddr;
 }
-
-PPU fceulib__ppu;

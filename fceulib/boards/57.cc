@@ -36,14 +36,14 @@ static SFORMAT StateRegs[]=
 static void Sync(void)
 {
   if(prg_reg&0x80)
-    fceulib__cart.setprg32(0x8000,prg_reg>>6);
+    fceulib__.cart->setprg32(0x8000,prg_reg>>6);
   else
   {
-    fceulib__cart.setprg16(0x8000,(prg_reg>>5)&3);
-    fceulib__cart.setprg16(0xC000,(prg_reg>>5)&3);
+    fceulib__.cart->setprg16(0x8000,(prg_reg>>5)&3);
+    fceulib__.cart->setprg16(0xC000,(prg_reg>>5)&3);
   }
-  fceulib__cart.setmirror((prg_reg&8)>>3);
-  fceulib__cart.setchr8((chr_reg&3)|(prg_reg&7)|((prg_reg&0x10)>>1));
+  fceulib__.cart->setmirror((prg_reg&8)>>3);
+  fceulib__.cart->setchr8((chr_reg&3)|(prg_reg&7)|((prg_reg&0x10)>>1));
 }
 
 static DECLFR(M57Read)
@@ -65,9 +65,9 @@ static void M57Power(void)
   prg_reg=0;
   chr_reg=0;
   hrd_flag=0;
-  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
-  fceulib__fceu.SetWriteHandler(0x8000,0xFFFF,M57Write);
-  fceulib__fceu.SetReadHandler(0x6000,0x6000,M57Read);
+  fceulib__.fceu->SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__.fceu->SetWriteHandler(0x8000,0xFFFF,M57Write);
+  fceulib__.fceu->SetReadHandler(0x6000,0x6000,M57Read);
   Sync();
 }
 
@@ -87,6 +87,6 @@ void Mapper57_Init(CartInfo *info)
 {
   info->Power=M57Power;
   info->Reset=M57Reset;
-  fceulib__fceu.GameStateRestore=StateRestore;
+  fceulib__.fceu->GameStateRestore=StateRestore;
   AddExState(&StateRegs, ~0, 0, 0);
 }

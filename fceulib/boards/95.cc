@@ -39,18 +39,18 @@ static void toot(void) {
 
   for (int x=0;x<4;x++)
     MirCache[4+x]=(DRegs[2+x]>>5)&1;
-  fceulib__ines.onemir(MirCache[lastA]);
+  fceulib__.ines->onemir(MirCache[lastA]);
 }
 
 static void Sync() {
-  fceulib__cart.setchr2(0x0000,DRegs[0]&0x1F);
-  fceulib__cart.setchr2(0x0800,DRegs[1]&0x1F);
-  fceulib__cart.setchr1(0x1000,DRegs[2]&0x1F);
-  fceulib__cart.setchr1(0x1400,DRegs[3]&0x1F);
-  fceulib__cart.setchr1(0x1800,DRegs[4]&0x1F);
-  fceulib__cart.setchr1(0x1C00,DRegs[5]&0x1F);
-  fceulib__cart.setprg8(0x8000,DRegs[6]&0x1F);
-  fceulib__cart.setprg8(0xa000,DRegs[7]&0x1F);
+  fceulib__.cart->setchr2(0x0000,DRegs[0]&0x1F);
+  fceulib__.cart->setchr2(0x0800,DRegs[1]&0x1F);
+  fceulib__.cart->setchr1(0x1000,DRegs[2]&0x1F);
+  fceulib__.cart->setchr1(0x1400,DRegs[3]&0x1F);
+  fceulib__.cart->setchr1(0x1800,DRegs[4]&0x1F);
+  fceulib__.cart->setchr1(0x1C00,DRegs[5]&0x1F);
+  fceulib__.cart->setprg8(0x8000,DRegs[6]&0x1F);
+  fceulib__.cart->setprg8(0xa000,DRegs[7]&0x1F);
   toot();
 }
 
@@ -82,7 +82,7 @@ static void dragonbust_ppu(uint32 A) {
   lastA=A;
   z=MirCache[A];
   if (z!=last) {
-    fceulib__ines.onemir(z);
+    fceulib__.ines->onemir(z);
     last=z;
   }
 }
@@ -93,11 +93,11 @@ static void DBPower(void) {
 
   Sync();
 
-  fceulib__cart.setprg8(0xc000,0x3E);
-  fceulib__cart.setprg8(0xe000,0x3F);
+  fceulib__.cart->setprg8(0xc000,0x3E);
+  fceulib__.cart->setprg8(0xe000,0x3F);
 
-  fceulib__fceu.SetReadHandler(0x8000,0xffff,Cart::CartBR);
-  fceulib__fceu.SetWriteHandler(0x8000,0xffff,Mapper95_write);
+  fceulib__.fceu->SetReadHandler(0x8000,0xffff,Cart::CartBR);
+  fceulib__.fceu->SetWriteHandler(0x8000,0xffff,Mapper95_write);
 }
 
 static void StateRestore(int version) {
@@ -107,7 +107,7 @@ static void StateRestore(int version) {
 void Mapper95_Init(CartInfo *info) {
   info->Power=DBPower;
   AddExState(DB_StateRegs, ~0, 0, 0);
-  fceulib__ppu.PPU_hook=dragonbust_ppu;
-  fceulib__fceu.GameStateRestore=StateRestore;
+  fceulib__.ppu->PPU_hook=dragonbust_ppu;
+  fceulib__.fceu->GameStateRestore=StateRestore;
 }
 

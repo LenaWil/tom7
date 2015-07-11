@@ -41,20 +41,20 @@ static void Sync(void) {
   switch (bank_mode) {
   case 0x00:
   case 0x10: 
-    fceulib__cart.setprg16(0x8000,large_bank|prg_bank);
-    fceulib__cart.setprg16(0xC000,large_bank|7);
+    fceulib__.cart->setprg16(0x8000,large_bank|prg_bank);
+    fceulib__.cart->setprg16(0xC000,large_bank|7);
     break;
   case 0x20: 
-    fceulib__cart.setprg32(0x8000,(large_bank|prg_bank)>>1);
+    fceulib__.cart->setprg32(0x8000,(large_bank|prg_bank)>>1);
     break;
   case 0x30: 
-    fceulib__cart.setprg16(0x8000,large_bank|prg_bank);
-    fceulib__cart.setprg16(0xC000,large_bank|prg_bank);
+    fceulib__.cart->setprg16(0x8000,large_bank|prg_bank);
+    fceulib__.cart->setprg16(0xC000,large_bank|prg_bank);
     break;
   }
-  fceulib__cart.setmirror(mirroring);
+  fceulib__.cart->setmirror(mirroring);
   if(!is_large_banks)
-    fceulib__cart.setchr8(chr_bank);
+    fceulib__.cart->setchr8(chr_bank);
 }
 
 static DECLFR(BMC70in1Read)
@@ -97,12 +97,12 @@ static void BMC70in1Reset(void)
 
 static void BMC70in1Power(void)
 {
-  fceulib__cart.setchr8(0);
+  fceulib__.cart->setchr8(0);
   bank_mode=0;
   large_bank=0;
   Sync();
-  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,BMC70in1Read);
-  fceulib__fceu.SetWriteHandler(0x8000,0xffff,BMC70in1Write);
+  fceulib__.fceu->SetReadHandler(0x8000,0xFFFF,BMC70in1Read);
+  fceulib__.fceu->SetWriteHandler(0x8000,0xffff,BMC70in1Write);
 }
 
 static void StateRestore(int version)
@@ -116,7 +116,7 @@ void BMC70in1_Init(CartInfo *info)
   hw_switch=0xd;
   info->Power=BMC70in1Power;
   info->Reset=BMC70in1Reset;
-  fceulib__fceu.GameStateRestore=StateRestore;
+  fceulib__.fceu->GameStateRestore=StateRestore;
   AddExState(&StateRegs, ~0, 0, 0);
 }
 
@@ -126,6 +126,6 @@ void BMC70in1B_Init(CartInfo *info)
   hw_switch=0x6;
   info->Power=BMC70in1Power;
   info->Reset=BMC70in1Reset;
-  fceulib__fceu.GameStateRestore=StateRestore;
+  fceulib__.fceu->GameStateRestore=StateRestore;
   AddExState(&StateRegs, ~0, 0, 0);
 }

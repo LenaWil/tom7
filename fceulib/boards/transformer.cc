@@ -67,15 +67,15 @@ static DECLFR(TransformerRead)
 }
 
 static void TransformerPower(void) {
-  fceulib__cart.setprg8r(0x10,0x6000,0);
-  fceulib__cart.setprg16(0x8000,0);
-  fceulib__cart.setprg16(0xC000,~0);
-  fceulib__cart.setchr8(0);
+  fceulib__.cart->setprg8r(0x10,0x6000,0);
+  fceulib__.cart->setprg16(0x8000,0);
+  fceulib__.cart->setprg16(0xC000,~0);
+  fceulib__.cart->setchr8(0);
 
-  fceulib__fceu.SetReadHandler(0x5000,0x5004,TransformerRead);
-  fceulib__fceu.SetReadHandler(0x6000,0x7FFF,Cart::CartBR);
-  fceulib__fceu.SetWriteHandler(0x6000,0x7FFF,Cart::CartBW);
-  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__.fceu->SetReadHandler(0x5000,0x5004,TransformerRead);
+  fceulib__.fceu->SetReadHandler(0x6000,0x7FFF,Cart::CartBR);
+  fceulib__.fceu->SetWriteHandler(0x6000,0x7FFF,Cart::CartBW);
+  fceulib__.fceu->SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
 
   X.MapIRQHook=TransformerIRQHook;
 }
@@ -94,7 +94,7 @@ void Transformer_Init(CartInfo *info)
 
   WRAMSIZE=8192;
   WRAM=(uint8*)FCEU_gmalloc(WRAMSIZE);
-  fceulib__cart.SetupCartPRGMapping(0x10,WRAM,WRAMSIZE,1);
+  fceulib__.cart->SetupCartPRGMapping(0x10,WRAM,WRAMSIZE,1);
   if(info->battery) {
     info->SaveGame[0]=WRAM;
     info->SaveGameLen[0]=WRAMSIZE;

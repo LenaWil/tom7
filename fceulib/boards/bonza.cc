@@ -80,8 +80,8 @@ byte_8CC6:           .BYTE   0,$78,  0,  0,$12
 
 static void Sync(void)
 {
-  fceulib__cart.setprg32(0x8000, prg_reg);
-  fceulib__cart.setchr8(chr_reg);
+  fceulib__.cart->setprg32(0x8000, prg_reg);
+  fceulib__.cart->setchr8(chr_reg);
 }
 
 static void StateRestore(int version)
@@ -112,16 +112,16 @@ static void Power(void)
   prg_reg = 0;
   chr_reg = 0;
   Sync();
-  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
-  fceulib__fceu.SetWriteHandler(0x8000,0xFFFF,M216WriteHi);
-  fceulib__fceu.SetWriteHandler(0x5000,0x5000,M216Write5000);
-  fceulib__fceu.SetReadHandler(0x5000,0x5000,M216Read5000);
+  fceulib__.fceu->SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__.fceu->SetWriteHandler(0x8000,0xFFFF,M216WriteHi);
+  fceulib__.fceu->SetWriteHandler(0x5000,0x5000,M216Write5000);
+  fceulib__.fceu->SetReadHandler(0x5000,0x5000,M216Read5000);
 }
 
 
 void Mapper216_Init(CartInfo *info)
 {
   info->Power=Power;
-  fceulib__fceu.GameStateRestore=StateRestore;
+  fceulib__.fceu->GameStateRestore=StateRestore;
   AddExState(&StateRegs, ~0, 0, 0);
 }

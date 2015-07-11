@@ -41,23 +41,23 @@ static SFORMAT StateRegs[]=
 };
 
 static void UNLYOKOSync(void) {
-  fceulib__cart.setmirror((mode & 1)^1);
-  fceulib__cart.setchr2(0x0000,reg[3]);
-  fceulib__cart.setchr2(0x0800,reg[4]);
-  fceulib__cart.setchr2(0x1000,reg[5]);
-  fceulib__cart.setchr2(0x1800,reg[6]);
+  fceulib__.cart->setmirror((mode & 1)^1);
+  fceulib__.cart->setchr2(0x0000,reg[3]);
+  fceulib__.cart->setchr2(0x0800,reg[4]);
+  fceulib__.cart->setchr2(0x1000,reg[5]);
+  fceulib__.cart->setchr2(0x1800,reg[6]);
   if(mode & 0x10) {
     const uint32 base = (bank & 8) << 1;
-    fceulib__cart.setprg8(0x8000,(reg[0]&0x0f)|base);
-    fceulib__cart.setprg8(0xA000,(reg[1]&0x0f)|base);
-    fceulib__cart.setprg8(0xC000,(reg[2]&0x0f)|base);
-    fceulib__cart.setprg8(0xE000,0x0f|base);
+    fceulib__.cart->setprg8(0x8000,(reg[0]&0x0f)|base);
+    fceulib__.cart->setprg8(0xA000,(reg[1]&0x0f)|base);
+    fceulib__.cart->setprg8(0xC000,(reg[2]&0x0f)|base);
+    fceulib__.cart->setprg8(0xE000,0x0f|base);
   } else {
     if(mode & 8) {
-      fceulib__cart.setprg32(0x8000,bank >> 1);
+      fceulib__.cart->setprg32(0x8000,bank >> 1);
     } else {
-      fceulib__cart.setprg16(0x8000,bank);
-      fceulib__cart.setprg16(0xC000,~0);
+      fceulib__.cart->setprg16(0x8000,bank);
+      fceulib__.cart->setprg16(0xC000,~0);
     }
   }
 }
@@ -65,29 +65,29 @@ static void UNLYOKOSync(void) {
 static void M83Sync(void) {
   // check if it is truth
   switch(mode & 3) {
-  case 0: fceulib__cart.setmirror(MI_V); break;
-  case 1: fceulib__cart.setmirror(MI_H); break;
-  case 2: fceulib__cart.setmirror(MI_0); break;
-  case 3: fceulib__cart.setmirror(MI_1); break;
+  case 0: fceulib__.cart->setmirror(MI_V); break;
+  case 1: fceulib__.cart->setmirror(MI_H); break;
+  case 2: fceulib__.cart->setmirror(MI_0); break;
+  case 3: fceulib__.cart->setmirror(MI_1); break;
   }
   if(is2kbank&&!isnot2kbank) {
-    fceulib__cart.setchr2(0x0000,reg[0]);
-    fceulib__cart.setchr2(0x0800,reg[1]);
-    fceulib__cart.setchr2(0x1000,reg[6]);
-    fceulib__cart.setchr2(0x1800,reg[7]);
+    fceulib__.cart->setchr2(0x0000,reg[0]);
+    fceulib__.cart->setchr2(0x0800,reg[1]);
+    fceulib__.cart->setchr2(0x1000,reg[6]);
+    fceulib__.cart->setchr2(0x1800,reg[7]);
   } else {
     for(int x=0;x<8;x++)
-      fceulib__cart.setchr1(x<<10, reg[x] | ((bank&0x30)<<4));
+      fceulib__.cart->setchr1(x<<10, reg[x] | ((bank&0x30)<<4));
   }
-  fceulib__cart.setprg8r(0x10,0x6000,0);
+  fceulib__.cart->setprg8r(0x10,0x6000,0);
   if(mode & 0x40) {
-    fceulib__cart.setprg16(0x8000,(bank&0x3F));      // DBZ Party [p1]
-    fceulib__cart.setprg16(0xC000,(bank&0x30)|0xF);
+    fceulib__.cart->setprg16(0x8000,(bank&0x3F));      // DBZ Party [p1]
+    fceulib__.cart->setprg16(0xC000,(bank&0x30)|0xF);
   } else {
-    fceulib__cart.setprg8(0x8000,reg[8]);
-    fceulib__cart.setprg8(0xA000,reg[9]);
-    fceulib__cart.setprg8(0xC000,reg[10]);
-    fceulib__cart.setprg8(0xE000,~0);
+    fceulib__.cart->setprg8(0x8000,reg[8]);
+    fceulib__.cart->setprg8(0xA000,reg[9]);
+    fceulib__.cart->setprg8(0xC000,reg[10]);
+    fceulib__.cart->setprg8(0xE000,~0);
   }
 }
 
@@ -152,11 +152,11 @@ static void UNLYOKOPower(void)
   mode = bank = 0;
   dip = 3;
   UNLYOKOSync();
-  fceulib__fceu.SetReadHandler(0x5000,0x53FF,UNLYOKOReadDip);
-  fceulib__fceu.SetReadHandler(0x5400,0x5FFF,UNLYOKOReadLow);
-  fceulib__fceu.SetWriteHandler(0x5400,0x5FFF,UNLYOKOWriteLow);
-  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
-  fceulib__fceu.SetWriteHandler(0x8000,0xFFFF,UNLYOKOWrite);
+  fceulib__.fceu->SetReadHandler(0x5000,0x53FF,UNLYOKOReadDip);
+  fceulib__.fceu->SetReadHandler(0x5400,0x5FFF,UNLYOKOReadLow);
+  fceulib__.fceu->SetWriteHandler(0x5400,0x5FFF,UNLYOKOWriteLow);
+  fceulib__.fceu->SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__.fceu->SetWriteHandler(0x8000,0xFFFF,UNLYOKOWrite);
 }
 
 static void M83Power(void)
@@ -166,14 +166,14 @@ static void M83Power(void)
   mode = bank = 0;
   dip = 0;
   M83Sync();
-  fceulib__fceu.SetReadHandler(0x5000,0x5000,UNLYOKOReadDip);
-  fceulib__fceu.SetReadHandler(0x5100,0x5103,UNLYOKOReadLow);
-  fceulib__fceu.SetWriteHandler(0x5100,0x5103,UNLYOKOWriteLow);
-  fceulib__fceu.SetReadHandler(0x6000,0x7fff,Cart::CartBR);
+  fceulib__.fceu->SetReadHandler(0x5000,0x5000,UNLYOKOReadDip);
+  fceulib__.fceu->SetReadHandler(0x5100,0x5103,UNLYOKOReadLow);
+  fceulib__.fceu->SetWriteHandler(0x5100,0x5103,UNLYOKOWriteLow);
+  fceulib__.fceu->SetReadHandler(0x6000,0x7fff,Cart::CartBR);
  // Pirate Dragon Ball Z Party [p1] used if for saves instead of serial EEPROM
-  fceulib__fceu.SetWriteHandler(0x6000,0x7fff,Cart::CartBW);
-  fceulib__fceu.SetReadHandler(0x8000,0xffff,Cart::CartBR);
-  fceulib__fceu.SetWriteHandler(0x8000,0xffff,M83Write);
+  fceulib__.fceu->SetWriteHandler(0x6000,0x7fff,Cart::CartBW);
+  fceulib__.fceu->SetReadHandler(0x8000,0xffff,Cart::CartBR);
+  fceulib__.fceu->SetWriteHandler(0x8000,0xffff,M83Write);
 }
 
 static void UNLYOKOReset(void) {
@@ -216,7 +216,7 @@ void UNLYOKO_Init(CartInfo *info) {
   info->Power=UNLYOKOPower;
   info->Reset=UNLYOKOReset;
   X.MapIRQHook=UNLYOKOIRQHook;
-  fceulib__fceu.GameStateRestore=UNLYOKOStateRestore;
+  fceulib__.fceu->GameStateRestore=UNLYOKOStateRestore;
   AddExState(&StateRegs, ~0, 0, 0);
 }
 
@@ -225,11 +225,11 @@ void Mapper83_Init(CartInfo *info) {
   info->Reset=M83Reset;
   info->Close=M83Close;
   X.MapIRQHook=UNLYOKOIRQHook;
-  fceulib__fceu.GameStateRestore=M83StateRestore;
+  fceulib__.fceu->GameStateRestore=M83StateRestore;
 
   WRAMSIZE=8192;
   WRAM=(uint8*)FCEU_gmalloc(WRAMSIZE);
-  fceulib__cart.SetupCartPRGMapping(0x10,WRAM,WRAMSIZE,1);
+  fceulib__.cart->SetupCartPRGMapping(0x10,WRAM,WRAMSIZE,1);
   AddExState(WRAM, WRAMSIZE, 0, "WRAM");
 
   AddExState(&StateRegs, ~0, 0, 0);

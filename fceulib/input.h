@@ -198,6 +198,4 @@ struct Input {
   INPUTCFC FAMI4C;
 };
 
-extern Input fceulib__input;
-
 #endif //_INPUT_H_

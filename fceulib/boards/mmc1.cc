@@ -38,21 +38,21 @@ static int is155, is171;
 
 static DECLFW(MBWRAM) {
   if(!(DRegs[3]&0x10)||is155)
-    fceulib__cart.Page[A>>11][A]=V;     // WRAM is enabled.
+    fceulib__.cart->Page[A>>11][A]=V;     // WRAM is enabled.
 }
 
 static DECLFR(MAWRAM) {
   if((DRegs[3]&0x10)&&!is155)
     return X.DB;          // WRAM is disabled
-  return fceulib__cart.Page[A>>11][A];
+  return fceulib__.cart->Page[A>>11][A];
 }
 
 static void MMC1CHR(void) {
   if(mmc1opts&4) {
     if(DRegs[0]&0x10)
-      fceulib__cart.setprg8r(0x10,0x6000,(DRegs[1]>>4)&1);
+      fceulib__.cart->setprg8r(0x10,0x6000,(DRegs[1]>>4)&1);
     else
-      fceulib__cart.setprg8r(0x10,0x6000,(DRegs[1]>>3)&1);
+      fceulib__.cart->setprg8r(0x10,0x6000,(DRegs[1]>>3)&1);
   }
 
   if(MMC1CHRHook4) {
@@ -65,11 +65,11 @@ static void MMC1CHR(void) {
     }
   } else {
     if(DRegs[0]&0x10) {
-      fceulib__cart.setchr4(0x0000,DRegs[1]);
-      fceulib__cart.setchr4(0x1000,DRegs[2]);
+      fceulib__.cart->setchr4(0x0000,DRegs[1]);
+      fceulib__.cart->setchr4(0x1000,DRegs[2]);
     }
     else
-      fceulib__cart.setchr8(DRegs[1]>>1);
+      fceulib__.cart->setchr8(DRegs[1]>>1);
   }
 }
 
@@ -91,16 +91,16 @@ static void MMC1PRG(void) {
     }
   } else {
     switch(DRegs[0]&0xC) {
-    case 0xC: fceulib__cart.setprg16(0x8000,(DRegs[3]+offs));
-      fceulib__cart.setprg16(0xC000,0xF+offs);
+    case 0xC: fceulib__.cart->setprg16(0x8000,(DRegs[3]+offs));
+      fceulib__.cart->setprg16(0xC000,0xF+offs);
       break;
-    case 0x8: fceulib__cart.setprg16(0xC000,(DRegs[3]+offs));
-      fceulib__cart.setprg16(0x8000,offs);
+    case 0x8: fceulib__.cart->setprg16(0xC000,(DRegs[3]+offs));
+      fceulib__.cart->setprg16(0x8000,offs);
       break;
     case 0x0:
     case 0x4:
-      fceulib__cart.setprg16(0x8000,((DRegs[3]&~1)+offs));
-      fceulib__cart.setprg16(0xc000,((DRegs[3]&~1)+offs+1));
+      fceulib__.cart->setprg16(0x8000,((DRegs[3]&~1)+offs));
+      fceulib__.cart->setprg16(0xc000,((DRegs[3]&~1)+offs+1));
       break;
     }
   }
@@ -109,17 +109,17 @@ static void MMC1PRG(void) {
 static void MMC1MIRROR(void) {
   if(!is171)
     switch(DRegs[0]&3) {
-      case 2: fceulib__cart.setmirror(MI_V); break;
-      case 3: fceulib__cart.setmirror(MI_H); break;
-      case 0: fceulib__cart.setmirror(MI_0); break;
-      case 1: fceulib__cart.setmirror(MI_1); break;
+      case 2: fceulib__.cart->setmirror(MI_V); break;
+      case 3: fceulib__.cart->setmirror(MI_H); break;
+      case 0: fceulib__.cart->setmirror(MI_0); break;
+      case 1: fceulib__.cart->setmirror(MI_1); break;
     }
 }
 
 static uint64 lreset;
 static DECLFW(MMC1_write) {
   int n=(A>>13)-4;
-  //FCEU_DispMessage("%016x",fceulib__fceu.timestampbase+X.timestamp);
+  //FCEU_DispMessage("%016x",fceulib__.fceu->timestampbase+X.timestamp);
 //  FCEU_printf("$%04x:$%02x, $%04x\n",A,V,X.PC);
   //DumpMem("out",0xe000,0xffff);
 
@@ -129,14 +129,14 @@ static DECLFW(MMC1_write) {
      precision isn't that great), but this should still work to
 	   deal with 2 writes in a row from a single RMW instruction.
 	*/
-  if((fceulib__fceu.timestampbase+X.timestamp)<(lreset+2))
+  if((fceulib__.fceu->timestampbase+X.timestamp)<(lreset+2))
     return;
 //  FCEU_printf("Write %04x:%02x\n",A,V);
   if(V&0x80) {
     DRegs[0]|=0xC;
     BufferShift=Buffer=0;
     MMC1PRG();
-    lreset=fceulib__fceu.timestampbase+X.timestamp;
+    lreset=fceulib__.fceu->timestampbase+X.timestamp;
     return;
   }
 
@@ -222,19 +222,19 @@ static void NWCCHRHook(uint32 A, uint8 V) {
   if(V&0x08)
     MMC1PRG();
   else
-    fceulib__cart.setprg32(0x8000,(V>>1)&3);
+    fceulib__.cart->setprg32(0x8000,(V>>1)&3);
 }
 
 static void NWCPRGHook(uint32 A, uint8 V) {
   if(NWCRec&0x8)
-    fceulib__cart.setprg16(A,8|(V&0x7));
+    fceulib__.cart->setprg16(A,8|(V&0x7));
   else
-    fceulib__cart.setprg32(0x8000,(NWCRec>>1)&3);
+    fceulib__.cart->setprg32(0x8000,(NWCRec>>1)&3);
 }
 
 static void NWCPower(void) {
   GenMMC1Power();
-  fceulib__cart.setchr8r(0,0);
+  fceulib__.cart->setchr8r(0,0);
 }
 
 void Mapper105_Init(CartInfo *info) {
@@ -255,14 +255,14 @@ static void GenMMC1Power(void) {
       FCEU_dwmemset(WRAM,0,8192);
     }
   }
-  fceulib__fceu.SetWriteHandler(0x8000,0xFFFF,MMC1_write);
-  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__.fceu->SetWriteHandler(0x8000,0xFFFF,MMC1_write);
+  fceulib__.fceu->SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
 
   if(mmc1opts&1)
   {
-    fceulib__fceu.SetReadHandler(0x6000,0x7FFF,MAWRAM);
-    fceulib__fceu.SetWriteHandler(0x6000,0x7FFF,MBWRAM);
-    fceulib__cart.setprg8r(0x10,0x6000,0);
+    fceulib__.fceu->SetReadHandler(0x6000,0x7FFF,MAWRAM);
+    fceulib__.fceu->SetWriteHandler(0x6000,0x7FFF,MBWRAM);
+    fceulib__.cart->setprg8r(0x10,0x6000,0);
   }
 
   MMC1CMReset();
@@ -282,9 +282,9 @@ static void GenMMC1Init(CartInfo *info, int prg, int chr, int wram, int battery)
   info->Close=GenMMC1Close;
   MMC1PRGHook16=MMC1CHRHook4=0;
   mmc1opts=0;
-  fceulib__cart.PRGmask16[0]&=(prg>>14)-1;
-  fceulib__cart.CHRmask4[0]&=(chr>>12)-1;
-  fceulib__cart.CHRmask8[0]&=(chr>>13)-1;
+  fceulib__.cart->PRGmask16[0]&=(prg>>14)-1;
+  fceulib__.cart->CHRmask4[0]&=(chr>>12)-1;
+  fceulib__.cart->CHRmask8[0]&=(chr>>13)-1;
 
   if(wram) {
     WRAM=(uint8*)FCEU_gmalloc(wram*1024);
@@ -295,7 +295,7 @@ static void GenMMC1Init(CartInfo *info, int prg, int chr, int wram, int battery)
     memset(WRAM,0,wram*1024);
     mmc1opts|=1;
     if(wram>8) mmc1opts|=4;
-    fceulib__cart.SetupCartPRGMapping(0x10,WRAM,wram*1024,1);
+    fceulib__.cart->SetupCartPRGMapping(0x10,WRAM,wram*1024,1);
     AddExState(WRAM, wram*1024, 0, "WRAM");
     if(battery) {
       mmc1opts|=2;
@@ -305,13 +305,13 @@ static void GenMMC1Init(CartInfo *info, int prg, int chr, int wram, int battery)
   }
   if(!chr) {
     CHRRAM=(uint8*)FCEU_gmalloc(8192);
-    fceulib__cart.SetupCartCHRMapping(0, CHRRAM, 8192, 1);
+    fceulib__.cart->SetupCartCHRMapping(0, CHRRAM, 8192, 1);
     AddExState(CHRRAM, 8192, 0, "CHRR");
   }
   AddExState(DRegs, 4, 0, "DREG");
 
   info->Power=GenMMC1Power;
-  fceulib__fceu.GameStateRestore=MMC1_Restore;
+  fceulib__.fceu->GameStateRestore=MMC1_Restore;
   AddExState(&lreset, 8, 1, "LRST");
   AddExState(&Buffer, 1, 1, "BFFR");
   AddExState(&BufferShift, 1, 1, "BFRS");

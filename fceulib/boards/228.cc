@@ -38,10 +38,10 @@ static void Sync(void) {
   prgl = prgh = (page << 1) + (((areg >> 6) & 1) & ((areg >> 5) & 1));
   prgh += ((areg >> 5) & 1) ^ 1;
 
-  fceulib__cart.setmirror(((areg >> 13) & 1) ^ 1);
-  fceulib__cart.setprg16(0x8000,prgl);
-  fceulib__cart.setprg16(0xc000,prgh);
-  fceulib__cart.setchr8(((vreg & 0x3) | ((areg & 0xF) << 2)));
+  fceulib__.cart->setmirror(((areg >> 13) & 1) ^ 1);
+  fceulib__.cart->setprg16(0x8000,prgl);
+  fceulib__.cart->setprg16(0xc000,prgh);
+  fceulib__.cart->setchr8(((vreg & 0x3) | ((areg & 0xF) << 2)));
 }
 
 static DECLFW(M228RamWrite) {
@@ -66,10 +66,10 @@ static void M228Reset(void) {
 
 static void M228Power(void) {
   M228Reset();
-  fceulib__fceu.SetReadHandler(0x5000,0x5FFF,M228RamRead);
-  fceulib__fceu.SetWriteHandler(0x5000,0x5FFF,M228RamWrite);
-  fceulib__fceu.SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
-  fceulib__fceu.SetWriteHandler(0x8000, 0xFFFF, M228Write);
+  fceulib__.fceu->SetReadHandler(0x5000,0x5FFF,M228RamRead);
+  fceulib__.fceu->SetWriteHandler(0x5000,0x5FFF,M228RamWrite);
+  fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
+  fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, M228Write);
 }
 
 static void StateRestore(int version) {
@@ -79,6 +79,6 @@ static void StateRestore(int version) {
 void Mapper228_Init(CartInfo *info) {
 	info->Reset = M228Reset;
 	info->Power = M228Power;
-	fceulib__fceu.GameStateRestore = StateRestore;
+	fceulib__.fceu->GameStateRestore = StateRestore;
 	AddExState(&StateRegs, ~0, 0, 0);
 }

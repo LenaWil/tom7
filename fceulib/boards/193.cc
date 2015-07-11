@@ -34,14 +34,14 @@ static SFORMAT StateRegs[]=
 
 static void Sync(void)
 {
-  fceulib__cart.setmirror(mirror^1);
-  fceulib__cart.setprg8(0x8000,reg[3]);
-  fceulib__cart.setprg8(0xA000,0xD);
-  fceulib__cart.setprg8(0xC000,0xE);
-  fceulib__cart.setprg8(0xE000,0xF);
-  fceulib__cart.setchr4(0x0000,reg[0]>>2);
-  fceulib__cart.setchr2(0x1000,reg[1]>>1);
-  fceulib__cart.setchr2(0x1800,reg[2]>>1);
+  fceulib__.cart->setmirror(mirror^1);
+  fceulib__.cart->setprg8(0x8000,reg[3]);
+  fceulib__.cart->setprg8(0xA000,0xD);
+  fceulib__.cart->setprg8(0xC000,0xE);
+  fceulib__.cart->setprg8(0xE000,0xF);
+  fceulib__.cart->setchr4(0x0000,reg[0]>>2);
+  fceulib__.cart->setchr2(0x1000,reg[1]>>1);
+  fceulib__.cart->setchr2(0x1800,reg[2]>>1);
 }
 
 static DECLFW(M193Write)
@@ -54,9 +54,9 @@ static void M193Power(void)
 {
   bank=0;
   Sync();
-  fceulib__fceu.SetWriteHandler(0x6000,0x6003,M193Write);
-  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
-  fceulib__fceu.SetWriteHandler(0x8000,0xFFFF,Cart::CartBW);
+  fceulib__.fceu->SetWriteHandler(0x6000,0x6003,M193Write);
+  fceulib__.fceu->SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__.fceu->SetWriteHandler(0x8000,0xFFFF,Cart::CartBW);
 }
 
 static void M193Reset(void)
@@ -72,6 +72,6 @@ void Mapper193_Init(CartInfo *info)
 {
   info->Reset=M193Reset;
   info->Power=M193Power;
-  fceulib__fceu.GameStateRestore=StateRestore;
+  fceulib__.fceu->GameStateRestore=StateRestore;
   AddExState(&StateRegs, ~0, 0, 0);
 }

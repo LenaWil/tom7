@@ -38,16 +38,16 @@ static SFORMAT StateRegs[] = {
 };
 
 static void SyncPrg(void) {
-  fceulib__cart.setprg8(0x6000,0);
-  fceulib__cart.setprg8(0x8000,prg[0]);
-  fceulib__cart.setprg8(0xA000,prg[1]);
-  fceulib__cart.setprg8(0xC000,prg[2]);
-  fceulib__cart.setprg8(0xE000,~0);
+  fceulib__.cart->setprg8(0x6000,0);
+  fceulib__.cart->setprg8(0x8000,prg[0]);
+  fceulib__.cart->setprg8(0xA000,prg[1]);
+  fceulib__.cart->setprg8(0xC000,prg[2]);
+  fceulib__.cart->setprg8(0xE000,~0);
 }
 
 static void SyncChr(void) {
   for (int i = 0; i<8; i++)
-    fceulib__cart.setchr1(i<<10,chr[i]);
+    fceulib__.cart->setchr1(i<<10,chr[i]);
 }
 
 static void StateRestore(int version) {
@@ -67,10 +67,10 @@ static DECLFW(M183Write) {
     case 0xA000: prg[2]=V; SyncPrg(); break;
     case 0x9800:
       switch (V&3) {
-      case 0: fceulib__cart.setmirror(MI_V); break;
-      case 1: fceulib__cart.setmirror(MI_H); break;
-      case 2: fceulib__cart.setmirror(MI_0); break;
-      case 3: fceulib__cart.setmirror(MI_1); break;
+      case 0: fceulib__.cart->setmirror(MI_V); break;
+      case 1: fceulib__.cart->setmirror(MI_H); break;
+      case 2: fceulib__.cart->setmirror(MI_0); break;
+      case 3: fceulib__.cart->setmirror(MI_1); break;
       }
       break;
     case 0xF000: IRQCount=((IRQCount&0xF0)|(V&0xF)); break;
@@ -91,16 +91,16 @@ static void M183IRQCounter(void) {
 
 static void M183Power(void) {
   IRQPre=IRQCount=IRQa=0;
-  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
-  fceulib__fceu.SetWriteHandler(0x8000,0xFFFF,M183Write);
-  fceulib__fceu.SetReadHandler(0x6000,0x7FFF,Cart::CartBR);
+  fceulib__.fceu->SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__.fceu->SetWriteHandler(0x8000,0xFFFF,M183Write);
+  fceulib__.fceu->SetReadHandler(0x6000,0x7FFF,Cart::CartBR);
   SyncPrg();
   SyncChr();
 }
 
 void Mapper183_Init(CartInfo *info) {
   info->Power=M183Power;
-  fceulib__ppu.GameHBIRQHook=M183IRQCounter;
-  fceulib__fceu.GameStateRestore=StateRestore;
+  fceulib__.ppu->GameHBIRQHook=M183IRQCounter;
+  fceulib__.fceu->GameStateRestore=StateRestore;
   AddExState(&StateRegs, ~0, 0, 0);
 }

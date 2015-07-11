@@ -1,6 +1,9 @@
 #ifndef __CART_H
 #define __CART_H
 
+#include "types.h"
+#include "fceu.h"
+
 struct CartInfo {
   /* Set by mapper/board code: */
   void (*Power)();
@@ -133,7 +136,5 @@ private:
 #define MI_V 1
 #define MI_0 2
 #define MI_1 3
-
-extern Cart fceulib__cart;
 
 #endif

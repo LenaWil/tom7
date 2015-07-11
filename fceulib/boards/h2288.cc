@@ -27,13 +27,13 @@ static void H2288PW(uint32 A, uint8 V) {
   if(EXPREGS[0]&0x40) {
     uint8 bank=(EXPREGS[0]&5)|((EXPREGS[0]&8)>>2)|((EXPREGS[0]&0x20)>>2);
     if(EXPREGS[0]&2) {
-      fceulib__cart.setprg32(0x8000,bank>>1);
+      fceulib__.cart->setprg32(0x8000,bank>>1);
     } else {
-      fceulib__cart.setprg16(0x8000,bank);
-      fceulib__cart.setprg16(0xC000,bank);
+      fceulib__.cart->setprg16(0x8000,bank);
+      fceulib__.cart->setprg16(0xC000,bank);
     }
   } else {
-    fceulib__cart.setprg8(A,V&0x3F);
+    fceulib__.cart->setprg8(A,V&0x3F);
   }
 }
 
@@ -60,10 +60,10 @@ static void H2288Power(void)
 {
   EXPREGS[0]=EXPREGS[1]=0;
   GenMMC3Power();
-//  fceulib__fceu.SetReadHandler(0x5000,0x5FFF,H2288Read);
-  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
-  fceulib__fceu.SetWriteHandler(0x5000,0x5FFF,H2288WriteLo);
-  fceulib__fceu.SetWriteHandler(0x8000,0x9FFF,H2288WriteHi);
+//  fceulib__.fceu->SetReadHandler(0x5000,0x5FFF,H2288Read);
+  fceulib__.fceu->SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__.fceu->SetWriteHandler(0x5000,0x5FFF,H2288WriteLo);
+  fceulib__.fceu->SetWriteHandler(0x8000,0x9FFF,H2288WriteHi);
 }
 
 void UNLH2288_Init(CartInfo *info)

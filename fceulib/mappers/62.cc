@@ -29,12 +29,12 @@ static DECLFW(Mapper62_write)
   }
   else
      ROM_BANK32(((A&0x40)|((A>>8)&0x3F))>>1);
-  fceulib__ines.MIRROR_SET((A&0x80)>>7);
+  fceulib__.ines->MIRROR_SET((A&0x80)>>7);
 }
 
 void Mapper62_init(void)
 {
-        fceulib__fceu.SetWriteHandler(0x8000,0xffff, Mapper62_write);
+        fceulib__.fceu->SetWriteHandler(0x8000,0xffff, Mapper62_write);
         ROM_BANK32(0);
 }
 

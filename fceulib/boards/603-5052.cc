@@ -36,8 +36,8 @@ static DECLFR(UNL6035052ProtRead)
 static void UNL6035052Power(void)
 {
   GenMMC3Power();
-  fceulib__fceu.SetWriteHandler(0x4020,0x7FFF,UNL6035052ProtWrite);
-  fceulib__fceu.SetReadHandler(0x4020,0x7FFF,UNL6035052ProtRead);
+  fceulib__.fceu->SetWriteHandler(0x4020,0x7FFF,UNL6035052ProtWrite);
+  fceulib__.fceu->SetReadHandler(0x4020,0x7FFF,UNL6035052ProtRead);
 }
 
 void UNL6035052_Init(CartInfo *info)

@@ -9,6 +9,8 @@
 
 #include "git.h"
 
+#include "fc.h"
+
 static constexpr int newppu = 0;
 
 // TODO(tom7): Fix this junk. These have to take a Fceulib object.
@@ -114,8 +116,6 @@ private:
   void FreeBuffers();
   void ResetGameLoaded();
 };
-
-extern FCEU fceulib__fceu;
 
 // Stateless stuff that should probably be in its own header..
 void FCEU_PrintError(char *format, ...);

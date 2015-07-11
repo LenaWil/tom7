@@ -31,13 +31,13 @@ static SFORMAT StateRegs[]=
 
 static void Sync(void)
 {
-  fceulib__cart.setchr8(reg);
+  fceulib__.cart->setchr8(reg);
   if(!delay) {
-  fceulib__cart.setprg16(0x8000,reg);
-  fceulib__cart.setprg8(0xC000,reg << 1);
+  fceulib__.cart->setprg16(0x8000,reg);
+  fceulib__.cart->setprg8(0xC000,reg << 1);
   }
-  fceulib__cart.setprg8(0xE000,(reg << 1) + 1);
-  fceulib__cart.setmirror(((mirr&4)>>2)^1);
+  fceulib__.cart->setprg8(0xE000,(reg << 1) + 1);
+  fceulib__.cart->setmirror(((mirr&4)>>2)^1);
 }
 
 static DECLFW(M175Write1)
@@ -67,9 +67,9 @@ static DECLFR(M175Read)
 static void M175Power(void)
 {
   reg = mirr = delay = 0;
-  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,M175Read);
-  fceulib__fceu.SetWriteHandler(0x8000,0x8000,M175Write1);
-  fceulib__fceu.SetWriteHandler(0xA000,0xA000,M175Write2);
+  fceulib__.fceu->SetReadHandler(0x8000,0xFFFF,M175Read);
+  fceulib__.fceu->SetWriteHandler(0x8000,0x8000,M175Write1);
+  fceulib__.fceu->SetWriteHandler(0xA000,0xA000,M175Write2);
   Sync();
 }
 
@@ -81,7 +81,7 @@ static void StateRestore(int version)
 void Mapper175_Init(CartInfo *info)
 {
   info->Power=M175Power;
-  fceulib__fceu.GameStateRestore=StateRestore;
+  fceulib__.fceu->GameStateRestore=StateRestore;
 
   AddExState(&StateRegs, ~0, 0, 0);
 }

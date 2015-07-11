@@ -23,18 +23,18 @@
 
 static DECLFW(Mapper40_write) {
   switch(A&0xe000) {
-  case 0x8000:fceulib__ines.iNESIRQa=0;fceulib__ines.iNESIRQCount=0;X.IRQEnd(FCEU_IQEXT);break;
-  case 0xa000:fceulib__ines.iNESIRQa=1;break;
+  case 0x8000:fceulib__.ines->iNESIRQa=0;fceulib__.ines->iNESIRQCount=0;X.IRQEnd(FCEU_IQEXT);break;
+  case 0xa000:fceulib__.ines->iNESIRQa=1;break;
   case 0xe000:ROM_BANK8(0xc000,V&7);break;
   }
 }
 
 static void Mapper40IRQ(int a) {
-  if(fceulib__ines.iNESIRQa) {
-    if(fceulib__ines.iNESIRQCount<4096) {
-      fceulib__ines.iNESIRQCount+=a;
+  if(fceulib__.ines->iNESIRQa) {
+    if(fceulib__.ines->iNESIRQCount<4096) {
+      fceulib__.ines->iNESIRQCount+=a;
     } else {
-      fceulib__ines.iNESIRQa=0;
+      fceulib__.ines->iNESIRQa=0;
       X.IRQBegin(FCEU_IQEXT);
     }
   }
@@ -45,8 +45,8 @@ void Mapper40_init(void)
   ROM_BANK8(0x6000,(~0)-1);
   ROM_BANK8(0x8000,(~0)-3);
   ROM_BANK8(0xa000,(~0)-2);
-  fceulib__fceu.SetWriteHandler(0x8000,0xffff,Mapper40_write);
-  fceulib__fceu.SetReadHandler(0x6000,0x7fff,Cart::CartBR);
+  fceulib__.fceu->SetWriteHandler(0x8000,0xffff,Mapper40_write);
+  fceulib__.fceu->SetReadHandler(0x6000,0x7fff,Cart::CartBR);
   X.MapIRQHook=Mapper40IRQ;
 }
 

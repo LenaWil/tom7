@@ -22,18 +22,18 @@
 
 static uint8 FFEmode;
 
-#define FVRAM_BANK8(A,V) {fceulib__cart.VPage[0]=fceulib__cart.VPage[1]=fceulib__cart.VPage[2]=fceulib__cart.VPage[3]=fceulib__cart.VPage[4]=fceulib__cart.VPage[5]=fceulib__cart.VPage[6]=fceulib__cart.VPage[7]=V?&MapperExRAM[(V)<<13]-(A):&CHRRAM[(V)<<13]-(A);fceulib__ines.iNESCHRBankList[0]=((V)<<3);fceulib__ines.iNESCHRBankList[1]=((V)<<3)+1;fceulib__ines.iNESCHRBankList[2]=((V)<<3)+2;fceulib__ines.iNESCHRBankList[3]=((V)<<3)+3;fceulib__ines.iNESCHRBankList[4]=((V)<<3)+4;fceulib__ines.iNESCHRBankList[5]=((V)<<3)+5;fceulib__ines.iNESCHRBankList[6]=((V)<<3)+6;fceulib__ines.iNESCHRBankList[7]=((V)<<3)+7;fceulib__ppu.PPUCHRRAM=0xFF;}
+#define FVRAM_BANK8(A,V) {fceulib__.cart->VPage[0]=fceulib__.cart->VPage[1]=fceulib__.cart->VPage[2]=fceulib__.cart->VPage[3]=fceulib__.cart->VPage[4]=fceulib__.cart->VPage[5]=fceulib__.cart->VPage[6]=fceulib__.cart->VPage[7]=V?&MapperExRAM[(V)<<13]-(A):&CHRRAM[(V)<<13]-(A);fceulib__.ines->iNESCHRBankList[0]=((V)<<3);fceulib__.ines->iNESCHRBankList[1]=((V)<<3)+1;fceulib__.ines->iNESCHRBankList[2]=((V)<<3)+2;fceulib__.ines->iNESCHRBankList[3]=((V)<<3)+3;fceulib__.ines->iNESCHRBankList[4]=((V)<<3)+4;fceulib__.ines->iNESCHRBankList[5]=((V)<<3)+5;fceulib__.ines->iNESCHRBankList[6]=((V)<<3)+6;fceulib__.ines->iNESCHRBankList[7]=((V)<<3)+7;fceulib__.ppu->PPUCHRRAM=0xFF;}
 
 static void FFEIRQHook(int a)
 {
-  if(fceulib__ines.iNESIRQa)
+  if(fceulib__.ines->iNESIRQa)
   {
-   fceulib__ines.iNESIRQCount+=a;
-   if(fceulib__ines.iNESIRQCount>=0x10000)
+   fceulib__.ines->iNESIRQCount+=a;
+   if(fceulib__.ines->iNESIRQCount>=0x10000)
    {
     X.IRQBegin(FCEU_IQEXT);
-    fceulib__ines.iNESIRQa=0;
-    fceulib__ines.iNESIRQCount=0;
+    fceulib__.ines->iNESIRQa=0;
+    fceulib__.ines->iNESIRQCount=0;
    }
   }
 }
@@ -41,16 +41,16 @@ static void FFEIRQHook(int a)
 DECLFW(Mapper6_write) {
   if(A<0x8000) {
     switch(A) {
-    case 0x42FF:fceulib__ines.MIRROR_SET((V>>4)&1);break;
-    case 0x42FE:fceulib__ines.onemir((V>>3)&2); FFEmode=V&0x80;break;
-    case 0x4501:fceulib__ines.iNESIRQa=0;X.IRQEnd(FCEU_IQEXT);break;
-    case 0x4502:fceulib__ines.iNESIRQCount&=0xFF00;fceulib__ines.iNESIRQCount|=V;break;
-    case 0x4503:fceulib__ines.iNESIRQCount&=0xFF;fceulib__ines.iNESIRQCount|=V<<8;fceulib__ines.iNESIRQa=1;break;
+    case 0x42FF:fceulib__.ines->MIRROR_SET((V>>4)&1);break;
+    case 0x42FE:fceulib__.ines->onemir((V>>3)&2); FFEmode=V&0x80;break;
+    case 0x4501:fceulib__.ines->iNESIRQa=0;X.IRQEnd(FCEU_IQEXT);break;
+    case 0x4502:fceulib__.ines->iNESIRQCount&=0xFF00;fceulib__.ines->iNESIRQCount|=V;break;
+    case 0x4503:fceulib__.ines->iNESIRQCount&=0xFF;fceulib__.ines->iNESIRQCount|=V<<8;fceulib__.ines->iNESIRQa=1;break;
     }
   } else {
     switch (FFEmode) {
     case 0x80: 
-      fceulib__cart.setchr8(V); 
+      fceulib__.cart->setchr8(V); 
       break;
     default:
       ROM_BANK16(0x8000,V>>2);
@@ -61,12 +61,12 @@ DECLFW(Mapper6_write) {
 
 void Mapper6_StateRestore(int version) {
   for (int x=0;x<8;x++)
-    if (fceulib__ppu.PPUCHRRAM&(1<<x)) {
-      if (fceulib__ines.iNESCHRBankList[x]>7) {
-	fceulib__cart.VPage[x] = 
-	  &MapperExRAM[(fceulib__ines.iNESCHRBankList[x]&31)*0x400]-(x*0x400);
+    if (fceulib__.ppu->PPUCHRRAM&(1<<x)) {
+      if (fceulib__.ines->iNESCHRBankList[x]>7) {
+	fceulib__.cart->VPage[x] = 
+	  &MapperExRAM[(fceulib__.ines->iNESCHRBankList[x]&31)*0x400]-(x*0x400);
       } else {
-	fceulib__cart.VPage[x]=&CHRRAM[(fceulib__ines.iNESCHRBankList[x]&7)*0x400]-(x*0x400);
+	fceulib__.cart->VPage[x]=&CHRRAM[(fceulib__.ines->iNESCHRBankList[x]&7)*0x400]-(x*0x400);
       }
     }
 }
@@ -75,7 +75,7 @@ void Mapper6_init(void) {
   X.MapIRQHook=FFEIRQHook;
   ROM_BANK16(0xc000,7);
 
-  fceulib__fceu.SetWriteHandler(0x4020,0x5fff,Mapper6_write);
-  fceulib__fceu.SetWriteHandler(0x8000,0xffff,Mapper6_write);
-  fceulib__ines.MapStateRestore=Mapper6_StateRestore;
+  fceulib__.fceu->SetWriteHandler(0x4020,0x5fff,Mapper6_write);
+  fceulib__.fceu->SetWriteHandler(0x8000,0xffff,Mapper6_write);
+  fceulib__.ines->MapStateRestore=Mapper6_StateRestore;
 }

@@ -32,12 +32,12 @@ static SFORMAT DEI_StateRegs[]=
 
 static void Sync(void)
 {
-  fceulib__cart.setchr2(0x0000,DRegs[0]);
-  fceulib__cart.setchr2(0x0800,DRegs[1]);
+  fceulib__.cart->setchr2(0x0000,DRegs[0]);
+  fceulib__.cart->setchr2(0x0800,DRegs[1]);
   for(int x=0;x<4;x++)
-    fceulib__cart.setchr1(0x1000+(x<<10),DRegs[2+x]);
-  fceulib__cart.setprg8(0x8000,DRegs[6]);
-  fceulib__cart.setprg8(0xa000,DRegs[7]);
+    fceulib__.cart->setchr1(0x1000+(x<<10),DRegs[2+x]);
+  fceulib__.cart->setprg8(0x8000,DRegs[6]);
+  fceulib__.cart->setprg8(0xa000,DRegs[7]);
 }
 
 static void StateRestore(int version)
@@ -63,19 +63,19 @@ static DECLFW(DEIWrite)
 
 static void DEIPower(void)
 {
-  fceulib__cart.setprg8(0xc000,0xE);
-  fceulib__cart.setprg8(0xe000,0xF);
+  fceulib__.cart->setprg8(0xc000,0xE);
+  fceulib__.cart->setprg8(0xe000,0xF);
   cmd=0;
   memset(DRegs,0,8);
   Sync();
-  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
-  fceulib__fceu.SetWriteHandler(0x8000,0xFFFF,DEIWrite);
+  fceulib__.fceu->SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__.fceu->SetWriteHandler(0x8000,0xFFFF,DEIWrite);
 }
 
 
 void DEIROM_Init(CartInfo *info)
 {
   info->Power=DEIPower;
-  fceulib__fceu.GameStateRestore=StateRestore;
+  fceulib__.fceu->GameStateRestore=StateRestore;
   AddExState(&DEI_StateRegs, ~0, 0, 0);
 }

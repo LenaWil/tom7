@@ -103,6 +103,4 @@ struct FDS {
   uint8 fdsread4013_z = 0;
 };
 
-extern FDS fceulib__fds;
-
 #endif

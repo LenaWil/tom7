@@ -23,7 +23,7 @@
 
 static void M189PW(uint32 A, uint8 V)
 {
-  fceulib__cart.setprg32(0x8000,EXPREGS[0]&7);
+  fceulib__.cart->setprg32(0x8000,EXPREGS[0]&7);
 }
 
 static DECLFW(M189Write)
@@ -36,7 +36,7 @@ static void M189Power(void)
 {
   EXPREGS[0]=EXPREGS[1]=0;
   GenMMC3Power();
-  fceulib__fceu.SetWriteHandler(0x4120,0x7FFF,M189Write);
+  fceulib__.fceu->SetWriteHandler(0x4120,0x7FFF,M189Write);
 }
 
 void Mapper189_Init(CartInfo *info)

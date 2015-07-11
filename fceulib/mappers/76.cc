@@ -42,13 +42,13 @@ static DECLFW(Mapper76_write)
                }
                break;
         case 0xA000:
-        fceulib__ines.MIRROR_SET(V&1);
+        fceulib__.ines->MIRROR_SET(V&1);
         break;
  }
 }
 
 void Mapper76_init(void)
 {
-fceulib__fceu.SetWriteHandler(0x8000,0xffff,Mapper76_write);
+fceulib__.fceu->SetWriteHandler(0x8000,0xffff,Mapper76_write);
 }
 

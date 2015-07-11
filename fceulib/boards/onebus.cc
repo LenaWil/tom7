@@ -83,13 +83,13 @@ static void PSync(void)
   uint8 bank3  = ~0;
 
 //  FCEU_printf(" PRG: %04x [%02x]",0x8000^pswap,block | (bank0 & mask));
-  fceulib__cart.setprg8(0x8000^pswap, block | (bank0 & mask));
+  fceulib__.cart->setprg8(0x8000^pswap, block | (bank0 & mask));
 //  FCEU_printf(" %04x [%02x]",0xa000^pswap,block | (bank1 & mask));
-  fceulib__cart.setprg8(0xa000,       block | (bank1 & mask));
+  fceulib__.cart->setprg8(0xa000,       block | (bank1 & mask));
 //  FCEU_printf(" %04x [%02x]",0xc000^pswap,block | (bank2 & mask));
-  fceulib__cart.setprg8(0xc000^pswap, block | (bank2 & mask));
+  fceulib__.cart->setprg8(0xc000^pswap, block | (bank2 & mask));
 //  FCEU_printf(" %04x [%02x]\n",0xe000^pswap,block | (bank3 & mask));
-  fceulib__cart.setprg8(0xe000,       block | (bank3 & mask));
+  fceulib__.cart->setprg8(0xe000,       block | (bank3 & mask));
 }
 
 static void CSync(void)
@@ -108,16 +108,16 @@ static void CSync(void)
   uint8 bank6  = ppu201x[0x4];
   uint8 bank7  = ppu201x[0x5];
 
-  fceulib__cart.setchr1(0x0000^cswap, block | (bank0 & mask));
-  fceulib__cart.setchr1(0x0400^cswap, block | (bank1 & mask));
-  fceulib__cart.setchr1(0x0800^cswap, block | (bank2 & mask));
-  fceulib__cart.setchr1(0x0c00^cswap, block | (bank3 & mask));
-  fceulib__cart.setchr1(0x1000^cswap, block | (bank4 & mask));
-  fceulib__cart.setchr1(0x1400^cswap, block | (bank5 & mask));
-  fceulib__cart.setchr1(0x1800^cswap, block | (bank6 & mask));
-  fceulib__cart.setchr1(0x1c00^cswap, block | (bank7 & mask));
+  fceulib__.cart->setchr1(0x0000^cswap, block | (bank0 & mask));
+  fceulib__.cart->setchr1(0x0400^cswap, block | (bank1 & mask));
+  fceulib__.cart->setchr1(0x0800^cswap, block | (bank2 & mask));
+  fceulib__.cart->setchr1(0x0c00^cswap, block | (bank3 & mask));
+  fceulib__.cart->setchr1(0x1000^cswap, block | (bank4 & mask));
+  fceulib__.cart->setchr1(0x1400^cswap, block | (bank5 & mask));
+  fceulib__.cart->setchr1(0x1800^cswap, block | (bank6 & mask));
+  fceulib__.cart->setchr1(0x1c00^cswap, block | (bank7 & mask));
 
-  fceulib__cart.setmirror((mirror & 1) ^ 1);
+  fceulib__.cart->setmirror((mirror & 1) ^ 1);
 }
 
 static void Sync(void)
@@ -259,7 +259,7 @@ static void UNLOneBusCpuHook(int a)
  	  }
 	  else
  	  {
-	    uint8 raw_pcm = fceulib__fceu.ARead[pcm_addr](pcm_addr) >> 1;
+	    uint8 raw_pcm = fceulib__.fceu->ARead[pcm_addr](pcm_addr) >> 1;
 	    defapuwrite[0x11](0x4011,raw_pcm);
 		pcm_addr++;
 		pcm_addr&=0x7FFF;
@@ -277,21 +277,21 @@ static void UNLOneBusPower(void)
   memset(ppu201x, 0x00, sizeof(ppu201x));
   memset(apu40xx, 0x00, sizeof(apu40xx));
 
-  fceulib__cart.SetupCartCHRMapping(0, fceulib__cart.PRGptr[0], 
-				    fceulib__cart.PRGsize[0], 0);
+  fceulib__.cart->SetupCartCHRMapping(0, fceulib__.cart->PRGptr[0], 
+				    fceulib__.cart->PRGsize[0], 0);
 
   for(i=0; i<64; i++)
   {
-    defapuread[i] = fceulib__fceu.GetReadHandler(0x4000|i);
-    defapuwrite[i] = fceulib__fceu.GetWriteHandler(0x4000|i);
+    defapuread[i] = fceulib__.fceu->GetReadHandler(0x4000|i);
+    defapuwrite[i] = fceulib__.fceu->GetWriteHandler(0x4000|i);
   }
-  fceulib__fceu.SetReadHandler(0x4000,0x403f,UNLOneBusReadAPU40XX);
-  fceulib__fceu.SetWriteHandler(0x4000,0x403f,UNLOneBusWriteAPU40XX);
+  fceulib__.fceu->SetReadHandler(0x4000,0x403f,UNLOneBusReadAPU40XX);
+  fceulib__.fceu->SetWriteHandler(0x4000,0x403f,UNLOneBusWriteAPU40XX);
 
-  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
-  fceulib__fceu.SetWriteHandler(0x2010,0x201f,UNLOneBusWritePPU201X);
-  fceulib__fceu.SetWriteHandler(0x4100,0x410f,UNLOneBusWriteCPU410X);
-  fceulib__fceu.SetWriteHandler(0x8000,0xffff,UNLOneBusWriteMMC3);
+  fceulib__.fceu->SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__.fceu->SetWriteHandler(0x2010,0x201f,UNLOneBusWritePPU201X);
+  fceulib__.fceu->SetWriteHandler(0x4100,0x410f,UNLOneBusWriteCPU410X);
+  fceulib__.fceu->SetWriteHandler(0x8000,0xffff,UNLOneBusWriteMMC3);
 
   Sync();
 }
@@ -321,8 +321,8 @@ void UNLOneBus_Init(CartInfo *info) {
     inv_hack = 0xf;
   }
 
-  fceulib__ppu.GameHBIRQHook=UNLOneBusIRQHook;
+  fceulib__.ppu->GameHBIRQHook=UNLOneBusIRQHook;
   X.MapIRQHook=UNLOneBusCpuHook;
-  fceulib__fceu.GameStateRestore=StateRestore;
+  fceulib__.fceu->GameStateRestore=StateRestore;
   AddExState(&StateRegs, ~0, 0, 0);
 }

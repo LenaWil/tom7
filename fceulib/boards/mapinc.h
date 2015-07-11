@@ -8,5 +8,7 @@
 #include "../cart.h"
 #include "../unif.h"
 #include "../fsettings.h"
+#include "../fc.h"
+
 #include <stdio.h>
 #include <string.h>

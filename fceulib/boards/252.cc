@@ -39,16 +39,16 @@ static SFORMAT StateRegs[] =
 };
 
 static void Sync(void) {
-  fceulib__cart.setprg8r(0x10, 0x6000, 0);
-  fceulib__cart.setprg8(0x8000, preg[0]);
-  fceulib__cart.setprg8(0xa000, preg[1]);
-  fceulib__cart.setprg8(0xc000, ~1);
-  fceulib__cart.setprg8(0xe000, ~0);
+  fceulib__.cart->setprg8r(0x10, 0x6000, 0);
+  fceulib__.cart->setprg8(0x8000, preg[0]);
+  fceulib__.cart->setprg8(0xa000, preg[1]);
+  fceulib__.cart->setprg8(0xc000, ~1);
+  fceulib__.cart->setprg8(0xe000, ~0);
   for (uint8 i = 0; i < 8; i++)
     if ((creg[i] == 6) || (creg[i] == 7))
-      fceulib__cart.setchr1r(0x10, i << 10, creg[i] & 1);
+      fceulib__.cart->setchr1r(0x10, i << 10, creg[i] & 1);
     else
-      fceulib__cart.setchr1(i << 10, creg[i]);
+      fceulib__.cart->setchr1(i << 10, creg[i]);
 }
 
 static DECLFW(M252Write) {
@@ -75,10 +75,10 @@ static DECLFW(M252Write) {
 
 static void M252Power(void) {
   Sync();
-  fceulib__fceu.SetReadHandler(0x6000, 0x7FFF, Cart::CartBR);
-  fceulib__fceu.SetWriteHandler(0x6000, 0x7FFF, Cart::CartBW);
-  fceulib__fceu.SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
-  fceulib__fceu.SetWriteHandler(0x8000, 0xFFFF, M252Write);
+  fceulib__.fceu->SetReadHandler(0x6000, 0x7FFF, Cart::CartBR);
+  fceulib__.fceu->SetWriteHandler(0x6000, 0x7FFF, Cart::CartBW);
+  fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
+  fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, M252Write);
 }
 
 static void M252IRQ(int a) {
@@ -117,17 +117,17 @@ void Mapper252_Init(CartInfo *info) {
 
   CHRRAMSIZE = 2048;
   CHRRAM = (uint8*)FCEU_gmalloc(CHRRAMSIZE);
-  fceulib__cart.SetupCartCHRMapping(0x10, CHRRAM, CHRRAMSIZE, 1);
+  fceulib__.cart->SetupCartCHRMapping(0x10, CHRRAM, CHRRAMSIZE, 1);
   AddExState(CHRRAM, CHRRAMSIZE, 0, "CRAM");
 
   WRAMSIZE = 8192;
   WRAM = (uint8*)FCEU_gmalloc(WRAMSIZE);
-  fceulib__cart.SetupCartPRGMapping(0x10, WRAM, WRAMSIZE, 1);
+  fceulib__.cart->SetupCartPRGMapping(0x10, WRAM, WRAMSIZE, 1);
   AddExState(WRAM, WRAMSIZE, 0, "WRAM");
   if (info->battery) {
     info->SaveGame[0] = WRAM;
     info->SaveGameLen[0] = WRAMSIZE;
   }
-  fceulib__fceu.GameStateRestore = StateRestore;
+  fceulib__.fceu->GameStateRestore = StateRestore;
   AddExState(&StateRegs, ~0, 0, 0);
 }

@@ -44,8 +44,6 @@
 
 #include "tracing.h"
 
-INes fceulib__ines;
-
 INes::INes() {}
 
 /*  MapperReset() is called when the NES is reset(with the reset button).
@@ -74,7 +72,7 @@ DECLFR_RET INes::TrainerRead_Direct(DECLFR_ARGS) {
 }
 
 static DECLFR(TrainerRead) {
-  return fceulib__ines.TrainerRead_Direct(DECLFR_FORWARD);
+  return fceulib__.ines->TrainerRead_Direct(DECLFR_FORWARD);
 }
 
 void INes::iNES_ExecPower() {
@@ -88,7 +86,7 @@ void INes::iNES_ExecPower() {
     for (int x=0;x<512;x++) {
       X.DMW(0x7000+x,trainerdata[x]);
       if (X.DMR(0x7000+x)!=trainerdata[x]) {
-	fceulib__fceu.SetReadHandler(0x7000,0x71FF,TrainerRead);
+	fceulib__.fceu->SetReadHandler(0x7000,0x71FF,TrainerRead);
 	break;
       }
     }
@@ -99,7 +97,7 @@ void INes::iNESGI(GI h) {
   fprintf(stderr, "iNESGI %d\n", (int)h);
   switch(h) {
   case GI_RESETSAVE:
-    fceulib__cart.FCEU_ClearGameSave(&iNESCart);
+    fceulib__.cart->FCEU_ClearGameSave(&iNESCart);
     break;
 
   case GI_RESETM2:
@@ -113,7 +111,7 @@ void INes::iNESGI(GI h) {
 
     break;
   case GI_CLOSE:
-    fceulib__cart.FCEU_SaveGameSave(&iNESCart);
+    fceulib__.cart->FCEU_SaveGameSave(&iNESCart);
 
     if (iNESCart.Close) iNESCart.Close();
     free(ROM);
@@ -308,7 +306,7 @@ struct CHINF {
 void INes::MapperInit() {
   if (!NewiNES_Init(mapper_number)) {
     iNESCart.Power = []() {
-      return fceulib__ines.iNESPower();
+      return fceulib__.ines->iNESPower();
     };
     if (head.ROM_type & 2) {
       TRACEF("Set savegame %d", head.ROM_type);
@@ -866,10 +864,10 @@ int INes::iNESLoad(const char *name, FceuFile *fp, int OverwriteVidMode) {
     FCEU_fread(trainerdata,512,1,fp);
   }
 
-  fceulib__cart.ResetCartMapping();
+  fceulib__.cart->ResetCartMapping();
   ResetExState(0, 0);
 
-  fceulib__cart.SetupCartPRGMapping(0,ROM,ROM_size*0x4000,0);
+  fceulib__.cart->SetupCartPRGMapping(0,ROM,ROM_size*0x4000,0);
   // SetupCartPRGMapping(1,WRAM,8192,1);
 
   FCEU_fread(ROM,0x4000,(round) ? ROM_size : head.ROM_size,fp);
@@ -887,7 +885,7 @@ int INes::iNESLoad(const char *name, FceuFile *fp, int OverwriteVidMode) {
     md5_update(&md5,VROM,VROM_size<<13);
   }
   md5_finish(&md5,iNESCart.MD5);
-  memcpy(&fceulib__fceu.GameInfo->MD5,&iNESCart.MD5,sizeof(iNESCart.MD5));
+  memcpy(&fceulib__.fceu->GameInfo->MD5,&iNESCart.MD5,sizeof(iNESCart.MD5));
 
   iNESCart.CRC32 = iNESGameCRC32;
 
@@ -921,7 +919,7 @@ int INes::iNESLoad(const char *name, FceuFile *fp, int OverwriteVidMode) {
   FCEU_printf(" Trained: %s\n", (head.ROM_type&4)?"Yes":"No");
   // (head.ROM_type&8) = iNESMirroring: None(Four-screen)
 
-  SetInput(iNESGameCRC32, fceulib__fceu.GameInfo);
+  SetInput(iNESGameCRC32, fceulib__.fceu->GameInfo);
   CheckHInfo();
   {
     uint64 partialmd5 = 0ULL;
@@ -930,28 +928,28 @@ int INes::iNESLoad(const char *name, FceuFile *fp, int OverwriteVidMode) {
       partialmd5 |= (uint64)iNESCart.MD5[7-x] << (x * 8);
     }
 
-    fceulib__vsuni.FCEU_VSUniCheck(partialmd5, &mapper_number, &iNESMirroring);
+    fceulib__.vsuni->FCEU_VSUniCheck(partialmd5, &mapper_number, &iNESMirroring);
   }
   /* Must remain here because above functions might change value of
      VROM_size and free(VROM).
   */
   if (VROM_size)
-    fceulib__cart.SetupCartCHRMapping(0,VROM,VROM_size*0x2000,0);
+    fceulib__.cart->SetupCartCHRMapping(0,VROM,VROM_size*0x2000,0);
 
   if (iNESMirroring == 2)
-    fceulib__cart.SetupCartMirroring(4,1,ExtraNTARAM);
+    fceulib__.cart->SetupCartMirroring(4,1,ExtraNTARAM);
   else if (iNESMirroring >= 0x10)
-    fceulib__cart.SetupCartMirroring(2+(iNESMirroring&1),1,0);
+    fceulib__.cart->SetupCartMirroring(2+(iNESMirroring&1),1,0);
   else
-    fceulib__cart.SetupCartMirroring(iNESMirroring&1,(iNESMirroring&4)>>2,0);
+    fceulib__.cart->SetupCartMirroring(iNESMirroring&1,(iNESMirroring&4)>>2,0);
 
   iNESCart.battery=(head.ROM_type&2)?1:0;
   iNESCart.mirror=iNESMirroring;
 
-  fceulib__fceu.GameInfo->mappernum = mapper_number;
+  fceulib__.fceu->GameInfo->mappernum = mapper_number;
   MapperInit();
   
-  fceulib__cart.FCEU_LoadGameSave(&iNESCart);
+  fceulib__.cart->FCEU_LoadGameSave(&iNESCart);
   TRACEA(WRAM, 8192);
 
   // Extract Filename only. Should account for Windows/Unix this way.
@@ -961,9 +959,9 @@ int INes::iNESLoad(const char *name, FceuFile *fp, int OverwriteVidMode) {
     name = strrchr(name, '\\') + 1;
   }
 
-  fceulib__fceu.GameInterface = [](GI h) {
+  fceulib__.fceu->GameInterface = [](GI h) {
     // fprintf(stderr, "ines GameInterface %d\n", (int)h);
-    return fceulib__ines.iNESGI(h);
+    return fceulib__.ines->iNESGI(h);
   };
   FCEU_printf("\n");
 
@@ -976,9 +974,9 @@ int INes::iNESLoad(const char *name, FceuFile *fp, int OverwriteVidMode) {
 	|| strstr(name,"(F)") || strstr(name,"(f)")
 	|| strstr(name,"(G)") || strstr(name,"(g)")
 	|| strstr(name,"(I)") || strstr(name,"(i)")) {
-      fceulib__fceu.FCEUI_SetVidSystem(1);
+      fceulib__.fceu->FCEUI_SetVidSystem(1);
     } else {
-      fceulib__fceu.FCEUI_SetVidSystem(0);
+      fceulib__.fceu->FCEUI_SetVidSystem(0);
     }
   }
 
@@ -987,60 +985,60 @@ int INes::iNESLoad(const char *name, FceuFile *fp, int OverwriteVidMode) {
 
 void VRAM_BANK1(uint32 A, uint8 V) {
   V&=7;
-  fceulib__ppu.PPUCHRRAM|=(1<<(A>>10));
-  fceulib__ines.iNESCHRBankList[(A)>>10]=V;
-  fceulib__cart.VPage[(A)>>10]=&CHRRAM[V<<10]-(A);
+  fceulib__.ppu->PPUCHRRAM|=(1<<(A>>10));
+  fceulib__.ines->iNESCHRBankList[(A)>>10]=V;
+  fceulib__.cart->VPage[(A)>>10]=&CHRRAM[V<<10]-(A);
 }
 
 void VRAM_BANK4(uint32 A, uint32 V) {
   V&=1;
-  fceulib__ppu.PPUCHRRAM|=(0xF<<(A>>10));
-  fceulib__ines.iNESCHRBankList[(A)>>10]=(V<<2);
-  fceulib__ines.iNESCHRBankList[((A)>>10)+1]=(V<<2)+1;
-  fceulib__ines.iNESCHRBankList[((A)>>10)+2]=(V<<2)+2;
-  fceulib__ines.iNESCHRBankList[((A)>>10)+3]=(V<<2)+3;
-  fceulib__cart.VPage[(A)>>10]=&CHRRAM[V<<10]-(A);
+  fceulib__.ppu->PPUCHRRAM|=(0xF<<(A>>10));
+  fceulib__.ines->iNESCHRBankList[(A)>>10]=(V<<2);
+  fceulib__.ines->iNESCHRBankList[((A)>>10)+1]=(V<<2)+1;
+  fceulib__.ines->iNESCHRBankList[((A)>>10)+2]=(V<<2)+2;
+  fceulib__.ines->iNESCHRBankList[((A)>>10)+3]=(V<<2)+3;
+  fceulib__.cart->VPage[(A)>>10]=&CHRRAM[V<<10]-(A);
 }
 
 void VROM_BANK1(uint32 A,uint32 V) {
-  fceulib__cart.setchr1(A,V);
-  fceulib__ines.iNESCHRBankList[(A)>>10]=V;
+  fceulib__.cart->setchr1(A,V);
+  fceulib__.ines->iNESCHRBankList[(A)>>10]=V;
 }
 
 void VROM_BANK2(uint32 A,uint32 V) {
-  fceulib__cart.setchr2(A,V);
-  fceulib__ines.iNESCHRBankList[(A)>>10]=(V<<1);
-  fceulib__ines.iNESCHRBankList[((A)>>10)+1]=(V<<1)+1;
+  fceulib__.cart->setchr2(A,V);
+  fceulib__.ines->iNESCHRBankList[(A)>>10]=(V<<1);
+  fceulib__.ines->iNESCHRBankList[((A)>>10)+1]=(V<<1)+1;
 }
 
 void VROM_BANK4(uint32 A, uint32 V) {
-  fceulib__cart.setchr4(A,V);
-  fceulib__ines.iNESCHRBankList[(A)>>10]=(V<<2);
-  fceulib__ines.iNESCHRBankList[((A)>>10)+1]=(V<<2)+1;
-  fceulib__ines.iNESCHRBankList[((A)>>10)+2]=(V<<2)+2;
-  fceulib__ines.iNESCHRBankList[((A)>>10)+3]=(V<<2)+3;
+  fceulib__.cart->setchr4(A,V);
+  fceulib__.ines->iNESCHRBankList[(A)>>10]=(V<<2);
+  fceulib__.ines->iNESCHRBankList[((A)>>10)+1]=(V<<2)+1;
+  fceulib__.ines->iNESCHRBankList[((A)>>10)+2]=(V<<2)+2;
+  fceulib__.ines->iNESCHRBankList[((A)>>10)+3]=(V<<2)+3;
 }
 
 void VROM_BANK8(uint32 V) {
-  fceulib__cart.setchr8(V);
-  fceulib__ines.iNESCHRBankList[0]=(V<<3);
-  fceulib__ines.iNESCHRBankList[1]=(V<<3)+1;
-  fceulib__ines.iNESCHRBankList[2]=(V<<3)+2;
-  fceulib__ines.iNESCHRBankList[3]=(V<<3)+3;
-  fceulib__ines.iNESCHRBankList[4]=(V<<3)+4;
-  fceulib__ines.iNESCHRBankList[5]=(V<<3)+5;
-  fceulib__ines.iNESCHRBankList[6]=(V<<3)+6;
-  fceulib__ines.iNESCHRBankList[7]=(V<<3)+7;
+  fceulib__.cart->setchr8(V);
+  fceulib__.ines->iNESCHRBankList[0]=(V<<3);
+  fceulib__.ines->iNESCHRBankList[1]=(V<<3)+1;
+  fceulib__.ines->iNESCHRBankList[2]=(V<<3)+2;
+  fceulib__.ines->iNESCHRBankList[3]=(V<<3)+3;
+  fceulib__.ines->iNESCHRBankList[4]=(V<<3)+4;
+  fceulib__.ines->iNESCHRBankList[5]=(V<<3)+5;
+  fceulib__.ines->iNESCHRBankList[6]=(V<<3)+6;
+  fceulib__.ines->iNESCHRBankList[7]=(V<<3)+7;
 }
 
 void ROM_BANK8(uint32 A, uint32 V) {
-  fceulib__cart.setprg8(A,V);
+  fceulib__.cart->setprg8(A,V);
   if (A>=0x8000)
     PRGBankList[((A-0x8000)>>13)]=V;
 }
 
 void ROM_BANK16(uint32 A, uint32 V) {
-  fceulib__cart.setprg16(A,V);
+  fceulib__.cart->setprg16(A,V);
   if (A>=0x8000) {
     PRGBankList[((A-0x8000)>>13)]=V<<1;
     PRGBankList[((A-0x8000)>>13)+1]=(V<<1)+1;
@@ -1048,7 +1046,7 @@ void ROM_BANK16(uint32 A, uint32 V) {
 }
 
 void ROM_BANK32(uint32 V) {
-  fceulib__cart.setprg32(0x8000,V);
+  fceulib__.cart->setprg32(0x8000,V);
   PRGBankList[0]=V<<2;
   PRGBankList[1]=(V<<2)+1;
   PRGBankList[2]=(V<<2)+2;
@@ -1060,20 +1058,20 @@ void INes::onemir(uint8 V) {
   if (V>1)
     V=1;
   iNESMirroring=0x10|V;
-  fceulib__cart.setmirror(MI_0+V);
+  fceulib__.cart->setmirror(MI_0+V);
 }
 
 void INes::MIRROR_SET2(uint8 V) {
   if (iNESMirroring==2) return;
   iNESMirroring=V;
-  fceulib__cart.setmirror(V);
+  fceulib__.cart->setmirror(V);
 }
 
 void INes::MIRROR_SET(uint8 V) {
   if (iNESMirroring==2) return;
   V^=1;
   iNESMirroring=V;
-  fceulib__cart.setmirror(V);
+  fceulib__.cart->setmirror(V);
 }
 
 void INes::NONE_init() {
@@ -1083,7 +1081,7 @@ void INes::NONE_init() {
   if (VROM_size)
     VROM_BANK8(0);
   else
-    fceulib__cart.setvram8(CHRRAM);
+    fceulib__.cart->setvram8(CHRRAM);
 }
 
 static constexpr void (* const MapInitTab[256])() = {
@@ -1357,20 +1355,20 @@ void INes::iNESStateRestore(int version) {
   if (!mapper_number) return;
 
   for (int x = 0; x < 4; x++)
-    fceulib__cart.setprg8(0x8000+x*8192,PRGBankList[x]);
+    fceulib__.cart->setprg8(0x8000+x*8192,PRGBankList[x]);
 
   if (VROM_size)
     for (int x = 0; x < 8; x++)
-      fceulib__cart.setchr1(0x400*x,iNESCHRBankList[x]);
+      fceulib__.cart->setchr1(0x400*x,iNESCHRBankList[x]);
 
 #if 0
   switch(iNESMirroring) {
-  case 0:fceulib__cart.setmirror(MI_H);break;
-  case 1:fceulib__cart.setmirror(MI_V);break;
+  case 0:fceulib__.cart->setmirror(MI_H);break;
+  case 1:fceulib__.cart->setmirror(MI_V);break;
   case 0x12:
-  case 0x10:fceulib__cart.setmirror(MI_0);break;
+  case 0x10:fceulib__.cart->setmirror(MI_0);break;
   case 0x13:
-  case 0x11:fceulib__cart.setmirror(MI_1);break;
+  case 0x11:fceulib__.cart->setmirror(MI_1);break;
   }
 #endif
   if (MapStateRestore) MapStateRestore(version);
@@ -1380,32 +1378,32 @@ void INes::iNESPower() {
   TRACEF("iNESPower %d", mapper_number);
   int type = mapper_number;
 
-  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
-  fceulib__fceu.GameStateRestore = [](int v) {
-    return fceulib__ines.iNESStateRestore(v);
+  fceulib__.fceu->SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__.fceu->GameStateRestore = [](int v) {
+    return fceulib__.ines->iNESStateRestore(v);
   };
   MapClose=0;
   MapperReset=0;
   MapStateRestore = nullptr;
 
-  fceulib__cart.setprg8r(1,0x6000,0);
+  fceulib__.cart->setprg8r(1,0x6000,0);
 
-  fceulib__fceu.SetReadHandler(0x6000,0x7FFF,AWRAM);
-  fceulib__fceu.SetWriteHandler(0x6000,0x7FFF,BWRAM);
+  fceulib__.fceu->SetReadHandler(0x6000,0x7FFF,AWRAM);
+  fceulib__.fceu->SetWriteHandler(0x6000,0x7FFF,BWRAM);
 
   /* This statement represents atrocious code.  I need to rewrite
      all of the iNES mapper code... */
   iNESIRQCount=iNESIRQLatch=iNESIRQa=0;
   if (head.ROM_type&2)
-    memset(fceulib__fceu.GameMemBlock+8192,0,GAME_MEM_BLOCK_SIZE-8192);
+    memset(fceulib__.fceu->GameMemBlock+8192,0,GAME_MEM_BLOCK_SIZE-8192);
   else
-    memset(fceulib__fceu.GameMemBlock,0,GAME_MEM_BLOCK_SIZE);
+    memset(fceulib__.fceu->GameMemBlock,0,GAME_MEM_BLOCK_SIZE);
 
   NONE_init();
   ResetExState(0, 0);
 
-  if (fceulib__fceu.GameInfo->type == GIT_VSUNI)
-    AddExState(fceulib__vsuni.FCEUVSUNI_STATEINFO(), ~0, 0, 0);
+  if (fceulib__.fceu->GameInfo->type == GIT_VSUNI)
+    AddExState(fceulib__.vsuni->FCEUVSUNI_STATEINFO(), ~0, 0, 0);
 
   // Note: This used to save as "WRAM", but this is also used by
   // many mappers. In some situation (I didn't dig in too deeply)
@@ -1449,12 +1447,12 @@ int INes::NewiNES_Init(int num) {
 
   CHRRAMSize = -1;
 
-  if (fceulib__fceu.GameInfo->type == GIT_VSUNI)
-    AddExState(fceulib__vsuni.FCEUVSUNI_STATEINFO(), ~0, 0, 0);
+  if (fceulib__.fceu->GameInfo->type == GIT_VSUNI)
+    AddExState(fceulib__.vsuni->FCEUVSUNI_STATEINFO(), ~0, 0, 0);
 
   while (tmp->init) {
     if (num == tmp->number) {
-      fceulib__unif.UNIFchrrama = 0; // need here for compatibility with UNIF mapper code
+      fceulib__.unif->UNIFchrrama = 0; // need here for compatibility with UNIF mapper code
       if (!VROM_size) {
 	if (num==13) {
 	  CHRRAMSize=16384;
@@ -1464,8 +1462,8 @@ int INes::NewiNES_Init(int num) {
 	if ((VROM = (uint8 *)malloc(CHRRAMSize)) == nullptr) return 0;
 	FCEU_InitMemory(VROM,CHRRAMSize);
 
-	fceulib__unif.UNIFchrrama = VROM;
-	fceulib__cart.SetupCartCHRMapping(0,VROM,CHRRAMSize,1);
+	fceulib__.unif->UNIFchrrama = VROM;
+	fceulib__.cart->SetupCartCHRMapping(0,VROM,CHRRAMSize,1);
 	AddExState(VROM,CHRRAMSize, 0, "CHRR");
       }
       if (head.ROM_type&8)

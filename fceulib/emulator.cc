@@ -23,13 +23,13 @@
 
 void Emulator::GetMemory(vector<uint8> *mem) {
   mem->resize(0x800);
-  memcpy(mem->data(), fceulib__fceu.RAM, 0x800);
+  memcpy(mem->data(), fceulib__.fceu->RAM, 0x800);
 }
 
 vector<uint8> Emulator::GetMemory() {
   vector<uint8> mem;
   mem.resize(0x800);
-  memcpy(mem.data(), fceulib__fceu.RAM, 0x800);
+  memcpy(mem.data(), fceulib__.fceu->RAM, 0x800);
   return mem;
 }
 
@@ -45,7 +45,7 @@ static inline uint64 MD5ToChecksum(const uint8 digest[16]) {
 uint64 Emulator::RamChecksum() {
   md5_context ctx;
   md5_starts(&ctx);
-  md5_update(&ctx, fceulib__fceu.RAM, 0x800);
+  md5_update(&ctx, fceulib__.fceu->RAM, 0x800);
   uint8 digest[16];
   md5_finish(&ctx, digest);
   return MD5ToChecksum(digest);
@@ -75,13 +75,13 @@ int Emulator::DriverInitialize(FCEUGI *gi) {
   // No fourscore support.
   // eoptions &= ~EO_FOURSCORE;
 
-  fceulib__sound.FCEUI_InitSound();
+  fceulib__.sound->FCEUI_InitSound();
 
   // Why do both point to the same joydata? -tom
-  fceulib__input.FCEUI_SetInput(0, SI_GAMEPAD, &joydata, 0);
-  fceulib__input.FCEUI_SetInput(1, SI_GAMEPAD, &joydata, 0);
+  fceulib__.input->FCEUI_SetInput(0, SI_GAMEPAD, &joydata, 0);
+  fceulib__.input->FCEUI_SetInput(1, SI_GAMEPAD, &joydata, 0);
 
-  fceulib__input.FCEUI_SetInputFourscore(false);
+  fceulib__.input->FCEUI_SetInputFourscore(false);
   return 1;
 }
 
@@ -92,10 +92,10 @@ int Emulator::DriverInitialize(FCEUGI *gi) {
  * render, what virtual input devices to use, etc.).
  */
 int Emulator::LoadGame(const string &path) {
-  fceulib__fceu.FCEU_CloseGame();
-  fceulib__fceu.GameInfo = nullptr;
+  fceulib__.fceu->FCEU_CloseGame();
+  fceulib__.fceu->GameInfo = nullptr;
 
-  if (!fceulib__fceu.FCEUI_LoadGame(path.c_str(), 1)) {
+  if (!fceulib__.fceu->FCEUI_LoadGame(path.c_str(), 1)) {
     return 0;
   }
 
@@ -103,7 +103,7 @@ int Emulator::LoadGame(const string &path) {
   // to override our input config, or something like that. No
   // weird stuff. Skip it.
 
-  if (!DriverInitialize(fceulib__fceu.GameInfo)) {
+  if (!DriverInitialize(fceulib__.fceu->GameInfo)) {
     return 0;
   }
 	
@@ -111,15 +111,15 @@ int Emulator::LoadGame(const string &path) {
   // and some parts of the code tried to figure it out from the presence of
   // (e) or (pal) in the ROM's *filename*. Maybe should be part of the external
   // intface.
-  fceulib__fceu.FCEUI_SetVidSystem(GIV_NTSC);
+  fceulib__.fceu->FCEUI_SetVidSystem(GIV_NTSC);
 
   return 1;
 }
 
 Emulator::~Emulator() {
-  fceulib__fceu.FCEU_CloseGame();
-  fceulib__fceu.GameInfo = nullptr;
-  fceulib__fceu.FCEUI_Kill();
+  fceulib__.fceu->FCEU_CloseGame();
+  fceulib__.fceu->GameInfo = nullptr;
+  fceulib__.fceu->FCEUI_Kill();
 }
 
 Emulator::Emulator() {
@@ -133,7 +133,7 @@ Emulator *Emulator::Create(const string &romfile) {
   // (Here's where SDL was initialized.)
 
   // initialize the infrastructure
-  int error = fceulib__fceu.FCEUI_Initialize();
+  int error = fceulib__.fceu->FCEUI_Initialize();
   if (error != 1) {
     fprintf(stderr, "Error initializing.\n");
     return nullptr;
@@ -156,13 +156,13 @@ Emulator *Emulator::Create(const string &romfile) {
   // TODO(tom7): Make these compile-time constants inside of Palette rather
   // than state.
   static constexpr int ntsccol = 0, ntsctint = 56, ntschue = 72;
-  fceulib__palette.FCEUI_SetNTSCTH(ntsccol, ntsctint, ntschue);
+  fceulib__.palette->FCEUI_SetNTSCTH(ntsccol, ntsctint, ntschue);
 
   // Set NTSC (1 = pal)
-  fceulib__fceu.FCEUI_SetVidSystem(GIV_NTSC);
+  fceulib__.fceu->FCEUI_SetVidSystem(GIV_NTSC);
 
   // Default.
-  fceulib__ppu.FCEUI_DisableSpriteLimitation(1);
+  fceulib__.ppu->FCEUI_DisableSpriteLimitation(1);
 
   Emulator *emu = new Emulator;
   // Load the game.
@@ -188,7 +188,7 @@ void Emulator::Step(uint8 inputs) {
   // Emulate a single frame.
   int32 *sound;
   int32 ssize;
-  fceulib__fceu.FCEUI_Emulate(nullptr, &sound, &ssize, SKIP_VIDEO_AND_SOUND);
+  fceulib__.fceu->FCEUI_Emulate(nullptr, &sound, &ssize, SKIP_VIDEO_AND_SOUND);
 }
 
 void Emulator::StepFull(uint8 inputs) {
@@ -201,7 +201,7 @@ void Emulator::StepFull(uint8 inputs) {
   // TODO: Remove these arguments, which we don't use.
   int32 *sound;
   int32 ssize;
-  fceulib__fceu.FCEUI_Emulate(nullptr, &sound, &ssize, DO_VIDEO_AND_SOUND);
+  fceulib__.fceu->FCEUI_Emulate(nullptr, &sound, &ssize, DO_VIDEO_AND_SOUND);
 }
 
 void Emulator::GetImage(vector<uint8> *rgba) {
@@ -213,7 +213,7 @@ void Emulator::GetImage(vector<uint8> *rgba) {
       uint8 r, g, b;
 
       // XBackBuf? or XBuf?
-      fceulib__palette.FCEUD_GetPalette(fceulib__fceu.XBuf[(y * 256) + x],
+      fceulib__.palette->FCEUD_GetPalette(fceulib__.fceu->XBuf[(y * 256) + x],
 					&r, &g, &b);
 
       (*rgba)[y * 256 * 4 + x * 4 + 0] = r;
@@ -233,7 +233,7 @@ vector<uint8> Emulator::GetImage() {
 void Emulator::GetSound(vector<int16> *wav) {
   wav->clear();
   int32 *buffer = nullptr;
-  int samples = fceulib__sound.GetSoundBuffer(&buffer);
+  int samples = fceulib__.sound->GetSoundBuffer(&buffer);
   if (buffer == nullptr) {
     fprintf(stderr, "No sound buffer?\n");
     abort();

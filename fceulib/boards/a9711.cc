@@ -26,10 +26,10 @@
 static void UNLA9711PW(uint32 A, uint8 V)
 {
   if((EXPREGS[0]&0xFF) == 0x37) {
-    fceulib__cart.setprg8(0x8000, 0x13);
-    fceulib__cart.setprg8(0xA000, 0x13);
-    fceulib__cart.setprg8(0xC000, 0x13);
-    fceulib__cart.setprg8(0xE000, 0x0);
+    fceulib__.cart->setprg8(0x8000, 0x13);
+    fceulib__.cart->setprg8(0xA000, 0x13);
+    fceulib__.cart->setprg8(0xC000, 0x13);
+    fceulib__.cart->setprg8(0xE000, 0x0);
 //	  uint8 bank=EXPREGS[0]&0x1F;
 //	 if(EXPREGS[0]&0x20)
 //	    setprg32(0x8000,bank>>2);
@@ -39,7 +39,7 @@ static void UNLA9711PW(uint32 A, uint8 V)
 //	    setprg16(0xC000,bank);
 //	  }
   } else {
-    fceulib__cart.setprg8(A,V&0x3F);
+    fceulib__.cart->setprg8(A,V&0x3F);
   }
 }
 
@@ -64,8 +64,8 @@ static void UNLA9711Power(void)
 {
   EXPREGS[0]=EXPREGS[1]=EXPREGS[2]=0;
   GenMMC3Power();
-  fceulib__fceu.SetWriteHandler(0x5000,0x5FFF,UNLA9711WriteLo);
-//	fceulib__fceu.SetWriteHandler(0x8000,0xbfff,UNLA9711Write8000);
+  fceulib__.fceu->SetWriteHandler(0x5000,0x5FFF,UNLA9711WriteLo);
+//	fceulib__.fceu->SetWriteHandler(0x8000,0xbfff,UNLA9711Write8000);
 }
 
 void UNLA9711_Init(CartInfo *info)

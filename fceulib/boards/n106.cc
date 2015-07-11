@@ -64,10 +64,10 @@ static SFORMAT N106_StateRegs[]={
 
 static void SyncPRG(void)
 {
-  fceulib__cart.setprg8(0x8000,PRG[0]);
-  fceulib__cart.setprg8(0xa000,PRG[1]);
-  fceulib__cart.setprg8(0xc000,PRG[2]);
-  fceulib__cart.setprg8(0xe000,0x3F);
+  fceulib__.cart->setprg8(0x8000,PRG[0]);
+  fceulib__.cart->setprg8(0xa000,PRG[1]);
+  fceulib__.cart->setprg8(0xc000,PRG[2]);
+  fceulib__.cart->setprg8(0xe000,0x3F);
 }
 
 static void NamcoIRQHook(int a)
@@ -104,10 +104,10 @@ static DECLFR(Namco_Read5800) {
 static void DoNTARAMROM(int w, uint8 V) {
   NTAPage[w]=V;
   if (V>=0xE0) {
-    fceulib__cart.setntamem(fceulib__ppu.NTARAM+((V&1)<<10), 1, w);
+    fceulib__.cart->setntamem(fceulib__.ppu->NTARAM+((V&1)<<10), 1, w);
   } else {
-    V&=fceulib__cart.CHRmask1[0];
-    fceulib__cart.setntamem(fceulib__cart.CHRptr[0]+(V<<10), 0, w);
+    V&=fceulib__.cart->CHRmask1[0];
+    fceulib__.cart->setntamem(fceulib__.cart->CHRptr[0]+(V<<10), 0, w);
   }
 }
 
@@ -123,7 +123,7 @@ static void DoCHRRAMROM(int x, uint8 V) {
     //setchr1r(0x10,x<<10,V&7);
   }
   else
-    fceulib__cart.setchr1(x<<10,V);
+    fceulib__.cart->setchr1(x<<10,V);
 }
 
 static void FixCRR(void) {
@@ -161,9 +161,9 @@ static DECLFW(Mapper19_write) {
       if (dopol&0x40) {
 	if (FCEUS_SNDRATE) {
 	  NamcoSoundHack();
-	  fceulib__sound.GameExpSound.Fill=NamcoSound;
-	  fceulib__sound.GameExpSound.HiFill=DoNamcoSoundHQ;
-	  fceulib__sound.GameExpSound.HiSync=SyncHQ;
+	  fceulib__.sound->GameExpSound.Fill=NamcoSound;
+	  fceulib__.sound->GameExpSound.HiFill=DoNamcoSoundHQ;
+	  fceulib__.sound->GameExpSound.HiSync=SyncHQ;
 	}
 	FixCache(dopol,V);
       }
@@ -206,17 +206,17 @@ static void NamcoSoundHack(void) {
     DoNamcoSoundHQ();
     return;
   }
-  z=((SOUNDTS<<16)/fceulib__sound.soundtsinc)>>4;
+  z=((SOUNDTS<<16)/fceulib__.sound->soundtsinc)>>4;
   a=z-dwave;
-  if (a) DoNamcoSound(&fceulib__sound.Wave[dwave], a);
+  if (a) DoNamcoSound(&fceulib__.sound->Wave[dwave], a);
   dwave+=a;
 }
 
 static void NamcoSound(int Count) {
   int32 z,a;
-  z=((SOUNDTS<<16)/fceulib__sound.soundtsinc)>>4;
+  z=((SOUNDTS<<16)/fceulib__.sound->soundtsinc)>>4;
   a=z-dwave;
-  if (a) DoNamcoSound(&fceulib__sound.Wave[dwave], a);
+  if (a) DoNamcoSound(&fceulib__.sound->Wave[dwave], a);
   dwave=0;
 }
 
@@ -268,7 +268,7 @@ static void DoNamcoSoundHQ(void) {
 
       duff2=FetchDuff(P,envelope);
       for(uint32 V=CVBC<<1;V<SOUNDTS<<1;V++) {
-        fceulib__sound.WaveHi[V>>1]+=duff2;
+        fceulib__.sound->WaveHi[V>>1]+=duff2;
         if (!vco) {
           PlayIndex[P]+=freq;
           while ((PlayIndex[P]>>TOINDEX)>=lengo) PlayIndex[P]-=lengo<<TOINDEX;
@@ -347,7 +347,7 @@ static void M19SC(void)
 
 void Mapper19_ESI(void)
 {
-  fceulib__sound.GameExpSound.RChange=M19SC;
+  fceulib__.sound->GameExpSound.RChange=M19SC;
   memset(vcount,0,sizeof(vcount));
   memset(PlayIndex,0,sizeof(PlayIndex));
   CVBC=0;
@@ -355,9 +355,9 @@ void Mapper19_ESI(void)
 
 void NSFN106_Init(void)
 {
-  fceulib__fceu.SetWriteHandler(0xf800,0xffff,Mapper19_write);
-  fceulib__fceu.SetWriteHandler(0x4800,0x4fff,Mapper19_write);
-  fceulib__fceu.SetReadHandler(0x4800,0x4fff,Namco_Read4800);
+  fceulib__.fceu->SetWriteHandler(0xf800,0xffff,Mapper19_write);
+  fceulib__.fceu->SetWriteHandler(0x4800,0x4fff,Mapper19_write);
+  fceulib__.fceu->SetReadHandler(0x4800,0x4fff,Namco_Read4800);
   Mapper19_ESI();
 }
 
@@ -366,20 +366,20 @@ static int battery=0;
 static void N106_Power(void)
 {
   int x;
-  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
-  fceulib__fceu.SetWriteHandler(0x8000,0xffff,Mapper19_write);
-  fceulib__fceu.SetWriteHandler(0x4020,0x5fff,Mapper19_write);
+  fceulib__.fceu->SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__.fceu->SetWriteHandler(0x8000,0xffff,Mapper19_write);
+  fceulib__.fceu->SetWriteHandler(0x4020,0x5fff,Mapper19_write);
   if (!is210) {
-    fceulib__fceu.SetWriteHandler(0xc000,0xdfff,Mapper19C0D8_write);
-    fceulib__fceu.SetReadHandler(0x4800,0x4fff,Namco_Read4800);
-    fceulib__fceu.SetReadHandler(0x5000,0x57ff,Namco_Read5000);
-    fceulib__fceu.SetReadHandler(0x5800,0x5fff,Namco_Read5800);
+    fceulib__.fceu->SetWriteHandler(0xc000,0xdfff,Mapper19C0D8_write);
+    fceulib__.fceu->SetReadHandler(0x4800,0x4fff,Namco_Read4800);
+    fceulib__.fceu->SetReadHandler(0x5000,0x57ff,Namco_Read5000);
+    fceulib__.fceu->SetReadHandler(0x5800,0x5fff,Namco_Read5800);
     NTAPage[0]=NTAPage[1]=NTAPage[2]=NTAPage[3]=0xFF;
     FixNTAR();
   }
 
-  fceulib__fceu.SetReadHandler(0x6000,0x7FFF,AWRAM);
-  fceulib__fceu.SetWriteHandler(0x6000,0x7FFF,BWRAM);
+  fceulib__.fceu->SetReadHandler(0x6000,0x7FFF,AWRAM);
+  fceulib__.fceu->SetWriteHandler(0x6000,0x7FFF,BWRAM);
   // FCEU_CheatAddRAM(8,0x6000,WRAM);
 
   gorfus=0xFF;
@@ -401,8 +401,8 @@ void Mapper19_Init(CartInfo *info)
   info->Power=N106_Power;
 
   X.MapIRQHook=NamcoIRQHook;
-  fceulib__fceu.GameStateRestore=Mapper19_StateRestore;
-  fceulib__sound.GameExpSound.RChange=M19SC;
+  fceulib__.fceu->GameStateRestore=Mapper19_StateRestore;
+  fceulib__.sound->GameExpSound.RChange=M19SC;
 
   if (FCEUS_SNDRATE)
     Mapper19_ESI();
@@ -428,7 +428,7 @@ static void Mapper210_StateRestore(int version)
 void Mapper210_Init(CartInfo *info)
 {
   is210=1;
-  fceulib__fceu.GameStateRestore=Mapper210_StateRestore;
+  fceulib__.fceu->GameStateRestore=Mapper210_StateRestore;
   info->Power=N106_Power;
   AddExState(WRAM, 8192, 0, "WRAM");
   AddExState(N106_StateRegs, ~0, 0, 0);

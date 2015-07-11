@@ -28,15 +28,15 @@ static int masko8[8]={63,31,15,1,3,0,0,0};
 static void Super24PW(uint32 A, uint8 V) {
   uint32 NV=V&masko8[EXPREGS[0]&7];
   NV|=(EXPREGS[1]<<1);
-  fceulib__cart.setprg8r((NV>>6)&0xF,A,NV);
+  fceulib__.cart->setprg8r((NV>>6)&0xF,A,NV);
 }
 
 static void Super24CW(uint32 A, uint8 V) {
   if (EXPREGS[0]&0x20) {
-    fceulib__cart.setchr1r(0x10,A,V);
+    fceulib__.cart->setchr1r(0x10,A,V);
   } else {
     uint32 NV=V|(EXPREGS[2]<<3);
-    fceulib__cart.setchr1r((NV>>9)&0xF,A,NV);
+    fceulib__.cart->setchr1r((NV>>9)&0xF,A,NV);
   }
 }
 
@@ -63,8 +63,8 @@ static void Super24Power(void)
   EXPREGS[1]=159;
   EXPREGS[2]=0;
   GenMMC3Power();
-  fceulib__fceu.SetWriteHandler(0x5000,0x7FFF,Super24Write);
-  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__.fceu->SetWriteHandler(0x5000,0x7FFF,Super24Write);
+  fceulib__.fceu->SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
 }
 
 static void Super24Reset(void)
@@ -91,7 +91,7 @@ void Super24_Init(CartInfo *info)
   cwrap=Super24CW;
   pwrap=Super24PW;
   CHRRAM=(uint8*)FCEU_gmalloc(8192);
-  fceulib__cart.SetupCartCHRMapping(0x10, CHRRAM, 8192, 1);
+  fceulib__.cart->SetupCartCHRMapping(0x10, CHRRAM, 8192, 1);
   AddExState(CHRRAM, 8192, 0, "CHRR");
   AddExState(EXPREGS, 3, 0, "BIG2");
 }

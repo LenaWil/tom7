@@ -42,7 +42,7 @@ static constexpr uint8 lut[256]={
 
 static void M208PW(uint32 A, uint8 V)
 {
-  fceulib__cart.setprg32(0x8000,EXPREGS[5]);
+  fceulib__.cart->setprg32(0x8000,EXPREGS[5]);
 }
 
 static DECLFW(M208Write)
@@ -68,10 +68,10 @@ static void M208Power(void)
 {
   EXPREGS[5]=3;
   GenMMC3Power();
-  fceulib__fceu.SetWriteHandler(0x4800,0x4FFF,M208Write);
-  fceulib__fceu.SetWriteHandler(0x5000,0x5fff,M208ProtWrite);
-  fceulib__fceu.SetReadHandler(0x5800,0x5FFF,M208ProtRead);
-  fceulib__fceu.SetReadHandler(0x8000,0xffff,Cart::CartBR);
+  fceulib__.fceu->SetWriteHandler(0x4800,0x4FFF,M208Write);
+  fceulib__.fceu->SetWriteHandler(0x5000,0x5fff,M208ProtWrite);
+  fceulib__.fceu->SetReadHandler(0x5800,0x5FFF,M208ProtRead);
+  fceulib__.fceu->SetReadHandler(0x8000,0xffff,Cart::CartBR);
 }
 
 void Mapper208_Init(CartInfo *info)

@@ -30,13 +30,13 @@ static SFORMAT StateRegs[] =
 
 static void Sync(void) {
   if (bank & 0x40) {
-    fceulib__cart.setprg32(0x8000, (bank & 0xE) | (preg & 1));
-    fceulib__cart.setchr8(((bank & 0xE) << 2) | ((preg >> 4) & 7));
+    fceulib__.cart->setprg32(0x8000, (bank & 0xE) | (preg & 1));
+    fceulib__.cart->setchr8(((bank & 0xE) << 2) | ((preg >> 4) & 7));
   } else {
-    fceulib__cart.setprg32(0x8000, bank & 0xF);
-    fceulib__cart.setchr8(((bank & 0xF) << 2) | ((preg >> 4) & 3));
+    fceulib__.cart->setprg32(0x8000, bank & 0xF);
+    fceulib__.cart->setchr8(((bank & 0xF) << 2) | ((preg >> 4) & 3));
   }
-  fceulib__cart.setmirror((bank >> 7) ^ 1);
+  fceulib__.cart->setmirror((bank >> 7) ^ 1);
 }
 
 DECLFR(M234ReadBank) {
@@ -62,9 +62,9 @@ static void M234Reset(void) {
 
 static void M234Power(void) {
   M234Reset();
-  fceulib__fceu.SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
-  fceulib__fceu.SetReadHandler(0xFF80, 0xFF9F, M234ReadBank);
-  fceulib__fceu.SetReadHandler(0xFFE8, 0xFFF7, M234ReadPreg);
+  fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
+  fceulib__.fceu->SetReadHandler(0xFF80, 0xFF9F, M234ReadBank);
+  fceulib__.fceu->SetReadHandler(0xFFE8, 0xFFF7, M234ReadPreg);
 }
 
 static void StateRestore(int version) {
@@ -75,5 +75,5 @@ void Mapper234_Init(CartInfo *info) {
 	info->Power = M234Power;
 	info->Reset = M234Reset;
 	AddExState(&StateRegs, ~0, 0, 0);
-	fceulib__fceu.GameStateRestore = StateRestore;
+	fceulib__.fceu->GameStateRestore = StateRestore;
 }

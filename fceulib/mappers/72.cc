@@ -32,6 +32,6 @@ DECLFW(Mapper72_write)
 
 void Mapper72_init(void)
 {
- fceulib__fceu.SetWriteHandler(0x6000,0xffff,Mapper72_write);
+ fceulib__.fceu->SetWriteHandler(0x6000,0xffff,Mapper72_write);
 }
 

@@ -32,10 +32,10 @@ static SFORMAT StateRegs[]=
 
 static void Sync(void)
 {
-  fceulib__cart.setchr4r(0x10,0x0000,0);
-  fceulib__cart.setchr4r(0x10,0x1000,reg&0x0f);
-  fceulib__cart.setprg16(0x8000,reg>>6);
-  fceulib__cart.setprg16(0xc000,~0);
+  fceulib__.cart->setchr4r(0x10,0x0000,0);
+  fceulib__.cart->setchr4r(0x10,0x1000,reg&0x0f);
+  fceulib__.cart->setprg16(0x8000,reg>>6);
+  fceulib__.cart->setprg16(0xc000,~0);
 }
 
 static DECLFW(M168Write)
@@ -52,11 +52,11 @@ static void M168Power(void)
 {
   reg=0;
   Sync();
-  fceulib__fceu.SetWriteHandler(0x4020,0x7fff,M168Dummy);
-  fceulib__fceu.SetWriteHandler(0xB000,0xB000,M168Write);
-  fceulib__fceu.SetWriteHandler(0xF000,0xF000,M168Dummy);
-  fceulib__fceu.SetWriteHandler(0xF080,0xF080,M168Dummy);
-  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__.fceu->SetWriteHandler(0x4020,0x7fff,M168Dummy);
+  fceulib__.fceu->SetWriteHandler(0xB000,0xB000,M168Write);
+  fceulib__.fceu->SetWriteHandler(0xF000,0xF000,M168Dummy);
+  fceulib__.fceu->SetWriteHandler(0xF080,0xF080,M168Dummy);
+  fceulib__.fceu->SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
 }
 
 static void MNNNClose(void)
@@ -75,12 +75,12 @@ void Mapper168_Init(CartInfo *info)
 {
   info->Power=M168Power;
   info->Close=MNNNClose;
-  fceulib__fceu.GameStateRestore=StateRestore;
+  fceulib__.fceu->GameStateRestore=StateRestore;
   AddExState(&StateRegs, ~0, 0, 0);
 
   CHRRAMSIZE=8192*8;
   CHRRAM=(uint8*)FCEU_gmalloc(CHRRAMSIZE);
-  fceulib__cart.SetupCartCHRMapping(0x10,CHRRAM,CHRRAMSIZE,1);
+  fceulib__.cart->SetupCartCHRMapping(0x10,CHRRAM,CHRRAMSIZE,1);
   AddExState(CHRRAM, CHRRAMSIZE, 0, "CRAM");
 
 }
