@@ -82,8 +82,6 @@ private:
   }
 };
 
-extern X6502 X;
-
 #define NTSC_CPU 1789772.7272727272727272
 #define PAL_CPU  1662607.125
 

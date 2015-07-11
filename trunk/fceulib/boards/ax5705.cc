@@ -46,7 +46,7 @@ static void UNLAX5705IRQ(void)
     IRQCount++;
     if(IRQCount>=238)
     {
-      X.IRQBegin(FCEU_IQEXT);
+      fceulib__.X->IRQBegin(FCEU_IQEXT);
 //      IRQa=0;
     }
   }
@@ -93,8 +93,8 @@ static DECLFW(UNLAX5705Write)
     case 0xE001: chr_reg[6]=(chr_reg[6]&0x0F)|((((V&4)>>1)|((V&2)<<1)|(V&0x09))<<4); break;
     case 0xE002: chr_reg[7]=(chr_reg[7]&0xF0)|(V&0x0F); break;
     case 0xE003: chr_reg[7]=(chr_reg[7]&0x0F)|((((V&4)>>1)|((V&2)<<1)|(V&0x09))<<4); break;
-//    case 0x800A: X.IRQEnd(FCEU_IQEXT); IRQa=0; break;
-//    case 0xE00B: X.IRQEnd(FCEU_IQEXT); IRQa=IRQCount=V; /*if(scanline<240) IRQCount-=8; else IRQCount+=4;*/  break;
+//    case 0x800A: fceulib__.X->IRQEnd(FCEU_IQEXT); IRQa=0; break;
+//    case 0xE00B: fceulib__.X->IRQEnd(FCEU_IQEXT); IRQa=IRQCount=V; /*if(scanline<240) IRQCount-=8; else IRQCount+=4;*/  break;
   }
   Sync();
 }

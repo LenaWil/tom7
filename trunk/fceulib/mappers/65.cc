@@ -25,7 +25,7 @@ void IREMIRQHook(int a) {
   if(fceulib__.ines->iNESIRQa) {
     fceulib__.ines->iNESIRQCount-=a;
     if(fceulib__.ines->iNESIRQCount<-4) {
-      X.IRQBegin(FCEU_IQEXT);
+      fceulib__.X->IRQBegin(FCEU_IQEXT);
       fceulib__.ines->iNESIRQa=0;
       fceulib__.ines->iNESIRQCount=0xFFFF;
     }
@@ -43,7 +43,7 @@ static DECLFW(Mapper65_write)
   case 0x8000:ROM_BANK8(0x8000,V);break;
  // case 0x9000:printf("$%04x:$%02x\n",A,V);fceulib__.ines->MIRROR_SET2((V>>6)&1);break;
   case 0x9001:fceulib__.ines->MIRROR_SET(V>>7);break;
-  case 0x9003:fceulib__.ines->iNESIRQa=V&0x80;X.IRQEnd(FCEU_IQEXT);break;
+  case 0x9003:fceulib__.ines->iNESIRQa=V&0x80;fceulib__.X->IRQEnd(FCEU_IQEXT);break;
   case 0x9004:fceulib__.ines->iNESIRQCount=fceulib__.ines->iNESIRQLatch;break;
   case 0x9005:          fceulib__.ines->iNESIRQLatch&=0x00FF;
                         fceulib__.ines->iNESIRQLatch|=V<<8;
@@ -66,6 +66,6 @@ static DECLFW(Mapper65_write)
 
 void Mapper65_init(void)
 {
- X.MapIRQHook=IREMIRQHook;
+ fceulib__.X->MapIRQHook=IREMIRQHook;
  fceulib__.fceu->SetWriteHandler(0x8000,0xffff,Mapper65_write);
 }

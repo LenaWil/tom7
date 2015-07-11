@@ -67,9 +67,9 @@ static DECLFW(M252Write) {
     case 0xA004:
     case 0xA008:
     case 0xA00C: preg[1] = V; Sync(); break;
-    case 0xF000: X.IRQEnd(FCEU_IQEXT); IRQLatch &= 0xF0; IRQLatch |= V & 0xF; break;
-    case 0xF004: X.IRQEnd(FCEU_IQEXT); IRQLatch &= 0x0F; IRQLatch |= V << 4; break;
-    case 0xF008: X.IRQEnd(FCEU_IQEXT); IRQClock = 0; IRQCount = IRQLatch; IRQa = V & 2; break;
+    case 0xF000: fceulib__.X->IRQEnd(FCEU_IQEXT); IRQLatch &= 0xF0; IRQLatch |= V & 0xF; break;
+    case 0xF004: fceulib__.X->IRQEnd(FCEU_IQEXT); IRQLatch &= 0x0F; IRQLatch |= V << 4; break;
+    case 0xF008: fceulib__.X->IRQEnd(FCEU_IQEXT); IRQClock = 0; IRQCount = IRQLatch; IRQa = V & 2; break;
     }
 }
 
@@ -90,7 +90,7 @@ static void M252IRQ(int a) {
 				IRQClock -= LCYCS;
 				IRQCount++;
 				if (IRQCount & 0x100) {
-					X.IRQBegin(FCEU_IQEXT);
+					fceulib__.X->IRQBegin(FCEU_IQEXT);
 					IRQCount = IRQLatch;
 				}
 			}
@@ -113,7 +113,7 @@ static void StateRestore(int version) {
 void Mapper252_Init(CartInfo *info) {
   info->Power = M252Power;
   info->Close = M252Close;
-  X.MapIRQHook = M252IRQ;
+  fceulib__.X->MapIRQHook = M252IRQ;
 
   CHRRAMSIZE = 2048;
   CHRRAM = (uint8*)FCEU_gmalloc(CHRRAMSIZE);

@@ -59,13 +59,13 @@ static DECLFW(UNLKS7017Write)
     }
     else if (A == 0x4020)
     {
-      X.IRQEnd(FCEU_IQEXT);
+      fceulib__.X->IRQEnd(FCEU_IQEXT);
       IRQCount&=0xFF00;
       IRQCount|=V;
     }
     else if (A == 0x4021)
     {
-      X.IRQEnd(FCEU_IQEXT);
+      fceulib__.X->IRQEnd(FCEU_IQEXT);
       IRQCount&=0xFF;
       IRQCount|=V<<8;
       IRQa = 1;
@@ -78,9 +78,9 @@ static DECLFW(UNLKS7017Write)
 
 static DECLFR(FDSRead4030)
 {
-  X.IRQEnd(FCEU_IQEXT);
-  TRACEF("ks7017 irqlow %02x", X.IRQlow);
-  return X.IRQlow&FCEU_IQEXT?1:0;
+  fceulib__.X->IRQEnd(FCEU_IQEXT);
+  TRACEF("ks7017 irqlow %02x", fceulib__.X->IRQlow);
+  return fceulib__.X->IRQlow&FCEU_IQEXT?1:0;
 }
 
 static void UNL7017IRQ(int a)
@@ -91,7 +91,7 @@ static void UNL7017IRQ(int a)
   if(IRQCount<=0)
   {
     IRQa=0;
-    X.IRQBegin(FCEU_IQEXT);
+    fceulib__.X->IRQBegin(FCEU_IQEXT);
   }
  }
 }
@@ -122,7 +122,7 @@ static void StateRestore(int version)
 void UNLKS7017_Init(CartInfo *info) {
   info->Power=UNLKS7017Power;
   info->Close=UNLKS7017Close;
-  X.MapIRQHook=UNL7017IRQ;
+  fceulib__.X->MapIRQHook=UNL7017IRQ;
 
   WRAMSIZE=8192;
   WRAM=(uint8*)FCEU_gmalloc(WRAMSIZE);

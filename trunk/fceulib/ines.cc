@@ -84,8 +84,8 @@ void INes::iNES_ExecPower() {
 
   if (trainerdata) {
     for (int x=0;x<512;x++) {
-      X.DMW(0x7000+x,trainerdata[x]);
-      if (X.DMR(0x7000+x)!=trainerdata[x]) {
+      fceulib__.X->DMW(0x7000+x,trainerdata[x]);
+      if (fceulib__.X->DMR(0x7000+x)!=trainerdata[x]) {
 	fceulib__.fceu->SetReadHandler(0x7000,0x71FF,TrainerRead);
 	break;
       }
@@ -94,8 +94,7 @@ void INes::iNES_ExecPower() {
 }
 
 void INes::iNESGI(GI h) {
-  fprintf(stderr, "iNESGI %d\n", (int)h);
-  switch(h) {
+  switch (h) {
   case GI_RESETSAVE:
     fceulib__.cart->FCEU_ClearGameSave(&iNESCart);
     break;

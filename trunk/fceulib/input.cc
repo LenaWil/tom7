@@ -162,7 +162,7 @@ DECLFR_RET Input::JPRead_Direct(DECLFR_ARGS) {
     }
   }
 
-  ret |= X.DB & 0xC0;
+  ret |= fceulib__.X->DB & 0xC0;
 
   return ret;
 }

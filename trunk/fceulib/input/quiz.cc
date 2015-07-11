@@ -28,8 +28,8 @@ static uint8 QZ_Read(int w, uint8 ret)
 {
  if(w) 
  {
-  //if(X.PC==0xdc7d) return(0xFF);
-  //printf("Blah: %04x\n",X.PC);
+  //if(fceulib__.X->PC==0xdc7d) return(0xFF);
+  //printf("Blah: %04x\n",fceulib__.X->PC);
   //FCEUI_DumpMem("dmp2",0xc000,0xffff);
 
   ret|=(QZValR&0x7)<<2;

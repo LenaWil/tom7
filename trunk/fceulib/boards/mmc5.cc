@@ -422,8 +422,8 @@ static DECLFW(Mapper5_write) {
     case 0x5200: fceulib__.ppu->MMC5HackSPMode=V;break;
     case 0x5201: fceulib__.ppu->MMC5HackSPScroll=(V>>3)&0x1F;break;
     case 0x5202: fceulib__.ppu->MMC5HackSPPage=V&0x3F;break;
-    case 0x5203: X.IRQEnd(FCEU_IQEXT);IRQScanline=V;break;
-    case 0x5204: X.IRQEnd(FCEU_IQEXT);IRQEnable=V&0x80;break;
+    case 0x5203: fceulib__.X->IRQEnd(FCEU_IQEXT);IRQScanline=V;break;
+    case 0x5204: fceulib__.X->IRQEnd(FCEU_IQEXT);IRQEnable=V&0x80;break;
     case 0x5205: mul[0]=V;break;
     case 0x5206: mul[1]=V;break;
     }
@@ -435,7 +435,7 @@ static DECLFR(MMC5_ReadROMRAM)
   if (MMC5MemIn[(A-0x6000)>>13])
     return fceulib__.cart->Page[A>>11][A];
   else
-    return X.DB;
+    return fceulib__.X->DB;
 }
 
 static DECLFW(MMC5_WriteROMRAM)
@@ -459,14 +459,14 @@ static DECLFR(MMC5_ExRAMRd)
  //if (MMC5HackCHRMode>=2)
   return ExRAM[A&0x3ff];
  //else
- // return(X.DB);
+ // return(fceulib__.X->DB);
 }
 
 static DECLFR(MMC5_read) {
   TRACEF("MMC5_read %d %02x %02x", A, mul[0], mul[1]);
   switch (A) {
   case 0x5204: {
-    X.IRQEnd(FCEU_IQEXT);
+    fceulib__.X->IRQEnd(FCEU_IQEXT);
       
     uint8 x = MMC5IRQR;
 
@@ -476,7 +476,7 @@ static DECLFR(MMC5_read) {
   case 0x5205: return (mul[0]*mul[1]);
   case 0x5206: return ((mul[0]*mul[1])>>8);
   }
-  return X.DB;
+  return fceulib__.X->DB;
 }
 
 void MMC5Synco(void) {
@@ -523,7 +523,7 @@ void MMC5Synco(void) {
     t=moop|(moop<<8)|(moop<<16)|(moop<<24);
     FCEU_dwmemset(MMC5fill+0x3c0,t,0x40);
   }
-  X.IRQEnd(FCEU_IQEXT);
+  fceulib__.X->IRQEnd(FCEU_IQEXT);
   fceulib__.ppu->MMC5HackCHRMode=CHRMode&3;
 }
 
@@ -538,7 +538,7 @@ void MMC5_hb(int scanline) {
     if (MMC5LineCounter==IRQScanline) {
       MMC5IRQR|=0x80;
       if (IRQEnable&0x80) {
-        X.IRQBegin(FCEU_IQEXT);
+        fceulib__.X->IRQBegin(FCEU_IQEXT);
       }
     }
     MMC5LineCounter++;

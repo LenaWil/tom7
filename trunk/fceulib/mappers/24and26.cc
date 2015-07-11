@@ -43,7 +43,7 @@ static void KonamiIRQHook(int a) {
       acount-=LCYCS;
       fceulib__.ines->iNESIRQCount++;
       if (fceulib__.ines->iNESIRQCount==0x100) {
-	X.IRQBegin(FCEU_IQEXT);
+	fceulib__.X->IRQBegin(FCEU_IQEXT);
 	fceulib__.ines->iNESIRQCount=fceulib__.ines->iNESIRQLatch;
       }
     }
@@ -101,10 +101,10 @@ static DECLFW(Mapper24_write) {
       fceulib__.ines->iNESIRQCount=fceulib__.ines->iNESIRQLatch;
       acount=0;
     }
-    X.IRQEnd(FCEU_IQEXT);
+    fceulib__.X->IRQEnd(FCEU_IQEXT);
     break;
   case 0xf002:fceulib__.ines->iNESIRQa=vrctemp;
-    X.IRQEnd(FCEU_IQEXT);break;
+    fceulib__.X->IRQEnd(FCEU_IQEXT);break;
   case 0xF003:break;
   }
 }
@@ -307,7 +307,7 @@ void Mapper24_init(void)
 {
         fceulib__.fceu->SetWriteHandler(0x8000,0xffff,Mapper24_write);
         VRC6_ESI();
-        X.MapIRQHook=KonamiIRQHook;
+        fceulib__.X->MapIRQHook=KonamiIRQHook;
         swaparoo=0;
 }
 
@@ -315,7 +315,7 @@ void Mapper26_init(void)
 {
         fceulib__.fceu->SetWriteHandler(0x8000,0xffff,Mapper24_write);
         VRC6_ESI();
-        X.MapIRQHook=KonamiIRQHook;
+        fceulib__.X->MapIRQHook=KonamiIRQHook;
         swaparoo=1;
 }
 

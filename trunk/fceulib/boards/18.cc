@@ -55,7 +55,7 @@ static DECLFW(M18WriteIRQ)
     case 0xE002: IRQLatch&=0xF0FF; IRQLatch|=(V&0x0f)<<0x8; break;
     case 0xE003: IRQLatch&=0x0FFF; IRQLatch|=(V&0x0f)<<0xC; break;
     case 0xF000: IRQCount=IRQLatch; break;
-    case 0xF001: IRQa=V&1; X.IRQEnd(FCEU_IQEXT); break;
+    case 0xF001: IRQa=V&1; fceulib__.X->IRQEnd(FCEU_IQEXT); break;
     case 0xF002: mirr = V&3; Sync(); break;
   }
 }
@@ -96,7 +96,7 @@ static void M18IRQHook(int a)
     IRQCount-=a;
     if(IRQCount<=0)
     {
-      X.IRQBegin(FCEU_IQEXT);
+      fceulib__.X->IRQBegin(FCEU_IQEXT);
       IRQCount=0;
       IRQa=0;
     }
@@ -111,7 +111,7 @@ static void StateRestore(int version)
 void Mapper18_Init(CartInfo *info)
 {
   info->Power=M18Power;
-  X.MapIRQHook=M18IRQHook;
+  fceulib__.X->MapIRQHook=M18IRQHook;
   fceulib__.fceu->GameStateRestore=StateRestore;
 
   AddExState(&StateRegs, ~0, 0, 0);

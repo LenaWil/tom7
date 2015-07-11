@@ -90,7 +90,7 @@ static void SSSNROMClose(void) {
 }
 
 static void SSSNROMIRQHook(void) {
-//  X.IRQBegin(FCEU_IQEXT);
+//  fceulib__.X->IRQBegin(FCEU_IQEXT);
 }
 
 static void StateRestore(int version) {

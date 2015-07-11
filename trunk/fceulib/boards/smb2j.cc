@@ -54,7 +54,7 @@ static DECLFW(UNLSMB2JWrite)
   {
     IRQa=V;
     IRQCount=0;
-    X.IRQEnd(FCEU_IQEXT);
+    fceulib__.X->IRQEnd(FCEU_IQEXT);
   }
 }
 
@@ -79,7 +79,7 @@ static void UNLSMB2JIRQHook(int a)
   {
     IRQCount+=a*3;
     if((IRQCount>>12)==IRQa)
-      X.IRQBegin(FCEU_IQEXT);
+      fceulib__.X->IRQBegin(FCEU_IQEXT);
   }
 }
 
@@ -92,7 +92,7 @@ void UNLSMB2J_Init(CartInfo *info)
 {
   info->Reset=UNLSMB2JReset;
   info->Power=UNLSMB2JPower;
-  X.MapIRQHook=UNLSMB2JIRQHook;
+  fceulib__.X->MapIRQHook=UNLSMB2JIRQHook;
   fceulib__.fceu->GameStateRestore=StateRestore;
   AddExState(&StateRegs, ~0, 0, 0);
 }

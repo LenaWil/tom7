@@ -72,7 +72,7 @@ static DECLFR(UNL22211ReadLo) {
 //	if(reg[3])
 //		return reg[2];
 //	else
-//		return X.DB;
+//		return fceulib__.X->DB;
 }
 
 static void UNL22211Power(void) {

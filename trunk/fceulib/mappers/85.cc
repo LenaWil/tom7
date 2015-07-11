@@ -71,7 +71,7 @@ DECLFW(Mapper85_write)
   A|=(A&8)<<1;
 
   if (A>=0xa000 && A<=0xDFFF) {
-    // printf("$%04x, $%04x\n",X.PC,A);
+    // printf("$%04x, $%04x\n",fceulib__.X->PC,A);
     A&=0xF010;
     {
       int x=((A>>4)&1)|((A-0xA000)>>11);
@@ -92,17 +92,17 @@ DECLFW(Mapper85_write)
     case 0x9010:indox=V;break;
     case 0xe000:mapbyte2[3]=V;DaMirror(V);break;
     case 0xE010:fceulib__.ines->iNESIRQLatch=V;
-      X.IRQEnd(FCEU_IQEXT);
+      fceulib__.X->IRQEnd(FCEU_IQEXT);
       break;
     case 0xF000:fceulib__.ines->iNESIRQa=V&2;
       vrctemp=V&1;
       if (V&2) {fceulib__.ines->iNESIRQCount=fceulib__.ines->iNESIRQLatch;}
       acount=0;
-      X.IRQEnd(FCEU_IQEXT);
+      fceulib__.X->IRQEnd(FCEU_IQEXT);
       break;
     case 0xf010:if (vrctemp) fceulib__.ines->iNESIRQa=1;
       else fceulib__.ines->iNESIRQa=0;
-      X.IRQEnd(FCEU_IQEXT);
+      fceulib__.X->IRQEnd(FCEU_IQEXT);
       break;
     }
   }
@@ -117,7 +117,7 @@ static void KonamiIRQHook(int a) {
     if (acount>=ACBOO) {
     doagainbub:acount-=ACBOO;
       fceulib__.ines->iNESIRQCount++;
-      if (fceulib__.ines->iNESIRQCount&0x100) {X.IRQBegin(FCEU_IQEXT);fceulib__.ines->iNESIRQCount=fceulib__.ines->iNESIRQLatch;}
+      if (fceulib__.ines->iNESIRQCount&0x100) {fceulib__.X->IRQBegin(FCEU_IQEXT);fceulib__.ines->iNESIRQCount=fceulib__.ines->iNESIRQLatch;}
       if (acount>=ACBOO) goto doagainbub;
     }
   }
@@ -172,7 +172,7 @@ void NSFVRC7_Init(void)
 }
 
 void Mapper85_init(void) {
-  X.MapIRQHook=KonamiIRQHook;
+  fceulib__.X->MapIRQHook=KonamiIRQHook;
   fceulib__.fceu->SetWriteHandler(0x8000,0xffff,Mapper85_write);
   fceulib__.fceu->GameStateRestore=Mapper85_StateRestore;
   if (!fceulib__.ines->VROM_size)

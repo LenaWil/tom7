@@ -69,7 +69,7 @@ static DECLFW(UNLVRC7Write)
     case 0xe000: mirr=V; Sync(); break;
     case 0xe008:
       IRQLatch=V;
-      X.IRQEnd(FCEU_IQEXT);
+      fceulib__.X->IRQEnd(FCEU_IQEXT);
       break;
     case 0xf000:
       IRQa=V&2;
@@ -77,14 +77,14 @@ static DECLFW(UNLVRC7Write)
       if(V&2)
         IRQCount=IRQLatch;
       CycleCount=0;
-      X.IRQEnd(FCEU_IQEXT);
+      fceulib__.X->IRQEnd(FCEU_IQEXT);
       break;
     case 0xf008:
       if(IRQd)
         IRQa=1;
       else
         IRQa=0;
-      X.IRQEnd(FCEU_IQEXT);
+      fceulib__.X->IRQEnd(FCEU_IQEXT);
       break;
   }
 }
@@ -102,7 +102,7 @@ static void UNLVRC7IRQHook(int a) {
       CycleCount-=341;
       IRQCount++;
       if(IRQCount==248) {
-        X.IRQBegin(FCEU_IQEXT);
+        fceulib__.X->IRQBegin(FCEU_IQEXT);
         IRQCount=IRQLatch;
       }
     }
@@ -115,7 +115,7 @@ static void StateRestore(int version) {
 
 void UNLVRC7_Init(CartInfo *info) {
   info->Power=UNLVRC7Power;
-  X.MapIRQHook=UNLVRC7IRQHook;
+  fceulib__.X->MapIRQHook=UNLVRC7IRQHook;
   fceulib__.fceu->GameStateRestore=StateRestore;
   AddExState(&StateRegs, ~0, 0, 0);
 }

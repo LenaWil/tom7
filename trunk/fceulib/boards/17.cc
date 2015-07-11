@@ -58,7 +58,7 @@ static DECLFW(M17WriteMirr)
 static DECLFW(M17WriteIRQ)
 {
   switch(A) {
-    case 0x4501: IRQa=0; X.IRQEnd(FCEU_IQEXT); break;
+    case 0x4501: IRQa=0; fceulib__.X->IRQEnd(FCEU_IQEXT); break;
     case 0x4502: IRQCount&=0xFF00; IRQCount|=V; break;
     case 0x4503: IRQCount&=0x00FF; IRQCount|=V<<8; IRQa=1; break;
   }
@@ -94,7 +94,7 @@ static void M17IRQHook(int a)
     IRQCount+=a;
     if(IRQCount>=0x10000)
     {
-      X.IRQBegin(FCEU_IQEXT);
+      fceulib__.X->IRQBegin(FCEU_IQEXT);
       IRQa=0;
       IRQCount=0;
     }
@@ -109,7 +109,7 @@ static void StateRestore(int version)
 void Mapper17_Init(CartInfo *info)
 {
   info->Power=M17Power;
-  X.MapIRQHook=M17IRQHook;
+  fceulib__.X->MapIRQHook=M17IRQHook;
   fceulib__.fceu->GameStateRestore=StateRestore;
 
   AddExState(&StateRegs, ~0, 0, 0);

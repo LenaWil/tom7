@@ -178,10 +178,10 @@ void Sound::Write_PSG_Direct(DECLFW_ARGS) {
 
     if (SIRQStat&0x80) {
       if (!(V&0x80)) {
-	X.IRQEnd(FCEU_IQDPCM);
+	fceulib__.X->IRQEnd(FCEU_IQDPCM);
 	SIRQStat&=~0x80;
       } else {
-	X.IRQBegin(FCEU_IQDPCM);
+	fceulib__.X->IRQBegin(FCEU_IQDPCM);
       }
     }
     break;
@@ -203,10 +203,10 @@ void Sound::Write_DMCRegs_Direct(DECLFW_ARGS) {
 
     if (SIRQStat&0x80) {
       if (!(V&0x80)) {
-	X.IRQEnd(FCEU_IQDPCM);
+	fceulib__.X->IRQEnd(FCEU_IQDPCM);
 	SIRQStat&=~0x80;
       } else { 
-	X.IRQBegin(FCEU_IQDPCM);
+	fceulib__.X->IRQBegin(FCEU_IQDPCM);
       }
     }
     DMCFormat=V;
@@ -246,7 +246,7 @@ void Sound::StatusWrite_Direct(DECLFW_ARGS) {
     DMCSize=0;
   }
   SIRQStat &= ~0x80;
-  X.IRQEnd(FCEU_IQDPCM);
+  fceulib__.X->IRQEnd(FCEU_IQDPCM);
   EnabledChannels = V & 0x1F;
 }
 
@@ -262,7 +262,7 @@ DECLFR_RET Sound::StatusRead_Direct(DECLFR_ARGS) {
   if (DMCSize) ret |= 0x10;
 
   SIRQStat&=~0x40;
-  X.IRQEnd(FCEU_IQFCOUNT);
+  fceulib__.X->IRQEnd(FCEU_IQFCOUNT);
   return ret;
 }
 
@@ -358,7 +358,7 @@ void Sound::FrameSoundUpdate() {
 
   if (!fcnt && !(IRQFrameMode&0x3)) {
     SIRQStat|=0x40;
-    X.IRQBegin(FCEU_IQFCOUNT);
+    fceulib__.X->IRQBegin(FCEU_IQFCOUNT);
   }
 
   if (fcnt==3) {
@@ -384,10 +384,10 @@ void Sound::Tester() {
 
 void Sound::DMCDMA() {
   if (DMCSize && !DMCHaveDMA) {
-    X.DMR(0x8000+DMCAddress);
-    X.DMR(0x8000+DMCAddress);
-    X.DMR(0x8000+DMCAddress);
-    DMCDMABuf=X.DMR(0x8000+DMCAddress);
+    fceulib__.X->DMR(0x8000+DMCAddress);
+    fceulib__.X->DMR(0x8000+DMCAddress);
+    fceulib__.X->DMR(0x8000+DMCAddress);
+    DMCDMABuf=fceulib__.X->DMR(0x8000+DMCAddress);
     DMCHaveDMA=1;
     DMCAddress=(DMCAddress+1)&0x7fff;
     DMCSize--;
@@ -397,7 +397,7 @@ void Sound::DMCDMA() {
       } else {
 	SIRQStat|=0x80;
 	if (DMCFormat&0x80)
-	  X.IRQBegin(FCEU_IQDPCM);
+	  fceulib__.X->IRQBegin(FCEU_IQDPCM);
       }
     }
   }
@@ -842,7 +842,7 @@ void Sound::Write_IRQFM_Direct(DECLFW_ARGS) {
     FrameSoundUpdate();
   fcnt=1;
   fhcnt=fhinc;
-  X.IRQEnd(FCEU_IQFCOUNT);
+  fceulib__.X->IRQEnd(FCEU_IQFCOUNT);
   SIRQStat&=~0x40;
   IRQFrameMode=V;
 }
@@ -859,7 +859,7 @@ void Sound::SetNESSoundMap() {
 int Sound::FlushEmulateSound() {
   int32 end, left;
 
-  if (!X.timestamp) return 0;
+  if (!fceulib__.X->timestamp) return 0;
 
   if (!FCEUS_SNDRATE) {
     left=0;
@@ -878,7 +878,7 @@ int Sound::FlushEmulateSound() {
 
     if (GameExpSound.HiFill) GameExpSound.HiFill();
 
-    for (int x = X.timestamp; x; x--) {
+    for (int x = fceulib__.X->timestamp; x; x--) {
       uint32 b=*tmpo;
       *tmpo=(b&65535)+wlookup2[(b>>16)&255]+wlookup1[b>>24];
       tmpo++;

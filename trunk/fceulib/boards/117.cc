@@ -55,8 +55,8 @@ static DECLFW(M117Write) {
     switch(A) {
     case 0xc001: IRQLatch=V; break;
     case 0xc003: IRQCount=IRQLatch; IRQa|=2; break;
-    case 0xe000: IRQa&=~1; IRQa|=V&1; X.IRQEnd(FCEU_IQEXT); break;
-    case 0xc002: X.IRQEnd(FCEU_IQEXT); break;
+    case 0xe000: IRQa&=~1; IRQa|=V&1; fceulib__.X->IRQEnd(FCEU_IQEXT); break;
+    case 0xc002: fceulib__.X->IRQEnd(FCEU_IQEXT); break;
     case 0xd000: mirror=V&1;
     }
   }
@@ -78,7 +78,7 @@ static void M117IRQHook(void)
     if(!IRQCount)
     {
       IRQa&=1;
-      X.IRQBegin(FCEU_IQEXT);
+      fceulib__.X->IRQBegin(FCEU_IQEXT);
     }
   }
 }

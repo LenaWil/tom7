@@ -84,7 +84,7 @@ static void MCN22MIRQHook(void)
   {
      if(IRQa)
      {
-        X.IRQBegin(FCEU_IQEXT);
+        fceulib__.X->IRQBegin(FCEU_IQEXT);
      }
   }
 }

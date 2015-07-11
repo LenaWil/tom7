@@ -65,13 +65,10 @@ FCEUGI::FCEUGI() { }
 FCEUGI::~FCEUGI() { }
 
 void FCEU::FCEU_CloseGame() {
-  fprintf(stderr, "FCEU_CloseGame.. %p\n", GameInfo);
   if (GameInfo != nullptr) {
-    fprintf(stderr, "GameInterface %p.\n", GameInterface);
     CHECK(GameInterface != nullptr);
     GameInterface(GI_CLOSE);
 
-    fprintf(stderr, "ResetExState.\n");
     ResetExState(0,0);
 
     //clear screen when game is closed
@@ -81,15 +78,14 @@ void FCEU::FCEU_CloseGame() {
     delete GameInfo;
     GameInfo = nullptr;
   }
-  fprintf(stderr, "Closegame done.\n");
 }
 
 static DECLFW(BNull) {
 }
 
 static DECLFR(ANull) {
-  TRACEF("Read unmapped: %02x", X.DB);
-  return X.DB;
+  TRACEF("Read unmapped: %02x", fceulib__.X->DB);
+  return fceulib__.X->DB;
 }
 
 readfunc FCEU::GetReadHandler(int32 a) {
@@ -132,8 +128,6 @@ void FCEU::AllocBuffers() {
 }
 
 void FCEU::FreeBuffers() {
-  fprintf(stderr, "FreeBuffers %p %p %p %p\n",
-	  GameMemBlock, RAM, XBuf, XBackBuf);
   free(GameMemBlock);
   free(RAM);
   free(XBuf);
@@ -167,7 +161,7 @@ void FCEU::ResetGameLoaded() {
   memset(&fceulib__.sound->GameExpSound, 0,
          sizeof (fceulib__.sound->GameExpSound));
 
-  X.MapIRQHook = nullptr;
+  fceulib__.X->MapIRQHook = nullptr;
   fceulib__.ppu->MMC5Hack = 0;
   PAL &= 1;
   fceulib__.palette->pale = 0;
@@ -249,7 +243,7 @@ bool FCEU::FCEUI_Initialize() {
   // XXX.
   GameInterface = (void (*)(GI))0xDEADBEEF;
   
-  X.Init();
+  fceulib__.X->Init();
 
   return true;
 }
@@ -279,8 +273,8 @@ void FCEU::FCEUI_Emulate(uint8 **pXBuf,
     ssize = fceulib__.sound->FlushEmulateSound();
 
   // This is where cheat list stuff happened.
-  timestampbase += X.timestamp;
-  X.timestamp = 0;
+  timestampbase += fceulib__.X->timestamp;
+  fceulib__.X->timestamp = 0;
 
   if (pXBuf != nullptr) {
     *pXBuf=skip?0:XBuf;
@@ -301,12 +295,12 @@ void FCEU::ResetNES() {
   GameInterface(GI_RESETM2);
   fceulib__.sound->FCEUSND_Reset();
   fceulib__.ppu->FCEUPPU_Reset();
-  X.Reset();
+  fceulib__.X->Reset();
 
   // clear back baffer
   memset(XBackBuf,0,256*256);
 
-  fprintf(stderr, "Reset\n");
+  // fprintf(stderr, "Reset\n");
 }
 
 void FCEU::PowerNES() {
@@ -329,7 +323,6 @@ void FCEU::PowerNES() {
 
   // Have the external game hardware "powered" after the internal NES
   // stuff. Needed for the NSF code and VS System code.
-  fprintf(stderr, "GameInterface on power: %p\n", GameInterface);
   GameInterface(GI_POWER);
   if (GameInfo->type==GIT_VSUNI)
     fceulib__.vsuni->FCEU_VSUniPower();
@@ -339,12 +332,12 @@ void FCEU::PowerNES() {
     GameInterface(GI_RESETSAVE);
 
   timestampbase = 0ULL;
-  X.Power();
+  fceulib__.X->Power();
 
   // clear back baffer
   memset(XBackBuf,0,256*256);
 
-  fprintf(stderr, "Power on\n");
+  // fprintf(stderr, "Power on\n");
 }
 
 void FCEU::FCEU_ResetVidSys() {

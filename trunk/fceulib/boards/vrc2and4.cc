@@ -122,10 +122,10 @@ static DECLFW(VRC24Write) {
     case 0x9001: if (V != 0xFF) mirr = V; Sync(); break;
     case 0x9002:
     case 0x9003: regcmd = V; Sync(); break;
-    case 0xF000: X.IRQEnd(FCEU_IQEXT); IRQLatch &= 0xF0; IRQLatch |= V & 0xF; break;
-    case 0xF001: X.IRQEnd(FCEU_IQEXT); IRQLatch &= 0x0F; IRQLatch |= V << 4; break;
-    case 0xF002: X.IRQEnd(FCEU_IQEXT); acount = 0; IRQCount = IRQLatch; IRQa = V & 2; irqcmd = V & 1; break;
-    case 0xF003: X.IRQEnd(FCEU_IQEXT); IRQa = irqcmd; break;
+    case 0xF000: fceulib__.X->IRQEnd(FCEU_IQEXT); IRQLatch &= 0xF0; IRQLatch |= V & 0xF; break;
+    case 0xF001: fceulib__.X->IRQEnd(FCEU_IQEXT); IRQLatch &= 0x0F; IRQLatch |= V << 4; break;
+    case 0xF002: fceulib__.X->IRQEnd(FCEU_IQEXT); acount = 0; IRQCount = IRQLatch; IRQa = V & 2; irqcmd = V & 1; break;
+    case 0xF003: fceulib__.X->IRQEnd(FCEU_IQEXT); IRQa = irqcmd; break;
     }
   }
 }
@@ -198,7 +198,7 @@ void VRC24IRQHook(int a) {
 				acount -= LCYCS;
 				IRQCount++;
 				if (IRQCount & 0x100) {
-					X.IRQBegin(FCEU_IQEXT);
+					fceulib__.X->IRQBegin(FCEU_IQEXT);
 					IRQCount = IRQLatch;
 				}
 			}
@@ -220,7 +220,7 @@ void Mapper21_Init(CartInfo *info) {
 	isPirate = 0;
 	is22 = 0;
 	info->Power = M21Power;
-	X.MapIRQHook = VRC24IRQHook;
+	fceulib__.X->MapIRQHook = VRC24IRQHook;
 	fceulib__.fceu->GameStateRestore = StateRestore;
 
 	AddExState(&StateRegs, ~0, 0, 0);
@@ -237,7 +237,7 @@ void Mapper22_Init(CartInfo *info) {
 
 void VRC24_Init(CartInfo *info) {
 	info->Close = VRC24Close;
-	X.MapIRQHook = VRC24IRQHook;
+	fceulib__.X->MapIRQHook = VRC24IRQHook;
 	fceulib__.fceu->GameStateRestore = StateRestore;
 
 	WRAMSIZE = 8192;

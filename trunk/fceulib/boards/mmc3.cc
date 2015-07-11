@@ -173,7 +173,7 @@ DECLFW(MMC3_IRQWrite)
  {
   case 0xC000:IRQLatch=V;break;
   case 0xC001:IRQReload=1;break;
-  case 0xE000:X.IRQEnd(FCEU_IQEXT);IRQa=0;break;
+  case 0xE000:fceulib__.X->IRQEnd(FCEU_IQEXT);IRQa=0;break;
   case 0xE001:IRQa=1;break;
  }
 }
@@ -192,7 +192,7 @@ static void ClockMMC3Counter()
  {
     if (IRQa)
     {
-       X.IRQBegin(FCEU_IQEXT);
+       fceulib__.X->IRQBegin(FCEU_IQEXT);
     }
  }
 }
@@ -547,9 +547,9 @@ static DECLFR(M45Read)
 {
   uint32 addr = 1<<(EXPREGS[5]+4);
   if (A&(addr|(addr-1)))
-    return X.DB | 1;
+    return fceulib__.X->DB | 1;
   else
-    return X.DB;
+    return fceulib__.X->DB;
 }
 
 static void M45Reset()
@@ -769,7 +769,7 @@ static DECLFW(M114Write) {
    case 0xC000: if (!cmdin) break; MMC3_CMDWrite(0x8001,V); cmdin=0; break;
    case 0xA001: IRQLatch=V; break;
    case 0xC001: IRQReload=1; break;
-   case 0xE000: X.IRQEnd(FCEU_IQEXT);IRQa=0; break;
+   case 0xE000: fceulib__.X->IRQEnd(FCEU_IQEXT);IRQa=0; break;
    case 0xE001: IRQa=1; break;
   }
 }

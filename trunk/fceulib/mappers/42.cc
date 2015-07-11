@@ -27,7 +27,7 @@ static DECLFW(Mapper42_write) {
   case 0x8000:VROM_BANK8(V);break;
   case 0xe000:mapbyte1[0]=V;ROM_BANK8(0x6000,V&0xF);break;
   case 0xe001:fceulib__.ines->MIRROR_SET((V>>3)&1);break;
-  case 0xe002:fceulib__.ines->iNESIRQa=V&2;if(!fceulib__.ines->iNESIRQa) fceulib__.ines->iNESIRQCount=0;X.IRQEnd(FCEU_IQEXT);break;
+  case 0xe002:fceulib__.ines->iNESIRQa=V&2;if(!fceulib__.ines->iNESIRQa) fceulib__.ines->iNESIRQCount=0;fceulib__.X->IRQEnd(FCEU_IQEXT);break;
  }
 }
 
@@ -36,9 +36,9 @@ static void Mapper42IRQ(int a) {
     fceulib__.ines->iNESIRQCount+=a;
     if (fceulib__.ines->iNESIRQCount>=32768) fceulib__.ines->iNESIRQCount-=32768;
     if (fceulib__.ines->iNESIRQCount>=24576)
-      X.IRQBegin(FCEU_IQEXT);
+      fceulib__.X->IRQBegin(FCEU_IQEXT);
     else
-      X.IRQEnd(FCEU_IQEXT);
+      fceulib__.X->IRQEnd(FCEU_IQEXT);
   }
 }
 
@@ -53,6 +53,6 @@ void Mapper42_init(void) {
   fceulib__.fceu->SetWriteHandler(0x6000,0xffff,Mapper42_write);
   fceulib__.fceu->SetReadHandler(0x6000,0x7fff,Cart::CartBR);
   fceulib__.ines->MapStateRestore=Mapper42_StateRestore;
-  X.MapIRQHook=Mapper42IRQ;
+  fceulib__.X->MapIRQHook=Mapper42IRQ;
 }
 
