@@ -24,21 +24,21 @@
 #include "mmc3.h"
 
 static void BMC830118CCW(uint32 A, uint8 V) {
-    fceulib__cart.setchr1(A,(V&0x7F)|((EXPREGS[0]&0x0c)<<5));
+    fceulib__.cart->setchr1(A,(V&0x7F)|((EXPREGS[0]&0x0c)<<5));
 }
 
 static void BMC830118CPW(uint32 A, uint8 V)
 {
   if((EXPREGS[0]&0x0C)==0x0C) {
     if(A==0x8000) {
-      fceulib__cart.setprg8(A,(V&0x0F)|((EXPREGS[0]&0x0c)<<2));
-      fceulib__cart.setprg8(0xC000,(V&0x0F)|0x32);
+      fceulib__.cart->setprg8(A,(V&0x0F)|((EXPREGS[0]&0x0c)<<2));
+      fceulib__.cart->setprg8(0xC000,(V&0x0F)|0x32);
     } else if(A==0xA000) {
-      fceulib__cart.setprg8(A,(V&0x0F)|((EXPREGS[0]&0x0c)<<2));
-      fceulib__cart.setprg8(0xE000,(V&0x0F)|0x32);
+      fceulib__.cart->setprg8(A,(V&0x0F)|((EXPREGS[0]&0x0c)<<2));
+      fceulib__.cart->setprg8(0xE000,(V&0x0F)|0x32);
     }
   } else {
-    fceulib__cart.setprg8(A,(V&0x0F)|((EXPREGS[0]&0x0c)<<2));
+    fceulib__.cart->setprg8(A,(V&0x0F)|((EXPREGS[0]&0x0c)<<2));
   }
 }
 
@@ -59,7 +59,7 @@ static void BMC830118CPower(void)
 {
   EXPREGS[0] = 0;
   GenMMC3Power();
-  fceulib__fceu.SetWriteHandler(0x6800,0x68FF,BMC830118CLoWrite);
+  fceulib__.fceu->SetWriteHandler(0x6800,0x68FF,BMC830118CLoWrite);
 }
 
 void BMC830118C_Init(CartInfo *info)

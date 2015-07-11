@@ -47,8 +47,8 @@ static constexpr uint8 chr_perm[8][8] = {
 };
 
 static void Sync(void) {
-	fceulib__cart.setprg32(0x8000, preg);
-	fceulib__cart.setchr8(creg);
+	fceulib__.cart->setprg32(0x8000, preg);
+	fceulib__.cart->setchr8(creg);
 }
 
 static DECLFW(M244Write) {
@@ -62,8 +62,8 @@ static DECLFW(M244Write) {
 static void M244Power(void) {
 	preg = creg = 0;
 	Sync();
-	fceulib__fceu.SetWriteHandler(0x8000, 0xFFFF, M244Write);
-	fceulib__fceu.SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
+	fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, M244Write);
+	fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
 }
 
 static void StateRestore(int version) {
@@ -73,5 +73,5 @@ static void StateRestore(int version) {
 void Mapper244_Init(CartInfo *info) {
 	info->Power = M244Power;
 	AddExState(&StateRegs, ~0, 0, 0);
-	fceulib__fceu.GameStateRestore = StateRestore;
+	fceulib__.fceu->GameStateRestore = StateRestore;
 }

@@ -45,17 +45,17 @@ static void Sync185(void)
 {
   // little dirty eh? ;_)
   if((datareg&3)&&(datareg!=0x13)) // 1, 2, 3, 4, 5, 6
-   fceulib__cart.setchr8(0);
+   fceulib__.cart->setchr8(0);
   else
-   fceulib__cart.setchr8r(0x10,0);
+   fceulib__.cart->setchr8r(0x10,0);
 }
 
 static void Sync181(void)
 {
   if(!(datareg&1))                      // 7
-   fceulib__cart.setchr8(0);
+   fceulib__.cart->setchr8(0);
   else
-   fceulib__cart.setchr8r(0x10,0);
+   fceulib__.cart->setchr8r(0x10,0);
 }
 
 static DECLFW(MWrite)
@@ -68,10 +68,10 @@ static void MPower(void)
 {
   datareg=0;
   Sync();
-  fceulib__cart.setprg16(0x8000,0);
-  fceulib__cart.setprg16(0xC000,~0);
-  fceulib__fceu.SetWriteHandler(0x8000,0xFFFF,MWrite);
-  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__.cart->setprg16(0x8000,0);
+  fceulib__.cart->setprg16(0xC000,~0);
+  fceulib__.fceu->SetWriteHandler(0x8000,0xFFFF,MWrite);
+  fceulib__.fceu->SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
 }
 
 static void MClose(void)
@@ -91,11 +91,11 @@ void Mapper185_Init(CartInfo *info)
   Sync=Sync185;
   info->Power=MPower;
   info->Close=MClose;
-  fceulib__fceu.GameStateRestore=MRestore;
+  fceulib__.fceu->GameStateRestore=MRestore;
   DummyCHR=(uint8*)FCEU_gmalloc(8192);
   for(int x=0;x<8192;x++)
      DummyCHR[x]=0xff;
-  fceulib__cart.SetupCartCHRMapping(0x10,DummyCHR,8192,0);
+  fceulib__.cart->SetupCartCHRMapping(0x10,DummyCHR,8192,0);
   AddExState(StateRegs, ~0, 0, 0);
 }
 
@@ -104,10 +104,10 @@ void Mapper181_Init(CartInfo *info)
   Sync=Sync181;
   info->Power=MPower;
   info->Close=MClose;
-  fceulib__fceu.GameStateRestore=MRestore;
+  fceulib__.fceu->GameStateRestore=MRestore;
   DummyCHR=(uint8*)FCEU_gmalloc(8192);
   for(int x=0;x<8192;x++)
      DummyCHR[x]=0xff;
-  fceulib__cart.SetupCartCHRMapping(0x10,DummyCHR,8192,0);
+  fceulib__.cart->SetupCartCHRMapping(0x10,DummyCHR,8192,0);
   AddExState(StateRegs, ~0, 0, 0);
 }

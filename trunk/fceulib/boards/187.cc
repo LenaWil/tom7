@@ -24,9 +24,9 @@
 static void M187CW(uint32 A, uint8 V)
 {
   if((A&0x1000)==((MMC3_cmd&0x80)<<5))
-    fceulib__cart.setchr1(A,V|0x100);
+    fceulib__.cart->setchr1(A,V|0x100);
   else
-    fceulib__cart.setchr1(A,V);
+    fceulib__.cart->setchr1(A,V);
 }
 
 static void M187PW(uint32 A, uint8 V) {
@@ -34,15 +34,15 @@ static void M187PW(uint32 A, uint8 V) {
     uint8 bank=EXPREGS[0]&0x1F;
     if(EXPREGS[0]&0x20) {
       if(EXPREGS[0]&0x40)
-        fceulib__cart.setprg32(0x8000,bank>>2);
+        fceulib__.cart->setprg32(0x8000,bank>>2);
       else
-        fceulib__cart.setprg32(0x8000,bank>>1); // hacky hacky! two mappers in one! need real hw carts to test
+        fceulib__.cart->setprg32(0x8000,bank>>1); // hacky hacky! two mappers in one! need real hw carts to test
     } else {
-      fceulib__cart.setprg16(0x8000,bank);
-      fceulib__cart.setprg16(0xC000,bank);
+      fceulib__.cart->setprg16(0x8000,bank);
+      fceulib__.cart->setprg16(0xC000,bank);
     }
   } else {
-    fceulib__cart.setprg8(A,V&0x3F);
+    fceulib__.cart->setprg8(A,V&0x3F);
   }
 }
 
@@ -77,10 +77,10 @@ static void M187Power(void)
 {
   EXPREGS[0]=EXPREGS[1]=0;
   GenMMC3Power();
-  fceulib__fceu.SetReadHandler(0x5000,0x5FFF,M187Read);
-  fceulib__fceu.SetWriteHandler(0x5000,0x6FFF,M187WriteLo);
-  fceulib__fceu.SetWriteHandler(0x8000,0x8000,M187Write8000);
-  fceulib__fceu.SetWriteHandler(0x8001,0x8001,M187Write8001);
+  fceulib__.fceu->SetReadHandler(0x5000,0x5FFF,M187Read);
+  fceulib__.fceu->SetWriteHandler(0x5000,0x6FFF,M187WriteLo);
+  fceulib__.fceu->SetWriteHandler(0x8000,0x8000,M187Write8000);
+  fceulib__.fceu->SetWriteHandler(0x8001,0x8001,M187Write8001);
 }
 
 void Mapper187_Init(CartInfo *info)

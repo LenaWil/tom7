@@ -116,8 +116,8 @@ int32 Filter::NeoFilterSound(int32 *in, int32 *out, uint32 inlen, int32 *leftove
     *leftover=NCOEFFS+1;
   }
 
-  if (fceulib__sound.GameExpSound.NeoFill)
-    fceulib__sound.GameExpSound.NeoFill(outsave,count);
+  if (fceulib__.sound->GameExpSound.NeoFill)
+    fceulib__.sound->GameExpSound.NeoFill(outsave,count);
 
   SexyFilter(outsave,outsave,count);
   if (FCEUS_LOWPASS)
@@ -134,9 +134,9 @@ void Filter::MakeFilters(int32 rate) {
   const uint32 nco = FCEUS_SOUNDQ == 2 ? SQ2NCOEFFS : NCOEFFS;
 
   mrindex=(nco+1)<<16;
-  mrratio=(fceulib__fceu.PAL?(int64)(PAL_CPU*65536):(int64)(NTSC_CPU*65536))/rate;
+  mrratio=(fceulib__.fceu->PAL?(int64)(PAL_CPU*65536):(int64)(NTSC_CPU*65536))/rate;
 
-  const int idx = (fceulib__fceu.PAL?1:0)|(rate==48000?2:0)|(rate==96000?4:0);
+  const int idx = (fceulib__.fceu->PAL?1:0)|(rate==48000?2:0)|(rate==96000?4:0);
   const int32 *tmp = (FCEUS_SOUNDQ == 2) ? sq2tabs[idx] : tabs[idx];
 
   if (FCEUS_SOUNDQ==2)
@@ -146,5 +146,3 @@ void Filter::MakeFilters(int32 rate) {
     for (int32 x = 0; x < NCOEFFS>>1; x++)
       coeffs[x]=coeffs[NCOEFFS-1-x]=tmp[x];
 }
-
-Filter fceulib__filter;

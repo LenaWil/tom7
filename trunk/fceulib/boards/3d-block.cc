@@ -34,8 +34,8 @@ static SFORMAT StateRegs[]=
 };
 
 static void Sync(void) {
-  fceulib__cart.setprg32(0x8000,0);
-  fceulib__cart.setchr8(0);
+  fceulib__.cart->setprg32(0x8000,0);
+  fceulib__.cart->setchr8(0);
 }
 
 //#define Count 0x1800
@@ -58,8 +58,8 @@ static DECLFW(UNL3DBlockWrite)
 
 static void UNL3DBlockPower(void) {
   Sync();
-  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
-  fceulib__fceu.SetWriteHandler(0x4800,0x4E00,UNL3DBlockWrite);
+  fceulib__.fceu->SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__.fceu->SetWriteHandler(0x4800,0x4E00,UNL3DBlockWrite);
 }
 
 static void UNL3DBlockReset(void)
@@ -103,6 +103,6 @@ void UNL3DBlock_Init(CartInfo *info)
   info->Power=UNL3DBlockPower;
   info->Reset=UNL3DBlockReset;
   X.MapIRQHook=UNL3DBlockIRQHook;
-  fceulib__fceu.GameStateRestore=StateRestore;
+  fceulib__.fceu->GameStateRestore=StateRestore;
   AddExState(&StateRegs, ~0, 0, 0);
 }

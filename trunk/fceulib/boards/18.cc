@@ -36,15 +36,15 @@ static SFORMAT StateRegs[]=
 };
 
 static void Sync(void) {
-  for(int i=0; i<8; i++) fceulib__cart.setchr1(i<<10,creg[i]);
-  fceulib__cart.setprg8(0x8000,preg[0]);
-  fceulib__cart.setprg8(0xA000,preg[1]);
-  fceulib__cart.setprg8(0xC000,preg[2]);
-  fceulib__cart.setprg8(0xE000,~0);
+  for(int i=0; i<8; i++) fceulib__.cart->setchr1(i<<10,creg[i]);
+  fceulib__.cart->setprg8(0x8000,preg[0]);
+  fceulib__.cart->setprg8(0xA000,preg[1]);
+  fceulib__.cart->setprg8(0xC000,preg[2]);
+  fceulib__.cart->setprg8(0xE000,~0);
   if(mirr & 2)
-    fceulib__cart.setmirror(MI_0);
+    fceulib__.cart->setmirror(MI_0);
   else
-    fceulib__cart.setmirror(mirr & 1);
+    fceulib__.cart->setmirror(mirr & 1);
 }
 
 static DECLFW(M18WriteIRQ)
@@ -83,10 +83,10 @@ static void M18Power(void)
   preg[2] = ~1;
   preg[3] = ~0;
   Sync();
-  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
-  fceulib__fceu.SetWriteHandler(0x8000,0x9FFF,M18WritePrg);
-  fceulib__fceu.SetWriteHandler(0xA000,0xDFFF,M18WriteChr);
-  fceulib__fceu.SetWriteHandler(0xE000,0xFFFF,M18WriteIRQ);
+  fceulib__.fceu->SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__.fceu->SetWriteHandler(0x8000,0x9FFF,M18WritePrg);
+  fceulib__.fceu->SetWriteHandler(0xA000,0xDFFF,M18WriteChr);
+  fceulib__.fceu->SetWriteHandler(0xE000,0xFFFF,M18WriteIRQ);
 }
 
 static void M18IRQHook(int a)
@@ -112,7 +112,7 @@ void Mapper18_Init(CartInfo *info)
 {
   info->Power=M18Power;
   X.MapIRQHook=M18IRQHook;
-  fceulib__fceu.GameStateRestore=StateRestore;
+  fceulib__.fceu->GameStateRestore=StateRestore;
 
   AddExState(&StateRegs, ~0, 0, 0);
 }

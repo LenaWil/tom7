@@ -30,9 +30,9 @@ static SFORMAT StateRegs[]=
 
 static void Sync(void)
 {
-  fceulib__cart.setprg8(0x6000,reg);
-  fceulib__cart.setprg32(0x8000,2);
-  fceulib__cart.setchr8(0);
+  fceulib__.cart->setprg8(0x6000,reg);
+  fceulib__.cart->setprg32(0x8000,2);
+  fceulib__.cart->setchr8(0);
 }
 
 static DECLFW(M120Write)
@@ -48,8 +48,8 @@ static void M120Power(void)
 {
   reg=0;
   Sync();
-  fceulib__fceu.SetReadHandler(0x6000,0xFFFF,Cart::CartBR);
-  fceulib__fceu.SetWriteHandler(0x4100,0x5FFF,M120Write);
+  fceulib__.fceu->SetReadHandler(0x6000,0xFFFF,Cart::CartBR);
+  fceulib__.fceu->SetWriteHandler(0x4100,0x5FFF,M120Write);
 }
 
 static void StateRestore(int version)
@@ -60,6 +60,6 @@ static void StateRestore(int version)
 void Mapper120_Init(CartInfo *info)
 {
   info->Power=M120Power;
-  fceulib__fceu.GameStateRestore=StateRestore;
+  fceulib__.fceu->GameStateRestore=StateRestore;
   AddExState(&StateRegs, ~0, 0, 0);
 }

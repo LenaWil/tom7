@@ -41,13 +41,13 @@ static void Sync(void) {
     bank = (latche[0] & 0x1f) | ((latche[0] & 0x80) >> 2) | ((latche[1] & 1) << 6);
   }
   if (!(latche[0] & 0x20)) {
-    fceulib__cart.setprg32(0x8000, bank >> 1);
+    fceulib__.cart->setprg32(0x8000, bank >> 1);
   } else {
-    fceulib__cart.setprg16(0x8000, bank);
-    fceulib__cart.setprg16(0xC000, bank);
+    fceulib__.cart->setprg16(0x8000, bank);
+    fceulib__.cart->setprg16(0xC000, bank);
   }
-  fceulib__cart.setmirror((latche[0] >> 6) & 1);
-  fceulib__cart.setchr8(0);
+  fceulib__.cart->setmirror((latche[0] >> 6) & 1);
+  fceulib__.cart->setchr8(0);
 }
 
 static DECLFW(M226Write) {
@@ -58,8 +58,8 @@ static DECLFW(M226Write) {
 static void M226Power(void) {
 	latche[0] = latche[1] = reset = 0;
 	Sync();
-	fceulib__fceu.SetWriteHandler(0x8000, 0xFFFF, M226Write);
-	fceulib__fceu.SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
+	fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, M226Write);
+	fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
 }
 
 static void StateRestore(int version) {
@@ -70,7 +70,7 @@ void Mapper226_Init(CartInfo *info) {
 	isresetbased = 0;
 	info->Power = M226Power;
 	AddExState(&StateRegs, ~0, 0, 0);
-	fceulib__fceu.GameStateRestore = StateRestore;
+	fceulib__.fceu->GameStateRestore = StateRestore;
 }
 
 static void M233Reset(void) {
@@ -83,5 +83,5 @@ void Mapper233_Init(CartInfo *info) {
 	info->Power = M226Power;
 	info->Reset = M233Reset;
 	AddExState(&StateRegs, ~0, 0, 0);
-	fceulib__fceu.GameStateRestore = StateRestore;
+	fceulib__.fceu->GameStateRestore = StateRestore;
 }

@@ -51,11 +51,11 @@ static void M222IRQ(void)
 }
 
 static void Sync(void) {
-  fceulib__cart.setprg8(0x8000,prg_reg[0]);
-  fceulib__cart.setprg8(0xA000,prg_reg[1]);
+  fceulib__.cart->setprg8(0x8000,prg_reg[0]);
+  fceulib__.cart->setprg8(0xA000,prg_reg[1]);
   for(int i=0; i<8; i++)
-    fceulib__cart.setchr1(i<<10,chr_reg[i]);
-  fceulib__cart.setmirror(mirr^1);
+    fceulib__.cart->setchr1(i<<10,chr_reg[i]);
+  fceulib__.cart->setmirror(mirr^1);
 }
 
 static DECLFW(M222Write)
@@ -78,15 +78,15 @@ static DECLFW(M222Write)
 //    case 0xF002: FCEU_printf("%04x:%02x %d\n",A,V,scanline); break;
 //    case 0xD001: IRQa=V; X.IRQEnd(FCEU_IQEXT); FCEU_printf("%04x:%02x %d\n",A,V,scanline); break;
 //    case 0xC001: IRQPre=16; FCEU_printf("%04x:%02x %d\n",A,V,scanline); break;
-    case 0xF000: IRQa=IRQCount=V; if(fceulib__ppu.scanline < 240) IRQCount-=8; else IRQCount+=4; X.IRQEnd(FCEU_IQEXT); break;
+    case 0xF000: IRQa=IRQCount=V; if(fceulib__.ppu->scanline < 240) IRQCount-=8; else IRQCount+=4; X.IRQEnd(FCEU_IQEXT); break;
   }
   Sync();
 }
 
 static void M222Power(void) {
-  fceulib__cart.setprg16(0xC000,~0);
-  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
-  fceulib__fceu.SetWriteHandler(0x8000,0xFFFF,M222Write);
+  fceulib__.cart->setprg16(0xC000,~0);
+  fceulib__.fceu->SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__.fceu->SetWriteHandler(0x8000,0xFFFF,M222Write);
 }
 
 static void StateRestore(int version) {
@@ -95,7 +95,7 @@ static void StateRestore(int version) {
 
 void Mapper222_Init(CartInfo *info) {
   info->Power=M222Power;
-  fceulib__ppu.GameHBIRQHook=M222IRQ;
-  fceulib__fceu.GameStateRestore=StateRestore;
+  fceulib__.ppu->GameHBIRQHook=M222IRQ;
+  fceulib__.fceu->GameStateRestore=StateRestore;
   AddExState(&StateRegs, ~0, 0, 0);
 }

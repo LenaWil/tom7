@@ -27,11 +27,11 @@ static uint8 latche;
 static void Sync(void) {
   if(latche) {
     if(latche&0x10)
-      fceulib__cart.setprg16(0x8000,(latche&7));
+      fceulib__.cart->setprg16(0x8000,(latche&7));
     else
-      fceulib__cart.setprg16(0x8000,(latche&7)|8);
+      fceulib__.cart->setprg16(0x8000,(latche&7)|8);
   } else {
-    fceulib__cart.setprg16(0x8000,7+(fceulib__ines.ROM_size>>4));
+    fceulib__.cart->setprg16(0x8000,7+(fceulib__.ines->ROM_size>>4));
   }
 }
 
@@ -47,11 +47,11 @@ static DECLFR(ExtDev) {
 static void Power(void) {
   latche=0;
   Sync();
-  fceulib__cart.setchr8(0);
-  fceulib__cart.setprg16(0xc000,0x7);
-  fceulib__fceu.SetReadHandler(0x6000,0x7FFF,ExtDev);
-  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
-  fceulib__fceu.SetWriteHandler(0x8000,0xFFFF,M188Write);
+  fceulib__.cart->setchr8(0);
+  fceulib__.cart->setprg16(0xc000,0x7);
+  fceulib__.fceu->SetReadHandler(0x6000,0x7FFF,ExtDev);
+  fceulib__.fceu->SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__.fceu->SetWriteHandler(0x8000,0xFFFF,M188Write);
 }
 
 static void StateRestore(int version) {
@@ -60,6 +60,6 @@ static void StateRestore(int version) {
 
 void Mapper188_Init(CartInfo *info) {
   info->Power=Power;
-  fceulib__fceu.GameStateRestore=StateRestore;
+  fceulib__.fceu->GameStateRestore=StateRestore;
   AddExState(&latche, 1, 0, "LATC");
 }

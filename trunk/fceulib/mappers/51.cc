@@ -40,9 +40,9 @@ static void Synco(void)
 {
  uint32 x;
  if(mapbyte1[0]<=2)
-  fceulib__ines.MIRROR_SET2(1);
+  fceulib__.ines->MIRROR_SET2(1);
  else
-  fceulib__ines.MIRROR_SET2(0);
+  fceulib__.ines->MIRROR_SET2(0);
  for(x=0x6000;x<0x10000;x+=8192)
   ROM_BANK8(x,Get8K(x));
 }
@@ -57,8 +57,8 @@ static DECLFW(Write)
 }
 
 void Mapper51_init(void) {
- fceulib__fceu.SetWriteHandler(0x6000,0xFFFF,Write);
- fceulib__fceu.SetReadHandler(0x6000,0xFFFF,Cart::CartBR);
+ fceulib__.fceu->SetWriteHandler(0x6000,0xFFFF,Write);
+ fceulib__.fceu->SetReadHandler(0x6000,0xFFFF,Cart::CartBR);
  mapbyte1[0]=1;
  mapbyte1[1]=0;
  Synco();

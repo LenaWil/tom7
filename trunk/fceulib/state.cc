@@ -58,34 +58,43 @@ static int SFEXINDEX;
 
 #define RLSB FCEUSTATE_RLSB	//0x80000000
 
-static constexpr SFORMAT SFCPU[] = {
-  { &X.reg_PC, 2|RLSB, "PC\0" },
-  { &X.reg_A, 1, "A\0\0" },
-  { &X.reg_P, 1, "P\0\0" },
-  { &X.reg_X, 1, "X\0\0" },
-  { &X.reg_Y, 1, "Y\0\0" },
-  { &X.reg_S, 1, "S\0\0" },
-  { &fceulib__fceu.RAM, 0x800 | FCEUSTATE_INDIRECT, "RAM" },
-  { 0 }
-};
+// FIXME these will crash if fceulib__ is not initialized first
+static bool state_initialized = false;
+static vector<SFORMAT> sfcpu, sfcpuc;
 
-static constexpr SFORMAT SFCPUC[] = {
-  { &X.jammed, 1, "JAMM" },
-  { &X.IRQlow, 4|RLSB, "IQLB" },
-  { &X.tcount, 4|RLSB, "ICoa" },
-  { &X.count,  4|RLSB, "ICou" },
-  { &fceulib__fceu.timestampbase, 
-    sizeof (fceulib__fceu.timestampbase) | RLSB, "TSBS" },
-  // alternative to the "quick and dirty hack"
-  { &X.reg_PI, 1, "MooP" },
-  // This was not included in FCEUltra, but I can't see any
-  // reason why it shouldn't be (it's updated with each memory
-  // read and used by some boards), and execution diverges if
-  // it's not saved/restored. (See "Skull & Crossbones" around
-  // FCEUlib revision 2379.)
-  { &X.DB, 1, "DBDB" },
-  { 0 }
-};
+static void InitState() {
+  if (state_initialized) return;
+  sfcpu = {
+    { &X.reg_PC, 2|RLSB, "PC\0" },
+    { &X.reg_A, 1, "A\0\0" },
+    { &X.reg_P, 1, "P\0\0" },
+    { &X.reg_X, 1, "X\0\0" },
+    { &X.reg_Y, 1, "Y\0\0" },
+    { &X.reg_S, 1, "S\0\0" },
+    { &fceulib__.fceu->RAM, 0x800 | FCEUSTATE_INDIRECT, "RAM" },
+    { 0 },
+  };
+
+  sfcpuc = {
+    { &X.jammed, 1, "JAMM" },
+    { &X.IRQlow, 4|RLSB, "IQLB" },
+    { &X.tcount, 4|RLSB, "ICoa" },
+    { &X.count,  4|RLSB, "ICou" },
+    { &fceulib__.fceu->timestampbase, 
+      sizeof (fceulib__.fceu->timestampbase) | RLSB, "TSBS" },
+    // alternative to the "quick and dirty hack"
+    { &X.reg_PI, 1, "MooP" },
+    // This was not included in FCEUltra, but I can't see any
+    // reason why it shouldn't be (it's updated with each memory
+    // read and used by some boards), and execution diverges if
+    // it's not saved/restored. (See "Skull & Crossbones" around
+    // FCEUlib revision 2379.)
+    { &X.DB, 1, "DBDB" },
+    { 0 }
+  };
+
+  state_initialized = true;
+}
 
 static int SubWrite(EMUFILE* os, const SFORMAT *sf) {
   uint32 acc=0;
@@ -175,7 +184,7 @@ static const SFORMAT *CheckS(const SFORMAT *sf, uint32 tsize, char *desc) {
   }
   return nullptr;
 }
-
+			      
 static bool ReadStateChunk(EMUFILE* is, const SFORMAT *sf, int size) {
   int temp = is->ftell();
 
@@ -205,6 +214,7 @@ static bool ReadStateChunk(EMUFILE* is, const SFORMAT *sf, int size) {
 }
 
 static bool ReadStateChunks(EMUFILE* is, int32 totalsize) {
+  InitState();
   uint32 size;
   bool ret=true;
   bool warned=false;
@@ -217,15 +227,15 @@ static bool ReadStateChunks(EMUFILE* is, int32 totalsize) {
 
     switch (t) {
     case 1:
-      if (!ReadStateChunk(is,SFCPU,size))
+      if (!ReadStateChunk(is,sfcpu.data(),size))
 	ret=false;
       break;
     case 3:
-      if (!ReadStateChunk(is,fceulib__ppu.FCEUPPU_STATEINFO(),size))
+      if (!ReadStateChunk(is,fceulib__.ppu->FCEUPPU_STATEINFO(),size))
 	ret=false;
       break;
     case 4:
-      if (!ReadStateChunk(is,fceulib__input.FCEUINPUT_STATEINFO(),size))
+      if (!ReadStateChunk(is,fceulib__.input->FCEUINPUT_STATEINFO(),size))
 	ret=false;
       break;
     case 7:
@@ -237,7 +247,7 @@ static bool ReadStateChunks(EMUFILE* is, int32 totalsize) {
 	ret=false;
       break;
     case 5:
-      if (!ReadStateChunk(is,fceulib__sound.FCEUSND_STATEINFO(),size))
+      if (!ReadStateChunk(is,fceulib__.sound->FCEUSND_STATEINFO(),size))
 	ret=false;
       break;
     case 6:
@@ -246,12 +256,12 @@ static bool ReadStateChunks(EMUFILE* is, int32 totalsize) {
     case 8:
       // load back buffer
       {
-	if (is->fread((char*)fceulib__fceu.XBackBuf,size) != size)
+	if (is->fread((char*)fceulib__.fceu->XBackBuf,size) != size)
 	  ret = false;
       }
       break;
     case 2:
-      if (!ReadStateChunk(is,SFCPUC,size))
+      if (!ReadStateChunk(is,sfcpuc.data(),size))
 	ret=false;
       break;
     default:
@@ -276,20 +286,21 @@ static bool ReadStateChunks(EMUFILE* is, int32 totalsize) {
 
 // Simplified save that does not compress.
 bool FCEUSS_SaveRAW(std::vector<uint8> *out) {
+  InitState();
   EMUFILE_MEMORY os(out);
 
   uint32 totalsize = 0;
 
-  fceulib__ppu.FCEUPPU_SaveState();
-  fceulib__sound.FCEUSND_SaveState();
-  totalsize = WriteStateChunk(&os,1,SFCPU);
-  totalsize += WriteStateChunk(&os,2,SFCPUC);
+  fceulib__.ppu->FCEUPPU_SaveState();
+  fceulib__.sound->FCEUSND_SaveState();
+  totalsize = WriteStateChunk(&os,1,sfcpu.data());
+  totalsize += WriteStateChunk(&os,2,sfcpuc.data());
   TRACEF("PPU:");
-  totalsize += WriteStateChunk(&os,3,fceulib__ppu.FCEUPPU_STATEINFO());
+  totalsize += WriteStateChunk(&os,3,fceulib__.ppu->FCEUPPU_STATEINFO());
   TRACEV(*out);
-  totalsize += WriteStateChunk(&os,4,fceulib__input.FCEUINPUT_STATEINFO());
+  totalsize += WriteStateChunk(&os,4,fceulib__.input->FCEUINPUT_STATEINFO());
   // TRACEV(*out);
-  totalsize += WriteStateChunk(&os,5,fceulib__sound.FCEUSND_STATEINFO());
+  totalsize += WriteStateChunk(&os,5,fceulib__.sound->FCEUSND_STATEINFO());
   // TRACEV(*out);
 
   if (SPreSave) SPreSave();
@@ -323,13 +334,13 @@ bool FCEUSS_LoadRAW(std::vector<uint8> *in) {
 
   bool success = (ReadStateChunks(&is, totalsize) != 0);
 
-  if (fceulib__fceu.GameStateRestore != nullptr) {
-    fceulib__fceu.GameStateRestore(stateversion);
+  if (fceulib__.fceu->GameStateRestore != nullptr) {
+    fceulib__.fceu->GameStateRestore(stateversion);
   }
 
   if (success) {
-    fceulib__ppu.FCEUPPU_LoadState(stateversion);
-    fceulib__sound.FCEUSND_LoadState(stateversion);
+    fceulib__.ppu->FCEUPPU_LoadState(stateversion);
+    fceulib__.sound->FCEUSND_LoadState(stateversion);
     return true;
   } else {
     return false;

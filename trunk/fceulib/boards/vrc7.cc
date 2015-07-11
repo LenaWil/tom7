@@ -37,17 +37,17 @@ static SFORMAT StateRegs[]= {
 };
 
 static void Sync(void) {
-  fceulib__cart.setprg8(0x8000,prg[0]);
-  fceulib__cart.setprg8(0xa000,prg[1]);
-  fceulib__cart.setprg8(0xc000,prg[2]);
-  fceulib__cart.setprg8(0xe000,~0);
+  fceulib__.cart->setprg8(0x8000,prg[0]);
+  fceulib__.cart->setprg8(0xa000,prg[1]);
+  fceulib__.cart->setprg8(0xc000,prg[2]);
+  fceulib__.cart->setprg8(0xe000,~0);
   for(uint8 i=0; i<8; i++)
-    fceulib__cart.setchr1(i<<10,chr[i]);
+    fceulib__.cart->setchr1(i<<10,chr[i]);
   switch(mirr&3) {
-    case 0: fceulib__cart.setmirror(MI_V); break;
-    case 1: fceulib__cart.setmirror(MI_H); break;
-    case 2: fceulib__cart.setmirror(MI_0); break;
-    case 3: fceulib__cart.setmirror(MI_1); break;
+    case 0: fceulib__.cart->setmirror(MI_V); break;
+    case 1: fceulib__.cart->setmirror(MI_H); break;
+    case 2: fceulib__.cart->setmirror(MI_0); break;
+    case 3: fceulib__.cart->setmirror(MI_1); break;
   }
 }
 
@@ -91,8 +91,8 @@ static DECLFW(UNLVRC7Write)
 
 static void UNLVRC7Power(void) {
   Sync();
-  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
-  fceulib__fceu.SetWriteHandler(0x8000,0xFFFF,UNLVRC7Write);
+  fceulib__.fceu->SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__.fceu->SetWriteHandler(0x8000,0xFFFF,UNLVRC7Write);
 }
 
 static void UNLVRC7IRQHook(int a) {
@@ -116,6 +116,6 @@ static void StateRestore(int version) {
 void UNLVRC7_Init(CartInfo *info) {
   info->Power=UNLVRC7Power;
   X.MapIRQHook=UNLVRC7IRQHook;
-  fceulib__fceu.GameStateRestore=StateRestore;
+  fceulib__.fceu->GameStateRestore=StateRestore;
   AddExState(&StateRegs, ~0, 0, 0);
 }

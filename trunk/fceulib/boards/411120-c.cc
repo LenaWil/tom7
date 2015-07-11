@@ -26,14 +26,14 @@
 static uint8 reset_flag = 0;
 
 static void BMC411120CCW(uint32 A, uint8 V) {
-    fceulib__cart.setchr1(A,V|((EXPREGS[0]&3)<<7));
+    fceulib__.cart->setchr1(A,V|((EXPREGS[0]&3)<<7));
 }
 
 static void BMC411120CPW(uint32 A, uint8 V) {
     if(EXPREGS[0]&(8|reset_flag))
-      fceulib__cart.setprg32(0x8000,((EXPREGS[0]>>4)&3)|(0x0C));
+      fceulib__.cart->setprg32(0x8000,((EXPREGS[0]>>4)&3)|(0x0C));
     else
-      fceulib__cart.setprg8(A,(V&0x0F)|((EXPREGS[0]&3)<<4));
+      fceulib__.cart->setprg8(A,(V&0x0F)|((EXPREGS[0]&3)<<4));
 }
 
 static DECLFW(BMC411120CLoWrite)
@@ -54,7 +54,7 @@ static void BMC411120CPower(void)
 {
   EXPREGS[0] = 0;
   GenMMC3Power();
-  fceulib__fceu.SetWriteHandler(0x6000,0x7FFF,BMC411120CLoWrite);
+  fceulib__.fceu->SetWriteHandler(0x6000,0x7FFF,BMC411120CLoWrite);
 }
 
 void BMC411120C_Init(CartInfo *info)

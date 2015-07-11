@@ -24,14 +24,14 @@ static uint8 cmd0, cmd1;
 
 static void DoSuper(void)
 {
-  fceulib__cart.setprg8r((cmd0&0xC)>>2,0x6000,((cmd0&0x3)<<4)|0xF);
+  fceulib__.cart->setprg8r((cmd0&0xC)>>2,0x6000,((cmd0&0x3)<<4)|0xF);
   if(cmd0&0x10) {
-    fceulib__cart.setprg16r((cmd0&0xC)>>2,0x8000,((cmd0&0x3)<<3)|(cmd1&7));
-    fceulib__cart.setprg16r((cmd0&0xC)>>2,0xc000,((cmd0&0x3)<<3)|7);
+    fceulib__.cart->setprg16r((cmd0&0xC)>>2,0x8000,((cmd0&0x3)<<3)|(cmd1&7));
+    fceulib__.cart->setprg16r((cmd0&0xC)>>2,0xc000,((cmd0&0x3)<<3)|7);
   } else {
-    fceulib__cart.setprg32r(4,0x8000,0);
+    fceulib__.cart->setprg32r(4,0x8000,0);
   }
-  fceulib__cart.setmirror(((cmd0&0x20)>>5)^1);
+  fceulib__.cart->setmirror(((cmd0&0x20)>>5)^1);
 }
 
 static DECLFW(SuperWrite)
@@ -51,12 +51,12 @@ static DECLFW(SuperHi)
 
 static void SuperReset(void)
 {
-  fceulib__fceu.SetWriteHandler(0x6000,0x7FFF,SuperWrite);
-  fceulib__fceu.SetWriteHandler(0x8000,0xFFFF,SuperHi);
-  fceulib__fceu.SetReadHandler(0x6000,0xFFFF,Cart::CartBR);
+  fceulib__.fceu->SetWriteHandler(0x6000,0x7FFF,SuperWrite);
+  fceulib__.fceu->SetWriteHandler(0x8000,0xFFFF,SuperHi);
+  fceulib__.fceu->SetReadHandler(0x6000,0xFFFF,Cart::CartBR);
   cmd0=cmd1=0;
-  fceulib__cart.setprg32r(4,0x8000,0);
-  fceulib__cart.setchr8(0);
+  fceulib__.cart->setprg32r(4,0x8000,0);
+  fceulib__.cart->setchr8(0);
 }
 
 static void SuperRestore(int version)
@@ -69,5 +69,5 @@ void Supervision16_Init(CartInfo *info)
   AddExState(&cmd0, 1, 0,"L1");
   AddExState(&cmd1, 1, 0,"L2");
   info->Power=SuperReset;
-  fceulib__fceu.GameStateRestore=SuperRestore;
+  fceulib__.fceu->GameStateRestore=SuperRestore;
 }

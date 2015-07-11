@@ -43,8 +43,6 @@
 #define Z_FLAG 0x02
 #define C_FLAG 0x01
 
-X6502 X;
-
 #define ADDCYC(x)            \
   {                          \
     int __x = x;             \
@@ -55,17 +53,17 @@ X6502 X;
 
 // XXX needs to take FCEU object as argument.
 static inline void WrRAM(unsigned int A, uint8 V) {
-  fceulib__fceu.RAM[A] = V;
+  fceulib__.fceu->RAM[A] = V;
 }
 
 uint8 X6502::DMR(uint32 A) {
   ADDCYC(1);
-  return (DB = fceulib__fceu.ARead[A](A));
+  return (DB = fceulib__.fceu->ARead[A](A));
 }
 
 void X6502::DMW(uint32 A, uint8 V) {
   ADDCYC(1);
-  fceulib__fceu.BWrite[A](A, V);
+  fceulib__.fceu->BWrite[A](A, V);
 }
 
 #define PUSH(V)              \
@@ -648,9 +646,9 @@ void X6502::Run(int32 cycles) {
   TRACEF("x6502_Run(%d) @ %d " TRACE_MACHINEFMT, cycles, timestamp,
          TRACE_MACHINEARGS);
   TRACEA(RAM, 0x800);
-  // TRACEA(fceulib__ppu.PPU_values, 4);
+  // TRACEA(fceulib__.ppu->PPU_values, 4);
 
-  if (fceulib__fceu.PAL) {
+  if (fceulib__.fceu->PAL) {
     cycles *= 15;  // 15*4=60
   } else {
     cycles *= 16;  // 16*4=64
@@ -716,7 +714,7 @@ void X6502::Run(int32 cycles) {
     temp = tcount;
     tcount = 0;
     if (MapIRQHook) MapIRQHook(temp);
-    fceulib__sound.FCEU_SoundCPUHook(temp);
+    fceulib__.sound->FCEU_SoundCPUHook(temp);
     reg_PC++;
     TRACEN(b1);
     switch (b1) {
@@ -1208,3 +1206,5 @@ void X6502::Run(int32 cycles) {
   TRACEF("Exiting X6502_Run normally: " TRACE_MACHINEFMT, TRACE_MACHINEARGS);
   TRACEA(RAM, 0x800);
 }
+
+X6502 X;

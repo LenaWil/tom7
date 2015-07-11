@@ -22,12 +22,12 @@
 
 
 void IREMIRQHook(int a) {
-  if(fceulib__ines.iNESIRQa) {
-    fceulib__ines.iNESIRQCount-=a;
-    if(fceulib__ines.iNESIRQCount<-4) {
+  if(fceulib__.ines->iNESIRQa) {
+    fceulib__.ines->iNESIRQCount-=a;
+    if(fceulib__.ines->iNESIRQCount<-4) {
       X.IRQBegin(FCEU_IQEXT);
-      fceulib__ines.iNESIRQa=0;
-      fceulib__ines.iNESIRQCount=0xFFFF;
+      fceulib__.ines->iNESIRQa=0;
+      fceulib__.ines->iNESIRQCount=0xFFFF;
     }
   }
 }
@@ -41,14 +41,14 @@ static DECLFW(Mapper65_write)
   //default: printf("$%04x:$%02x\n",A,V);
   //        break;
   case 0x8000:ROM_BANK8(0x8000,V);break;
- // case 0x9000:printf("$%04x:$%02x\n",A,V);fceulib__ines.MIRROR_SET2((V>>6)&1);break;
-  case 0x9001:fceulib__ines.MIRROR_SET(V>>7);break;
-  case 0x9003:fceulib__ines.iNESIRQa=V&0x80;X.IRQEnd(FCEU_IQEXT);break;
-  case 0x9004:fceulib__ines.iNESIRQCount=fceulib__ines.iNESIRQLatch;break;
-  case 0x9005:          fceulib__ines.iNESIRQLatch&=0x00FF;
-                        fceulib__ines.iNESIRQLatch|=V<<8;
+ // case 0x9000:printf("$%04x:$%02x\n",A,V);fceulib__.ines->MIRROR_SET2((V>>6)&1);break;
+  case 0x9001:fceulib__.ines->MIRROR_SET(V>>7);break;
+  case 0x9003:fceulib__.ines->iNESIRQa=V&0x80;X.IRQEnd(FCEU_IQEXT);break;
+  case 0x9004:fceulib__.ines->iNESIRQCount=fceulib__.ines->iNESIRQLatch;break;
+  case 0x9005:          fceulib__.ines->iNESIRQLatch&=0x00FF;
+                        fceulib__.ines->iNESIRQLatch|=V<<8;
                         break;
-  case 0x9006:          fceulib__ines.iNESIRQLatch&=0xFF00;fceulib__ines.iNESIRQLatch|=V;
+  case 0x9006:          fceulib__.ines->iNESIRQLatch&=0xFF00;fceulib__.ines->iNESIRQLatch|=V;
                         break;
   case 0xB000:VROM_BANK1(0x0000,V);break;
   case 0xB001:VROM_BANK1(0x0400,V);break;
@@ -61,11 +61,11 @@ static DECLFW(Mapper65_write)
   case 0xa000:ROM_BANK8(0xA000,V);break;
   case 0xC000:ROM_BANK8(0xC000,V);break;
  }
- //fceulib__ines.MIRROR_SET2(1);
+ //fceulib__.ines->MIRROR_SET2(1);
 }
 
 void Mapper65_init(void)
 {
  X.MapIRQHook=IREMIRQHook;
- fceulib__fceu.SetWriteHandler(0x8000,0xffff,Mapper65_write);
+ fceulib__.fceu->SetWriteHandler(0x8000,0xffff,Mapper65_write);
 }

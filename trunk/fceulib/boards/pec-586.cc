@@ -49,11 +49,11 @@ static void Sync(void)
 {
 //  setchr4(0x0000,(reg[0]&0x80) >> 7);
 //  setchr4(0x1000,(reg[0]&0x80) >> 7);
-  fceulib__cart.setchr8(0);
-  fceulib__cart.setprg8r(0x10,0x6000,0);
-  fceulib__cart.setprg16(0x8000,bs_tbl[reg[0]&0x7f]>>4);
-  fceulib__cart.setprg16(0xc000,bs_tbl[reg[0]&0x7f]&0xf);
-  fceulib__cart.setmirror(MI_V);
+  fceulib__.cart->setchr8(0);
+  fceulib__.cart->setprg8r(0x10,0x6000,0);
+  fceulib__.cart->setprg16(0x8000,bs_tbl[reg[0]&0x7f]>>4);
+  fceulib__.cart->setprg16(0xc000,bs_tbl[reg[0]&0x7f]&0xf);
+  fceulib__.cart->setmirror(MI_V);
 }
 
 static DECLFW(UNLPEC586Write)
@@ -73,21 +73,21 @@ static void UNLPEC586Power(void)
 {
   reg[0]=0x0E;
   Sync();
-  fceulib__cart.setchr8(0);
-  fceulib__fceu.SetReadHandler(0x6000,0x7FFF,Cart::CartBR);
-  fceulib__fceu.SetWriteHandler(0x6000,0x7FFF,Cart::CartBW);
-  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
-  fceulib__fceu.SetWriteHandler(0x5000,0x5fff,UNLPEC586Write);
-  fceulib__fceu.SetReadHandler(0x5000,0x5fff,UNLPEC586Read);
+  fceulib__.cart->setchr8(0);
+  fceulib__.fceu->SetReadHandler(0x6000,0x7FFF,Cart::CartBR);
+  fceulib__.fceu->SetWriteHandler(0x6000,0x7FFF,Cart::CartBW);
+  fceulib__.fceu->SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__.fceu->SetWriteHandler(0x5000,0x5fff,UNLPEC586Write);
+  fceulib__.fceu->SetReadHandler(0x5000,0x5fff,UNLPEC586Read);
 }
 
 static void UNLPEC586IRQ(void) {
-  if(fceulib__ppu.scanline==128) {
-    fceulib__cart.setchr4(0x0000,1);
-    fceulib__cart.setchr4(0x1000,0);
+  if(fceulib__.ppu->scanline==128) {
+    fceulib__.cart->setchr4(0x0000,1);
+    fceulib__.cart->setchr4(0x1000,0);
   } else {
-    fceulib__cart.setchr4(0x0000,0);
-    fceulib__cart.setchr4(0x1000,1);
+    fceulib__.cart->setchr4(0x0000,0);
+    fceulib__.cart->setchr4(0x1000,1);
   }
 }
 
@@ -104,12 +104,12 @@ static void StateRestore(int version) {
 void UNLPEC586Init(CartInfo *info) {
   info->Power=UNLPEC586Power;
   info->Close=UNLPEC586Close;
-  fceulib__ppu.GameHBIRQHook=UNLPEC586IRQ;
-  fceulib__fceu.GameStateRestore=StateRestore;
+  fceulib__.ppu->GameHBIRQHook=UNLPEC586IRQ;
+  fceulib__.fceu->GameStateRestore=StateRestore;
 
   WRAMSIZE=8192;
   WRAM=(uint8*)FCEU_gmalloc(WRAMSIZE);
-  fceulib__cart.SetupCartPRGMapping(0x10,WRAM,WRAMSIZE,1);
+  fceulib__.cart->SetupCartPRGMapping(0x10,WRAM,WRAMSIZE,1);
   AddExState(WRAM, WRAMSIZE, 0, "WRAM");
 
   AddExState(&StateRegs, ~0, 0, 0);

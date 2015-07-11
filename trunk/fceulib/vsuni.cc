@@ -75,7 +75,7 @@ static constexpr uint8 secdata[2][32]= {
 };
 
 static DECLFR(VSSecRead) {
-  return fceulib__vsuni.VSSecRead_Direct(DECLFR_FORWARD);
+  return fceulib__.vsuni->VSSecRead_Direct(DECLFR_FORWARD);
 }
 
 DECLFR_RET VSUni::VSSecRead_Direct(DECLFR_ARGS) {
@@ -101,7 +101,7 @@ void VSUni::FCEU_VSUniCoin() {
 #define RC2C05_04       9
 
 static DECLFR(A2002_Gumshoe) {
-  return fceulib__vsuni.A2002_Gumshoe_Direct(DECLFR_FORWARD);
+  return fceulib__.vsuni->A2002_Gumshoe_Direct(DECLFR_FORWARD);
 }
 
 DECLFR_RET VSUni::A2002_Gumshoe_Direct(DECLFR_ARGS) {
@@ -109,7 +109,7 @@ DECLFR_RET VSUni::A2002_Gumshoe_Direct(DECLFR_ARGS) {
 }
 
 static DECLFR(A2002_Topgun) {
-  return fceulib__vsuni.A2002_Topgun_Direct(DECLFR_FORWARD);
+  return fceulib__.vsuni->A2002_Topgun_Direct(DECLFR_FORWARD);
 }
 
 DECLFR_RET VSUni::A2002_Topgun_Direct(DECLFR_ARGS) {
@@ -118,7 +118,7 @@ DECLFR_RET VSUni::A2002_Topgun_Direct(DECLFR_ARGS) {
 
 // Mighty Bomb Jack
 static DECLFR(A2002_MBJ) {
-  return fceulib__vsuni.A2002_MBJ_Direct(DECLFR_FORWARD);
+  return fceulib__.vsuni->A2002_MBJ_Direct(DECLFR_FORWARD);
 }
 
 DECLFR_RET VSUni::A2002_MBJ_Direct(DECLFR_ARGS) {
@@ -126,7 +126,7 @@ DECLFR_RET VSUni::A2002_MBJ_Direct(DECLFR_ARGS) {
 }
 
 static DECLFW(B2000_2001_2C05) {
-  return fceulib__vsuni.B2000_2001_2C05_Direct(DECLFW_FORWARD);
+  return fceulib__.vsuni->B2000_2001_2C05_Direct(DECLFW_FORWARD);
 }
 
 void VSUni::B2000_2001_2C05_Direct(DECLFW_ARGS) {
@@ -134,7 +134,7 @@ void VSUni::B2000_2001_2C05_Direct(DECLFW_ARGS) {
 }
 
 static DECLFR(XevRead) {
-  return fceulib__vsuni.XevRead_Direct(DECLFR_FORWARD);
+  return fceulib__.vsuni->XevRead_Direct(DECLFR_FORWARD);
 }
 
 DECLFR_RET VSUni::XevRead_Direct(DECLFR_ARGS) {
@@ -165,27 +165,27 @@ void VSUni::FCEU_VSUniPower() {
   VSindex = 0;
 
   if (secptr)
-    fceulib__fceu.SetReadHandler(0x5e00,0x5e01,VSSecRead);
+    fceulib__.fceu->SetReadHandler(0x5e00,0x5e01,VSSecRead);
 
   if (curppu == RC2C05_04) {
-    OldReadPPU = fceulib__fceu.GetReadHandler(0x2002);
-    fceulib__fceu.SetReadHandler(0x2002, 0x2002, A2002_Topgun);
+    OldReadPPU = fceulib__.fceu->GetReadHandler(0x2002);
+    fceulib__.fceu->SetReadHandler(0x2002, 0x2002, A2002_Topgun);
   } else if (curppu == RC2C05_03) {
-    OldReadPPU = fceulib__fceu.GetReadHandler(0x2002);
-    fceulib__fceu.SetReadHandler(0x2002, 0x2002, A2002_Gumshoe);
+    OldReadPPU = fceulib__.fceu->GetReadHandler(0x2002);
+    fceulib__.fceu->SetReadHandler(0x2002, 0x2002, A2002_Gumshoe);
   } else if (curppu == RC2C05_02) {
-    OldReadPPU = fceulib__fceu.GetReadHandler(0x2002);
-    fceulib__fceu.SetReadHandler(0x2002, 0x2002, A2002_MBJ);
+    OldReadPPU = fceulib__.fceu->GetReadHandler(0x2002);
+    fceulib__.fceu->SetReadHandler(0x2002, 0x2002, A2002_MBJ);
   }
   if (curppu == RC2C05_04 || curppu == RC2C05_01 || 
       curppu == RC2C05_03 || curppu == RC2C05_02) {
-    OldWritePPU[0] = fceulib__fceu.GetWriteHandler(0x2000);
-    OldWritePPU[1] = fceulib__fceu.GetWriteHandler(0x2001);
-    fceulib__fceu.SetWriteHandler(0x2000, 0x2001, B2000_2001_2C05);
+    OldWritePPU[0] = fceulib__.fceu->GetWriteHandler(0x2000);
+    OldWritePPU[1] = fceulib__.fceu->GetWriteHandler(0x2001);
+    fceulib__.fceu->SetWriteHandler(0x2000, 0x2001, B2000_2001_2C05);
   }
   /* Super Xevious */
   if (curmd5 == 0x2d396247cf58f9faLL) {
-    fceulib__fceu.SetReadHandler(0x5400, 0x57FF, XevRead);
+    fceulib__.fceu->SetReadHandler(0x5400, 0x57FF, XevRead);
   }
 }
 
@@ -309,12 +309,12 @@ void VSUni::FCEU_VSUniCheck(uint64 md5partial, int *mapper_no, uint8 *Mirroring)
   while (vs->name) {
     if (md5partial == vs->md5partial) {
 
-      if (vs->ppu < RCP2C03B) fceulib__palette.pale = vs->ppu;
+      if (vs->ppu < RCP2C03B) fceulib__.palette->pale = vs->ppu;
       *mapper_no = vs->mapper;
       *Mirroring = vs->mirroring;
-      fceulib__fceu.GameInfo->type = GIT_VSUNI;
-      fceulib__fceu.GameInfo->cspecial = SIS_VSUNISYSTEM;
-      fceulib__fceu.GameInfo->inputfc = SIFC_NONE;
+      fceulib__.fceu->GameInfo->type = GIT_VSUNI;
+      fceulib__.fceu->GameInfo->cspecial = SIS_VSUNISYSTEM;
+      fceulib__.fceu->GameInfo->inputfc = SIFC_NONE;
       curppu = vs->ppu;
       curmd5 = md5partial;
 
@@ -334,11 +334,11 @@ void VSUni::FCEU_VSUniCheck(uint64 md5partial, int *mapper_no, uint8 *Mirroring)
 	vsdip= vs->predip;
       }
       if (vs->ioption & IOPTION_GUN) {
-	fceulib__fceu.GameInfo->input[0] = SI_ZAPPER;
-	fceulib__fceu.GameInfo->input[1] = SI_NONE;
+	fceulib__.fceu->GameInfo->input[0] = SI_ZAPPER;
+	fceulib__.fceu->GameInfo->input[1] = SI_NONE;
       } else {
-	fceulib__fceu.GameInfo->input[0] =
-	  fceulib__fceu.GameInfo->input[1] = SI_GAMEPAD;
+	fceulib__.fceu->GameInfo->input[0] =
+	  fceulib__.fceu->GameInfo->input[1] = SI_GAMEPAD;
       }
       curvs = vs;
       return;
@@ -376,5 +376,3 @@ void VSUni::FCEU_VSUniDraw(uint8 *XBuf) {
     }
   }
 }
-
-VSUni fceulib__vsuni;

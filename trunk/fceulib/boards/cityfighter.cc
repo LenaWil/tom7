@@ -40,16 +40,16 @@ static SFORMAT StateRegs[] =
 };
 
 static void Sync(void) {
-  fceulib__cart.setprg32(0x8000, prg_reg >> 2);
+  fceulib__.cart->setprg32(0x8000, prg_reg >> 2);
   if (!prg_mode)
-    fceulib__cart.setprg8(0xC000, prg_reg);
+    fceulib__.cart->setprg8(0xC000, prg_reg);
   for (int i = 0; i < 8; i++)
-    fceulib__cart.setchr1(i << 10, chr_reg[i]);
+    fceulib__.cart->setchr1(i << 10, chr_reg[i]);
   switch (mirr) {
-  case 0: fceulib__cart.setmirror(MI_V); break;
-  case 1: fceulib__cart.setmirror(MI_H); break;
-  case 2: fceulib__cart.setmirror(MI_0); break;
-  case 3: fceulib__cart.setmirror(MI_1); break;
+  case 0: fceulib__.cart->setmirror(MI_V); break;
+  case 1: fceulib__.cart->setmirror(MI_H); break;
+  case 2: fceulib__.cart->setmirror(MI_0); break;
+  case 3: fceulib__.cart->setmirror(MI_1); break;
   }
 }
 
@@ -106,9 +106,9 @@ static void UNLCITYFIGHTIRQ(int a) {
 static void UNLCITYFIGHTPower(void) {
 	prg_reg = 0;
 	Sync();
-	pcmwrite = fceulib__fceu.GetWriteHandler(0x4011);
-	fceulib__fceu.SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
-	fceulib__fceu.SetWriteHandler(0x8000, 0xFFFF, UNLCITYFIGHTWrite);
+	pcmwrite = fceulib__.fceu->GetWriteHandler(0x4011);
+	fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
+	fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, UNLCITYFIGHTWrite);
 }
 
 static void StateRestore(int version) {
@@ -118,6 +118,6 @@ static void StateRestore(int version) {
 void UNLCITYFIGHT_Init(CartInfo *info) {
 	info->Power = UNLCITYFIGHTPower;
 	X.MapIRQHook = UNLCITYFIGHTIRQ;
-	fceulib__fceu.GameStateRestore = StateRestore;
+	fceulib__.fceu->GameStateRestore = StateRestore;
 	AddExState(&StateRegs, ~0, 0, 0);
 }

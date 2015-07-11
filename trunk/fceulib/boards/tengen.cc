@@ -60,7 +60,7 @@ static void RAMBO1_IRQHook(int a)
 
 static void RAMBO1_hb(void) {
   if (IRQmode) return;
-  if (fceulib__ppu.scanline==240) return;        /* hmm.  Maybe that should be an mmc3-only call in fce.c. */
+  if (fceulib__.ppu->scanline==240) return;        /* hmm.  Maybe that should be an mmc3-only call in fce.c. */
   rmode=0;
   IRQCount--;
   if (IRQCount==0xFF) {
@@ -88,10 +88,10 @@ static void Synco(void) {
   for(int x=0;x<4;x++)
     setchr1wrap(0x1000+x*0x400,DRegs[2+x]);
 
-  fceulib__cart.setprg8(0x8000,DRegs[6]);
-  fceulib__cart.setprg8(0xA000,DRegs[7]);
+  fceulib__.cart->setprg8(0x8000,DRegs[6]);
+  fceulib__.cart->setprg8(0xA000,DRegs[7]);
 
-  fceulib__cart.setprg8(0xC000,DRegs[10]);
+  fceulib__.cart->setprg8(0xC000,DRegs[10]);
 }
 
 
@@ -101,7 +101,7 @@ static DECLFW(RAMBO1_write)
   {
     case 0xa000: mir=V&1;
 //                 if (!nomirror)
-                   fceulib__cart.setmirror(mir^1);
+                   fceulib__.cart->setmirror(mir^1);
                  break;
     case 0x8000: cmd = V;
                  break;
@@ -135,7 +135,7 @@ static void RAMBO1_Restore(int version)
 {
   Synco();
 //  if (!nomirror)
-    fceulib__cart.setmirror(mir^1);
+    fceulib__.cart->setmirror(mir^1);
 }
 
 static void RAMBO1_init(void) {
@@ -143,18 +143,18 @@ static void RAMBO1_init(void) {
     DRegs[x]=~0;
   cmd=mir=0;
   //  if (!nomirror)
-  fceulib__cart.setmirror(1);
+  fceulib__.cart->setmirror(1);
   Synco();
-  fceulib__ppu.GameHBIRQHook=RAMBO1_hb;
+  fceulib__.ppu->GameHBIRQHook=RAMBO1_hb;
   X.MapIRQHook=RAMBO1_IRQHook;
-  fceulib__fceu.GameStateRestore=RAMBO1_Restore;
-  fceulib__fceu.SetWriteHandler(0x8000,0xffff,RAMBO1_write);
+  fceulib__.fceu->GameStateRestore=RAMBO1_Restore;
+  fceulib__.fceu->SetWriteHandler(0x8000,0xffff,RAMBO1_write);
   AddExState(Rambo_StateRegs, ~0, 0, 0);
 }
 
 static void CHRWrap(unsigned int A, unsigned int V)
 {
-  fceulib__cart.setchr1(A,V);
+  fceulib__.cart->setchr1(A,V);
 }
 
 void Mapper64_init(void)

@@ -35,9 +35,9 @@ static SFORMAT StateRegs[]=
 
 static void Sync(void)
 {
-  fceulib__cart.setprg8r(0x10,0x6000,regs[0]>>6);
-  fceulib__cart.setprg16(0x8000,regs[1]);
-  fceulib__cart.setprg16(0xc000,0);
+  fceulib__.cart->setprg8r(0x10,0x6000,regs[0]>>6);
+  fceulib__.cart->setprg16(0x8000,regs[1]);
+  fceulib__.cart->setprg16(0xc000,0);
 }
 
 static DECLFW(M186Write)
@@ -69,13 +69,13 @@ static DECLFW(BSWRAM)
 
 static void M186Power(void)
 {
-  fceulib__cart.setchr8(0);
-  fceulib__fceu.SetReadHandler(0x6000,0xFFFF,Cart::CartBR);
-  fceulib__fceu.SetWriteHandler(0x6000,0xFFFF,Cart::CartBW);
-  fceulib__fceu.SetReadHandler(0x4200,0x43FF,M186Read);
-  fceulib__fceu.SetWriteHandler(0x4200,0x43FF,M186Write);
-  fceulib__fceu.SetReadHandler(0x4400,0x4EFF,ASWRAM);
-  fceulib__fceu.SetWriteHandler(0x4400,0x4EFF,BSWRAM);
+  fceulib__.cart->setchr8(0);
+  fceulib__.fceu->SetReadHandler(0x6000,0xFFFF,Cart::CartBR);
+  fceulib__.fceu->SetWriteHandler(0x6000,0xFFFF,Cart::CartBW);
+  fceulib__.fceu->SetReadHandler(0x4200,0x43FF,M186Read);
+  fceulib__.fceu->SetWriteHandler(0x4200,0x43FF,M186Write);
+  fceulib__.fceu->SetReadHandler(0x4400,0x4EFF,ASWRAM);
+  fceulib__.fceu->SetWriteHandler(0x4400,0x4EFF,BSWRAM);
   regs[0]=regs[1]=regs[2]=regs[3];
   Sync();
 }
@@ -96,9 +96,9 @@ void Mapper186_Init(CartInfo *info)
 {
   info->Power=M186Power;
   info->Close=M186Close;
-  fceulib__fceu.GameStateRestore=M186Restore;
+  fceulib__.fceu->GameStateRestore=M186Restore;
   WRAM=(uint8*)FCEU_gmalloc(32768);
-  fceulib__cart.SetupCartPRGMapping(0x10,WRAM,32768,1);
+  fceulib__.cart->SetupCartPRGMapping(0x10,WRAM,32768,1);
   AddExState(WRAM, 32768, 0, "WRAM");
   AddExState(StateRegs, ~0, 0, 0);
 }

@@ -33,21 +33,21 @@ static SFORMAT StateRegs[]=
 static void Sync(void) {
   if(regs[0]&0x80) {
     if(regs[1]&0x80) {
-      fceulib__cart.setprg32(0x8000,regs[1]&0x1F);
+      fceulib__.cart->setprg32(0x8000,regs[1]&0x1F);
     } else {
       int bank=((regs[1]&0x1f)<<1)|((regs[1]>>6)&1);
-      fceulib__cart.setprg16(0x8000,bank);
-      fceulib__cart.setprg16(0xC000,bank);
+      fceulib__.cart->setprg16(0x8000,bank);
+      fceulib__.cart->setprg16(0xC000,bank);
     }
   } else {
     int bank=((regs[1]&0x1f)<<1)|((regs[1]>>6)&1);
-    fceulib__cart.setprg16(0xC000,bank);
+    fceulib__.cart->setprg16(0xC000,bank);
   }
   if(regs[0]&0x20)
-    fceulib__cart.setmirror(MI_H);
+    fceulib__.cart->setmirror(MI_H);
   else
-    fceulib__cart.setmirror(MI_V);
-  fceulib__cart.setchr8((regs[2]<<2)|((regs[0]>>1)&3));
+    fceulib__.cart->setmirror(MI_V);
+  fceulib__.cart->setchr8((regs[2]<<2)|((regs[0]>>1)&3));
 }
 
 static DECLFW(BMC64in1nrWriteLo)
@@ -68,9 +68,9 @@ static void BMC64in1nrPower(void)
   regs[1]=0x43;
   regs[2]=regs[3]=0;
   Sync();
-  fceulib__fceu.SetWriteHandler(0x5000,0x5003,BMC64in1nrWriteLo);
-  fceulib__fceu.SetWriteHandler(0x8000,0xFFFF,BMC64in1nrWriteHi);
-  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__.fceu->SetWriteHandler(0x5000,0x5003,BMC64in1nrWriteLo);
+  fceulib__.fceu->SetWriteHandler(0x8000,0xFFFF,BMC64in1nrWriteHi);
+  fceulib__.fceu->SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
 }
 
 static void StateRestore(int version)
@@ -82,7 +82,7 @@ void BMC64in1nr_Init(CartInfo *info)
 {
   info->Power=BMC64in1nrPower;
   AddExState(&StateRegs, ~0, 0, 0);
-  fceulib__fceu.GameStateRestore=StateRestore;
+  fceulib__.fceu->GameStateRestore=StateRestore;
 }
 
 

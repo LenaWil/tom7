@@ -46,6 +46,4 @@ struct Palette {
   Color s_psdl[256] = {};
 };
 
-extern Palette fceulib__palette;
-
 #endif

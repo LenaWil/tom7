@@ -34,9 +34,9 @@ static void Sync(void) {
   // then all roms can be played, but with some swapped
   // games in menu. if not, some dumps are unplayable
   // make hard dump for both cart types to check
-  fceulib__cart.setprg16(0x8000, bbank | (preg & 3));
-  fceulib__cart.setprg16(0xC000, bbank | 3);
-  fceulib__cart.setchr8(0);
+  fceulib__.cart->setprg16(0x8000, bbank | (preg & 3));
+  fceulib__.cart->setprg16(0xC000, bbank | 3);
+  fceulib__.cart->setchr8(0);
 }
 
 static DECLFW(M232WriteBank) {
@@ -52,9 +52,9 @@ static DECLFW(M232WritePreg) {
 static void M232Power(void) {
   bank = preg = 0;
   Sync();
-  fceulib__fceu.SetWriteHandler(0x8000, 0xBFFF, M232WriteBank);
-  fceulib__fceu.SetWriteHandler(0xC000, 0xFFFF, M232WritePreg);
-  fceulib__fceu.SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
+  fceulib__.fceu->SetWriteHandler(0x8000, 0xBFFF, M232WriteBank);
+  fceulib__.fceu->SetWriteHandler(0xC000, 0xFFFF, M232WritePreg);
+  fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
 }
 
 static void StateRestore(int version) {
@@ -64,5 +64,5 @@ static void StateRestore(int version) {
 void Mapper232_Init(CartInfo *info) {
 	info->Power = M232Power;
 	AddExState(&StateRegs, ~0, 0, 0);
-	fceulib__fceu.GameStateRestore = StateRestore;
+	fceulib__.fceu->GameStateRestore = StateRestore;
 }

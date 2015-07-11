@@ -49,7 +49,7 @@ BOARDSOBJECTS=boards/01-222.o boards/32.o boards/gs-2013.o boards/103.o boards/3
 
 INPUTOBJECTS=input/arkanoid.o input/ftrainer.o input/oekakids.o input/suborkb.o input/bworld.o input/hypershot.o input/powerpad.o input/toprider.o input/cursor.o input/mahjong.o input/quiz.o input/zapper.o input/fkb.o input/mouse.o input/shadow.o
 
-FCEUOBJECTS=cart.o version.o emufile.o fceu.o fds.o file.o filter.o ines.o input.o palette.o ppu.o sound.o state.o unif.o vsuni.o x6502.o git.o boards/boards.o
+FCEUOBJECTS=cart.o version.o emufile.o fceu.o fds.o file.o filter.o ines.o input.o palette.o ppu.o sound.o state.o unif.o vsuni.o x6502.o git.o boards/boards.o fc.o
 
 DRIVERS_COMMON_OBJECTS=drivers/common/nes_ntsc.o 
 

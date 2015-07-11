@@ -30,9 +30,9 @@ static SFORMAT StateRegs[]=
 };
 
 static void Sync(void) {
-  fceulib__cart.setprg8(0x6000,reg&3);
-  fceulib__cart.setprg32(0x8000,~0);
-  fceulib__cart.setchr8(chr&3);
+  fceulib__.cart->setprg8(0x6000,reg&3);
+  fceulib__.cart->setprg32(0x8000,~0);
+  fceulib__.cart->setchr8(chr&3);
 }
 
 static DECLFW(UNLBBWrite)
@@ -49,9 +49,9 @@ static void UNLBBPower(void)
   chr = 0;
   reg = ~0;
   Sync();
-  fceulib__fceu.SetReadHandler(0x6000,0x7FFF,Cart::CartBR);
-  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
-  fceulib__fceu.SetWriteHandler(0x8000,0xFFFF,UNLBBWrite);
+  fceulib__.fceu->SetReadHandler(0x6000,0x7FFF,Cart::CartBR);
+  fceulib__.fceu->SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__.fceu->SetWriteHandler(0x8000,0xFFFF,UNLBBWrite);
 }
 
 static void StateRestore(int version)
@@ -62,6 +62,6 @@ static void StateRestore(int version)
 void UNLBB_Init(CartInfo *info)
 {
   info->Power=UNLBBPower;
-  fceulib__fceu.GameStateRestore=StateRestore;
+  fceulib__.fceu->GameStateRestore=StateRestore;
   AddExState(&StateRegs, ~0, 0, 0);
 }

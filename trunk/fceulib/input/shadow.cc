@@ -50,7 +50,7 @@ static void ZapperFrapper(uint8 *bg, uint8 *spr, uint32  linets, int final) {
  
   if (xe>256) xe=256;
  
-  if (fceulib__ppu.scanline>=(zy-4) && fceulib__ppu.scanline<=(zy+4)) {
+  if (fceulib__.ppu->scanline>=(zy-4) && fceulib__.ppu->scanline<=(zy+4)) {
     while(xs<xe) {
       uint8 a1,a2;
       uint32 sum;
@@ -65,11 +65,11 @@ static void ZapperFrapper(uint8 *bg, uint8 *spr, uint32  linets, int final) {
 	}
 	a1&=63;
  
-	sum = fceulib__palette.palo[a1].r + 
-	  fceulib__palette.palo[a1].g + 
-	  fceulib__palette.palo[a1].b;
+	sum = fceulib__.palette->palo[a1].r + 
+	  fceulib__.palette->palo[a1].g + 
+	  fceulib__.palette->palo[a1].b;
 	if (sum>=100*3) {
-	  ZD.zaphit=((uint64)linets+(xs+16)*(fceulib__fceu.PAL?15:16))/48+fceulib__fceu.timestampbase;
+	  ZD.zaphit=((uint64)linets+(xs+16)*(fceulib__.fceu->PAL?15:16))/48+fceulib__.fceu->timestampbase;
 	  goto endo;
 	}
       }
@@ -81,9 +81,9 @@ static void ZapperFrapper(uint8 *bg, uint8 *spr, uint32  linets, int final) {
 }
 
 static inline int CheckColor() { 
-  fceulib__ppu.FCEUPPU_LineUpdate();
+  fceulib__.ppu->FCEUPPU_LineUpdate();
  
-  if ((ZD.zaphit+10)>=(fceulib__fceu.timestampbase+X.timestamp)) return 0;
+  if ((ZD.zaphit+10)>=(fceulib__.fceu->timestampbase+X.timestamp)) return 0;
  
   return 1;
 }

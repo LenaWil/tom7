@@ -67,6 +67,8 @@ alias files="/bin/find . -type f | grep -v roms/ | grep -v roms_crash/ | grep -v
  (interactive "")
  (let ((sym (thing-at-point 'symbol)))
     (message sym)
+    	     ;; TODO: version that uses \\b here around sym for word
+	     ;; boundaries only (like if there's a prefix)
     (let ((cmd (concat "bash -c \"grep '"
 	                sym 
 	   	        "' `/bin/find . -type f | grep -v roms/ | grep -v clean_ | grep -v roms_crash/ | grep -v .svn | grep -v '.nes$' | grep -v '.exe$' | grep -v '.o$'`\"")))

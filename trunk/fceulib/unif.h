@@ -78,6 +78,4 @@ struct Unif {
   uint8 exntar[2048] = {0};
 };
 
-extern Unif fceulib__unif;
-		
 #endif

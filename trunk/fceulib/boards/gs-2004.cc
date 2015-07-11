@@ -30,9 +30,9 @@ static SFORMAT StateRegs[]=
 
 static void Sync(void)
 {
-  fceulib__cart.setprg8r(1,0x6000,0);
-  fceulib__cart.setprg32(0x8000,reg);
-  fceulib__cart.setchr8(0);
+  fceulib__.cart->setprg8r(1,0x6000,0);
+  fceulib__.cart->setprg32(0x8000,reg);
+  fceulib__.cart->setchr8(0);
 }
 
 static DECLFW(BMCGS2004Write)
@@ -45,9 +45,9 @@ static void BMCGS2004Power(void)
 {
   reg=~0;
   Sync();
-  fceulib__fceu.SetReadHandler(0x6000,0x7FFF,Cart::CartBR);
-  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
-  fceulib__fceu.SetWriteHandler(0x8000,0xFFFF,BMCGS2004Write);
+  fceulib__.fceu->SetReadHandler(0x6000,0x7FFF,Cart::CartBR);
+  fceulib__.fceu->SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__.fceu->SetWriteHandler(0x8000,0xFFFF,BMCGS2004Write);
 }
 
 static void BMCGS2004Reset(void)
@@ -64,6 +64,6 @@ void BMCGS2004_Init(CartInfo *info)
 {
   info->Reset=BMCGS2004Reset;
   info->Power=BMCGS2004Power;
-  fceulib__fceu.GameStateRestore=StateRestore;
+  fceulib__.fceu->GameStateRestore=StateRestore;
   AddExState(&StateRegs, ~0, 0, 0);
 }

@@ -45,8 +45,8 @@ static DECLFW(Mapper69_SWL) {
 }
 
 static DECLFW(Mapper69_SWH) {
-  fceulib__sound.GameExpSound.Fill=AYSound;
-  fceulib__sound.GameExpSound.HiFill=AYSoundHQ;
+  fceulib__.sound->GameExpSound.Fill=AYSound;
+  fceulib__.sound->GameExpSound.HiFill=AYSoundHQ;
   if (FCEUS_SNDRATE)
     switch (sunindex) {
     case 0:
@@ -83,10 +83,10 @@ static DECLFW(Mapper69_write) {
 	if (V&0x40) {
 	  if (V&0x80) {
 	    // Select WRAM
-	    fceulib__cart.setprg8r(0x10,0x6000,0);
+	    fceulib__.cart->setprg8r(0x10,0x6000,0);
 	  }
 	} else {
-	  fceulib__cart.setprg8(0x6000,V);
+	  fceulib__.cart->setprg8(0x6000,V);
 	}
 	break;
       case 9:ROM_BANK8(0x8000,V);break;
@@ -94,24 +94,24 @@ static DECLFW(Mapper69_write) {
       case 0xb:ROM_BANK8(0xc000,V);break;
       case 0xc:
 	switch (V&3) {
-	case 0:fceulib__ines.MIRROR_SET2(1);break;
-	case 1:fceulib__ines.MIRROR_SET2(0);break;
-	case 2:fceulib__ines.onemir(0);break;
-	case 3:fceulib__ines.onemir(1);break;
+	case 0:fceulib__.ines->MIRROR_SET2(1);break;
+	case 1:fceulib__.ines->MIRROR_SET2(0);break;
+	case 2:fceulib__.ines->onemir(0);break;
+	case 3:fceulib__.ines->onemir(1);break;
 	}
 	break;
       case 0xd:
-	fceulib__ines.iNESIRQa=V;
+	fceulib__.ines->iNESIRQa=V;
 	X.IRQEnd(FCEU_IQEXT);
 	break;
       case 0xe:
-	fceulib__ines.iNESIRQCount&=0xFF00;
-	fceulib__ines.iNESIRQCount|=V;
+	fceulib__.ines->iNESIRQCount&=0xFF00;
+	fceulib__.ines->iNESIRQCount|=V;
 	X.IRQEnd(FCEU_IQEXT);
 	break;
       case 0xf:
-	fceulib__ines.iNESIRQCount&=0x00FF;
-	fceulib__ines.iNESIRQCount|=V<<8;
+	fceulib__.ines->iNESIRQCount&=0x00FF;
+	fceulib__.ines->iNESIRQCount|=V<<8;
 	X.IRQEnd(FCEU_IQEXT);
 	break;
       }
@@ -131,15 +131,15 @@ static void DoAYSQ(int x) {
   amp+=amp>>1;
 
   start=CAYBC[x];
-  end=(SOUNDTS<<16)/fceulib__sound.soundtsinc;
+  end=(SOUNDTS<<16)/fceulib__.sound->soundtsinc;
   if (end<=start) return;
   CAYBC[x]=end;
 
   if (amp) {
     for (int V=start;V<end;V++) {
       if (dcount[x])
-	fceulib__sound.Wave[V>>4]+=amp;
-      vcount[x]-=fceulib__sound.nesincsize;
+	fceulib__.sound->Wave[V>>4]+=amp;
+      vcount[x]-=fceulib__.sound->nesincsize;
       while (vcount[x]<=0) {
 	dcount[x]^=1;
 	vcount[x]+=freq;
@@ -157,7 +157,7 @@ static void DoAYSQHQ(int x) {
   if (!(MapperExRAM[0x7]&(1<<x))) {
     for (uint32 V=CAYBC[x];V<SOUNDTS;V++) {
       if (dcount[x])
-	fceulib__sound.WaveHi[V]+=amp;
+	fceulib__.sound->WaveHi[V]+=amp;
       vcount[x]--;
       if (vcount[x]<=0) {
 	dcount[x]^=1;
@@ -189,12 +189,12 @@ static void AYHiSync(int32 ts) {
 }
 
 static void SunIRQHook(int a) {
-  if (fceulib__ines.iNESIRQa) {
-    fceulib__ines.iNESIRQCount-=a;
-    if (fceulib__ines.iNESIRQCount<=0) {
+  if (fceulib__.ines->iNESIRQa) {
+    fceulib__.ines->iNESIRQCount-=a;
+    if (fceulib__.ines->iNESIRQCount<=0) {
       X.IRQBegin(FCEU_IQEXT);
-      fceulib__ines.iNESIRQa=0;
-      fceulib__ines.iNESIRQCount=0xFFFF;
+      fceulib__.ines->iNESIRQa=0;
+      fceulib__.ines->iNESIRQCount=0xFFFF;
     }
   }
 }
@@ -203,16 +203,16 @@ void Mapper69_StateRestore(int version) {
   if (mapbyte1[1]&0x40) {
     if (mapbyte1[1]&0x80) {
       // Select WRAM
-      fceulib__cart.setprg8r(0x10,0x6000,0);
+      fceulib__.cart->setprg8r(0x10,0x6000,0);
     }
   } else {
-    fceulib__cart.setprg8(0x6000,mapbyte1[1]);
+    fceulib__.cart->setprg8(0x6000,mapbyte1[1]);
   }
 }
 
 void Mapper69_ESI(void) {
-  fceulib__sound.GameExpSound.RChange=Mapper69_ESI;
-  fceulib__sound.GameExpSound.HiSync=AYHiSync;
+  fceulib__.sound->GameExpSound.RChange=Mapper69_ESI;
+  fceulib__.sound->GameExpSound.HiSync=AYHiSync;
   memset(dcount,0,sizeof(dcount));
   memset(vcount,0,sizeof(vcount));
   memset(CAYBC,0,sizeof(CAYBC));
@@ -220,23 +220,23 @@ void Mapper69_ESI(void) {
 
 void NSFAY_Init(void) {
   sunindex=0;
-  fceulib__fceu.SetWriteHandler(0xc000,0xdfff,Mapper69_SWL);
-  fceulib__fceu.SetWriteHandler(0xe000,0xffff,Mapper69_SWH);
+  fceulib__.fceu->SetWriteHandler(0xc000,0xdfff,Mapper69_SWL);
+  fceulib__.fceu->SetWriteHandler(0xe000,0xffff,Mapper69_SWH);
   Mapper69_ESI();
 }
 
 void Mapper69_init(void) {
   sunindex=0;
 
-  fceulib__cart.SetupCartPRGMapping(0x10,WRAM,8192,1);
+  fceulib__.cart->SetupCartPRGMapping(0x10,WRAM,8192,1);
 
-  fceulib__fceu.SetWriteHandler(0x8000,0xbfff,Mapper69_write);
-  fceulib__fceu.SetWriteHandler(0xc000,0xdfff,Mapper69_SWL);
-  fceulib__fceu.SetWriteHandler(0xe000,0xffff,Mapper69_SWH);
-  fceulib__fceu.SetWriteHandler(0x6000,0x7fff,SUN5BWRAM);
-  fceulib__fceu.SetReadHandler(0x6000,0x7fff,SUN5AWRAM);
+  fceulib__.fceu->SetWriteHandler(0x8000,0xbfff,Mapper69_write);
+  fceulib__.fceu->SetWriteHandler(0xc000,0xdfff,Mapper69_SWL);
+  fceulib__.fceu->SetWriteHandler(0xe000,0xffff,Mapper69_SWH);
+  fceulib__.fceu->SetWriteHandler(0x6000,0x7fff,SUN5BWRAM);
+  fceulib__.fceu->SetReadHandler(0x6000,0x7fff,SUN5AWRAM);
   Mapper69_ESI();
   X.MapIRQHook=SunIRQHook;
-  fceulib__ines.MapStateRestore=Mapper69_StateRestore;
+  fceulib__.ines->MapStateRestore=Mapper69_StateRestore;
 }
 

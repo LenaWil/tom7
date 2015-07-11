@@ -53,13 +53,13 @@ static void UNLAX5705IRQ(void)
 }*/
 
 static void Sync(void) {
-  fceulib__cart.setprg8(0x8000,prg_reg[0]);
-  fceulib__cart.setprg8(0xA000,prg_reg[1]);
-  fceulib__cart.setprg8(0xC000,~1);
-  fceulib__cart.setprg8(0xE000,~0);
+  fceulib__.cart->setprg8(0x8000,prg_reg[0]);
+  fceulib__.cart->setprg8(0xA000,prg_reg[1]);
+  fceulib__.cart->setprg8(0xC000,~1);
+  fceulib__.cart->setprg8(0xE000,~0);
   for(int i=0; i<8; i++)
-     fceulib__cart.setchr1(i<<10,chr_reg[i]);
-  fceulib__cart.setmirror(mirr^1);
+     fceulib__.cart->setchr1(i<<10,chr_reg[i]);
+  fceulib__.cart->setmirror(mirr^1);
 }
 
 static DECLFW(UNLAX5705Write)
@@ -102,8 +102,8 @@ static DECLFW(UNLAX5705Write)
 static void UNLAX5705Power(void)
 {
   Sync();
-  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
-  fceulib__fceu.SetWriteHandler(0x8000,0xFFFF,UNLAX5705Write);
+  fceulib__.fceu->SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__.fceu->SetWriteHandler(0x8000,0xFFFF,UNLAX5705Write);
 }
 
 static void StateRestore(int version)
@@ -115,6 +115,6 @@ void UNLAX5705_Init(CartInfo *info)
 {
   info->Power=UNLAX5705Power;
 //  GameHBIRQHook=UNLAX5705IRQ;
-  fceulib__fceu.GameStateRestore=StateRestore;
+  fceulib__.fceu->GameStateRestore=StateRestore;
   AddExState(&StateRegs, ~0, 0, 0);
 }

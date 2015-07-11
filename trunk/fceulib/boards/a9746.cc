@@ -33,33 +33,33 @@ static DECLFW(UNLA9746Write)
       uint8 bits_rev = ((V&0x20)>>5)|((V&0x10)>>3)|((V&0x08)>>1)|((V&0x04)<<1);
       switch(EXPREGS[0])
 	{
-	case 0x26: fceulib__cart.setprg8(0x8000, bits_rev); break;
-	case 0x25: fceulib__cart.setprg8(0xA000, bits_rev); break;
-	case 0x24: fceulib__cart.setprg8(0xC000, bits_rev); break;
-	case 0x23: fceulib__cart.setprg8(0xE000, bits_rev); break;
+	case 0x26: fceulib__.cart->setprg8(0x8000, bits_rev); break;
+	case 0x25: fceulib__.cart->setprg8(0xA000, bits_rev); break;
+	case 0x24: fceulib__.cart->setprg8(0xC000, bits_rev); break;
+	case 0x23: fceulib__.cart->setprg8(0xE000, bits_rev); break;
 	}
       switch(EXPREGS[1])
 	{
 	case 0x0a:
 	case 0x08: EXPREGS[2] = (V << 4); break;
-	case 0x09: fceulib__cart.setchr1(0x0000, EXPREGS[2]|(V >> 1)); break;
-	case 0x0b: fceulib__cart.setchr1(0x0400, EXPREGS[2]|(V >> 1)|1);  break;
+	case 0x09: fceulib__.cart->setchr1(0x0000, EXPREGS[2]|(V >> 1)); break;
+	case 0x0b: fceulib__.cart->setchr1(0x0400, EXPREGS[2]|(V >> 1)|1);  break;
 	case 0x0c:
 	case 0x0e: EXPREGS[2] = (V << 4);  break;
-	case 0x0d: fceulib__cart.setchr1(0x0800, EXPREGS[2]|(V >> 1));  break;
-	case 0x0f: fceulib__cart.setchr1(0x0c00, EXPREGS[2]|(V >> 1)|1);  break;
+	case 0x0d: fceulib__.cart->setchr1(0x0800, EXPREGS[2]|(V >> 1));  break;
+	case 0x0f: fceulib__.cart->setchr1(0x0c00, EXPREGS[2]|(V >> 1)|1);  break;
 	case 0x10:
 	case 0x12: EXPREGS[2] = (V << 4);  break;
-	case 0x11: fceulib__cart.setchr1(0x1000, EXPREGS[2]|(V >> 1)); break;
+	case 0x11: fceulib__.cart->setchr1(0x1000, EXPREGS[2]|(V >> 1)); break;
 	case 0x14:
 	case 0x16: EXPREGS[2] = (V << 4);  break;
-	case 0x15: fceulib__cart.setchr1(0x1400, EXPREGS[2]|(V >> 1));  break;
+	case 0x15: fceulib__.cart->setchr1(0x1400, EXPREGS[2]|(V >> 1));  break;
 	case 0x18:
 	case 0x1a: EXPREGS[2] = (V << 4);  break;
-	case 0x19: fceulib__cart.setchr1(0x1800, EXPREGS[2]|(V >> 1));  break;
+	case 0x19: fceulib__.cart->setchr1(0x1800, EXPREGS[2]|(V >> 1));  break;
 	case 0x1c:
 	case 0x1e: EXPREGS[2] = (V << 4);  break;
-	case 0x1d: fceulib__cart.setchr1(0x1c00, EXPREGS[2]|(V >> 1));  break;
+	case 0x1d: fceulib__.cart->setchr1(0x1c00, EXPREGS[2]|(V >> 1));  break;
 	}
     }
       break;
@@ -69,7 +69,7 @@ static DECLFW(UNLA9746Write)
 static void UNLA9746Power(void)
 {
   GenMMC3Power();
-  fceulib__fceu.SetWriteHandler(0x8000,0xbfff,UNLA9746Write);
+  fceulib__.fceu->SetWriteHandler(0x8000,0xbfff,UNLA9746Write);
 }
 
 void UNLA9746_Init(CartInfo *info)

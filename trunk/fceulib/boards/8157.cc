@@ -31,9 +31,9 @@ static SFORMAT StateRegs[]=
 
 static void Sync(void)
 {
-  fceulib__cart.setprg16r((cmdreg&0x060)>>5,0x8000,(cmdreg&0x01C)>>2);
-  fceulib__cart.setprg16r((cmdreg&0x060)>>5,0xC000,(cmdreg&0x200)?(~0):0);
-  fceulib__cart.setmirror(((cmdreg&2)>>1)^1);
+  fceulib__.cart->setprg16r((cmdreg&0x060)>>5,0x8000,(cmdreg&0x01C)>>2);
+  fceulib__.cart->setprg16r((cmdreg&0x060)>>5,0xC000,(cmdreg&0x200)?(~0):0);
+  fceulib__.cart->setmirror(((cmdreg&2)>>1)^1);
 }
 
 static DECLFR(UNL8157Read)
@@ -51,9 +51,9 @@ static DECLFW(UNL8157Write)
 }
 
 static void UNL8157Power(void) {
-  fceulib__cart.setchr8(0);
-  fceulib__fceu.SetWriteHandler(0x8000,0xFFFF,UNL8157Write);
-  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,UNL8157Read);
+  fceulib__.cart->setchr8(0);
+  fceulib__.fceu->SetWriteHandler(0x8000,0xFFFF,UNL8157Write);
+  fceulib__.fceu->SetReadHandler(0x8000,0xFFFF,UNL8157Read);
   cmdreg=0x200;
   invalid_data=1;
   Sync();
@@ -75,6 +75,6 @@ void UNL8157_Init(CartInfo *info)
 {
   info->Power=UNL8157Power;
   info->Reset=UNL8157Reset;
-  fceulib__fceu.GameStateRestore=UNL8157Restore;
+  fceulib__.fceu->GameStateRestore=UNL8157Restore;
   AddExState(&StateRegs, ~0, 0, 0);
 }

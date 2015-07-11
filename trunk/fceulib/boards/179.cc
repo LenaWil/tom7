@@ -33,10 +33,10 @@ static SFORMAT StateRegs[]=
 
 static void Sync(void)
 {
-  fceulib__cart.setchr8(0);
-  fceulib__cart.setprg8r(0x10,0x6000,0);
-  fceulib__cart.setprg32(0x8000,reg[1]>>1);
-  fceulib__cart.setmirror((reg[0]&1)^1);
+  fceulib__.cart->setchr8(0);
+  fceulib__.cart->setprg8r(0x10,0x6000,0);
+  fceulib__.cart->setprg32(0x8000,reg[1]>>1);
+  fceulib__.cart->setmirror((reg[0]&1)^1);
 }
 
 static DECLFW(M179Write)
@@ -55,11 +55,11 @@ static void M179Power(void)
 {
   reg[0]=reg[1]=0;
   Sync();
-  fceulib__fceu.SetWriteHandler(0x4020,0x5fff,M179WriteLo);
-  fceulib__fceu.SetReadHandler(0x6000,0x7fff,Cart::CartBR);
-  fceulib__fceu.SetWriteHandler(0x6000,0x7fff,Cart::CartBW);
-  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
-  fceulib__fceu.SetWriteHandler(0x8000,0xFFFF,M179Write);
+  fceulib__.fceu->SetWriteHandler(0x4020,0x5fff,M179WriteLo);
+  fceulib__.fceu->SetReadHandler(0x6000,0x7fff,Cart::CartBR);
+  fceulib__.fceu->SetWriteHandler(0x6000,0x7fff,Cart::CartBW);
+  fceulib__.fceu->SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__.fceu->SetWriteHandler(0x8000,0xFFFF,M179Write);
 }
 
 static void M179Close(void)
@@ -78,11 +78,11 @@ void Mapper179_Init(CartInfo *info)
 {
   info->Power=M179Power;
   info->Close=M179Close;
-  fceulib__fceu.GameStateRestore=StateRestore;
+  fceulib__.fceu->GameStateRestore=StateRestore;
 
   WRAMSIZE=8192;
   WRAM=(uint8*)FCEU_gmalloc(WRAMSIZE);
-  fceulib__cart.SetupCartPRGMapping(0x10,WRAM,WRAMSIZE,1);
+  fceulib__.cart->SetupCartPRGMapping(0x10,WRAM,WRAMSIZE,1);
   AddExState(WRAM, WRAMSIZE, 0, "WRAM");
   if(info->battery)
   {

@@ -36,17 +36,17 @@ static SFORMAT StateRegs[] =
 };
 
 static void Sync(void) {
-  fceulib__cart.setmirror(mirr);
-  fceulib__cart.setprg8(0x8000, regs[0]);
-  fceulib__cart.setprg8(0xA000, regs[1]);
-  fceulib__cart.setprg8(0xC000, ~1);
-  fceulib__cart.setprg8(0xE000, ~0);
-  fceulib__cart.setchr2(0x0000, regs[2]);
-  fceulib__cart.setchr2(0x0800, regs[3]);
-  fceulib__cart.setchr1(0x1000, regs[4]);
-  fceulib__cart.setchr1(0x1400, regs[5]);
-  fceulib__cart.setchr1(0x1800, regs[6]);
-  fceulib__cart.setchr1(0x1C00, regs[7]);
+  fceulib__.cart->setmirror(mirr);
+  fceulib__.cart->setprg8(0x8000, regs[0]);
+  fceulib__.cart->setprg8(0xA000, regs[1]);
+  fceulib__.cart->setprg8(0xC000, ~1);
+  fceulib__.cart->setprg8(0xE000, ~0);
+  fceulib__.cart->setchr2(0x0000, regs[2]);
+  fceulib__.cart->setchr2(0x0800, regs[3]);
+  fceulib__.cart->setchr1(0x1000, regs[4]);
+  fceulib__.cart->setchr1(0x1400, regs[5]);
+  fceulib__.cart->setchr1(0x1800, regs[6]);
+  fceulib__.cart->setchr1(0x1C00, regs[7]);
 }
 
 static DECLFW(M33Write) {
@@ -75,15 +75,15 @@ static DECLFW(M48Write) {
 
 static void M33Power(void) {
 	Sync();
-	fceulib__fceu.SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
-	fceulib__fceu.SetWriteHandler(0x8000, 0xFFFF, M33Write);
+	fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
+	fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, M33Write);
 }
 
 static void M48Power(void) {
 	Sync();
-	fceulib__fceu.SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
-	fceulib__fceu.SetWriteHandler(0x8000, 0xBFFF, M33Write);
-	fceulib__fceu.SetWriteHandler(0xC000, 0xFFFF, M48Write);
+	fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
+	fceulib__.fceu->SetWriteHandler(0x8000, 0xBFFF, M33Write);
+	fceulib__.fceu->SetWriteHandler(0xC000, 0xFFFF, M48Write);
 }
 
 static void M48IRQ(void) {
@@ -103,15 +103,15 @@ static void StateRestore(int version) {
 void Mapper33_Init(CartInfo *info) {
   is48 = 0;
   info->Power = M33Power;
-  fceulib__fceu.GameStateRestore = StateRestore;
+  fceulib__.fceu->GameStateRestore = StateRestore;
   AddExState(&StateRegs, ~0, 0, 0);
 }
 
 void Mapper48_Init(CartInfo *info) {
   is48 = 1;
   info->Power = M48Power;
-  fceulib__ppu.GameHBIRQHook = M48IRQ;
-  fceulib__fceu.GameStateRestore = StateRestore;
+  fceulib__.ppu->GameHBIRQHook = M48IRQ;
+  fceulib__.fceu->GameStateRestore = StateRestore;
   AddExState(&StateRegs, ~0, 0, 0);
 }
 

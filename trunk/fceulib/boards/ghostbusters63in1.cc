@@ -36,16 +36,16 @@ static SFORMAT StateRegs[]=
 static void Sync(void)
 {
   if(reg[0]&0x20) {
-    fceulib__cart.setprg16r(banks[bank],0x8000,reg[0]&0x1F);
-    fceulib__cart.setprg16r(banks[bank],0xC000,reg[0]&0x1F);
+    fceulib__.cart->setprg16r(banks[bank],0x8000,reg[0]&0x1F);
+    fceulib__.cart->setprg16r(banks[bank],0xC000,reg[0]&0x1F);
   } else {
-    fceulib__cart.setprg32r(banks[bank],0x8000,(reg[0]>>1)&0x0F);
+    fceulib__.cart->setprg32r(banks[bank],0x8000,(reg[0]>>1)&0x0F);
   }
   if(reg[1]&2)
-    fceulib__cart.setchr8r(0x10,0);
+    fceulib__.cart->setchr8r(0x10,0);
   else
-    fceulib__cart.setchr8(0);
-  fceulib__cart.setmirror((reg[0]&0x40)>>6);
+    fceulib__.cart->setchr8(0);
+  fceulib__.cart->setmirror((reg[0]&0x40)>>6);
 }
 
 static DECLFW(BMCGhostbusters63in1Write) {
@@ -67,8 +67,8 @@ static void BMCGhostbusters63in1Power(void)
 {
   reg[0]=reg[1]=0;
   Sync();
-  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,BMCGhostbusters63in1Read);
-  fceulib__fceu.SetWriteHandler(0x8000,0xFFFF,BMCGhostbusters63in1Write);
+  fceulib__.fceu->SetReadHandler(0x8000,0xFFFF,BMCGhostbusters63in1Read);
+  fceulib__.fceu->SetWriteHandler(0x8000,0xFFFF,BMCGhostbusters63in1Write);
 }
 
 static void BMCGhostbusters63in1Reset(void)
@@ -96,9 +96,9 @@ void BMCGhostbusters63in1_Init(CartInfo *info)
 
   CHRROMSIZE=8192; // dummy CHRROM, VRAM disable
   CHRROM=(uint8*)FCEU_gmalloc(CHRROMSIZE);
-  fceulib__cart.SetupCartPRGMapping(0x10,CHRROM,CHRROMSIZE,0);
+  fceulib__.cart->SetupCartPRGMapping(0x10,CHRROM,CHRROMSIZE,0);
   AddExState(CHRROM, CHRROMSIZE, 0, "CROM");
 
-  fceulib__fceu.GameStateRestore=StateRestore;
+  fceulib__.fceu->GameStateRestore=StateRestore;
   AddExState(&StateRegs, ~0, 0, 0);
 }

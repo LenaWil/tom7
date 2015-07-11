@@ -23,8 +23,8 @@
 static uint8 latche;
 
 static void Sync(void) {
-  fceulib__cart.setprg16(0x8000,latche);
-  fceulib__cart.setprg16(0xC000,8);
+  fceulib__.cart->setprg16(0x8000,latche);
+  fceulib__.cart->setprg16(0xC000,8);
 }
 
 static DECLFW(DREAMWrite)
@@ -36,9 +36,9 @@ static DECLFW(DREAMWrite)
 static void DREAMPower(void) {
   latche=0;
   Sync();
-  fceulib__cart.setchr8(0);
-  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
-  fceulib__fceu.SetWriteHandler(0x5020,0x5020,DREAMWrite);
+  fceulib__.cart->setchr8(0);
+  fceulib__.fceu->SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__.fceu->SetWriteHandler(0x5020,0x5020,DREAMWrite);
 }
 
 static void Restore(int version)
@@ -48,7 +48,7 @@ static void Restore(int version)
 
 void DreamTech01_Init(CartInfo *info)
 {
-  fceulib__fceu.GameStateRestore=Restore;
+  fceulib__.fceu->GameStateRestore=Restore;
   info->Power=DREAMPower;
   AddExState(&latche, 1, 0, "LATC");
 }

@@ -37,14 +37,14 @@ static int acount=0;
 static void KonamiIRQHook(int a) {
   static constexpr int LCYCS = 341;
   //  #define LCYCS ((227*2)+1)
-  if (fceulib__ines.iNESIRQa) {
+  if (fceulib__.ines->iNESIRQa) {
     acount+=a*3;
     while (acount >= LCYCS) {
       acount-=LCYCS;
-      fceulib__ines.iNESIRQCount++;
-      if (fceulib__ines.iNESIRQCount==0x100) {
+      fceulib__.ines->iNESIRQCount++;
+      if (fceulib__.ines->iNESIRQCount==0x100) {
 	X.IRQBegin(FCEU_IQEXT);
-	fceulib__ines.iNESIRQCount=fceulib__ines.iNESIRQLatch;
+	fceulib__.ines->iNESIRQCount=fceulib__.ines->iNESIRQLatch;
       }
     }
   }
@@ -77,10 +77,10 @@ static DECLFW(Mapper24_write) {
   case 0x8000:ROM_BANK16(0x8000,V);break;
   case 0xB003:
     switch (V&0xF) {
-    case 0x0:fceulib__ines.MIRROR_SET2(1);break;
-    case 0x4:fceulib__ines.MIRROR_SET2(0);break;
-    case 0x8:fceulib__ines.onemir(0);break;
-    case 0xC:fceulib__ines.onemir(1);break;
+    case 0x0:fceulib__.ines->MIRROR_SET2(1);break;
+    case 0x4:fceulib__.ines->MIRROR_SET2(0);break;
+    case 0x8:fceulib__.ines->onemir(0);break;
+    case 0xC:fceulib__.ines->onemir(1);break;
     }
     break;
   case 0xC000:ROM_BANK8(0xC000,V);break;
@@ -92,18 +92,18 @@ static DECLFW(Mapper24_write) {
   case 0xE001:VROM_BANK1(0x1400,V);break;
   case 0xE002:VROM_BANK1(0x1800,V);break;
   case 0xE003:VROM_BANK1(0x1c00,V);break;
-  case 0xF000:fceulib__ines.iNESIRQLatch=V;
+  case 0xF000:fceulib__.ines->iNESIRQLatch=V;
     //acount=0;
     break;
-  case 0xF001:fceulib__ines.iNESIRQa=V&2;
+  case 0xF001:fceulib__.ines->iNESIRQa=V&2;
     vrctemp=V&1;
     if (V&2) {
-      fceulib__ines.iNESIRQCount=fceulib__ines.iNESIRQLatch;
+      fceulib__.ines->iNESIRQCount=fceulib__.ines->iNESIRQLatch;
       acount=0;
     }
     X.IRQEnd(FCEU_IQEXT);
     break;
-  case 0xf002:fceulib__ines.iNESIRQa=vrctemp;
+  case 0xf002:fceulib__.ines->iNESIRQa=vrctemp;
     X.IRQEnd(FCEU_IQEXT);break;
   case 0xF003:break;
   }
@@ -119,22 +119,22 @@ static inline void DoSQV(int x) {
   int32 start,end;
 
   start=CVBC[x];
-  end=(SOUNDTS<<16)/fceulib__sound.soundtsinc;
+  end=(SOUNDTS<<16)/fceulib__.sound->soundtsinc;
   if (end<=start) return;
   CVBC[x]=end;
 
   if (VPSG[(x<<2)|0x2]&0x80) {
     if (VPSG[x<<2]&0x80) {
       for (V=start;V<end;V++)
-	fceulib__sound.Wave[V>>4]+=amp;
+	fceulib__.sound->Wave[V>>4]+=amp;
     } else {
       int32 thresh=(VPSG[x<<2]>>4)&7;
       int32 freq=((VPSG[(x<<2)|0x1]|((VPSG[(x<<2)|0x2]&15)<<8))+1)<<17;
       for (V=start;V<end;V++) {
 	/* Greater than, not >=.  Important. */
 	if (dcount[x]>thresh)
-	  fceulib__sound.Wave[V>>4]+=amp;
-	vcount[x]-=fceulib__sound.nesincsize;
+	  fceulib__.sound->Wave[V>>4]+=amp;
+	vcount[x]-=fceulib__.sound->nesincsize;
 	/* Should only be <0 in a few circumstances. */
 	while (vcount[x]<=0) {
 	  vcount[x]+=freq;
@@ -157,7 +157,7 @@ static void DoSQV2(void)
 
 static void DoSawV(void) {
   int32 start=CVBC[2];
-  int32 end=(SOUNDTS<<16)/fceulib__sound.soundtsinc;
+  int32 end=(SOUNDTS<<16)/fceulib__.sound->soundtsinc;
   if (end<=start) return;
   CVBC[2]=end;
 
@@ -171,7 +171,7 @@ static void DoSawV(void) {
     freq3=(VPSG2[1]+((VPSG2[2]&15)<<8)+1);
 
     for (int V=start;V<end;V++) {
-      saw1phaseacc-=fceulib__sound.nesincsize;
+      saw1phaseacc-=fceulib__.sound->nesincsize;
       if (saw1phaseacc<=0) {
 	int32 t;
 	do {
@@ -188,7 +188,7 @@ static void DoSawV(void) {
 
 	duff=(((phaseacc>>3)&0x1f)<<4)*6/8;
       }
-      fceulib__sound.Wave[V>>4]+=duff;
+      fceulib__.sound->Wave[V>>4]+=duff;
     }
   }
 }
@@ -199,12 +199,12 @@ static inline void DoSQVHQ(int x) {
   if (VPSG[(x<<2)|0x2]&0x80) {
     if (VPSG[x<<2]&0x80) {
       for (uint32 V=CVBC[x];V<SOUNDTS;V++)
-	fceulib__sound.WaveHi[V]+=amp;
+	fceulib__.sound->WaveHi[V]+=amp;
     } else {
       const int32 thresh=(VPSG[x<<2]>>4)&7;
       for (uint32 V=CVBC[x];V<SOUNDTS;V++) {
 	if (dcount[x]>thresh)        /* Greater than, not >=.  Important. */
-	  fceulib__sound.WaveHi[V]+=amp;
+	  fceulib__.sound->WaveHi[V]+=amp;
 	vcount[x]--;
 	/* Should only be <0 in a few circumstances. */
 	if (vcount[x]<=0) {
@@ -237,7 +237,7 @@ static void DoSawVHQ(void)
  {
   for (V=CVBC[2];V<SOUNDTS;V++)
   {
-   fceulib__sound.WaveHi[V]+=(((phaseacc>>3)&0x1f)<<8)*6/8;
+   fceulib__.sound->WaveHi[V]+=(((phaseacc>>3)&0x1f)<<8)*6/8;
    vcount[2]--;
    if (vcount[2]<=0)
    {
@@ -280,10 +280,10 @@ void VRC6SyncHQ(int32 ts) {
 }
 
 static void VRC6_ESI(void) {
-  fceulib__sound.GameExpSound.RChange=VRC6_ESI;
-  fceulib__sound.GameExpSound.Fill=VRC6Sound;
-  fceulib__sound.GameExpSound.HiFill=VRC6SoundHQ;
-  fceulib__sound.GameExpSound.HiSync=VRC6SyncHQ;
+  fceulib__.sound->GameExpSound.RChange=VRC6_ESI;
+  fceulib__.sound->GameExpSound.Fill=VRC6Sound;
+  fceulib__.sound->GameExpSound.HiFill=VRC6SoundHQ;
+  fceulib__.sound->GameExpSound.HiSync=VRC6SyncHQ;
 
   memset(CVBC,0,sizeof(CVBC));
   memset(vcount,0,sizeof(vcount));
@@ -305,7 +305,7 @@ static void VRC6_ESI(void) {
 
 void Mapper24_init(void)
 {
-        fceulib__fceu.SetWriteHandler(0x8000,0xffff,Mapper24_write);
+        fceulib__.fceu->SetWriteHandler(0x8000,0xffff,Mapper24_write);
         VRC6_ESI();
         X.MapIRQHook=KonamiIRQHook;
         swaparoo=0;
@@ -313,7 +313,7 @@ void Mapper24_init(void)
 
 void Mapper26_init(void)
 {
-        fceulib__fceu.SetWriteHandler(0x8000,0xffff,Mapper24_write);
+        fceulib__.fceu->SetWriteHandler(0x8000,0xffff,Mapper24_write);
         VRC6_ESI();
         X.MapIRQHook=KonamiIRQHook;
         swaparoo=1;
@@ -322,5 +322,5 @@ void Mapper26_init(void)
 void NSFVRC6_Init(void)
 {
         VRC6_ESI();
-        fceulib__fceu.SetWriteHandler(0x8000,0xbfff,VRC6SW);
+        fceulib__.fceu->SetWriteHandler(0x8000,0xbfff,VRC6SW);
 }

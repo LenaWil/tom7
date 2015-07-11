@@ -43,20 +43,20 @@ static DECLFW(Mapper73_write) {
   case 0xc000:
     IRQm=V&4;
     IRQx=V&1;
-    fceulib__ines.iNESIRQa=V&2;
-    if(fceulib__ines.iNESIRQa) {
+    fceulib__.ines->iNESIRQa=V&2;
+    if(fceulib__.ines->iNESIRQa) {
       if(IRQm) {
-	fceulib__ines.iNESIRQCount&=0xFFFF;
-	fceulib__ines.iNESIRQCount|=(IRQr&0xFF);
+	fceulib__.ines->iNESIRQCount&=0xFFFF;
+	fceulib__.ines->iNESIRQCount|=(IRQr&0xFF);
       } else {
-	fceulib__ines.iNESIRQCount=IRQr;
+	fceulib__.ines->iNESIRQCount=IRQr;
       }
     }
     X.IRQEnd(FCEU_IQEXT);
     break;
   case 0xd000:
     X.IRQEnd(FCEU_IQEXT);
-    fceulib__ines.iNESIRQa=IRQx;
+    fceulib__.ines->iNESIRQa=IRQx;
     break;
 
   case 0xf000:ROM_BANK16(0x8000,V);break;
@@ -65,26 +65,26 @@ static DECLFW(Mapper73_write) {
 
 static void Mapper73IRQHook(int a) {
   for(int i=0;i<a;i++) {
-    if (!fceulib__ines.iNESIRQa) return;
+    if (!fceulib__.ines->iNESIRQa) return;
     if (IRQm) {
-      uint16 temp = fceulib__ines.iNESIRQCount;
+      uint16 temp = fceulib__.ines->iNESIRQCount;
       temp &= 0xFF;
-      fceulib__ines.iNESIRQCount &= 0xFF00;
+      fceulib__.ines->iNESIRQCount &= 0xFF00;
       if (temp == 0xFF) {
-	fceulib__ines.iNESIRQCount = IRQr;
-	fceulib__ines.iNESIRQCount |= (uint16)(IRQr & 0xFF);
+	fceulib__.ines->iNESIRQCount = IRQr;
+	fceulib__.ines->iNESIRQCount |= (uint16)(IRQr & 0xFF);
 	X.IRQBegin(FCEU_IQEXT);
       } else {
 	temp++;
-	fceulib__ines.iNESIRQCount |= temp;
+	fceulib__.ines->iNESIRQCount |= temp;
       }
     } else {
       //16 bit mode
-      if (fceulib__ines.iNESIRQCount == 0xFFFF) {
-	fceulib__ines.iNESIRQCount = IRQr;
+      if (fceulib__.ines->iNESIRQCount == 0xFFFF) {
+	fceulib__.ines->iNESIRQCount = IRQr;
 	X.IRQBegin(FCEU_IQEXT);
       } else {
-	fceulib__ines.iNESIRQCount++;
+	fceulib__.ines->iNESIRQCount++;
       }
     }
   }
@@ -92,7 +92,7 @@ static void Mapper73IRQHook(int a) {
 
 
 void Mapper73_init(void) {
- fceulib__fceu.SetWriteHandler(0x8000,0xffff,Mapper73_write);
+ fceulib__.fceu->SetWriteHandler(0x8000,0xffff,Mapper73_write);
  X.MapIRQHook = Mapper73IRQHook;
  IRQr = IRQm = IRQx = 0;
 }

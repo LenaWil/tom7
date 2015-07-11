@@ -29,37 +29,37 @@ void MMC5RunSound(int Count);
 void MMC5RunSoundHQ(void);
 
 static inline void MMC5SPRVROM_BANK1(uint32 A,uint32 V) {
-  if (fceulib__cart.CHRptr[0]) {
-    V&=fceulib__cart.CHRmask1[0];
-    fceulib__cart.MMC5SPRVPage[(A)>>10]=&fceulib__cart.CHRptr[0][(V)<<10]-(A);
+  if (fceulib__.cart->CHRptr[0]) {
+    V&=fceulib__.cart->CHRmask1[0];
+    fceulib__.cart->MMC5SPRVPage[(A)>>10]=&fceulib__.cart->CHRptr[0][(V)<<10]-(A);
   }
 }
 
 static inline void MMC5BGVROM_BANK1(uint32 A,uint32 V) {
-  if (fceulib__cart.CHRptr[0]){V&=fceulib__cart.CHRmask1[0];fceulib__cart.MMC5BGVPage[(A)>>10]=&fceulib__cart.CHRptr[0][(V)<<10]-(A);}
+  if (fceulib__.cart->CHRptr[0]){V&=fceulib__.cart->CHRmask1[0];fceulib__.cart->MMC5BGVPage[(A)>>10]=&fceulib__.cart->CHRptr[0][(V)<<10]-(A);}
 }
 
 static inline void MMC5SPRVROM_BANK2(uint32 A,uint32 V) {
-  if (fceulib__cart.CHRptr[0]){V&=fceulib__cart.CHRmask2[0];fceulib__cart.MMC5SPRVPage[(A)>>10]=fceulib__cart.MMC5SPRVPage[((A)>>10)+1]=&fceulib__cart.CHRptr[0][(V)<<11]-(A);}
+  if (fceulib__.cart->CHRptr[0]){V&=fceulib__.cart->CHRmask2[0];fceulib__.cart->MMC5SPRVPage[(A)>>10]=fceulib__.cart->MMC5SPRVPage[((A)>>10)+1]=&fceulib__.cart->CHRptr[0][(V)<<11]-(A);}
 }
 
 static inline void MMC5BGVROM_BANK2(uint32 A,uint32 V) {
-  if (fceulib__cart.CHRptr[0]){V&=fceulib__cart.CHRmask2[0];fceulib__cart.MMC5BGVPage[(A)>>10]=fceulib__cart.MMC5BGVPage[((A)>>10)+1]=&fceulib__cart.CHRptr[0][(V)<<11]-(A);}
+  if (fceulib__.cart->CHRptr[0]){V&=fceulib__.cart->CHRmask2[0];fceulib__.cart->MMC5BGVPage[(A)>>10]=fceulib__.cart->MMC5BGVPage[((A)>>10)+1]=&fceulib__.cart->CHRptr[0][(V)<<11]-(A);}
 }
 
 static inline void MMC5SPRVROM_BANK4(uint32 A,uint32 V) {
-  if (fceulib__cart.CHRptr[0]){V&=fceulib__cart.CHRmask4[0];fceulib__cart.MMC5SPRVPage[(A)>>10]=fceulib__cart.MMC5SPRVPage[((A)>>10)+1]= fceulib__cart.MMC5SPRVPage[((A)>>10)+2]=fceulib__cart.MMC5SPRVPage[((A)>>10)+3]=&fceulib__cart.CHRptr[0][(V)<<12]-(A);}
+  if (fceulib__.cart->CHRptr[0]){V&=fceulib__.cart->CHRmask4[0];fceulib__.cart->MMC5SPRVPage[(A)>>10]=fceulib__.cart->MMC5SPRVPage[((A)>>10)+1]= fceulib__.cart->MMC5SPRVPage[((A)>>10)+2]=fceulib__.cart->MMC5SPRVPage[((A)>>10)+3]=&fceulib__.cart->CHRptr[0][(V)<<12]-(A);}
 }
 
 static inline void MMC5BGVROM_BANK4(uint32 A,uint32 V) {
-if (fceulib__cart.CHRptr[0]){V&=fceulib__cart.CHRmask4[0];fceulib__cart.MMC5BGVPage[(A)>>10]=fceulib__cart.MMC5BGVPage[((A)>>10)+1]=fceulib__cart.MMC5BGVPage[((A)>>10)+2]=fceulib__cart.MMC5BGVPage[((A)>>10)+3]=&fceulib__cart.CHRptr[0][(V)<<12]-(A);}
+if (fceulib__.cart->CHRptr[0]){V&=fceulib__.cart->CHRmask4[0];fceulib__.cart->MMC5BGVPage[(A)>>10]=fceulib__.cart->MMC5BGVPage[((A)>>10)+1]=fceulib__.cart->MMC5BGVPage[((A)>>10)+2]=fceulib__.cart->MMC5BGVPage[((A)>>10)+3]=&fceulib__.cart->CHRptr[0][(V)<<12]-(A);}
 }
 
 static inline void MMC5SPRVROM_BANK8(uint32 V) {
-  if (fceulib__cart.CHRptr[0]){V&=fceulib__cart.CHRmask8[0];fceulib__cart.MMC5SPRVPage[0]=fceulib__cart.MMC5SPRVPage[1]=fceulib__cart.MMC5SPRVPage[2]=fceulib__cart.MMC5SPRVPage[3]=fceulib__cart.MMC5SPRVPage[4]=fceulib__cart.MMC5SPRVPage[5]=fceulib__cart.MMC5SPRVPage[6]=fceulib__cart.MMC5SPRVPage[7]=&fceulib__cart.CHRptr[0][(V)<<13];}
+  if (fceulib__.cart->CHRptr[0]){V&=fceulib__.cart->CHRmask8[0];fceulib__.cart->MMC5SPRVPage[0]=fceulib__.cart->MMC5SPRVPage[1]=fceulib__.cart->MMC5SPRVPage[2]=fceulib__.cart->MMC5SPRVPage[3]=fceulib__.cart->MMC5SPRVPage[4]=fceulib__.cart->MMC5SPRVPage[5]=fceulib__.cart->MMC5SPRVPage[6]=fceulib__.cart->MMC5SPRVPage[7]=&fceulib__.cart->CHRptr[0][(V)<<13];}
 }
 static inline void MMC5BGVROM_BANK8(uint32 V) {
-  if (fceulib__cart.CHRptr[0]){V&=fceulib__cart.CHRmask8[0];fceulib__cart.MMC5BGVPage[0]=fceulib__cart.MMC5BGVPage[1]=fceulib__cart.MMC5BGVPage[2]=fceulib__cart.MMC5BGVPage[3]=fceulib__cart.MMC5BGVPage[4]=fceulib__cart.MMC5BGVPage[5]=fceulib__cart.MMC5BGVPage[6]=fceulib__cart.MMC5BGVPage[7]=&fceulib__cart.CHRptr[0][(V)<<13];}
+  if (fceulib__.cart->CHRptr[0]){V&=fceulib__.cart->CHRmask8[0];fceulib__.cart->MMC5BGVPage[0]=fceulib__.cart->MMC5BGVPage[1]=fceulib__.cart->MMC5BGVPage[2]=fceulib__.cart->MMC5BGVPage[3]=fceulib__.cart->MMC5BGVPage[4]=fceulib__.cart->MMC5BGVPage[5]=fceulib__.cart->MMC5BGVPage[6]=fceulib__.cart->MMC5BGVPage[7]=&fceulib__.cart->CHRptr[0][(V)<<13];}
 }
 
 static uint8 PRGBanks[4];
@@ -97,14 +97,14 @@ typedef struct __cartdata {
 #if 0
 // unused -tom7
 //#define MMC5SPRVRAMADR(V)      &MMC5SPRVPage[(V)>>10][(V)]
-#define Sprite16  (fceulib__ppu.PPU_values[0]&0x20)   //Sprites 8x16/8x8
+#define Sprite16  (fceulib__.ppu->PPU_values[0]&0x20)   //Sprites 8x16/8x8
 static inline uint8 *MMC5BGVRAMADR(uint32 A) {
   if (!Sprite16) {
     if (mmc5ABMode==0)
-      return &fceulib__cart.MMC5SPRVPage[(A)>>10][(A)];
+      return &fceulib__.cart->MMC5SPRVPage[(A)>>10][(A)];
     else
-      return &fceulib__cart.MMC5BGVPage[(A)>>10][(A)];
-  } else return &fceulib__cart.MMC5BGVPage[(A)>>10][(A)];
+      return &fceulib__.cart->MMC5BGVPage[(A)>>10][(A)];
+  } else return &fceulib__.cart->MMC5BGVPage[(A)>>10][(A)];
 }
 #endif
 
@@ -120,7 +120,7 @@ static void mmc5_PPUWrite(uint32 A, uint8 V) {
     else if (tmp&3) PALRAM[(tmp&0x1f)]=V&0x3f;
   } else if (tmp<0x2000) {
     if (PPUCHRRAM&(1<<(tmp>>10)))
-      fceulib__cart.VPage[tmp>>10][tmp]=V;
+      fceulib__.cart->VPage[tmp>>10][tmp]=V;
   } else {
     if (PPUNTARAM&(1<<((tmp&0xF00)>>10)))
       vnapage[((tmp&0xF00)>>10)][tmp&0x3FF]=V;
@@ -131,7 +131,7 @@ static uint8 mmc5_PPURead(uint32 A) {
   if (A<0x2000) {
     if (ppuphase == PPUPHASE_BG)
       return *MMC5BGVRAMADR(A);
-    else return fceulib__cart.MMC5SPRVPage[(A)>>10][(A)];
+    else return fceulib__.cart->MMC5SPRVPage[(A)>>10][(A)];
   } else {
     return vnapage[(A>>10)&0x3][A&0x3FF];
   }
@@ -207,20 +207,20 @@ static void BuildWRAMSizeTable(void) {
 static void MMC5CHRA(void) {
   switch (mmc5vsize&3) {
   case 0: 
-    fceulib__cart.setchr8(CHRBanksA[7]);
+    fceulib__.cart->setchr8(CHRBanksA[7]);
     MMC5SPRVROM_BANK8(CHRBanksA[7]);
     break;
   case 1: 
-    fceulib__cart.setchr4(0x0000,CHRBanksA[3]);
-    fceulib__cart.setchr4(0x1000,CHRBanksA[7]);
+    fceulib__.cart->setchr4(0x0000,CHRBanksA[3]);
+    fceulib__.cart->setchr4(0x1000,CHRBanksA[7]);
     MMC5SPRVROM_BANK4(0x0000,CHRBanksA[3]);
     MMC5SPRVROM_BANK4(0x1000,CHRBanksA[7]);
     break;
   case 2: 
-    fceulib__cart.setchr2(0x0000,CHRBanksA[1]);
-    fceulib__cart.setchr2(0x0800,CHRBanksA[3]);
-    fceulib__cart.setchr2(0x1000,CHRBanksA[5]);
-    fceulib__cart.setchr2(0x1800,CHRBanksA[7]);
+    fceulib__.cart->setchr2(0x0000,CHRBanksA[1]);
+    fceulib__.cart->setchr2(0x0800,CHRBanksA[3]);
+    fceulib__.cart->setchr2(0x1000,CHRBanksA[5]);
+    fceulib__.cart->setchr2(0x1800,CHRBanksA[7]);
     MMC5SPRVROM_BANK2(0x0000,CHRBanksA[1]);
     MMC5SPRVROM_BANK2(0x0800,CHRBanksA[3]);
     MMC5SPRVROM_BANK2(0x1000,CHRBanksA[5]);
@@ -228,7 +228,7 @@ static void MMC5CHRA(void) {
     break;
   case 3: 
     for (int x=0;x<8;x++) {
-      fceulib__cart.setchr1(x<<10,CHRBanksA[x]);
+      fceulib__.cart->setchr1(x<<10,CHRBanksA[x]);
       MMC5SPRVROM_BANK1(x<<10,CHRBanksA[x]);
     }
     break;
@@ -238,20 +238,20 @@ static void MMC5CHRA(void) {
 static void MMC5CHRB(void) {
   switch (mmc5vsize & 3) {
   case 0:  
-    fceulib__cart.setchr8(CHRBanksB[3]);
+    fceulib__.cart->setchr8(CHRBanksB[3]);
     MMC5BGVROM_BANK8(CHRBanksB[3]);
     break;
   case 1:  
-    fceulib__cart.setchr4(0x0000,CHRBanksB[3]);
-    fceulib__cart.setchr4(0x1000,CHRBanksB[3]);
+    fceulib__.cart->setchr4(0x0000,CHRBanksB[3]);
+    fceulib__.cart->setchr4(0x1000,CHRBanksB[3]);
     MMC5BGVROM_BANK4(0x0000,CHRBanksB[3]);
     MMC5BGVROM_BANK4(0x1000,CHRBanksB[3]);
     break;
   case 2:  
-    fceulib__cart.setchr2(0x0000,CHRBanksB[1]);
-    fceulib__cart.setchr2(0x0800,CHRBanksB[3]);
-    fceulib__cart.setchr2(0x1000,CHRBanksB[1]);
-    fceulib__cart.setchr2(0x1800,CHRBanksB[3]);
+    fceulib__.cart->setchr2(0x0000,CHRBanksB[1]);
+    fceulib__.cart->setchr2(0x0800,CHRBanksB[3]);
+    fceulib__.cart->setchr2(0x1000,CHRBanksB[1]);
+    fceulib__.cart->setchr2(0x1800,CHRBanksB[3]);
     MMC5BGVROM_BANK2(0x0000,CHRBanksB[1]);
     MMC5BGVROM_BANK2(0x0800,CHRBanksB[3]);
     MMC5BGVROM_BANK2(0x1000,CHRBanksB[1]);
@@ -259,7 +259,7 @@ static void MMC5CHRB(void) {
     break;
   case 3:  
     for (int x=0;x<8;x++) {
-      fceulib__cart.setchr1(x<<10,CHRBanksB[x&3]);
+      fceulib__.cart->setchr1(x<<10,CHRBanksB[x&3]);
       MMC5BGVROM_BANK1(x<<10,CHRBanksB[x&3]);
     }
     break;
@@ -270,7 +270,7 @@ static void MMC5WRAM(uint32 A, uint32 V) {
   //printf("%02x\n",V);
   V=MMC5WRAMIndex[V&7];
   if (V!=255) {
-    fceulib__cart.setprg8r(0x10,A,V);
+    fceulib__.cart->setprg8r(0x10,A,V);
     MMC5MemIn[(A-0x6000)>>13]=1;
   } else {
     MMC5MemIn[(A-0x6000)>>13]=0;
@@ -282,14 +282,14 @@ static void MMC5PRG(void) {
   case 0: 
     MMC5ROMWrProtect[0]=MMC5ROMWrProtect[1]=
       MMC5ROMWrProtect[2]=MMC5ROMWrProtect[3]=1;
-    fceulib__cart.setprg32(0x8000,((PRGBanks[1]&0x7F)>>2));
+    fceulib__.cart->setprg32(0x8000,((PRGBanks[1]&0x7F)>>2));
     for (int x=0;x<4;x++)
       MMC5MemIn[1+x]=1;
     break;
   case 1: 
     if (PRGBanks[1]&0x80) {
       MMC5ROMWrProtect[0]=MMC5ROMWrProtect[1]=1;
-      fceulib__cart.setprg16(0x8000,(PRGBanks[1]>>1));
+      fceulib__.cart->setprg16(0x8000,(PRGBanks[1]>>1));
       MMC5MemIn[1]=MMC5MemIn[2]=1;
     } else {
       MMC5ROMWrProtect[0]=MMC5ROMWrProtect[1]=0;
@@ -298,13 +298,13 @@ static void MMC5PRG(void) {
     }
     MMC5MemIn[3]=MMC5MemIn[4]=1;
     MMC5ROMWrProtect[2]=MMC5ROMWrProtect[3]=1;
-    fceulib__cart.setprg16(0xC000,(PRGBanks[3]&0x7F)>>1);
+    fceulib__.cart->setprg16(0xC000,(PRGBanks[3]&0x7F)>>1);
     break;
   case 2: 
     if (PRGBanks[1]&0x80) {
       MMC5MemIn[1]=MMC5MemIn[2]=1;
       MMC5ROMWrProtect[0]=MMC5ROMWrProtect[1]=1;
-      fceulib__cart.setprg16(0x8000,(PRGBanks[1]&0x7F)>>1);
+      fceulib__.cart->setprg16(0x8000,(PRGBanks[1]&0x7F)>>1);
     } else {
       MMC5ROMWrProtect[0]=MMC5ROMWrProtect[1]=0;
       MMC5WRAM(0x8000,PRGBanks[1]&7&0xFE);
@@ -313,20 +313,20 @@ static void MMC5PRG(void) {
     if (PRGBanks[2]&0x80) {
       MMC5ROMWrProtect[2]=1;
       MMC5MemIn[3]=1;
-      fceulib__cart.setprg8(0xC000,PRGBanks[2]&0x7F);
+      fceulib__.cart->setprg8(0xC000,PRGBanks[2]&0x7F);
     } else {
       MMC5ROMWrProtect[2]=0;
       MMC5WRAM(0xC000,PRGBanks[2]&7);
     }
     MMC5MemIn[4]=1;
     MMC5ROMWrProtect[3]=1;
-    fceulib__cart.setprg8(0xE000,PRGBanks[3]&0x7F);
+    fceulib__.cart->setprg8(0xE000,PRGBanks[3]&0x7F);
     break;
   case 3: 
     for (int x=0;x<3;x++) {
       if (PRGBanks[x]&0x80) {
 	MMC5ROMWrProtect[x]=1;
-	fceulib__cart.setprg8(0x8000+(x<<13),PRGBanks[x]&0x7F);
+	fceulib__.cart->setprg8(0x8000+(x<<13),PRGBanks[x]&0x7F);
 	MMC5MemIn[1+x]=1;
       } else {
 	MMC5ROMWrProtect[x]=0;
@@ -335,7 +335,7 @@ static void MMC5PRG(void) {
     }
     MMC5MemIn[4]=1;
     MMC5ROMWrProtect[3]=1;
-    fceulib__cart.setprg8(0xE000,PRGBanks[3]&0x7F);
+    fceulib__.cart->setprg8(0xE000,PRGBanks[3]&0x7F);
     break;
   }
 }
@@ -345,7 +345,7 @@ static DECLFW(Mapper5_write) {
     mmc5ABMode = 0;
     // if we had a test case for this then we could test this, but it
     // hasnt been verified
-    CHRBanksA[A&7]=V | ((fceulib__ppu.MMC50x5130&0x3)<<8);
+    CHRBanksA[A&7]=V | ((fceulib__.ppu->MMC50x5130&0x3)<<8);
     //CHRBanksA[A&7]=V;
     MMC5CHRA();
   } else {
@@ -354,20 +354,20 @@ static DECLFW(Mapper5_write) {
       for (int x=0;x<4;x++) {
 	switch ((V>>(x<<1))&3) {
 	case 0:
-	  fceulib__ppu.PPUNTARAM|=1<<x;
-	  fceulib__ppu.vnapage[x]=fceulib__ppu.NTARAM;
+	  fceulib__.ppu->PPUNTARAM|=1<<x;
+	  fceulib__.ppu->vnapage[x]=fceulib__.ppu->NTARAM;
 	  break;
 	case 1:
-	  fceulib__ppu.PPUNTARAM|=1<<x;
-	  fceulib__ppu.vnapage[x]=fceulib__ppu.NTARAM+0x400;
+	  fceulib__.ppu->PPUNTARAM|=1<<x;
+	  fceulib__.ppu->vnapage[x]=fceulib__.ppu->NTARAM+0x400;
 	  break;
 	case 2:
-	  fceulib__ppu.PPUNTARAM|=1<<x;
-	  fceulib__ppu.vnapage[x]=ExRAM;
+	  fceulib__.ppu->PPUNTARAM|=1<<x;
+	  fceulib__.ppu->vnapage[x]=ExRAM;
 	  break;
 	case 3:
-	  fceulib__ppu.PPUNTARAM&=~(1<<x);
-	  fceulib__ppu.vnapage[x]=MMC5fill;
+	  fceulib__.ppu->PPUNTARAM&=~(1<<x);
+	  fceulib__.ppu->vnapage[x]=MMC5fill;
 	  break;
 	}
       }
@@ -398,7 +398,7 @@ static DECLFW(Mapper5_write) {
       break;
     case 0x5102: WRAMMaskEnable[0]=V;break;
     case 0x5103: WRAMMaskEnable[1]=V;break;
-    case 0x5104: CHRMode=V;fceulib__ppu.MMC5HackCHRMode=V&3;break;
+    case 0x5104: CHRMode=V;fceulib__.ppu->MMC5HackCHRMode=V&3;break;
     case 0x5106: 
       if (V!=NTFill) {
 	uint32 t = V|(V<<8)|(V<<16)|(V<<24);
@@ -417,11 +417,11 @@ static DECLFW(Mapper5_write) {
       ATFill=V;
       break;
     case 0x5130: 
-      fceulib__ppu.MMC50x5130=V;
+      fceulib__.ppu->MMC50x5130=V;
       break;
-    case 0x5200: fceulib__ppu.MMC5HackSPMode=V;break;
-    case 0x5201: fceulib__ppu.MMC5HackSPScroll=(V>>3)&0x1F;break;
-    case 0x5202: fceulib__ppu.MMC5HackSPPage=V&0x3F;break;
+    case 0x5200: fceulib__.ppu->MMC5HackSPMode=V;break;
+    case 0x5201: fceulib__.ppu->MMC5HackSPScroll=(V>>3)&0x1F;break;
+    case 0x5202: fceulib__.ppu->MMC5HackSPPage=V&0x3F;break;
     case 0x5203: X.IRQEnd(FCEU_IQEXT);IRQScanline=V;break;
     case 0x5204: X.IRQEnd(FCEU_IQEXT);IRQEnable=V&0x80;break;
     case 0x5205: mul[0]=V;break;
@@ -433,7 +433,7 @@ static DECLFW(Mapper5_write) {
 static DECLFR(MMC5_ReadROMRAM)
 {
   if (MMC5MemIn[(A-0x6000)>>13])
-    return fceulib__cart.Page[A>>11][A];
+    return fceulib__.cart->Page[A>>11][A];
   else
     return X.DB;
 }
@@ -444,12 +444,12 @@ static DECLFW(MMC5_WriteROMRAM)
     if (MMC5ROMWrProtect[(A-0x8000)>>13]) return;
   if (MMC5MemIn[(A-0x6000)>>13])
     if (((WRAMMaskEnable[0]&3)|((WRAMMaskEnable[1]&3)<<2)) == 6)
-		fceulib__cart.Page[A>>11][A]=V;
+		fceulib__.cart->Page[A>>11][A]=V;
 }
 
 static DECLFW(MMC5_ExRAMWr)
 {
-  if (fceulib__ppu.MMC5HackCHRMode!=3)
+  if (fceulib__.ppu->MMC5HackCHRMode!=3)
     ExRAM[A&0x3ff]=V;
 }
 
@@ -484,20 +484,20 @@ void MMC5Synco(void) {
   for (int x=0;x<4;x++) {
     switch ((NTAMirroring>>(x<<1))&3) {
       case 0: 
-	fceulib__ppu.PPUNTARAM|=1<<x;
-	fceulib__ppu.vnapage[x]=fceulib__ppu.NTARAM;
+	fceulib__.ppu->PPUNTARAM|=1<<x;
+	fceulib__.ppu->vnapage[x]=fceulib__.ppu->NTARAM;
 	break;
       case 1: 
-	fceulib__ppu.PPUNTARAM|=1<<x;
-	fceulib__ppu.vnapage[x]=fceulib__ppu.NTARAM+0x400;
+	fceulib__.ppu->PPUNTARAM|=1<<x;
+	fceulib__.ppu->vnapage[x]=fceulib__.ppu->NTARAM+0x400;
 	break;
       case 2:
-	fceulib__ppu.PPUNTARAM|=1<<x;
-	fceulib__ppu.vnapage[x]=ExRAM;
+	fceulib__.ppu->PPUNTARAM|=1<<x;
+	fceulib__.ppu->vnapage[x]=ExRAM;
 	break;
       case 3: 
-	fceulib__ppu.PPUNTARAM&=~(1<<x);
-	fceulib__ppu.vnapage[x]=MMC5fill;
+	fceulib__.ppu->PPUNTARAM&=~(1<<x);
+	fceulib__.ppu->vnapage[x]=MMC5fill;
 	break;
     }
   }
@@ -524,7 +524,7 @@ void MMC5Synco(void) {
     FCEU_dwmemset(MMC5fill+0x3c0,t,0x40);
   }
   X.IRQEnd(FCEU_IQEXT);
-  fceulib__ppu.MMC5HackCHRMode=CHRMode&3;
+  fceulib__.ppu->MMC5HackCHRMode=CHRMode&3;
 }
 
 void MMC5_hb(int scanline) {
@@ -573,13 +573,13 @@ static void Do5PCM()
   int32 start,end;
 
   start=MMC5Sound.BC[2];
-  end=(SOUNDTS<<16)/fceulib__sound.soundtsinc;
+  end=(SOUNDTS<<16)/fceulib__.sound->soundtsinc;
   if (end<=start) return;
   MMC5Sound.BC[2]=end;
 
   if (!(MMC5Sound.rawcontrol&0x40) && MMC5Sound.raw)
     for (V=start;V<end;V++)
-       fceulib__sound.Wave[V>>4]+=MMC5Sound.raw<<1;
+       fceulib__.sound->Wave[V>>4]+=MMC5Sound.raw<<1;
 }
 
 static void Do5PCMHQ()
@@ -587,7 +587,7 @@ static void Do5PCMHQ()
   uint32 V; //mbg merge 7/17/06 made uint32
   if (!(MMC5Sound.rawcontrol&0x40) && MMC5Sound.raw)
     for (V=MMC5Sound.BC[2];V<SOUNDTS;V++)
-       fceulib__sound.WaveHi[V]+=MMC5Sound.raw<<5;
+       fceulib__.sound->WaveHi[V]+=MMC5Sound.raw<<5;
   MMC5Sound.BC[2]=SOUNDTS;
 }
 
@@ -595,8 +595,8 @@ static void Do5PCMHQ()
 static DECLFW(Mapper5_SW) {
   A&=0x1F;
 
-  fceulib__sound.GameExpSound.Fill=MMC5RunSound;
-  fceulib__sound.GameExpSound.HiFill=MMC5RunSoundHQ;
+  fceulib__.sound->GameExpSound.Fill=MMC5RunSound;
+  fceulib__.sound->GameExpSound.HiFill=MMC5RunSoundHQ;
 
   switch (A) {
   case 0x10:
@@ -641,7 +641,7 @@ static void Do5SQ(int P) {
  int32 start,end;
 
  start=MMC5Sound.BC[P];
- end=(SOUNDTS<<16)/fceulib__sound.soundtsinc;
+ end=(SOUNDTS<<16)/fceulib__.sound->soundtsinc;
  if (end<=start) return;
  MMC5Sound.BC[P]=end;
 
@@ -660,8 +660,8 @@ static void Do5SQ(int P) {
   for (V=start;V<end;V++)
   {
     if (dc<rthresh)
-     fceulib__sound.Wave[V>>4]+=amp;
-    vc-=fceulib__sound.nesincsize;
+     fceulib__.sound->Wave[V>>4]+=amp;
+    vc-=fceulib__.sound->nesincsize;
     while (vc<=0)
     {
      vc+=wl;
@@ -691,7 +691,7 @@ static void Do5SQHQ(int P) {
   vc=MMC5Sound.vcount[P];
   for (V=MMC5Sound.BC[P];V<SOUNDTS;V++) {
     if (dc<rthresh)
-     fceulib__sound.WaveHi[V]+=amp;
+     fceulib__.sound->WaveHi[V]+=amp;
     vc--;
     if (vc<=0)   /* Less than zero when first started. */
     {
@@ -724,7 +724,7 @@ void MMC5RunSound(int Count) {
 }
 
 void Mapper5_ESI(void) {
-  fceulib__sound.GameExpSound.RChange=Mapper5_ESI;
+  fceulib__.sound->GameExpSound.RChange=Mapper5_ESI;
   if (FCEUS_SNDRATE) {
     if (FCEUS_SOUNDQ >=1 ) {
       sfun=Do5SQHQ;
@@ -739,7 +739,7 @@ void Mapper5_ESI(void) {
   }
   memset(MMC5Sound.BC,0,sizeof(MMC5Sound.BC));
   memset(MMC5Sound.vcount,0,sizeof(MMC5Sound.vcount));
-  fceulib__sound.GameExpSound.HiSync=MMC5HiSync;
+  fceulib__.sound->GameExpSound.HiSync=MMC5HiSync;
 }
 
 void NSFMMC5_Init(void) {
@@ -747,12 +747,12 @@ void NSFMMC5_Init(void) {
   mul[0]=mul[1]=0;
   ExRAM=(uint8*)FCEU_gmalloc(1024);
   Mapper5_ESI();
-  fceulib__fceu.SetWriteHandler(0x5c00,0x5fef,MMC5_ExRAMWr);
-  fceulib__fceu.SetReadHandler(0x5c00,0x5fef,MMC5_ExRAMRd);
-  fceulib__ppu.MMC5HackCHRMode=2;
-  fceulib__fceu.SetWriteHandler(0x5000,0x5015,Mapper5_SW);
-  fceulib__fceu.SetWriteHandler(0x5205,0x5206,Mapper5_write);
-  fceulib__fceu.SetReadHandler(0x5205,0x5206,MMC5_read);
+  fceulib__.fceu->SetWriteHandler(0x5c00,0x5fef,MMC5_ExRAMWr);
+  fceulib__.fceu->SetReadHandler(0x5c00,0x5fef,MMC5_ExRAMRd);
+  fceulib__.ppu->MMC5HackCHRMode=2;
+  fceulib__.fceu->SetWriteHandler(0x5000,0x5015,Mapper5_SW);
+  fceulib__.fceu->SetWriteHandler(0x5205,0x5206,Mapper5_write);
+  fceulib__.fceu->SetReadHandler(0x5205,0x5206,MMC5_read);
 }
 
 void NSFMMC5_Close(void) {
@@ -773,18 +773,18 @@ static void GenMMC5Reset(void) {
 
   MMC5Synco();
 
-  fceulib__fceu.SetWriteHandler(0x4020,0x5bff,Mapper5_write);
-  fceulib__fceu.SetReadHandler(0x4020,0x5bff,MMC5_read);
+  fceulib__.fceu->SetWriteHandler(0x4020,0x5bff,Mapper5_write);
+  fceulib__.fceu->SetReadHandler(0x4020,0x5bff,MMC5_read);
 
-  fceulib__fceu.SetWriteHandler(0x5c00,0x5fff,MMC5_ExRAMWr);
-  fceulib__fceu.SetReadHandler(0x5c00,0x5fff,MMC5_ExRAMRd);
+  fceulib__.fceu->SetWriteHandler(0x5c00,0x5fff,MMC5_ExRAMWr);
+  fceulib__.fceu->SetReadHandler(0x5c00,0x5fff,MMC5_ExRAMRd);
 
-  fceulib__fceu.SetWriteHandler(0x6000,0xFFFF,MMC5_WriteROMRAM);
-  fceulib__fceu.SetReadHandler(0x6000,0xFFFF,MMC5_ReadROMRAM);
+  fceulib__.fceu->SetWriteHandler(0x6000,0xFFFF,MMC5_WriteROMRAM);
+  fceulib__.fceu->SetReadHandler(0x6000,0xFFFF,MMC5_ReadROMRAM);
 
-  fceulib__fceu.SetWriteHandler(0x5000,0x5015,Mapper5_SW);
-  fceulib__fceu.SetWriteHandler(0x5205,0x5206,Mapper5_write);
-  fceulib__fceu.SetReadHandler(0x5205,0x5206,MMC5_read);
+  fceulib__.fceu->SetWriteHandler(0x5000,0x5015,Mapper5_SW);
+  fceulib__.fceu->SetWriteHandler(0x5205,0x5206,Mapper5_write);
+  fceulib__.fceu->SetReadHandler(0x5205,0x5206,MMC5_read);
 
   //GameHBIRQHook=MMC5_hb;
   // FCEU_CheatAddRAM(8,0x6000,WRAM);
@@ -825,7 +825,7 @@ static SFORMAT MMC5_StateRegs[]={
 static void GenMMC5_Init(CartInfo *info, int wsize, int battery) {
   if (wsize) {
     WRAM=(uint8*)FCEU_gmalloc(wsize*1024);
-    fceulib__cart.SetupCartPRGMapping(0x10,WRAM,wsize*1024,1);
+    fceulib__.cart->SetupCartPRGMapping(0x10,WRAM,wsize*1024,1);
     // This was registered twice for some reason? (There's another
     // copy of this line unconditionally below.) -tom7
     // AddExState(WRAM, wsize*1024, 0, "WRM5");
@@ -838,14 +838,14 @@ static void GenMMC5_Init(CartInfo *info, int wsize, int battery) {
   AddExState(WRAM, wsize*1024, 0, "WRAM");
   AddExState(ExRAM, 1024, 0, "ERAM");
   // XXX perhaps these variables should be moved to here from PPU?
-  AddExState(&fceulib__ppu.MMC5HackSPMode, 1, 0, "SPLM");
-  AddExState(&fceulib__ppu.MMC5HackSPScroll, 1, 0, "SPLS");
-  AddExState(&fceulib__ppu.MMC5HackSPPage, 1, 0, "SPLP");
-  AddExState(&fceulib__ppu.MMC50x5130, 1, 0, "5130");
+  AddExState(&fceulib__.ppu->MMC5HackSPMode, 1, 0, "SPLM");
+  AddExState(&fceulib__.ppu->MMC5HackSPScroll, 1, 0, "SPLS");
+  AddExState(&fceulib__.ppu->MMC5HackSPPage, 1, 0, "SPLP");
+  AddExState(&fceulib__.ppu->MMC50x5130, 1, 0, "5130");
 
   MMC5WRAMsize=wsize/8;
   BuildWRAMSizeTable();
-  fceulib__fceu.GameStateRestore=MMC5_StateRestore;
+  fceulib__.fceu->GameStateRestore=MMC5_StateRestore;
   info->Power=GenMMC5Reset;
 
   if (battery) {
@@ -856,13 +856,13 @@ static void GenMMC5_Init(CartInfo *info, int wsize, int battery) {
       info->SaveGameLen[0]=32768;
   }
 
-  fceulib__ppu.MMC5HackVROMMask = fceulib__cart.CHRmask4[0];
-  fceulib__ppu.MMC5HackExNTARAMPtr = ExRAM;
-  fceulib__ppu.MMC5Hack = 1;
-  fceulib__ppu.MMC5HackVROMPTR = fceulib__cart.CHRptr[0];
-  fceulib__ppu.MMC5HackCHRMode = 0;
-  fceulib__ppu.MMC5HackSPMode = fceulib__ppu.MMC5HackSPScroll = 
-    fceulib__ppu.MMC5HackSPPage = 0;
+  fceulib__.ppu->MMC5HackVROMMask = fceulib__.cart->CHRmask4[0];
+  fceulib__.ppu->MMC5HackExNTARAMPtr = ExRAM;
+  fceulib__.ppu->MMC5Hack = 1;
+  fceulib__.ppu->MMC5HackVROMPTR = fceulib__.cart->CHRptr[0];
+  fceulib__.ppu->MMC5HackCHRMode = 0;
+  fceulib__.ppu->MMC5HackSPMode = fceulib__.ppu->MMC5HackSPScroll = 
+    fceulib__.ppu->MMC5HackSPPage = 0;
   Mapper5_ESI();
 }
 

@@ -22,6 +22,4 @@ struct Filter {
   void SexyFilter2(int32 *in, int32 count);
 };
 
-extern Filter fceulib__filter;
-
 #endif

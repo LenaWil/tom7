@@ -31,10 +31,10 @@ static SFORMAT StateRegs[]=
 
 static void Sync(void)
 {
-  fceulib__cart.setprg16(0x8000,reg);
-  fceulib__cart.setprg16(0xc000,~0);
-  fceulib__cart.setmirror(mirr);
-  fceulib__cart.setchr8(0);
+  fceulib__.cart->setprg16(0x8000,reg);
+  fceulib__.cart->setprg16(0xc000,~0);
+  fceulib__.cart->setmirror(mirr);
+  fceulib__.cart->setchr8(0);
 }
 
 static DECLFW(UNLKS7013BLoWrite)
@@ -54,9 +54,9 @@ static void UNLKS7013BPower(void)
   reg = 0;
   mirr = 0;
   Sync();
-  fceulib__fceu.SetWriteHandler(0x6000,0x7FFF,UNLKS7013BLoWrite);
-  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
-  fceulib__fceu.SetWriteHandler(0x8000,0xFFFF,UNLKS7013BHiWrite);
+  fceulib__.fceu->SetWriteHandler(0x6000,0x7FFF,UNLKS7013BLoWrite);
+  fceulib__.fceu->SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__.fceu->SetWriteHandler(0x8000,0xFFFF,UNLKS7013BHiWrite);
 }
 
 static void UNLKS7013BReset(void)
@@ -75,6 +75,6 @@ void UNLKS7013B_Init(CartInfo *info)
   info->Power=UNLKS7013BPower;
   info->Reset=UNLKS7013BReset;
 
-  fceulib__fceu.GameStateRestore=StateRestore;
+  fceulib__.fceu->GameStateRestore=StateRestore;
   AddExState(&StateRegs, ~0, 0, 0);
 }

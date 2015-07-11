@@ -34,18 +34,18 @@ static SFORMAT StateRegs[]=
 static void Sync(void)
 {
   uint32 swap = ((ctrl & 2) << 11);
-  fceulib__cart.setchr2(0x0000^swap,regs[0]>>1);
-  fceulib__cart.setchr2(0x0800^swap,regs[1]>>1);
-  fceulib__cart.setchr1(0x1000^swap,regs[2]);
-  fceulib__cart.setchr1(0x1400^swap,regs[3]);
-  fceulib__cart.setchr1(0x1800^swap,regs[4]);
-  fceulib__cart.setchr1(0x1c00^swap,regs[5]);
-  fceulib__cart.setprg8r(0x10,0x6000,0);
-  fceulib__cart.setprg8(0x8000,regs[6]);
-  fceulib__cart.setprg8(0xA000,regs[7]);
-  fceulib__cart.setprg8(0xC000,regs[8]);
-  fceulib__cart.setprg8(0xE000,~0);
-  fceulib__cart.setmirror(ctrl & 1);
+  fceulib__.cart->setchr2(0x0000^swap,regs[0]>>1);
+  fceulib__.cart->setchr2(0x0800^swap,regs[1]>>1);
+  fceulib__.cart->setchr1(0x1000^swap,regs[2]);
+  fceulib__.cart->setchr1(0x1400^swap,regs[3]);
+  fceulib__.cart->setchr1(0x1800^swap,regs[4]);
+  fceulib__.cart->setchr1(0x1c00^swap,regs[5]);
+  fceulib__.cart->setprg8r(0x10,0x6000,0);
+  fceulib__.cart->setprg8(0x8000,regs[6]);
+  fceulib__.cart->setprg8(0xA000,regs[7]);
+  fceulib__.cart->setprg8(0xC000,regs[8]);
+  fceulib__.cart->setprg8(0xE000,~0);
+  fceulib__.cart->setmirror(ctrl & 1);
 }
 
 static DECLFW(M82Write)
@@ -66,9 +66,9 @@ static DECLFW(M82Write)
 static void M82Power(void)
 {
   Sync();
-  fceulib__fceu.SetReadHandler(0x6000,0xffff,Cart::CartBR);
-  fceulib__fceu.SetWriteHandler(0x6000,0x7fff,Cart::CartBW);
-  fceulib__fceu.SetWriteHandler(0x7ef0,0x7efc,M82Write);  // external WRAM82 might end at $73FF
+  fceulib__.fceu->SetReadHandler(0x6000,0xffff,Cart::CartBR);
+  fceulib__.fceu->SetWriteHandler(0x6000,0x7fff,Cart::CartBW);
+  fceulib__.fceu->SetWriteHandler(0x7ef0,0x7efc,M82Write);  // external WRAM82 might end at $73FF
 }
 
 static void M82Close(void) {
@@ -88,12 +88,12 @@ void Mapper82_Init(CartInfo *info) {
 
   WRAM82SIZE=8192;
   WRAM82=(uint8*)FCEU_gmalloc(WRAM82SIZE);
-  fceulib__cart.SetupCartPRGMapping(0x10, WRAM82, WRAM82SIZE, 1);
+  fceulib__.cart->SetupCartPRGMapping(0x10, WRAM82, WRAM82SIZE, 1);
   AddExState(WRAM82, WRAM82SIZE, 0, "WR82");
   if (info->battery) {
     info->SaveGame[0]=WRAM82;
     info->SaveGameLen[0]=WRAM82SIZE;
   }
-  fceulib__fceu.GameStateRestore = StateRestore;
+  fceulib__.fceu->GameStateRestore = StateRestore;
   AddExState(&StateRegs, ~0, 0, 0);
 }

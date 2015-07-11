@@ -31,9 +31,9 @@ static SFORMAT StateRegs[]=
 
 static void Sync(void)
 {
-  fceulib__cart.setchr8((latch >> 2) & 1);
-  fceulib__cart.setprg32(0x8000,0);
-  fceulib__cart.setprg8(0x8000,latch & 4);        /* Special for VS Gumshoe */
+  fceulib__.cart->setchr8((latch >> 2) & 1);
+  fceulib__.cart->setprg32(0x8000,0);
+  fceulib__.cart->setprg8(0x8000,latch & 4);        /* Special for VS Gumshoe */
 }
 
 static DECLFW(M99Write)
@@ -47,9 +47,9 @@ static void M99Power(void)
 {
   latch = 0;
   Sync();
-  old4016=fceulib__fceu.GetWriteHandler(0x4016);
-  fceulib__fceu.SetWriteHandler(0x4016,0x4016,M99Write);
-  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  old4016=fceulib__.fceu->GetWriteHandler(0x4016);
+  fceulib__.fceu->SetWriteHandler(0x4016,0x4016,M99Write);
+  fceulib__.fceu->SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
 }
 
 static void StateRestore(int version)
@@ -60,6 +60,6 @@ static void StateRestore(int version)
 void Mapper99_Init(CartInfo *info)
 {
   info->Power=M99Power;
-  fceulib__fceu.GameStateRestore=StateRestore;
+  fceulib__.fceu->GameStateRestore=StateRestore;
   AddExState(&StateRegs, ~0, 0, 0);
 }

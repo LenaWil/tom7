@@ -212,7 +212,7 @@ void Palette::LoadGamePalette() {
 }
 
 void Palette::ResetPalette() {
-  if (fceulib__fceu.GameInfo != nullptr) {
+  if (fceulib__.fceu->GameInfo != nullptr) {
     ChoosePalette();
     WritePalette();
   }
@@ -221,8 +221,8 @@ void Palette::ResetPalette() {
 void Palette::ChoosePalette() {
   if (ipalette) {
     palo=palettei;
-  } else if (ntsccol && !fceulib__fceu.PAL && 
-	     fceulib__fceu.GameInfo->type!=GIT_VSUNI) {
+  } else if (ntsccol && !fceulib__.fceu->PAL && 
+	     fceulib__.fceu->GameInfo->type!=GIT_VSUNI) {
     palo=paletten;
     CalculatePalette();
   } else {
@@ -244,4 +244,3 @@ void Palette::FCEUI_GetNTSCTH(int *tint, int *hue) {
   *hue = ntschue;
 }
 
-Palette fceulib__palette;

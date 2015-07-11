@@ -61,6 +61,4 @@ struct VSUni {
   std::vector<SFORMAT> stateinfo;
 };
 
-extern VSUni fceulib__vsuni;
-
 #endif

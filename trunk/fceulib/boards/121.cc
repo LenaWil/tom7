@@ -48,26 +48,26 @@ static void Sync()
 
 static void M121CW(uint32 A, uint8 V) {
   // A9713 multigame extension hack!
-  if(fceulib__cart.PRGsize[0] == fceulib__cart.CHRsize[0]) {
-    fceulib__cart.setchr1(A,V|((EXPREGS[3]&0x80)<<1));
+  if(fceulib__.cart->PRGsize[0] == fceulib__.cart->CHRsize[0]) {
+    fceulib__.cart->setchr1(A,V|((EXPREGS[3]&0x80)<<1));
   } else {
     if((A&0x1000)==((MMC3_cmd&0x80)<<5))
-      fceulib__cart.setchr1(A,V|0x100);
+      fceulib__.cart->setchr1(A,V|0x100);
     else
-      fceulib__cart.setchr1(A,V);
+      fceulib__.cart->setchr1(A,V);
   }
 }
 
 static void M121PW(uint32 A, uint8 V) {
   if(EXPREGS[5]&0x3F) {
 //    FCEU_printf("prot banks: %02x %02x %02x %02x\n",V,EXPREGS[2],EXPREGS[1],EXPREGS[0]);
-    fceulib__cart.setprg8(A,(V&0x1F)|((EXPREGS[3]&0x80)>>2));
-    fceulib__cart.setprg8(0xE000,(EXPREGS[0])|((EXPREGS[3]&0x80)>>2));
-    fceulib__cart.setprg8(0xC000,(EXPREGS[1])|((EXPREGS[3]&0x80)>>2));
-    fceulib__cart.setprg8(0xA000,(EXPREGS[2])|((EXPREGS[3]&0x80)>>2));
+    fceulib__.cart->setprg8(A,(V&0x1F)|((EXPREGS[3]&0x80)>>2));
+    fceulib__.cart->setprg8(0xE000,(EXPREGS[0])|((EXPREGS[3]&0x80)>>2));
+    fceulib__.cart->setprg8(0xC000,(EXPREGS[1])|((EXPREGS[3]&0x80)>>2));
+    fceulib__.cart->setprg8(0xA000,(EXPREGS[2])|((EXPREGS[3]&0x80)>>2));
   } else {
 //    FCEU_printf("gen banks: %04x %02x\n",A,V);
-    fceulib__cart.setprg8(A,(V&0x1F)|((EXPREGS[3]&0x80)>>2));
+    fceulib__.cart->setprg8(A,(V&0x1F)|((EXPREGS[3]&0x80)>>2));
   }
 }
 
@@ -119,9 +119,9 @@ static void M121Power(void)
   EXPREGS[3] = 0x80;
   EXPREGS[5] = 0;
   GenMMC3Power();
-  fceulib__fceu.SetReadHandler(0x5000,0x5FFF,M121Read);
-  fceulib__fceu.SetWriteHandler(0x5000,0x5FFF,M121LoWrite);
-  fceulib__fceu.SetWriteHandler(0x8000,0x9FFF,M121Write);
+  fceulib__.fceu->SetReadHandler(0x5000,0x5FFF,M121Read);
+  fceulib__.fceu->SetWriteHandler(0x5000,0x5FFF,M121LoWrite);
+  fceulib__.fceu->SetWriteHandler(0x8000,0x9FFF,M121Write);
 }
 
 void Mapper121_Init(CartInfo *info)

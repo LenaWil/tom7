@@ -33,18 +33,18 @@ static SFORMAT StateRegs[]=
 
 static void Sync(void)
 {
-  fceulib__cart.setprg2(0x6000,reg[4]);
-  fceulib__cart.setprg2(0x6800,reg[5]);
-  fceulib__cart.setprg2(0x7000,reg[6]);
-  fceulib__cart.setprg2(0x7800,reg[7]);
-  fceulib__cart.setprg2(0x8000,reg[0]);
-  fceulib__cart.setprg2(0x8800,reg[1]);
-  fceulib__cart.setprg2(0x9000,reg[2]);
-  fceulib__cart.setprg2(0x9800,reg[3]);
-  fceulib__cart.setprg8(0xA000,0xd);
-  fceulib__cart.setprg16(0xC000,7);
-  fceulib__cart.setchr8(0);
-  fceulib__cart.setmirror(mirror);
+  fceulib__.cart->setprg2(0x6000,reg[4]);
+  fceulib__.cart->setprg2(0x6800,reg[5]);
+  fceulib__.cart->setprg2(0x7000,reg[6]);
+  fceulib__.cart->setprg2(0x7800,reg[7]);
+  fceulib__.cart->setprg2(0x8000,reg[0]);
+  fceulib__.cart->setprg2(0x8800,reg[1]);
+  fceulib__.cart->setprg2(0x9000,reg[2]);
+  fceulib__.cart->setprg2(0x9800,reg[3]);
+  fceulib__.cart->setprg8(0xA000,0xd);
+  fceulib__.cart->setprg16(0xC000,7);
+  fceulib__.cart->setchr8(0);
+  fceulib__.cart->setmirror(mirror);
 }
 
 static DECLFW(UNLKS7057Write)
@@ -80,8 +80,8 @@ static DECLFW(UNLKS7057Write)
 static void UNLKS7057Power(void)
 {
   Sync();
-  fceulib__fceu.SetReadHandler(0x6000,0xFFFF,Cart::CartBR);
-  fceulib__fceu.SetWriteHandler(0x8000,0xFFFF,UNLKS7057Write);
+  fceulib__.fceu->SetReadHandler(0x6000,0xFFFF,Cart::CartBR);
+  fceulib__.fceu->SetWriteHandler(0x8000,0xFFFF,UNLKS7057Write);
 }
 
 static void UNLKS7057Reset(void)

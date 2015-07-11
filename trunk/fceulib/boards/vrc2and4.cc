@@ -49,40 +49,40 @@ static SFORMAT StateRegs[] =
 
 static void Sync(void) {
   if (regcmd & 2) {
-    fceulib__cart.setprg8(0xC000, prgreg[0] | big_bank);
-    fceulib__cart.setprg8(0x8000, ((~1) & 0x1F) | big_bank);
+    fceulib__.cart->setprg8(0xC000, prgreg[0] | big_bank);
+    fceulib__.cart->setprg8(0x8000, ((~1) & 0x1F) | big_bank);
   } else {
-    fceulib__cart.setprg8(0x8000, prgreg[0] | big_bank);
-    fceulib__cart.setprg8(0xC000, ((~1) & 0x1F) | big_bank);
+    fceulib__.cart->setprg8(0x8000, prgreg[0] | big_bank);
+    fceulib__.cart->setprg8(0xC000, ((~1) & 0x1F) | big_bank);
   }
-  fceulib__cart.setprg8(0xA000, prgreg[1] | big_bank);
-  fceulib__cart.setprg8(0xE000, ((~0) & 0x1F) | big_bank);
-  if (fceulib__unif.UNIFchrrama)
-    fceulib__cart.setchr8(0);
+  fceulib__.cart->setprg8(0xA000, prgreg[1] | big_bank);
+  fceulib__.cart->setprg8(0xE000, ((~0) & 0x1F) | big_bank);
+  if (fceulib__.unif->UNIFchrrama)
+    fceulib__.cart->setchr8(0);
   else{
     uint8 i;
     if(!weirdo)
       for (i = 0; i < 8; i++)
-	fceulib__cart.setchr1(i << 10, (chrhi[i] | chrreg[i]) >> is22);
+	fceulib__.cart->setchr1(i << 10, (chrhi[i] | chrreg[i]) >> is22);
     else {
-      fceulib__cart.setchr1(0x0000, 0xFC);
-      fceulib__cart.setchr1(0x0400, 0xFD);
-      fceulib__cart.setchr1(0x0800, 0xFF);
+      fceulib__.cart->setchr1(0x0000, 0xFC);
+      fceulib__.cart->setchr1(0x0400, 0xFD);
+      fceulib__.cart->setchr1(0x0800, 0xFF);
       weirdo--;
     }
   }
   switch (mirr & 0x3) {
-  case 0: fceulib__cart.setmirror(MI_V); break;
-  case 1: fceulib__cart.setmirror(MI_H); break;
-  case 2: fceulib__cart.setmirror(MI_0); break;
-  case 3: fceulib__cart.setmirror(MI_1); break;
+  case 0: fceulib__.cart->setmirror(MI_V); break;
+  case 1: fceulib__.cart->setmirror(MI_H); break;
+  case 2: fceulib__.cart->setmirror(MI_0); break;
+  case 3: fceulib__.cart->setmirror(MI_1); break;
   }
 }
 
 static DECLFW(VRC24Write) {
   A &= 0xF003;
   if ((A >= 0xB000) && (A <= 0xE003)) {
-    if (fceulib__unif.UNIFchrrama) {
+    if (fceulib__.unif->UNIFchrrama) {
       // my personally many-in-one feature ;) just for support pirate cart 2-in-1
       big_bank = (V & 8) << 2;
     } else {
@@ -158,35 +158,35 @@ static DECLFW(M23Write) {
 
 static void M21Power(void) {
 	Sync();
-	fceulib__fceu.SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
-	fceulib__fceu.SetWriteHandler(0x8000, 0xFFFF, M21Write);
+	fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
+	fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, M21Write);
 }
 
 static void M22Power(void) {
 	Sync();
-	fceulib__fceu.SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
-	fceulib__fceu.SetWriteHandler(0x8000, 0xFFFF, M22Write);
+	fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
+	fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, M22Write);
 }
 
 static void M23Power(void) {
 	big_bank = 0x20;
 	Sync();
-	fceulib__cart.setprg8r(0x10, 0x6000, 0);	// Only two Goemon games are have battery backed RAM, three more shooters
+	fceulib__.cart->setprg8r(0x10, 0x6000, 0);	// Only two Goemon games are have battery backed RAM, three more shooters
 								// (Parodius Da!, Gradius 2 and Crisis Force uses 2k or SRAM at 6000-67FF only
-	fceulib__fceu.SetReadHandler(0x6000, 0x7FFF, Cart::CartBR);
-	fceulib__fceu.SetWriteHandler(0x6000, 0x7FFF, Cart::CartBW);
-	fceulib__fceu.SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
-	fceulib__fceu.SetWriteHandler(0x8000, 0xFFFF, M23Write);
+	fceulib__.fceu->SetReadHandler(0x6000, 0x7FFF, Cart::CartBR);
+	fceulib__.fceu->SetWriteHandler(0x6000, 0x7FFF, Cart::CartBW);
+	fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
+	fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, M23Write);
 }
 
 static void M25Power(void) {
 	big_bank = 0x20;
 	Sync();
-	fceulib__cart.setprg8r(0x10, 0x6000, 0);
-	fceulib__fceu.SetReadHandler(0x6000, 0x7FFF, Cart::CartBR);
-	fceulib__fceu.SetWriteHandler(0x6000, 0x7FFF, Cart::CartBW);
-	fceulib__fceu.SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
-	fceulib__fceu.SetWriteHandler(0x8000, 0xFFFF, M22Write);
+	fceulib__.cart->setprg8r(0x10, 0x6000, 0);
+	fceulib__.fceu->SetReadHandler(0x6000, 0x7FFF, Cart::CartBR);
+	fceulib__.fceu->SetWriteHandler(0x6000, 0x7FFF, Cart::CartBW);
+	fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
+	fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, M22Write);
 }
 
 void VRC24IRQHook(int a) {
@@ -221,7 +221,7 @@ void Mapper21_Init(CartInfo *info) {
 	is22 = 0;
 	info->Power = M21Power;
 	X.MapIRQHook = VRC24IRQHook;
-	fceulib__fceu.GameStateRestore = StateRestore;
+	fceulib__.fceu->GameStateRestore = StateRestore;
 
 	AddExState(&StateRegs, ~0, 0, 0);
 }
@@ -230,7 +230,7 @@ void Mapper22_Init(CartInfo *info) {
 	isPirate = 0;
 	is22 = 1;
 	info->Power = M22Power;
-	fceulib__fceu.GameStateRestore = StateRestore;
+	fceulib__.fceu->GameStateRestore = StateRestore;
 
 	AddExState(&StateRegs, ~0, 0, 0);
 }
@@ -238,11 +238,11 @@ void Mapper22_Init(CartInfo *info) {
 void VRC24_Init(CartInfo *info) {
 	info->Close = VRC24Close;
 	X.MapIRQHook = VRC24IRQHook;
-	fceulib__fceu.GameStateRestore = StateRestore;
+	fceulib__.fceu->GameStateRestore = StateRestore;
 
 	WRAMSIZE = 8192;
 	WRAM = (uint8*)FCEU_gmalloc(WRAMSIZE);
-	fceulib__cart.SetupCartPRGMapping(0x10, WRAM, WRAMSIZE, 1);
+	fceulib__.cart->SetupCartPRGMapping(0x10, WRAM, WRAMSIZE, 1);
 	AddExState(WRAM, WRAMSIZE, 0, "WRAM");
 
 	if(info->battery) {

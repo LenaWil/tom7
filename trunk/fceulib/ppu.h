@@ -159,6 +159,4 @@ class PPU {
   uint8 numsprites = 0, SpriteBlurp = 0;
 };
 
-extern PPU fceulib__ppu;
-
 #endif

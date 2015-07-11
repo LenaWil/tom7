@@ -38,17 +38,17 @@ static SFORMAT StateRegs[]=
 
 static void Sync(void)
 {
-  fceulib__cart.setchr8(0);
-  fceulib__cart.setprg8(0x6000,reg);
-  fceulib__cart.setprg8(0x8000,0xc);
-  fceulib__cart.setprg4(0xa000,(0xd<<1));
-  fceulib__cart.setprg2(0xb000,(0xd<<2)+2);
-  fceulib__cart.setprg2r(0x10,0xb800,4);
-  fceulib__cart.setprg2r(0x10,0xc000,5);
-  fceulib__cart.setprg2r(0x10,0xc800,6);
-  fceulib__cart.setprg2r(0x10,0xd000,7);
-  fceulib__cart.setprg2(0xd800,(0xe<<2)+3);
-  fceulib__cart.setprg8(0xe000,0xf);
+  fceulib__.cart->setchr8(0);
+  fceulib__.cart->setprg8(0x6000,reg);
+  fceulib__.cart->setprg8(0x8000,0xc);
+  fceulib__.cart->setprg4(0xa000,(0xd<<1));
+  fceulib__.cart->setprg2(0xb000,(0xd<<2)+2);
+  fceulib__.cart->setprg2r(0x10,0xb800,4);
+  fceulib__.cart->setprg2r(0x10,0xc000,5);
+  fceulib__.cart->setprg2r(0x10,0xc800,6);
+  fceulib__.cart->setprg2r(0x10,0xd000,7);
+  fceulib__.cart->setprg2(0xd800,(0xe<<2)+3);
+  fceulib__.cart->setprg8(0xe000,0xf);
 }
 
 static DECLFW(LH53RamWrite)
@@ -83,10 +83,10 @@ static void LH53IRQ(int a)
 static void LH53Power(void)
 {
   Sync();
-  fceulib__fceu.SetReadHandler(0x6000,0xFFFF,Cart::CartBR);
-  fceulib__fceu.SetWriteHandler(0xB800,0xD7FF,LH53RamWrite);
-  fceulib__fceu.SetWriteHandler(0xE000,0xEFFF,LH53IRQaWrite);
-  fceulib__fceu.SetWriteHandler(0xF000,0xFFFF,LH53Write);
+  fceulib__.fceu->SetReadHandler(0x6000,0xFFFF,Cart::CartBR);
+  fceulib__.fceu->SetWriteHandler(0xB800,0xD7FF,LH53RamWrite);
+  fceulib__.fceu->SetWriteHandler(0xE000,0xEFFF,LH53IRQaWrite);
+  fceulib__.fceu->SetWriteHandler(0xF000,0xFFFF,LH53Write);
 }
 
 static void LH53Close(void)
@@ -106,11 +106,11 @@ void LH53_Init(CartInfo *info)
   info->Power=LH53Power;
   info->Close=LH53Close;
   X.MapIRQHook=LH53IRQ;
-  fceulib__fceu.GameStateRestore=StateRestore;
+  fceulib__.fceu->GameStateRestore=StateRestore;
 
   WRAMSIZE=8192;
   WRAM=(uint8*)FCEU_gmalloc(WRAMSIZE);
-  fceulib__cart.SetupCartPRGMapping(0x10,WRAM,WRAMSIZE,1);
+  fceulib__.cart->SetupCartPRGMapping(0x10,WRAM,WRAMSIZE,1);
   AddExState(WRAM, WRAMSIZE, 0, "WRAM");
 
   AddExState(&StateRegs, ~0, 0, 0);

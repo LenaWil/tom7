@@ -39,24 +39,24 @@ static void Sync(void)
   {
     bank &= 0xfe;
     if(mode==0) {
-      fceulib__cart.setprg16(0x8000,base+bank+1);
-      fceulib__cart.setprg16(0xC000,base+bank+0);
+      fceulib__.cart->setprg16(0x8000,base+bank+1);
+      fceulib__.cart->setprg16(0xC000,base+bank+0);
     } else {
-      fceulib__cart.setprg16(0x8000,base+bank+0);
-      fceulib__cart.setprg16(0xC000,base+bank+1);
+      fceulib__.cart->setprg16(0x8000,base+bank+0);
+      fceulib__.cart->setprg16(0xC000,base+bank+1);
     }
   }
   else
   {
     if(DRegs[1]&0x04) {
-      fceulib__cart.setprg16(0x8000,0x1f);
-      fceulib__cart.setprg16(0xC000,base+bank);
+      fceulib__.cart->setprg16(0x8000,0x1f);
+      fceulib__.cart->setprg16(0xC000,base+bank);
     } else {
-      fceulib__cart.setprg16(0x8000,base+bank);
+      fceulib__.cart->setprg16(0x8000,base+bank);
       if(mode==0)
-         fceulib__cart.setprg16(0xC000,0x20);
+         fceulib__.cart->setprg16(0xC000,0x20);
       else
-         fceulib__cart.setprg16(0xC000,0x07);
+         fceulib__.cart->setprg16(0xC000,0x07);
     }
   }
 }
@@ -77,8 +77,8 @@ void Mapper166_init(void)
   mode=1;
   DRegs[0]=DRegs[1]=DRegs[2]=DRegs[3]=0;
   Sync();
-  fceulib__fceu.SetWriteHandler(0x8000,0xFFFF,Mapper167_write);
-  fceulib__fceu.GameStateRestore=StateRestore;
+  fceulib__.fceu->SetWriteHandler(0x8000,0xFFFF,Mapper167_write);
+  fceulib__.fceu->GameStateRestore=StateRestore;
   AddExState(&StateRegs, ~0, 0, 0);
 }
 
@@ -87,7 +87,7 @@ void Mapper167_init(void)
   mode=0;
   DRegs[0]=DRegs[1]=DRegs[2]=DRegs[3]=0;
   Sync();
-  fceulib__fceu.SetWriteHandler(0x8000,0xFFFF,Mapper167_write);
-  fceulib__fceu.GameStateRestore=StateRestore;
+  fceulib__.fceu->SetWriteHandler(0x8000,0xFFFF,Mapper167_write);
+  fceulib__.fceu->GameStateRestore=StateRestore;
   AddExState(&StateRegs, ~0, 0, 0);
 }

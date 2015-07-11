@@ -31,10 +31,10 @@ uint8 outer;
 
 void SyncMirror() {
   switch (mode & 3) {
-  case 0: fceulib__cart.setmirror(MI_0); break;
-  case 1: fceulib__cart.setmirror(MI_1); break;
-  case 2: fceulib__cart.setmirror(MI_V); break;
-  case 3: fceulib__cart.setmirror(MI_H); break;
+  case 0: fceulib__.cart->setmirror(MI_0); break;
+  case 1: fceulib__.cart->setmirror(MI_1); break;
+  case 2: fceulib__.cart->setmirror(MI_V); break;
+  case 3: fceulib__.cart->setmirror(MI_H); break;
   }
 }
 
@@ -117,9 +117,9 @@ static void Sync() {
   prglo &= prg_mask_16k;
   prghi &= prg_mask_16k;
 
-  fceulib__cart.setprg16(0x8000, prglo);
-  fceulib__cart.setprg16(0xC000, prghi);
-  fceulib__cart.setchr8(chr);
+  fceulib__.cart->setprg16(0x8000, prglo);
+  fceulib__.cart->setprg16(0xC000, prghi);
+  fceulib__.cart->setchr8(chr);
 }
 
 static DECLFW(WriteEXP)
@@ -167,18 +167,18 @@ static void M28Reset(void)
 
 
 static void M28Power(void) {
-  prg_mask_16k = fceulib__cart.PRGsize[0] - 1;
+  prg_mask_16k = fceulib__.cart->PRGsize[0] - 1;
 
   //EXP
-  fceulib__fceu.SetWriteHandler(0x4020,0x5FFF,WriteEXP);
+  fceulib__.fceu->SetWriteHandler(0x4020,0x5FFF,WriteEXP);
   
   //PRG
-  fceulib__fceu.SetWriteHandler(0x8000,0xFFFF,WritePRG);
-  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__.fceu->SetWriteHandler(0x8000,0xFFFF,WritePRG);
+  fceulib__.fceu->SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
 	
   //WRAM
-  fceulib__fceu.SetReadHandler(0x6000,0x7FFF,Cart::CartBR);
-  fceulib__fceu.SetWriteHandler(0x6000,0x7FFF,Cart::CartBW);
+  fceulib__.fceu->SetReadHandler(0x6000,0x7FFF,Cart::CartBR);
+  fceulib__.fceu->SetWriteHandler(0x6000,0x7FFF,Cart::CartBW);
 
   M28Reset();
 }
@@ -207,6 +207,6 @@ void Mapper28_Init(CartInfo* info)
 	info->Power=M28Power;
 	info->Reset=M28Reset;
 	info->Close=M28Close;
-	fceulib__fceu.GameStateRestore=StateRestore;
+	fceulib__.fceu->GameStateRestore=StateRestore;
 	AddExState(&StateRegs, ~0, 0, 0);
 }

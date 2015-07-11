@@ -30,12 +30,12 @@ switch(A&0xF000)
  case 0xE000:
  case 0xD000:
  case 0xC000:ROM_BANK16(0x8000,V);break;
- case 0x9000:fceulib__ines.onemir((V>>3)&2);break;
+ case 0x9000:fceulib__.ines->onemir((V>>3)&2);break;
  }
 }
 
 void Mapper71_init(void)
 {
-fceulib__fceu.SetWriteHandler(0x4020,0xffff,Mapper71_write);
+fceulib__.fceu->SetWriteHandler(0x4020,0xffff,Mapper71_write);
 }
 

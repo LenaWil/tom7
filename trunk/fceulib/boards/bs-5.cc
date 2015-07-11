@@ -32,15 +32,15 @@ static SFORMAT StateRegs[]=
 };
 
 static void Sync(void) {
-  fceulib__cart.setprg8(0x8000,reg_prg[0]);
-  fceulib__cart.setprg8(0xa000,reg_prg[1]);
-  fceulib__cart.setprg8(0xc000,reg_prg[2]);
-  fceulib__cart.setprg8(0xe000,reg_prg[3]);
-  fceulib__cart.setchr2(0x0000,reg_chr[0]);
-  fceulib__cart.setchr2(0x0800,reg_chr[1]);
-  fceulib__cart.setchr2(0x1000,reg_chr[2]);
-  fceulib__cart.setchr2(0x1800,reg_chr[3]);
-  fceulib__cart.setmirror(MI_V);
+  fceulib__.cart->setprg8(0x8000,reg_prg[0]);
+  fceulib__.cart->setprg8(0xa000,reg_prg[1]);
+  fceulib__.cart->setprg8(0xc000,reg_prg[2]);
+  fceulib__.cart->setprg8(0xe000,reg_prg[3]);
+  fceulib__.cart->setchr2(0x0000,reg_chr[0]);
+  fceulib__.cart->setchr2(0x0800,reg_chr[1]);
+  fceulib__.cart->setchr2(0x1000,reg_chr[2]);
+  fceulib__.cart->setchr2(0x1800,reg_chr[3]);
+  fceulib__.cart->setmirror(MI_V);
 }
 
 static DECLFW(MBS5Write) {
@@ -69,8 +69,8 @@ static void MBS5Power(void)
   dip_switch=0;
   reg_prg[0]=reg_prg[1]=reg_prg[2]=reg_prg[3]=~0;
   Sync();
-  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
-  fceulib__fceu.SetWriteHandler(0x8000,0xFFFF,MBS5Write);
+  fceulib__.fceu->SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__.fceu->SetWriteHandler(0x8000,0xFFFF,MBS5Write);
 }
 
 static void StateRestore(int version)
@@ -82,6 +82,6 @@ void BMCBS5_Init(CartInfo *info)
 {
   info->Power=MBS5Power;
   info->Reset=MBS5Reset;
-  fceulib__fceu.GameStateRestore=StateRestore;
+  fceulib__.fceu->GameStateRestore=StateRestore;
   AddExState(&StateRegs, ~0, 0, 0);
 }

@@ -35,15 +35,15 @@ static SFORMAT StateRegs[]=
 };
 
 static void Sync(void) {
-  fceulib__cart.setmirror(mirror^1);
-  fceulib__cart.setprg8(0x8000,reg[0]);
-  fceulib__cart.setprg8(0xA000,reg[1]);
-  fceulib__cart.setchr2(0x0000,(reg[2]>>1));
-  fceulib__cart.setchr2(0x0800,(reg[3]>>1));
-  fceulib__cart.setchr1(0x1000,((bank&0x10)<<4)|reg[4]);
-  fceulib__cart.setchr1(0x1400,((bank&0x20)<<3)|reg[5]);
-  fceulib__cart.setchr1(0x1800,((bank&0x40)<<2)|reg[6]);
-  fceulib__cart.setchr1(0x1C00,((bank&0x80)<<1)|reg[7]);
+  fceulib__.cart->setmirror(mirror^1);
+  fceulib__.cart->setprg8(0x8000,reg[0]);
+  fceulib__.cart->setprg8(0xA000,reg[1]);
+  fceulib__.cart->setchr2(0x0000,(reg[2]>>1));
+  fceulib__.cart->setchr2(0x0800,(reg[3]>>1));
+  fceulib__.cart->setchr1(0x1000,((bank&0x10)<<4)|reg[4]);
+  fceulib__.cart->setchr1(0x1400,((bank&0x20)<<3)|reg[5]);
+  fceulib__.cart->setchr1(0x1800,((bank&0x40)<<2)|reg[6]);
+  fceulib__.cart->setchr1(0x1C00,((bank&0x80)<<1)|reg[7]);
 }
 
 static DECLFW(M112Write)
@@ -66,13 +66,13 @@ static void M112Close(void)
 
 static void M112Power(void) {
   bank=0;
-  fceulib__cart.setprg16(0xC000,~0);
-  fceulib__cart.setprg8r(0x10,0x6000,0);
-  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
-  fceulib__fceu.SetWriteHandler(0x8000,0xFFFF,M112Write);
-  fceulib__fceu.SetWriteHandler(0x4020,0x5FFF,M112Write);
-  fceulib__fceu.SetReadHandler(0x6000,0x7FFF,Cart::CartBR);
-  fceulib__fceu.SetWriteHandler(0x6000,0x7FFF,Cart::CartBW);
+  fceulib__.cart->setprg16(0xC000,~0);
+  fceulib__.cart->setprg8r(0x10,0x6000,0);
+  fceulib__.fceu->SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__.fceu->SetWriteHandler(0x8000,0xFFFF,M112Write);
+  fceulib__.fceu->SetWriteHandler(0x4020,0x5FFF,M112Write);
+  fceulib__.fceu->SetReadHandler(0x6000,0x7FFF,Cart::CartBR);
+  fceulib__.fceu->SetWriteHandler(0x6000,0x7FFF,Cart::CartBW);
 }
 
 static void StateRestore(int version) {
@@ -83,9 +83,9 @@ void Mapper112_Init(CartInfo *info)
 {
   info->Power=M112Power;
   info->Close=M112Close;
-  fceulib__fceu.GameStateRestore=StateRestore;
+  fceulib__.fceu->GameStateRestore=StateRestore;
   WRAM=(uint8*)FCEU_gmalloc(8192);
-  fceulib__cart.SetupCartPRGMapping(0x10,WRAM,8192,1);
+  fceulib__.cart->SetupCartPRGMapping(0x10,WRAM,8192,1);
   AddExState(WRAM, 8192, 0, "WRAM");
   AddExState(&StateRegs, ~0, 0, 0);
 }

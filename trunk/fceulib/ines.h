@@ -111,23 +111,21 @@ struct INes {
   void CheckHInfo();
 };
 
-extern INes fceulib__ines;
-
 // These are allowed to be accessed by mappers. -tom7
 #ifdef INESPRIV
 
 /* This order is necessary */
-#define WRAM    (fceulib__fceu.GameMemBlock)
+#define WRAM    (fceulib__.fceu->GameMemBlock)
 #define sizeofWRAM    8192
 
-#define MapperExRAM   (fceulib__fceu.GameMemBlock+sizeofWRAM)
+#define MapperExRAM   (fceulib__.fceu->GameMemBlock+sizeofWRAM)
 #define sizeofMapperExRAM  32768
 /* for the MMC5 code to work properly.  It might be fixed later... */
 
-#define CHRRAM  (fceulib__fceu.GameMemBlock+sizeofWRAM+sizeofMapperExRAM)
+#define CHRRAM  (fceulib__.fceu->GameMemBlock+sizeofWRAM+sizeofMapperExRAM)
 #define sizeofCHRRAM 8192
 
-#define ExtraNTARAM   (fceulib__fceu.GameMemBlock+sizeofWRAM+sizeofMapperExRAM+sizeofCHRRAM)
+#define ExtraNTARAM   (fceulib__.fceu->GameMemBlock+sizeofWRAM+sizeofMapperExRAM+sizeofCHRRAM)
 #define sizeofExtraNTARAM 2048
 
 #define PRGBankList    (ExtraNTARAM+sizeofExtraNTARAM)

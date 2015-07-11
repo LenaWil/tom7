@@ -35,7 +35,7 @@ static void BMCT2271CW(uint32 A, uint8 V)
     va&=0x7F;
     va|=(EXPREGS[0]&0x18)<<4;
   }
-  fceulib__cart.setchr1(A,va);
+  fceulib__.cart->setchr1(A,va);
 }
 
 static void BMCT2271PW(uint32 A, uint8 V)
@@ -50,17 +50,17 @@ static void BMCT2271PW(uint32 A, uint8 V)
     va|=(EXPREGS[0]&0x18)<<1;
   }
   switch(EXPREGS[0]&3) {
-  case 0x00: fceulib__cart.setprg8(A,va); break;
+  case 0x00: fceulib__.cart->setprg8(A,va); break;
   case 0x02: {
     va=(va&0xFD)|((EXPREGS[0]&4)>>1);
     if(A<0xC000) {
-      fceulib__cart.setprg16(0x8000,va >> 1);
-      fceulib__cart.setprg16(0xC000,va >> 1);
+      fceulib__.cart->setprg16(0x8000,va >> 1);
+      fceulib__.cart->setprg16(0xC000,va >> 1);
     }
     break;
   }
   case 0x01:
-  case 0x03: if(A<0xC000) fceulib__cart.setprg32(0x8000,va >> 2); break;
+  case 0x03: if(A<0xC000) fceulib__.cart->setprg32(0x8000,va >> 2); break;
   }
 
 }
@@ -92,8 +92,8 @@ static void BMCT2271Power(void)
 {
   EXPREGS[0] = 0x00;
   GenMMC3Power();
-  fceulib__fceu.SetWriteHandler(0x6000,0x7FFF,BMCT2271LoWrite);
-  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,BMCT2271HiRead);
+  fceulib__.fceu->SetWriteHandler(0x6000,0x7FFF,BMCT2271LoWrite);
+  fceulib__.fceu->SetReadHandler(0x8000,0xFFFF,BMCT2271HiRead);
 }
 
 void BMCT2271_Init(CartInfo *info)

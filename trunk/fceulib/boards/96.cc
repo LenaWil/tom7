@@ -31,10 +31,10 @@ static SFORMAT StateRegs[]= {
 };
 
 static void Sync(void) {
-  fceulib__cart.setmirror(MI_0);
-  fceulib__cart.setprg32(0x8000,reg & 3);
-  fceulib__cart.setchr4(0x0000,(reg & 4) | ppulatch);
-  fceulib__cart.setchr4(0x1000,(reg & 4) | 3);
+  fceulib__.cart->setmirror(MI_0);
+  fceulib__.cart->setprg32(0x8000,reg & 3);
+  fceulib__.cart->setchr4(0x0000,(reg & 4) | ppulatch);
+  fceulib__.cart->setchr4(0x1000,(reg & 4) | 3);
 }
 
 static DECLFW(M96Write) {
@@ -52,8 +52,8 @@ static void M96Hook(uint32 A) {
 static void M96Power(void) {
   reg = ppulatch = 0;
   Sync();
-  fceulib__fceu.SetReadHandler(0x8000,0xffff,Cart::CartBR);
-  fceulib__fceu.SetWriteHandler(0x8000,0xffff,M96Write);
+  fceulib__.fceu->SetReadHandler(0x8000,0xffff,Cart::CartBR);
+  fceulib__.fceu->SetWriteHandler(0x8000,0xffff,M96Write);
 }
 
 static void StateRestore(int version) {
@@ -62,8 +62,8 @@ static void StateRestore(int version) {
 
 void Mapper96_Init(CartInfo *info) {
   info->Power=M96Power;
-  fceulib__ppu.PPU_hook=M96Hook;
-  fceulib__fceu.GameStateRestore=StateRestore;
+  fceulib__.ppu->PPU_hook=M96Hook;
+  fceulib__.fceu->GameStateRestore=StateRestore;
   AddExState(&StateRegs, ~0, 0, 0);
 }
 

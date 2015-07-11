@@ -34,20 +34,20 @@ static SFORMAT StateRegs[] =
 
 static void Sync(void) {
   if(reset) {
-    fceulib__cart.setprg16(0x8000, latche & 7);
-    fceulib__cart.setprg16(0xC000, 7);
-    fceulib__cart.setmirror(MI_V);
+    fceulib__.cart->setprg16(0x8000, latche & 7);
+    fceulib__.cart->setprg16(0xC000, 7);
+    fceulib__.cart->setmirror(MI_V);
   } else {
     uint32 bank = (latche & 0x1F) + 8;
     if (latche & 0x20) {
-      fceulib__cart.setprg16(0x8000, bank);
-      fceulib__cart.setprg16(0xC000, bank);
+      fceulib__.cart->setprg16(0x8000, bank);
+      fceulib__.cart->setprg16(0xC000, bank);
     } else {
-      fceulib__cart.setprg32(0x8000, bank >> 1);
+      fceulib__.cart->setprg32(0x8000, bank >> 1);
     }
-    fceulib__cart.setmirror((latche >> 6) & 1);
+    fceulib__.cart->setmirror((latche >> 6) & 1);
   }
-  fceulib__cart.setchr8(0);
+  fceulib__.cart->setchr8(0);
 }
 
 static DECLFW(M230Write) {
@@ -63,8 +63,8 @@ static void M230Reset(void) {
 static void M230Power(void) {
 	latche = reset = 0;
 	Sync();
-	fceulib__fceu.SetWriteHandler(0x8000, 0xFFFF, M230Write);
-	fceulib__fceu.SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
+	fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, M230Write);
+	fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
 }
 
 static void StateRestore(int version) {
@@ -75,5 +75,5 @@ void Mapper230_Init(CartInfo *info) {
 	info->Power = M230Power;
 	info->Reset = M230Reset;
 	AddExState(&StateRegs, ~0, 0, 0);
-	fceulib__fceu.GameStateRestore = StateRestore;
+	fceulib__.fceu->GameStateRestore = StateRestore;
 }

@@ -34,20 +34,20 @@ static SFORMAT StateRegs[]=
 };
 
 static void Sync(void) {
-  fceulib__cart.setchr1(0x0000,reg[0]&0xfe);
-  fceulib__cart.setchr1(0x0400,reg[1]|1);
-  fceulib__cart.setchr1(0x0800,reg[2]&0xfe);
-  fceulib__cart.setchr1(0x0c00,reg[3]|1);
-  fceulib__cart.setchr1(0x1000,reg[4]);
-  fceulib__cart.setchr1(0x1400,reg[5]);
-  fceulib__cart.setchr1(0x1800,reg[6]);
-  fceulib__cart.setchr1(0x1c00,reg[7]);
-  fceulib__cart.setprg8r(0x10,0x6000,0);
-  fceulib__cart.setprg8(0x8000,(reg[0x8]&0xf)|0x10);
-  fceulib__cart.setprg8(0xA000,(reg[0x9]&0x1f));
-  fceulib__cart.setprg8(0xC000,(reg[0xa]&0x1f));
-  fceulib__cart.setprg8(0xE000,(reg[0xb]&0xf)|0x10);
-  fceulib__cart.setmirror((reg[0xc]&1)^1);
+  fceulib__.cart->setchr1(0x0000,reg[0]&0xfe);
+  fceulib__.cart->setchr1(0x0400,reg[1]|1);
+  fceulib__.cart->setchr1(0x0800,reg[2]&0xfe);
+  fceulib__.cart->setchr1(0x0c00,reg[3]|1);
+  fceulib__.cart->setchr1(0x1000,reg[4]);
+  fceulib__.cart->setchr1(0x1400,reg[5]);
+  fceulib__.cart->setchr1(0x1800,reg[6]);
+  fceulib__.cart->setchr1(0x1c00,reg[7]);
+  fceulib__.cart->setprg8r(0x10,0x6000,0);
+  fceulib__.cart->setprg8(0x8000,(reg[0x8]&0xf)|0x10);
+  fceulib__.cart->setprg8(0xA000,(reg[0x9]&0x1f));
+  fceulib__.cart->setprg8(0xC000,(reg[0xa]&0x1f));
+  fceulib__.cart->setprg8(0xE000,(reg[0xb]&0xf)|0x10);
+  fceulib__.cart->setmirror((reg[0xc]&1)^1);
 }
 
 static DECLFW(M106Write)
@@ -66,10 +66,10 @@ static void M106Power(void)
 {
   reg[8]=reg[9]=reg[0xa]=reg[0xb]=-1;
   Sync();
-  fceulib__fceu.SetReadHandler(0x6000,0x7FFF,Cart::CartBR);
-  fceulib__fceu.SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
-  fceulib__fceu.SetWriteHandler(0x6000,0x7FFF,Cart::CartBW);
-  fceulib__fceu.SetWriteHandler(0x8000,0xFFFF,M106Write);
+  fceulib__.fceu->SetReadHandler(0x6000,0x7FFF,Cart::CartBR);
+  fceulib__.fceu->SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__.fceu->SetWriteHandler(0x6000,0x7FFF,Cart::CartBW);
+  fceulib__.fceu->SetWriteHandler(0x8000,0xFFFF,M106Write);
 }
 
 static void M106Reset(void)
@@ -106,11 +106,11 @@ void Mapper106_Init(CartInfo *info) {
   info->Power=M106Power;
   info->Close=M106Close;
   X.MapIRQHook=M106CpuHook;
-  fceulib__fceu.GameStateRestore=StateRestore;
+  fceulib__.fceu->GameStateRestore=StateRestore;
 
   WRAMSIZE=8192;
   WRAM=(uint8*)FCEU_gmalloc(WRAMSIZE);
-  fceulib__cart.SetupCartPRGMapping(0x10,WRAM,WRAMSIZE,1);
+  fceulib__.cart->SetupCartPRGMapping(0x10,WRAM,WRAMSIZE,1);
   AddExState(WRAM, WRAMSIZE, 0, "WRAM");
 
   AddExState(&StateRegs, ~0, 0, 0);

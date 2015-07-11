@@ -32,20 +32,20 @@ static uint32 CHRRAMSize;
 
 static void BMCFK23CCW(uint32 A, uint8 V) {
   if(EXPREGS[0]&0x40)
-    fceulib__cart.setchr8(EXPREGS[2]|unromchr);
+    fceulib__.cart->setchr8(EXPREGS[2]|unromchr);
   else if(EXPREGS[0]&0x20) {
-    fceulib__cart.setchr1r(0x10, A, V);
+    fceulib__.cart->setchr1r(0x10, A, V);
   } else {
     uint16 base=(EXPREGS[2]&0x7F)<<3;
     if(EXPREGS[3]&2) {
       int cbase=(MMC3_cmd&0x80)<<5;
-      fceulib__cart.setchr1(A,V|base);
-      fceulib__cart.setchr1(0x0000^cbase,DRegBuf[0]|base);
-      fceulib__cart.setchr1(0x0400^cbase,EXPREGS[6]|base);
-      fceulib__cart.setchr1(0x0800^cbase,DRegBuf[1]|base);
-      fceulib__cart.setchr1(0x0c00^cbase,EXPREGS[7]|base);
+      fceulib__.cart->setchr1(A,V|base);
+      fceulib__.cart->setchr1(0x0000^cbase,DRegBuf[0]|base);
+      fceulib__.cart->setchr1(0x0400^cbase,EXPREGS[6]|base);
+      fceulib__.cart->setchr1(0x0800^cbase,DRegBuf[1]|base);
+      fceulib__.cart->setchr1(0x0c00^cbase,EXPREGS[7]|base);
     } else {
-      fceulib__cart.setchr1(A,V|base);
+      fceulib__.cart->setchr1(A,V|base);
     }
   }
 }
@@ -84,15 +84,15 @@ static int prg_mask;
 //PRG wrapper
 static void BMCFK23CPW(uint32 A, uint8 V) {
   // uint32 bank = (EXPREGS[1] & 0x1F);
-  // uint32 hiblock = ((EXPREGS[0] & 8) << 4)|((EXPREGS[0] & 0x80) << 1)|(fceulib__unif.UNIFchrrama?((EXPREGS[2] & 0x40)<<3):0);
+  // uint32 hiblock = ((EXPREGS[0] & 8) << 4)|((EXPREGS[0] & 0x80) << 1)|(fceulib__.unif->UNIFchrrama?((EXPREGS[2] & 0x40)<<3):0);
   // uint32 block = (EXPREGS[1] & 0x60) | hiblock;
   // uint32 extra = (EXPREGS[3] & 2);
 
   if((EXPREGS[0]&7)==4) {
-    fceulib__cart.setprg32(0x8000,EXPREGS[1]>>1);
+    fceulib__.cart->setprg32(0x8000,EXPREGS[1]>>1);
   } else if ((EXPREGS[0]&7)==3) {
-    fceulib__cart.setprg16(0x8000,EXPREGS[1]);
-    fceulib__cart.setprg16(0xC000,EXPREGS[1]);
+    fceulib__.cart->setprg16(0x8000,EXPREGS[1]);
+    fceulib__.cart->setprg16(0xC000,EXPREGS[1]);
   } else { 
     if(EXPREGS[0]&3) {
       uint32 blocksize = (6)-(EXPREGS[0]&3);
@@ -100,17 +100,17 @@ static void BMCFK23CPW(uint32 A, uint8 V) {
       V &= mask;
       //V &= 63; //? is this a good idea?
       V |= (EXPREGS[1]<<1);
-      fceulib__cart.setprg8(A,V);
+      fceulib__.cart->setprg8(A,V);
     } else {
-      fceulib__cart.setprg8(A,V & prg_mask);
+      fceulib__.cart->setprg8(A,V & prg_mask);
     }
 
     if(EXPREGS[3]&2) {
-      fceulib__cart.setprg8(0xC000,EXPREGS[4]);
-      fceulib__cart.setprg8(0xE000,EXPREGS[5]);
+      fceulib__.cart->setprg8(0xC000,EXPREGS[4]);
+      fceulib__.cart->setprg8(0xE000,EXPREGS[5]);
     }
   }
-  fceulib__cart.setprg8r(0x10,0x6000,A001B&3);
+  fceulib__.cart->setprg8r(0x10,0x6000,A001B&3);
 }
 
 //PRG handler ($8000-$FFFF)
@@ -130,7 +130,7 @@ static DECLFW(BMCFK23CHiWrite) {
     }
     else
       if(A<0xC000) {
-	if(fceulib__unif.UNIFchrrama) { // hacky... strange behaviour, must be bit scramble due to pcb layot restrictions
+	if(fceulib__.unif->UNIFchrrama) { // hacky... strange behaviour, must be bit scramble due to pcb layot restrictions
 	  // check if it not interfer with other dumps
 	  if((A==0x8000)&&(V==0x46))
 	    V=0x47;
@@ -198,8 +198,8 @@ static void BMCFK23CPower(void) {
   EXPREGS[0]=EXPREGS[1]=EXPREGS[2]=EXPREGS[3]=0;
   EXPREGS[4]=EXPREGS[5]=EXPREGS[6]=EXPREGS[7]=0xFF;
   GenMMC3Power();
-  fceulib__fceu.SetWriteHandler(0x5000,0x5fff,BMCFK23CWrite);
-  fceulib__fceu.SetWriteHandler(0x8000,0xFFFF,BMCFK23CHiWrite);
+  fceulib__.fceu->SetWriteHandler(0x5000,0x5fff,BMCFK23CWrite);
+  fceulib__.fceu->SetWriteHandler(0x8000,0xFFFF,BMCFK23CHiWrite);
   FixMMC3PRG(MMC3_cmd);
   FixMMC3CHR(MMC3_cmd);
 }
@@ -209,8 +209,8 @@ static void BMCFK23CAPower(void) {
   dipswitch = 0;
   EXPREGS[0]=EXPREGS[1]=EXPREGS[2]=EXPREGS[3]=0;
   EXPREGS[4]=EXPREGS[5]=EXPREGS[6]=EXPREGS[7]=0xFF;
-  fceulib__fceu.SetWriteHandler(0x5000,0x5fff,BMCFK23CWrite);
-  fceulib__fceu.SetWriteHandler(0x8000,0xFFFF,BMCFK23CHiWrite);
+  fceulib__.fceu->SetWriteHandler(0x5000,0x5fff,BMCFK23CWrite);
+  fceulib__.fceu->SetWriteHandler(0x8000,0xFFFF,BMCFK23CHiWrite);
   FixMMC3PRG(MMC3_cmd);
   FixMMC3CHR(MMC3_cmd);
 }
@@ -234,7 +234,7 @@ void BMCFK23C_Init(CartInfo *info) {
   AddExState(&dipswitch, 1, 0, "DPSW");
 
   prg_bonus = 1;
-  if (const std::string *val = fceulib__ines.MasterRomInfoParam("bonus")) {
+  if (const std::string *val = fceulib__.ines->MasterRomInfoParam("bonus")) {
     prg_bonus = atoi(val->c_str());
   }
 
@@ -253,7 +253,7 @@ void BMCFK23CA_Init(CartInfo *info) {
 
   CHRRAMSize=8192;
   CHRRAM=(uint8*)FCEU_gmalloc(CHRRAMSize);
-  fceulib__cart.SetupCartCHRMapping(0x10, CHRRAM, CHRRAMSize, 1);
+  fceulib__.cart->SetupCartCHRMapping(0x10, CHRRAM, CHRRAMSize, 1);
   AddExState(CHRRAM, CHRRAMSize, 0, "CRAM");
 
   AddExState(EXPREGS, 8, 0, "EXPR");
@@ -261,7 +261,7 @@ void BMCFK23CA_Init(CartInfo *info) {
   AddExState(&dipswitch, 1, 0, "DPSW");
 
   prg_bonus = 1;
-  if (const std::string *val = fceulib__ines.MasterRomInfoParam("bonus")) {
+  if (const std::string *val = fceulib__.ines->MasterRomInfoParam("bonus")) {
     prg_bonus = atoi(val->c_str());
   }
 
