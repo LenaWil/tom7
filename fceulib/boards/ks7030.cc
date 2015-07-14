@@ -51,22 +51,22 @@ static void Sync(void)
 // 7000 - 7FFF - BANK 4K REG0
 
 static DECLFW(UNLKS7030RamWrite0) {
-  if((A >= 0x6000) && A <= 0x6BFF) {
+  if ((A >= 0x6000) && A <= 0x6BFF) {
     WRAM[A-0x6000]=V;
-  } else if((A >= 0x6C00) && A <= 0x6FFF) {
-    Cart::CartBW(0xC800 + (A - 0x6C00), V);
-  } else if((A >= 0x7000) && A <= 0x7FFF) {
-    Cart::CartBW(0xB800 + (A - 0x7000), V);
+  } else if ((A >= 0x6C00) && A <= 0x6FFF) {
+    Cart::CartBW(fc, 0xC800 + (A - 0x6C00), V);
+  } else if ((A >= 0x7000) && A <= 0x7FFF) {
+    Cart::CartBW(fc, 0xB800 + (A - 0x7000), V);
   }
 }
 
 static DECLFR(UNLKS7030RamRead0) {
-  if((A >= 0x6000) && A <= 0x6BFF) {
+  if ((A >= 0x6000) && A <= 0x6BFF) {
     return WRAM[A-0x6000];
-  } else if((A >= 0x6C00) && A <= 0x6FFF) {
-    return Cart::CartBR(0xC800 + (A - 0x6C00));
-  } else if((A >= 0x7000) && A <= 0x7FFF) {
-    return Cart::CartBR(0xB800 + (A - 0x7000));
+  } else if ((A >= 0x6C00) && A <= 0x6FFF) {
+    return Cart::CartBR(fc, 0xC800 + (A - 0x6C00));
+  } else if ((A >= 0x7000) && A <= 0x7FFF) {
+    return Cart::CartBR(fc, 0xB800 + (A - 0x7000));
   }
   return 0;
 }
@@ -76,21 +76,21 @@ static DECLFR(UNLKS7030RamRead0) {
 // CC00 - D7FF - RAM
 
 static DECLFW(UNLKS7030RamWrite1) {
-  if((A >= 0xB800) && A <= 0xBFFF) {
+  if ((A >= 0xB800) && A <= 0xBFFF) {
     WRAM[0x0C00+(A-0xB800)]=V;
-  } else if((A >= 0xC000) && A <= 0xCBFF) {
-    Cart::CartBW(0xCC00 + (A - 0xC000), V);
-  } else if((A >= 0xCC00) && A <= 0xD7FF) {
+  } else if ((A >= 0xC000) && A <= 0xCBFF) {
+    Cart::CartBW(fc, 0xCC00 + (A - 0xC000), V);
+  } else if ((A >= 0xCC00) && A <= 0xD7FF) {
     WRAM[0x1400+(A-0xCC00)]=V;
   }
 }
 
 static DECLFR(UNLKS7030RamRead1) {
-  if((A >= 0xB800) && A <= 0xBFFF) {
+  if ((A >= 0xB800) && A <= 0xBFFF) {
     return WRAM[0x0C00+(A-0xB800)];
-  } else if((A >= 0xC000) && A <= 0xCBFF) {
-    return Cart::CartBR(0xCC00 + (A - 0xC000));
-  } else if((A >= 0xCC00) && A <= 0xD7FF) {
+  } else if ((A >= 0xC000) && A <= 0xCBFF) {
+    return Cart::CartBR(fc, 0xCC00 + (A - 0xC000));
+  } else if ((A >= 0xCC00) && A <= 0xD7FF) {
     return WRAM[0x1400+(A-0xCC00)];
   }
   return 0;
@@ -122,18 +122,15 @@ static void UNLKS7030Power(void)
 }
 
 static void UNLKS7030Close(void) {
-  if(WRAM)
-    free(WRAM);
-  WRAM=nullptr;
+  free(WRAM);
+  WRAM = nullptr;
 }
 
-static void StateRestore(int version)
-{
+static void StateRestore(int version) {
   Sync();
 }
 
-void UNLKS7030_Init(CartInfo *info)
-{
+void UNLKS7030_Init(CartInfo *info) {
   info->Power=UNLKS7030Power;
   info->Close=UNLKS7030Close;
   fceulib__.fceu->GameStateRestore=StateRestore;

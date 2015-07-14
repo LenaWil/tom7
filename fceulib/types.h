@@ -62,10 +62,6 @@ typedef uint64_t uint64;
 
 #endif
 
-
-typedef void (*writefunc)(uint32 A, uint8 V);
-typedef uint8 (*readfunc)(uint32 A);
-
 #include "utils/endian.h"
 
 #endif

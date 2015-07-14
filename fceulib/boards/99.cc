@@ -40,7 +40,7 @@ static DECLFW(M99Write)
 {
   latch = V;
   Sync();
-  old4016(A,V);
+  old4016(DECLFW_FORWARD);
 }
 
 static void M99Power(void)

@@ -54,14 +54,12 @@ static DECLFW(M175Write2)
   Sync();
 }
 
-static DECLFR(M175Read)
-{
-  if(A==0xFFFC)
-  {
+static DECLFR(M175Read) {
+  if (A==0xFFFC) {
     delay = 0;
     Sync();
   }
-  return Cart::CartBR(A);
+  return Cart::CartBR(DECLFR_FORWARD);
 }
 
 static void M175Power(void)

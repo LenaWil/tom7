@@ -44,7 +44,7 @@ static DECLFW(SA9602BWrite)
       }
       break;
   }
-  MMC3_CMDWrite(A, V);
+  MMC3_CMDWrite(DECLFW_FORWARD);
 }
 
 static void SA9602BPower(void)

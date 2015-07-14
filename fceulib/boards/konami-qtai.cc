@@ -144,7 +144,7 @@ static DECLFW(M1902007Wrap)
     if(regs[0xA]&1)
       QTAINTRAM[A&0x1FFF]=V;
     else
-      old2007wrap(A,V);
+      old2007wrap(DECLFW_FORWARD);
   }
 }
 

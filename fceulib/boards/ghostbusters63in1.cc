@@ -35,13 +35,13 @@ static SFORMAT StateRegs[]=
 
 static void Sync(void)
 {
-  if(reg[0]&0x20) {
+  if (reg[0]&0x20) {
     fceulib__.cart->setprg16r(banks[bank],0x8000,reg[0]&0x1F);
     fceulib__.cart->setprg16r(banks[bank],0xC000,reg[0]&0x1F);
   } else {
     fceulib__.cart->setprg32r(banks[bank],0x8000,(reg[0]>>1)&0x0F);
   }
-  if(reg[1]&2)
+  if (reg[1]&2)
     fceulib__.cart->setchr8r(0x10,0);
   else
     fceulib__.cart->setchr8(0);
@@ -57,10 +57,10 @@ static DECLFW(BMCGhostbusters63in1Write) {
 
 static DECLFR(BMCGhostbusters63in1Read)
 {
-  if(bank==1)
+  if (bank==1)
     return fceulib__.X->DB;
   else
-    return Cart::CartBR(A);
+    return Cart::CartBR(DECLFR_FORWARD);
 }
 
 static void BMCGhostbusters63in1Power(void)
@@ -81,11 +81,9 @@ static void StateRestore(int version)
   Sync();
 }
 
-static void BMCGhostbusters63in1Close(void)
-{
-  if(CHRROM)
-    free(CHRROM);
-  CHRROM=NULL;
+static void BMCGhostbusters63in1Close(void) {
+  free(CHRROM);
+  CHRROM = nullptr;
 }
 
 void BMCGhostbusters63in1_Init(CartInfo *info)

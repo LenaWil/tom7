@@ -1,6 +1,7 @@
 #ifndef _FCEUH
 #define _FCEUH
 
+#include "types.h"
 #include "git.h"
 
 // XXX
@@ -11,18 +12,21 @@
 
 #include "fc.h"
 
+typedef void (*writefunc)(FC *, uint32 A, uint8 V);
+typedef uint8 (*readfunc)(FC *, uint32 A);
+
 static constexpr int newppu = 0;
 
 // TODO(tom7): Fix this junk. These have to take a Fceulib object.
-#define DECLFR(x) uint8 x (uint32 A)
-#define DECLFR_FORWARD A
+#define DECLFR(x) uint8 x (FC *fc, uint32 A)
+#define DECLFR_FORWARD fc, A
 #define DECLFR_RET uint8
-#define DECLFR_ARGS uint32 A
+#define DECLFR_ARGS FC *fc, uint32 A
 
-#define DECLFW(x) void x (uint32 A, uint8 V)
+#define DECLFW(x) void x (FC *fc, uint32 A, uint8 V)
 #define DECLFW_RET void
-#define DECLFW_FORWARD A, V
-#define DECLFW_ARGS uint32 A, uint8 V
+#define DECLFW_FORWARD fc, A, V
+#define DECLFW_ARGS FC *fc, uint32 A, uint8 V
 
 enum GI {
   GI_RESETM2 = 1,

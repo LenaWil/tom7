@@ -31,13 +31,13 @@ static uint8 *CHRRAM=NULL;
 static uint32 CHRRAMSize;
 
 static void BMCFK23CCW(uint32 A, uint8 V) {
-  if(EXPREGS[0]&0x40)
+  if (EXPREGS[0]&0x40)
     fceulib__.cart->setchr8(EXPREGS[2]|unromchr);
-  else if(EXPREGS[0]&0x20) {
+  else if (EXPREGS[0]&0x20) {
     fceulib__.cart->setchr1r(0x10, A, V);
   } else {
     uint16 base=(EXPREGS[2]&0x7F)<<3;
-    if(EXPREGS[3]&2) {
+    if (EXPREGS[3]&2) {
       int cbase=(MMC3_cmd&0x80)<<5;
       fceulib__.cart->setchr1(A,V|base);
       fceulib__.cart->setchr1(0x0000^cbase,DRegBuf[0]|base);
@@ -88,13 +88,13 @@ static void BMCFK23CPW(uint32 A, uint8 V) {
   // uint32 block = (EXPREGS[1] & 0x60) | hiblock;
   // uint32 extra = (EXPREGS[3] & 2);
 
-  if((EXPREGS[0]&7)==4) {
+  if ((EXPREGS[0]&7)==4) {
     fceulib__.cart->setprg32(0x8000,EXPREGS[1]>>1);
   } else if ((EXPREGS[0]&7)==3) {
     fceulib__.cart->setprg16(0x8000,EXPREGS[1]);
     fceulib__.cart->setprg16(0xC000,EXPREGS[1]);
   } else { 
-    if(EXPREGS[0]&3) {
+    if (EXPREGS[0]&3) {
       uint32 blocksize = (6)-(EXPREGS[0]&3);
       uint32 mask = (1<<blocksize)-1;
       V &= mask;
@@ -105,7 +105,7 @@ static void BMCFK23CPW(uint32 A, uint8 V) {
       fceulib__.cart->setprg8(A,V & prg_mask);
     }
 
-    if(EXPREGS[3]&2) {
+    if (EXPREGS[3]&2) {
       fceulib__.cart->setprg8(0xC000,EXPREGS[4]);
       fceulib__.cart->setprg8(0xE000,EXPREGS[5]);
     }
@@ -115,39 +115,37 @@ static void BMCFK23CPW(uint32 A, uint8 V) {
 
 //PRG handler ($8000-$FFFF)
 static DECLFW(BMCFK23CHiWrite) {
-  if(EXPREGS[0]&0x40) {
-    if(EXPREGS[0]&0x30) {
+  if (EXPREGS[0]&0x40) {
+    if (EXPREGS[0]&0x30) {
       unromchr=0;
     } else {
       unromchr=V&3;
       FixMMC3CHR(MMC3_cmd);
     }
   } else {
-    if((A==0x8001)&&(EXPREGS[3]&2&&MMC3_cmd&8)) {
+    if ((A==0x8001)&&(EXPREGS[3]&2&&MMC3_cmd&8)) {
       EXPREGS[4|(MMC3_cmd&3)]=V;
       FixMMC3PRG(MMC3_cmd);
       FixMMC3CHR(MMC3_cmd);
-    }
-    else
-      if(A<0xC000) {
-	if(fceulib__.unif->UNIFchrrama) { // hacky... strange behaviour, must be bit scramble due to pcb layot restrictions
-	  // check if it not interfer with other dumps
-	  if((A==0x8000)&&(V==0x46))
-	    V=0x47;
-	  else if((A==0x8000)&&(V==0x47))
-	    V=0x46;
-	}
-	MMC3_CMDWrite(A,V);
-	FixMMC3PRG(MMC3_cmd);
+    } else if (A<0xC000) {
+      if (fceulib__.unif->UNIFchrrama) { // hacky... strange behaviour, must be bit scramble due to pcb layot restrictions
+	// check if it not interfer with other dumps
+	if ((A==0x8000)&&(V==0x46))
+	  V=0x47;
+	else if ((A==0x8000)&&(V==0x47))
+	  V=0x46;
       }
-      else
-	MMC3_IRQWrite(A,V);
+      MMC3_CMDWrite(DECLFW_FORWARD);
+      FixMMC3PRG(MMC3_cmd);
+    } else {
+      MMC3_IRQWrite(DECLFW_FORWARD);
+    }
   }
 }
 
 //EXP handler ($5000-$5FFF)
 static DECLFW(BMCFK23CWrite) {
-  if(A&(1<<(dipswitch+4))) {
+  if (A&(1<<(dipswitch+4))) {
     //printf("+ ");
     EXPREGS[A&3]=V;
 
@@ -163,14 +161,14 @@ static DECLFW(BMCFK23CWrite) {
     //this too.
     remap |= (A&3)==2; 
 
-    if(remap) {
+    if (remap) {
       FixMMC3PRG(MMC3_cmd);
       FixMMC3CHR(MMC3_cmd);
     }
   }
 
-  if(is_BMCFK23CA) {
-    if(EXPREGS[3]&2)
+  if (is_BMCFK23CA) {
+    if (EXPREGS[3]&2)
       EXPREGS[0] &= ~7;   // hacky hacky! if someone wants extra banking, then for sure doesn't want mode 4 for it! (allow to run A version boards on normal mapper)
   }
 
@@ -216,9 +214,8 @@ static void BMCFK23CAPower(void) {
 }
 
 static void BMCFK23CAClose(void) {
-  if(CHRRAM)
-    free(CHRRAM);
-  CHRRAM=NULL;
+  free(CHRRAM);
+  CHRRAM = nullptr;
 }
 
 void BMCFK23C_Init(CartInfo *info) {

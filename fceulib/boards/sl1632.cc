@@ -72,9 +72,9 @@ static DECLFW(UNLSL1632CMDWrite)
     FixMMC3PRG(MMC3_cmd);
     FixMMC3CHR(MMC3_cmd);
     if(A<0xC000)
-      MMC3_CMDWrite(A,V);
+      MMC3_CMDWrite(DECLFW_FORWARD);
     else
-      MMC3_IRQWrite(A,V);
+      MMC3_IRQWrite(DECLFW_FORWARD);
   }
   else
   {

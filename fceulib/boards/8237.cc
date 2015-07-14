@@ -53,7 +53,7 @@ static constexpr uint8 adrperm[8][8] =
 
 static void UNL8237CW(uint32 A, uint8 V)
 {
-  if(EXPREGS[0]&0x40)
+  if (EXPREGS[0]&0x40)
     fceulib__.cart->setchr1(A,((EXPREGS[1]&0xc)<<6)|(V&0x7F)|((EXPREGS[1]&0x20)<<2));
   else
     fceulib__.cart->setchr1(A,((EXPREGS[1]&0xc)<<6)|V);
@@ -61,13 +61,13 @@ static void UNL8237CW(uint32 A, uint8 V)
 
 static void UNL8237PW(uint32 A, uint8 V)
 {
-  if(EXPREGS[0]&0x40)
+  if (EXPREGS[0]&0x40)
   {
     uint8 sbank = (EXPREGS[1]&0x10);
-    if(EXPREGS[0]&0x80)
+    if (EXPREGS[0]&0x80)
     {
       uint8 bank = ((EXPREGS[1]&3)<<4)|(EXPREGS[0]&0x7)|(sbank>>1);
-      if(EXPREGS[0]&0x20)
+      if (EXPREGS[0]&0x20)
         fceulib__.cart->setprg32(0x8000,bank>>1);
       else
       {
@@ -80,10 +80,10 @@ static void UNL8237PW(uint32 A, uint8 V)
   }
   else
   {
-    if(EXPREGS[0]&0x80)
+    if (EXPREGS[0]&0x80)
     {
       uint8 bank = ((EXPREGS[1]&3)<<4)|(EXPREGS[0]&0xF);
-      if(EXPREGS[0]&0x20)
+      if (EXPREGS[0]&0x20)
         fceulib__.cart->setprg32(0x8000,bank>>1);
       else
       {
@@ -98,7 +98,7 @@ static void UNL8237PW(uint32 A, uint8 V)
 
 static void UNL8237ACW(uint32 A, uint8 V)
 {
-  if(EXPREGS[0]&0x40)
+  if (EXPREGS[0]&0x40)
     fceulib__.cart->setchr1(A,((EXPREGS[1]&0xE)<<7)|(V&0x7F)|((EXPREGS[1]&0x20)<<2));
   else
     fceulib__.cart->setchr1(A,((EXPREGS[1]&0xE)<<7)|V);
@@ -106,13 +106,13 @@ static void UNL8237ACW(uint32 A, uint8 V)
 
 static void UNL8237APW(uint32 A, uint8 V)
 {
-  if(EXPREGS[0]&0x40)
+  if (EXPREGS[0]&0x40)
   {
     uint8 sbank = (EXPREGS[1]&0x10);
-    if(EXPREGS[0]&0x80)
+    if (EXPREGS[0]&0x80)
     {
       uint8 bank = ((EXPREGS[1]&3)<<4)|((EXPREGS[1]&8)<<3)|(EXPREGS[0]&0x7)|(sbank>>1);
-      if(EXPREGS[0]&0x20)
+      if (EXPREGS[0]&0x20)
         fceulib__.cart->setprg32(0x8000,bank>>1);
       else
       {
@@ -125,10 +125,10 @@ static void UNL8237APW(uint32 A, uint8 V)
   }
   else
   {
-    if(EXPREGS[0]&0x80)
+    if (EXPREGS[0]&0x80)
     {
       uint8 bank = ((EXPREGS[1]&3)<<4)|((EXPREGS[1]&8)<<3)|(EXPREGS[0]&0xF);
-      if(EXPREGS[0]&0x20)
+      if (EXPREGS[0]&0x20)
         fceulib__.cart->setprg32(0x8000,bank>>1);
       else
       {
@@ -145,14 +145,13 @@ static DECLFW(UNL8237Write)
   uint8 dat = V;
   uint8 adr = adrperm[EXPREGS[2]][((A>>12)&6)|(A&1)];
   uint16 addr = (adr & 1)|((adr & 6)<<12)|0x8000;
-  if(adr < 4)
-  {
-    if(!adr)
+  if (adr < 4) {
+    if (!adr)
       dat = (dat & 0xC0)|(regperm[EXPREGS[2]][dat & 7]);
-    MMC3_CMDWrite(addr,dat);
+    MMC3_CMDWrite(fc, addr,dat);
+  } else {
+    MMC3_IRQWrite(fc, addr,dat);
   }
-  else
-    MMC3_IRQWrite(addr,dat);
 }
 
 static DECLFW(UNL8237ExWrite)

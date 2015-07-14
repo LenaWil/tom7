@@ -9,7 +9,6 @@ Stuff I should be able to get rid of:
  - auto-fire
  - proper in-memory treatment of battery backed saves. lots of
    red herrings here! also, it leaks file descriptors.
- - autosave (fceu.cc mostly)
  - get rid of _defines in x6502.cc
  - FCEUI_Initialize calls srand -- what is using random numbers?
  - NSF code in mapper.h and the uncalled functions therein?
@@ -23,6 +22,8 @@ Stuff I should be able to get rid of:
 
       A little left over in:
       ines.cc
+
+ - DECLFR, DECLFW
 
 Memory todo:
  - Need to check that various objects are actually having their Free or Kill
@@ -54,6 +55,7 @@ Possible performance improvements:
    mappers and cart types.) Could maybe be replaced with a single function
    (inlined into x6502) per mapper configuration.
 
+ - JIT or AOT compile x6502 code to x86 and optimize.
 
 Notes:
 "CDLogger" is "code data logger", and I have deemed it unnecessary

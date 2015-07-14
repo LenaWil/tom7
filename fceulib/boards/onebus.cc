@@ -49,8 +49,7 @@ static int16 pcm_addr, pcm_size, pcm_latch, pcm_clock = 0xF6;
 static writefunc defapuwrite[64];
 static readfunc defapuread[64];
 
-static SFORMAT StateRegs[]=
-{
+static SFORMAT StateRegs[]= {
   {cpu410x, 16, "REGC"},
   {ppu201x, 16, "REGS"},
   {apu40xx, 64, "REGA"},
@@ -180,16 +179,16 @@ static DECLFW(UNLOneBusWriteMMC3)
 static void UNLOneBusIRQHook(void)
 {
  int count = IRQCount;
- if(!count || IRQReload)
+ if (!count || IRQReload)
  {
     IRQCount = IRQLatch;
     IRQReload = 0;
  }
  else
     IRQCount--;
- if(count && !IRQCount)
+ if (count && !IRQCount)
  {
-    if(IRQa)
+    if (IRQa)
        fceulib__.X->IRQBegin(FCEU_IQEXT);
  }
 }
@@ -201,40 +200,39 @@ static DECLFW(UNLOneBusWriteAPU40XX)
   switch(A & 0x3f)
   {
   case 0x12:
-    if(apu40xx[0x30] & 0x10)
+    if (apu40xx[0x30] & 0x10)
     {
       pcm_addr = V << 6;
     }
   case 0x13:
-    if(apu40xx[0x30] & 0x10)
+    if (apu40xx[0x30] & 0x10)
     {
       pcm_size = (V << 4) + 1;
     }
   case 0x15:
-    if(apu40xx[0x30] & 0x10)
+    if (apu40xx[0x30] & 0x10)
     {
       pcm_enable = V&0x10;
-      if(pcm_irq)
+      if (pcm_irq)
       {
         fceulib__.X->IRQEnd(FCEU_IQEXT);
         pcm_irq = 0;
       }
-      if(pcm_enable)
+      if (pcm_enable)
         pcm_latch = pcm_clock;
       V &= 0xef;
     }
   }
-  defapuwrite[A & 0x3f](A, V);
+  defapuwrite[A & 0x3f](DECLFW_FORWARD);
 }
 
-static DECLFR(UNLOneBusReadAPU40XX)
-{
-  uint8 result = defapuread[A & 0x3f](A);
+static DECLFR(UNLOneBusReadAPU40XX) {
+  uint8 result = defapuread[A & 0x3f](DECLFR_FORWARD);
 //  FCEU_printf("read %04x, %02x\n",A,result);
   switch(A & 0x3f)
   {
   case 0x15:
-    if(apu40xx[0x30] & 0x10)
+    if (apu40xx[0x30] & 0x10)
     {
       result = (result & 0x7f) | pcm_irq;
     }
@@ -242,28 +240,24 @@ static DECLFR(UNLOneBusReadAPU40XX)
   return result;
 }
 
-static void UNLOneBusCpuHook(int a)
-{
-  if(pcm_enable)
-  {
+// XXX needs fc arg
+static void UNLOneBusCpuHook(int a) {
+  if (pcm_enable) {
     pcm_latch-=a;
-    if(pcm_latch<=0)
-    {
-  	  pcm_latch+=pcm_clock;
-  	  pcm_size--;
-	  if(pcm_size<0)
-	  {
-	    pcm_irq = 0x80;
-		pcm_enable = 0;
-	    fceulib__.X->IRQBegin(FCEU_IQEXT);
- 	  }
-	  else
- 	  {
-	    uint8 raw_pcm = fceulib__.fceu->ARead[pcm_addr](pcm_addr) >> 1;
-	    defapuwrite[0x11](0x4011,raw_pcm);
-		pcm_addr++;
-		pcm_addr&=0x7FFF;
-	  }
+    if (pcm_latch<=0) {
+      pcm_latch+=pcm_clock;
+      pcm_size--;
+      if (pcm_size<0) {
+	pcm_irq = 0x80;
+	pcm_enable = 0;
+	fceulib__.X->IRQBegin(FCEU_IQEXT);
+      } else {
+	uint8 raw_pcm = fceulib__.fceu->ARead[pcm_addr](&fceulib__,
+							pcm_addr) >> 1;
+	defapuwrite[0x11](&fceulib__, 0x4011, raw_pcm);
+	pcm_addr++;
+	pcm_addr&=0x7FFF;
+      }
     }
   }
 }

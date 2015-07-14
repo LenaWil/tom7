@@ -76,20 +76,20 @@ static DECLFW(M121Write) {
   switch(A&0xE003) {
     case 0x8000: //EXPREGS[5] = 0;
 //                 FCEU_printf("gen: %02x\n",V);
-                 MMC3_CMDWrite(A,V);
+                 MMC3_CMDWrite(DECLFW_FORWARD);
                  FixMMC3PRG(MMC3_cmd);
                  break;
     case 0x8001: EXPREGS[6] = ((V&1)<<5)|((V&2)<<3)|((V&4)<<1)|((V&8)>>1)|((V&0x10)>>3)|((V&0x20)>>5);
 //                 FCEU_printf("bank: %02x (%02x)\n",V,EXPREGS[6]);
                  if(!EXPREGS[7]) Sync();
-                 MMC3_CMDWrite(A,V);
+                 MMC3_CMDWrite(DECLFW_FORWARD);
                  FixMMC3PRG(MMC3_cmd);
                  break;
     case 0x8003: EXPREGS[5] = V;
 //                 EXPREGS[7] = 0;
 //                 FCEU_printf("prot: %02x\n",EXPREGS[5]);
                  Sync();
-                 MMC3_CMDWrite(0x8000,V);
+                 MMC3_CMDWrite(fc, 0x8000,V);
                  FixMMC3PRG(MMC3_cmd);
                  break;
   }

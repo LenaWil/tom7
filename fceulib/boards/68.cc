@@ -53,15 +53,14 @@ static void M68NTfix(void) {
      case 3: fceulib__.ppu->vnapage[0]=fceulib__.ppu->vnapage[1]=fceulib__.ppu->vnapage[2]=fceulib__.ppu->vnapage[3]=fceulib__.cart->CHRptr[0]+(((nt2|128)&fceulib__.cart->CHRmask1[0])<<10);
              break;
     }
-  }
-  else
-    switch(mirr&3)
-    {
+  } else {
+    switch(mirr&3) {
       case 0: fceulib__.cart->setmirror(MI_V); break;
       case 1: fceulib__.cart->setmirror(MI_H); break;
       case 2: fceulib__.cart->setmirror(MI_0); break;
       case 3: fceulib__.cart->setmirror(MI_1); break;
     }
+  }
 }
 
 static void Sync(void)
@@ -83,7 +82,7 @@ static DECLFR(M68Read)
     if(count==1784)
       fceulib__.cart->setprg16r(0,0x8000,prg_reg);
   }
-  return Cart::CartBR(A);
+  return Cart::CartBR(DECLFR_FORWARD);
 }
 
 static DECLFW(M68WriteLo)
