@@ -15,27 +15,22 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
 #include "mapinc.h"
 
-static DECLFW(Mapper62_write)
-{
-  VROM_BANK8(((A&0x1F)<<2)|(V&0x03));
-  if(A&0x20) {
-     ROM_BANK16(0x8000,(A&0x40)|((A>>8)&0x3F));
-     ROM_BANK16(0xc000,(A&0x40)|((A>>8)&0x3F));
-  }
-  else
-     ROM_BANK32(((A&0x40)|((A>>8)&0x3F))>>1);
-  fceulib__.ines->MIRROR_SET((A&0x80)>>7);
+static DECLFW(Mapper62_write) {
+  VROM_BANK8(((A & 0x1F) << 2) | (V & 0x03));
+  if (A & 0x20) {
+    ROM_BANK16(0x8000, (A & 0x40) | ((A >> 8) & 0x3F));
+    ROM_BANK16(0xc000, (A & 0x40) | ((A >> 8) & 0x3F));
+  } else
+    ROM_BANK32(((A & 0x40) | ((A >> 8) & 0x3F)) >> 1);
+  fceulib__.ines->MIRROR_SET((A & 0x80) >> 7);
 }
 
-void Mapper62_init(void)
-{
-        fceulib__.fceu->SetWriteHandler(0x8000,0xffff, Mapper62_write);
-        ROM_BANK32(0);
+void Mapper62_init(void) {
+  fceulib__.fceu->SetWriteHandler(0x8000, 0xffff, Mapper62_write);
+  ROM_BANK32(0);
 }
-
-

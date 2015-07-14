@@ -15,40 +15,33 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
 #include "mapinc.h"
 
-
-static DECLFW(Mapper61_write)
-{
-// printf("$%04x:$%02x\n",A,V);
- switch(A&0x30)
- {
-  case 0x00:
-  case 0x30:
-          ROM_BANK32(A&0xF);
-          break;
-  case 0x20:
-  case 0x10:
-          ROM_BANK16(0x8000,((A&0xF)<<1)| (((A&0x20)>>4)) );
-          ROM_BANK16(0xC000,((A&0xF)<<1)| (((A&0x20)>>4)) );
-          break;
- }
- #ifdef moo
- if(!(A&0x10))
-  ROM_BANK32(A&0xF);
- else
- {
-  ROM_BANK16(0x8000,((A&0xF)<<1)| (((A&0x10)>>4)^1) );
-  ROM_BANK16(0xC000,((A&0xF)<<1)| (((A&0x10)>>4)^1) );
- }
- #endif
- fceulib__.ines->MIRROR_SET((A&0x80)>>7);
+static DECLFW(Mapper61_write) {
+  // printf("$%04x:$%02x\n",A,V);
+  switch (A & 0x30) {
+    case 0x00:
+    case 0x30: ROM_BANK32(A & 0xF); break;
+    case 0x20:
+    case 0x10:
+      ROM_BANK16(0x8000, ((A & 0xF) << 1) | (((A & 0x20) >> 4)));
+      ROM_BANK16(0xC000, ((A & 0xF) << 1) | (((A & 0x20) >> 4)));
+      break;
+  }
+#ifdef moo
+  if (!(A & 0x10))
+    ROM_BANK32(A & 0xF);
+  else {
+    ROM_BANK16(0x8000, ((A & 0xF) << 1) | (((A & 0x10) >> 4) ^ 1));
+    ROM_BANK16(0xC000, ((A & 0xF) << 1) | (((A & 0x10) >> 4) ^ 1));
+  }
+#endif
+  fceulib__.ines->MIRROR_SET((A & 0x80) >> 7);
 }
 
-void Mapper61_init(void)
-{
- fceulib__.fceu->SetWriteHandler(0x8000,0xffff,Mapper61_write);
+void Mapper61_init(void) {
+  fceulib__.fceu->SetWriteHandler(0x8000, 0xffff, Mapper61_write);
 }
