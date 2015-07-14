@@ -29,7 +29,7 @@ static SFORMAT StateRegs[] = {{&cmd, 1, "CMD"},
                               {&IRQCount, 4, "IRQC"},
                               {0}};
 
-static void Sync(void) {
+static void Sync() {
   fceulib__.cart->setprg8(0x6000, reg[4]);
   fceulib__.cart->setprg8(0x8000, reg[1]);
   fceulib__.cart->setprg8(0xA000, reg[2]);
@@ -87,7 +87,7 @@ static void UNLSMB2JIRQHook(int a) {
   }
 }
 
-static void UNLKS7032Power(void) {
+static void UNLKS7032Power() {
   Sync();
   fceulib__.fceu->SetReadHandler(0x6000, 0x7FFF, Cart::CartBR);
   fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);

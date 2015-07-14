@@ -76,14 +76,14 @@ static DECLFR(BMCT2271HiRead) {
   return Cart::CartBR(fc, av);
 }
 
-static void BMCT2271Reset(void) {
+static void BMCT2271Reset() {
   EXPREGS[0] = 0x00;
   reset_flag++;
   reset_flag &= 0x0F;
   MMC3RegReset();
 }
 
-static void BMCT2271Power(void) {
+static void BMCT2271Power() {
   EXPREGS[0] = 0x00;
   GenMMC3Power();
   fceulib__.fceu->SetWriteHandler(0x6000, 0x7FFF, BMCT2271LoWrite);

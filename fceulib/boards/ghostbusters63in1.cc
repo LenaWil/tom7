@@ -28,7 +28,7 @@ static uint32 CHRROMSIZE;
 
 static SFORMAT StateRegs[] = {{reg, 2, "REGS"}, {&bank, 1, "BANK"}, {0}};
 
-static void Sync(void) {
+static void Sync() {
   if (reg[0] & 0x20) {
     fceulib__.cart->setprg16r(banks[bank], 0x8000, reg[0] & 0x1F);
     fceulib__.cart->setprg16r(banks[bank], 0xC000, reg[0] & 0x1F);
@@ -56,14 +56,14 @@ static DECLFR(BMCGhostbusters63in1Read) {
     return Cart::CartBR(DECLFR_FORWARD);
 }
 
-static void BMCGhostbusters63in1Power(void) {
+static void BMCGhostbusters63in1Power() {
   reg[0] = reg[1] = 0;
   Sync();
   fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, BMCGhostbusters63in1Read);
   fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, BMCGhostbusters63in1Write);
 }
 
-static void BMCGhostbusters63in1Reset(void) {
+static void BMCGhostbusters63in1Reset() {
   reg[0] = reg[1] = 0;
 }
 
@@ -71,7 +71,7 @@ static void StateRestore(int version) {
   Sync();
 }
 
-static void BMCGhostbusters63in1Close(void) {
+static void BMCGhostbusters63in1Close() {
   free(CHRROM);
   CHRROM = nullptr;
 }

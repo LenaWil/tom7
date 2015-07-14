@@ -151,13 +151,13 @@ static DECLFW(WritePRG) {
   }
 }
 
-static void M28Reset(void) {
+static void M28Reset() {
   outer = 63;
   prg = 15;
   Sync();
 }
 
-static void M28Power(void) {
+static void M28Power() {
   prg_mask_16k = fceulib__.cart->PRGsize[0] - 1;
 
   // EXP
@@ -174,7 +174,7 @@ static void M28Power(void) {
   M28Reset();
 }
 
-static void M28Close(void) {}
+static void M28Close() {}
 
 static SFORMAT StateRegs[] = {{&reg, 1, "REG"},    {&chr, 1, "CHR"},
                               {&prg, 1, "PRG"},    {&mode, 1, "MODE"},

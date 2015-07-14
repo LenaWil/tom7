@@ -28,7 +28,7 @@ static uint8 hrd_flag;
 static SFORMAT StateRegs[] = {
     {&hrd_flag, 1, "DPSW"}, {&prg_reg, 1, "PRG"}, {&chr_reg, 1, "CHR"}, {0}};
 
-static void Sync(void) {
+static void Sync() {
   if (prg_reg & 0x80)
     fceulib__.cart->setprg32(0x8000, prg_reg >> 6);
   else {
@@ -52,7 +52,7 @@ static DECLFW(M57Write) {
   Sync();
 }
 
-static void M57Power(void) {
+static void M57Power() {
   prg_reg = 0;
   chr_reg = 0;
   hrd_flag = 0;

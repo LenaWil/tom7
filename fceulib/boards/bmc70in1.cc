@@ -34,7 +34,7 @@ static SFORMAT StateRegs[] = {{&large_bank, 1, "LB"},
                               {&mirroring, 1, "MIRR"},
                               {0}};
 
-static void Sync(void) {
+static void Sync() {
   switch (bank_mode) {
     case 0x00:
     case 0x10:
@@ -77,7 +77,7 @@ static DECLFW(BMC70in1Write) {
   Sync();
 }
 
-static void BMC70in1Reset(void) {
+static void BMC70in1Reset() {
   bank_mode = 0;
   large_bank = 0;
   Sync();
@@ -85,7 +85,7 @@ static void BMC70in1Reset(void) {
   hw_switch &= 0xf;
 }
 
-static void BMC70in1Power(void) {
+static void BMC70in1Power() {
   fceulib__.cart->setchr8(0);
   bank_mode = 0;
   large_bank = 0;

@@ -63,7 +63,7 @@ static SFORMAT StateRegs[] = {{cpu410x, 16, "REGC"},
                               {&pcm_clock, 2, "PCMC"},
                               {0}};
 
-static void PSync(void) {
+static void PSync() {
   uint8 bankmode = cpu410x[0xb] & 7;
   uint8 mask = (bankmode == 0x7) ? (0xff) : (0x3f >> bankmode);
   uint32 block = ((cpu410x[0x0] & 0xf0) << 4) + (cpu410x[0xa] & (~mask));
@@ -88,7 +88,7 @@ static void PSync(void) {
   fceulib__.cart->setprg8(0xe000, block | (bank3 & mask));
 }
 
-static void CSync(void) {
+static void CSync() {
   static constexpr uint8 midx[8] = {0, 1, 2, 0, 3, 4, 5, 0};
   uint8 mask = 0xff >> midx[ppu201x[0xa] & 7];
   uint32 block = ((cpu410x[0x0] & 0x0f) << 11) + ((ppu201x[0x8] & 0x70) << 4) +
@@ -116,7 +116,7 @@ static void CSync(void) {
   fceulib__.cart->setmirror((mirror & 1) ^ 1);
 }
 
-static void Sync(void) {
+static void Sync() {
   PSync();
   CSync();
 }
@@ -199,7 +199,7 @@ static DECLFW(UNLOneBusWriteMMC3) {
   }
 }
 
-static void UNLOneBusIRQHook(void) {
+static void UNLOneBusIRQHook() {
   int count = IRQCount;
   if (!count || IRQReload) {
     IRQCount = IRQLatch;
@@ -271,7 +271,7 @@ static void UNLOneBusCpuHook(int a) {
   }
 }
 
-static void UNLOneBusPower(void) {
+static void UNLOneBusPower() {
   uint32 i;
   IRQReload = IRQCount = IRQa = 0;
 
@@ -297,7 +297,7 @@ static void UNLOneBusPower(void) {
   Sync();
 }
 
-static void UNLOneBusReset(void) {
+static void UNLOneBusReset() {
   IRQReload = IRQCount = IRQa = 0;
 
   memset(cpu410x, 0x00, sizeof(cpu410x));

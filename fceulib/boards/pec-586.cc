@@ -45,7 +45,7 @@ static constexpr uint8 br_tbl[16] = {
     0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02,
 };
 
-static void Sync(void) {
+static void Sync() {
   //  setchr4(0x0000,(reg[0]&0x80) >> 7);
   //  setchr4(0x1000,(reg[0]&0x80) >> 7);
   fceulib__.cart->setchr8(0);
@@ -66,7 +66,7 @@ static DECLFR(UNLPEC586Read) {
   return (fceulib__.X->DB & 0xD8) | br_tbl[reg[4] >> 4];
 }
 
-static void UNLPEC586Power(void) {
+static void UNLPEC586Power() {
   reg[0] = 0x0E;
   Sync();
   fceulib__.cart->setchr8(0);
@@ -77,7 +77,7 @@ static void UNLPEC586Power(void) {
   fceulib__.fceu->SetReadHandler(0x5000, 0x5fff, UNLPEC586Read);
 }
 
-static void UNLPEC586IRQ(void) {
+static void UNLPEC586IRQ() {
   if (fceulib__.ppu->scanline == 128) {
     fceulib__.cart->setchr4(0x0000, 1);
     fceulib__.cart->setchr4(0x1000, 0);
@@ -87,7 +87,7 @@ static void UNLPEC586IRQ(void) {
   }
 }
 
-static void UNLPEC586Close(void) {
+static void UNLPEC586Close() {
   if (WRAM) free(WRAM);
   WRAM = NULL;
 }

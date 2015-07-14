@@ -27,7 +27,7 @@ static uint8 reg[4];
 
 static SFORMAT StateRegs[] = {{reg, 4, "REGS"}, {0}};
 
-static void Sync(void) {
+static void Sync() {
   fceulib__.cart->setprg2(0x6000, reg[0]);
   fceulib__.cart->setprg2(0x6800, reg[1]);
   fceulib__.cart->setprg2(0x7000, reg[2]);
@@ -59,7 +59,7 @@ static DECLFW(UNLKS7031Write) {
   Sync();
 }
 
-static void UNLKS7031Power(void) {
+static void UNLKS7031Power() {
   Sync();
   fceulib__.fceu->SetReadHandler(0x6000, 0xFFFF, Cart::CartBR);
   fceulib__.fceu->SetWriteHandler(0x8000, 0xffff, UNLKS7031Write);

@@ -28,7 +28,7 @@ static uint32 IRQCount, IRQa;
 static SFORMAT StateRegs[] = {
     {&IRQCount, 4, "IRQC"}, {&IRQa, 1, "IRQA"}, {&reg, 1, "REG"}, {0}};
 
-static void Sync(void) {
+static void Sync() {
   fceulib__.cart->setprg4(0x5000, 16);  // Only YS-612 advdnced version
   fceulib__.cart->setprg8(0x6000, 2);
   fceulib__.cart->setprg8(0x8000, 1);
@@ -56,14 +56,14 @@ static DECLFW(M43Write) {
   }
 }
 
-static void M43Power(void) {
+static void M43Power() {
   reg = 0;
   Sync();
   fceulib__.fceu->SetReadHandler(0x5000, 0xffff, Cart::CartBR);
   fceulib__.fceu->SetWriteHandler(0x4020, 0xffff, M43Write);
 }
 
-static void M43Reset(void) {}
+static void M43Reset() {}
 
 static void M43IRQHook(int a) {
   IRQCount += a;

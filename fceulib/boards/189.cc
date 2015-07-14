@@ -31,7 +31,7 @@ static DECLFW(M189Write) {
   FixMMC3PRG(MMC3_cmd);
 }
 
-static void M189Power(void) {
+static void M189Power() {
   EXPREGS[0] = EXPREGS[1] = 0;
   GenMMC3Power();
   fceulib__.fceu->SetWriteHandler(0x4120, 0x7FFF, M189Write);

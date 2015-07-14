@@ -33,7 +33,7 @@ static SFORMAT StateRegs[] = {{reg, 8, "REGS"},
                               {&IRQa, 16, "IRQa"},
                               {0}};
 
-static void Sync(void) {
+static void Sync() {
   fceulib__.cart->setprg8(0x8000, reg[0]);
   fceulib__.cart->setprg8(0xA000, reg[1]);
   fceulib__.cart->setprg8(0xC000, reg[2]);
@@ -65,7 +65,7 @@ static DECLFW(UNLSC127Write) {
   Sync();
 }
 
-static void UNLSC127Power(void) {
+static void UNLSC127Power() {
   Sync();
   fceulib__.cart->setprg8r(0x10, 0x6000, 0);
   fceulib__.cart->setprg8(0xE000, ~0);
@@ -75,7 +75,7 @@ static void UNLSC127Power(void) {
   fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, UNLSC127Write);
 }
 
-static void UNLSC127IRQ(void) {
+static void UNLSC127IRQ() {
   if (IRQa) {
     IRQCount--;
     if (IRQCount == 0) {
@@ -85,9 +85,9 @@ static void UNLSC127IRQ(void) {
   }
 }
 
-static void UNLSC127Reset(void) {}
+static void UNLSC127Reset() {}
 
-static void UNLSC127Close(void) {
+static void UNLSC127Close() {
   free(WRAM);
   WRAM = nullptr;
 }

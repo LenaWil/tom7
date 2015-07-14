@@ -49,19 +49,19 @@ static DECLFR(MSHRead) {
   return tekker;
 }
 
-static void MSHReset(void) {
+static void MSHReset() {
   MMC3RegReset();
   tekker ^= 0xFF;
 }
 
-static void MSHPower(void) {
+static void MSHPower() {
   tekker = 0x00;
   GenMMC3Power();
   fceulib__.fceu->SetWriteHandler(0x4100, 0x4100, MSHWrite);
   fceulib__.fceu->SetReadHandler(0x4100, 0x4100, MSHRead);
 }
 
-static void MSHClose(void) {
+static void MSHClose() {
   if (CHRRAM) free(CHRRAM);
   CHRRAM = NULL;
 }

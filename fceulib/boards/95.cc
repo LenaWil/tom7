@@ -29,7 +29,7 @@ static uint8 MirCache[8];
 static SFORMAT DB_StateRegs[] = {
     {DRegs, 8, "DREG"}, {&cmd, 1, "CMD"}, {&lastA, 1, "LAST"}, {0}};
 
-static void toot(void) {
+static void toot() {
   MirCache[0] = MirCache[1] = (DRegs[0] >> 4) & 1;
   MirCache[2] = MirCache[3] = (DRegs[1] >> 4) & 1;
 
@@ -82,7 +82,7 @@ static void dragonbust_ppu(uint32 A) {
   }
 }
 
-static void DBPower(void) {
+static void DBPower() {
   memset(DRegs, 0x3F, 8);
   DRegs[0] = DRegs[1] = 0x1F;
 

@@ -25,7 +25,7 @@ static uint8 reg[8];
 
 static SFORMAT StateRegs[] = {{reg, 8, "REGS"}, {0}};
 
-static void Sync(void) {
+static void Sync() {
   //  FCEU_printf("(%02x, %02x)\n",reg[3],reg[4]);
   fceulib__.cart->setprg8(0x8000, reg[0]);
   fceulib__.cart->setprg8(0xA000, reg[1]);
@@ -55,14 +55,14 @@ static DECLFW(MCN22MWrite) {
   Sync();
 }
 
-static void MCN22MPower(void) {
+static void MCN22MPower() {
   reg[0] = reg[1] = reg[2] = 0;
   Sync();
   fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
   fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, MCN22MWrite);
 }
 /*
-static void MCN22MIRQHook(void)
+static void MCN22MIRQHook()
 {
   int count = IRQCount;
   if(!count || IRQReload)

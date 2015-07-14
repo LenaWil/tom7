@@ -449,7 +449,7 @@ void FDS::RenderSound() {
   int32 x;
 
   start=FBC;
-  end=(SOUNDTS<<16)/fceulib__.sound->soundtsinc;
+  end=(fceulib__.sound->SoundTS()<<16)/fceulib__.sound->soundtsinc;
   if (end<=start)
     return;
   FBC=end;
@@ -466,7 +466,7 @@ void FDS::RenderSound() {
 
 void FDS::RenderSoundHQ() {
   if (!(SPSG[0x9]&0x80)) {
-    for (uint32 x=FBC;x<SOUNDTS;x++) {
+    for (uint32 x=FBC;x<fceulib__.sound->SoundTS();x++) {
       uint32 t=FDSDoSound();
       t+=t>>1;
       fceulib__.sound->WaveHi[x]+=t; //(t<<2)-(t<<1);
@@ -474,7 +474,7 @@ void FDS::RenderSoundHQ() {
   }
   // nb: formatting made this look like it was in the 'if' above,
   // but it wasn't -tom7
-  FBC = SOUNDTS;
+  FBC = fceulib__.sound->SoundTS();
 }
 
 void FDS::HQSync(int32 ts) {

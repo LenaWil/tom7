@@ -25,7 +25,7 @@ static uint8 invalid_data;
 static SFORMAT StateRegs[] = {
     {&invalid_data, 1, "INVD"}, {&cmdreg, 2, "CREG"}, {0}};
 
-static void Sync(void) {
+static void Sync() {
   fceulib__.cart->setprg16r((cmdreg & 0x060) >> 5, 0x8000,
                             (cmdreg & 0x01C) >> 2);
   fceulib__.cart->setprg16r((cmdreg & 0x060) >> 5, 0xC000,
@@ -45,7 +45,7 @@ static DECLFW(UNL8157Write) {
   Sync();
 }
 
-static void UNL8157Power(void) {
+static void UNL8157Power() {
   fceulib__.cart->setchr8(0);
   fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, UNL8157Write);
   fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, UNL8157Read);
@@ -54,7 +54,7 @@ static void UNL8157Power(void) {
   Sync();
 }
 
-static void UNL8157Reset(void) {
+static void UNL8157Reset() {
   cmdreg = 0;
   invalid_data ^= 1;
   Sync();

@@ -32,7 +32,7 @@ static SFORMAT StateRegs[] = {{prg, 4, "PRG"},        {chr, 8, "CHR"},
                               {&IRQCount, 1, "IRQC"}, {&IRQPre, 1, "IRQP"},
                               {&IRQa, 1, "IRQA"},     {0}};
 
-static void SyncPrg(void) {
+static void SyncPrg() {
   fceulib__.cart->setprg8(0x6000, 0);
   fceulib__.cart->setprg8(0x8000, prg[0]);
   fceulib__.cart->setprg8(0xA000, prg[1]);
@@ -40,7 +40,7 @@ static void SyncPrg(void) {
   fceulib__.cart->setprg8(0xE000, ~0);
 }
 
-static void SyncChr(void) {
+static void SyncChr() {
   for (int i = 0; i < 8; i++) fceulib__.cart->setchr1(i << 10, chr[i]);
 }
 
@@ -88,14 +88,14 @@ static DECLFW(M183Write) {
   }
 }
 
-static void M183IRQCounter(void) {
+static void M183IRQCounter() {
   if (IRQa) {
     IRQCount++;
     if ((IRQCount - IRQPre) == 238) fceulib__.X->IRQBegin(FCEU_IQEXT);
   }
 }
 
-static void M183Power(void) {
+static void M183Power() {
   IRQPre = IRQCount = IRQa = 0;
   fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
   fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, M183Write);

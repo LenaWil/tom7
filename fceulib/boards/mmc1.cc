@@ -21,7 +21,7 @@
 
 #include "mapinc.h"
 
-static void GenMMC1Power(void);
+static void GenMMC1Power();
 static void GenMMC1Init(CartInfo *info, int prg, int chr, int wram,
                         int battery);
 
@@ -47,7 +47,7 @@ static DECLFR(MAWRAM) {
   return fceulib__.cart->Page[A >> 11][A];
 }
 
-static void MMC1CHR(void) {
+static void MMC1CHR() {
   if (mmc1opts & 4) {
     if (DRegs[0] & 0x10)
       fceulib__.cart->setprg8r(0x10, 0x6000, (DRegs[1] >> 4) & 1);
@@ -72,7 +72,7 @@ static void MMC1CHR(void) {
   }
 }
 
-static void MMC1PRG(void) {
+static void MMC1PRG() {
   uint8 offs = DRegs[1] & 0x10;
   if (MMC1PRGHook16) {
     switch (DRegs[0] & 0xC) {
@@ -109,7 +109,7 @@ static void MMC1PRG(void) {
   }
 }
 
-static void MMC1MIRROR(void) {
+static void MMC1MIRROR() {
   if (!is171) switch (DRegs[0] & 3) {
       case 2: fceulib__.cart->setmirror(MI_V); break;
       case 3: fceulib__.cart->setmirror(MI_H); break;
@@ -170,7 +170,7 @@ static void MMC1_Restore(int version) {
   lreset = 0; /* timestamp(base) is not stored in save states. */
 }
 
-static void MMC1CMReset(void) {
+static void MMC1CMReset() {
   int i;
 
   for (i = 0; i < 4; i++) DRegs[i] = 0;
@@ -239,7 +239,7 @@ static void NWCPRGHook(uint32 A, uint8 V) {
     fceulib__.cart->setprg32(0x8000, (NWCRec >> 1) & 3);
 }
 
-static void NWCPower(void) {
+static void NWCPower() {
   GenMMC1Power();
   fceulib__.cart->setchr8r(0, 0);
 }
@@ -252,7 +252,7 @@ void Mapper105_Init(CartInfo *info) {
   info->Power = NWCPower;
 }
 
-static void GenMMC1Power(void) {
+static void GenMMC1Power() {
   lreset = 0;
   if (mmc1opts & 1) {
     // FCEU_CheatAddRAM(8,0x6000,WRAM);
@@ -274,7 +274,7 @@ static void GenMMC1Power(void) {
   MMC1CMReset();
 }
 
-static void GenMMC1Close(void) {
+static void GenMMC1Close() {
   if (CHRRAM) free(CHRRAM);
   if (WRAM) free(WRAM);
   CHRRAM = WRAM = NULL;

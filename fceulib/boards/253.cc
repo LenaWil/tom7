@@ -33,7 +33,7 @@ static SFORMAT StateRegs[] = {{chrlo, 8, "CHRL"},     {chrhi, 8, "CHRH"},
                               {&IRQCount, 4, "IRQC"}, {&IRQLatch, 4, "IRQL"},
                               {&IRQClock, 4, "IRQK"}, {0}};
 
-static void Sync(void) {
+static void Sync() {
   uint8 i;
   fceulib__.cart->setprg8r(0x10, 0x6000, 0);
   fceulib__.cart->setprg8(0x8000, prg[0]);
@@ -102,7 +102,7 @@ static DECLFW(M253Write) {
     }
 }
 
-static void M253Power(void) {
+static void M253Power() {
   Sync();
   fceulib__.fceu->SetReadHandler(0x6000, 0x7FFF, Cart::CartBR);
   fceulib__.fceu->SetWriteHandler(0x6000, 0x7FFF, Cart::CartBW);
@@ -110,7 +110,7 @@ static void M253Power(void) {
   fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, M253Write);
 }
 
-static void M253Close(void) {
+static void M253Close() {
   if (WRAM) free(WRAM);
   if (CHRRAM) free(CHRRAM);
   WRAM = CHRRAM = NULL;

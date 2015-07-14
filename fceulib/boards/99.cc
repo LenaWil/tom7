@@ -25,7 +25,7 @@ static writefunc old4016;
 
 static SFORMAT StateRegs[] = {{&latch, 1, "LATC"}, {0}};
 
-static void Sync(void) {
+static void Sync() {
   fceulib__.cart->setchr8((latch >> 2) & 1);
   fceulib__.cart->setprg32(0x8000, 0);
   fceulib__.cart->setprg8(0x8000, latch & 4); /* Special for VS Gumshoe */
@@ -37,7 +37,7 @@ static DECLFW(M99Write) {
   old4016(DECLFW_FORWARD);
 }
 
-static void M99Power(void) {
+static void M99Power() {
   latch = 0;
   Sync();
   old4016 = fceulib__.fceu->GetWriteHandler(0x4016);

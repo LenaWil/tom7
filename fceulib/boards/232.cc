@@ -23,7 +23,7 @@
 static uint8 bank, preg;
 static SFORMAT StateRegs[] = {{&bank, 1, "BANK"}, {&preg, 1, "PREG"}, {0}};
 
-static void Sync(void) {
+static void Sync() {
   //	uint32 bbank = (bank & 0x18) >> 1;
   uint32 bbank =
       ((bank & 0x10) >> 2) |
@@ -46,7 +46,7 @@ static DECLFW(M232WritePreg) {
   Sync();
 }
 
-static void M232Power(void) {
+static void M232Power() {
   bank = preg = 0;
   Sync();
   fceulib__.fceu->SetWriteHandler(0x8000, 0xBFFF, M232WriteBank);

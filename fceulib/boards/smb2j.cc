@@ -31,7 +31,7 @@ static uint16 IRQCount;
 static SFORMAT StateRegs[] = {
     {&prg, 1, "PRG"}, {&IRQa, 1, "IRQA"}, {&IRQCount, 2, "IRQC"}, {0}};
 
-static void Sync(void) {
+static void Sync() {
   fceulib__.cart->setprg4r(1, 0x5000, 1);
   fceulib__.cart->setprg8r(1, 0x6000, 1);
   fceulib__.cart->setprg32(0x8000, prg);
@@ -50,7 +50,7 @@ static DECLFW(UNLSMB2JWrite) {
   }
 }
 
-static void UNLSMB2JPower(void) {
+static void UNLSMB2JPower() {
   prg = ~0;
   Sync();
   fceulib__.fceu->SetReadHandler(0x5000, 0x7FFF, Cart::CartBR);
@@ -58,7 +58,7 @@ static void UNLSMB2JPower(void) {
   fceulib__.fceu->SetWriteHandler(0x4020, 0xffff, UNLSMB2JWrite);
 }
 
-static void UNLSMB2JReset(void) {
+static void UNLSMB2JReset() {
   prg = ~0;
   Sync();
 }

@@ -29,7 +29,7 @@ static constexpr uint32 WRAM176SIZE = 8192;
 static SFORMAT StateRegs[] = {
     {prg, 4, "PRG"}, {&chr, 1, "CHR"}, {&sbw, 1, "SBW"}, {0}};
 
-static void Sync(void) {
+static void Sync() {
   fceulib__.cart->setprg8r(0x10, 0x6000, 0);
   fceulib__.cart->setprg8(0x8000, prg[0]);
   fceulib__.cart->setprg8(0xA000, prg[1]);
@@ -113,7 +113,7 @@ static void M176Power() {
   Sync();
 }
 
-static void M176Close(void) {
+static void M176Close() {
   free(wram176);
   wram176 = nullptr;
 }

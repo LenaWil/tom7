@@ -32,7 +32,7 @@ static SFORMAT StateRegs[] = {{preg, 4, "PREG"},
                               {&IRQLatch, 4, "IRQL"},
                               {0}};
 
-static void Sync(void) {
+static void Sync() {
   for (int i = 0; i < 8; i++) fceulib__.cart->setchr1(i << 10, creg[i]);
   fceulib__.cart->setprg8(0x8000, preg[0]);
   fceulib__.cart->setprg8(0xA000, preg[1]);
@@ -79,7 +79,7 @@ static DECLFW(M17WriteChr) {
   Sync();
 }
 
-static void M17Power(void) {
+static void M17Power() {
   preg[3] = ~0;
   Sync();
   fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);

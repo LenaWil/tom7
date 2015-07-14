@@ -28,7 +28,7 @@ static uint32 WRAMSIZE;
 static SFORMAT StateRegs[] = {
     {preg, 4, "PREG"}, {creg, 8, "CREG"}, {&mirr, 1, "MIRR"}, {0}};
 
-static void Sync(void) {
+static void Sync() {
   uint16 swap = ((mirr & 2) << 13);
   fceulib__.cart->setmirror((mirr & 1) ^ 1);
   fceulib__.cart->setprg8r(0x10, 0x6000, 0);
@@ -59,7 +59,7 @@ static DECLFW(M32Write3) {
   Sync();
 }
 
-static void M32Power(void) {
+static void M32Power() {
   Sync();
   fceulib__.fceu->SetReadHandler(0x6000, 0x7fff, Cart::CartBR);
   fceulib__.fceu->SetWriteHandler(0x6000, 0x7fff, Cart::CartBW);
@@ -70,7 +70,7 @@ static void M32Power(void) {
   fceulib__.fceu->SetWriteHandler(0xB000, 0xBFFF, M32Write3);
 }
 
-static void M32Close(void) {
+static void M32Close() {
   if (WRAM) free(WRAM);
   WRAM = NULL;
 }

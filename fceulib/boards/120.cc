@@ -24,7 +24,7 @@ static uint8 reg;
 
 static SFORMAT StateRegs[] = {{&reg, 1, "REG"}, {0}};
 
-static void Sync(void) {
+static void Sync() {
   fceulib__.cart->setprg8(0x6000, reg);
   fceulib__.cart->setprg32(0x8000, 2);
   fceulib__.cart->setchr8(0);
@@ -37,7 +37,7 @@ static DECLFW(M120Write) {
   }
 }
 
-static void M120Power(void) {
+static void M120Power() {
   reg = 0;
   Sync();
   fceulib__.fceu->SetReadHandler(0x6000, 0xFFFF, Cart::CartBR);

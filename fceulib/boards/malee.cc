@@ -22,7 +22,7 @@
 
 static uint8 WRAM[2048];
 
-static void MALEEPower(void) {
+static void MALEEPower() {
   fceulib__.cart->setprg2r(0x10, 0x7000, 0);
   fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
   fceulib__.fceu->SetReadHandler(0x6000, 0x67FF, Cart::CartBR);

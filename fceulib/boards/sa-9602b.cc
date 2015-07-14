@@ -43,7 +43,7 @@ static DECLFW(SA9602BWrite) {
   MMC3_CMDWrite(DECLFW_FORWARD);
 }
 
-static void SA9602BPower(void) {
+static void SA9602BPower() {
   EXPREGS[0] = EXPREGS[1] = 0;
   GenMMC3Power();
   fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);

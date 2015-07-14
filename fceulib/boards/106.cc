@@ -28,7 +28,7 @@ static uint32 WRAMSIZE;
 static SFORMAT StateRegs[] = {
     {&IRQa, 1, "IRQA"}, {&IRQCount, 4, "IRQC"}, {reg, 16, "REGS"}, {0}};
 
-static void Sync(void) {
+static void Sync() {
   fceulib__.cart->setchr1(0x0000, reg[0] & 0xfe);
   fceulib__.cart->setchr1(0x0400, reg[1] | 1);
   fceulib__.cart->setchr1(0x0800, reg[2] & 0xfe);
@@ -65,7 +65,7 @@ static DECLFW(M106Write) {
   }
 }
 
-static void M106Power(void) {
+static void M106Power() {
   reg[8] = reg[9] = reg[0xa] = reg[0xb] = -1;
   Sync();
   fceulib__.fceu->SetReadHandler(0x6000, 0x7FFF, Cart::CartBR);
@@ -74,9 +74,9 @@ static void M106Power(void) {
   fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, M106Write);
 }
 
-static void M106Reset(void) {}
+static void M106Reset() {}
 
-static void M106Close(void) {
+static void M106Close() {
   if (WRAM) free(WRAM);
   WRAM = NULL;
 }

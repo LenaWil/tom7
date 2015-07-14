@@ -22,7 +22,7 @@
 
 static uint8 latche;
 
-static void Sync(void) {
+static void Sync() {
   fceulib__.cart->setprg16(0x8000, latche);
   fceulib__.cart->setprg16(0xC000, 8);
 }
@@ -32,7 +32,7 @@ static DECLFW(DREAMWrite) {
   Sync();
 }
 
-static void DREAMPower(void) {
+static void DREAMPower() {
   latche = 0;
   Sync();
   fceulib__.cart->setchr8(0);

@@ -84,7 +84,7 @@ static DECLFW(UNLA9746Write) {
   }
 }
 
-static void UNLA9746Power(void) {
+static void UNLA9746Power() {
   GenMMC3Power();
   fceulib__.fceu->SetWriteHandler(0x8000, 0xbfff, UNLA9746Write);
 }

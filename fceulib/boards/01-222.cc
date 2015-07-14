@@ -38,7 +38,7 @@
 static uint8 reg[4], cmd, is172, is173;
 static SFORMAT StateRegs[] = {{reg, 4, "REGS"}, {&cmd, 1, "CMD"}, {0}};
 
-static void Sync(void) {
+static void Sync() {
   fceulib__.cart->setprg32(0x8000, (reg[2] >> 2) & 1);
   if (is172) {
     // 1991 DU MA Racing probably CHR bank sequence is WRONG, so it is
@@ -70,7 +70,7 @@ static DECLFR(UNL22211ReadLo) {
   //		return fceulib__.X->DB;
 }
 
-static void UNL22211Power(void) {
+static void UNL22211Power() {
   Sync();
   fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
   fceulib__.fceu->SetReadHandler(0x4100, 0x4100, UNL22211ReadLo);

@@ -186,7 +186,7 @@ static DECLFW(BMCFK23CWrite) {
   // %02X\n",EXPREGS[0],EXPREGS[1],EXPREGS[2],EXPREGS[3]);
 }
 
-static void BMCFK23CReset(void) {
+static void BMCFK23CReset() {
   // NOT NECESSARY ANYMORE
   // this little hack makes sure that we try all the dip switch settings
   // eventually, if we reset enough
@@ -201,7 +201,7 @@ static void BMCFK23CReset(void) {
   FixMMC3CHR(MMC3_cmd);
 }
 
-static void BMCFK23CPower(void) {
+static void BMCFK23CPower() {
   dipswitch = 0;
   GenMMC3Power();
   EXPREGS[0] = EXPREGS[1] = EXPREGS[2] = EXPREGS[3] = 0;
@@ -213,7 +213,7 @@ static void BMCFK23CPower(void) {
   FixMMC3CHR(MMC3_cmd);
 }
 
-static void BMCFK23CAPower(void) {
+static void BMCFK23CAPower() {
   GenMMC3Power();
   dipswitch = 0;
   EXPREGS[0] = EXPREGS[1] = EXPREGS[2] = EXPREGS[3] = 0;
@@ -224,7 +224,7 @@ static void BMCFK23CAPower(void) {
   FixMMC3CHR(MMC3_cmd);
 }
 
-static void BMCFK23CAClose(void) {
+static void BMCFK23CAClose() {
   free(CHRRAM);
   CHRRAM = nullptr;
 }

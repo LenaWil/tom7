@@ -30,7 +30,7 @@ static SFORMAT StateRegs[] = {{&prg, 1, "PREG"},
                               {&mirr, 1, "MIRR"},
                               {0}};
 
-static void Sync(void) {
+static void Sync() {
   for (uint32 i = 0; i < 8; i++)
     fceulib__.cart->setchr1(i << 10, chrlo[i] | (chrhi[i] << 8));
   fceulib__.cart->setprg8r(0x10, 0x6000, 0);
@@ -84,7 +84,7 @@ static DECLFW(M156Write) {
   }
 }
 
-static void M156Reset(void) {
+static void M156Reset() {
   for (uint32 i = 0; i < 8; i++) {
     chrlo[i] = 0;
     chrhi[i] = 0;
@@ -94,7 +94,7 @@ static void M156Reset(void) {
   mirrisused = 0;
 }
 
-static void M156Power(void) {
+static void M156Power() {
   M156Reset();
   Sync();
   fceulib__.fceu->SetReadHandler(0x6000, 0xFFFF, Cart::CartBR);
@@ -102,7 +102,7 @@ static void M156Power(void) {
   fceulib__.fceu->SetWriteHandler(0xC000, 0xCFFF, M156Write);
 }
 
-static void M156Close(void) {
+static void M156Close() {
   if (WRAM) free(WRAM);
   WRAM = NULL;
 }

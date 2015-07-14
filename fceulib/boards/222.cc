@@ -31,7 +31,7 @@ static SFORMAT StateRegs[] = {{&IRQCount, 1, "IRQC"}, {&IRQa, 1, "IRQA"},
                               {prg_reg, 2, "PRG"},    {chr_reg, 8, "CHR"},
                               {&mirr, 1, "MIRR"},     {0}};
 
-static void M222IRQ(void) {
+static void M222IRQ() {
   if (IRQa) {
     IRQCount++;
     if (IRQCount >= 238) {
@@ -41,7 +41,7 @@ static void M222IRQ(void) {
   }
 }
 
-static void Sync(void) {
+static void Sync() {
   fceulib__.cart->setprg8(0x8000, prg_reg[0]);
   fceulib__.cart->setprg8(0xA000, prg_reg[1]);
   for (int i = 0; i < 8; i++) fceulib__.cart->setchr1(i << 10, chr_reg[i]);
@@ -84,7 +84,7 @@ static DECLFW(M222Write) {
   Sync();
 }
 
-static void M222Power(void) {
+static void M222Power() {
   fceulib__.cart->setprg16(0xC000, ~0);
   fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
   fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, M222Write);

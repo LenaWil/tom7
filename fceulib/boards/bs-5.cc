@@ -26,7 +26,7 @@ static uint8 dip_switch;
 
 static SFORMAT StateRegs[] = {{reg_prg, 4, "PREG"}, {reg_chr, 4, "CREG"}, {0}};
 
-static void Sync(void) {
+static void Sync() {
   fceulib__.cart->setprg8(0x8000, reg_prg[0]);
   fceulib__.cart->setprg8(0xa000, reg_prg[1]);
   fceulib__.cart->setprg8(0xc000, reg_prg[2]);
@@ -49,14 +49,14 @@ static DECLFW(MBS5Write) {
   Sync();
 }
 
-static void MBS5Reset(void) {
+static void MBS5Reset() {
   dip_switch++;
   dip_switch &= 3;
   reg_prg[0] = reg_prg[1] = reg_prg[2] = reg_prg[3] = ~0;
   Sync();
 }
 
-static void MBS5Power(void) {
+static void MBS5Power() {
   dip_switch = 0;
   reg_prg[0] = reg_prg[1] = reg_prg[2] = reg_prg[3] = ~0;
   Sync();

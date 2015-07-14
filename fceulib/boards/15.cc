@@ -28,7 +28,7 @@ static uint32 WRAMSIZE;
 static SFORMAT StateRegs[] = {
     {&latchea, 2, "AREG"}, {&latched, 1, "DREG"}, {0}};
 
-static void Sync(void) {
+static void Sync() {
   int i;
   fceulib__.cart->setmirror(((latched >> 6) & 1) ^ 1);
   switch (latchea) {
@@ -66,7 +66,7 @@ static void StateRestore(int version) {
   Sync();
 }
 
-static void M15Power(void) {
+static void M15Power() {
   latchea = 0x8000;
   latched = 0;
   fceulib__.cart->setchr8(0);
@@ -78,13 +78,13 @@ static void M15Power(void) {
   Sync();
 }
 
-static void M15Reset(void) {
+static void M15Reset() {
   latchea = 0x8000;
   latched = 0;
   Sync();
 }
 
-static void M15Close(void) {
+static void M15Close() {
   if (WRAM) free(WRAM);
   WRAM = NULL;
 }

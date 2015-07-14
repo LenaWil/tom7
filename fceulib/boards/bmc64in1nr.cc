@@ -26,7 +26,7 @@ static uint8 regs[4];
 
 static SFORMAT StateRegs[] = {{regs, 4, "REGS"}, {0}};
 
-static void Sync(void) {
+static void Sync() {
   if (regs[0] & 0x80) {
     if (regs[1] & 0x80) {
       fceulib__.cart->setprg32(0x8000, regs[1] & 0x1F);
@@ -56,7 +56,7 @@ static DECLFW(BMC64in1nrWriteHi) {
   Sync();
 }
 
-static void BMC64in1nrPower(void) {
+static void BMC64in1nrPower() {
   regs[0] = 0x80;
   regs[1] = 0x43;
   regs[2] = regs[3] = 0;

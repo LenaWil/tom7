@@ -26,7 +26,7 @@ static uint32 WRAM82SIZE;
 
 static SFORMAT StateRegs[] = {{regs, 9, "REGS"}, {&ctrl, 1, "CTRL"}, {0}};
 
-static void Sync(void) {
+static void Sync() {
   uint32 swap = ((ctrl & 2) << 11);
   fceulib__.cart->setchr2(0x0000 ^ swap, regs[0] >> 1);
   fceulib__.cart->setchr2(0x0800 ^ swap, regs[1] >> 1);
@@ -55,7 +55,7 @@ static DECLFW(M82Write) {
   Sync();
 }
 
-static void M82Power(void) {
+static void M82Power() {
   Sync();
   fceulib__.fceu->SetReadHandler(0x6000, 0xffff, Cart::CartBR);
   fceulib__.fceu->SetWriteHandler(0x6000, 0x7fff, Cart::CartBW);
@@ -63,7 +63,7 @@ static void M82Power(void) {
       0x7ef0, 0x7efc, M82Write);  // external WRAM82 might end at $73FF
 }
 
-static void M82Close(void) {
+static void M82Close() {
   free(WRAM82);
   WRAM82 = NULL;
 }

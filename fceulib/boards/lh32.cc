@@ -29,7 +29,7 @@ static uint32 WRAMSIZE;
 
 static SFORMAT StateRegs[] = {{&reg, 1, "REG"}, {0}};
 
-static void Sync(void) {
+static void Sync() {
   fceulib__.cart->setprg8(0x6000, reg);
   fceulib__.cart->setprg8(0x8000, ~3);
   fceulib__.cart->setprg8(0xa000, ~2);
@@ -43,14 +43,14 @@ static DECLFW(LH32Write) {
   Sync();
 }
 
-static void LH32Power(void) {
+static void LH32Power() {
   Sync();
   fceulib__.fceu->SetReadHandler(0x6000, 0xFFFF, Cart::CartBR);
   fceulib__.fceu->SetWriteHandler(0xC000, 0xDFFF, Cart::CartBW);
   fceulib__.fceu->SetWriteHandler(0x6000, 0x6000, LH32Write);
 }
 
-static void LH32Close(void) {
+static void LH32Close() {
   if (WRAM) free(WRAM);
   WRAM = NULL;
 }

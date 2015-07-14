@@ -23,7 +23,7 @@
 static uint16 latche, latcheinit;
 static uint16 addrreg0, addrreg1;
 static uint8 dipswitch;
-static void (*WSync)(void);
+static void (*WSync)();
 static readfunc defread;
 static uint8 *WRAM = NULL;
 static uint32 WRAMSIZE;
@@ -33,12 +33,12 @@ static DECLFW(LatchWrite) {
   WSync();
 }
 
-static void LatchReset(void) {
+static void LatchReset() {
   latche = latcheinit;
   WSync();
 }
 
-static void LatchPower(void) {
+static void LatchPower() {
   latche = latcheinit;
   WSync();
   if (WRAM) {
@@ -50,7 +50,7 @@ static void LatchPower(void) {
   fceulib__.fceu->SetWriteHandler(addrreg0, addrreg1, LatchWrite);
 }
 
-static void LatchClose(void) {
+static void LatchClose() {
   if (WRAM) free(WRAM);
   WRAM = NULL;
 }
@@ -59,7 +59,7 @@ static void StateRestore(int version) {
   WSync();
 }
 
-static void Latch_Init(CartInfo *info, void (*proc)(void), readfunc func,
+static void Latch_Init(CartInfo *info, void (*proc)(), readfunc func,
                        uint16 linit, uint16 adr0, uint16 adr1, uint8 wram) {
   latcheinit = linit;
   addrreg0 = adr0;
@@ -88,7 +88,7 @@ static void Latch_Init(CartInfo *info, void (*proc)(void), readfunc func,
 
 //------------------ UNLCC21 ---------------------------
 
-static void UNLCC21Sync(void) {
+static void UNLCC21Sync() {
   fceulib__.cart->setprg32(0x8000, 0);
   fceulib__.cart->setchr8(latche & 1);
   fceulib__.cart->setmirror(MI_0 + ((latche & 2) >> 1));
@@ -100,7 +100,7 @@ void UNLCC21_Init(CartInfo *info) {
 
 //------------------ BMCD1038 ---------------------------
 
-static void BMCD1038Sync(void) {
+static void BMCD1038Sync() {
   if (latche & 0x80) {
     fceulib__.cart->setprg16(0x8000, (latche & 0x70) >> 4);
     fceulib__.cart->setprg16(0xC000, (latche & 0x70) >> 4);
@@ -118,7 +118,7 @@ static DECLFR(BMCD1038Read) {
     return Cart::CartBR(DECLFR_FORWARD);
 }
 
-static void BMCD1038Reset(void) {
+static void BMCD1038Reset() {
   dipswitch++;
   dipswitch &= 3;
 }
@@ -131,7 +131,7 @@ void BMCD1038_Init(CartInfo *info) {
 
 //------------------ UNL43272 ---------------------------
 // mapper much complex, including 16K bankswitching
-static void UNL43272Sync(void) {
+static void UNL43272Sync() {
   if ((latche & 0x81) == 0x81) {
     fceulib__.cart->setprg32(0x8000, (latche & 0x38) >> 3);
   } else
@@ -147,7 +147,7 @@ static DECLFR(UNL43272Read) {
     return Cart::CartBR(DECLFR_FORWARD);
 }
 
-static void UNL43272Reset(void) {
+static void UNL43272Reset() {
   latche = 0;
   UNL43272Sync();
 }
@@ -160,7 +160,7 @@ void UNL43272_Init(CartInfo *info) {
 
 //------------------ Map 058 ---------------------------
 
-static void BMCGK192Sync(void) {
+static void BMCGK192Sync() {
   if (latche & 0x40) {
     fceulib__.cart->setprg16(0x8000, latche & 7);
     fceulib__.cart->setprg16(0xC000, latche & 7);
@@ -177,7 +177,7 @@ void BMCGK192_Init(CartInfo *info) {
 
 //------------------ Map 059 ---------------------------
 // One more forbidden mapper
-static void M59Sync(void) {
+static void M59Sync() {
   fceulib__.cart->setprg32(0x8000, (latche >> 4) & 7);
   fceulib__.cart->setchr8(latche & 0x7);
   fceulib__.cart->setmirror((latche >> 3) & 1);
@@ -201,7 +201,7 @@ void Mapper59_Init(CartInfo *info) {
 // Additionally, PCB contains DSP extra sound chip, used for voice samples
 // (unemulated)
 
-static void M92Sync(void) {
+static void M92Sync() {
   uint8 reg = latche & 0xF0;
   fceulib__.cart->setprg16(0x8000, 0);
   if (latche >= 0x9000) {
@@ -223,7 +223,7 @@ void Mapper92_Init(CartInfo *info) {
 
 //------------------ Map 200 ---------------------------
 
-static void M200Sync(void) {
+static void M200Sync() {
   fceulib__.cart->setprg16(0x8000, latche & 7);
   fceulib__.cart->setprg16(0xC000, latche & 7);
   fceulib__.cart->setchr8(latche & 7);
@@ -236,7 +236,7 @@ void Mapper200_Init(CartInfo *info) {
 
 //------------------ Map 201 ---------------------------
 
-static void M201Sync(void) {
+static void M201Sync() {
   if (latche & 8) {
     fceulib__.cart->setprg32(0x8000, latche & 3);
     fceulib__.cart->setchr8(latche & 3);
@@ -252,7 +252,7 @@ void Mapper201_Init(CartInfo *info) {
 
 //------------------ Map 202 ---------------------------
 
-static void M202Sync(void) {
+static void M202Sync() {
   // According to more carefull hardware tests and PCB study
   int32 mirror = latche & 1;
   int32 bank = (latche >> 1) & 0x7;
@@ -269,7 +269,7 @@ void Mapper202_Init(CartInfo *info) {
 
 //------------------ Map 204 ---------------------------
 
-static void M204Sync(void) {
+static void M204Sync() {
   int32 tmp2 = latche & 0x6;
   int32 tmp1 = tmp2 + ((tmp2 == 0x6) ? 0 : (latche & 1));
   fceulib__.cart->setprg16(0x8000, tmp1);
@@ -290,7 +290,7 @@ static DECLFR(M212Read) {
   return ret;
 }
 
-static void M212Sync(void) {
+static void M212Sync() {
   if (latche & 0x4000) {
     fceulib__.cart->setprg32(0x8000, (latche >> 1) & 3);
   } else {
@@ -307,7 +307,7 @@ void Mapper212_Init(CartInfo *info) {
 
 //------------------ Map 213 ---------------------------
 
-static void M213Sync(void) {
+static void M213Sync() {
   fceulib__.cart->setprg32(0x8000, (latche >> 1) & 3);
   fceulib__.cart->setchr8((latche >> 3) & 7);
 }
@@ -318,7 +318,7 @@ void Mapper213_Init(CartInfo *info) {
 
 //------------------ Map 214 ---------------------------
 
-static void M214Sync(void) {
+static void M214Sync() {
   fceulib__.cart->setprg16(0x8000, (latche >> 2) & 3);
   fceulib__.cart->setprg16(0xC000, (latche >> 2) & 3);
   fceulib__.cart->setchr8(latche & 3);
@@ -330,7 +330,7 @@ void Mapper214_Init(CartInfo *info) {
 
 //------------------ Map 217 ---------------------------
 
-static void M217Sync(void) {
+static void M217Sync() {
   fceulib__.cart->setprg32(0x8000, (latche >> 2) & 3);
   fceulib__.cart->setchr8(latche & 7);
 }
@@ -341,7 +341,7 @@ void Mapper217_Init(CartInfo *info) {
 
 //------------------ Map 227 ---------------------------
 
-static void M227Sync(void) {
+static void M227Sync() {
   uint32 S = latche & 1;
   uint32 p = ((latche >> 2) & 0x1F) + ((latche & 0x100) >> 3);
   uint32 L = (latche >> 9) & 1;
@@ -384,7 +384,7 @@ void Mapper227_Init(CartInfo *info) {
 
 //------------------ Map 229 ---------------------------
 
-static void M229Sync(void) {
+static void M229Sync() {
   fceulib__.cart->setchr8(latche);
   if (!(latche & 0x1e)) {
     fceulib__.cart->setprg32(0x8000, 0);
@@ -401,7 +401,7 @@ void Mapper229_Init(CartInfo *info) {
 
 //------------------ Map 231 ---------------------------
 
-static void M231Sync(void) {
+static void M231Sync() {
   fceulib__.cart->setchr8(0);
   if (latche & 0x20) {
     fceulib__.cart->setprg32(0x8000, (latche >> 1) & 0x0F);
@@ -418,7 +418,7 @@ void Mapper231_Init(CartInfo *info) {
 
 //------------------ Map 242 ---------------------------
 
-static void M242Sync(void) {
+static void M242Sync() {
   fceulib__.cart->setchr8(0);
   fceulib__.cart->setprg8r(0x10, 0x6000, 0);
   fceulib__.cart->setprg32(0x8000, (latche >> 3) & 0xf);
@@ -431,7 +431,7 @@ void Mapper242_Init(CartInfo *info) {
 
 //------------------ 190in1 ---------------------------
 
-static void BMC190in1Sync(void) {
+static void BMC190in1Sync() {
   fceulib__.cart->setprg16(0x8000, (latche >> 2) & 7);
   fceulib__.cart->setprg16(0xC000, (latche >> 2) & 7);
   fceulib__.cart->setchr8((latche >> 2) & 7);
@@ -444,7 +444,7 @@ void BMC190in1_Init(CartInfo *info) {
 
 //-------------- BMC810544-C-A1 ------------------------
 
-static void BMC810544CA1Sync(void) {
+static void BMC810544CA1Sync() {
   uint32 bank = latche >> 7;
   if (latche & 0x40) {
     fceulib__.cart->setprg32(0x8000, bank);
@@ -462,7 +462,7 @@ void BMC810544CA1_Init(CartInfo *info) {
 
 //-------------- BMCNTD-03 ------------------------
 
-static void BMCNTD03Sync(void) {
+static void BMCNTD03Sync() {
   // 1PPP Pmcc spxx xccc
   // 1000 0000 0000 0000 v
   // 1001 1100 0000 0100 h
@@ -485,7 +485,7 @@ void BMCNTD03_Init(CartInfo *info) {
 
 //-------------- BMCG-146 ------------------------
 
-static void BMCG146Sync(void) {
+static void BMCG146Sync() {
   fceulib__.cart->setchr8(0);
   if (latche & 0x800) {  // UNROM mode
     fceulib__.cart->setprg16(

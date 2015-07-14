@@ -71,7 +71,7 @@ static SFORMAT Tek_StateRegs[] = {{&IRQMode, 1, "IRQM"},
                                   {&tekker, 1, "TEKR"},
                                   {0}};
 
-static void mira(void) {
+static void mira() {
   if ((tkcom[0] & 0x20 && is209) || is211) {
     int x;
     if (tkcom[0] & 0x40)  // Name tables are ROM-only
@@ -104,7 +104,7 @@ static void mira(void) {
   }
 }
 
-static void tekprom(void) {
+static void tekprom() {
   uint32 bankmode = ((tkcom[3] & 6) << 5);
   switch (tkcom[0] & 7) {
     case 00:
@@ -158,7 +158,7 @@ static void tekprom(void) {
   }
 }
 
-static void tekvrom(void) {
+static void tekvrom() {
   int x, bank = 0, mask = 0xFFFF;
   if (!(tkcom[3] & 0x20)) {
     bank = (tkcom[3] & 1) | ((tkcom[3] & 0x18) >> 2);
@@ -358,7 +358,7 @@ static DECLFW(M90DummyWrite) {
   //    FCEU_printf("bs %04x %02x\n",A,V);
 }
 
-static void CCL(void) {
+static void CCL() {
   if ((IRQMode >> 6) == 1)  // Count Up
   {
     IRQCount++;
@@ -374,7 +374,7 @@ static void CCL(void) {
   }
 }
 
-static void ClockCounter(void) {
+static void ClockCounter() {
   uint8 premask;
 
   if (IRQMode & 0x4)
@@ -398,7 +398,7 @@ void CPUWrap(int a) {
     for (x = 0; x < a; x++) ClockCounter();
 }
 
-static void SLWrap(void) {
+static void SLWrap() {
   int x;
   if ((IRQMode & 3) == 1)
     for (x = 0; x < 8; x++) ClockCounter();
@@ -449,7 +449,7 @@ static void M90Restore(int version) {
   mira();
 }
 
-static void M90Power(void) {
+static void M90Power() {
   fceulib__.fceu->SetWriteHandler(0x5000, 0x5fff, M90TekWrite);
   fceulib__.fceu->SetWriteHandler(0x8000, 0x8ff0, M90PRGWrite);
   fceulib__.fceu->SetWriteHandler(0x9000, 0x9fff, M90CHRlowWrite);

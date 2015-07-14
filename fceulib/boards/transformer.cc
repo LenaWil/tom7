@@ -25,7 +25,7 @@ static uint32 WRAMSIZE;
 
 // FIXME: 10/28 - now implemented in SDL as well.
 // should we rename this to a FCEUI_* function?
-unsigned int *GetKeyboard(void);
+unsigned int *GetKeyboard();
 
 static unsigned int *TransformerKeys, oldkeys[256];
 static int TransformerCycleCount, TransformerChar = 0;
@@ -63,7 +63,7 @@ static DECLFR(TransformerRead) {
   return ret;
 }
 
-static void TransformerPower(void) {
+static void TransformerPower() {
   fceulib__.cart->setprg8r(0x10, 0x6000, 0);
   fceulib__.cart->setprg16(0x8000, 0);
   fceulib__.cart->setprg16(0xC000, ~0);
@@ -77,7 +77,7 @@ static void TransformerPower(void) {
   fceulib__.X->MapIRQHook = TransformerIRQHook;
 }
 
-static void TransformerClose(void) {
+static void TransformerClose() {
   if (WRAM) free(WRAM);
   WRAM = NULL;
 }

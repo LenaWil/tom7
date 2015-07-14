@@ -29,7 +29,7 @@ static SFORMAT StateRegs[] = {{regs, 8, "PREG"},      {&mirr, 1, "MIRR"},
                               {&IRQa, 1, "IRQA"},     {&IRQCount, 2, "IRQC"},
                               {&IRQLatch, 2, "IRQL"}, {0}};
 
-static void Sync(void) {
+static void Sync() {
   fceulib__.cart->setmirror(mirr);
   fceulib__.cart->setprg8(0x8000, regs[0]);
   fceulib__.cart->setprg8(0xA000, regs[1]);
@@ -98,20 +98,20 @@ static DECLFW(M48Write) {
   }
 }
 
-static void M33Power(void) {
+static void M33Power() {
   Sync();
   fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
   fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, M33Write);
 }
 
-static void M48Power(void) {
+static void M48Power() {
   Sync();
   fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
   fceulib__.fceu->SetWriteHandler(0x8000, 0xBFFF, M33Write);
   fceulib__.fceu->SetWriteHandler(0xC000, 0xFFFF, M48Write);
 }
 
-static void M48IRQ(void) {
+static void M48IRQ() {
   if (IRQa) {
     IRQCount++;
     if (IRQCount == 0x100) {

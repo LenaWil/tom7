@@ -26,7 +26,7 @@
 static uint8 chr;
 static SFORMAT StateRegs[] = {{&chr, 1, "CHR"}, {0}};
 
-static void Sync(void) {
+static void Sync() {
   fceulib__.cart->setprg2r(0, 0xE000, 0);
   fceulib__.cart->setprg2r(0, 0xE800, 0);
   fceulib__.cart->setprg2r(0, 0xF000, 0);
@@ -46,7 +46,7 @@ static DECLFW(LE05Write) {
   Sync();
 }
 
-static void LE05Power(void) {
+static void LE05Power() {
   Sync();
   fceulib__.fceu->SetReadHandler(0x6000, 0xFFFF, Cart::CartBR);
   fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, LE05Write);

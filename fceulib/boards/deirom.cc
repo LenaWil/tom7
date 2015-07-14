@@ -25,7 +25,7 @@ static uint8 DRegs[8];
 
 static SFORMAT DEI_StateRegs[] = {{&cmd, 1, "CMD"}, {DRegs, 8, "DREG"}, {0}};
 
-static void Sync(void) {
+static void Sync() {
   fceulib__.cart->setchr2(0x0000, DRegs[0]);
   fceulib__.cart->setchr2(0x0800, DRegs[1]);
   for (int x = 0; x < 4; x++)
@@ -53,7 +53,7 @@ static DECLFW(DEIWrite) {
   }
 }
 
-static void DEIPower(void) {
+static void DEIPower() {
   fceulib__.cart->setprg8(0xc000, 0xE);
   fceulib__.cart->setprg8(0xe000, 0xF);
   cmd = 0;

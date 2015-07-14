@@ -25,7 +25,7 @@ FC::FC() {
   input = new Input;
   palette = new Palette;
   ppu = new PPU;
-  sound = new Sound;
+  sound = new Sound(this);
   unif = new Unif;
   vsuni = new VSUni;
   X = new X6502(this);

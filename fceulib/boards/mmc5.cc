@@ -23,10 +23,10 @@
 #include "mapinc.h"
 
 static void (*sfun)(int P);
-static void (*psfun)(void);
+static void (*psfun)();
 
 void MMC5RunSound(int Count);
-void MMC5RunSoundHQ(void);
+void MMC5RunSoundHQ();
 
 static inline void MMC5SPRVROM_BANK1(uint32 A, uint32 V) {
   if (fceulib__.cart->CHRptr[0]) {
@@ -131,8 +131,8 @@ static uint8 MMC5WRAMIndex[8];
 static uint8 MMC5ROMWrProtect[4];
 static uint8 MMC5MemIn[5];
 
-static void MMC5CHRA(void);
-static void MMC5CHRB(void);
+static void MMC5CHRA();
+static void MMC5CHRB();
 
 typedef struct __cartdata {
   uint32 crc32;
@@ -234,7 +234,7 @@ int DetectMMC5WRAMSize(uint32 crc32) {
   return 64;
 }
 
-static void BuildWRAMSizeTable(void) {
+static void BuildWRAMSizeTable() {
   for (int x = 0; x < 8; x++) {
     switch (MMC5WRAMsize) {
       case 0: MMC5WRAMIndex[x] = 255; break;  // X,X,X,X,X,X,X,X
@@ -259,7 +259,7 @@ static void BuildWRAMSizeTable(void) {
   }
 }
 
-static void MMC5CHRA(void) {
+static void MMC5CHRA() {
   switch (mmc5vsize & 3) {
     case 0:
       fceulib__.cart->setchr8(CHRBanksA[7]);
@@ -290,7 +290,7 @@ static void MMC5CHRA(void) {
   }
 }
 
-static void MMC5CHRB(void) {
+static void MMC5CHRB() {
   switch (mmc5vsize & 3) {
     case 0:
       fceulib__.cart->setchr8(CHRBanksB[3]);
@@ -332,7 +332,7 @@ static void MMC5WRAM(uint32 A, uint32 V) {
   }
 }
 
-static void MMC5PRG(void) {
+static void MMC5PRG() {
   switch (mmc5psize & 3) {
     case 0:
       MMC5ROMWrProtect[0] = MMC5ROMWrProtect[1] = MMC5ROMWrProtect[2] =
@@ -546,7 +546,7 @@ static DECLFR(MMC5_read) {
   return fceulib__.X->DB;
 }
 
-void MMC5Synco(void) {
+void MMC5Synco() {
   MMC5PRG();
   for (int x = 0; x < 4; x++) {
     switch ((NTAMirroring >> (x << 1)) & 3) {
@@ -638,7 +638,7 @@ static void Do5PCM() {
   int32 start, end;
 
   start = MMC5Sound.BC[2];
-  end = (SOUNDTS << 16) / fceulib__.sound->soundtsinc;
+  end = (fceulib__.sound->SoundTS() << 16) / fceulib__.sound->soundtsinc;
   if (end <= start) return;
   MMC5Sound.BC[2] = end;
 
@@ -650,9 +650,9 @@ static void Do5PCM() {
 static void Do5PCMHQ() {
   uint32 V;  // mbg merge 7/17/06 made uint32
   if (!(MMC5Sound.rawcontrol & 0x40) && MMC5Sound.raw)
-    for (V = MMC5Sound.BC[2]; V < SOUNDTS; V++)
+    for (V = MMC5Sound.BC[2]; V < fceulib__.sound->SoundTS(); V++)
       fceulib__.sound->WaveHi[V] += MMC5Sound.raw << 5;
-  MMC5Sound.BC[2] = SOUNDTS;
+  MMC5Sound.BC[2] = fceulib__.sound->SoundTS();
 }
 
 static DECLFW(Mapper5_SW) {
@@ -708,7 +708,7 @@ static void Do5SQ(int P) {
   int32 start, end;
 
   start = MMC5Sound.BC[P];
-  end = (SOUNDTS << 16) / fceulib__.sound->soundtsinc;
+  end = (fceulib__.sound->SoundTS() << 16) / fceulib__.sound->soundtsinc;
   if (end <= start) return;
   MMC5Sound.BC[P] = end;
 
@@ -752,7 +752,7 @@ static void Do5SQHQ(int P) {
 
     dc = MMC5Sound.dcount[P];
     vc = MMC5Sound.vcount[P];
-    for (V = MMC5Sound.BC[P]; V < SOUNDTS; V++) {
+    for (V = MMC5Sound.BC[P]; V < fceulib__.sound->SoundTS(); V++) {
       if (dc < rthresh) fceulib__.sound->WaveHi[V] += amp;
       vc--;
       if (vc <= 0) /* Less than zero when first started. */
@@ -764,10 +764,10 @@ static void Do5SQHQ(int P) {
     MMC5Sound.dcount[P] = dc;
     MMC5Sound.vcount[P] = vc;
   }
-  MMC5Sound.BC[P] = SOUNDTS;
+  MMC5Sound.BC[P] = fceulib__.sound->SoundTS();
 }
 
-void MMC5RunSoundHQ(void) {
+void MMC5RunSoundHQ() {
   Do5SQHQ(0);
   Do5SQHQ(1);
   Do5PCMHQ();
@@ -784,7 +784,7 @@ void MMC5RunSound(int Count) {
   for (int x = 0; x < 3; x++) MMC5Sound.BC[x] = Count;
 }
 
-void Mapper5_ESI(void) {
+void Mapper5_ESI() {
   fceulib__.sound->GameExpSound.RChange = Mapper5_ESI;
   if (FCEUS_SNDRATE) {
     if (FCEUS_SOUNDQ >= 1) {
@@ -803,7 +803,7 @@ void Mapper5_ESI(void) {
   fceulib__.sound->GameExpSound.HiSync = MMC5HiSync;
 }
 
-void NSFMMC5_Init(void) {
+void NSFMMC5_Init() {
   memset(&MMC5Sound, 0, sizeof(MMC5Sound));
   mul[0] = mul[1] = 0;
   ExRAM = (uint8 *)FCEU_gmalloc(1024);
@@ -816,12 +816,12 @@ void NSFMMC5_Init(void) {
   fceulib__.fceu->SetReadHandler(0x5205, 0x5206, MMC5_read);
 }
 
-void NSFMMC5_Close(void) {
+void NSFMMC5_Close() {
   free(ExRAM);
   ExRAM = 0;
 }
 
-static void GenMMC5Reset(void) {
+static void GenMMC5Reset() {
   for (int x = 0; x < 4; x++) PRGBanks[x] = ~0;
   for (int x = 0; x < 8; x++) CHRBanksA[x] = ~0;
   for (int x = 0; x < 4; x++) CHRBanksB[x] = ~0;

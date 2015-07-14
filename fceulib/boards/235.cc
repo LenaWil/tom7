@@ -23,7 +23,7 @@
 static uint16 cmdreg;
 static SFORMAT StateRegs[] = {{&cmdreg, 2, "CREG"}, {0}};
 
-static void Sync(void) {
+static void Sync() {
   if (cmdreg & 0x400)
     fceulib__.cart->setmirror(MI_0);
   else
@@ -45,7 +45,7 @@ static DECLFW(M235Write) {
   Sync();
 }
 
-static void M235Power(void) {
+static void M235Power() {
   fceulib__.cart->setchr8(0);
   fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, M235Write);
   fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);

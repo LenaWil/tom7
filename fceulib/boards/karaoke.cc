@@ -24,7 +24,7 @@
 
 static uint8 latche;
 
-static void Sync(void) {
+static void Sync() {
   if (latche) {
     if (latche & 0x10)
       fceulib__.cart->setprg16(0x8000, (latche & 7));
@@ -44,7 +44,7 @@ static DECLFR(ExtDev) {
   return 3;
 }
 
-static void Power(void) {
+static void Power() {
   latche = 0;
   Sync();
   fceulib__.cart->setchr8(0);

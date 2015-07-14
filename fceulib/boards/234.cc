@@ -23,7 +23,7 @@
 static uint8 bank, preg;
 static SFORMAT StateRegs[] = {{&bank, 1, "BANK"}, {&preg, 1, "PREG"}, {0}};
 
-static void Sync(void) {
+static void Sync() {
   if (bank & 0x40) {
     fceulib__.cart->setprg32(0x8000, (bank & 0xE) | (preg & 1));
     fceulib__.cart->setchr8(((bank & 0xE) << 2) | ((preg >> 4) & 7));
@@ -50,12 +50,12 @@ DECLFR(M234ReadPreg) {
   return r;
 }
 
-static void M234Reset(void) {
+static void M234Reset() {
   bank = preg = 0;
   Sync();
 }
 
-static void M234Power(void) {
+static void M234Power() {
   M234Reset();
   fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
   fceulib__.fceu->SetReadHandler(0xFF80, 0xFF9F, M234ReadBank);

@@ -28,11 +28,18 @@ static uint32 WRAMSIZE;
 static uint8 is2kbank, isnot2kbank;
 
 static SFORMAT StateRegs[] = {
-    {&mode, 1, "MODE"},     {&bank, 1, "BANK"},        {&IRQCount, 4, "IRQC"},
-    {&IRQa, 1, "IRQA"},     {reg, 11, "REGS"},         {low, 4, "LOWR"},
-    {&is2kbank, 1, "IS2K"}, {&isnot2kbank, 1, "NT2K"}, {0}};
+    {&mode, 1, "MODE"},
+    {&bank, 1, "BANK"},
+    {&IRQCount, 4, "IRQC"},
+    {&IRQa, 1, "IRQA"},
+    {reg, 11, "REGS"},
+    {low, 4, "LOWR"},
+    {&is2kbank, 1, "IS2K"},
+    {&isnot2kbank, 1, "NT2K"},
+    {0}
+};
 
-static void UNLYOKOSync(void) {
+static void UNLYOKOSync() {
   fceulib__.cart->setmirror((mode & 1) ^ 1);
   fceulib__.cart->setchr2(0x0000, reg[3]);
   fceulib__.cart->setchr2(0x0800, reg[4]);
@@ -54,7 +61,7 @@ static void UNLYOKOSync(void) {
   }
 }
 
-static void M83Sync(void) {
+static void M83Sync() {
   // check if it is truth
   switch (mode & 3) {
     case 0: fceulib__.cart->setmirror(MI_V); break;
@@ -224,7 +231,7 @@ static DECLFW(UNLYOKOWriteLow) {
   low[A & 3] = V;
 }
 
-static void UNLYOKOPower(void) {
+static void UNLYOKOPower() {
   mode = bank = 0;
   dip = 3;
   UNLYOKOSync();
@@ -235,7 +242,7 @@ static void UNLYOKOPower(void) {
   fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, UNLYOKOWrite);
 }
 
-static void M83Power(void) {
+static void M83Power() {
   is2kbank = 0;
   isnot2kbank = 0;
   mode = bank = 0;
@@ -251,18 +258,18 @@ static void M83Power(void) {
   fceulib__.fceu->SetWriteHandler(0x8000, 0xffff, M83Write);
 }
 
-static void UNLYOKOReset(void) {
+static void UNLYOKOReset() {
   dip = (dip + 1) & 3;
   mode = bank = 0;
   UNLYOKOSync();
 }
 
-static void M83Reset(void) {
+static void M83Reset() {
   dip ^= 1;
   M83Sync();
 }
 
-static void M83Close(void) {
+static void M83Close() {
   if (WRAM) free(WRAM);
   WRAM = NULL;
 }

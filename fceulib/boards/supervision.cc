@@ -22,7 +22,7 @@
 
 static uint8 cmd0, cmd1;
 
-static void DoSuper(void) {
+static void DoSuper() {
   fceulib__.cart->setprg8r((cmd0 & 0xC) >> 2, 0x6000,
                            ((cmd0 & 0x3) << 4) | 0xF);
   if (cmd0 & 0x10) {
@@ -48,7 +48,7 @@ static DECLFW(SuperHi) {
   DoSuper();
 }
 
-static void SuperReset(void) {
+static void SuperReset() {
   fceulib__.fceu->SetWriteHandler(0x6000, 0x7FFF, SuperWrite);
   fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, SuperHi);
   fceulib__.fceu->SetReadHandler(0x6000, 0xFFFF, Cart::CartBR);

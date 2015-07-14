@@ -26,7 +26,7 @@ static uint32 WRAMSIZE;
 
 static SFORMAT StateRegs[] = {{regs, 8, "REGS"}, {0}};
 
-static void Sync(void) {
+static void Sync() {
   fceulib__.cart->setprg2r(0x10, 0x6800, 0);
   fceulib__.cart->setprg8(0x8000, regs[0]);
   fceulib__.cart->setprg8(0xA000, regs[1]);
@@ -43,7 +43,7 @@ static DECLFW(M246Write) {
   Sync();
 }
 
-static void M246Power(void) {
+static void M246Power() {
   regs[0] = regs[1] = regs[2] = regs[3] = ~0;
   Sync();
   fceulib__.fceu->SetWriteHandler(0x6000, 0x67FF, M246Write);
@@ -52,7 +52,7 @@ static void M246Power(void) {
   fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
 }
 
-static void M246Close(void) {
+static void M246Close() {
   if (WRAM) free(WRAM);
   WRAM = NULL;
 }

@@ -26,7 +26,7 @@ static uint8 reg;
 
 static SFORMAT StateRegs[] = {{&reg, 1, "REG"}, {0}};
 
-static void Sync(void) {
+static void Sync() {
   fceulib__.cart->setchr8(0);
   fceulib__.cart->setprg8r(0x10, 0x6000, (reg & 0xC0) >> 6);
   fceulib__.cart->setprg32(0x8000, reg & 0x1F);
@@ -39,7 +39,7 @@ static DECLFW(UNLEDU2000HiWrite) {
   Sync();
 }
 
-static void UNLEDU2000Power(void) {
+static void UNLEDU2000Power() {
   fceulib__.cart->setmirror(MI_0);
   fceulib__.fceu->SetReadHandler(0x6000, 0xFFFF, Cart::CartBR);
   fceulib__.fceu->SetWriteHandler(0x6000, 0xFFFF, Cart::CartBW);
@@ -48,7 +48,7 @@ static void UNLEDU2000Power(void) {
   Sync();
 }
 
-static void UNLEDU2000Close(void) {
+static void UNLEDU2000Close() {
   if (WRAM) free(WRAM);
   WRAM = NULL;
 }

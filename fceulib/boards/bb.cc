@@ -24,7 +24,7 @@ static uint8 reg, chr;
 
 static SFORMAT StateRegs[] = {{&reg, 1, "REG"}, {&chr, 1, "CHR"}, {0}};
 
-static void Sync(void) {
+static void Sync() {
   fceulib__.cart->setprg8(0x6000, reg & 3);
   fceulib__.cart->setprg32(0x8000, ~0);
   fceulib__.cart->setchr8(chr & 3);
@@ -39,7 +39,7 @@ static DECLFW(UNLBBWrite) {
   Sync();
 }
 
-static void UNLBBPower(void) {
+static void UNLBBPower() {
   chr = 0;
   reg = ~0;
   Sync();

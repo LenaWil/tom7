@@ -26,7 +26,7 @@ static uint8 reg, ppulatch;
 
 static SFORMAT StateRegs[] = {{&reg, 1, "REG"}, {&ppulatch, 1, "PPUL"}, {0}};
 
-static void Sync(void) {
+static void Sync() {
   fceulib__.cart->setmirror(MI_0);
   fceulib__.cart->setprg32(0x8000, reg & 3);
   fceulib__.cart->setchr4(0x0000, (reg & 4) | ppulatch);
@@ -45,7 +45,7 @@ static void M96Hook(uint32 A) {
   }
 }
 
-static void M96Power(void) {
+static void M96Power() {
   reg = ppulatch = 0;
   Sync();
   fceulib__.fceu->SetReadHandler(0x8000, 0xffff, Cart::CartBR);

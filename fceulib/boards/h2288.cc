@@ -57,7 +57,7 @@ static DECLFW(H2288WriteLo) {
   }
 }
 
-static void H2288Power(void) {
+static void H2288Power() {
   EXPREGS[0] = EXPREGS[1] = 0;
   GenMMC3Power();
   //  fceulib__.fceu->SetReadHandler(0x5000,0x5FFF,H2288Read);

@@ -29,7 +29,7 @@ static SFORMAT StateRegs[] = {
     {&IRQa, 1, "IRQA"},     {&IRQd, 1, "IRQD"},       {&IRQLatch, 1, "IRQC"},
     {&IRQCount, 4, "IRQC"}, {&CycleCount, 4, "CYCC"}, {0}};
 
-static void Sync(void) {
+static void Sync() {
   fceulib__.cart->setprg8(0x8000, prg[0]);
   fceulib__.cart->setprg8(0xa000, prg[1]);
   fceulib__.cart->setprg8(0xc000, prg[2]);
@@ -114,7 +114,7 @@ static DECLFW(UNLVRC7Write) {
   }
 }
 
-static void UNLVRC7Power(void) {
+static void UNLVRC7Power() {
   Sync();
   fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
   fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, UNLVRC7Write);

@@ -27,7 +27,7 @@ static uint32 WRAMSIZE;
 static SFORMAT StateRegs[] = {
     {&reg0, 1, "REG0"}, {&reg1, 1, "REG1"}, {&reg2, 1, "REG2"}, {0}};
 
-static void Sync(void) {
+static void Sync() {
   fceulib__.cart->setchr8(0);
   fceulib__.cart->setprg8(0x8000, 0xc);
   fceulib__.cart->setprg8(0xe000, 0xf);
@@ -71,7 +71,7 @@ static DECLFW(M103Write2) {
   Sync();
 }
 
-static void M103Power(void) {
+static void M103Power() {
   reg0 = reg1 = 0;
   reg2 = 0;
   Sync();
@@ -84,7 +84,7 @@ static void M103Power(void) {
   fceulib__.fceu->SetWriteHandler(0xF000, 0xFFFF, M103Write2);
 }
 
-static void M103Close(void) {
+static void M103Close() {
   if (WRAM) free(WRAM);
   WRAM = NULL;
 }

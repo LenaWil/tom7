@@ -26,7 +26,7 @@ static uint8 busy;
 static SFORMAT StateRegs[] = {
     {&addrreg, 2, "AREG"}, {&datareg, 1, "DREG"}, {&busy, 1, "BUSY"}, {0}};
 
-static void Sync(void) {
+static void Sync() {
   uint16 base = ((addrreg & 0x60) >> 2) | ((addrreg & 0x100) >> 3);
   fceulib__.cart->setprg16(0x8000, (datareg & 7) | base);
   fceulib__.cart->setprg16(0xC000, 7 | base);
@@ -43,7 +43,7 @@ static DECLFW(BMCT262Write) {
   Sync();
 }
 
-static void BMCT262Power(void) {
+static void BMCT262Power() {
   fceulib__.cart->setchr8(0);
   fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, BMCT262Write);
   fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
@@ -53,7 +53,7 @@ static void BMCT262Power(void) {
   Sync();
 }
 
-static void BMCT262Reset(void) {
+static void BMCT262Reset() {
   busy = 0;
   addrreg = 0;
   datareg = 0;

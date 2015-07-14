@@ -27,7 +27,7 @@
 static uint8 latche, reset;
 static SFORMAT StateRegs[] = {{&reset, 1, "RST"}, {&latche, 1, "LATC"}, {0}};
 
-static void Sync(void) {
+static void Sync() {
   if (reset) {
     fceulib__.cart->setprg16(0x8000, latche & 7);
     fceulib__.cart->setprg16(0xC000, 7);
@@ -50,12 +50,12 @@ static DECLFW(M230Write) {
   Sync();
 }
 
-static void M230Reset(void) {
+static void M230Reset() {
   reset ^= 1;
   Sync();
 }
 
-static void M230Power(void) {
+static void M230Power() {
   latche = reset = 0;
   Sync();
   fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, M230Write);

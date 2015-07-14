@@ -28,7 +28,7 @@ static int16 Count = 0x0000;
 static SFORMAT StateRegs[] = {
     {reg, 4, "REGS"}, {&IRQa, 1, "IRQA"}, {&IRQCount, 2, "IRQC"}, {0}};
 
-static void Sync(void) {
+static void Sync() {
   fceulib__.cart->setprg32(0x8000, 0);
   fceulib__.cart->setchr8(0);
 }
@@ -55,13 +55,13 @@ static DECLFW(UNL3DBlockWrite) {
   }
 }
 
-static void UNL3DBlockPower(void) {
+static void UNL3DBlockPower() {
   Sync();
   fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
   fceulib__.fceu->SetWriteHandler(0x4800, 0x4E00, UNL3DBlockWrite);
 }
 
-static void UNL3DBlockReset(void) {
+static void UNL3DBlockReset() {
   Count += 0x10;
   FCEU_printf("Count=%04x\n", Count);
 }

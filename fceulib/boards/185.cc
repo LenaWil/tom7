@@ -23,7 +23,7 @@
 
 static uint8 *DummyCHR = NULL;
 static uint8 datareg;
-static void (*Sync)(void);
+static void (*Sync)();
 
 static SFORMAT StateRegs[] = {{&datareg, 1, "DREG"}, {0}};
 
@@ -36,7 +36,7 @@ static SFORMAT StateRegs[] = {{&datareg, 1, "DREG"}, {0}};
 // 6  0x21, 0x13 - Spy vs Spy
 // 7  0x20, 0x21 - Seicross
 
-static void Sync185(void) {
+static void Sync185() {
   // little dirty eh? ;_)
   if ((datareg & 3) && (datareg != 0x13))  // 1, 2, 3, 4, 5, 6
     fceulib__.cart->setchr8(0);
@@ -44,7 +44,7 @@ static void Sync185(void) {
     fceulib__.cart->setchr8r(0x10, 0);
 }
 
-static void Sync181(void) {
+static void Sync181() {
   if (!(datareg & 1))  // 7
     fceulib__.cart->setchr8(0);
   else
@@ -56,7 +56,7 @@ static DECLFW(MWrite) {
   Sync();
 }
 
-static void MPower(void) {
+static void MPower() {
   datareg = 0;
   Sync();
   fceulib__.cart->setprg16(0x8000, 0);
@@ -65,7 +65,7 @@ static void MPower(void) {
   fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
 }
 
-static void MClose(void) {
+static void MClose() {
   if (DummyCHR) free(DummyCHR);
   DummyCHR = NULL;
 }
