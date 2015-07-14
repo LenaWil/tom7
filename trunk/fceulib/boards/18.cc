@@ -32,7 +32,7 @@ static SFORMAT StateRegs[] = {{preg, 4, "PREG"},
                               {&IRQLatch, 4, "IRQL"},
                               {0}};
 
-static void Sync(void) {
+static void Sync() {
   for (int i = 0; i < 8; i++) fceulib__.cart->setchr1(i << 10, creg[i]);
   fceulib__.cart->setprg8(0x8000, preg[0]);
   fceulib__.cart->setprg8(0xA000, preg[1]);
@@ -88,7 +88,7 @@ static DECLFW(M18WriteChr) {
   Sync();
 }
 
-static void M18Power(void) {
+static void M18Power() {
   preg[0] = 0;
   preg[1] = 1;
   preg[2] = ~1;

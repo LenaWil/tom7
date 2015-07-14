@@ -34,7 +34,7 @@ static SFORMAT StateRegs[] = {{&mirr, 1, "MIRR"},     {&reg, 1, "REGS"},
                               {&IRQa, 4, "IRQA"},     {&IRQCount, 4, "IRQC"},
                               {&IRQLatch, 4, "IRQL"}, {0}};
 
-static void Sync(void) {
+static void Sync() {
   fceulib__.cart->setprg16(0x8000, reg);
   fceulib__.cart->setprg16(0xC000, 2);
   fceulib__.cart->setmirror(mirr);
@@ -76,7 +76,7 @@ static void UNL7017IRQ(int a) {
   }
 }
 
-static void UNLKS7017Power(void) {
+static void UNLKS7017Power() {
   Sync();
   fceulib__.cart->setchr8(0);
   fceulib__.cart->setprg8r(0x10, 0x6000, 0);
@@ -87,7 +87,7 @@ static void UNLKS7017Power(void) {
   fceulib__.fceu->SetWriteHandler(0x4020, 0x5FFF, UNLKS7017Write);
 }
 
-static void UNLKS7017Close(void) {
+static void UNLKS7017Close() {
   if (WRAM) free(WRAM);
   WRAM = NULL;
 }

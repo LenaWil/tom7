@@ -26,7 +26,7 @@ static SFORMAT StateRegs[] = {{prot, 4, "PROT"},  {&prg, 1, "PRG"},
                               {&chr, 1, "CHR"},   {&mode, 1, "MODE"},
                               {&mirr, 1, "MIRR"}, {0}};
 
-static void Sync(void) {
+static void Sync() {
   if (mode) {
     fceulib__.cart->setprg16(0x8000, prg);
     fceulib__.cart->setprg16(0xC000, prg);
@@ -52,7 +52,7 @@ static DECLFR(M225LoRead) {
   return 0;
 }
 
-static void M225Power(void) {
+static void M225Power() {
   prg = 0;
   mode = 0;
   Sync();
@@ -62,7 +62,7 @@ static void M225Power(void) {
   fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, M225Write);
 }
 
-static void M225Reset(void) {
+static void M225Reset() {
   prg = 0;
   mode = 0;
   Sync();

@@ -27,7 +27,7 @@ static uint32 WRAMSIZE;
 
 static SFORMAT StateRegs[] = {{reg, 2, "REG"}, {0}};
 
-static void Sync(void) {
+static void Sync() {
   fceulib__.cart->setchr8(0);
   fceulib__.cart->setprg8r(0x10, 0x6000, 0);
   fceulib__.cart->setprg32(0x8000, reg[1] >> 1);
@@ -44,7 +44,7 @@ static DECLFW(M179WriteLo) {
   Sync();
 }
 
-static void M179Power(void) {
+static void M179Power() {
   reg[0] = reg[1] = 0;
   Sync();
   fceulib__.fceu->SetWriteHandler(0x4020, 0x5fff, M179WriteLo);
@@ -54,7 +54,7 @@ static void M179Power(void) {
   fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, M179Write);
 }
 
-static void M179Close(void) {
+static void M179Close() {
   if (WRAM) free(WRAM);
   WRAM = NULL;
 }

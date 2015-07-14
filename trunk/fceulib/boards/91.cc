@@ -29,7 +29,7 @@ static SFORMAT StateRegs[] = {{cregs, 4, "CREG"},
                               {&IRQCount, 1, "IRQC"},
                               {0}};
 
-static void Sync(void) {
+static void Sync() {
   fceulib__.cart->setprg8(0x8000, pregs[0]);
   fceulib__.cart->setprg8(0xa000, pregs[1]);
   fceulib__.cart->setprg8(0xc000, ~1);
@@ -63,14 +63,14 @@ static DECLFW(M91Write1) {
   }
 }
 
-static void M91Power(void) {
+static void M91Power() {
   Sync();
   fceulib__.fceu->SetWriteHandler(0x6000, 0x6fff, M91Write0);
   fceulib__.fceu->SetWriteHandler(0x7000, 0x7fff, M91Write1);
   fceulib__.fceu->SetReadHandler(0x8000, 0xffff, Cart::CartBR);
 }
 
-static void M91IRQHook(void) {
+static void M91IRQHook() {
   if (IRQCount < 8 && IRQa) {
     IRQCount++;
     if (IRQCount >= 8) {

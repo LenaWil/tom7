@@ -33,7 +33,7 @@ static SFORMAT StateRegs[] = {{&IRQCount, 1, "IRQC"}, {&IRQa, 1, "IRQA"},
                               {&mirr, 1, "MIRR"},     {0}};
 
 /*
-static void UNLAX5705IRQ(void)
+static void UNLAX5705IRQ()
 {
   if(IRQa)
   {
@@ -46,7 +46,7 @@ static void UNLAX5705IRQ(void)
   }
 }*/
 
-static void Sync(void) {
+static void Sync() {
   fceulib__.cart->setprg8(0x8000, prg_reg[0]);
   fceulib__.cart->setprg8(0xA000, prg_reg[1]);
   fceulib__.cart->setprg8(0xC000, ~1);
@@ -118,7 +118,7 @@ static DECLFW(UNLAX5705Write) {
   Sync();
 }
 
-static void UNLAX5705Power(void) {
+static void UNLAX5705Power() {
   Sync();
   fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
   fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, UNLAX5705Write);

@@ -34,7 +34,7 @@ void DoVRC7Sound(void) {
   int32 z, a;
 
   if (FCEUS_SOUNDQ >= 1) return;
-  z = ((SOUNDTS << 16) / fceulib__.sound->soundtsinc) >> 4;
+  z = ((fceulib__.sound->SoundTS() << 16) / fceulib__.sound->soundtsinc) >> 4;
   a = z - dwave;
 
   moocow(VRC7Sound, &fceulib__.sound->Wave[dwave], a, 1);
@@ -49,7 +49,7 @@ void UpdateOPLNEO(int32 *Wave, int Count) {
 void UpdateOPL(int Count) {
   int32 z, a;
 
-  z = ((SOUNDTS << 16) / fceulib__.sound->soundtsinc) >> 4;
+  z = ((fceulib__.sound->SoundTS() << 16) / fceulib__.sound->soundtsinc) >> 4;
   a = z - dwave;
 
   if (VRC7Sound && a) moocow(VRC7Sound, &fceulib__.sound->Wave[dwave], a, 1);

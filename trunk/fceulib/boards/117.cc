@@ -31,7 +31,7 @@ static SFORMAT StateRegs[] = {{&IRQa, 1, "IRQA"},
                               {&mirror, 1, "MREG"},
                               {0}};
 
-static void Sync(void) {
+static void Sync() {
   fceulib__.cart->setprg8(0x8000, prgreg[0]);
   fceulib__.cart->setprg8(0xa000, prgreg[1]);
   fceulib__.cart->setprg8(0xc000, prgreg[2]);
@@ -65,7 +65,7 @@ static DECLFW(M117Write) {
   }
 }
 
-static void M117Power(void) {
+static void M117Power() {
   prgreg[0] = ~3;
   prgreg[1] = ~2;
   prgreg[2] = ~1;
@@ -75,7 +75,7 @@ static void M117Power(void) {
   fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, M117Write);
 }
 
-static void M117IRQHook(void) {
+static void M117IRQHook() {
   if (IRQa == 3 && IRQCount) {
     IRQCount--;
     if (!IRQCount) {

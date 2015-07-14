@@ -23,7 +23,7 @@
 static uint8 reg, mirr;
 static SFORMAT StateRegs[] = {{&reg, 1, "REGS"}, {&mirr, 1, "MIRR"}, {0}};
 
-static void Sync(void) {
+static void Sync() {
   fceulib__.cart->setprg8r(0, 0x6000, ~0);
   fceulib__.cart->setprg32r((reg & 8) >> 3, 0x8000, reg);
   fceulib__.cart->setchr8(0);
@@ -34,7 +34,7 @@ static DECLFW(BMCGS2013Write) {
   Sync();
 }
 
-static void BMCGS2013Power(void) {
+static void BMCGS2013Power() {
   reg = ~0;
   Sync();
   fceulib__.fceu->SetReadHandler(0x6000, 0x7FFF, Cart::CartBR);
@@ -42,7 +42,7 @@ static void BMCGS2013Power(void) {
   fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, BMCGS2013Write);
 }
 
-static void BMCGS2013Reset(void) {
+static void BMCGS2013Reset() {
   reg = ~0;
 }
 

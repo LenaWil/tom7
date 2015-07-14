@@ -66,7 +66,7 @@ static DECLFR(M208ProtRead) {
   return (EXPREGS[(A & 0x3)]);
 }
 
-static void M208Power(void) {
+static void M208Power() {
   EXPREGS[5] = 3;
   GenMMC3Power();
   fceulib__.fceu->SetWriteHandler(0x4800, 0x4FFF, M208Write);

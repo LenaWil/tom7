@@ -22,7 +22,7 @@
 
 static uint8 latch;
 
-static void DoNovel(void) {
+static void DoNovel() {
   fceulib__.cart->setprg32(0x8000, latch & 3);
   fceulib__.cart->setchr8(latch & 7);
 }
@@ -32,7 +32,7 @@ static DECLFW(NovelWrite) {
   DoNovel();
 }
 
-static void NovelReset(void) {
+static void NovelReset() {
   fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, NovelWrite);
   fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
   fceulib__.cart->setprg32(0x8000, 0);

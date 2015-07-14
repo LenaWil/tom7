@@ -24,7 +24,7 @@ static uint8 reg;
 
 static SFORMAT StateRegs[] = {{&reg, 1, "REGS"}, {0}};
 
-static void Sync(void) {
+static void Sync() {
   fceulib__.cart->setprg16(0x8000, 0);
   fceulib__.cart->setprg16(0xc000, ~0);
   fceulib__.cart->setchr8(0);
@@ -38,7 +38,7 @@ static DECLFR(M170ProtR) {
   return reg | (fceulib__.X->DB & 0x7F);
 }
 
-static void M170Power(void) {
+static void M170Power() {
   Sync();
   fceulib__.fceu->SetWriteHandler(0x6502, 0x6502, M170ProtW);
   fceulib__.fceu->SetWriteHandler(0x7000, 0x7000, M170ProtW);

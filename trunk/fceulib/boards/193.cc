@@ -29,7 +29,7 @@ static SFORMAT StateRegs[] = {{&cmd, 1, "CMD"},
                               {reg, 8, "REGS"},
                               {0}};
 
-static void Sync(void) {
+static void Sync() {
   fceulib__.cart->setmirror(mirror ^ 1);
   fceulib__.cart->setprg8(0x8000, reg[3]);
   fceulib__.cart->setprg8(0xA000, 0xD);
@@ -45,7 +45,7 @@ static DECLFW(M193Write) {
   Sync();
 }
 
-static void M193Power(void) {
+static void M193Power() {
   bank = 0;
   Sync();
   fceulib__.fceu->SetWriteHandler(0x6000, 0x6003, M193Write);
@@ -53,7 +53,7 @@ static void M193Power(void) {
   fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, Cart::CartBW);
 }
 
-static void M193Reset(void) {}
+static void M193Reset() {}
 
 static void StateRestore(int version) {
   Sync();

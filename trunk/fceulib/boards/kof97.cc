@@ -38,7 +38,7 @@ static DECLFW(UNLKOF97IRQWrite) {
   MMC3_IRQWrite(DECLFW_FORWARD);
 }
 
-static void UNLKOF97Power(void) {
+static void UNLKOF97Power() {
   GenMMC3Power();
   fceulib__.fceu->SetWriteHandler(0x8000, 0xA000, UNLKOF97CMDWrite);
   fceulib__.fceu->SetWriteHandler(0xC000, 0xF000, UNLKOF97IRQWrite);

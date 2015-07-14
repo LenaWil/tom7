@@ -25,7 +25,7 @@ static uint8 DRegs[4];
 
 static SFORMAT StateRegs[] = {{DRegs, 4, "DREG"}, {0}};
 
-static void Sync(void) {
+static void Sync() {
   int base, bank;
   base = ((DRegs[0] ^ DRegs[1]) & 0x10) << 1;
   bank = (DRegs[2] ^ DRegs[3]) & 0x1f;
@@ -62,7 +62,7 @@ static void StateRestore(int version) {
   Sync();
 }
 
-void Mapper166_init(void) {
+void Mapper166_init() {
   mode = 1;
   DRegs[0] = DRegs[1] = DRegs[2] = DRegs[3] = 0;
   Sync();
@@ -71,7 +71,7 @@ void Mapper166_init(void) {
   fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
 }
 
-void Mapper167_init(void) {
+void Mapper167_init() {
   mode = 0;
   DRegs[0] = DRegs[1] = DRegs[2] = DRegs[3] = 0;
   Sync();

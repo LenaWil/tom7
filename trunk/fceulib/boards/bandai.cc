@@ -56,7 +56,7 @@ static void BandaiIRQHook(int a) {
   }
 }
 
-static void BandaiSync(void) {
+static void BandaiSync() {
   if (is153) {
     int base = (reg[0] & 1) << 4;
     fceulib__.cart->setchr8(0);
@@ -99,7 +99,7 @@ static DECLFW(BandaiWrite) {
     }
 }
 
-static void BandaiPower(void) {
+static void BandaiPower() {
   BandaiSync();
   fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
   fceulib__.fceu->SetWriteHandler(0x6000, 0xFFFF, BandaiWrite);
@@ -117,7 +117,7 @@ void Mapper16_Init(CartInfo *info) {
   fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
 }
 
-static void M153Power(void) {
+static void M153Power() {
   BandaiSync();
   fceulib__.cart->setprg8r(0x10, 0x6000, 0);
   fceulib__.fceu->SetReadHandler(0x6000, 0x7FFF, Cart::CartBR);
@@ -126,7 +126,7 @@ static void M153Power(void) {
   fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, BandaiWrite);
 }
 
-static void M153Close(void) {
+static void M153Close() {
   if (WRAM) free(WRAM);
   WRAM = NULL;
 }
@@ -303,7 +303,7 @@ static DECLFR(BarcodeRead) {
   return BarcodeOut;
 }
 
-static void M157Power(void) {
+static void M157Power() {
   BarcodeData[0] = 0xFF;
   BarcodeReadPos = 0;
   BarcodeOut = 0;

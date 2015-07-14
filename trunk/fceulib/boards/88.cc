@@ -26,7 +26,7 @@ static uint8 mirror, cmd, is154;
 static SFORMAT StateRegs[] = {
     {&cmd, 1, "CMD"}, {&mirror, 1, "MIRR"}, {reg, 8, "REGS"}, {0}};
 
-static void Sync(void) {
+static void Sync() {
   fceulib__.cart->setchr2(0x0000, reg[0] >> 1);
   fceulib__.cart->setchr2(0x0800, reg[1] >> 1);
   fceulib__.cart->setchr1(0x1000, reg[2] | 0x40);
@@ -37,7 +37,7 @@ static void Sync(void) {
   fceulib__.cart->setprg8(0xA000, reg[7]);
 }
 
-static void MSync(void) {
+static void MSync() {
   if (is154) fceulib__.cart->setmirror(MI_0 + (mirror & 1));
 }
 
@@ -55,7 +55,7 @@ static DECLFW(M88Write) {
   }
 }
 
-static void M88Power(void) {
+static void M88Power() {
   fceulib__.cart->setprg16(0xC000, ~0);
   fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
   fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, M88Write);

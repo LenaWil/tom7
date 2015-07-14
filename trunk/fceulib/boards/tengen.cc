@@ -49,7 +49,7 @@ static void RAMBO1_IRQHook(int a) {
   }
 }
 
-static void RAMBO1_hb(void) {
+static void RAMBO1_hb() {
   if (IRQmode) return;
   if (fceulib__.ppu->scanline == 240)
     return; /* hmm.  Maybe that should be an mmc3-only call in fce.c. */
@@ -63,7 +63,7 @@ static void RAMBO1_hb(void) {
   }
 }
 
-static void Synco(void) {
+static void Synco() {
 
   if (cmd & 0x20) {
     setchr1wrap(0x0000, DRegs[0]);
@@ -127,7 +127,7 @@ static void RAMBO1_Restore(int version) {
   fceulib__.cart->setmirror(mir ^ 1);
 }
 
-static void RAMBO1_init(void) {
+static void RAMBO1_init() {
   for (int x = 0; x < 11; x++) DRegs[x] = ~0;
   cmd = mir = 0;
   //  if (!nomirror)
@@ -144,7 +144,7 @@ static void CHRWrap(unsigned int A, unsigned int V) {
   fceulib__.cart->setchr1(A, V);
 }
 
-void Mapper64_init(void) {
+void Mapper64_init() {
   setchr1wrap = CHRWrap;
   //  nomirror=0;
   RAMBO1_init();
@@ -169,7 +169,7 @@ static void MirrorFear(uint32 A)
   setmirror(MI_0+MirCache[A]);
 }
 
-void Mapper158_init(void)
+void Mapper158_init()
 {
   setchr1wrap=MirWrap;
   PPU_hook=MirrorFear;

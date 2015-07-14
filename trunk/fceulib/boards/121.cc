@@ -139,7 +139,7 @@ static DECLFR(M121Read) {
   return EXPREGS[4];
 }
 
-static void M121Power(void) {
+static void M121Power() {
   EXPREGS[3] = 0x80;
   EXPREGS[5] = 0;
   GenMMC3Power();

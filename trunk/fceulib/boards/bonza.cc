@@ -74,7 +74,7 @@ byte_8C29:           .BYTE   0,$76,  0,  0,  8
 byte_8CC6:           .BYTE   0,$78,  0,  0,$12
 */
 
-static void Sync(void) {
+static void Sync() {
   fceulib__.cart->setprg32(0x8000, prg_reg);
   fceulib__.cart->setchr8(chr_reg);
 }
@@ -100,7 +100,7 @@ static DECLFR(M216Read5000) {
   return 0;
 }
 
-static void Power(void) {
+static void Power() {
   prg_reg = 0;
   chr_reg = 0;
   Sync();

@@ -58,7 +58,7 @@ static DECLFW(UNLA9711WriteLo) {
   FixMMC3PRG(MMC3_cmd);
 }
 
-static void UNLA9711Power(void) {
+static void UNLA9711Power() {
   EXPREGS[0] = EXPREGS[1] = EXPREGS[2] = 0;
   GenMMC3Power();
   fceulib__.fceu->SetWriteHandler(0x5000, 0x5FFF, UNLA9711WriteLo);

@@ -145,7 +145,7 @@ static void DoAYSQ(int x) {
   amp += amp >> 1;
 
   start = CAYBC[x];
-  end = (SOUNDTS << 16) / fceulib__.sound->soundtsinc;
+  end = (fceulib__.sound->SoundTS() << 16) / fceulib__.sound->soundtsinc;
   if (end <= start) return;
   CAYBC[x] = end;
 
@@ -170,7 +170,7 @@ static void DoAYSQHQ(int x) {
   amp += amp >> 1;
 
   if (!(MapperExRAM[0x7] & (1 << x))) {
-    for (uint32 V = CAYBC[x]; V < SOUNDTS; V++) {
+    for (uint32 V = CAYBC[x]; V < fceulib__.sound->SoundTS(); V++) {
       if (dcount[x]) fceulib__.sound->WaveHi[V] += amp;
       vcount[x]--;
       if (vcount[x] <= 0) {
@@ -179,7 +179,7 @@ static void DoAYSQHQ(int x) {
       }
     }
   }
-  CAYBC[x] = SOUNDTS;
+  CAYBC[x] = fceulib__.sound->SoundTS();
 }
 
 static void AYSound(int Count) {

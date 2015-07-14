@@ -36,7 +36,7 @@ static SFORMAT StateRegs[] = {{&IRQCount, 4, "IRQC"},
                               {chr_reg, 8, "CREG"},
                               {0}};
 
-static void Sync(void) {
+static void Sync() {
   fceulib__.cart->setprg32(0x8000, prg_reg >> 2);
   if (!prg_mode) fceulib__.cart->setprg8(0xC000, prg_reg);
   for (int i = 0; i < 8; i++) fceulib__.cart->setchr1(i << 10, chr_reg[i]);
@@ -103,7 +103,7 @@ static void UNLCITYFIGHTIRQ(int a) {
   }
 }
 
-static void UNLCITYFIGHTPower(void) {
+static void UNLCITYFIGHTPower() {
   prg_reg = 0;
   Sync();
   pcmwrite = fceulib__.fceu->GetWriteHandler(0x4011);

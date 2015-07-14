@@ -61,7 +61,7 @@ static SFORMAT StateRegs[] = {{&mode, 1, "MODE"},
                               {&mmc1_shift, 1, "M1MR"},
                               {0}};
 
-static void SyncPRG(void) {
+static void SyncPRG() {
   switch (mode & 3) {
     case 0:
       fceulib__.cart->setprg8(0x8000, vrc2_prg[0]);
@@ -96,7 +96,7 @@ static void SyncPRG(void) {
   }
 }
 
-static void SyncCHR(void) {
+static void SyncCHR() {
   uint32 base = (mode & 4) << 6;
   switch (mode & 3) {
     case 0:
@@ -132,7 +132,7 @@ static void SyncCHR(void) {
   }
 }
 
-static void SyncMIR(void) {
+static void SyncMIR() {
   switch (mode & 3) {
     case 0: {
       fceulib__.cart->setmirror((vrc2_mirr & 1) ^ 1);
@@ -155,7 +155,7 @@ static void SyncMIR(void) {
   }
 }
 
-static void Sync(void) {
+static void Sync() {
   SyncPRG();
   SyncCHR();
   SyncMIR();
@@ -262,7 +262,7 @@ static DECLFW(UNLSL12Write) {
   }
 }
 
-static void UNLSL12HBIRQ(void) {
+static void UNLSL12HBIRQ() {
   if ((mode & 3) == 1) {
     int32 count = IRQCount;
     if (!count || IRQReload) {
@@ -281,7 +281,7 @@ static void StateRestore(int version) {
   Sync();
 }
 
-static void UNLSL12Power(void) {
+static void UNLSL12Power() {
   mode = 0;
   vrc2_chr[0] = ~0;
   vrc2_chr[1] = ~0;

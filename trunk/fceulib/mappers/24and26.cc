@@ -123,7 +123,7 @@ static inline void DoSQV(int x) {
   int32 start, end;
 
   start = CVBC[x];
-  end = (SOUNDTS << 16) / fceulib__.sound->soundtsinc;
+  end = (fceulib__.sound->SoundTS() << 16) / fceulib__.sound->soundtsinc;
   if (end <= start) return;
   CVBC[x] = end;
 
@@ -159,7 +159,7 @@ static void DoSQV2(void) {
 
 static void DoSawV(void) {
   int32 start = CVBC[2];
-  int32 end = (SOUNDTS << 16) / fceulib__.sound->soundtsinc;
+  int32 end = (fceulib__.sound->SoundTS() << 16) / fceulib__.sound->soundtsinc;
   if (end <= start) return;
   CVBC[2] = end;
 
@@ -200,11 +200,11 @@ static inline void DoSQVHQ(int x) {
 
   if (VPSG[(x << 2) | 0x2] & 0x80) {
     if (VPSG[x << 2] & 0x80) {
-      for (uint32 V = CVBC[x]; V < SOUNDTS; V++)
+      for (uint32 V = CVBC[x]; V < fceulib__.sound->SoundTS(); V++)
         fceulib__.sound->WaveHi[V] += amp;
     } else {
       const int32 thresh = (VPSG[x << 2] >> 4) & 7;
-      for (uint32 V = CVBC[x]; V < SOUNDTS; V++) {
+      for (uint32 V = CVBC[x]; V < fceulib__.sound->SoundTS(); V++) {
         if (dcount[x] > thresh) /* Greater than, not >=.  Important. */
           fceulib__.sound->WaveHi[V] += amp;
         vcount[x]--;
@@ -217,7 +217,7 @@ static inline void DoSQVHQ(int x) {
       }
     }
   }
-  CVBC[x] = SOUNDTS;
+  CVBC[x] = fceulib__.sound->SoundTS();
 }
 
 static void DoSQV1HQ(void) {
@@ -234,7 +234,7 @@ static void DoSawVHQ(void) {
   uint32 V;  // mbg merge 7/17/06 made uint32
 
   if (VPSG2[2] & 0x80) {
-    for (V = CVBC[2]; V < SOUNDTS; V++) {
+    for (V = CVBC[2]; V < fceulib__.sound->SoundTS(); V++) {
       fceulib__.sound->WaveHi[V] += (((phaseacc >> 3) & 0x1f) << 8) * 6 / 8;
       vcount[2]--;
       if (vcount[2] <= 0) {
@@ -248,7 +248,7 @@ static void DoSawVHQ(void) {
       }
     }
   }
-  CVBC[2] = SOUNDTS;
+  CVBC[2] = fceulib__.sound->SoundTS();
 }
 
 void VRC6Sound(int Count) {

@@ -33,7 +33,7 @@ static uint32 WRAMSIZE;
 
 static SFORMAT StateRegs[] = {{&reg0, 1, "REG0"}, {&reg1, 1, "REG1"}, {0}};
 
-static void Sync(void) {
+static void Sync() {
   fceulib__.cart->setchr8(0);
   fceulib__.cart->setprg32(0x8000, ~0);
   fceulib__.cart->setprg4(0xb800, reg0);
@@ -100,7 +100,7 @@ static DECLFW(UNLKS7030Write1) {
   Sync();
 }
 
-static void UNLKS7030Power(void) {
+static void UNLKS7030Power() {
   reg0 = reg1 = ~0;
   Sync();
   fceulib__.fceu->SetReadHandler(0x6000, 0x7FFF, UNLKS7030RamRead0);
@@ -112,7 +112,7 @@ static void UNLKS7030Power(void) {
   fceulib__.fceu->SetWriteHandler(0xB800, 0xD7FF, UNLKS7030RamWrite1);
 }
 
-static void UNLKS7030Close(void) {
+static void UNLKS7030Close() {
   free(WRAM);
   WRAM = nullptr;
 }

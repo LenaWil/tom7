@@ -36,21 +36,21 @@ static SFORMAT StateRegs[] = {{reg, 8, "REGS"},
                               {&IRQLatch, 2, "IRQL"},
                               {0}};
 
-static void Sync(void) {}
+static void Sync() {}
 
 static DECLFW(MNNNWrite) {}
 
-static void MNNNPower(void) {
+static void MNNNPower() {
   //	fceulib__.fceu->SetReadHandler(0x6000,0x7fff,CartBR);
   //	fceulib__.fceu->SetWriteHandler(0x6000,0x7fff,CartBW);
   fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
   fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, MNNNWrite);
 }
 
-static void MNNNReset(void) {}
+static void MNNNReset() {}
 
 /*
-static void MNNNClose(void)
+static void MNNNClose()
 {
     if (WRAM)
         free(WRAM);

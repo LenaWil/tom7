@@ -27,7 +27,7 @@ static uint8 bank_value;
 static uint8 prgb[4];
 static SFORMAT StateRegs[] = {{0}};
 
-static void Sync(void) {
+static void Sync() {
   FCEU_printf("%02x: %02x %02x\n", bank_mode, bank_value, prgb[0]);
   switch (bank_mode & 7) {
     case 0: fceulib__.cart->setprg32(0x8000, bank_value & 7); break;
@@ -68,7 +68,7 @@ static DECLFW(BMC13in1JY110Write) {
   Sync();
 }
 
-static void BMC13in1JY110Power(void) {
+static void BMC13in1JY110Power() {
   prgb[0] = prgb[1] = prgb[2] = prgb[3] = 0;
   bank_mode = 0;
   bank_value = 0;

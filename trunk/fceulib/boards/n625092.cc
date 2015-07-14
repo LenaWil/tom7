@@ -25,7 +25,7 @@ static uint16 cmd, bank;
 
 static SFORMAT StateRegs[] = {{&cmd, 2, "CMD"}, {&bank, 2, "BANK"}, {0}};
 
-static void Sync(void) {
+static void Sync() {
   fceulib__.cart->setmirror((cmd & 1) ^ 1);
   fceulib__.cart->setchr8(0);
   if (cmd & 2) {
@@ -59,7 +59,7 @@ static DECLFW(UNLN625092WriteBank) {
   Sync();
 }
 
-static void UNLN625092Power(void) {
+static void UNLN625092Power() {
   cmd = 0;
   bank = 0;
   Sync();
@@ -68,7 +68,7 @@ static void UNLN625092Power(void) {
   fceulib__.fceu->SetWriteHandler(0xC000, 0xFFFF, UNLN625092WriteBank);
 }
 
-static void UNLN625092Reset(void) {
+static void UNLN625092Reset() {
   cmd = 0;
   bank = 0;
   ass++;

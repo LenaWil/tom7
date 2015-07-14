@@ -58,7 +58,7 @@ static DECLFW(Super24Write) {
   }
 }
 
-static void Super24Power(void) {
+static void Super24Power() {
   EXPREGS[0] = 0x24;
   EXPREGS[1] = 159;
   EXPREGS[2] = 0;
@@ -67,14 +67,14 @@ static void Super24Power(void) {
   fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
 }
 
-static void Super24Reset(void) {
+static void Super24Reset() {
   EXPREGS[0] = 0x24;
   EXPREGS[1] = 159;
   EXPREGS[2] = 0;
   MMC3RegReset();
 }
 
-static void Super24Close(void) {
+static void Super24Close() {
   if (CHRRAM) free(CHRRAM);
   CHRRAM = NULL;
 }

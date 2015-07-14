@@ -39,12 +39,12 @@ static SFORMAT StateRegs[] = {{&IRQCount, 1, "IRQC"}, {&IRQLatch, 1, "IRQL"},
                               {&IRQa, 1, "IRQA"},     {&K4IRQ, 1, "KIRQ"},
                               {regs, 16, "REGS"},     {0}};
 
-static void chrSync(void) {
+static void chrSync() {
   fceulib__.cart->setchr4r(0x10, 0x0000, regs[5] & 1);
   fceulib__.cart->setchr4r(0x10, 0x1000, 0);
 }
 
-static void Sync(void) {
+static void Sync() {
   chrSync();
   //  if(regs[0xA]&0x10)
   //  {
@@ -147,7 +147,7 @@ static DECLFW(M1902007Wrap) {
   }
 }
 
-static void M190Power(void) {
+static void M190Power() {
   fceulib__.cart->setprg4r(0x10, 0x7000, 2);
 
   old2007wrap = fceulib__.fceu->GetWriteHandler(0x2007);
@@ -161,7 +161,7 @@ static void M190Power(void) {
   Sync();
 }
 
-static void M190Close(void) {
+static void M190Close() {
   if (CHRRAM) free(CHRRAM);
   CHRRAM = NULL;
   if (WRAM) free(WRAM);

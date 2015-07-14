@@ -32,7 +32,7 @@ static void S74LS374MSync(uint8 mirr) {
   }
 }
 
-static void S74LS374NSynco(void) {
+static void S74LS374NSynco() {
   fceulib__.cart->setprg32(0x8000, latch[0]);
   fceulib__.cart->setchr8(latch[1] | latch[3] | latch[4]);
   S74LS374MSync(latch[2]);
@@ -67,7 +67,7 @@ static DECLFR(S74LS374NRead) {
   return ret;
 }
 
-static void S74LS374NPower(void) {
+static void S74LS374NPower() {
   dip = 0;
   latch[0] = latch[1] = latch[2] = latch[3] = latch[4] = 0;
   S74LS374NSynco();
@@ -76,7 +76,7 @@ static void S74LS374NPower(void) {
   fceulib__.fceu->SetReadHandler(0x4100, 0x5fff, S74LS374NRead);
 }
 
-static void S74LS374NReset(void) {
+static void S74LS374NReset() {
   dip ^= 1;
   latch[0] = latch[1] = latch[2] = latch[3] = latch[4] = 0;
   S74LS374NSynco();
@@ -95,7 +95,7 @@ void S74LS374N_Init(CartInfo *info) {
   fceulib__.state->AddExState(&dip, 1, 0, "DIP");
 }
 
-static void S74LS374NASynco(void) {
+static void S74LS374NASynco() {
   fceulib__.cart->setprg32(0x8000, latch[0]);
   fceulib__.cart->setchr8(latch[1]);
   S74LS374MSync(latch[2]);
@@ -121,7 +121,7 @@ static DECLFW(S74LS374NAWrite) {
   }
 }
 
-static void S74LS374NAPower(void) {
+static void S74LS374NAPower() {
   latch[0] = latch[2] = latch[3] = latch[4] = 0;
   latch[1] = 3;
   S74LS374NASynco();
@@ -137,7 +137,7 @@ void S74LS374NA_Init(CartInfo *info) {
 }
 
 static int type;
-static void S8259Synco(void) {
+static void S8259Synco() {
   fceulib__.cart->setprg32(0x8000, latch[5] & 7);
 
   if (!fceulib__.unif->UNIFchrrama) {
@@ -189,7 +189,7 @@ static DECLFW(S8259Write) {
   }
 }
 
-static void S8259Reset(void) {
+static void S8259Reset() {
   cmd = 0;
 
   for (int x = 0; x < 8; x++) latch[x] = 0;
@@ -240,7 +240,7 @@ void S8259D_Init(CartInfo *info)  // Kevin's Horton 137 mapper
   type = 3;
 }
 
-static void (*WSync)(void);
+static void (*WSync)();
 
 static DECLFW(SAWrite) {
   if (A & 0x100) {
@@ -249,7 +249,7 @@ static DECLFW(SAWrite) {
   }
 }
 
-static void SAPower(void) {
+static void SAPower() {
   latch[0] = 0;
   WSync();
   fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
@@ -265,7 +265,7 @@ static DECLFW(SADWrite) {
   WSync();
 }
 
-static void SADPower(void) {
+static void SADPower() {
   latch[0] = 0;
   WSync();
   fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
@@ -349,7 +349,7 @@ static DECLFW(TCU01Write) {
   }
 }
 
-static void TCU01Power(void) {
+static void TCU01Power() {
   latch[0] = 0;
   fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
   fceulib__.fceu->SetWriteHandler(0x4100, 0xFFFF, TCU01Write);
@@ -384,7 +384,7 @@ static DECLFR(TCU02Read) {
   return (latch[0] & 0x3F) | (fceulib__.X->DB & 0xC0);
 }
 
-static void TCU02Power(void) {
+static void TCU02Power() {
   latch[0] = 0;
   fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
   fceulib__.fceu->SetReadHandler(0x4100, 0x4100, TCU02Read);
@@ -413,7 +413,7 @@ static DECLFR(TCA01Read) {
   return ret;
 }
 
-static void TCA01Power(void) {
+static void TCA01Power() {
   fceulib__.cart->setprg16(0x8000, 0);
   fceulib__.cart->setprg16(0xC000, 1);
   fceulib__.cart->setchr8(0);

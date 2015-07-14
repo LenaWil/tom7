@@ -31,7 +31,7 @@ static SFORMAT StateRegs[] = {{chrcmd, 8, "CHRC"},
                               {&swap, 1, "SWAP"},
                               {0}};
 
-static void Sync(void) {
+static void Sync() {
   fceulib__.cart->setprg8(0x8000, prg0);
   fceulib__.cart->setprg8(0xA000, prg1);
   fceulib__.cart->setprg8(0xC000, ~1);
@@ -89,7 +89,7 @@ static void StateRestore(int version) {
     Sync();
 }
 
-static void UNLSL1632Power(void) {
+static void UNLSL1632Power() {
   GenMMC3Power();
   fceulib__.fceu->SetWriteHandler(0x4100, 0xFFFF, UNLSL1632CMDWrite);
 }

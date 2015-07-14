@@ -26,7 +26,7 @@ static uint32 WRAMSIZE;
 
 static SFORMAT StateRegs[] = {{regs, 8, "REGS"}, {0}};
 
-static void Sync(void) {
+static void Sync() {
   fceulib__.cart->setprg2r(0x10, 0x0800, 0);
   fceulib__.cart->setprg2r(0x10, 0x1000, 1);
   fceulib__.cart->setprg2r(0x10, 0x1800, 2);
@@ -63,7 +63,7 @@ static DECLFR(SSSNROMRead) {
   }
 }
 
-static void SSSNROMPower(void) {
+static void SSSNROMPower() {
   regs[0] = regs[1] = regs[2] = regs[3] = regs[4] = regs[5] = regs[6] = 0;
   regs[7] = 0xff;
   Sync();
@@ -78,16 +78,16 @@ static void SSSNROMPower(void) {
   fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
 }
 
-static void SSSNROMReset(void) {
+static void SSSNROMReset() {
   regs[1] = regs[2] = regs[3] = regs[4] = regs[5] = regs[6] = 0;
 }
 
-static void SSSNROMClose(void) {
+static void SSSNROMClose() {
   free(WRAM);
   WRAM = nullptr;
 }
 
-static void SSSNROMIRQHook(void) {
+static void SSSNROMIRQHook() {
   //  fceulib__.X->IRQBegin(FCEU_IQEXT);
 }
 

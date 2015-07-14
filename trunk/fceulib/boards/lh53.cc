@@ -31,7 +31,7 @@ static uint32 WRAMSIZE;
 static SFORMAT StateRegs[] = {
     {&reg, 1, "REG"}, {&IRQa, 1, "IRQA"}, {&IRQCount, 4, "IRQC"}, {0}};
 
-static void Sync(void) {
+static void Sync() {
   fceulib__.cart->setchr8(0);
   fceulib__.cart->setprg8(0x6000, reg);
   fceulib__.cart->setprg8(0x8000, 0xc);
@@ -67,7 +67,7 @@ static void LH53IRQ(int a) {
   }
 }
 
-static void LH53Power(void) {
+static void LH53Power() {
   Sync();
   fceulib__.fceu->SetReadHandler(0x6000, 0xFFFF, Cart::CartBR);
   fceulib__.fceu->SetWriteHandler(0xB800, 0xD7FF, LH53RamWrite);
@@ -75,7 +75,7 @@ static void LH53Power(void) {
   fceulib__.fceu->SetWriteHandler(0xF000, 0xFFFF, LH53Write);
 }
 
-static void LH53Close(void) {
+static void LH53Close() {
   if (WRAM) free(WRAM);
   WRAM = NULL;
 }

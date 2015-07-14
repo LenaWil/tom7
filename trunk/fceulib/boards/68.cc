@@ -31,7 +31,7 @@ static SFORMAT StateRegs[] = {{&nt1, 1, "NT1"},     {&nt2, 1, "NT2"},
                               {&kogame, 1, "KGME"}, {&count, 4, "CNT"},
                               {chr_reg, 4, "CHR"},  {0}};
 
-static void M68NTfix(void) {
+static void M68NTfix() {
   if ((!fceulib__.unif->UNIFchrrama) && (mirr & 0x10)) {
     fceulib__.ppu->PPUNTARAM = 0;
     switch (mirr & 3) {
@@ -74,7 +74,7 @@ static void M68NTfix(void) {
   }
 }
 
-static void Sync(void) {
+static void Sync() {
   fceulib__.cart->setchr2(0x0000, chr_reg[0]);
   fceulib__.cart->setchr2(0x0800, chr_reg[1]);
   fceulib__.cart->setchr2(0x1000, chr_reg[2]);
@@ -127,7 +127,7 @@ static DECLFW(M68WriteROM) {
   Sync();
 }
 
-static void M68Power(void) {
+static void M68Power() {
   prg_reg = 0;
   kogame = 0;
   Sync();
@@ -144,7 +144,7 @@ static void M68Power(void) {
   fceulib__.fceu->SetWriteHandler(0x6001, 0x7FFF, Cart::CartBW);
 }
 
-static void M68Close(void) {
+static void M68Close() {
   if (WRAM) free(WRAM);
   WRAM = NULL;
 }

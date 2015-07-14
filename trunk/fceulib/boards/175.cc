@@ -24,7 +24,7 @@ static uint8 reg, delay, mirr;
 
 static SFORMAT StateRegs[] = {{&reg, 1, "REG"}, {&mirr, 1, "MIRR"}, {0}};
 
-static void Sync(void) {
+static void Sync() {
   fceulib__.cart->setchr8(reg);
   if (!delay) {
     fceulib__.cart->setprg16(0x8000, reg);
@@ -54,7 +54,7 @@ static DECLFR(M175Read) {
   return Cart::CartBR(DECLFR_FORWARD);
 }
 
-static void M175Power(void) {
+static void M175Power() {
   reg = mirr = delay = 0;
   fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, M175Read);
   fceulib__.fceu->SetWriteHandler(0x8000, 0x8000, M175Write1);

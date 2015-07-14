@@ -64,7 +64,7 @@ static constexpr uint32 PALDMCTable[0x10] = {
 // $4013        -        Size register:  Size in bytes = (V+1)*64
 
 void Sound::LoadDMCPeriod(uint8 V) {
-  if (fceulib__.fceu->PAL)
+  if (fc->fceu->PAL)
     DMCPeriod = PALDMCTable[V];
   else
     DMCPeriod = NTSCDMCTable[V];
@@ -105,7 +105,7 @@ void Sound::SQReload(int x, uint8 V) {
 }
 
 static DECLFW(Write_PSG) {
-  return fceulib__.sound->Write_PSG_Direct(DECLFW_FORWARD);
+  return fc->sound->Write_PSG_Direct(DECLFW_FORWARD);
 }
 
 void Sound::Write_PSG_Direct(DECLFW_ARGS) {
@@ -158,10 +158,10 @@ void Sound::Write_PSG_Direct(DECLFW_ARGS) {
 
       if (SIRQStat & 0x80) {
         if (!(V & 0x80)) {
-          fceulib__.X->IRQEnd(FCEU_IQDPCM);
+          fc->X->IRQEnd(FCEU_IQDPCM);
           SIRQStat &= ~0x80;
         } else {
-          fceulib__.X->IRQBegin(FCEU_IQDPCM);
+          fc->X->IRQBegin(FCEU_IQDPCM);
         }
       }
       break;
@@ -170,7 +170,7 @@ void Sound::Write_PSG_Direct(DECLFW_ARGS) {
 }
 
 static DECLFW(Write_DMCRegs) {
-  return fceulib__.sound->Write_DMCRegs_Direct(DECLFW_FORWARD);
+  return fc->sound->Write_DMCRegs_Direct(DECLFW_FORWARD);
 }
 
 void Sound::Write_DMCRegs_Direct(DECLFW_ARGS) {
@@ -183,10 +183,10 @@ void Sound::Write_DMCRegs_Direct(DECLFW_ARGS) {
 
       if (SIRQStat & 0x80) {
         if (!(V & 0x80)) {
-          fceulib__.X->IRQEnd(FCEU_IQDPCM);
+          fc->X->IRQEnd(FCEU_IQDPCM);
           SIRQStat &= ~0x80;
         } else {
-          fceulib__.X->IRQBegin(FCEU_IQDPCM);
+          fc->X->IRQBegin(FCEU_IQDPCM);
         }
       }
       DMCFormat = V;
@@ -201,7 +201,7 @@ void Sound::Write_DMCRegs_Direct(DECLFW_ARGS) {
 }
 
 static DECLFW(StatusWrite) {
-  return fceulib__.sound->StatusWrite_Direct(DECLFW_FORWARD);
+  return fc->sound->StatusWrite_Direct(DECLFW_FORWARD);
 }
 
 void Sound::StatusWrite_Direct(DECLFW_ARGS) {
@@ -220,12 +220,12 @@ void Sound::StatusWrite_Direct(DECLFW_ARGS) {
     DMCSize = 0;
   }
   SIRQStat &= ~0x80;
-  fceulib__.X->IRQEnd(FCEU_IQDPCM);
+  fc->X->IRQEnd(FCEU_IQDPCM);
   EnabledChannels = V & 0x1F;
 }
 
 static DECLFR(StatusRead) {
-  return fceulib__.sound->StatusRead_Direct(DECLFR_FORWARD);
+  return fc->sound->StatusRead_Direct(DECLFR_FORWARD);
 }
 
 DECLFR_RET Sound::StatusRead_Direct(DECLFR_ARGS) {
@@ -235,7 +235,7 @@ DECLFR_RET Sound::StatusRead_Direct(DECLFR_ARGS) {
   if (DMCSize) ret |= 0x10;
 
   SIRQStat &= ~0x40;
-  fceulib__.X->IRQEnd(FCEU_IQFCOUNT);
+  fc->X->IRQEnd(FCEU_IQFCOUNT);
   return ret;
 }
 
@@ -329,7 +329,7 @@ void Sound::FrameSoundUpdate() {
 
   if (!fcnt && !(IRQFrameMode & 0x3)) {
     SIRQStat |= 0x40;
-    fceulib__.X->IRQBegin(FCEU_IQFCOUNT);
+    fc->X->IRQBegin(FCEU_IQFCOUNT);
   }
 
   if (fcnt == 3) {
@@ -353,10 +353,10 @@ void Sound::Tester() {
 
 void Sound::DMCDMA() {
   if (DMCSize && !DMCHaveDMA) {
-    fceulib__.X->DMR(0x8000 + DMCAddress);
-    fceulib__.X->DMR(0x8000 + DMCAddress);
-    fceulib__.X->DMR(0x8000 + DMCAddress);
-    DMCDMABuf = fceulib__.X->DMR(0x8000 + DMCAddress);
+    fc->X->DMR(0x8000 + DMCAddress);
+    fc->X->DMR(0x8000 + DMCAddress);
+    fc->X->DMR(0x8000 + DMCAddress);
+    DMCDMABuf = fc->X->DMR(0x8000 + DMCAddress);
     DMCHaveDMA = 1;
     DMCAddress = (DMCAddress + 1) & 0x7fff;
     DMCSize--;
@@ -365,7 +365,7 @@ void Sound::DMCDMA() {
         PrepDPCM();
       } else {
         SIRQStat |= 0x80;
-        if (DMCFormat & 0x80) fceulib__.X->IRQBegin(FCEU_IQDPCM);
+        if (DMCFormat & 0x80) fc->X->IRQBegin(FCEU_IQDPCM);
       }
     }
   }
@@ -404,11 +404,11 @@ void Sound::FCEU_SoundCPUHook(int cycles) {
 }
 
 void Sound::RDoPCM() {
-  for (uint32 V = ChannelBC[4]; V < SOUNDTS; V++) {
+  for (uint32 V = ChannelBC[4]; V < SoundTS(); V++) {
     // TODO get rid of floating calculations to binary. set log volume scaling.
     WaveHi[V] += (((RawDALatch << 16) / 256) * FCEUS_PCMVOLUME) & (~0xFFFF);
   }
-  ChannelBC[4] = SOUNDTS;
+  ChannelBC[4] = SoundTS();
 }
 
 // TODO PERF: Was inlined before; called only with constant 0 or 1.
@@ -450,7 +450,7 @@ void Sound::RDoSQ(int x) {
   rthresh = RectDuties[(PSG[(x << 2)] & 0xC0) >> 6];
 
   D = &WaveHi[ChannelBC[x]];
-  V = SOUNDTS - ChannelBC[x];
+  V = SoundTS() - ChannelBC[x];
 
   currdc = RectDutyCount[x];
   cf = (curfreq[x] + 1) * 2;
@@ -471,7 +471,7 @@ void Sound::RDoSQ(int x) {
   wlcount[x] = rc;
 
 endit:
-  ChannelBC[x] = SOUNDTS;
+  ChannelBC[x] = SoundTS();
 }
 
 void Sound::RDoSQ1() {
@@ -494,7 +494,7 @@ void Sound::RDoSQLQ() {
   int32 totalout;
 
   start = ChannelBC[0];
-  end = (SOUNDTS << 16) / soundtsinc;
+  end = (SoundTS() << 16) / soundtsinc;
   if (end <= start) return;
   ChannelBC[0] = end;
 
@@ -576,9 +576,9 @@ void Sound::RDoTriangle() {
 
   if (!lengthcount[2] || !TriCount) {
     int32 cout = (tcout / 256 * FCEUS_TRIANGLEVOLUME) & (~0xFFFF);
-    for (uint32 V = ChannelBC[2]; V < SOUNDTS; V++) WaveHi[V] += cout;
+    for (uint32 V = ChannelBC[2]; V < SoundTS(); V++) WaveHi[V] += cout;
   } else {
-    for (uint32 V = ChannelBC[2]; V < SOUNDTS; V++) {
+    for (uint32 V = ChannelBC[2]; V < SoundTS(); V++) {
       // Modify volume based on channel volume modifiers
       WaveHi[V] += (tcout / 256 * FCEUS_TRIANGLEVOLUME) &
                    (~0xFFFF);  // TODO OPTIMIZE ME!
@@ -593,7 +593,7 @@ void Sound::RDoTriangle() {
     }
   }
 
-  ChannelBC[2] = SOUNDTS;
+  ChannelBC[2] = SoundTS();
 }
 
 void Sound::RDoTriangleNoisePCMLQ() {
@@ -607,7 +607,7 @@ void Sound::RDoTriangleNoisePCMLQ() {
   int32 totalout;
 
   start = ChannelBC[2];
-  end = (SOUNDTS << 16) / soundtsinc;
+  end = (SoundTS() << 16) / soundtsinc;
   if (end <= start) return;
   ChannelBC[2] = end;
 
@@ -669,7 +669,7 @@ void Sound::RDoTriangleNoisePCMLQ() {
         do {
           // used to added <<(16+2) when the noise table
           // values were half.
-          if (fceulib__.fceu->PAL)
+          if (fc->fceu->PAL)
             triangle_noise_noiseacc += NoiseFreqTablePAL[PSG[0xE] & 0xF]
                                        << (16 + 1);
           else
@@ -707,7 +707,7 @@ void Sound::RDoTriangleNoisePCMLQ() {
         do {
           // used to be added <<(16+2) when the noise table
           // values were half.
-          if (fceulib__.fceu->PAL)
+          if (fc->fceu->PAL)
             triangle_noise_noiseacc += NoiseFreqTablePAL[PSG[0xE] & 0xF]
                                        << (16 + 1);
           else
@@ -757,12 +757,12 @@ void Sound::RDoNoise() {
 
   if (PSG[0xE] & 0x80) {
     // "short" noise
-    for (uint32 V = ChannelBC[3]; V < SOUNDTS; V++) {
+    for (uint32 V = ChannelBC[3]; V < SoundTS(); V++) {
       WaveHi[V] += outo;
       wlcount[3]--;
       if (!wlcount[3]) {
         uint8 feedback;
-        if (fceulib__.fceu->PAL)
+        if (fc->fceu->PAL)
           wlcount[3] = NoiseFreqTablePAL[PSG[0xE] & 0xF];
         else
           wlcount[3] = NoiseFreqTableNTSC[PSG[0xE] & 0xF];
@@ -773,12 +773,12 @@ void Sound::RDoNoise() {
       }
     }
   } else {
-    for (uint32 V = ChannelBC[3]; V < SOUNDTS; V++) {
+    for (uint32 V = ChannelBC[3]; V < SoundTS(); V++) {
       WaveHi[V] += outo;
       wlcount[3]--;
       if (!wlcount[3]) {
         uint8 feedback;
-        if (fceulib__.fceu->PAL)
+        if (fc->fceu->PAL)
           wlcount[3] = NoiseFreqTablePAL[PSG[0xE] & 0xF];
         else
           wlcount[3] = NoiseFreqTableNTSC[PSG[0xE] & 0xF];
@@ -789,11 +789,11 @@ void Sound::RDoNoise() {
       }
     }
   }
-  ChannelBC[3] = SOUNDTS;
+  ChannelBC[3] = SoundTS();
 }
 
 static DECLFW(Write_IRQFM) {
-  return fceulib__.sound->Write_IRQFM_Direct(DECLFW_FORWARD);
+  return fc->sound->Write_IRQFM_Direct(DECLFW_FORWARD);
 }
 
 void Sound::Write_IRQFM_Direct(DECLFW_ARGS) {
@@ -802,24 +802,24 @@ void Sound::Write_IRQFM_Direct(DECLFW_ARGS) {
   if (V & 0x2) FrameSoundUpdate();
   fcnt = 1;
   fhcnt = fhinc;
-  fceulib__.X->IRQEnd(FCEU_IQFCOUNT);
+  fc->X->IRQEnd(FCEU_IQFCOUNT);
   SIRQStat &= ~0x40;
   IRQFrameMode = V;
 }
 
 void Sound::SetNESSoundMap() {
-  fceulib__.fceu->SetWriteHandler(0x4000, 0x400F, Write_PSG);
-  fceulib__.fceu->SetWriteHandler(0x4010, 0x4013, Write_DMCRegs);
-  fceulib__.fceu->SetWriteHandler(0x4017, 0x4017, Write_IRQFM);
+  fc->fceu->SetWriteHandler(0x4000, 0x400F, Write_PSG);
+  fc->fceu->SetWriteHandler(0x4010, 0x4013, Write_DMCRegs);
+  fc->fceu->SetWriteHandler(0x4017, 0x4017, Write_IRQFM);
 
-  fceulib__.fceu->SetWriteHandler(0x4015, 0x4015, StatusWrite);
-  fceulib__.fceu->SetReadHandler(0x4015, 0x4015, StatusRead);
+  fc->fceu->SetWriteHandler(0x4015, 0x4015, StatusWrite);
+  fc->fceu->SetReadHandler(0x4015, 0x4015, StatusRead);
 }
 
 int Sound::FlushEmulateSound() {
   int32 end, left;
 
-  if (!fceulib__.X->timestamp) return 0;
+  if (!fc->X->timestamp) return 0;
 
   if (!FCEUS_SNDRATE) {
     left = 0;
@@ -838,23 +838,23 @@ int Sound::FlushEmulateSound() {
 
     if (GameExpSound.HiFill) GameExpSound.HiFill();
 
-    for (int x = fceulib__.X->timestamp; x; x--) {
+    for (int x = fc->X->timestamp; x; x--) {
       uint32 b = *tmpo;
       *tmpo = (b & 65535) + wlookup2[(b >> 16) & 255] + wlookup1[b >> 24];
       tmpo++;
     }
-    end = fceulib__.filter->NeoFilterSound(WaveHi, WaveFinal, SOUNDTS, &left);
+    end = fc->filter->NeoFilterSound(WaveHi, WaveFinal, SoundTS(), &left);
 
-    memmove(WaveHi, WaveHi + SOUNDTS - left, left * sizeof(uint32));
+    memmove(WaveHi, WaveHi + SoundTS() - left, left * sizeof(uint32));
     memset(WaveHi + left, 0, sizeof(WaveHi) - left * sizeof(uint32));
 
     if (GameExpSound.HiSync) GameExpSound.HiSync(left);
     for (int x = 0; x < 5; x++) ChannelBC[x] = left;
   } else {
-    end = (SOUNDTS << 16) / soundtsinc;
+    end = (SoundTS() << 16) / soundtsinc;
     if (GameExpSound.Fill) GameExpSound.Fill(end & 0xF);
 
-    fceulib__.filter->SexyFilter(Wave, WaveFinal, end >> 4);
+    fc->filter->SexyFilter(Wave, WaveFinal, end >> 4);
 
     // if (FCEUS_LOWPASS)
     // SexyFilter2(WaveFinal,end>>4);
@@ -942,7 +942,7 @@ void Sound::FCEUSND_Power() {
 }
 
 void Sound::SetSoundVariables() {
-  fhinc = fceulib__.fceu->PAL ? 16626 : 14915;  // *2 CPU clock rate
+  fhinc = fc->fceu->PAL ? 16626 : 14915;  // *2 CPU clock rate
   fhinc *= 24;
 
   if (FCEUS_SNDRATE) {
@@ -976,12 +976,12 @@ void Sound::SetSoundVariables() {
     return;
   }
 
-  fceulib__.filter->MakeFilters(FCEUS_SNDRATE);
+  fc->filter->MakeFilters(FCEUS_SNDRATE);
 
   if (GameExpSound.RChange) GameExpSound.RChange();
 
   nesincsize = (int64)(((int64)1 << 17) *
-                       (double)(fceulib__.fceu->PAL ? PAL_CPU : NTSC_CPU) /
+                       (double)(fc->fceu->PAL ? PAL_CPU : NTSC_CPU) /
                        (FCEUS_SNDRATE * 16));
   memset(sqacc, 0, sizeof(sqacc));
   memset(ChannelBC, 0, sizeof(ChannelBC));
@@ -989,8 +989,8 @@ void Sound::SetSoundVariables() {
   LoadDMCPeriod(DMCFormat & 0xF);  // For changing from PAL to NTSC
 
   soundtsinc =
-      (uint32)((uint64)(fceulib__.fceu->PAL ? (long double)PAL_CPU * 65536 :
-                                              (long double)NTSC_CPU * 65536) /
+      (uint32)((uint64)(fc->fceu->PAL ? (long double)PAL_CPU * 65536 :
+			                (long double)NTSC_CPU * 65536) /
                (FCEUS_SNDRATE * 16));
 }
 
@@ -998,7 +998,7 @@ void Sound::FCEUI_InitSound() {
   SetSoundVariables();
 }
 
-Sound::Sound()
+Sound::Sound(FC *fc)
     : stateinfo{{&fhcnt, 4 | FCEUSTATE_RLSB, "FHCN"},
                 {&fcnt, 1, "FCNT"},
                 {PSG, 0x10, "PSG"},
@@ -1048,7 +1048,8 @@ Sound::Sound()
                 {&DMCAddressLatch, 1, "5ADL"},
                 {&DMCFormat, 1, "5FMT"},
                 {&RawDALatch, 1, "RWDA"},
-                {0}} {
+		{0}},
+      fc(fc) {
           // Constructor, empty.
       };
 

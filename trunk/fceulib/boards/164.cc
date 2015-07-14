@@ -31,12 +31,12 @@ static uint8 reg[8];
 static uint8 *WRAM = NULL;
 static uint32 WRAMSIZE;
 
-static void (*WSync)(void);
+static void (*WSync)();
 
 static SFORMAT StateRegs[] = {
     {&laststrobe, 1, "STB"}, {&trigger, 1, "TRG"}, {reg, 8, "REGS"}, {0}};
 
-static void Sync(void) {
+static void Sync() {
   fceulib__.cart->setprg8r(0x10, 0x6000, 0);
   fceulib__.cart->setprg32(0x8000, (reg[0] << 4) | (reg[1] & 0xF));
   fceulib__.cart->setchr8(0);
@@ -59,7 +59,7 @@ static DECLFR(ReadLow) {
   return 4;
 }
 
-static void M163HB(void) {
+static void M163HB() {
   if (reg[1] & 0x80) {
     if (fceulib__.ppu->scanline == 239) {
       fceulib__.cart->setchr4(0x0000, 0);
@@ -101,7 +101,7 @@ static DECLFW(Write) {
   }
 }
 
-static void Power(void) {
+static void Power() {
   memset(reg, 0, 8);
   reg[1] = 0xFF;
   fceulib__.fceu->SetWriteHandler(0x5000, 0x5FFF, Write);
@@ -110,7 +110,7 @@ static void Power(void) {
   WSync();
 }
 
-static void Close(void) {
+static void Close() {
   if (WRAM) free(WRAM);
   WRAM = NULL;
 }
@@ -160,7 +160,7 @@ static DECLFW(Write2) {
     }
 }
 
-static void Power2(void) {
+static void Power2() {
   memset(reg, 0, 8);
   laststrobe = 1;
   fceulib__.fceu->SetReadHandler(0x5000, 0x5FFF, ReadLow);
@@ -189,7 +189,7 @@ void Mapper163_Init(CartInfo *info) {
   fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
 }
 
-static void Sync3(void) {
+static void Sync3() {
   fceulib__.cart->setchr8(0);
   fceulib__.cart->setprg8r(0x10, 0x6000, 0);
   switch (reg[3] & 7) {
@@ -219,7 +219,7 @@ static DECLFW(Write3) {
   WSync();
 }
 
-static void Power3(void) {
+static void Power3() {
   reg[0] = 3;
   reg[1] = 0;
   reg[2] = 0;

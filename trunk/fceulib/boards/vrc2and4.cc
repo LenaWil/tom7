@@ -44,7 +44,7 @@ static SFORMAT StateRegs[] = {{prgreg, 2, "PREG"},
                               {&IRQa, 1, "IRQA"},
                               {0}};
 
-static void Sync(void) {
+static void Sync() {
   if (regcmd & 2) {
     fceulib__.cart->setprg8(0xC000, prgreg[0] | big_bank);
     fceulib__.cart->setprg8(0x8000, ((~1) & 0x1F) | big_bank);
@@ -176,19 +176,19 @@ static DECLFW(M23Write) {
   VRC24Write(fc, A, V);
 }
 
-static void M21Power(void) {
+static void M21Power() {
   Sync();
   fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
   fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, M21Write);
 }
 
-static void M22Power(void) {
+static void M22Power() {
   Sync();
   fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
   fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, M22Write);
 }
 
-static void M23Power(void) {
+static void M23Power() {
   big_bank = 0x20;
   Sync();
   fceulib__.cart->setprg8r(0x10, 0x6000, 0);  // Only two Goemon games are have
@@ -201,7 +201,7 @@ static void M23Power(void) {
   fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, M23Write);
 }
 
-static void M25Power(void) {
+static void M25Power() {
   big_bank = 0x20;
   Sync();
   fceulib__.cart->setprg8r(0x10, 0x6000, 0);
@@ -232,7 +232,7 @@ static void StateRestore(int version) {
   Sync();
 }
 
-static void VRC24Close(void) {
+static void VRC24Close() {
   if (WRAM) free(WRAM);
   WRAM = NULL;
 }

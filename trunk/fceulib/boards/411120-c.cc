@@ -42,13 +42,13 @@ static DECLFW(BMC411120CLoWrite) {
   FixMMC3CHR(MMC3_cmd);
 }
 
-static void BMC411120CReset(void) {
+static void BMC411120CReset() {
   EXPREGS[0] = 0;
   reset_flag ^= 4;
   MMC3RegReset();
 }
 
-static void BMC411120CPower(void) {
+static void BMC411120CPower() {
   EXPREGS[0] = 0;
   GenMMC3Power();
   fceulib__.fceu->SetWriteHandler(0x6000, 0x7FFF, BMC411120CLoWrite);

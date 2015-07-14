@@ -25,6 +25,9 @@
 #include "state.h"
 #include "fceu.h"
 
+#include "x6502.h"
+#include "fc.h"
+
 struct EXPSOUND {
   void (*Fill)(int Count) = nullptr; /* Low quality ext sound. */
   
@@ -43,6 +46,8 @@ struct EXPSOUND {
 };
 
 struct Sound {
+  explicit Sound(FC *fc);
+  
   int32 Wave[2048+512];
   int32 WaveHi[40000];
   int32 WaveFinal[2048+512];
@@ -76,8 +81,10 @@ struct Sound {
     return stateinfo.data();
   }
 
-  Sound();
-
+  uint32 SoundTS() const {
+    return fc->X->timestamp - soundtsoffs;
+  }
+  
   // TODO: Indirect static hooks (which go through the global object)
   // should instead get a local sound object and call these.
   void Write_PSG_Direct(DECLFW_ARGS);
@@ -109,7 +116,7 @@ struct Sound {
 
   int32 tristep = 0;
 
-  /* Wave length counters.	*/
+  /* Wave length counters. */
   int32 wlcount[4] = {0,0,0,0};
 
   /* $4017 / xx000000 */
@@ -190,8 +197,8 @@ struct Sound {
   void RDoNoise();
 
   void SetNESSoundMap();
-};
 
-#define SOUNDTS (fceulib__.X->timestamp + fceulib__.sound->soundtsoffs)
+  FC *fc = nullptr;
+};
 
 #endif

@@ -27,7 +27,7 @@ static uint32 WRAMSIZE;
 static SFORMAT StateRegs[] = {
     {&prg, 1, "REGS"}, {&mirr, 1, "MIRR"}, {&prgmode, 1, "MIRR"}, {0}};
 
-static void Sync(void) {
+static void Sync() {
   fceulib__.cart->setmirror(mirr);
   fceulib__.cart->setprg8r(0x10, 0x6000, 0);
   fceulib__.cart->setchr8(0);
@@ -62,7 +62,7 @@ static DECLFR(UNLD2000Read) {
     return Cart::CartBR(DECLFR_FORWARD);
 }
 
-static void UNLD2000Power(void) {
+static void UNLD2000Power() {
   prg = prgmode = 0;
   Sync();
   fceulib__.fceu->SetReadHandler(0x6000, 0x7FFF, Cart::CartBR);
@@ -71,14 +71,14 @@ static void UNLD2000Power(void) {
   fceulib__.fceu->SetWriteHandler(0x4020, 0x5FFF, UNLD2000Write);
 }
 
-static void UNLAX5705IRQ(void) {
+static void UNLAX5705IRQ() {
   if (fceulib__.ppu->scanline > 174)
     fceulib__.cart->setchr4(0x0000, 1);
   else
     fceulib__.cart->setchr4(0x0000, 0);
 }
 
-static void UNLD2000Close(void) {
+static void UNLD2000Close() {
   if (WRAM) free(WRAM);
   WRAM = NULL;
 }

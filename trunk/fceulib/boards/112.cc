@@ -31,7 +31,7 @@ static SFORMAT StateRegs[] = {{&cmd, 1, "CMD"},
                               {reg, 8, "REGS"},
                               {0}};
 
-static void Sync(void) {
+static void Sync() {
   fceulib__.cart->setmirror(mirror ^ 1);
   fceulib__.cart->setprg8(0x8000, reg[0]);
   fceulib__.cart->setprg8(0xA000, reg[1]);
@@ -62,12 +62,12 @@ static DECLFW(M112Write) {
   }
 }
 
-static void M112Close(void) {
+static void M112Close() {
   if (WRAM) free(WRAM);
   WRAM = NULL;
 }
 
-static void M112Power(void) {
+static void M112Power() {
   bank = 0;
   fceulib__.cart->setprg16(0xC000, ~0);
   fceulib__.cart->setprg8r(0x10, 0x6000, 0);

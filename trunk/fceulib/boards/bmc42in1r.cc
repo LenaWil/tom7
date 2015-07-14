@@ -28,7 +28,7 @@ static uint8 isresetbased = 0;
 static uint8 latche[2], reset;
 static SFORMAT StateRegs[] = {{&reset, 1, "RST"}, {latche, 2, "LATC"}, {0}};
 
-static void Sync(void) {
+static void Sync() {
   uint8 bank;
   if (isresetbased) {
     bank = (latche[0] & 0x1f) | (reset << 5) | ((latche[1] & 1) << 6);
@@ -51,7 +51,7 @@ static DECLFW(M226Write) {
   Sync();
 }
 
-static void M226Power(void) {
+static void M226Power() {
   latche[0] = latche[1] = reset = 0;
   Sync();
   fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, M226Write);
@@ -69,7 +69,7 @@ void Mapper226_Init(CartInfo *info) {
   fceulib__.fceu->GameStateRestore = StateRestore;
 }
 
-static void M233Reset(void) {
+static void M233Reset() {
   reset ^= 1;
   Sync();
 }

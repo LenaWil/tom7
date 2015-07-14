@@ -34,7 +34,7 @@ static DECLFW(BWRAM) {
   WRAM[A - 0x6000] = V;
 }
 
-void Mapper19_ESI(void);
+void Mapper19_ESI();
 
 static uint8 NTAPage[4];
 
@@ -43,9 +43,9 @@ static uint8 gorfus;
 static uint8 gorko;
 
 static void NamcoSound(int Count);
-static void NamcoSoundHack(void);
+static void NamcoSoundHack();
 static void DoNamcoSound(int32 *Wave, int Count);
-static void DoNamcoSoundHQ(void);
+static void DoNamcoSoundHQ();
 static void SyncHQ(int32 ts);
 
 static int is210; /* Lesser mapper. */
@@ -56,7 +56,7 @@ static uint8 CHR[8];
 static SFORMAT N106_StateRegs[] = {
     {PRG, 3, "PRG"}, {CHR, 8, "CHR"}, {NTAPage, 4, "NTA"}, {0}};
 
-static void SyncPRG(void) {
+static void SyncPRG() {
   fceulib__.cart->setprg8(0x8000, PRG[0]);
   fceulib__.cart->setprg8(0xa000, PRG[1]);
   fceulib__.cart->setprg8(0xc000, PRG[2]);
@@ -99,7 +99,7 @@ static void DoNTARAMROM(int w, uint8 V) {
   }
 }
 
-static void FixNTAR(void) {
+static void FixNTAR() {
   for (int x = 0; x < 4; x++) DoNTARAMROM(x, NTAPage[x]);
 }
 
@@ -112,9 +112,8 @@ static void DoCHRRAMROM(int x, uint8 V) {
     fceulib__.cart->setchr1(x << 10, V);
 }
 
-static void FixCRR(void) {
-  int x;
-  for (x = 0; x < 8; x++) DoCHRRAMROM(x, CHR[x]);
+static void FixCRR() {
+  for (int x = 0; x < 8; x++) DoCHRRAMROM(x, CHR[x]);
 }
 
 static DECLFW(Mapper19C0D8_write) {
@@ -196,13 +195,13 @@ static DECLFW(Mapper19_write) {
 
 static int dwave = 0;
 
-static void NamcoSoundHack(void) {
+static void NamcoSoundHack() {
   int32 z, a;
   if (FCEUS_SOUNDQ >= 1) {
     DoNamcoSoundHQ();
     return;
   }
-  z = ((SOUNDTS << 16) / fceulib__.sound->soundtsinc) >> 4;
+  z = ((fceulib__.sound->SoundTS() << 16) / fceulib__.sound->soundtsinc) >> 4;
   a = z - dwave;
   if (a) DoNamcoSound(&fceulib__.sound->Wave[dwave], a);
   dwave += a;
@@ -210,7 +209,7 @@ static void NamcoSoundHack(void) {
 
 static void NamcoSound(int Count) {
   int32 z, a;
-  z = ((SOUNDTS << 16) / fceulib__.sound->soundtsinc) >> 4;
+  z = ((fceulib__.sound->SoundTS() << 16) / fceulib__.sound->soundtsinc) >> 4;
   a = z - dwave;
   if (a) DoNamcoSound(&fceulib__.sound->Wave[dwave], a);
   dwave = 0;
@@ -245,7 +244,7 @@ static inline uint32 FetchDuff(uint32 P, uint32 envelope) {
   return (duff);
 }
 
-static void DoNamcoSoundHQ(void) {
+static void DoNamcoSoundHQ() {
   const int32 cyclesuck = (((IRAM[0x7F] >> 4) & 7) + 1) * 15;
 
   for (int32 P = 7; P >= (7 - ((IRAM[0x7F] >> 4) & 7)); P--) {
@@ -260,7 +259,7 @@ static void DoNamcoSoundHQ(void) {
       lengo = LengthCache[P];
 
       duff2 = FetchDuff(P, envelope);
-      for (uint32 V = CVBC << 1; V < SOUNDTS << 1; V++) {
+      for (uint32 V = CVBC << 1; V < fceulib__.sound->SoundTS() << 1; V++) {
         fceulib__.sound->WaveHi[V >> 1] += duff2;
         if (!vco) {
           PlayIndex[P] += freq;
@@ -274,7 +273,7 @@ static void DoNamcoSoundHQ(void) {
       vcount[P] = vco;
     }
   }
-  CVBC = SOUNDTS;
+  CVBC = fceulib__.sound->SoundTS();
 }
 
 static void DoNamcoSound(int32 *Wave, int Count) {
@@ -323,25 +322,24 @@ static void DoNamcoSound(int32 *Wave, int Count) {
 }
 
 static void Mapper19_StateRestore(int version) {
-  int x;
   SyncPRG();
   FixNTAR();
   FixCRR();
-  for (x = 0x40; x < 0x80; x++) FixCache(x, IRAM[x]);
+  for (int x = 0x40; x < 0x80; x++) FixCache(x, IRAM[x]);
 }
 
-static void M19SC(void) {
+static void M19SC() {
   if (FCEUS_SNDRATE) Mapper19_ESI();
 }
 
-void Mapper19_ESI(void) {
+void Mapper19_ESI() {
   fceulib__.sound->GameExpSound.RChange = M19SC;
   memset(vcount, 0, sizeof(vcount));
   memset(PlayIndex, 0, sizeof(PlayIndex));
   CVBC = 0;
 }
 
-void NSFN106_Init(void) {
+void NSFN106_Init() {
   fceulib__.fceu->SetWriteHandler(0xf800, 0xffff, Mapper19_write);
   fceulib__.fceu->SetWriteHandler(0x4800, 0x4fff, Mapper19_write);
   fceulib__.fceu->SetReadHandler(0x4800, 0x4fff, Namco_Read4800);
@@ -350,8 +348,7 @@ void NSFN106_Init(void) {
 
 static int battery = 0;
 
-static void N106_Power(void) {
-  int x;
+static void N106_Power() {
   fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
   fceulib__.fceu->SetWriteHandler(0x8000, 0xffff, Mapper19_write);
   fceulib__.fceu->SetWriteHandler(0x4020, 0x5fff, Mapper19_write);
@@ -376,7 +373,7 @@ static void N106_Power(void) {
     FCEU_dwmemset(WRAM, 0, 8192);
     FCEU_dwmemset(IRAM, 0, 128);
   }
-  for (x = 0x40; x < 0x80; x++) FixCache(x, IRAM[x]);
+  for (int x = 0x40; x < 0x80; x++) FixCache(x, IRAM[x]);
 }
 
 void Mapper19_Init(CartInfo *info) {

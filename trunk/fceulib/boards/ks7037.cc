@@ -27,11 +27,11 @@ static uint8 reg[8], cmd;
 static uint8 *WRAM = NULL;
 static uint32 WRAMSIZE;
 
-static void (*WSync)(void);
+static void (*WSync)();
 
 static SFORMAT StateRegs[] = {{&cmd, 1, "CMD"}, {reg, 8, "REGS"}, {0}};
 
-static void SyncKS7037(void) {
+static void SyncKS7037() {
   fceulib__.cart->setprg4r(0x10, 0x6000, 0);
   fceulib__.cart->setprg4(0x7000, 15);
   fceulib__.cart->setprg8(0x8000, reg[6]);
@@ -43,7 +43,7 @@ static void SyncKS7037(void) {
   fceulib__.cart->setmirrorw(reg[2] & 1, reg[4] & 1, reg[3] & 1, reg[5] & 1);
 }
 
-static void SyncLH10(void) {
+static void SyncLH10() {
   fceulib__.cart->setprg8(0x6000, ~1);
   fceulib__.cart->setprg8(0x8000, reg[6]);
   fceulib__.cart->setprg8(0xA000, reg[7]);
@@ -63,7 +63,7 @@ static DECLFW(UNLKS7037Write) {
   }
 }
 
-static void UNLKS7037Power(void) {
+static void UNLKS7037Power() {
   reg[0] = reg[1] = reg[2] = reg[3] = reg[4] = reg[5] = reg[6] = reg[7] = 0;
   WSync();
   fceulib__.fceu->SetReadHandler(0x6000, 0xFFFF, Cart::CartBR);
@@ -73,7 +73,7 @@ static void UNLKS7037Power(void) {
   fceulib__.fceu->SetWriteHandler(0xC000, 0xFFFF, UNLKS7037Write);
 }
 
-static void LH10Power(void) {
+static void LH10Power() {
   reg[0] = reg[1] = reg[2] = reg[3] = reg[4] = reg[5] = reg[6] = reg[7] = 0;
   WSync();
   fceulib__.fceu->SetReadHandler(0x6000, 0xFFFF, Cart::CartBR);
@@ -82,7 +82,7 @@ static void LH10Power(void) {
   fceulib__.fceu->SetWriteHandler(0xE000, 0xFFFF, UNLKS7037Write);
 }
 
-static void Close(void) {
+static void Close() {
   if (WRAM) free(WRAM);
   WRAM = NULL;
 }

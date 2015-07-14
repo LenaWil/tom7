@@ -28,7 +28,7 @@ static uint8 regs[4];
 
 static SFORMAT StateRegs[] = {{regs, 4, "DREG"}, {SWRAM, 2816, "SWRM"}, {0}};
 
-static void Sync(void) {
+static void Sync() {
   fceulib__.cart->setprg8r(0x10, 0x6000, regs[0] >> 6);
   fceulib__.cart->setprg16(0x8000, regs[1]);
   fceulib__.cart->setprg16(0xc000, 0);
@@ -56,7 +56,7 @@ static DECLFW(BSWRAM) {
   SWRAM[A - 0x4400] = V;
 }
 
-static void M186Power(void) {
+static void M186Power() {
   fceulib__.cart->setchr8(0);
   fceulib__.fceu->SetReadHandler(0x6000, 0xFFFF, Cart::CartBR);
   fceulib__.fceu->SetWriteHandler(0x6000, 0xFFFF, Cart::CartBW);
@@ -68,7 +68,7 @@ static void M186Power(void) {
   Sync();
 }
 
-static void M186Close(void) {
+static void M186Close() {
   if (WRAM) free(WRAM);
   WRAM = NULL;
 }

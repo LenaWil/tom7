@@ -65,7 +65,7 @@ static constexpr uint8 chr_perm[8][8] = {
     },
 };
 
-static void Sync(void) {
+static void Sync() {
   fceulib__.cart->setprg32(0x8000, preg);
   fceulib__.cart->setchr8(creg);
 }
@@ -78,7 +78,7 @@ static DECLFW(M244Write) {
   Sync();
 }
 
-static void M244Power(void) {
+static void M244Power() {
   preg = creg = 0;
   Sync();
   fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, M244Write);

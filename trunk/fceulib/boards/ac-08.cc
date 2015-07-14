@@ -24,7 +24,7 @@ static uint8 reg, mirr;
 
 static SFORMAT StateRegs[] = {{&reg, 1, "REG"}, {&mirr, 1, "MIRR"}, {0}};
 
-static void Sync(void) {
+static void Sync() {
   fceulib__.cart->setprg8(0x6000, reg);
   fceulib__.cart->setprg32r(1, 0x8000, 0);
   fceulib__.cart->setchr8(0);
@@ -46,7 +46,7 @@ static DECLFW(AC08Write) {
   Sync();
 }
 
-static void AC08Power(void) {
+static void AC08Power() {
   reg = 0;
   Sync();
   fceulib__.fceu->SetReadHandler(0x6000, 0xFFFF, Cart::CartBR);

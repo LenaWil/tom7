@@ -26,7 +26,7 @@ static uint32 CHRRAMSIZE;
 
 static SFORMAT StateRegs[] = {{&reg, 1, "REGS"}, {0}};
 
-static void Sync(void) {
+static void Sync() {
   fceulib__.cart->setchr4r(0x10, 0x0000, 0);
   fceulib__.cart->setchr4r(0x10, 0x1000, reg & 0x0f);
   fceulib__.cart->setprg16(0x8000, reg >> 6);
@@ -40,7 +40,7 @@ static DECLFW(M168Write) {
 
 static DECLFW(M168Dummy) {}
 
-static void M168Power(void) {
+static void M168Power() {
   reg = 0;
   Sync();
   fceulib__.fceu->SetWriteHandler(0x4020, 0x7fff, M168Dummy);
@@ -50,7 +50,7 @@ static void M168Power(void) {
   fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
 }
 
-static void MNNNClose(void) {
+static void MNNNClose() {
   if (CHRRAM) free(CHRRAM);
   CHRRAM = NULL;
 }

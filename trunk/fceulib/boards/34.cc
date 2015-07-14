@@ -35,7 +35,7 @@ static uint32 WRAMSIZE;
 
 static SFORMAT StateRegs[] = {{regs, 3, "REGS"}, {0}};
 
-static void Sync(void) {
+static void Sync() {
   fceulib__.cart->setprg8r(0x10, 0x6000, 0);
   fceulib__.cart->setprg32(0x8000, regs[0]);
   fceulib__.cart->setchr4(0x0000, regs[1]);
@@ -54,7 +54,7 @@ static DECLFW(M34Write) {
   Sync();
 }
 
-static void M34Power(void) {
+static void M34Power() {
   regs[0] = regs[1] = 0;
   regs[2] = 1;
   Sync();
@@ -64,7 +64,7 @@ static void M34Power(void) {
   fceulib__.fceu->SetWriteHandler(0x7ffd, 0xffff, M34Write);
 }
 
-static void M34Close(void) {
+static void M34Close() {
   if (WRAM) free(WRAM);
   WRAM = NULL;
 }
