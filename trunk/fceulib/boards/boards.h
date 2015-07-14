@@ -71,7 +71,7 @@ void SLROM_Init(CartInfo *info);
 void SNROM_Init(CartInfo *info);
 void SOROM_Init(CartInfo *info);
 void SSSNROM_Init(CartInfo *info);
-void SUNSOFT_UNROM_Init(CartInfo *info); // "Shanghi" original version mapper
+void SUNSOFT_UNROM_Init(CartInfo *info);  // "Shanghi" original version mapper
 void Super24_Init(CartInfo *info);
 void Supervision16_Init(CartInfo *info);
 void TBROM_Init(CartInfo *info);

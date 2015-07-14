@@ -15,7 +15,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  *
  * Many-in-one hacked mapper crap.
  *
@@ -33,11 +33,7 @@ static uint8 regs[3];
 static uint8 *WRAM = NULL;
 static uint32 WRAMSIZE;
 
-static SFORMAT StateRegs[] =
-{
-	{ regs, 3, "REGS" },
-	{ 0 }
-};
+static SFORMAT StateRegs[] = {{regs, 3, "REGS"}, {0}};
 
 static void Sync(void) {
   fceulib__.cart->setprg8r(0x10, 0x6000, 0);
@@ -47,35 +43,34 @@ static void Sync(void) {
 }
 
 static DECLFW(M34Write) {
-	if (A >= 0x8000)
-		regs[0] = V;
-	else
-		switch (A) {
-		case 0x7ffd: regs[0] = V; break;
-		case 0x7ffe: regs[1] = V; break;
-		case 0x7fff: regs[2] = V; break;
-		}
-	Sync();
+  if (A >= 0x8000)
+    regs[0] = V;
+  else
+    switch (A) {
+      case 0x7ffd: regs[0] = V; break;
+      case 0x7ffe: regs[1] = V; break;
+      case 0x7fff: regs[2] = V; break;
+    }
+  Sync();
 }
 
 static void M34Power(void) {
-	regs[0] = regs[1] = 0;
-	regs[2] = 1;
-	Sync();
-	fceulib__.fceu->SetReadHandler(0x6000, 0x7ffc, Cart::CartBR);
-	fceulib__.fceu->SetWriteHandler(0x6000, 0x7ffc, Cart::CartBW);
-	fceulib__.fceu->SetReadHandler(0x8000, 0xffff, Cart::CartBR);
-	fceulib__.fceu->SetWriteHandler(0x7ffd, 0xffff, M34Write);
+  regs[0] = regs[1] = 0;
+  regs[2] = 1;
+  Sync();
+  fceulib__.fceu->SetReadHandler(0x6000, 0x7ffc, Cart::CartBR);
+  fceulib__.fceu->SetWriteHandler(0x6000, 0x7ffc, Cart::CartBW);
+  fceulib__.fceu->SetReadHandler(0x8000, 0xffff, Cart::CartBR);
+  fceulib__.fceu->SetWriteHandler(0x7ffd, 0xffff, M34Write);
 }
 
 static void M34Close(void) {
-	if (WRAM)
-		free(WRAM);
-	WRAM = NULL;
+  if (WRAM) free(WRAM);
+  WRAM = NULL;
 }
 
 static void StateRestore(int version) {
-	Sync();
+  Sync();
 }
 
 void Mapper34_Init(CartInfo *info) {
@@ -84,7 +79,7 @@ void Mapper34_Init(CartInfo *info) {
   fceulib__.fceu->GameStateRestore = StateRestore;
 
   WRAMSIZE = 8192;
-  WRAM = (uint8*)FCEU_gmalloc(WRAMSIZE);
+  WRAM = (uint8 *)FCEU_gmalloc(WRAMSIZE);
   fceulib__.cart->SetupCartPRGMapping(0x10, WRAM, WRAMSIZE, 1);
   fceulib__.state->AddExState(WRAM, WRAMSIZE, 0, "WRAM");
 

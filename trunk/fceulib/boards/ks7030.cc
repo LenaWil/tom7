@@ -15,7 +15,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  *
  * FDS Conversion
  *
@@ -28,22 +28,16 @@
 #include "mapinc.h"
 
 static uint8 reg0, reg1;
-static uint8 *WRAM=NULL;
+static uint8 *WRAM = NULL;
 static uint32 WRAMSIZE;
 
-static SFORMAT StateRegs[]=
-{
-  {&reg0, 1, "REG0"},
-  {&reg1, 1, "REG1"},
-  {0}
-};
+static SFORMAT StateRegs[] = {{&reg0, 1, "REG0"}, {&reg1, 1, "REG1"}, {0}};
 
-static void Sync(void)
-{
+static void Sync(void) {
   fceulib__.cart->setchr8(0);
-  fceulib__.cart->setprg32(0x8000,~0);
-  fceulib__.cart->setprg4(0xb800,reg0);
-  fceulib__.cart->setprg4(0xc800,8+reg1);
+  fceulib__.cart->setprg32(0x8000, ~0);
+  fceulib__.cart->setprg4(0xb800, reg0);
+  fceulib__.cart->setprg4(0xc800, 8 + reg1);
 }
 
 // 6000 - 6BFF - RAM
@@ -52,7 +46,7 @@ static void Sync(void)
 
 static DECLFW(UNLKS7030RamWrite0) {
   if ((A >= 0x6000) && A <= 0x6BFF) {
-    WRAM[A-0x6000]=V;
+    WRAM[A - 0x6000] = V;
   } else if ((A >= 0x6C00) && A <= 0x6FFF) {
     Cart::CartBW(fc, 0xC800 + (A - 0x6C00), V);
   } else if ((A >= 0x7000) && A <= 0x7FFF) {
@@ -62,7 +56,7 @@ static DECLFW(UNLKS7030RamWrite0) {
 
 static DECLFR(UNLKS7030RamRead0) {
   if ((A >= 0x6000) && A <= 0x6BFF) {
-    return WRAM[A-0x6000];
+    return WRAM[A - 0x6000];
   } else if ((A >= 0x6C00) && A <= 0x6FFF) {
     return Cart::CartBR(fc, 0xC800 + (A - 0x6C00));
   } else if ((A >= 0x7000) && A <= 0x7FFF) {
@@ -77,48 +71,45 @@ static DECLFR(UNLKS7030RamRead0) {
 
 static DECLFW(UNLKS7030RamWrite1) {
   if ((A >= 0xB800) && A <= 0xBFFF) {
-    WRAM[0x0C00+(A-0xB800)]=V;
+    WRAM[0x0C00 + (A - 0xB800)] = V;
   } else if ((A >= 0xC000) && A <= 0xCBFF) {
     Cart::CartBW(fc, 0xCC00 + (A - 0xC000), V);
   } else if ((A >= 0xCC00) && A <= 0xD7FF) {
-    WRAM[0x1400+(A-0xCC00)]=V;
+    WRAM[0x1400 + (A - 0xCC00)] = V;
   }
 }
 
 static DECLFR(UNLKS7030RamRead1) {
   if ((A >= 0xB800) && A <= 0xBFFF) {
-    return WRAM[0x0C00+(A-0xB800)];
+    return WRAM[0x0C00 + (A - 0xB800)];
   } else if ((A >= 0xC000) && A <= 0xCBFF) {
     return Cart::CartBR(fc, 0xCC00 + (A - 0xC000));
   } else if ((A >= 0xCC00) && A <= 0xD7FF) {
-    return WRAM[0x1400+(A-0xCC00)];
+    return WRAM[0x1400 + (A - 0xCC00)];
   }
   return 0;
 }
 
-static DECLFW(UNLKS7030Write0)
-{
-  reg0=A&7;
+static DECLFW(UNLKS7030Write0) {
+  reg0 = A & 7;
   Sync();
 }
 
-static DECLFW(UNLKS7030Write1)
-{
-  reg1=A&15;
+static DECLFW(UNLKS7030Write1) {
+  reg1 = A & 15;
   Sync();
 }
 
-static void UNLKS7030Power(void)
-{
-  reg0=reg1=~0;
+static void UNLKS7030Power(void) {
+  reg0 = reg1 = ~0;
   Sync();
-  fceulib__.fceu->SetReadHandler(0x6000,0x7FFF,UNLKS7030RamRead0);
-  fceulib__.fceu->SetWriteHandler(0x6000,0x7FFF,UNLKS7030RamWrite0);
-  fceulib__.fceu->SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
-  fceulib__.fceu->SetWriteHandler(0x8000,0x8FFF,UNLKS7030Write0);
-  fceulib__.fceu->SetWriteHandler(0x9000,0x9FFF,UNLKS7030Write1);
-  fceulib__.fceu->SetReadHandler(0xB800,0xD7FF,UNLKS7030RamRead1);
-  fceulib__.fceu->SetWriteHandler(0xB800,0xD7FF,UNLKS7030RamWrite1);
+  fceulib__.fceu->SetReadHandler(0x6000, 0x7FFF, UNLKS7030RamRead0);
+  fceulib__.fceu->SetWriteHandler(0x6000, 0x7FFF, UNLKS7030RamWrite0);
+  fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
+  fceulib__.fceu->SetWriteHandler(0x8000, 0x8FFF, UNLKS7030Write0);
+  fceulib__.fceu->SetWriteHandler(0x9000, 0x9FFF, UNLKS7030Write1);
+  fceulib__.fceu->SetReadHandler(0xB800, 0xD7FF, UNLKS7030RamRead1);
+  fceulib__.fceu->SetWriteHandler(0xB800, 0xD7FF, UNLKS7030RamWrite1);
 }
 
 static void UNLKS7030Close(void) {
@@ -131,12 +122,12 @@ static void StateRestore(int version) {
 }
 
 void UNLKS7030_Init(CartInfo *info) {
-  info->Power=UNLKS7030Power;
-  info->Close=UNLKS7030Close;
-  fceulib__.fceu->GameStateRestore=StateRestore;
+  info->Power = UNLKS7030Power;
+  info->Close = UNLKS7030Close;
+  fceulib__.fceu->GameStateRestore = StateRestore;
 
-  WRAMSIZE=8192;
-  WRAM=(uint8*)FCEU_gmalloc(WRAMSIZE);
+  WRAMSIZE = 8192;
+  WRAM = (uint8 *)FCEU_gmalloc(WRAMSIZE);
   fceulib__.state->AddExState(WRAM, WRAMSIZE, 0, "WRAM");
 
   fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);

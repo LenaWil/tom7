@@ -15,7 +15,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  *
  * TXC mappers, originally much complex banksitching
  *
@@ -36,12 +36,7 @@
 #include "mapinc.h"
 
 static uint8 reg[4], cmd, is172, is173;
-static SFORMAT StateRegs[] =
-{
-	{ reg, 4, "REGS" },
-	{ &cmd, 1, "CMD" },
-	{ 0 }
-};
+static SFORMAT StateRegs[] = {{reg, 4, "REGS"}, {&cmd, 1, "CMD"}, {0}};
 
 static void Sync(void) {
   fceulib__.cart->setprg32(0x8000, (reg[2] >> 2) & 1);
@@ -49,30 +44,30 @@ static void Sync(void) {
     // 1991 DU MA Racing probably CHR bank sequence is WRONG, so it is
     // possible to rearrange CHR banks for normal UNIF board and
     // mapper 172 is unneccessary
-    fceulib__.cart->setchr8((((cmd ^ reg[2]) >> 3) & 2) | 
-			  (((cmd ^ reg[2]) >> 5) & 1));
+    fceulib__.cart->setchr8((((cmd ^ reg[2]) >> 3) & 2) |
+                            (((cmd ^ reg[2]) >> 5) & 1));
   } else {
     fceulib__.cart->setchr8(reg[2] & 3);
   }
 }
 
 static DECLFW(UNL22211WriteLo) {
-//	FCEU_printf("bs %04x %02x\n",A,V);
-	reg[A & 3] = V;
+  //	FCEU_printf("bs %04x %02x\n",A,V);
+  reg[A & 3] = V;
 }
 
 static DECLFW(UNL22211WriteHi) {
-//	FCEU_printf("bs %04x %02x\n",A,V);
-	cmd = V;
-	Sync();
+  //	FCEU_printf("bs %04x %02x\n",A,V);
+  cmd = V;
+  Sync();
 }
 
 static DECLFR(UNL22211ReadLo) {
-	return (reg[1] ^ reg[2]) | (is173 ? 0x01 : 0x40);
-//	if(reg[3])
-//		return reg[2];
-//	else
-//		return fceulib__.X->DB;
+  return (reg[1] ^ reg[2]) | (is173 ? 0x01 : 0x40);
+  //	if(reg[3])
+  //		return reg[2];
+  //	else
+  //		return fceulib__.X->DB;
 }
 
 static void UNL22211Power(void) {
@@ -84,30 +79,29 @@ static void UNL22211Power(void) {
 }
 
 static void StateRestore(int version) {
-	Sync();
+  Sync();
 }
 
 void UNL22211_Init(CartInfo *info) {
-	is172 = 0;
-	is173 = 0;
-	info->Power = UNL22211Power;
-	fceulib__.fceu->GameStateRestore = StateRestore;
-	fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
+  is172 = 0;
+  is173 = 0;
+  info->Power = UNL22211Power;
+  fceulib__.fceu->GameStateRestore = StateRestore;
+  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
 }
 
 void Mapper172_Init(CartInfo *info) {
-	is172 = 1;
-	is173 = 0;
-	info->Power = UNL22211Power;
-	fceulib__.fceu->GameStateRestore = StateRestore;
-	fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
+  is172 = 1;
+  is173 = 0;
+  info->Power = UNL22211Power;
+  fceulib__.fceu->GameStateRestore = StateRestore;
+  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
 }
 
 void Mapper173_Init(CartInfo *info) {
-	is172 = 0;
-	is173 = 1;
-	info->Power = UNL22211Power;
-	fceulib__.fceu->GameStateRestore = StateRestore;
-	fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
+  is172 = 0;
+  is173 = 1;
+  info->Power = UNL22211Power;
+  fceulib__.fceu->GameStateRestore = StateRestore;
+  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
 }
-

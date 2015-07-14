@@ -15,7 +15,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
 #include "mapinc.h"
@@ -23,100 +23,81 @@
 
 // brk is a system call in *nix, and is an illegal variable name - soules
 static uint8 chrcmd[8], prg0, prg1, bbrk, mirr, swap;
-static SFORMAT StateRegs[]=
-{
-  {chrcmd, 8, "CHRC"},
-  {&prg0, 1, "PRG0"},
-  {&prg1, 1, "PRG1"},
-  {&bbrk, 1, "BRK"},
-  {&mirr, 1, "MIRR"},
-  {&swap, 1, "SWAP"},
-  {0}
-};
+static SFORMAT StateRegs[] = {{chrcmd, 8, "CHRC"},
+                              {&prg0, 1, "PRG0"},
+                              {&prg1, 1, "PRG1"},
+                              {&bbrk, 1, "BRK"},
+                              {&mirr, 1, "MIRR"},
+                              {&swap, 1, "SWAP"},
+                              {0}};
 
-static void Sync(void)
-{
-  fceulib__.cart->setprg8(0x8000,prg0);
-  fceulib__.cart->setprg8(0xA000,prg1);
-  fceulib__.cart->setprg8(0xC000,~1);
-  fceulib__.cart->setprg8(0xE000,~0);
-  for(int i=0; i<8; i++)
-     fceulib__.cart->setchr1(i<<10,chrcmd[i]);
-  fceulib__.cart->setmirror(mirr^1);
+static void Sync(void) {
+  fceulib__.cart->setprg8(0x8000, prg0);
+  fceulib__.cart->setprg8(0xA000, prg1);
+  fceulib__.cart->setprg8(0xC000, ~1);
+  fceulib__.cart->setprg8(0xE000, ~0);
+  for (int i = 0; i < 8; i++) fceulib__.cart->setchr1(i << 10, chrcmd[i]);
+  fceulib__.cart->setmirror(mirr ^ 1);
 }
 
-static void UNLSL1632CW(uint32 A, uint8 V)
-{
-  int cbase=(MMC3_cmd&0x80)<<5;
-  int page0=(bbrk&0x08)<<5;
-  int page1=(bbrk&0x20)<<3;
-  int page2=(bbrk&0x80)<<1;
-  fceulib__.cart->setchr1(cbase^0x0000,page0|(DRegBuf[0]&(~1)));
-  fceulib__.cart->setchr1(cbase^0x0400,page0|DRegBuf[0]|1);
-  fceulib__.cart->setchr1(cbase^0x0800,page0|(DRegBuf[1]&(~1)));
-  fceulib__.cart->setchr1(cbase^0x0C00,page0|DRegBuf[1]|1);
-  fceulib__.cart->setchr1(cbase^0x1000,page1|DRegBuf[2]);
-  fceulib__.cart->setchr1(cbase^0x1400,page1|DRegBuf[3]);
-  fceulib__.cart->setchr1(cbase^0x1800,page2|DRegBuf[4]);
-  fceulib__.cart->setchr1(cbase^0x1c00,page2|DRegBuf[5]);
+static void UNLSL1632CW(uint32 A, uint8 V) {
+  int cbase = (MMC3_cmd & 0x80) << 5;
+  int page0 = (bbrk & 0x08) << 5;
+  int page1 = (bbrk & 0x20) << 3;
+  int page2 = (bbrk & 0x80) << 1;
+  fceulib__.cart->setchr1(cbase ^ 0x0000, page0 | (DRegBuf[0] & (~1)));
+  fceulib__.cart->setchr1(cbase ^ 0x0400, page0 | DRegBuf[0] | 1);
+  fceulib__.cart->setchr1(cbase ^ 0x0800, page0 | (DRegBuf[1] & (~1)));
+  fceulib__.cart->setchr1(cbase ^ 0x0C00, page0 | DRegBuf[1] | 1);
+  fceulib__.cart->setchr1(cbase ^ 0x1000, page1 | DRegBuf[2]);
+  fceulib__.cart->setchr1(cbase ^ 0x1400, page1 | DRegBuf[3]);
+  fceulib__.cart->setchr1(cbase ^ 0x1800, page2 | DRegBuf[4]);
+  fceulib__.cart->setchr1(cbase ^ 0x1c00, page2 | DRegBuf[5]);
 }
 
-static DECLFW(UNLSL1632CMDWrite)
-{
-  if(A==0xA131)
-  {
-    bbrk=V;
+static DECLFW(UNLSL1632CMDWrite) {
+  if (A == 0xA131) {
+    bbrk = V;
   }
-  if(bbrk&2)
-  {
+  if (bbrk & 2) {
     FixMMC3PRG(MMC3_cmd);
     FixMMC3CHR(MMC3_cmd);
-    if(A<0xC000)
+    if (A < 0xC000)
       MMC3_CMDWrite(DECLFW_FORWARD);
     else
       MMC3_IRQWrite(DECLFW_FORWARD);
-  }
-  else
-  {
-    if((A>=0xB000)&&(A<=0xE003))
-    {
-      int ind=((((A&2)|(A>>10))>>1)+2)&7;
-      int sar=((A&1)<<2);
-      chrcmd[ind]=(chrcmd[ind]&(0xF0>>sar))|((V&0x0F)<<sar);
-    }
-    else
-      switch(A&0xF003)
-      {
-        case 0x8000: prg0=V; break;
-        case 0xA000: prg1=V; break;
-        case 0x9000: mirr=V&1; break;
+  } else {
+    if ((A >= 0xB000) && (A <= 0xE003)) {
+      int ind = ((((A & 2) | (A >> 10)) >> 1) + 2) & 7;
+      int sar = ((A & 1) << 2);
+      chrcmd[ind] = (chrcmd[ind] & (0xF0 >> sar)) | ((V & 0x0F) << sar);
+    } else
+      switch (A & 0xF003) {
+        case 0x8000: prg0 = V; break;
+        case 0xA000: prg1 = V; break;
+        case 0x9000: mirr = V & 1; break;
       }
     Sync();
   }
 }
 
-static void StateRestore(int version)
-{
-  if(bbrk&2)
-  {
+static void StateRestore(int version) {
+  if (bbrk & 2) {
     FixMMC3PRG(MMC3_cmd);
     FixMMC3CHR(MMC3_cmd);
-  }
-  else
+  } else
     Sync();
 }
 
-static void UNLSL1632Power(void)
-{
+static void UNLSL1632Power(void) {
   GenMMC3Power();
-  fceulib__.fceu->SetWriteHandler(0x4100,0xFFFF,UNLSL1632CMDWrite);
+  fceulib__.fceu->SetWriteHandler(0x4100, 0xFFFF, UNLSL1632CMDWrite);
 }
 
-void UNLSL1632_Init(CartInfo *info)
-{
+void UNLSL1632_Init(CartInfo *info) {
   GenMMC3_Init(info, 256, 512, 0, 0);
-  cwrap=UNLSL1632CW;
-  info->Power=UNLSL1632Power;
-  fceulib__.fceu->GameStateRestore=StateRestore;
+  cwrap = UNLSL1632CW;
+  info->Power = UNLSL1632Power;
+  fceulib__.fceu->GameStateRestore = StateRestore;
   fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
 }

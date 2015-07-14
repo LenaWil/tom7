@@ -15,7 +15,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
 #include "mapinc.h"
@@ -23,32 +23,29 @@
 static uint8 latche;
 
 static void Sync(void) {
-  fceulib__.cart->setprg16(0x8000,latche);
-  fceulib__.cart->setprg16(0xC000,8);
+  fceulib__.cart->setprg16(0x8000, latche);
+  fceulib__.cart->setprg16(0xC000, 8);
 }
 
-static DECLFW(DREAMWrite)
-{
-  latche=V&7;
+static DECLFW(DREAMWrite) {
+  latche = V & 7;
   Sync();
 }
 
 static void DREAMPower(void) {
-  latche=0;
+  latche = 0;
   Sync();
   fceulib__.cart->setchr8(0);
-  fceulib__.fceu->SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
-  fceulib__.fceu->SetWriteHandler(0x5020,0x5020,DREAMWrite);
+  fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
+  fceulib__.fceu->SetWriteHandler(0x5020, 0x5020, DREAMWrite);
 }
 
-static void Restore(int version)
-{
+static void Restore(int version) {
   Sync();
 }
 
-void DreamTech01_Init(CartInfo *info)
-{
-  fceulib__.fceu->GameStateRestore=Restore;
-  info->Power=DREAMPower;
+void DreamTech01_Init(CartInfo *info) {
+  fceulib__.fceu->GameStateRestore = Restore;
+  info->Power = DREAMPower;
   fceulib__.state->AddExState(&latche, 1, 0, "LATC");
 }

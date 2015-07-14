@@ -15,7 +15,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
 #include "mapinc.h"
@@ -49,16 +49,16 @@ static void LatchPower(void) {
 }
 
 static void LatchClose(void) {
-	if (WRAM)
-		free(WRAM);
-	WRAM = NULL;
+  if (WRAM) free(WRAM);
+  WRAM = NULL;
 }
 
 static void StateRestore(int version) {
-	WSync();
+  WSync();
 }
 
-static void Latch_Init(CartInfo *info, void (*proc)(void), uint8 init, uint16 adr0, uint16 adr1, uint8 wram, uint8 busc) {
+static void Latch_Init(CartInfo *info, void (*proc)(void), uint8 init,
+                       uint16 adr0, uint16 adr1, uint8 wram, uint8 busc) {
   bus_conflict = busc;
   latcheinit = init;
   addrreg0 = adr0;
@@ -69,7 +69,7 @@ static void Latch_Init(CartInfo *info, void (*proc)(void), uint8 init, uint16 ad
   fceulib__.fceu->GameStateRestore = StateRestore;
   if (wram) {
     WRAMSIZE = 8192;
-    WRAM = (uint8*)FCEU_gmalloc(WRAMSIZE);
+    WRAM = (uint8 *)FCEU_gmalloc(WRAMSIZE);
     fceulib__.cart->SetupCartPRGMapping(0x10, WRAM, WRAMSIZE, 1);
     if (info->battery) {
       info->SaveGame[0] = WRAM;
@@ -85,13 +85,15 @@ static void Latch_Init(CartInfo *info, void (*proc)(void), uint8 init, uint16 ad
 
 #ifdef DEBUG_MAPPER
 static DECLFW(NROMWrite) {
-	FCEU_printf("bs %04x %02x\n", A, V);
-	CartBW(A, V);
+  FCEU_printf("bs %04x %02x\n", A, V);
+  CartBW(A, V);
 }
 #endif
 
 static void NROMPower(void) {
-  fceulib__.cart->setprg8r(0x10, 0x6000, 0); // Famili BASIC (v3.0) need it (uses only 4KB), FP-BASIC uses 8KB
+  fceulib__.cart->setprg8r(
+      0x10, 0x6000,
+      0);  // Famili BASIC (v3.0) need it (uses only 4KB), FP-BASIC uses 8KB
   fceulib__.cart->setprg16(0x8000, 0);
   fceulib__.cart->setprg16(0xC000, ~0);
   fceulib__.cart->setchr8(0);
@@ -110,7 +112,7 @@ void NROM_Init(CartInfo *info) {
   info->Close = LatchClose;
 
   WRAMSIZE = 8192;
-  WRAM = (uint8*)FCEU_gmalloc(WRAMSIZE);
+  WRAM = (uint8 *)FCEU_gmalloc(WRAMSIZE);
   fceulib__.cart->SetupCartPRGMapping(0x10, WRAM, WRAMSIZE, 1);
   if (info->battery) {
     info->SaveGame[0] = WRAM;
@@ -146,7 +148,7 @@ void UNROM_Init(CartInfo *info) {
 static void CNROMSync(void) {
   fceulib__.cart->setchr8(latche);
   fceulib__.cart->setprg32(0x8000, 0);
-  fceulib__.cart->setprg8r(0x10, 0x6000, 0); // Hayauchy IGO uses 2Kb or RAM
+  fceulib__.cart->setprg8r(0x10, 0x6000, 0);  // Hayauchy IGO uses 2Kb or RAM
 }
 
 void CNROM_Init(CartInfo *info) {
@@ -208,7 +210,7 @@ void CPROM_Init(CartInfo *info) {
 
 static void M36Sync(void) {
   fceulib__.cart->setprg32(0x8000, latche >> 4);
-  fceulib__.cart->setchr8((latche) & 0xF);
+  fceulib__.cart->setchr8((latche)&0xF);
 }
 
 void Mapper36_Init(CartInfo *info) {
@@ -250,7 +252,8 @@ void Mapper70_Init(CartInfo *info) {
 }
 
 //------------------ Map 78 ---------------------------
-/* Should be two separate emulation functions for this "mapper".  Sigh.  URGE TO KILL RISING. */
+/* Should be two separate emulation functions for this "mapper".  Sigh.  URGE TO
+ * KILL RISING. */
 static void M78Sync() {
   fceulib__.cart->setprg16(0x8000, (latche & 7));
   fceulib__.cart->setprg16(0xc000, ~0);
@@ -328,10 +331,10 @@ static void M97Sync(void) {
   fceulib__.cart->setprg16(0x8000, ~0);
   fceulib__.cart->setprg16(0xc000, latche & 15);
   switch (latche >> 6) {
-  case 0: break;
-  case 1: fceulib__.cart->setmirror(MI_H); break;
-  case 2: fceulib__.cart->setmirror(MI_V); break;
-  case 3: break;
+    case 0: break;
+    case 1: fceulib__.cart->setmirror(MI_H); break;
+    case 2: fceulib__.cart->setmirror(MI_V); break;
+    case 3: break;
   }
   fceulib__.cart->setchr8(((latche >> 1) & 1) | ((latche << 1) & 2));
 }
@@ -386,7 +389,8 @@ static void M152Sync() {
   fceulib__.cart->setprg16(0x8000, (latche >> 4) & 7);
   fceulib__.cart->setprg16(0xc000, ~0);
   fceulib__.cart->setchr8(latche & 0xf);
-  fceulib__.cart->setmirror(MI_0 + ((latche >> 7) & 1));         /* Saint Seiya...hmm. */
+  fceulib__.cart->setmirror(MI_0 +
+                            ((latche >> 7) & 1)); /* Saint Seiya...hmm. */
 }
 
 void Mapper152_Init(CartInfo *info) {

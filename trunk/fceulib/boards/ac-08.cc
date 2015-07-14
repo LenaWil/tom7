@@ -15,60 +15,51 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
 #include "mapinc.h"
 
 static uint8 reg, mirr;
 
-static SFORMAT StateRegs[]=
-{
-  {&reg, 1, "REG"},
-  {&mirr, 1, "MIRR"},
-  {0}
-};
+static SFORMAT StateRegs[] = {{&reg, 1, "REG"}, {&mirr, 1, "MIRR"}, {0}};
 
-static void Sync(void)
-{
+static void Sync(void) {
   fceulib__.cart->setprg8(0x6000, reg);
   fceulib__.cart->setprg32r(1, 0x8000, 0);
   fceulib__.cart->setchr8(0);
   fceulib__.cart->setmirror(mirr);
 }
 
-static DECLFW(AC08Mirr)
-{
-  mirr = ((V&8)>>3)^1;
+static DECLFW(AC08Mirr) {
+  mirr = ((V & 8) >> 3) ^ 1;
   Sync();
 }
 
-static DECLFW(AC08Write)
-{
-  if(A == 0x8001)              // Green Berret bank switching is only 100x xxxx xxxx xxx1 mask
-   reg = (V >> 1) & 0xf;
+static DECLFW(AC08Write) {
+  if (A ==
+      0x8001)  // Green Berret bank switching is only 100x xxxx xxxx xxx1 mask
+    reg = (V >> 1) & 0xf;
   else
-   reg = V & 0xf;              // Sad But True, 2-in-1 mapper, Green Berret need value shifted left one byte, Castlevania doesn't
+    reg = V & 0xf;  // Sad But True, 2-in-1 mapper, Green Berret need value
+                    // shifted left one byte, Castlevania doesn't
   Sync();
 }
 
-static void AC08Power(void)
-{
+static void AC08Power(void) {
   reg = 0;
   Sync();
-  fceulib__.fceu->SetReadHandler(0x6000,0xFFFF,Cart::CartBR);
-  fceulib__.fceu->SetWriteHandler(0x4025,0x4025,AC08Mirr);
-  fceulib__.fceu->SetWriteHandler(0x8000,0xFFFF,AC08Write);
+  fceulib__.fceu->SetReadHandler(0x6000, 0xFFFF, Cart::CartBR);
+  fceulib__.fceu->SetWriteHandler(0x4025, 0x4025, AC08Mirr);
+  fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, AC08Write);
 }
 
-static void StateRestore(int version)
-{
+static void StateRestore(int version) {
   Sync();
 }
 
-void AC08_Init(CartInfo *info)
-{
-  info->Power=AC08Power;
-  fceulib__.fceu->GameStateRestore=StateRestore;
+void AC08_Init(CartInfo *info) {
+  info->Power = AC08Power;
+  fceulib__.fceu->GameStateRestore = StateRestore;
   fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
 }

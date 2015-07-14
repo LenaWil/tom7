@@ -16,7 +16,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  *
  * BMC 42-in-1 "reset switch" + "select switch"
  *
@@ -26,19 +26,15 @@
 
 static uint8 isresetbased = 0;
 static uint8 latche[2], reset;
-static SFORMAT StateRegs[] =
-{
-	{ &reset, 1, "RST" },
-	{ latche, 2, "LATC" },
-	{ 0 }
-};
+static SFORMAT StateRegs[] = {{&reset, 1, "RST"}, {latche, 2, "LATC"}, {0}};
 
 static void Sync(void) {
   uint8 bank;
   if (isresetbased) {
     bank = (latche[0] & 0x1f) | (reset << 5) | ((latche[1] & 1) << 6);
   } else {
-    bank = (latche[0] & 0x1f) | ((latche[0] & 0x80) >> 2) | ((latche[1] & 1) << 6);
+    bank =
+        (latche[0] & 0x1f) | ((latche[0] & 0x80) >> 2) | ((latche[1] & 1) << 6);
   }
   if (!(latche[0] & 0x20)) {
     fceulib__.cart->setprg32(0x8000, bank >> 1);
@@ -51,37 +47,37 @@ static void Sync(void) {
 }
 
 static DECLFW(M226Write) {
-	latche[A & 1] = V;
-	Sync();
+  latche[A & 1] = V;
+  Sync();
 }
 
 static void M226Power(void) {
-	latche[0] = latche[1] = reset = 0;
-	Sync();
-	fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, M226Write);
-	fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
+  latche[0] = latche[1] = reset = 0;
+  Sync();
+  fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, M226Write);
+  fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
 }
 
 static void StateRestore(int version) {
-	Sync();
+  Sync();
 }
 
 void Mapper226_Init(CartInfo *info) {
-	isresetbased = 0;
-	info->Power = M226Power;
-	fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
-	fceulib__.fceu->GameStateRestore = StateRestore;
+  isresetbased = 0;
+  info->Power = M226Power;
+  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.fceu->GameStateRestore = StateRestore;
 }
 
 static void M233Reset(void) {
-	reset ^= 1;
-	Sync();
+  reset ^= 1;
+  Sync();
 }
 
 void Mapper233_Init(CartInfo *info) {
-	isresetbased = 1;
-	info->Power = M226Power;
-	info->Reset = M233Reset;
-	fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
-	fceulib__.fceu->GameStateRestore = StateRestore;
+  isresetbased = 1;
+  info->Power = M226Power;
+  info->Reset = M233Reset;
+  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.fceu->GameStateRestore = StateRestore;
 }

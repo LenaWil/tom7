@@ -15,18 +15,13 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
 #include "mapinc.h"
 
 static uint8 bank, preg;
-static SFORMAT StateRegs[] =
-{
-	{ &bank, 1, "BANK" },
-	{ &preg, 1, "PREG" },
-	{ 0 }
-};
+static SFORMAT StateRegs[] = {{&bank, 1, "BANK"}, {&preg, 1, "PREG"}, {0}};
 
 static void Sync(void) {
   if (bank & 0x40) {
@@ -68,12 +63,12 @@ static void M234Power(void) {
 }
 
 static void StateRestore(int version) {
-	Sync();
+  Sync();
 }
 
 void Mapper234_Init(CartInfo *info) {
-	info->Power = M234Power;
-	info->Reset = M234Reset;
-	fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
-	fceulib__.fceu->GameStateRestore = StateRestore;
+  info->Power = M234Power;
+  info->Reset = M234Reset;
+  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.fceu->GameStateRestore = StateRestore;
 }

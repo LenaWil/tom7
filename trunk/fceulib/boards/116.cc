@@ -15,7 +15,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  *
  * SL12 Protected 3-in-1 mapper hardware (VRC2, MMC3, MMC1)
  * the same as 603-5052 board (TODO: add reading registers, merge)
@@ -27,9 +27,12 @@
  * Kart Fighter (008, Huang-1, GAL dip: W conf.)
  * Somari (008, C5052-13, GAL dip: P conf., GK2-P/GK2-V maskroms)
  * Somari (008, Huang-1, GAL dip: W conf., GK1-P/GK1-V maskroms)
- * AV Mei Shao Nv Zhan Shi (aka AV Pretty Girl Fighting) (SL-12 PCB, Hunag-1, GAL dip: unk conf. SL-11A/SL-11B maskroms)
- * Samurai Spirits (Full version) (Huang-1, GAL dip: unk conf. GS-2A/GS-4A maskroms)
- * Contra Fighter (603-5052 PCB, C5052-3, GAL dip: unk conf. SC603-A/SCB603-B maskroms)
+ * AV Mei Shao Nv Zhan Shi (aka AV Pretty Girl Fighting) (SL-12 PCB, Hunag-1,
+ * GAL dip: unk conf. SL-11A/SL-11B maskroms)
+ * Samurai Spirits (Full version) (Huang-1, GAL dip: unk conf. GS-2A/GS-4A
+ * maskroms)
+ * Contra Fighter (603-5052 PCB, C5052-3, GAL dip: unk conf. SC603-A/SCB603-B
+ * maskroms)
  *
  */
 
@@ -38,144 +41,137 @@
 static uint8 mode;
 static uint8 vrc2_chr[8], vrc2_prg[2], vrc2_mirr;
 static uint8 mmc3_regs[10], mmc3_ctrl, mmc3_mirr;
-static uint8 IRQCount,IRQLatch,IRQa;
+static uint8 IRQCount, IRQLatch, IRQa;
 static uint8 IRQReload;
 static uint8 mmc1_regs[4], mmc1_buffer, mmc1_shift;
 
-static SFORMAT StateRegs[]= {
-  {&mode, 1, "MODE"},
-  {vrc2_chr, 8, "VRCC"},
-  {vrc2_prg, 2, "VRCP"},
-  {&vrc2_mirr, 1, "VRCM"},
-  {mmc3_regs, 10, "M3RG"},
-  {&mmc3_ctrl, 1, "M3CT"},
-  {&mmc3_mirr, 1, "M3MR"},
-  {&IRQReload, 1, "IRQR"},
-  {&IRQCount, 1, "IRQC"},
-  {&IRQLatch, 1, "IRQL"},
-  {&IRQa, 1, "IRQA"},
-  {mmc1_regs, 4, "M1RG"},
-  {&mmc1_buffer, 1, "M1BF"},
-  {&mmc1_shift, 1, "M1MR"},
-  {0}
-};
+static SFORMAT StateRegs[] = {{&mode, 1, "MODE"},
+                              {vrc2_chr, 8, "VRCC"},
+                              {vrc2_prg, 2, "VRCP"},
+                              {&vrc2_mirr, 1, "VRCM"},
+                              {mmc3_regs, 10, "M3RG"},
+                              {&mmc3_ctrl, 1, "M3CT"},
+                              {&mmc3_mirr, 1, "M3MR"},
+                              {&IRQReload, 1, "IRQR"},
+                              {&IRQCount, 1, "IRQC"},
+                              {&IRQLatch, 1, "IRQL"},
+                              {&IRQa, 1, "IRQA"},
+                              {mmc1_regs, 4, "M1RG"},
+                              {&mmc1_buffer, 1, "M1BF"},
+                              {&mmc1_shift, 1, "M1MR"},
+                              {0}};
 
-static void SyncPRG(void)
-{
-  switch(mode & 3) {
-  case 0:
-    fceulib__.cart->setprg8(0x8000, vrc2_prg[0]);
-    fceulib__.cart->setprg8(0xA000, vrc2_prg[1]);
-    fceulib__.cart->setprg8(0xC000, ~1);
-    fceulib__.cart->setprg8(0xE000, ~0);
-    break;
-  case 1: {
-    uint32 swap = (mmc3_ctrl >> 5) & 2;
-    fceulib__.cart->setprg8(0x8000, mmc3_regs[6 + swap]);
-    fceulib__.cart->setprg8(0xA000, mmc3_regs[7]);
-    fceulib__.cart->setprg8(0xC000, mmc3_regs[6 + (swap ^ 2)]);
-    fceulib__.cart->setprg8(0xE000, mmc3_regs[9]);
-    break;
-  }
-  case 2:
-  case 3: {
-    uint8 bank = mmc1_regs[3] & 0xF;
-    if(mmc1_regs[0] & 8) {
-      if(mmc1_regs[0] & 4) {
-	fceulib__.cart->setprg16(0x8000, bank);
-	fceulib__.cart->setprg16(0xC000, 0x0F);
+static void SyncPRG(void) {
+  switch (mode & 3) {
+    case 0:
+      fceulib__.cart->setprg8(0x8000, vrc2_prg[0]);
+      fceulib__.cart->setprg8(0xA000, vrc2_prg[1]);
+      fceulib__.cart->setprg8(0xC000, ~1);
+      fceulib__.cart->setprg8(0xE000, ~0);
+      break;
+    case 1: {
+      uint32 swap = (mmc3_ctrl >> 5) & 2;
+      fceulib__.cart->setprg8(0x8000, mmc3_regs[6 + swap]);
+      fceulib__.cart->setprg8(0xA000, mmc3_regs[7]);
+      fceulib__.cart->setprg8(0xC000, mmc3_regs[6 + (swap ^ 2)]);
+      fceulib__.cart->setprg8(0xE000, mmc3_regs[9]);
+      break;
+    }
+    case 2:
+    case 3: {
+      uint8 bank = mmc1_regs[3] & 0xF;
+      if (mmc1_regs[0] & 8) {
+        if (mmc1_regs[0] & 4) {
+          fceulib__.cart->setprg16(0x8000, bank);
+          fceulib__.cart->setprg16(0xC000, 0x0F);
+        } else {
+          fceulib__.cart->setprg16(0x8000, 0);
+          fceulib__.cart->setprg16(0xC000, bank);
+        }
       } else {
-	fceulib__.cart->setprg16(0x8000, 0);
-	fceulib__.cart->setprg16(0xC000, bank);
+        fceulib__.cart->setprg32(0x8000, bank >> 1);
       }
-    } else {
-      fceulib__.cart->setprg32(0x8000, bank >> 1);
+      break;
     }
-    break;
-  }
   }
 }
 
-static void SyncCHR(void)
-{
+static void SyncCHR(void) {
   uint32 base = (mode & 4) << 6;
-  switch(mode & 3) {
-  case 0:
-    fceulib__.cart->setchr1(0x0000, base|vrc2_chr[0]);
-    fceulib__.cart->setchr1(0x0400, base|vrc2_chr[1]);
-    fceulib__.cart->setchr1(0x0800, base|vrc2_chr[2]);
-    fceulib__.cart->setchr1(0x0c00, base|vrc2_chr[3]);
-    fceulib__.cart->setchr1(0x1000, base|vrc2_chr[4]);
-    fceulib__.cart->setchr1(0x1400, base|vrc2_chr[5]);
-    fceulib__.cart->setchr1(0x1800, base|vrc2_chr[6]);
-    fceulib__.cart->setchr1(0x1c00, base|vrc2_chr[7]);
-    break;
-  case 1: {
-    uint32 swap = (mmc3_ctrl & 0x80) << 5;
-    fceulib__.cart->setchr1(0x0000 ^ swap, base|((mmc3_regs[0])&0xFE));
-    fceulib__.cart->setchr1(0x0400 ^ swap, base|(mmc3_regs[0]|1));
-    fceulib__.cart->setchr1(0x0800 ^ swap, base|((mmc3_regs[1])&0xFE));
-    fceulib__.cart->setchr1(0x0c00 ^ swap, base|(mmc3_regs[1]|1));
-    fceulib__.cart->setchr1(0x1000 ^ swap, base|mmc3_regs[2]);
-    fceulib__.cart->setchr1(0x1400 ^ swap, base|mmc3_regs[3]);
-    fceulib__.cart->setchr1(0x1800 ^ swap, base|mmc3_regs[4]);
-    fceulib__.cart->setchr1(0x1c00 ^ swap, base|mmc3_regs[5]);
-    break;
-  }
-  case 2:
-  case 3:
-    if(mmc1_regs[0]&0x10) {
-      fceulib__.cart->setchr4(0x0000, mmc1_regs[1]);
-      fceulib__.cart->setchr4(0x1000, mmc1_regs[2]);
+  switch (mode & 3) {
+    case 0:
+      fceulib__.cart->setchr1(0x0000, base | vrc2_chr[0]);
+      fceulib__.cart->setchr1(0x0400, base | vrc2_chr[1]);
+      fceulib__.cart->setchr1(0x0800, base | vrc2_chr[2]);
+      fceulib__.cart->setchr1(0x0c00, base | vrc2_chr[3]);
+      fceulib__.cart->setchr1(0x1000, base | vrc2_chr[4]);
+      fceulib__.cart->setchr1(0x1400, base | vrc2_chr[5]);
+      fceulib__.cart->setchr1(0x1800, base | vrc2_chr[6]);
+      fceulib__.cart->setchr1(0x1c00, base | vrc2_chr[7]);
+      break;
+    case 1: {
+      uint32 swap = (mmc3_ctrl & 0x80) << 5;
+      fceulib__.cart->setchr1(0x0000 ^ swap, base | ((mmc3_regs[0]) & 0xFE));
+      fceulib__.cart->setchr1(0x0400 ^ swap, base | (mmc3_regs[0] | 1));
+      fceulib__.cart->setchr1(0x0800 ^ swap, base | ((mmc3_regs[1]) & 0xFE));
+      fceulib__.cart->setchr1(0x0c00 ^ swap, base | (mmc3_regs[1] | 1));
+      fceulib__.cart->setchr1(0x1000 ^ swap, base | mmc3_regs[2]);
+      fceulib__.cart->setchr1(0x1400 ^ swap, base | mmc3_regs[3]);
+      fceulib__.cart->setchr1(0x1800 ^ swap, base | mmc3_regs[4]);
+      fceulib__.cart->setchr1(0x1c00 ^ swap, base | mmc3_regs[5]);
+      break;
     }
-    else
-      fceulib__.cart->setchr8(mmc1_regs[1] >> 1);
-    break;
+    case 2:
+    case 3:
+      if (mmc1_regs[0] & 0x10) {
+        fceulib__.cart->setchr4(0x0000, mmc1_regs[1]);
+        fceulib__.cart->setchr4(0x1000, mmc1_regs[2]);
+      } else
+        fceulib__.cart->setchr8(mmc1_regs[1] >> 1);
+      break;
   }
 }
 
-static void SyncMIR(void)
-{
-  switch(mode & 3) {
-   case 0: {
-     fceulib__.cart->setmirror((vrc2_mirr&1)^1);
-     break;
-   }
-   case 1: {
-     fceulib__.cart->setmirror((mmc3_mirr&1)^1);
-     break;
-   }
-   case 2:
-   case 3: {
-     switch(mmc1_regs[0]&3) {
-       case 0: fceulib__.cart->setmirror(MI_0); break;
-       case 1: fceulib__.cart->setmirror(MI_1); break;
-       case 2: fceulib__.cart->setmirror(MI_V); break;
-       case 3: fceulib__.cart->setmirror(MI_H); break;
-     }
-     break;
-   }
+static void SyncMIR(void) {
+  switch (mode & 3) {
+    case 0: {
+      fceulib__.cart->setmirror((vrc2_mirr & 1) ^ 1);
+      break;
+    }
+    case 1: {
+      fceulib__.cart->setmirror((mmc3_mirr & 1) ^ 1);
+      break;
+    }
+    case 2:
+    case 3: {
+      switch (mmc1_regs[0] & 3) {
+        case 0: fceulib__.cart->setmirror(MI_0); break;
+        case 1: fceulib__.cart->setmirror(MI_1); break;
+        case 2: fceulib__.cart->setmirror(MI_V); break;
+        case 3: fceulib__.cart->setmirror(MI_H); break;
+      }
+      break;
+    }
   }
 }
 
-static void Sync(void)
-{
+static void Sync(void) {
   SyncPRG();
   SyncCHR();
   SyncMIR();
 }
 
-static DECLFW(UNLSL12ModeWrite)
-{
-//  printf("%04X:%02X\n",A,V);
-  if((A & 0x4100) == 0x4100) {
+static DECLFW(UNLSL12ModeWrite) {
+  //  printf("%04X:%02X\n",A,V);
+  if ((A & 0x4100) == 0x4100) {
     mode = V;
-    if(A&1) { // hacky hacky, there are two configuration modes on SOMARI HUANG-1 PCBs
-              // Solder pads with P1/P2 shorted called SOMARI P,
-              // Solder pads with W1/W2 shorted called SOMARI W
-              // Both identical 3-in-1 but W wanted MMC1 registers
-              // to be reset when switch to MMC1 mode P one - doesn't
-              // There is issue with W version of Somari at starting copyrights
+    if (A & 1) {  // hacky hacky, there are two configuration modes on SOMARI
+                  // HUANG-1 PCBs
+      // Solder pads with P1/P2 shorted called SOMARI P,
+      // Solder pads with W1/W2 shorted called SOMARI W
+      // Both identical 3-in-1 but W wanted MMC1 registers
+      // to be reset when switch to MMC1 mode P one - doesn't
+      // There is issue with W version of Somari at starting copyrights
       mmc1_regs[0] = 0xc;
       mmc1_regs[3] = 0;
       mmc1_buffer = 0;
@@ -186,97 +182,97 @@ static DECLFW(UNLSL12ModeWrite)
 }
 
 static DECLFW(UNLSL12Write) {
-  switch(mode & 3) {
-  case 0: {
-    if((A>=0xB000)&&(A<=0xE003)) {
-      int32 ind=((((A&2)|(A>>10))>>1)+2)&7;
-      int32 sar=((A&1)<<2);
-      vrc2_chr[ind]=(vrc2_chr[ind]&(0xF0>>sar))|((V&0x0F)<<sar);
-      SyncCHR();
-    } else {
-      switch(A&0xF000) {
-      case 0x8000: vrc2_prg[0] = V; SyncPRG(); break;
-      case 0xA000: vrc2_prg[1] = V; SyncPRG(); break;
-      case 0x9000: vrc2_mirr = V; SyncMIR(); break;
+  switch (mode & 3) {
+    case 0: {
+      if ((A >= 0xB000) && (A <= 0xE003)) {
+        int32 ind = ((((A & 2) | (A >> 10)) >> 1) + 2) & 7;
+        int32 sar = ((A & 1) << 2);
+        vrc2_chr[ind] = (vrc2_chr[ind] & (0xF0 >> sar)) | ((V & 0x0F) << sar);
+        SyncCHR();
+      } else {
+        switch (A & 0xF000) {
+          case 0x8000:
+            vrc2_prg[0] = V;
+            SyncPRG();
+            break;
+          case 0xA000:
+            vrc2_prg[1] = V;
+            SyncPRG();
+            break;
+          case 0x9000:
+            vrc2_mirr = V;
+            SyncMIR();
+            break;
+        }
       }
-    }
-    break;
-  }
-  case 1: {
-    switch(A & 0xE001) {
-    case 0x8000: {
-      uint8 old_ctrl = mmc3_ctrl;
-      mmc3_ctrl = V;
-      if((old_ctrl&0x40) != (mmc3_ctrl&0x40))
-	SyncPRG();
-      if((old_ctrl&0x80) != (mmc3_ctrl&0x80))
-	SyncCHR();
       break;
     }
-    case 0x8001:
-      mmc3_regs[mmc3_ctrl & 7] = V;
-      if((mmc3_ctrl & 7) < 6)
-	SyncCHR();
-      else
-	SyncPRG();
-      break;
-    case 0xA000:
-      mmc3_mirr = V;
-      SyncMIR();
-      break;
-    case 0xC000:
-      IRQLatch = V;
-      break;
-    case 0xC001:
-      IRQReload = 1;
-      break;
-    case 0xE000:
-      fceulib__.X->IRQEnd(FCEU_IQEXT);
-      IRQa=0;
-      break;
-    case 0xE001:
-      IRQa=1;
-      break;
-    }
-    break;
-  }
-  case 2:
-  case 3: {
-    if(V & 0x80) {
-      mmc1_regs[0] |= 0xc;
-      mmc1_buffer = mmc1_shift = 0;
-      SyncPRG();
-    } else {
-      uint8 n = (A >> 13) - 4;
-      mmc1_buffer |=  (V & 1) << (mmc1_shift++);
-      if(mmc1_shift == 5) {
-	mmc1_regs[n] = mmc1_buffer;
-	mmc1_buffer = mmc1_shift = 0;
-	switch(n) {
-	case 0: SyncMIR();
-	case 2: SyncCHR();
-	case 3:
-	case 1: SyncPRG();
-	}
+    case 1: {
+      switch (A & 0xE001) {
+        case 0x8000: {
+          uint8 old_ctrl = mmc3_ctrl;
+          mmc3_ctrl = V;
+          if ((old_ctrl & 0x40) != (mmc3_ctrl & 0x40)) SyncPRG();
+          if ((old_ctrl & 0x80) != (mmc3_ctrl & 0x80)) SyncCHR();
+          break;
+        }
+        case 0x8001:
+          mmc3_regs[mmc3_ctrl & 7] = V;
+          if ((mmc3_ctrl & 7) < 6)
+            SyncCHR();
+          else
+            SyncPRG();
+          break;
+        case 0xA000:
+          mmc3_mirr = V;
+          SyncMIR();
+          break;
+        case 0xC000: IRQLatch = V; break;
+        case 0xC001: IRQReload = 1; break;
+        case 0xE000:
+          fceulib__.X->IRQEnd(FCEU_IQEXT);
+          IRQa = 0;
+          break;
+        case 0xE001: IRQa = 1; break;
       }
+      break;
     }
-    break;
-  }
+    case 2:
+    case 3: {
+      if (V & 0x80) {
+        mmc1_regs[0] |= 0xc;
+        mmc1_buffer = mmc1_shift = 0;
+        SyncPRG();
+      } else {
+        uint8 n = (A >> 13) - 4;
+        mmc1_buffer |= (V & 1) << (mmc1_shift++);
+        if (mmc1_shift == 5) {
+          mmc1_regs[n] = mmc1_buffer;
+          mmc1_buffer = mmc1_shift = 0;
+          switch (n) {
+            case 0: SyncMIR();
+            case 2: SyncCHR();
+            case 3:
+            case 1: SyncPRG();
+          }
+        }
+      }
+      break;
+    }
   }
 }
 
 static void UNLSL12HBIRQ(void) {
-  if((mode & 3) == 1) {
+  if ((mode & 3) == 1) {
     int32 count = IRQCount;
-    if(!count || IRQReload) {
+    if (!count || IRQReload) {
       IRQCount = IRQLatch;
       IRQReload = 0;
     } else {
       IRQCount--;
     }
-    if(!IRQCount) {
-      if(IRQa)
-        fceulib__.X->IRQBegin(FCEU_IQEXT);
+    if (!IRQCount) {
+      if (IRQa) fceulib__.X->IRQBegin(FCEU_IQEXT);
     }
   }
 }
@@ -290,7 +286,8 @@ static void UNLSL12Power(void) {
   vrc2_chr[0] = ~0;
   vrc2_chr[1] = ~0;
   vrc2_chr[2] = ~0;
-  vrc2_chr[3] = ~0; // W conf. of Somari wanted CHR3 has to be set to BB bank (or similar), but doesn't do that directly
+  vrc2_chr[3] = ~0;  // W conf. of Somari wanted CHR3 has to be set to BB bank
+                     // (or similar), but doesn't do that directly
   vrc2_chr[4] = 4;
   vrc2_chr[5] = 5;
   vrc2_chr[6] = 6;
@@ -316,9 +313,9 @@ static void UNLSL12Power(void) {
   mmc1_buffer = 0;
   mmc1_shift = 0;
   Sync();
-  fceulib__.fceu->SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
-  fceulib__.fceu->SetWriteHandler(0x4100,0x7FFF,UNLSL12ModeWrite);
-  fceulib__.fceu->SetWriteHandler(0x8000,0xFFFF,UNLSL12Write);
+  fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
+  fceulib__.fceu->SetWriteHandler(0x4100, 0x7FFF, UNLSL12ModeWrite);
+  fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, UNLSL12Write);
 }
 
 void UNLSL12_Init(CartInfo *info) {

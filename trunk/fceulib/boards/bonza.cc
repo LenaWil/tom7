@@ -15,7 +15,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
 #include "mapinc.h"
@@ -24,12 +24,8 @@
 
 static uint8 prg_reg;
 static uint8 chr_reg;
-static SFORMAT StateRegs[]=
-{
-  {&prg_reg, 1, "PREG"},
-  {&chr_reg, 1, "CREG"},
-  {0}
-};
+static SFORMAT StateRegs[] = {
+    {&prg_reg, 1, "PREG"}, {&chr_reg, 1, "CREG"}, {0}};
 
 /*
 
@@ -78,50 +74,44 @@ byte_8C29:           .BYTE   0,$76,  0,  0,  8
 byte_8CC6:           .BYTE   0,$78,  0,  0,$12
 */
 
-static void Sync(void)
-{
+static void Sync(void) {
   fceulib__.cart->setprg32(0x8000, prg_reg);
   fceulib__.cart->setchr8(chr_reg);
 }
 
-static void StateRestore(int version)
-{
+static void StateRestore(int version) {
   Sync();
 }
 
-static DECLFW(M216WriteHi)
-{
-  prg_reg=A&1;
-  chr_reg=(A&0x0E)>>1;
+static DECLFW(M216WriteHi) {
+  prg_reg = A & 1;
+  chr_reg = (A & 0x0E) >> 1;
   Sync();
 }
 
-static DECLFW(M216Write5000)
-{
-//  FCEU_printf("WRITE: %04x:%04x (PC=%02x cnt=%02x)\n",A,V,fceulib__.X->PC,sim0bcnt);
+static DECLFW(M216Write5000) {
+  //  FCEU_printf("WRITE: %04x:%04x (PC=%02x
+  //  cnt=%02x)\n",A,V,fceulib__.X->PC,sim0bcnt);
 }
 
-static DECLFR(M216Read5000)
-{
-//    FCEU_printf("READ: %04x PC=%04x out=%02x byte=%02x cnt=%02x bit=%02x\n",A,fceulib__.X->PC,sim0out,sim0byte,sim0bcnt,sim0bit);
-    return 0;
+static DECLFR(M216Read5000) {
+  //    FCEU_printf("READ: %04x PC=%04x out=%02x byte=%02x cnt=%02x
+  //    bit=%02x\n",A,fceulib__.X->PC,sim0out,sim0byte,sim0bcnt,sim0bit);
+  return 0;
 }
 
-static void Power(void)
-{
+static void Power(void) {
   prg_reg = 0;
   chr_reg = 0;
   Sync();
-  fceulib__.fceu->SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
-  fceulib__.fceu->SetWriteHandler(0x8000,0xFFFF,M216WriteHi);
-  fceulib__.fceu->SetWriteHandler(0x5000,0x5000,M216Write5000);
-  fceulib__.fceu->SetReadHandler(0x5000,0x5000,M216Read5000);
+  fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
+  fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, M216WriteHi);
+  fceulib__.fceu->SetWriteHandler(0x5000, 0x5000, M216Write5000);
+  fceulib__.fceu->SetReadHandler(0x5000, 0x5000, M216Read5000);
 }
 
-
-void Mapper216_Init(CartInfo *info)
-{
-  info->Power=Power;
-  fceulib__.fceu->GameStateRestore=StateRestore;
+void Mapper216_Init(CartInfo *info) {
+  info->Power = Power;
+  fceulib__.fceu->GameStateRestore = StateRestore;
   fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
 }

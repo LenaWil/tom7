@@ -15,51 +15,41 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
 #include "mapinc.h"
 
 static uint8 reg;
 
-static SFORMAT StateRegs[]=
-{
-  {&reg, 1, "REG"},
-  {0}
-};
+static SFORMAT StateRegs[] = {{&reg, 1, "REG"}, {0}};
 
-static void Sync(void)
-{
-  fceulib__.cart->setprg8(0x6000,reg);
-  fceulib__.cart->setprg32(0x8000,2);
+static void Sync(void) {
+  fceulib__.cart->setprg8(0x6000, reg);
+  fceulib__.cart->setprg32(0x8000, 2);
   fceulib__.cart->setchr8(0);
 }
 
-static DECLFW(M120Write)
-{
-   if(A==0x41FF)
-   {
-     reg=V&7;
-     Sync();
-   }
+static DECLFW(M120Write) {
+  if (A == 0x41FF) {
+    reg = V & 7;
+    Sync();
+  }
 }
 
-static void M120Power(void)
-{
-  reg=0;
+static void M120Power(void) {
+  reg = 0;
   Sync();
-  fceulib__.fceu->SetReadHandler(0x6000,0xFFFF,Cart::CartBR);
-  fceulib__.fceu->SetWriteHandler(0x4100,0x5FFF,M120Write);
+  fceulib__.fceu->SetReadHandler(0x6000, 0xFFFF, Cart::CartBR);
+  fceulib__.fceu->SetWriteHandler(0x4100, 0x5FFF, M120Write);
 }
 
-static void StateRestore(int version)
-{
+static void StateRestore(int version) {
   Sync();
 }
 
-void Mapper120_Init(CartInfo *info)
-{
-  info->Power=M120Power;
-  fceulib__.fceu->GameStateRestore=StateRestore;
+void Mapper120_Init(CartInfo *info) {
+  info->Power = M120Power;
+  fceulib__.fceu->GameStateRestore = StateRestore;
   fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
 }

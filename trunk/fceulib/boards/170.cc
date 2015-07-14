@@ -15,54 +15,44 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
 #include "mapinc.h"
 
 static uint8 reg;
 
-static SFORMAT StateRegs[]=
-{
-  {&reg, 1, "REGS"},
-  {0}
-};
+static SFORMAT StateRegs[] = {{&reg, 1, "REGS"}, {0}};
 
-static void Sync(void)
-{
+static void Sync(void) {
   fceulib__.cart->setprg16(0x8000, 0);
-  fceulib__.cart->setprg16(0xc000,~0);
+  fceulib__.cart->setprg16(0xc000, ~0);
   fceulib__.cart->setchr8(0);
 }
 
-static DECLFW(M170ProtW)
-{
+static DECLFW(M170ProtW) {
   reg = V << 1 & 0x80;
 }
 
-static DECLFR(M170ProtR)
-{
+static DECLFR(M170ProtR) {
   return reg | (fceulib__.X->DB & 0x7F);
 }
 
-static void M170Power(void)
-{
+static void M170Power(void) {
   Sync();
-  fceulib__.fceu->SetWriteHandler(0x6502,0x6502,M170ProtW);
-  fceulib__.fceu->SetWriteHandler(0x7000,0x7000,M170ProtW);
-  fceulib__.fceu->SetReadHandler(0x7001,0x7001,M170ProtR);
-  fceulib__.fceu->SetReadHandler(0x7777,0x7777,M170ProtR);
-  fceulib__.fceu->SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__.fceu->SetWriteHandler(0x6502, 0x6502, M170ProtW);
+  fceulib__.fceu->SetWriteHandler(0x7000, 0x7000, M170ProtW);
+  fceulib__.fceu->SetReadHandler(0x7001, 0x7001, M170ProtR);
+  fceulib__.fceu->SetReadHandler(0x7777, 0x7777, M170ProtR);
+  fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
 }
 
-static void StateRestore(int version)
-{
+static void StateRestore(int version) {
   Sync();
 }
 
-void Mapper170_Init(CartInfo *info)
-{
-  info->Power=M170Power;
-  fceulib__.fceu->GameStateRestore=StateRestore;
+void Mapper170_Init(CartInfo *info) {
+  info->Power = M170Power;
+  fceulib__.fceu->GameStateRestore = StateRestore;
   fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
 }

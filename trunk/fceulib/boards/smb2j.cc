@@ -15,9 +15,10 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  * Super Mario Bros 2 J alt version
- * as well as "Voleyball" FDS conversion, bank layot is similar but no bankswitching and CHR ROM present
+ * as well as "Voleyball" FDS conversion, bank layot is similar but no
+ * bankswitching and CHR ROM present
  *
  * mapper seems wrongly researched by me ;( it should be mapper 43 modification
  */
@@ -27,72 +28,56 @@
 static uint8 prg, IRQa;
 static uint16 IRQCount;
 
-static SFORMAT StateRegs[]=
-{
-  {&prg, 1, "PRG"},
-  {&IRQa, 1, "IRQA"},
-  {&IRQCount, 2, "IRQC"},
-  {0}
-};
+static SFORMAT StateRegs[] = {
+    {&prg, 1, "PRG"}, {&IRQa, 1, "IRQA"}, {&IRQCount, 2, "IRQC"}, {0}};
 
-static void Sync(void)
-{
-  fceulib__.cart->setprg4r(1,0x5000,1);
-  fceulib__.cart->setprg8r(1,0x6000,1);
-  fceulib__.cart->setprg32(0x8000,prg);
+static void Sync(void) {
+  fceulib__.cart->setprg4r(1, 0x5000, 1);
+  fceulib__.cart->setprg8r(1, 0x6000, 1);
+  fceulib__.cart->setprg32(0x8000, prg);
   fceulib__.cart->setchr8(0);
 }
 
-static DECLFW(UNLSMB2JWrite)
-{
-  if(A==0x4022)
-  {
-    prg=V&1;
+static DECLFW(UNLSMB2JWrite) {
+  if (A == 0x4022) {
+    prg = V & 1;
     Sync();
   }
-  if(A==0x4122)
-  {
-    IRQa=V;
-    IRQCount=0;
+  if (A == 0x4122) {
+    IRQa = V;
+    IRQCount = 0;
     fceulib__.X->IRQEnd(FCEU_IQEXT);
   }
 }
 
-static void UNLSMB2JPower(void)
-{
-  prg=~0;
+static void UNLSMB2JPower(void) {
+  prg = ~0;
   Sync();
-  fceulib__.fceu->SetReadHandler(0x5000,0x7FFF,Cart::CartBR);
-  fceulib__.fceu->SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
-  fceulib__.fceu->SetWriteHandler(0x4020,0xffff,UNLSMB2JWrite);
+  fceulib__.fceu->SetReadHandler(0x5000, 0x7FFF, Cart::CartBR);
+  fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
+  fceulib__.fceu->SetWriteHandler(0x4020, 0xffff, UNLSMB2JWrite);
 }
 
-static void UNLSMB2JReset(void)
-{
-  prg=~0;
+static void UNLSMB2JReset(void) {
+  prg = ~0;
   Sync();
 }
 
-static void UNLSMB2JIRQHook(int a)
-{
-  if(IRQa)
-  {
-    IRQCount+=a*3;
-    if((IRQCount>>12)==IRQa)
-      fceulib__.X->IRQBegin(FCEU_IQEXT);
+static void UNLSMB2JIRQHook(int a) {
+  if (IRQa) {
+    IRQCount += a * 3;
+    if ((IRQCount >> 12) == IRQa) fceulib__.X->IRQBegin(FCEU_IQEXT);
   }
 }
 
-static void StateRestore(int version)
-{
+static void StateRestore(int version) {
   Sync();
 }
 
-void UNLSMB2J_Init(CartInfo *info)
-{
-  info->Reset=UNLSMB2JReset;
-  info->Power=UNLSMB2JPower;
-  fceulib__.X->MapIRQHook=UNLSMB2JIRQHook;
-  fceulib__.fceu->GameStateRestore=StateRestore;
+void UNLSMB2J_Init(CartInfo *info) {
+  info->Reset = UNLSMB2JReset;
+  info->Power = UNLSMB2JPower;
+  fceulib__.X->MapIRQHook = UNLSMB2JIRQHook;
+  fceulib__.fceu->GameStateRestore = StateRestore;
   fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
 }

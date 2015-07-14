@@ -15,7 +15,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  *
  */
 
@@ -23,98 +23,84 @@
 
 static uint16 latchea;
 static uint8 latched;
-static uint8 *WRAM=NULL;
+static uint8 *WRAM = NULL;
 static uint32 WRAMSIZE;
-static SFORMAT StateRegs[]=
-{
-  {&latchea, 2, "AREG"},
-  {&latched, 1, "DREG"},
-  {0}
-};
+static SFORMAT StateRegs[] = {
+    {&latchea, 2, "AREG"}, {&latched, 1, "DREG"}, {0}};
 
-static void Sync(void)
-{
+static void Sync(void) {
   int i;
-  fceulib__.cart->setmirror(((latched>>6)&1)^1);
-  switch(latchea)
-  {
+  fceulib__.cart->setmirror(((latched >> 6) & 1) ^ 1);
+  switch (latchea) {
     case 0x8000:
-      for(i=0;i<4;i++)
-        fceulib__.cart->setprg8(0x8000+(i<<13),(((latched&0x7F)<<1)+i)^(latched>>7));
+      for (i = 0; i < 4; i++)
+        fceulib__.cart->setprg8(0x8000 + (i << 13),
+                                (((latched & 0x7F) << 1) + i) ^ (latched >> 7));
       break;
     case 0x8002:
-      for(i=0;i<4;i++)
-        fceulib__.cart->setprg8(0x8000+(i<<13),((latched&0x7F)<<1)+(latched>>7));
+      for (i = 0; i < 4; i++)
+        fceulib__.cart->setprg8(0x8000 + (i << 13),
+                                ((latched & 0x7F) << 1) + (latched >> 7));
       break;
     case 0x8001:
     case 0x8003:
-      for(i=0;i<4;i++)
-      {
+      for (i = 0; i < 4; i++) {
         unsigned int b;
-        b=latched&0x7F;
-        if(i>=2 && !(latchea&0x2))
-          i=0x7F;
-        fceulib__.cart->setprg8(0x8000+(i<<13),(i&1)+((b<<1)^(latched>>7)));
+        b = latched & 0x7F;
+        if (i >= 2 && !(latchea & 0x2)) i = 0x7F;
+        fceulib__.cart->setprg8(0x8000 + (i << 13),
+                                (i & 1) + ((b << 1) ^ (latched >> 7)));
       }
       break;
   }
 }
 
-static DECLFW(M15Write)
-{
-  latchea=A;
-  latched=V;
-//  printf("%04X = %02X\n",A,V);
+static DECLFW(M15Write) {
+  latchea = A;
+  latched = V;
+  //  printf("%04X = %02X\n",A,V);
   Sync();
 }
 
-static void StateRestore(int version)
-{
+static void StateRestore(int version) {
   Sync();
 }
 
-static void M15Power(void)
-{
-  latchea=0x8000;
-  latched=0;
+static void M15Power(void) {
+  latchea = 0x8000;
+  latched = 0;
   fceulib__.cart->setchr8(0);
-  fceulib__.cart->setprg8r(0x10,0x6000,0);
-  fceulib__.fceu->SetReadHandler(0x6000,0x7FFF,Cart::CartBR);
-  fceulib__.fceu->SetWriteHandler(0x6000,0x7FFF,Cart::CartBW);
-  fceulib__.fceu->SetWriteHandler(0x8000,0xFFFF,M15Write);
-  fceulib__.fceu->SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__.cart->setprg8r(0x10, 0x6000, 0);
+  fceulib__.fceu->SetReadHandler(0x6000, 0x7FFF, Cart::CartBR);
+  fceulib__.fceu->SetWriteHandler(0x6000, 0x7FFF, Cart::CartBW);
+  fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, M15Write);
+  fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
   Sync();
 }
 
-static void M15Reset(void)
-{
-  latchea=0x8000;
-  latched=0;
+static void M15Reset(void) {
+  latchea = 0x8000;
+  latched = 0;
   Sync();
 }
 
-static void M15Close(void)
-{
-  if(WRAM)
-    free(WRAM);
-  WRAM=NULL;
+static void M15Close(void) {
+  if (WRAM) free(WRAM);
+  WRAM = NULL;
 }
 
-void Mapper15_Init(CartInfo *info)
-{
-  info->Power=M15Power;
-  info->Reset=M15Reset;
-  info->Close=M15Close;
-  fceulib__.fceu->GameStateRestore=StateRestore;
-  WRAMSIZE=8192;
-  WRAM=(uint8*)FCEU_gmalloc(WRAMSIZE);
-  fceulib__.cart->SetupCartPRGMapping(0x10,WRAM,WRAMSIZE,1);
-  if(info->battery)
-  {
-    info->SaveGame[0]=WRAM;
-    info->SaveGameLen[0]=WRAMSIZE;
+void Mapper15_Init(CartInfo *info) {
+  info->Power = M15Power;
+  info->Reset = M15Reset;
+  info->Close = M15Close;
+  fceulib__.fceu->GameStateRestore = StateRestore;
+  WRAMSIZE = 8192;
+  WRAM = (uint8 *)FCEU_gmalloc(WRAMSIZE);
+  fceulib__.cart->SetupCartPRGMapping(0x10, WRAM, WRAMSIZE, 1);
+  if (info->battery) {
+    info->SaveGame[0] = WRAM;
+    info->SaveGameLen[0] = WRAMSIZE;
   }
   fceulib__.state->AddExState(WRAM, WRAMSIZE, 0, "WRAM");
   fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
 }
-

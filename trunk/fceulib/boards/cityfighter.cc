@@ -15,7 +15,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  *
  * City Fighter IV sith Sound VRC4 hacked
  */
@@ -28,96 +28,96 @@ static uint8 prg_reg, prg_mode, mirr;
 static uint8 chr_reg[8];
 static writefunc pcmwrite;
 
-static SFORMAT StateRegs[] =
-{
-	{ &IRQCount, 4, "IRQC" },
-	{ &IRQa, 1, "IRQA" },
-	{ &prg_reg, 1, "PREG" },
-	{ &prg_mode, 1, "PMOD" },
-	{ &mirr, 1, "MIRR" },
-	{ chr_reg, 8, "CREG" },
-	{ 0 }
-};
+static SFORMAT StateRegs[] = {{&IRQCount, 4, "IRQC"},
+                              {&IRQa, 1, "IRQA"},
+                              {&prg_reg, 1, "PREG"},
+                              {&prg_mode, 1, "PMOD"},
+                              {&mirr, 1, "MIRR"},
+                              {chr_reg, 8, "CREG"},
+                              {0}};
 
 static void Sync(void) {
   fceulib__.cart->setprg32(0x8000, prg_reg >> 2);
-  if (!prg_mode)
-    fceulib__.cart->setprg8(0xC000, prg_reg);
-  for (int i = 0; i < 8; i++)
-    fceulib__.cart->setchr1(i << 10, chr_reg[i]);
+  if (!prg_mode) fceulib__.cart->setprg8(0xC000, prg_reg);
+  for (int i = 0; i < 8; i++) fceulib__.cart->setchr1(i << 10, chr_reg[i]);
   switch (mirr) {
-  case 0: fceulib__.cart->setmirror(MI_V); break;
-  case 1: fceulib__.cart->setmirror(MI_H); break;
-  case 2: fceulib__.cart->setmirror(MI_0); break;
-  case 3: fceulib__.cart->setmirror(MI_1); break;
+    case 0: fceulib__.cart->setmirror(MI_V); break;
+    case 1: fceulib__.cart->setmirror(MI_H); break;
+    case 2: fceulib__.cart->setmirror(MI_0); break;
+    case 3: fceulib__.cart->setmirror(MI_1); break;
   }
 }
 
 static DECLFW(UNLCITYFIGHTWrite) {
-  //FCEU_printf("%04x %02x",A,V);
+  // FCEU_printf("%04x %02x",A,V);
   switch (A & 0xF00C) {
-  case 0x9000: prg_reg = V & 0xC; mirr = V & 3; break;
-  case 0x9004:
-  case 0x9008:
-  case 0x900C:
-    if (A & 0x800)
-      pcmwrite(fc, 0x4011, (V & 0xf) << 3);
-    else
+    case 0x9000:
       prg_reg = V & 0xC;
-    break;
-  case 0xC000:
-  case 0xC004:
-  case 0xC008:
-  case 0xC00C: prg_mode = V & 1; break;
-  case 0xD000: chr_reg[0] = (chr_reg[0] & 0xF0) | (V & 0x0F); break;
-  case 0xD004: chr_reg[0] = (chr_reg[0] & 0x0F) | (V << 4); break;
-  case 0xD008: chr_reg[1] = (chr_reg[1] & 0xF0) | (V & 0x0F); break;
-  case 0xD00C: chr_reg[1] = (chr_reg[1] & 0x0F) | (V << 4); break;
-  case 0xA000: chr_reg[2] = (chr_reg[2] & 0xF0) | (V & 0x0F); break;
-  case 0xA004: chr_reg[2] = (chr_reg[2] & 0x0F) | (V << 4); break;
-  case 0xA008: chr_reg[3] = (chr_reg[3] & 0xF0) | (V & 0x0F); break;
-  case 0xA00C: chr_reg[3] = (chr_reg[3] & 0x0F) | (V << 4); break;
-  case 0xB000: chr_reg[4] = (chr_reg[4] & 0xF0) | (V & 0x0F); break;
-  case 0xB004: chr_reg[4] = (chr_reg[4] & 0x0F) | (V << 4); break;
-  case 0xB008: chr_reg[5] = (chr_reg[5] & 0xF0) | (V & 0x0F); break;
-  case 0xB00C: chr_reg[5] = (chr_reg[5] & 0x0F) | (V << 4); break;
-  case 0xE000: chr_reg[6] = (chr_reg[6] & 0xF0) | (V & 0x0F); break;
-  case 0xE004: chr_reg[6] = (chr_reg[6] & 0x0F) | (V << 4); break;
-  case 0xE008: chr_reg[7] = (chr_reg[7] & 0xF0) | (V & 0x0F); break;
-  case 0xE00C: chr_reg[7] = (chr_reg[7] & 0x0F) | (V << 4); break;
-  case 0xF000: IRQCount = ((IRQCount & 0x1E0) | ((V & 0xF) << 1)); break;
-  case 0xF004: IRQCount = ((IRQCount & 0x1E) | ((V & 0xF) << 5)); break;
-  case 0xF008: IRQa = V & 2; fceulib__.X->IRQEnd(FCEU_IQEXT); break;
-  default:
-    break;
+      mirr = V & 3;
+      break;
+    case 0x9004:
+    case 0x9008:
+    case 0x900C:
+      if (A & 0x800)
+        pcmwrite(fc, 0x4011, (V & 0xf) << 3);
+      else
+        prg_reg = V & 0xC;
+      break;
+    case 0xC000:
+    case 0xC004:
+    case 0xC008:
+    case 0xC00C: prg_mode = V & 1; break;
+    case 0xD000: chr_reg[0] = (chr_reg[0] & 0xF0) | (V & 0x0F); break;
+    case 0xD004: chr_reg[0] = (chr_reg[0] & 0x0F) | (V << 4); break;
+    case 0xD008: chr_reg[1] = (chr_reg[1] & 0xF0) | (V & 0x0F); break;
+    case 0xD00C: chr_reg[1] = (chr_reg[1] & 0x0F) | (V << 4); break;
+    case 0xA000: chr_reg[2] = (chr_reg[2] & 0xF0) | (V & 0x0F); break;
+    case 0xA004: chr_reg[2] = (chr_reg[2] & 0x0F) | (V << 4); break;
+    case 0xA008: chr_reg[3] = (chr_reg[3] & 0xF0) | (V & 0x0F); break;
+    case 0xA00C: chr_reg[3] = (chr_reg[3] & 0x0F) | (V << 4); break;
+    case 0xB000: chr_reg[4] = (chr_reg[4] & 0xF0) | (V & 0x0F); break;
+    case 0xB004: chr_reg[4] = (chr_reg[4] & 0x0F) | (V << 4); break;
+    case 0xB008: chr_reg[5] = (chr_reg[5] & 0xF0) | (V & 0x0F); break;
+    case 0xB00C: chr_reg[5] = (chr_reg[5] & 0x0F) | (V << 4); break;
+    case 0xE000: chr_reg[6] = (chr_reg[6] & 0xF0) | (V & 0x0F); break;
+    case 0xE004: chr_reg[6] = (chr_reg[6] & 0x0F) | (V << 4); break;
+    case 0xE008: chr_reg[7] = (chr_reg[7] & 0xF0) | (V & 0x0F); break;
+    case 0xE00C: chr_reg[7] = (chr_reg[7] & 0x0F) | (V << 4); break;
+    case 0xF000: IRQCount = ((IRQCount & 0x1E0) | ((V & 0xF) << 1)); break;
+    case 0xF004: IRQCount = ((IRQCount & 0x1E) | ((V & 0xF) << 5)); break;
+    case 0xF008:
+      IRQa = V & 2;
+      fceulib__.X->IRQEnd(FCEU_IQEXT);
+      break;
+    default: break;
   }
   Sync();
 }
 
 static void UNLCITYFIGHTIRQ(int a) {
-	if (IRQa) {
-		IRQCount -= a;
-		if (IRQCount <= 0) {
-			fceulib__.X->IRQBegin(FCEU_IQEXT);
-		}
-	}
+  if (IRQa) {
+    IRQCount -= a;
+    if (IRQCount <= 0) {
+      fceulib__.X->IRQBegin(FCEU_IQEXT);
+    }
+  }
 }
 
 static void UNLCITYFIGHTPower(void) {
-	prg_reg = 0;
-	Sync();
-	pcmwrite = fceulib__.fceu->GetWriteHandler(0x4011);
-	fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
-	fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, UNLCITYFIGHTWrite);
+  prg_reg = 0;
+  Sync();
+  pcmwrite = fceulib__.fceu->GetWriteHandler(0x4011);
+  fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
+  fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, UNLCITYFIGHTWrite);
 }
 
 static void StateRestore(int version) {
-	Sync();
+  Sync();
 }
 
 void UNLCITYFIGHT_Init(CartInfo *info) {
-	info->Power = UNLCITYFIGHTPower;
-	fceulib__.X->MapIRQHook = UNLCITYFIGHTIRQ;
-	fceulib__.fceu->GameStateRestore = StateRestore;
-	fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
+  info->Power = UNLCITYFIGHTPower;
+  fceulib__.X->MapIRQHook = UNLCITYFIGHTIRQ;
+  fceulib__.fceu->GameStateRestore = StateRestore;
+  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
 }

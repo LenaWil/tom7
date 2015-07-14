@@ -15,7 +15,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  *
  */
 
@@ -25,68 +25,56 @@ static uint8 prg_reg;
 static uint8 chr_reg;
 static uint8 hrd_flag;
 
-static SFORMAT StateRegs[]=
-{
-  {&hrd_flag, 1, "DPSW"},
-  {&prg_reg, 1, "PRG"},
-  {&chr_reg, 1, "CHR"},
-  {0}
-};
+static SFORMAT StateRegs[] = {
+    {&hrd_flag, 1, "DPSW"}, {&prg_reg, 1, "PRG"}, {&chr_reg, 1, "CHR"}, {0}};
 
-static void Sync(void)
-{
-  if(prg_reg&0x80)
-    fceulib__.cart->setprg32(0x8000,prg_reg>>6);
-  else
-  {
-    fceulib__.cart->setprg16(0x8000,(prg_reg>>5)&3);
-    fceulib__.cart->setprg16(0xC000,(prg_reg>>5)&3);
+static void Sync(void) {
+  if (prg_reg & 0x80)
+    fceulib__.cart->setprg32(0x8000, prg_reg >> 6);
+  else {
+    fceulib__.cart->setprg16(0x8000, (prg_reg >> 5) & 3);
+    fceulib__.cart->setprg16(0xC000, (prg_reg >> 5) & 3);
   }
-  fceulib__.cart->setmirror((prg_reg&8)>>3);
-  fceulib__.cart->setchr8((chr_reg&3)|(prg_reg&7)|((prg_reg&0x10)>>1));
+  fceulib__.cart->setmirror((prg_reg & 8) >> 3);
+  fceulib__.cart->setchr8((chr_reg & 3) | (prg_reg & 7) |
+                          ((prg_reg & 0x10) >> 1));
 }
 
-static DECLFR(M57Read)
-{
+static DECLFR(M57Read) {
   return hrd_flag;
 }
 
-static DECLFW(M57Write)
-{
-  if((A&0x8800)==0x8800)
-    prg_reg=V;
+static DECLFW(M57Write) {
+  if ((A & 0x8800) == 0x8800)
+    prg_reg = V;
   else
-    chr_reg=V;
+    chr_reg = V;
   Sync();
 }
 
-static void M57Power(void)
-{
-  prg_reg=0;
-  chr_reg=0;
-  hrd_flag=0;
-  fceulib__.fceu->SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
-  fceulib__.fceu->SetWriteHandler(0x8000,0xFFFF,M57Write);
-  fceulib__.fceu->SetReadHandler(0x6000,0x6000,M57Read);
+static void M57Power(void) {
+  prg_reg = 0;
+  chr_reg = 0;
+  hrd_flag = 0;
+  fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
+  fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, M57Write);
+  fceulib__.fceu->SetReadHandler(0x6000, 0x6000, M57Read);
   Sync();
 }
 
-static void M57Reset()
-{
+static void M57Reset() {
   hrd_flag++;
-  hrd_flag&=3;
-  FCEU_printf("Select Register = %02x\n",hrd_flag);
+  hrd_flag &= 3;
+  FCEU_printf("Select Register = %02x\n", hrd_flag);
 }
 
-static void StateRestore(int version)
-{
+static void StateRestore(int version) {
   Sync();
 }
 
-void Mapper57_Init(CartInfo *info)
-{
-  info->Power=M57Power;
-  info->Reset=M57Reset;
-  fceulib__.fceu->GameStateRestore=StateRestore;
+void Mapper57_Init(CartInfo *info) {
+  info->Power = M57Power;
+  info->Reset = M57Reset;
+  fceulib__.fceu->GameStateRestore = StateRestore;
   fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
 }

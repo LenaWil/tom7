@@ -15,28 +15,26 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
 #include "mapinc.h"
 
 static uint8 WRAM[2048];
 
-static void MALEEPower(void)
-{
-  fceulib__.cart->setprg2r(0x10,0x7000,0);
-  fceulib__.fceu->SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
-  fceulib__.fceu->SetReadHandler(0x6000,0x67FF,Cart::CartBR);
-  fceulib__.fceu->SetReadHandler(0x7000,0x77FF,Cart::CartBR);
-  fceulib__.fceu->SetWriteHandler(0x7000,0x77FF,Cart::CartBW);
-  fceulib__.cart->setprg2r(1,0x6000,0);
-  fceulib__.cart->setprg32(0x8000,0);
+static void MALEEPower(void) {
+  fceulib__.cart->setprg2r(0x10, 0x7000, 0);
+  fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
+  fceulib__.fceu->SetReadHandler(0x6000, 0x67FF, Cart::CartBR);
+  fceulib__.fceu->SetReadHandler(0x7000, 0x77FF, Cart::CartBR);
+  fceulib__.fceu->SetWriteHandler(0x7000, 0x77FF, Cart::CartBW);
+  fceulib__.cart->setprg2r(1, 0x6000, 0);
+  fceulib__.cart->setprg32(0x8000, 0);
   fceulib__.cart->setchr8(0);
 }
 
-void MALEE_Init(CartInfo *info)
-{
-  info->Power=MALEEPower;
+void MALEE_Init(CartInfo *info) {
+  info->Power = MALEEPower;
   fceulib__.cart->SetupCartPRGMapping(0x10, WRAM, 2048, 1);
-  fceulib__.state->AddExState(WRAM, 2048, 0,"WRAM");
+  fceulib__.state->AddExState(WRAM, 2048, 0, "WRAM");
 }

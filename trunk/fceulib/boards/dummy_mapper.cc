@@ -15,7 +15,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
 #include "mapinc.h"
@@ -30,38 +30,33 @@ static uint8 *CHRRAM=NULL;
 static uint32 CHRRAMSIZE;
 */
 
-static SFORMAT StateRegs[] = {
-  { reg, 8, "REGS" },
-  { &IRQa, 1, "IRQA" },
-  { &IRQCount, 2, "IRQC" },
-  { &IRQLatch, 2, "IRQL" },
-  { 0 }
-};
+static SFORMAT StateRegs[] = {{reg, 8, "REGS"},
+                              {&IRQa, 1, "IRQA"},
+                              {&IRQCount, 2, "IRQC"},
+                              {&IRQLatch, 2, "IRQL"},
+                              {0}};
 
-static void Sync(void) {
-}
+static void Sync(void) {}
 
-static DECLFW(MNNNWrite) {
-}
+static DECLFW(MNNNWrite) {}
 
 static void MNNNPower(void) {
-//	fceulib__.fceu->SetReadHandler(0x6000,0x7fff,CartBR);
-//	fceulib__.fceu->SetWriteHandler(0x6000,0x7fff,CartBW);
+  //	fceulib__.fceu->SetReadHandler(0x6000,0x7fff,CartBR);
+  //	fceulib__.fceu->SetWriteHandler(0x6000,0x7fff,CartBW);
   fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
   fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, MNNNWrite);
 }
 
-static void MNNNReset(void) {
-}
+static void MNNNReset(void) {}
 
 /*
 static void MNNNClose(void)
 {
-	if (WRAM)
-		free(WRAM);
-	if (CHRRAM)
-		free(CHRRAM);
-	WRAM = CHRRAM = NULL;
+    if (WRAM)
+        free(WRAM);
+    if (CHRRAM)
+        free(CHRRAM);
+    WRAM = CHRRAM = NULL;
 }
 */
 

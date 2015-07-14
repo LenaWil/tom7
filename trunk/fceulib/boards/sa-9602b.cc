@@ -15,30 +15,26 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
 #include "mapinc.h"
 #include "mmc3.h"
 
-static void SA9602BPW(uint32 A, uint8 V)
-{
-  fceulib__.cart->setprg8r(EXPREGS[1],A,V&0x3F);
-  if(MMC3_cmd&0x40)
-    fceulib__.cart->setprg8r(0,0x8000,~(1));
+static void SA9602BPW(uint32 A, uint8 V) {
+  fceulib__.cart->setprg8r(EXPREGS[1], A, V & 0x3F);
+  if (MMC3_cmd & 0x40)
+    fceulib__.cart->setprg8r(0, 0x8000, ~(1));
   else
-    fceulib__.cart->setprg8r(0,0xc000,~(1));
-  fceulib__.cart->setprg8r(0,0xe000,~(0));
+    fceulib__.cart->setprg8r(0, 0xc000, ~(1));
+  fceulib__.cart->setprg8r(0, 0xe000, ~(0));
 }
 
-static DECLFW(SA9602BWrite)
-{
-  switch(A & 0xe001)
-  {
+static DECLFW(SA9602BWrite) {
+  switch (A & 0xe001) {
     case 0x8000: EXPREGS[0] = V; break;
     case 0x8001:
-      if((EXPREGS[0] & 7) < 6)
-      {
+      if ((EXPREGS[0] & 7) < 6) {
         EXPREGS[1] = V >> 6;
         FixMMC3PRG(MMC3_cmd);
       }
@@ -47,21 +43,19 @@ static DECLFW(SA9602BWrite)
   MMC3_CMDWrite(DECLFW_FORWARD);
 }
 
-static void SA9602BPower(void)
-{
-  EXPREGS[0]=EXPREGS[1]=0;
+static void SA9602BPower(void) {
+  EXPREGS[0] = EXPREGS[1] = 0;
   GenMMC3Power();
-  fceulib__.fceu->SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
-  fceulib__.fceu->SetWriteHandler(0x8000,0xBFFF,SA9602BWrite);
+  fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
+  fceulib__.fceu->SetWriteHandler(0x8000, 0xBFFF, SA9602BWrite);
 }
 
-void SA9602B_Init(CartInfo *info)
-{
+void SA9602B_Init(CartInfo *info) {
   GenMMC3_Init(info, 512, 0, 0, 0);
-  pwrap=SA9602BPW;
-  mmc3opts|=2;
-  info->SaveGame[0]=fceulib__.unif->UNIFchrrama;
-  info->SaveGameLen[0]=32 * 1024;
-  info->Power=SA9602BPower;
+  pwrap = SA9602BPW;
+  mmc3opts |= 2;
+  info->SaveGame[0] = fceulib__.unif->UNIFchrrama;
+  info->SaveGameLen[0] = 32 * 1024;
+  info->Power = SA9602BPower;
   fceulib__.state->AddExState(EXPREGS, 2, 0, "EXPR");
 }
