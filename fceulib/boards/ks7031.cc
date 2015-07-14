@@ -79,5 +79,5 @@ void UNLKS7031_Init(CartInfo *info)
 {
   info->Power=UNLKS7031Power;
   fceulib__.fceu->GameStateRestore=StateRestore;
-  AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
 }

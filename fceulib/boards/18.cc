@@ -114,6 +114,6 @@ void Mapper18_Init(CartInfo *info)
   fceulib__.X->MapIRQHook=M18IRQHook;
   fceulib__.fceu->GameStateRestore=StateRestore;
 
-  AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
 }
 

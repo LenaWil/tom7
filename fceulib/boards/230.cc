@@ -74,6 +74,6 @@ static void StateRestore(int version) {
 void Mapper230_Init(CartInfo *info) {
 	info->Power = M230Power;
 	info->Reset = M230Reset;
-	AddExState(&StateRegs, ~0, 0, 0);
+	fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
 	fceulib__.fceu->GameStateRestore = StateRestore;
 }

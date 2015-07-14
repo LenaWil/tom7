@@ -60,5 +60,5 @@ void Mapper151_Init(CartInfo *info)
 {
   info->Power=M151Power;
   fceulib__.fceu->GameStateRestore=StateRestore;
-  AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
 }

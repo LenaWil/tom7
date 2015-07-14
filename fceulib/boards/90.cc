@@ -472,7 +472,7 @@ void Mapper90_Init(CartInfo *info) {
   fceulib__.X->MapIRQHook=CPUWrap;
   fceulib__.ppu->GameHBIRQHook2=SLWrap;
   fceulib__.fceu->GameStateRestore=M90Restore;
-  AddExState(Tek_StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExState(Tek_StateRegs, ~0, 0, 0);
 }
 
 void Mapper209_Init(CartInfo *info) {
@@ -484,7 +484,7 @@ void Mapper209_Init(CartInfo *info) {
   fceulib__.X->MapIRQHook=CPUWrap;
   fceulib__.ppu->GameHBIRQHook2=SLWrap;
   fceulib__.fceu->GameStateRestore=M90Restore;
-  AddExState(Tek_StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExState(Tek_StateRegs, ~0, 0, 0);
 }
 
 void Mapper211_Init(CartInfo *info) {
@@ -495,5 +495,5 @@ void Mapper211_Init(CartInfo *info) {
   fceulib__.X->MapIRQHook=CPUWrap;
   fceulib__.ppu->GameHBIRQHook2=SLWrap;
   fceulib__.fceu->GameStateRestore=M90Restore;
-  AddExState(Tek_StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExState(Tek_StateRegs, ~0, 0, 0);
 }

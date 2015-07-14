@@ -99,5 +99,5 @@ void UNLCN22M_Init(CartInfo *info)
   info->Power=MCN22MPower;
 //  GameHBIRQHook=MCN22MIRQHook;
   fceulib__.fceu->GameStateRestore=StateRestore;
-  AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
 }

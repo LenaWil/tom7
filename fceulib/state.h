@@ -36,19 +36,40 @@ struct SFORMAT {
   // const char *src = nullptr;
 };
 
-// Tom 7's simplified versions. These should only be used for in-memory saves!
-bool FCEUSS_SaveRAW(std::vector<uint8> *out);
-bool FCEUSS_LoadRAW(std::vector<uint8> *in);
+struct State {
+  // Tom 7's simplified versions. These should only be used for in-memory saves!
+  bool FCEUSS_SaveRAW(std::vector<uint8> *out);
+  bool FCEUSS_LoadRAW(std::vector<uint8> *in);
 
-// I think these add additional locations to the set of saved memories.
-void ResetExState(void (*PreSave)(),void (*PostSave)());
-void AddExStateReal(void *v, uint32 s, int type, char *desc, const char *src);
+  // I think these add additional locations to the set of saved memories.
+  void ResetExState(void (*PreSave)(),void (*PostSave)());
+  void AddExStateReal(void *v, uint32 s, int type, char *desc, const char *src);
+  
+  #define STRINGIFY_LINE_2(x) #x
+  #define STRINGIFY_LINE(x) STRINGIFY_LINE_2(x)
+  #define AddExState(v, s, t, d) \
+    AddExStateReal(v, s, t, d, __FILE__ ":" STRINGIFY_LINE(__LINE__) )
+ private:
 
-#define STRINGIFY_LINE_2(x) #x
-#define STRINGIFY_LINE(x) STRINGIFY_LINE_2(x)
-#define AddExState(v, s, t, d) \
-  AddExStateReal(v, s, t, d, __FILE__ ":" STRINGIFY_LINE(__LINE__) )
+  int SubWrite(EMUFILE* os, const SFORMAT *sf);
+  int WriteStateChunk(EMUFILE* os, int type, const SFORMAT *sf);
+  const SFORMAT *CheckS(const SFORMAT *sf, uint32 tsize, char *desc);
+  bool ReadStateChunk(EMUFILE* is, const SFORMAT *sf, int size);
+  bool ReadStateChunks(EMUFILE* is, int32 totalsize);
+  
+  void (*SPreSave)() = nullptr;
+  void (*SPostSave)() = nullptr;
 
+  static constexpr int SFMDATA_SIZE = 64;
+  SFORMAT SFMDATA[SFMDATA_SIZE];
+  int SFEXINDEX;
+
+  // XXX Can probably init in constructor?
+  bool state_initialized = false;
+  std::vector<SFORMAT> sfcpu, sfcpuc;
+  void InitState();
+};
+  
 // indicates that the value is a multibyte integer that needs to be
 // put in the correct byte order
 #define FCEUSTATE_RLSB            0x80000000

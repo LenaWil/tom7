@@ -108,5 +108,5 @@ void UNLTF1201_Init(CartInfo *info) {
   info->Power=UNLTF1201Power;
   fceulib__.ppu->GameHBIRQHook=UNLTF1201IRQCounter;
   fceulib__.fceu->GameStateRestore=StateRestore;
-  AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
 }

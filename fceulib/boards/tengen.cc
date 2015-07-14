@@ -149,7 +149,7 @@ static void RAMBO1_init(void) {
   fceulib__.X->MapIRQHook=RAMBO1_IRQHook;
   fceulib__.fceu->GameStateRestore=RAMBO1_Restore;
   fceulib__.fceu->SetWriteHandler(0x8000,0xffff,RAMBO1_write);
-  AddExState(Rambo_StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExState(Rambo_StateRegs, ~0, 0, 0);
 }
 
 static void CHRWrap(unsigned int A, unsigned int V)

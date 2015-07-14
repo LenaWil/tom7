@@ -98,9 +98,9 @@ void S74LS374N_Init(CartInfo *info)
   info->Power=S74LS374NPower;
   info->Reset=S74LS374NReset;
   fceulib__.fceu->GameStateRestore=S74LS374NRestore;
-  AddExState(latch, 5, 0, "LATC");
-  AddExState(&cmd, 1, 0, "CMD");
-  AddExState(&dip, 1, 0, "DIP");
+  fceulib__.state->AddExState(latch, 5, 0, "LATC");
+  fceulib__.state->AddExState(&cmd, 1, 0, "CMD");
+  fceulib__.state->AddExState(&dip, 1, 0, "DIP");
 }
 
 static void S74LS374NASynco(void)
@@ -143,8 +143,8 @@ void S74LS374NA_Init(CartInfo *info)
 {
   info->Power=S74LS374NAPower;
   fceulib__.fceu->GameStateRestore=S74LS374NRestore;
-  AddExState(latch, 5, 0, "LATC");
-  AddExState(&cmd, 1, 0, "CMD");
+  fceulib__.state->AddExState(latch, 5, 0, "LATC");
+  fceulib__.state->AddExState(&cmd, 1, 0, "CMD");
 }
 
 static int type;
@@ -214,8 +214,8 @@ void S8259A_Init(CartInfo *info) // Kevin's Horton 141 mapper
 {
   info->Power=S8259Reset;
   fceulib__.fceu->GameStateRestore=S8259Restore;
-  AddExState(latch, 8, 0, "LATC");
-  AddExState(&cmd, 1, 0, "CMD");
+  fceulib__.state->AddExState(latch, 8, 0, "LATC");
+  fceulib__.state->AddExState(&cmd, 1, 0, "CMD");
   type=0;
 }
 
@@ -223,8 +223,8 @@ void S8259B_Init(CartInfo *info) // Kevin's Horton 138 mapper
 {
   info->Power=S8259Reset;
   fceulib__.fceu->GameStateRestore=S8259Restore;
-  AddExState(latch, 8, 0, "LATC");
-  AddExState(&cmd, 1, 0, "CMD");
+  fceulib__.state->AddExState(latch, 8, 0, "LATC");
+  fceulib__.state->AddExState(&cmd, 1, 0, "CMD");
   type=1;
 }
 
@@ -232,8 +232,8 @@ void S8259C_Init(CartInfo *info) // Kevin's Horton 139 mapper
 {
   info->Power=S8259Reset;
   fceulib__.fceu->GameStateRestore=S8259Restore;
-  AddExState(latch, 8, 0, "LATC");
-  AddExState(&cmd, 1, 0, "CMD");
+  fceulib__.state->AddExState(latch, 8, 0, "LATC");
+  fceulib__.state->AddExState(&cmd, 1, 0, "CMD");
   type=2;
 }
 
@@ -241,8 +241,8 @@ void S8259D_Init(CartInfo *info) // Kevin's Horton 137 mapper
 {
   info->Power=S8259Reset;
   fceulib__.fceu->GameStateRestore=S8259Restore;
-  AddExState(latch, 8, 0, "LATC");
-  AddExState(&cmd, 1, 0, "CMD");
+  fceulib__.state->AddExState(latch, 8, 0, "LATC");
+  fceulib__.state->AddExState(&cmd, 1, 0, "CMD");
   type=3;
 }
 
@@ -313,7 +313,7 @@ void SA0161M_Init(CartInfo *info)
   WSync=SA0161MSynco;
   fceulib__.fceu->GameStateRestore=SARestore;
   info->Power=SAPower;
-  AddExState(&latch[0], 1, 0, "LATC");
+  fceulib__.state->AddExState(&latch[0], 1, 0, "LATC");
 }
 
 void SA72007_Init(CartInfo *info)
@@ -321,7 +321,7 @@ void SA72007_Init(CartInfo *info)
   WSync=SA72007Synco;
   fceulib__.fceu->GameStateRestore=SARestore;
   info->Power=SAPower;
-  AddExState(&latch[0], 1, 0, "LATC");
+  fceulib__.state->AddExState(&latch[0], 1, 0, "LATC");
 }
 
 void SA72008_Init(CartInfo *info)
@@ -329,7 +329,7 @@ void SA72008_Init(CartInfo *info)
   WSync=SA72008Synco;
   fceulib__.fceu->GameStateRestore=SARestore;
   info->Power=SAPower;
-  AddExState(&latch[0], 1, 0, "LATC");
+  fceulib__.state->AddExState(&latch[0], 1, 0, "LATC");
 }
 
 void SA009_Init(CartInfo *info)
@@ -337,7 +337,7 @@ void SA009_Init(CartInfo *info)
   WSync=SA009Synco;
   fceulib__.fceu->GameStateRestore=SARestore;
   info->Power=SAPower;
-  AddExState(&latch[0], 1, 0, "LATC");
+  fceulib__.state->AddExState(&latch[0], 1, 0, "LATC");
 }
 
 void SA0036_Init(CartInfo *info)
@@ -345,7 +345,7 @@ void SA0036_Init(CartInfo *info)
   WSync=SA72007Synco;
   fceulib__.fceu->GameStateRestore=SARestore;
   info->Power=SADPower;
-  AddExState(&latch[0], 1, 0, "LATC");
+  fceulib__.state->AddExState(&latch[0], 1, 0, "LATC");
 }
 
 void SA0037_Init(CartInfo *info)
@@ -353,7 +353,7 @@ void SA0037_Init(CartInfo *info)
   WSync=SA0161MSynco;
   fceulib__.fceu->GameStateRestore=SARestore;
   info->Power=SADPower;
-  AddExState(&latch[0], 1, 0, "LATC");
+  fceulib__.state->AddExState(&latch[0], 1, 0, "LATC");
 }
 
 // -----------------------------------------------
@@ -390,7 +390,7 @@ void TCU01_Init(CartInfo *info)
 {
   fceulib__.fceu->GameStateRestore=TCU01Restore;
   info->Power=TCU01Power;
-  AddExState(&latch[0], 1, 0, "LATC");
+  fceulib__.state->AddExState(&latch[0], 1, 0, "LATC");
 }
 
 //-----------------------------------------------
@@ -433,7 +433,7 @@ void TCU02_Init(CartInfo *info)
 {
   fceulib__.fceu->GameStateRestore=TCU02Restore;
   info->Power=TCU02Power;
-  AddExState(&latch[0], 1, 0, "LATC");
+  fceulib__.state->AddExState(&latch[0], 1, 0, "LATC");
 }
 
 // ---------------------------------------------

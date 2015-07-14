@@ -14,6 +14,7 @@
 #include "unif.h"
 #include "vsuni.h"
 #include "x6502.h"
+#include "state.h"
 
 FC::FC() {
   cart = new Cart;
@@ -28,6 +29,7 @@ FC::FC() {
   unif = new Unif;
   vsuni = new VSUni;
   X = new X6502;
+  state = new State;
 }
 
 FC::~FC() {
@@ -43,6 +45,7 @@ FC::~FC() {
   delete unif;
   delete vsuni;
   delete X;
+  delete state;
 }
 
 FC fceulib__;

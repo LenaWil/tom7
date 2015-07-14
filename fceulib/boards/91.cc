@@ -80,5 +80,5 @@ void Mapper91_Init(CartInfo *info) {
   info->Power=M91Power;
   fceulib__.ppu->GameHBIRQHook=M91IRQHook;
   fceulib__.fceu->GameStateRestore=StateRestore;
-  AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
 }

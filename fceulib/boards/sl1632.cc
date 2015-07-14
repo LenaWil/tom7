@@ -118,5 +118,5 @@ void UNLSL1632_Init(CartInfo *info)
   cwrap=UNLSL1632CW;
   info->Power=UNLSL1632Power;
   fceulib__.fceu->GameStateRestore=StateRestore;
-  AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
 }

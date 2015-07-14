@@ -116,5 +116,5 @@ void UNLAX5705_Init(CartInfo *info)
   info->Power=UNLAX5705Power;
 //  GameHBIRQHook=UNLAX5705IRQ;
   fceulib__.fceu->GameStateRestore=StateRestore;
-  AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
 }

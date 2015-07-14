@@ -217,7 +217,7 @@ void UNLYOKO_Init(CartInfo *info) {
   info->Reset=UNLYOKOReset;
   fceulib__.X->MapIRQHook=UNLYOKOIRQHook;
   fceulib__.fceu->GameStateRestore=UNLYOKOStateRestore;
-  AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
 }
 
 void Mapper83_Init(CartInfo *info) {
@@ -230,7 +230,7 @@ void Mapper83_Init(CartInfo *info) {
   WRAMSIZE=8192;
   WRAM=(uint8*)FCEU_gmalloc(WRAMSIZE);
   fceulib__.cart->SetupCartPRGMapping(0x10,WRAM,WRAMSIZE,1);
-  AddExState(WRAM, WRAMSIZE, 0, "WRAM");
+  fceulib__.state->AddExState(WRAM, WRAMSIZE, 0, "WRAM");
 
-  AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
 }

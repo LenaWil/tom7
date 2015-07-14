@@ -64,6 +64,6 @@ void Mapper96_Init(CartInfo *info) {
   info->Power=M96Power;
   fceulib__.ppu->PPU_hook=M96Hook;
   fceulib__.fceu->GameStateRestore=StateRestore;
-  AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
 }
 

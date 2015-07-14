@@ -92,7 +92,7 @@ void UNL22211_Init(CartInfo *info) {
 	is173 = 0;
 	info->Power = UNL22211Power;
 	fceulib__.fceu->GameStateRestore = StateRestore;
-	AddExState(&StateRegs, ~0, 0, 0);
+	fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
 }
 
 void Mapper172_Init(CartInfo *info) {
@@ -100,7 +100,7 @@ void Mapper172_Init(CartInfo *info) {
 	is173 = 0;
 	info->Power = UNL22211Power;
 	fceulib__.fceu->GameStateRestore = StateRestore;
-	AddExState(&StateRegs, ~0, 0, 0);
+	fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
 }
 
 void Mapper173_Init(CartInfo *info) {
@@ -108,6 +108,6 @@ void Mapper173_Init(CartInfo *info) {
 	is173 = 1;
 	info->Power = UNL22211Power;
 	fceulib__.fceu->GameStateRestore = StateRestore;
-	AddExState(&StateRegs, ~0, 0, 0);
+	fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
 }
 

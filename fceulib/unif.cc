@@ -62,7 +62,7 @@ static int FixRomSize(uint32 size, uint32 minimum) {
   if (size<minimum)
     return minimum;
   while (x<size)
-    x<<=1;
+    x <<= 1;
   return x;
 }
 
@@ -94,7 +94,7 @@ void Unif::MooMirroring() {
     fceulib__.cart->SetupCartMirroring(mirrortodo,1,0);
   } else if (mirrortodo==0x4) {
     fceulib__.cart->SetupCartMirroring(4,1,exntar);
-    AddExState(exntar, 2048, 0,"EXNR");
+    fceulib__.state->AddExState(exntar, 2048, 0,"EXNR");
   } else {
     fceulib__.cart->SetupCartMirroring(0,0,0);
   }
@@ -475,7 +475,7 @@ int Unif::InitializeBoard() {
 	  CHRRAMSize = 8192;
 	if ((UNIFchrrama=(uint8 *)FCEU_malloc(CHRRAMSize))) {
 	  fceulib__.cart->SetupCartCHRMapping(0,UNIFchrrama,CHRRAMSize,1);
-	  AddExState(UNIFchrrama, CHRRAMSize, 0,"CHRR");
+	  fceulib__.state->AddExState(UNIFchrrama, CHRRAMSize, 0,"CHRR");
 	} else {
 	  return -1;
 	}
@@ -524,7 +524,7 @@ int Unif::UNIFLoad(const char *name, FceuFile *fp) {
 
   fceulib__.cart->ResetCartMapping();
 
-  ResetExState(0,0);
+  fceulib__.state->ResetExState(nullptr, nullptr);
   ResetUNIF();
   if (!FCEU_read32le(&unhead.info,fp))
     goto aborto;

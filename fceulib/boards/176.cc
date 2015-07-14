@@ -135,6 +135,6 @@ void Mapper176_Init(CartInfo *info) {
 
   wram176=(uint8*)FCEU_gmalloc(WRAM176SIZE);
   fceulib__.cart->SetupCartPRGMapping(0x10,wram176,WRAM176SIZE,1);
-  AddExState(wram176, WRAM176SIZE, 0, "WRAM");
-  AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExState(wram176, WRAM176SIZE, 0, "WRAM");
+  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
 }

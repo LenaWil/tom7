@@ -81,7 +81,7 @@ static void StateRestore(int version)
 void BMC64in1nr_Init(CartInfo *info)
 {
   info->Power=BMC64in1nrPower;
-  AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
   fceulib__.fceu->GameStateRestore=StateRestore;
 }
 

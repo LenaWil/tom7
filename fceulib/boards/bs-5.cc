@@ -83,5 +83,5 @@ void BMCBS5_Init(CartInfo *info)
   info->Power=MBS5Power;
   info->Reset=MBS5Reset;
   fceulib__.fceu->GameStateRestore=StateRestore;
-  AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
 }

@@ -296,7 +296,7 @@ static void GenMMC1Init(CartInfo *info, int prg, int chr, int wram, int battery)
     mmc1opts|=1;
     if(wram>8) mmc1opts|=4;
     fceulib__.cart->SetupCartPRGMapping(0x10,WRAM,wram*1024,1);
-    AddExState(WRAM, wram*1024, 0, "WRAM");
+    fceulib__.state->AddExState(WRAM, wram*1024, 0, "WRAM");
     if(battery) {
       mmc1opts|=2;
       info->SaveGame[0]=WRAM+((mmc1opts&4)?8192:0);
@@ -306,15 +306,15 @@ static void GenMMC1Init(CartInfo *info, int prg, int chr, int wram, int battery)
   if(!chr) {
     CHRRAM=(uint8*)FCEU_gmalloc(8192);
     fceulib__.cart->SetupCartCHRMapping(0, CHRRAM, 8192, 1);
-    AddExState(CHRRAM, 8192, 0, "CHRR");
+    fceulib__.state->AddExState(CHRRAM, 8192, 0, "CHRR");
   }
-  AddExState(DRegs, 4, 0, "DREG");
+  fceulib__.state->AddExState(DRegs, 4, 0, "DREG");
 
   info->Power=GenMMC1Power;
   fceulib__.fceu->GameStateRestore=MMC1_Restore;
-  AddExState(&lreset, 8, 1, "LRST");
-  AddExState(&Buffer, 1, 1, "BFFR");
-  AddExState(&BufferShift, 1, 1, "BFRS");
+  fceulib__.state->AddExState(&lreset, 8, 1, "LRST");
+  fceulib__.state->AddExState(&Buffer, 1, 1, "BFFR");
+  fceulib__.state->AddExState(&BufferShift, 1, 1, "BFRS");
 }
 
 void Mapper1_Init(CartInfo *info) {

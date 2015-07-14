@@ -89,5 +89,5 @@ void Mapper187_Init(CartInfo *info)
   pwrap=M187PW;
   cwrap=M187CW;
   info->Power=M187Power;
-  AddExState(EXPREGS, 3, 0, "EXPR");
+  fceulib__.state->AddExState(EXPREGS, 3, 0, "EXPR");
 }

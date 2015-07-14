@@ -49,7 +49,7 @@ static void NovelRestore(int version)
 
 void Novel_Init(CartInfo *info)
 {
-  AddExState(&latch, 1, 0,"L1");
+  fceulib__.state->AddExState(&latch, 1, 0,"L1");
   info->Power=NovelReset;
   fceulib__.fceu->GameStateRestore=NovelRestore;
 }

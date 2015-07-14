@@ -99,5 +99,5 @@ void Transformer_Init(CartInfo *info)
     info->SaveGame[0]=WRAM;
     info->SaveGameLen[0]=WRAMSIZE;
   }
-  AddExState(WRAM, WRAMSIZE, 0, "WRAM");
+  fceulib__.state->AddExState(WRAM, WRAMSIZE, 0, "WRAM");
 }

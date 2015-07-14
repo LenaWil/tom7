@@ -61,5 +61,5 @@ static void StateRestore(int version) {
 void Mapper188_Init(CartInfo *info) {
   info->Power=Power;
   fceulib__.fceu->GameStateRestore=StateRestore;
-  AddExState(&latche, 1, 0, "LATC");
+  fceulib__.state->AddExState(&latche, 1, 0, "LATC");
 }

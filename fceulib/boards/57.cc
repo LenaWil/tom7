@@ -88,5 +88,5 @@ void Mapper57_Init(CartInfo *info)
   info->Power=M57Power;
   info->Reset=M57Reset;
   fceulib__.fceu->GameStateRestore=StateRestore;
-  AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
 }

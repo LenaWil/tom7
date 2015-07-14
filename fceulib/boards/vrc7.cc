@@ -117,5 +117,5 @@ void UNLVRC7_Init(CartInfo *info) {
   info->Power=UNLVRC7Power;
   fceulib__.X->MapIRQHook=UNLVRC7IRQHook;
   fceulib__.fceu->GameStateRestore=StateRestore;
-  AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
 }

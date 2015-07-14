@@ -407,9 +407,9 @@ void Mapper19_Init(CartInfo *info)
   if (FCEUS_SNDRATE)
     Mapper19_ESI();
 
-  AddExState(WRAM, 8192, 0, "WRAM");
-  AddExState(IRAM, 128, 0, "IRAM");
-  AddExState(N106_StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExState(WRAM, 8192, 0, "WRAM");
+  fceulib__.state->AddExState(IRAM, 128, 0, "IRAM");
+  fceulib__.state->AddExState(N106_StateRegs, ~0, 0, 0);
 
   if (info->battery) {
     info->SaveGame[0]=WRAM;
@@ -430,6 +430,6 @@ void Mapper210_Init(CartInfo *info)
   is210=1;
   fceulib__.fceu->GameStateRestore=Mapper210_StateRestore;
   info->Power=N106_Power;
-  AddExState(WRAM, 8192, 0, "WRAM");
-  AddExState(N106_StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExState(WRAM, 8192, 0, "WRAM");
+  fceulib__.state->AddExState(N106_StateRegs, ~0, 0, 0);
 }

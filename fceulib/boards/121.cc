@@ -130,5 +130,5 @@ void Mapper121_Init(CartInfo *info)
   pwrap=M121PW;
   cwrap=M121CW;
   info->Power=M121Power;
-  AddExState(EXPREGS, 8, 0, "EXPR");
+  fceulib__.state->AddExState(EXPREGS, 8, 0, "EXPR");
 }

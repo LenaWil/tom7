@@ -76,5 +76,5 @@ void UNL8157_Init(CartInfo *info)
   info->Power=UNL8157Power;
   info->Reset=UNL8157Reset;
   fceulib__.fceu->GameStateRestore=UNL8157Restore;
-  AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
 }

@@ -189,11 +189,11 @@ void Mapper190_Init(CartInfo *info)
 
   CHRRAM=(uint8*)FCEU_gmalloc(CHRSIZE);
   fceulib__.cart->SetupCartCHRMapping(0x10,CHRRAM,CHRSIZE,1);
-  AddExState(CHRRAM, CHRSIZE, 0, "CRAM");
+  fceulib__.state->AddExState(CHRRAM, CHRSIZE, 0, "CRAM");
 
   WRAM=(uint8*)FCEU_gmalloc(WRAMSIZE);
   fceulib__.cart->SetupCartPRGMapping(0x10,WRAM,WRAMSIZE,1);
-  AddExState(WRAM, WRAMSIZE, 0, "WRAM");
+  fceulib__.state->AddExState(WRAM, WRAMSIZE, 0, "WRAM");
 
   if(info->battery)
   {
@@ -201,5 +201,5 @@ void Mapper190_Init(CartInfo *info)
     info->SaveGameLen[0] = WRAMSIZE - 4096;
   }
 
-  AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
 }

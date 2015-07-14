@@ -74,7 +74,7 @@ void Mapper88_Init(CartInfo *info)
   is154=0;
   info->Power=M88Power;
   fceulib__.fceu->GameStateRestore=StateRestore;
-  AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
 }
 
 void Mapper154_Init(CartInfo *info)
@@ -82,5 +82,5 @@ void Mapper154_Init(CartInfo *info)
   is154=1;
   info->Power=M88Power;
   fceulib__.fceu->GameStateRestore=StateRestore;
-  AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
 }

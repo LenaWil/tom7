@@ -95,7 +95,7 @@ static void StateRestore(int version)
 void BMC13in1JY110_Init(CartInfo *info)
 {
   info->Power=BMC13in1JY110Power;
-  AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
   fceulib__.fceu->GameStateRestore=StateRestore;
 }
 

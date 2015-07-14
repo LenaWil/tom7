@@ -119,5 +119,5 @@ void UNLCITYFIGHT_Init(CartInfo *info) {
 	info->Power = UNLCITYFIGHTPower;
 	fceulib__.X->MapIRQHook = UNLCITYFIGHTIRQ;
 	fceulib__.fceu->GameStateRestore = StateRestore;
-	AddExState(&StateRegs, ~0, 0, 0);
+	fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
 }

@@ -75,10 +75,10 @@ static void Latch_Init(CartInfo *info, void (*proc)(void), uint8 init, uint16 ad
       info->SaveGame[0] = WRAM;
       info->SaveGameLen[0] = WRAMSIZE;
     }
-    AddExState(WRAM, WRAMSIZE, 0, "WRAM");
+    fceulib__.state->AddExState(WRAM, WRAMSIZE, 0, "WRAM");
   }
-  AddExState(&latche, 1, 0, "LATC");
-  AddExState(&bus_conflict, 1, 0, "BUSC");
+  fceulib__.state->AddExState(&latche, 1, 0, "LATC");
+  fceulib__.state->AddExState(&bus_conflict, 1, 0, "BUSC");
 }
 
 //------------------ Map 0 ---------------------------
@@ -116,7 +116,7 @@ void NROM_Init(CartInfo *info) {
     info->SaveGame[0] = WRAM;
     info->SaveGameLen[0] = WRAMSIZE;
   }
-  AddExState(WRAM, WRAMSIZE, 0, "WRAM");
+  fceulib__.state->AddExState(WRAM, WRAMSIZE, 0, "WRAM");
 }
 
 //------------------ Map 2 ---------------------------

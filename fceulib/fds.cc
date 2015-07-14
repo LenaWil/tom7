@@ -265,18 +265,18 @@ DECLFR_RET FDS::FDSRAMRead_Direct(DECLFR_ARGS) {
 #define speedo    fdso.speedo
 
 void FDS::FDSSoundStateAdd() {
-  AddExState(fdso.cwave,64,0,"WAVE");
-  AddExState(fdso.mwave,32,0,"MWAV");
-  AddExState(fdso.amplitude,2,0,"AMPL");
-  AddExState(SPSG,0xB,0,"SPSG");
+  fceulib__.state->AddExState(fdso.cwave,64,0,"WAVE");
+  fceulib__.state->AddExState(fdso.mwave,32,0,"MWAV");
+  fceulib__.state->AddExState(fdso.amplitude,2,0,"AMPL");
+  fceulib__.state->AddExState(SPSG,0xB,0,"SPSG");
 
-  AddExState(&b8shiftreg88,1,0,"B88");
+  fceulib__.state->AddExState(&b8shiftreg88,1,0,"B88");
 
-  AddExState(&clockcount, 4, 1, "CLOC");
-  AddExState(&b19shiftreg60,4,1,"B60");
-  AddExState(&b24adder66,4,1,"B66");
-  AddExState(&b24latch68,4,1,"B68");
-  AddExState(&b17latch76,4,1,"B76");
+  fceulib__.state->AddExState(&clockcount, 4, 1, "CLOC");
+  fceulib__.state->AddExState(&b19shiftreg60,4,1,"B60");
+  fceulib__.state->AddExState(&b24adder66,4,1,"B66");
+  fceulib__.state->AddExState(&b24latch68,4,1,"B68");
+  fceulib__.state->AddExState(&b17latch76,4,1,"B76");
 }
 
 static DECLFR(FDSSRead) {
@@ -285,10 +285,10 @@ static DECLFR(FDSSRead) {
 
 DECLFR_RET FDS::FDSSRead_Direct(DECLFR_ARGS) {
   switch(A&0xF) {
-  case 0x0:return(fdso.amplitude[0]|(fceulib__.X->DB&0xC0));
-  case 0x2:return(fdso.amplitude[1]|(fceulib__.X->DB&0xC0));
+  case 0x0:return fdso.amplitude[0]|(fceulib__.X->DB&0xC0);
+  case 0x2:return fdso.amplitude[1]|(fceulib__.X->DB&0xC0);
   }
-  return(fceulib__.X->DB);
+  return fceulib__.X->DB;
 }
 
 static DECLFW(FDSSWrite) {
@@ -701,28 +701,28 @@ int FDS::FDSLoad(const char *name, FceuFile *fp) {
   SelectDisk=0;
   InDisk=255;
 
-  ResetExState([]() { return fceulib__.fds->PreSave(); }, 
-	       []() { return fceulib__.fds->PostSave(); });
+  fceulib__.state->ResetExState([]() { return fceulib__.fds->PreSave(); }, 
+				[]() { return fceulib__.fds->PostSave(); });
   FDSSoundStateAdd();
 
   for (int x=0;x<TotalSides;x++) {
     char temp[5];
     sprintf(temp,"DDT%d",x);
-    AddExState(diskdata[x],65500,0,temp);
+    fceulib__.state->AddExState(diskdata[x],65500,0,temp);
   }
 
-  AddExState(FDSRAM,32768,0,"FDSR");
-  AddExState(FDSRegs,sizeof(FDSRegs),0,"FREG");
-  AddExState(CHRRAM,8192,0,"CHRR");
-  AddExState(&IRQCount, 4, 1, "IRQC");
-  AddExState(&IRQLatch, 4, 1, "IQL1");
-  AddExState(&IRQa, 1, 0, "IRQA");
-  AddExState(&writeskip,1,0,"WSKI");
-  AddExState(&DiskPtr,4,1,"DPTR");
-  AddExState(&DiskSeekIRQ,4,1,"DSIR");
-  AddExState(&SelectDisk,1,0,"SELD");
-  AddExState(&InDisk,1,0,"INDI");
-  AddExState(&DiskWritten,1,0,"DSKW");
+  fceulib__.state->AddExState(FDSRAM,32768,0,"FDSR");
+  fceulib__.state->AddExState(FDSRegs,sizeof(FDSRegs),0,"FREG");
+  fceulib__.state->AddExState(CHRRAM,8192,0,"CHRR");
+  fceulib__.state->AddExState(&IRQCount, 4, 1, "IRQC");
+  fceulib__.state->AddExState(&IRQLatch, 4, 1, "IQL1");
+  fceulib__.state->AddExState(&IRQa, 1, 0, "IRQA");
+  fceulib__.state->AddExState(&writeskip,1,0,"WSKI");
+  fceulib__.state->AddExState(&DiskPtr,4,1,"DPTR");
+  fceulib__.state->AddExState(&DiskSeekIRQ,4,1,"DSIR");
+  fceulib__.state->AddExState(&SelectDisk,1,0,"SELD");
+  fceulib__.state->AddExState(&InDisk,1,0,"INDI");
+  fceulib__.state->AddExState(&DiskWritten,1,0,"DSKW");
 
   fceulib__.cart->ResetCartMapping();
   fceulib__.cart->SetupCartCHRMapping(0,CHRRAM,8192,1);

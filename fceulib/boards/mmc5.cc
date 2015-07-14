@@ -828,20 +828,20 @@ static void GenMMC5_Init(CartInfo *info, int wsize, int battery) {
     fceulib__.cart->SetupCartPRGMapping(0x10,WRAM,wsize*1024,1);
     // This was registered twice for some reason? (There's another
     // copy of this line unconditionally below.) -tom7
-    // AddExState(WRAM, wsize*1024, 0, "WRM5");
+    // fceulib__.state->AddExState(WRAM, wsize*1024, 0, "WRM5");
   }
 
   MMC5fill=(uint8*)FCEU_gmalloc(1024);
   ExRAM=(uint8*)FCEU_gmalloc(1024);
 
-  AddExState(MMC5_StateRegs, ~0, 0, 0);
-  AddExState(WRAM, wsize*1024, 0, "WRAM");
-  AddExState(ExRAM, 1024, 0, "ERAM");
+  fceulib__.state->AddExState(MMC5_StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExState(WRAM, wsize*1024, 0, "WRAM");
+  fceulib__.state->AddExState(ExRAM, 1024, 0, "ERAM");
   // XXX perhaps these variables should be moved to here from PPU?
-  AddExState(&fceulib__.ppu->MMC5HackSPMode, 1, 0, "SPLM");
-  AddExState(&fceulib__.ppu->MMC5HackSPScroll, 1, 0, "SPLS");
-  AddExState(&fceulib__.ppu->MMC5HackSPPage, 1, 0, "SPLP");
-  AddExState(&fceulib__.ppu->MMC50x5130, 1, 0, "5130");
+  fceulib__.state->AddExState(&fceulib__.ppu->MMC5HackSPMode, 1, 0, "SPLM");
+  fceulib__.state->AddExState(&fceulib__.ppu->MMC5HackSPScroll, 1, 0, "SPLS");
+  fceulib__.state->AddExState(&fceulib__.ppu->MMC5HackSPPage, 1, 0, "SPLP");
+  fceulib__.state->AddExState(&fceulib__.ppu->MMC50x5130, 1, 0, "5130");
 
   MMC5WRAMsize=wsize/8;
   BuildWRAMSizeTable();

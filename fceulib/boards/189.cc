@@ -44,5 +44,5 @@ void Mapper189_Init(CartInfo *info)
   GenMMC3_Init(info, 256, 256, 0, 0);
   pwrap=M189PW;
   info->Power=M189Power;
-  AddExState(EXPREGS, 2, 0, "EXPR");
+  fceulib__.state->AddExState(EXPREGS, 2, 0, "EXPR");
 }

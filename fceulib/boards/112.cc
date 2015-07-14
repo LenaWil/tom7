@@ -86,6 +86,6 @@ void Mapper112_Init(CartInfo *info)
   fceulib__.fceu->GameStateRestore=StateRestore;
   WRAM=(uint8*)FCEU_gmalloc(8192);
   fceulib__.cart->SetupCartPRGMapping(0x10,WRAM,8192,1);
-  AddExState(WRAM, 8192, 0, "WRAM");
-  AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExState(WRAM, 8192, 0, "WRAM");
+  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
 }

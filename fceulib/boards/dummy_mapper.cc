@@ -83,17 +83,17 @@ void MapperNNN_Init(CartInfo *info) {
     CHRRAMSIZE = 8192;
     CHRRAM = (uint8*)FCEU_gmalloc(CHRRAMSIZE);
     SetupCartCHRMapping(0x10, CHRRAM, CHRRAMSIZE, 1);
-    AddExState(CHRRAM, CHRRAMSIZE, 0, "CRAM");
+    fceulib__.state->AddExState(CHRRAM, CHRRAMSIZE, 0, "CRAM");
   */
   /*
     WRAMSIZE = 8192;
     WRAM = (uint8*)FCEU_gmalloc(WRAMSIZE);
     SetupCartPRGMapping(0x10, WRAM, WRAMSIZE, 1);
-    AddExState(WRAM, WRAMSIZE, 0, "WRAM");
+    fceulib__.state->AddExState(WRAM, WRAMSIZE, 0, "WRAM");
     if (info->battery) {
     info->SaveGame[0] = WRAM;
     info->SaveGameLen[0] = WRAMSIZE;
     }
   */
-  AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
 }

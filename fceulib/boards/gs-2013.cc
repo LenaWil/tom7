@@ -64,5 +64,5 @@ void BMCGS2013_Init(CartInfo *info)
   info->Reset=BMCGS2013Reset;
   info->Power=BMCGS2013Power;
   fceulib__.fceu->GameStateRestore=StateRestore;
-  AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
 }

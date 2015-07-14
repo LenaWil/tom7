@@ -89,5 +89,5 @@ void UNLKS7032_Init(CartInfo *info)
   info->Power=UNLKS7032Power;
   fceulib__.X->MapIRQHook=UNLSMB2JIRQHook;
   fceulib__.fceu->GameStateRestore=StateRestore;
-  AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
 }

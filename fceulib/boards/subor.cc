@@ -79,7 +79,7 @@ void Mapper166_init(void)
   Sync();
   fceulib__.fceu->SetWriteHandler(0x8000,0xFFFF,Mapper167_write);
   fceulib__.fceu->GameStateRestore=StateRestore;
-  AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
 }
 
 void Mapper167_init(void)
@@ -89,5 +89,5 @@ void Mapper167_init(void)
   Sync();
   fceulib__.fceu->SetWriteHandler(0x8000,0xFFFF,Mapper167_write);
   fceulib__.fceu->GameStateRestore=StateRestore;
-  AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
 }

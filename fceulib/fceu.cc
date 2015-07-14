@@ -69,7 +69,7 @@ void FCEU::FCEU_CloseGame() {
     CHECK(GameInterface != nullptr);
     GameInterface(GI_CLOSE);
 
-    ResetExState(0,0);
+    fceulib__.state->ResetExState(nullptr, nullptr);
 
     //clear screen when game is closed
     if (XBuf)

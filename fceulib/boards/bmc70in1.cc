@@ -117,7 +117,7 @@ void BMC70in1_Init(CartInfo *info)
   info->Power=BMC70in1Power;
   info->Reset=BMC70in1Reset;
   fceulib__.fceu->GameStateRestore=StateRestore;
-  AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
 }
 
 void BMC70in1B_Init(CartInfo *info)
@@ -127,5 +127,5 @@ void BMC70in1B_Init(CartInfo *info)
   info->Power=BMC70in1Power;
   info->Reset=BMC70in1Reset;
   fceulib__.fceu->GameStateRestore=StateRestore;
-  AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
 }

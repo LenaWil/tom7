@@ -76,11 +76,11 @@ void Mapper168_Init(CartInfo *info)
   info->Power=M168Power;
   info->Close=MNNNClose;
   fceulib__.fceu->GameStateRestore=StateRestore;
-  AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
 
   CHRRAMSIZE=8192*8;
   CHRRAM=(uint8*)FCEU_gmalloc(CHRRAMSIZE);
   fceulib__.cart->SetupCartCHRMapping(0x10,CHRRAM,CHRRAMSIZE,1);
-  AddExState(CHRRAM, CHRRAMSIZE, 0, "CRAM");
+  fceulib__.state->AddExState(CHRRAM, CHRRAMSIZE, 0, "CRAM");
 
 }

@@ -92,6 +92,6 @@ void Super24_Init(CartInfo *info)
   pwrap=Super24PW;
   CHRRAM=(uint8*)FCEU_gmalloc(8192);
   fceulib__.cart->SetupCartCHRMapping(0x10, CHRRAM, 8192, 1);
-  AddExState(CHRRAM, 8192, 0, "CHRR");
-  AddExState(EXPREGS, 3, 0, "BIG2");
+  fceulib__.state->AddExState(CHRRAM, 8192, 0, "CHRR");
+  fceulib__.state->AddExState(EXPREGS, 3, 0, "BIG2");
 }

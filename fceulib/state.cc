@@ -49,23 +49,11 @@
 
 using namespace std;
 
-static void (*SPreSave)();
-static void (*SPostSave)();
-
-#define SFMDATA_SIZE (64)
-static SFORMAT SFMDATA[SFMDATA_SIZE];
-static int SFEXINDEX;
-
-#define RLSB FCEUSTATE_RLSB	//0x80000000
-
-// FIXME these will crash if fceulib__ is not initialized first
-static bool state_initialized = false;
-static vector<SFORMAT> sfcpu, sfcpuc;
-
-static void InitState() {
+void State::InitState() {
+  // Note: these will crash if fceulib__ is not initialized first. FIX
   if (state_initialized) return;
   sfcpu = {
-    { &fceulib__.X->reg_PC, 2|RLSB, "PC\0" },
+    { &fceulib__.X->reg_PC, 2|FCEUSTATE_RLSB, "PC\0" },
     { &fceulib__.X->reg_A, 1, "A\0\0" },
     { &fceulib__.X->reg_P, 1, "P\0\0" },
     { &fceulib__.X->reg_X, 1, "X\0\0" },
@@ -77,11 +65,11 @@ static void InitState() {
 
   sfcpuc = {
     { &fceulib__.X->jammed, 1, "JAMM" },
-    { &fceulib__.X->IRQlow, 4|RLSB, "IQLB" },
-    { &fceulib__.X->tcount, 4|RLSB, "ICoa" },
-    { &fceulib__.X->count,  4|RLSB, "ICou" },
+    { &fceulib__.X->IRQlow, 4|FCEUSTATE_RLSB, "IQLB" },
+    { &fceulib__.X->tcount, 4|FCEUSTATE_RLSB, "ICoa" },
+    { &fceulib__.X->count,  4|FCEUSTATE_RLSB, "ICou" },
     { &fceulib__.fceu->timestampbase, 
-      sizeof (fceulib__.fceu->timestampbase) | RLSB, "TSBS" },
+      sizeof (fceulib__.fceu->timestampbase) | FCEUSTATE_RLSB, "TSBS" },
     // alternative to the "quick and dirty hack"
     { &fceulib__.X->reg_PI, 1, "MooP" },
     // This was not included in FCEUltra, but I can't see any
@@ -96,7 +84,7 @@ static void InitState() {
   state_initialized = true;
 }
 
-static int SubWrite(EMUFILE* os, const SFORMAT *sf) {
+int State::SubWrite(EMUFILE* os, const SFORMAT *sf) {
   uint32 acc=0;
 
   TRACE_SCOPED_STAY_ENABLED_IF(false);
@@ -132,7 +120,7 @@ static int SubWrite(EMUFILE* os, const SFORMAT *sf) {
 
 
 #ifndef LSB_FIRST
-      if (sf->s&RLSB)
+      if (sf->s&FCEUSTATE_RLSB)
 	FlipByteOrder((uint8*)sf->v,sf->s&(~FCEUSTATE_FLAGS));
 #endif
 
@@ -143,7 +131,7 @@ static int SubWrite(EMUFILE* os, const SFORMAT *sf) {
 
       //Now restore the original byte order.
 #ifndef LSB_FIRST
-      if (sf->s&RLSB)
+      if (sf->s&FCEUSTATE_RLSB)
 	FlipByteOrder((uint8*)sf->v,sf->s&(~FCEUSTATE_FLAGS));
 #endif
     }
@@ -153,7 +141,7 @@ static int SubWrite(EMUFILE* os, const SFORMAT *sf) {
   return acc;
 }
 
-static int WriteStateChunk(EMUFILE* os, int type, const SFORMAT *sf) {
+int State::WriteStateChunk(EMUFILE* os, int type, const SFORMAT *sf) {
   os->fputc(type);
   int bsize = SubWrite((EMUFILE*)0,sf);
   write32le(bsize,os);
@@ -165,8 +153,8 @@ static int WriteStateChunk(EMUFILE* os, int type, const SFORMAT *sf) {
   return bsize + 5;
 }
 
-static const SFORMAT *CheckS(const SFORMAT *sf, uint32 tsize, char *desc) {
-  while(sf->v) {
+const SFORMAT *State::CheckS(const SFORMAT *sf, uint32 tsize, char *desc) {
+  while (sf->v) {
     if (sf->s==~0) {
       // Link to another SFORMAT structure.
 		  
@@ -185,7 +173,7 @@ static const SFORMAT *CheckS(const SFORMAT *sf, uint32 tsize, char *desc) {
   return nullptr;
 }
 			      
-static bool ReadStateChunk(EMUFILE* is, const SFORMAT *sf, int size) {
+bool State::ReadStateChunk(EMUFILE* is, const SFORMAT *sf, int size) {
   int temp = is->ftell();
 
   while (is->ftell()<temp+size) {
@@ -203,7 +191,7 @@ static bool ReadStateChunk(EMUFILE* is, const SFORMAT *sf, int size) {
 	is->fread((char *)tmp->v,tmp->s&(~FCEUSTATE_FLAGS));
 
 #ifndef LSB_FIRST
-      if (tmp->s&RLSB)
+      if (tmp->s&FCEUSTATE_RLSB)
 	FlipByteOrder((uint8*)tmp->v,tmp->s&(~FCEUSTATE_FLAGS));
 #endif
     } else {
@@ -213,7 +201,7 @@ static bool ReadStateChunk(EMUFILE* is, const SFORMAT *sf, int size) {
   return true;
 }
 
-static bool ReadStateChunks(EMUFILE* is, int32 totalsize) {
+bool State::ReadStateChunks(EMUFILE* is, int32 totalsize) {
   InitState();
   uint32 size;
   bool ret=true;
@@ -285,7 +273,7 @@ static bool ReadStateChunks(EMUFILE* is, int32 totalsize) {
 }
 
 // Simplified save that does not compress.
-bool FCEUSS_SaveRAW(std::vector<uint8> *out) {
+bool State::FCEUSS_SaveRAW(std::vector<uint8> *out) {
   InitState();
   EMUFILE_MEMORY os(out);
 
@@ -309,7 +297,8 @@ bool FCEUSS_SaveRAW(std::vector<uint8> *out) {
   // TRACEF("SFMDATA:");
   totalsize += WriteStateChunk(&os,0x10,SFMDATA);
   // TRACEV(*out);
-  if (SPreSave) SPostSave();
+  // Was just spre, but that seems wrong -tom7
+  if (SPreSave && SPostSave) SPostSave();
 
   // save the length of the file
   const int len = os.size();
@@ -325,7 +314,7 @@ bool FCEUSS_SaveRAW(std::vector<uint8> *out) {
   return true;
 }
 
-bool FCEUSS_LoadRAW(std::vector<uint8> *in) {
+bool State::FCEUSS_LoadRAW(std::vector<uint8> *in) {
   EMUFILE_MEMORY is(in);
 
   int totalsize = is.size();
@@ -347,7 +336,7 @@ bool FCEUSS_LoadRAW(std::vector<uint8> *in) {
   }
 }
 
-void ResetExState(void (*PreSave)(), void (*PostSave)()) {
+void State::ResetExState(void (*PreSave)(), void (*PostSave)()) {
   for (int x = 0; x < SFEXINDEX; x++) {
     free(SFMDATA[x].desc);
   }
@@ -363,8 +352,8 @@ void ResetExState(void (*PreSave)(), void (*PostSave)()) {
   SFEXINDEX = 0;
 }
 
-void AddExStateReal(void *v, uint32 s, int type, char *desc, const char *src) {
-
+void State::AddExStateReal(void *v, uint32 s, int type,
+			   char *desc, const char *src) {
   if (s == ~0) {
     const SFORMAT *sf = (const SFORMAT*)v;
     map<string, bool> names;
@@ -401,7 +390,7 @@ void AddExStateReal(void *v, uint32 s, int type, char *desc, const char *src) {
   }
   SFMDATA[SFEXINDEX].v = v;
   SFMDATA[SFEXINDEX].s = s;
-  if (type) SFMDATA[SFEXINDEX].s |= RLSB;
+  if (type) SFMDATA[SFEXINDEX].s |= FCEUSTATE_RLSB;
   if (SFEXINDEX < SFMDATA_SIZE-1) {
     SFEXINDEX++;
   } else {
