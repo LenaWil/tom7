@@ -73,5 +73,5 @@ void Mapper193_Init(CartInfo *info)
   info->Reset=M193Reset;
   info->Power=M193Power;
   fceulib__.fceu->GameStateRestore=StateRestore;
-  AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
 }

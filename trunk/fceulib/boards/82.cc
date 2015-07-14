@@ -89,11 +89,11 @@ void Mapper82_Init(CartInfo *info) {
   WRAM82SIZE=8192;
   WRAM82=(uint8*)FCEU_gmalloc(WRAM82SIZE);
   fceulib__.cart->SetupCartPRGMapping(0x10, WRAM82, WRAM82SIZE, 1);
-  AddExState(WRAM82, WRAM82SIZE, 0, "WR82");
+  fceulib__.state->AddExState(WRAM82, WRAM82SIZE, 0, "WR82");
   if (info->battery) {
     info->SaveGame[0]=WRAM82;
     info->SaveGameLen[0]=WRAM82SIZE;
   }
   fceulib__.fceu->GameStateRestore = StateRestore;
-  AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
 }

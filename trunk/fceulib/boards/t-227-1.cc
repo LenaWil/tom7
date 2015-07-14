@@ -103,5 +103,5 @@ void BMCT2271_Init(CartInfo *info)
   cwrap=BMCT2271CW;
   info->Power=BMCT2271Power;
   info->Reset=BMCT2271Reset;
-  AddExState(EXPREGS, 1, 0, "EXPR");
+  fceulib__.state->AddExState(EXPREGS, 1, 0, "EXPR");
 }

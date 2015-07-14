@@ -93,5 +93,5 @@ void UNLKS7057_Init(CartInfo *info)
 {
   info->Power=UNLKS7057Power;
   info->Reset=UNLKS7057Reset;
-  AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
 }

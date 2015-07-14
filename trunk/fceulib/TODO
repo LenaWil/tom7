@@ -17,7 +17,6 @@ Stuff I should be able to get rid of:
       Still to objectify:
 
       emulator.cc
-      state.cc
       input/*
       boards/*
       mappers/*
@@ -84,7 +83,7 @@ alias files="/bin/find . -type f | grep -v roms/ | grep -v roms_crash/ | grep -v
 
 (defun insert-fceu ()
   (interactive "")
-  (save-excursion  (insert "fceulib__fceu."))
+  (save-excursion  (insert "fceulib__.state->"))
 )
 
 (global-set-key "\C-xx" 'insert-fceu)

@@ -62,5 +62,5 @@ static void LE05Power(void)
 void LE05_Init(CartInfo *info)
 {
   info->Power=LE05Power;
-  AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
 }

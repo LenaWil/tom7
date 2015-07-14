@@ -97,5 +97,5 @@ void Mapper222_Init(CartInfo *info) {
   info->Power=M222Power;
   fceulib__.ppu->GameHBIRQHook=M222IRQ;
   fceulib__.fceu->GameStateRestore=StateRestore;
-  AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
 }

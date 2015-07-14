@@ -250,15 +250,15 @@ void Emulator::Save(vector<uint8> *out) {
 }
 
 void Emulator::GetBasis(vector<uint8> *out) {
-  FCEUSS_SaveRAW(out);
+  fceulib__.state->FCEUSS_SaveRAW(out);
 }
 
 void Emulator::SaveUncompressed(vector<uint8> *out) {
-  FCEUSS_SaveRAW(out);
+  fceulib__.state->FCEUSS_SaveRAW(out);
 }
 
 void Emulator::LoadUncompressed(vector<uint8> *in) {
-  if (!FCEUSS_LoadRAW(in)) {
+  if (!fceulib__.state->FCEUSS_LoadRAW(in)) {
     fprintf(stderr, "Couldn't restore from state\n");
     abort();
   }
@@ -285,7 +285,7 @@ void Emulator::SaveEx(vector<uint8> *state, const vector<uint8> *basis) {
   //    all mapper data even if we're not using it)
 
   vector<uint8> raw;
-  FCEUSS_SaveRAW(&raw);
+  fceulib__.state->FCEUSS_SaveRAW(&raw);
 
   // Encode.
   int blen = (basis == nullptr) ? 0 : (min(basis->size(), raw.size()));
@@ -350,7 +350,7 @@ void Emulator::LoadEx(vector<uint8> *state, const vector<uint8> *basis) {
     uncompressed[i] += (*basis)[i];
   }
 
-  if (!FCEUSS_LoadRAW(&uncompressed)) {
+  if (!fceulib__.state->FCEUSS_LoadRAW(&uncompressed)) {
     fprintf(stderr, "Couldn't restore from state\n");
     abort();
   }
@@ -361,11 +361,11 @@ void Emulator::LoadEx(vector<uint8> *state, const vector<uint8> *basis) {
 // When compression is disabled, we ignore the basis (no point) and
 // don't store any size header. These functions become very simple.
 void Emulator::SaveEx(vector<uint8> *state, const vector<uint8> *basis) {
-  FCEUSS_SaveRAW(out);
+  fceulib__.state->FCEUSS_SaveRAW(out);
 }
 
 void Emulator::LoadEx(vector<uint8> *state, const vector<uint8> *basis) {
-  if (!FCEUSS_LoadRAW(state)) {
+  if (!fceulib__.state->FCEUSS_LoadRAW(state)) {
     fprintf(stderr, "Couldn't restore from state\n");
     abort();
   }

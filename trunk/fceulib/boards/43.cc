@@ -89,5 +89,5 @@ void Mapper43_Init(CartInfo *info)
   info->Power=M43Power;
   fceulib__.X->MapIRQHook=M43IRQHook;
   fceulib__.fceu->GameStateRestore=StateRestore;
-  AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
 }

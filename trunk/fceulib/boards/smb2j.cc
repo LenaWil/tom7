@@ -94,5 +94,5 @@ void UNLSMB2J_Init(CartInfo *info)
   info->Power=UNLSMB2JPower;
   fceulib__.X->MapIRQHook=UNLSMB2JIRQHook;
   fceulib__.fceu->GameStateRestore=StateRestore;
-  AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
 }

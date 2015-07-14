@@ -20,6 +20,7 @@ struct Sound;
 struct Unif;
 struct VSUni;
 struct X6502;
+struct State;
 
 struct FC {
   Cart *cart;
@@ -34,7 +35,8 @@ struct FC {
   Unif *unif;
   VSUni *vsuni;
   X6502 *X;
-
+  State *state;
+  
   FC();
   ~FC();
 };

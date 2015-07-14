@@ -104,5 +104,5 @@ void UNL3DBlock_Init(CartInfo *info)
   info->Reset=UNL3DBlockReset;
   fceulib__.X->MapIRQHook=UNL3DBlockIRQHook;
   fceulib__.fceu->GameStateRestore=StateRestore;
-  AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
 }

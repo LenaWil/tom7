@@ -63,6 +63,6 @@ static void StateRestore(int version) {
 
 void Mapper232_Init(CartInfo *info) {
 	info->Power = M232Power;
-	AddExState(&StateRegs, ~0, 0, 0);
+	fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
 	fceulib__.fceu->GameStateRestore = StateRestore;
 }

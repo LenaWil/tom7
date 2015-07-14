@@ -180,8 +180,8 @@ void UNL8237_Init(CartInfo *info)
   cwrap=UNL8237CW;
   pwrap=UNL8237PW;
   info->Power=UNL8237Power;
-  AddExState(EXPREGS, 3, 0, "EXPR");
-  AddExState(&cmdin, 1, 0, "CMDI");
+  fceulib__.state->AddExState(EXPREGS, 3, 0, "EXPR");
+  fceulib__.state->AddExState(&cmdin, 1, 0, "CMDI");
 }
 
 void UNL8237A_Init(CartInfo *info)
@@ -190,6 +190,6 @@ void UNL8237A_Init(CartInfo *info)
   cwrap=UNL8237ACW;
   pwrap=UNL8237APW;
   info->Power=UNL8237Power;
-  AddExState(EXPREGS, 3, 0, "EXPR");
-  AddExState(&cmdin, 1, 0, "CMDI");
+  fceulib__.state->AddExState(EXPREGS, 3, 0, "EXPR");
+  fceulib__.state->AddExState(&cmdin, 1, 0, "CMDI");
 }

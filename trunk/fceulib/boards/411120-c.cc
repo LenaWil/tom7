@@ -64,5 +64,5 @@ void BMC411120C_Init(CartInfo *info)
   cwrap=BMC411120CCW;
   info->Power=BMC411120CPower;
   info->Reset=BMC411120CReset;
-  AddExState(EXPREGS, 1, 0, "EXPR");
+  fceulib__.state->AddExState(EXPREGS, 1, 0, "EXPR");
 }

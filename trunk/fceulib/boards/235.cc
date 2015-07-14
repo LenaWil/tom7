@@ -66,5 +66,5 @@ void Mapper235_Init(CartInfo *info)
 {
   info->Power=M235Power;
   fceulib__.fceu->GameStateRestore=M235Restore;
-  AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
 }

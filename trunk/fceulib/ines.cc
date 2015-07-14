@@ -864,7 +864,7 @@ int INes::iNESLoad(const char *name, FceuFile *fp, int OverwriteVidMode) {
   }
 
   fceulib__.cart->ResetCartMapping();
-  ResetExState(0, 0);
+  fceulib__.state->ResetExState(nullptr, nullptr);
 
   fceulib__.cart->SetupCartPRGMapping(0,ROM,ROM_size*0x4000,0);
   // SetupCartPRGMapping(1,WRAM,8192,1);
@@ -1399,37 +1399,37 @@ void INes::iNESPower() {
     memset(fceulib__.fceu->GameMemBlock,0,GAME_MEM_BLOCK_SIZE);
 
   NONE_init();
-  ResetExState(0, 0);
+  fceulib__.state->ResetExState(nullptr, nullptr);
 
   if (fceulib__.fceu->GameInfo->type == GIT_VSUNI)
-    AddExState(fceulib__.vsuni->FCEUVSUNI_STATEINFO(), ~0, 0, 0);
+    fceulib__.state->AddExState(fceulib__.vsuni->FCEUVSUNI_STATEINFO(), ~0, 0, 0);
 
   // Note: This used to save as "WRAM", but this is also used by
   // many mappers. In some situation (I didn't dig in too deeply)
   // the two could get confused, and e.g. Mapper 82 would some
   // memory that was read during destruction. Gave it a unique name.
   // -tom7
-  AddExState(WRAM, 8192, 0, "iNWR");
+  fceulib__.state->AddExState(WRAM, 8192, 0, "iNWR");
   if (type==19 || type==6 || type==69 || type==85 || type==96)
-    AddExState(MapperExRAM, 32768, 0, "MEXR");
+    fceulib__.state->AddExState(MapperExRAM, 32768, 0, "MEXR");
   if ((!VROM_size || type==6 || type==19) && (type!=13 && type!=96))
-    AddExState(CHRRAM, 8192, 0, "CHRR");
+    fceulib__.state->AddExState(CHRRAM, 8192, 0, "CHRR");
   if (head.ROM_type&8)
-    AddExState(ExtraNTARAM, 2048, 0, "EXNR");
+    fceulib__.state->AddExState(ExtraNTARAM, 2048, 0, "EXNR");
 
   /* Exclude some mappers whose emulation code handle save state stuff
      themselves. */
   if (type && type != 13 && type != 96) {
-    AddExState(mapbyte1, 32, 0, "MPBY");
-    AddExState(&iNESMirroring, 1, 0, "MIRR");
-    AddExState(&iNESIRQCount, 4, 1, "IRQC");
-    AddExState(&iNESIRQLatch, 4, 1, "IQL1");
-    AddExState(&iNESIRQa, 1, 0, "IRQA");
-    AddExState(PRGBankList, 4, 0, "PBL");
+    fceulib__.state->AddExState(mapbyte1, 32, 0, "MPBY");
+    fceulib__.state->AddExState(&iNESMirroring, 1, 0, "MIRR");
+    fceulib__.state->AddExState(&iNESIRQCount, 4, 1, "IRQC");
+    fceulib__.state->AddExState(&iNESIRQLatch, 4, 1, "IQL1");
+    fceulib__.state->AddExState(&iNESIRQa, 1, 0, "IRQA");
+    fceulib__.state->AddExState(PRGBankList, 4, 0, "PBL");
     for (int x = 0; x < 8; x++) {
       char tak[8];
       sprintf(tak,"CBL%d",x);
-      AddExState(&iNESCHRBankList[x], 2, 1,tak);
+      fceulib__.state->AddExState(&iNESCHRBankList[x], 2, 1,tak);
     }
   }
 
@@ -1447,7 +1447,7 @@ int INes::NewiNES_Init(int num) {
   CHRRAMSize = -1;
 
   if (fceulib__.fceu->GameInfo->type == GIT_VSUNI)
-    AddExState(fceulib__.vsuni->FCEUVSUNI_STATEINFO(), ~0, 0, 0);
+    fceulib__.state->AddExState(fceulib__.vsuni->FCEUVSUNI_STATEINFO(), ~0, 0, 0);
 
   while (tmp->init) {
     if (num == tmp->number) {
@@ -1463,10 +1463,10 @@ int INes::NewiNES_Init(int num) {
 
 	fceulib__.unif->UNIFchrrama = VROM;
 	fceulib__.cart->SetupCartCHRMapping(0,VROM,CHRRAMSize,1);
-	AddExState(VROM,CHRRAMSize, 0, "CHRR");
+	fceulib__.state->AddExState(VROM,CHRRAMSize, 0, "CHRR");
       }
       if (head.ROM_type&8)
-	AddExState(ExtraNTARAM, 2048, 0, "EXNR");
+	fceulib__.state->AddExState(ExtraNTARAM, 2048, 0, "EXNR");
       tmp->init(&iNESCart);
       TRACEF("NewiNES init done.");
       return 1;

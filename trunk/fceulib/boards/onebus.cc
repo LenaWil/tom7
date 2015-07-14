@@ -324,5 +324,5 @@ void UNLOneBus_Init(CartInfo *info) {
   fceulib__.ppu->GameHBIRQHook=UNLOneBusIRQHook;
   fceulib__.X->MapIRQHook=UNLOneBusCpuHook;
   fceulib__.fceu->GameStateRestore=StateRestore;
-  AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
 }

@@ -108,6 +108,6 @@ void SSSNROM_Init(CartInfo *info) {
   WRAM=(uint8*)FCEU_gmalloc(WRAMSIZE);
   fceulib__.cart->SetupCartPRGMapping(0x10,WRAM,WRAMSIZE,1);
 
-  AddExState(WRAM, WRAMSIZE, 0, "WRAM");
-  AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExState(WRAM, WRAMSIZE, 0, "WRAM");
+  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
 }

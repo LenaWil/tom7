@@ -76,5 +76,5 @@ void UNLKS7013B_Init(CartInfo *info)
   info->Reset=UNLKS7013BReset;
 
   fceulib__.fceu->GameStateRestore=StateRestore;
-  AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
 }

@@ -71,5 +71,5 @@ void UNLH2288_Init(CartInfo *info)
   GenMMC3_Init(info, 256, 256, 0, 0);
   pwrap=H2288PW;
   info->Power=H2288Power;
-  AddExState(EXPREGS, 2, 0, "EXPR");
+  fceulib__.state->AddExState(EXPREGS, 2, 0, "EXPR");
 }

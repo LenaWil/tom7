@@ -99,7 +99,7 @@ void Mapper199_Init(CartInfo *info)
   CHRRAMSIZE=8192;
   CHRRAM=(uint8*)FCEU_gmalloc(CHRRAMSIZE);
   fceulib__.cart->SetupCartCHRMapping(0x10, CHRRAM, CHRRAMSIZE, 1);
-  AddExState(CHRRAM, CHRRAMSIZE, 0, "CHRR");
+  fceulib__.state->AddExState(CHRRAM, CHRRAMSIZE, 0, "CHRR");
 
-  AddExState(EXPREGS, 4, 0, "EXPR");
+  fceulib__.state->AddExState(EXPREGS, 4, 0, "EXPR");
 }

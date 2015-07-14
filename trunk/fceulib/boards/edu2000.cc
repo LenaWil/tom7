@@ -79,6 +79,6 @@ void UNLEDU2000_Init(CartInfo *info)
     info->SaveGame[0]=WRAM;
     info->SaveGameLen[0]=32768;
   }
-  AddExState(WRAM, 32768, 0, "WRAM");
-  AddExState(StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExState(WRAM, 32768, 0, "WRAM");
+  fceulib__.state->AddExState(StateRegs, ~0, 0, 0);
 }

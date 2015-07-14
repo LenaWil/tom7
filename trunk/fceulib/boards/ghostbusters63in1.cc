@@ -97,8 +97,8 @@ void BMCGhostbusters63in1_Init(CartInfo *info)
   CHRROMSIZE=8192; // dummy CHRROM, VRAM disable
   CHRROM=(uint8*)FCEU_gmalloc(CHRROMSIZE);
   fceulib__.cart->SetupCartPRGMapping(0x10,CHRROM,CHRROMSIZE,0);
-  AddExState(CHRROM, CHRROMSIZE, 0, "CROM");
+  fceulib__.state->AddExState(CHRROM, CHRROMSIZE, 0, "CROM");
 
   fceulib__.fceu->GameStateRestore=StateRestore;
-  AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
 }

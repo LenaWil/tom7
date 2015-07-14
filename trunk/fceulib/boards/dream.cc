@@ -50,5 +50,5 @@ void DreamTech01_Init(CartInfo *info)
 {
   fceulib__.fceu->GameStateRestore=Restore;
   info->Power=DREAMPower;
-  AddExState(&latche, 1, 0, "LATC");
+  fceulib__.state->AddExState(&latche, 1, 0, "LATC");
 }

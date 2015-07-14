@@ -82,10 +82,10 @@ static void Latch_Init(CartInfo *info, void (*proc)(void),
       info->SaveGame[0] = WRAM;
       info->SaveGameLen[0] = WRAMSIZE;
     }
-    AddExState(WRAM, WRAMSIZE, 0, "WRAM");
+    fceulib__.state->AddExState(WRAM, WRAMSIZE, 0, "WRAM");
   }
   fceulib__.fceu->GameStateRestore = StateRestore;
-  AddExState(&latche, 2, 0, "LATC");
+  fceulib__.state->AddExState(&latche, 2, 0, "LATC");
 }
 
 //------------------ UNLCC21 ---------------------------
@@ -128,7 +128,7 @@ static void BMCD1038Reset(void) {
 void BMCD1038_Init(CartInfo *info) {
   Latch_Init(info, BMCD1038Sync, BMCD1038Read, 0x0000, 0x8000, 0xFFFF, 0);
   info->Reset = BMCD1038Reset;
-  AddExState(&dipswitch, 1, 0, "DIPSW");
+  fceulib__.state->AddExState(&dipswitch, 1, 0, "DIPSW");
 }
 
 //------------------ UNL43272 ---------------------------
@@ -157,7 +157,7 @@ static void UNL43272Reset(void) {
 void UNL43272_Init(CartInfo *info) {
 	Latch_Init(info, UNL43272Sync, UNL43272Read, 0x0081, 0x8000, 0xFFFF, 0);
 	info->Reset = UNL43272Reset;
-	AddExState(&dipswitch, 1, 0, "DIPSW");
+	fceulib__.state->AddExState(&dipswitch, 1, 0, "DIPSW");
 }
 
 //------------------ Map 058 ---------------------------

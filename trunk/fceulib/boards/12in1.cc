@@ -69,5 +69,5 @@ void BMC12IN1_Init(CartInfo *info)
 {
   info->Power=BMC12IN1Power;
   fceulib__.fceu->GameStateRestore=StateRestore;
-  AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
 }

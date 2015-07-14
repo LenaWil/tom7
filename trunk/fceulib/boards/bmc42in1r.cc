@@ -69,7 +69,7 @@ static void StateRestore(int version) {
 void Mapper226_Init(CartInfo *info) {
 	isresetbased = 0;
 	info->Power = M226Power;
-	AddExState(&StateRegs, ~0, 0, 0);
+	fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
 	fceulib__.fceu->GameStateRestore = StateRestore;
 }
 
@@ -82,6 +82,6 @@ void Mapper233_Init(CartInfo *info) {
 	isresetbased = 1;
 	info->Power = M226Power;
 	info->Reset = M233Reset;
-	AddExState(&StateRegs, ~0, 0, 0);
+	fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
 	fceulib__.fceu->GameStateRestore = StateRestore;
 }

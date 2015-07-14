@@ -77,5 +77,5 @@ void DEIROM_Init(CartInfo *info)
 {
   info->Power=DEIPower;
   fceulib__.fceu->GameStateRestore=StateRestore;
-  AddExState(&DEI_StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExState(&DEI_StateRegs, ~0, 0, 0);
 }

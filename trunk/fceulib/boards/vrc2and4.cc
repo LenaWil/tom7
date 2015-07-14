@@ -223,7 +223,7 @@ void Mapper21_Init(CartInfo *info) {
 	fceulib__.X->MapIRQHook = VRC24IRQHook;
 	fceulib__.fceu->GameStateRestore = StateRestore;
 
-	AddExState(&StateRegs, ~0, 0, 0);
+	fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
 }
 
 void Mapper22_Init(CartInfo *info) {
@@ -232,7 +232,7 @@ void Mapper22_Init(CartInfo *info) {
 	info->Power = M22Power;
 	fceulib__.fceu->GameStateRestore = StateRestore;
 
-	AddExState(&StateRegs, ~0, 0, 0);
+	fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
 }
 
 void VRC24_Init(CartInfo *info) {
@@ -243,14 +243,14 @@ void VRC24_Init(CartInfo *info) {
 	WRAMSIZE = 8192;
 	WRAM = (uint8*)FCEU_gmalloc(WRAMSIZE);
 	fceulib__.cart->SetupCartPRGMapping(0x10, WRAM, WRAMSIZE, 1);
-	AddExState(WRAM, WRAMSIZE, 0, "WRAM");
+	fceulib__.state->AddExState(WRAM, WRAMSIZE, 0, "WRAM");
 
 	if(info->battery) {
 		info->SaveGame[0]=WRAM;
 		info->SaveGameLen[0]=WRAMSIZE;
 	}
 
-	AddExState(&StateRegs, ~0, 0, 0);
+	fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
 }
 
 void Mapper23_Init(CartInfo *info) {

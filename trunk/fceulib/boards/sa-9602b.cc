@@ -63,5 +63,5 @@ void SA9602B_Init(CartInfo *info)
   info->SaveGame[0]=fceulib__.unif->UNIFchrrama;
   info->SaveGameLen[0]=32 * 1024;
   info->Power=SA9602BPower;
-  AddExState(EXPREGS, 2, 0, "EXPR");
+  fceulib__.state->AddExState(EXPREGS, 2, 0, "EXPR");
 }

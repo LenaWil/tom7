@@ -69,5 +69,5 @@ void BMC830118C_Init(CartInfo *info)
   cwrap=BMC830118CCW;
   info->Power=BMC830118CPower;
   info->Reset=BMC830118CReset;
-  AddExState(EXPREGS, 1, 0, "EXPR");
+  fceulib__.state->AddExState(EXPREGS, 1, 0, "EXPR");
 }

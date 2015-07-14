@@ -76,6 +76,6 @@ void UNLA9746_Init(CartInfo *info)
 {
   GenMMC3_Init(info, 128, 256, 0, 0);
   info->Power=UNLA9746Power;
-  AddExState(EXPREGS, 6, 0, "EXPR");
+  fceulib__.state->AddExState(EXPREGS, 6, 0, "EXPR");
 }
 

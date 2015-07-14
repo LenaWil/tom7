@@ -229,9 +229,9 @@ void BMCFK23C_Init(CartInfo *info) {
   pwrap=BMCFK23CPW;
   info->Power=BMCFK23CPower;
   info->Reset=BMCFK23CReset;
-  AddExState(EXPREGS, 8, 0, "EXPR");
-  AddExState(&unromchr, 1, 0, "UCHR");
-  AddExState(&dipswitch, 1, 0, "DPSW");
+  fceulib__.state->AddExState(EXPREGS, 8, 0, "EXPR");
+  fceulib__.state->AddExState(&unromchr, 1, 0, "UCHR");
+  fceulib__.state->AddExState(&dipswitch, 1, 0, "DPSW");
 
   prg_bonus = 1;
   if (const std::string *val = fceulib__.ines->MasterRomInfoParam("bonus")) {
@@ -254,11 +254,11 @@ void BMCFK23CA_Init(CartInfo *info) {
   CHRRAMSize=8192;
   CHRRAM=(uint8*)FCEU_gmalloc(CHRRAMSize);
   fceulib__.cart->SetupCartCHRMapping(0x10, CHRRAM, CHRRAMSize, 1);
-  AddExState(CHRRAM, CHRRAMSize, 0, "CRAM");
+  fceulib__.state->AddExState(CHRRAM, CHRRAMSize, 0, "CRAM");
 
-  AddExState(EXPREGS, 8, 0, "EXPR");
-  AddExState(&unromchr, 1, 0, "UCHR");
-  AddExState(&dipswitch, 1, 0, "DPSW");
+  fceulib__.state->AddExState(EXPREGS, 8, 0, "EXPR");
+  fceulib__.state->AddExState(&unromchr, 1, 0, "UCHR");
+  fceulib__.state->AddExState(&dipswitch, 1, 0, "DPSW");
 
   prg_bonus = 1;
   if (const std::string *val = fceulib__.ines->MasterRomInfoParam("bonus")) {

@@ -106,7 +106,7 @@ static void StateRestore(int version) {
 
 void Mapper95_Init(CartInfo *info) {
   info->Power=DBPower;
-  AddExState(DB_StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExState(DB_StateRegs, ~0, 0, 0);
   fceulib__.ppu->PPU_hook=dragonbust_ppu;
   fceulib__.fceu->GameStateRestore=StateRestore;
 }

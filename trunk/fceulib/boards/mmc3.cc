@@ -298,7 +298,7 @@ void GenMMC3_Init(CartInfo *info, int prg, int chr, int wram, int battery) {
     MMC3_WRAM=(uint8*)FCEU_gmalloc(wrams);
     TRACEF("MMC3 Init %d %d %d %d", prg, chr, wram, battery);
     fceulib__.cart->SetupCartPRGMapping(0x10,MMC3_WRAM,wrams,1);
-    AddExState(MMC3_WRAM, wrams, 0, "MRAM");
+    fceulib__.state->AddExState(MMC3_WRAM, wrams, 0, "MRAM");
 
     TRACEA(DRegBuf, 8);
     TRACEN(MMC3_cmd);
@@ -317,7 +317,7 @@ void GenMMC3_Init(CartInfo *info, int prg, int chr, int wram, int battery) {
     info->SaveGameLen[0]=wrams;
   }
 
-  AddExState(MMC3_StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExState(MMC3_StateRegs, ~0, 0, 0);
 
   info->Power=GenMMC3Power;
   info->Reset=MMC3RegReset;
@@ -397,7 +397,7 @@ void Mapper12_Init(CartInfo *info)
  isRevB=0;
 
  info->Power=M12Power;
- AddExState(EXPREGS, 2, 0, "EXPR");
+ fceulib__.state->AddExState(EXPREGS, 2, 0, "EXPR");
 }
 
 // ---------------------------- Mapper 37 -------------------------------
@@ -447,7 +447,7 @@ void Mapper37_Init(CartInfo *info)
   cwrap=M37CW;
   info->Power=M37Power;
   info->Reset=M37Reset;
-  AddExState(EXPREGS, 1, 0, "EXPR");
+  fceulib__.state->AddExState(EXPREGS, 1, 0, "EXPR");
 }
 
 // ---------------------------- Mapper 44 -------------------------------
@@ -494,7 +494,7 @@ void Mapper44_Init(CartInfo *info)
  cwrap=M44CW;
  pwrap=M44PW;
  info->Power=M44Power;
- AddExState(EXPREGS, 1, 0, "EXPR");
+ fceulib__.state->AddExState(EXPREGS, 1, 0, "EXPR");
 }
 
 // ---------------------------- Mapper 45 -------------------------------
@@ -576,7 +576,7 @@ void Mapper45_Init(CartInfo *info)
  pwrap=M45PW;
  info->Reset=M45Reset;
  info->Power=M45Power;
- AddExState(EXPREGS, 5, 0, "EXPR");
+ fceulib__.state->AddExState(EXPREGS, 5, 0, "EXPR");
 }
 
 // ---------------------------- Mapper 47 -------------------------------
@@ -617,7 +617,7 @@ void Mapper47_Init(CartInfo *info)
  pwrap=M47PW;
  cwrap=M47CW;
  info->Power=M47Power;
- AddExState(EXPREGS, 1, 0, "EXPR");
+ fceulib__.state->AddExState(EXPREGS, 1, 0, "EXPR");
 }
 
 // ---------------------------- Mapper 49 -------------------------------
@@ -673,7 +673,7 @@ void Mapper49_Init(CartInfo *info)
  pwrap=M49PW;
  info->Reset=M49Reset;
  info->Power=M49Power;
- AddExState(EXPREGS, 1, 0, "EXPR");
+ fceulib__.state->AddExState(EXPREGS, 1, 0, "EXPR");
 }
 
 // ---------------------------- Mapper 52 -------------------------------
@@ -725,7 +725,7 @@ void Mapper52_Init(CartInfo *info)
  pwrap=M52PW;
  info->Reset=M52Reset;
  info->Power=M52Power;
- AddExState(EXPREGS, 2, 0, "EXPR");
+ fceulib__.state->AddExState(EXPREGS, 2, 0, "EXPR");
 }
 
 // ---------------------------- Mapper 74 -------------------------------
@@ -745,7 +745,7 @@ void Mapper74_Init(CartInfo *info)
  CHRRAMSize=2048;
  CHRRAM=(uint8*)FCEU_gmalloc(CHRRAMSize);
  fceulib__.cart->SetupCartCHRMapping(0x10, CHRRAM, CHRRAMSize, 1);
- AddExState(CHRRAM, CHRRAMSize, 0, "CHRR");
+ fceulib__.state->AddExState(CHRRAM, CHRRAMSize, 0, "CHRR");
 }
 
 // ---------------------------- Mapper 114 ------------------------------
@@ -803,8 +803,8 @@ void Mapper114_Init(CartInfo *info)
   pwrap=M114PWRAP;
   info->Power=M114Power;
   info->Reset=M114Reset;
-  AddExState(EXPREGS, 1, 0, "EXPR");
-  AddExState(&cmdin, 1, 0, "CMDI");
+  fceulib__.state->AddExState(EXPREGS, 1, 0, "EXPR");
+  fceulib__.state->AddExState(&cmdin, 1, 0, "CMDI");
 }
 
 // ---------------------------- Mapper 115 KN-658 board ------------------------------
@@ -851,7 +851,7 @@ void Mapper115_Init(CartInfo *info)
  cwrap=M115CW;
  pwrap=M115PW;
  info->Power=M115Power;
- AddExState(EXPREGS, 2, 0, "EXPR");
+ fceulib__.state->AddExState(EXPREGS, 2, 0, "EXPR");
 }
 
 // ---------------------------- Mapper 118 ------------------------------
@@ -930,7 +930,7 @@ void Mapper134_Init(CartInfo *info)
  cwrap=M134CW;
  info->Power=M134Power;
  info->Reset=M134Reset;
- AddExState(EXPREGS, 4, 0, "EXPR");
+ fceulib__.state->AddExState(EXPREGS, 4, 0, "EXPR");
 }
 
 // ---------------------------- Mapper 165 ------------------------------
@@ -997,8 +997,8 @@ void Mapper165_Init(CartInfo *info)
  CHRRAMSize = 4096;
  CHRRAM = (uint8*)FCEU_gmalloc(CHRRAMSize);
  fceulib__.cart->SetupCartCHRMapping(0x10, CHRRAM, CHRRAMSize, 1);
- AddExState(CHRRAM, CHRRAMSize, 0, "CHRR");
- AddExState(EXPREGS, 4, 0, "EXPR");
+ fceulib__.state->AddExState(CHRRAM, CHRRAMSize, 0, "CHRR");
+ fceulib__.state->AddExState(EXPREGS, 4, 0, "EXPR");
 }
 
 // ---------------------------- Mapper 191 ------------------------------
@@ -1015,7 +1015,7 @@ void Mapper191_Init(CartInfo *info)
  CHRRAMSize=2048;
  CHRRAM=(uint8*)FCEU_gmalloc(CHRRAMSize);
  fceulib__.cart->SetupCartCHRMapping(0x10, CHRRAM, CHRRAMSize, 1);
- AddExState(CHRRAM, CHRRAMSize, 0, "CHRR");
+ fceulib__.state->AddExState(CHRRAM, CHRRAMSize, 0, "CHRR");
 }
 
 // ---------------------------- Mapper 192 -------------------------------
@@ -1035,7 +1035,7 @@ void Mapper192_Init(CartInfo *info)
  CHRRAMSize=4096;
  CHRRAM=(uint8*)FCEU_gmalloc(CHRRAMSize);
  fceulib__.cart->SetupCartCHRMapping(0x10, CHRRAM, CHRRAMSize, 1);
- AddExState(CHRRAM, CHRRAMSize, 0, "CHRR");
+ fceulib__.state->AddExState(CHRRAM, CHRRAMSize, 0, "CHRR");
 }
 
 // ---------------------------- Mapper 194 -------------------------------
@@ -1055,7 +1055,7 @@ void Mapper194_Init(CartInfo *info)
  CHRRAMSize=2048;
  CHRRAM=(uint8*)FCEU_gmalloc(CHRRAMSize);
  fceulib__.cart->SetupCartCHRMapping(0x10, CHRRAM, CHRRAMSize, 1);
- AddExState(CHRRAM, CHRRAMSize, 0, "CHRR");
+ fceulib__.state->AddExState(CHRRAM, CHRRAMSize, 0, "CHRR");
 }
 
 // ---------------------------- Mapper 195 -------------------------------
@@ -1097,8 +1097,8 @@ void Mapper195_Init(CartInfo *info)
  wramsize=4096;
  wramtw=(uint8*)FCEU_gmalloc(wramsize);
  fceulib__.cart->SetupCartPRGMapping(0x10, wramtw, wramsize, 1);
- AddExState(CHRRAM, CHRRAMSize, 0, "CHRR");
- AddExState(wramtw, wramsize, 0, "TRAM");
+ fceulib__.state->AddExState(CHRRAM, CHRRAMSize, 0, "CHRR");
+ fceulib__.state->AddExState(wramtw, wramsize, 0, "TRAM");
 }
 
 // ---------------------------- Mapper 196 -------------------------------
@@ -1194,7 +1194,7 @@ void Mapper198_Init(CartInfo *info)
  wramsize=4096;
  wramtw=(uint8*)FCEU_gmalloc(wramsize);
  fceulib__.cart->SetupCartPRGMapping(0x10, wramtw, wramsize, 1);
- AddExState(wramtw, wramsize, 0, "TRAM");
+ fceulib__.state->AddExState(wramtw, wramsize, 0, "TRAM");
 }
 
 // ---------------------------- Mapper 205 ------------------------------
@@ -1242,7 +1242,7 @@ void Mapper205_Init(CartInfo *info)
  cwrap=M205CW;
  info->Power=M205Power;
  info->Reset=M205Reset;
- AddExState(EXPREGS, 1, 0, "EXPR");
+ fceulib__.state->AddExState(EXPREGS, 1, 0, "EXPR");
 }
 
 // ---------------------------- Mapper 245 ------------------------------
@@ -1272,7 +1272,7 @@ void Mapper245_Init(CartInfo *info)
  cwrap=M245CW;
  pwrap=M245PW;
  info->Power=M245Power;
- AddExState(EXPREGS, 1, 0, "EXPR");
+ fceulib__.state->AddExState(EXPREGS, 1, 0, "EXPR");
 }
 
 // ---------------------------- Mapper 249 ------------------------------
@@ -1319,7 +1319,7 @@ void Mapper249_Init(CartInfo *info)
  cwrap=M249CW;
  pwrap=M249PW;
  info->Power=M249Power;
- AddExState(EXPREGS, 1, 0, "EXPR");
+ fceulib__.state->AddExState(EXPREGS, 1, 0, "EXPR");
 }
 
 // ---------------------------- Mapper 250 ------------------------------
@@ -1378,7 +1378,7 @@ void Mapper254_Init(CartInfo *info)
 {
  GenMMC3_Init(info, 128, 128, 8, info->battery);
  info->Power=M254_Power;
- AddExState(EXPREGS, 2, 0, "EXPR");
+ fceulib__.state->AddExState(EXPREGS, 2, 0, "EXPR");
 }
 
 // ---------------------------- UNIF Boards -----------------------------
@@ -1421,7 +1421,7 @@ void TLSROM_Init(CartInfo *info) {
  cwrap=TKSWRAP;
  mwrap=GENNOMWRAP;
  fceulib__.ppu->PPU_hook=TKSPPU;
- AddExState(&PPUCHRBus, 1, 0, "PPUC");
+ fceulib__.state->AddExState(&PPUCHRBus, 1, 0, "PPUC");
 }
 
 void TKSROM_Init(CartInfo *info) {
@@ -1429,7 +1429,7 @@ void TKSROM_Init(CartInfo *info) {
  cwrap=TKSWRAP;
  mwrap=GENNOMWRAP;
  fceulib__.ppu->PPU_hook=TKSPPU;
- AddExState(&PPUCHRBus, 1, 0, "PPUC");
+ fceulib__.state->AddExState(&PPUCHRBus, 1, 0, "PPUC");
 }
 
 void TQROM_Init(CartInfo *info) {

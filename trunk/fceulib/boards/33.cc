@@ -104,7 +104,7 @@ void Mapper33_Init(CartInfo *info) {
   is48 = 0;
   info->Power = M33Power;
   fceulib__.fceu->GameStateRestore = StateRestore;
-  AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
 }
 
 void Mapper48_Init(CartInfo *info) {
@@ -112,6 +112,6 @@ void Mapper48_Init(CartInfo *info) {
   info->Power = M48Power;
   fceulib__.ppu->GameHBIRQHook = M48IRQ;
   fceulib__.fceu->GameStateRestore = StateRestore;
-  AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
 }
 

@@ -116,7 +116,7 @@ void Mapper16_Init(CartInfo *info)
   info->Power=BandaiPower;
   fceulib__.X->MapIRQHook=BandaiIRQHook;
   fceulib__.fceu->GameStateRestore=StateRestore;
-  AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
 }
 
 static void M153Power(void)
@@ -147,7 +147,7 @@ void Mapper153_Init(CartInfo *info)
   WRAMSIZE=8192;
   WRAM=(uint8*)FCEU_gmalloc(WRAMSIZE);
   fceulib__.cart->SetupCartPRGMapping(0x10,WRAM,WRAMSIZE,1);
-  AddExState(WRAM, WRAMSIZE, 0, "WRAM");
+  fceulib__.state->AddExState(WRAM, WRAMSIZE, 0, "WRAM");
 
   if(info->battery)
   {
@@ -156,7 +156,7 @@ void Mapper153_Init(CartInfo *info)
   }
 
   fceulib__.fceu->GameStateRestore=StateRestore;
-  AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
 }
 
 // Datach Barcode Battler
@@ -343,5 +343,5 @@ void Mapper157_Init(CartInfo *info)
   fceulib__.fceu->GameInfo->cspecial = SIS_DATACH;
 
   fceulib__.fceu->GameStateRestore=StateRestore;
-  AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
 }

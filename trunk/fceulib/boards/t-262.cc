@@ -80,5 +80,5 @@ void BMCT262_Init(CartInfo *info)
   info->Power=BMCT262Power;
   info->Reset=BMCT262Reset;
   fceulib__.fceu->GameStateRestore=BMCT262Restore;
-  AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
 }

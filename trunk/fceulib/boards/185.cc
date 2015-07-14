@@ -96,7 +96,7 @@ void Mapper185_Init(CartInfo *info)
   for(int x=0;x<8192;x++)
      DummyCHR[x]=0xff;
   fceulib__.cart->SetupCartCHRMapping(0x10,DummyCHR,8192,0);
-  AddExState(StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExState(StateRegs, ~0, 0, 0);
 }
 
 void Mapper181_Init(CartInfo *info)
@@ -109,5 +109,5 @@ void Mapper181_Init(CartInfo *info)
   for(int x=0;x<8192;x++)
      DummyCHR[x]=0xff;
   fceulib__.cart->SetupCartCHRMapping(0x10,DummyCHR,8192,0);
-  AddExState(StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExState(StateRegs, ~0, 0, 0);
 }

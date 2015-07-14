@@ -325,7 +325,7 @@ void UNLSL12_Init(CartInfo *info) {
   info->Power = UNLSL12Power;
   fceulib__.ppu->GameHBIRQHook = UNLSL12HBIRQ;
   fceulib__.fceu->GameStateRestore = StateRestore;
-  AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
 }
 
 void Mapper116_Init(CartInfo *info) {
