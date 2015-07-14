@@ -15,45 +15,41 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
 #include "mapinc.h"
 
 static uint8 reg;
 
-static SFORMAT StateRegs[]=
-{
-  {&reg, 1, "REG"},
-  {0}
-};
+static SFORMAT StateRegs[] = {{&reg, 1, "REG"}, {0}};
 
 static void Sync(void) {
-  fceulib__.cart->setprg8(0x6000,reg);
-  fceulib__.cart->setprg32(0x8000,~0);
+  fceulib__.cart->setprg8(0x6000, reg);
+  fceulib__.cart->setprg32(0x8000, ~0);
   fceulib__.cart->setchr8(0);
 }
 
 static DECLFW(M108Write) {
-  reg=V;
+  reg = V;
   Sync();
 }
 
 static void M108Power(void) {
   Sync();
-  fceulib__.fceu->SetReadHandler(0x6000,0x7FFF,Cart::CartBR);
-  fceulib__.fceu->SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
-  fceulib__.fceu->SetWriteHandler(0x8000,0x8FFF,M108Write); // regular 108
-  fceulib__.fceu->SetWriteHandler(0xF000,0xFFFF,M108Write); // simplified Kaiser BB Hack
+  fceulib__.fceu->SetReadHandler(0x6000, 0x7FFF, Cart::CartBR);
+  fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
+  fceulib__.fceu->SetWriteHandler(0x8000, 0x8FFF, M108Write);  // regular 108
+  fceulib__.fceu->SetWriteHandler(0xF000, 0xFFFF,
+                                  M108Write);  // simplified Kaiser BB Hack
 }
 
 static void StateRestore(int version) {
   Sync();
 }
 
-void Mapper108_Init(CartInfo *info)
-{
-  info->Power=M108Power;
-  fceulib__.fceu->GameStateRestore=StateRestore;
+void Mapper108_Init(CartInfo *info) {
+  info->Power = M108Power;
+  fceulib__.fceu->GameStateRestore = StateRestore;
   fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
 }

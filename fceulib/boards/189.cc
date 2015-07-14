@@ -15,34 +15,31 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
 #include "mapinc.h"
 #include "mmc3.h"
 
-static void M189PW(uint32 A, uint8 V)
-{
-  fceulib__.cart->setprg32(0x8000,EXPREGS[0]&7);
+static void M189PW(uint32 A, uint8 V) {
+  fceulib__.cart->setprg32(0x8000, EXPREGS[0] & 7);
 }
 
-static DECLFW(M189Write)
-{
-  EXPREGS[0]=V|(V>>4); //actually, there is a two versions of 189 mapper with hi or lo bits bankswitching.
+static DECLFW(M189Write) {
+  EXPREGS[0] = V | (V >> 4);  // actually, there is a two versions of 189 mapper
+                              // with hi or lo bits bankswitching.
   FixMMC3PRG(MMC3_cmd);
 }
 
-static void M189Power(void)
-{
-  EXPREGS[0]=EXPREGS[1]=0;
+static void M189Power(void) {
+  EXPREGS[0] = EXPREGS[1] = 0;
   GenMMC3Power();
-  fceulib__.fceu->SetWriteHandler(0x4120,0x7FFF,M189Write);
+  fceulib__.fceu->SetWriteHandler(0x4120, 0x7FFF, M189Write);
 }
 
-void Mapper189_Init(CartInfo *info)
-{
+void Mapper189_Init(CartInfo *info) {
   GenMMC3_Init(info, 256, 256, 0, 0);
-  pwrap=M189PW;
-  info->Power=M189Power;
+  pwrap = M189PW;
+  info->Power = M189Power;
   fceulib__.state->AddExState(EXPREGS, 2, 0, "EXPR");
 }

@@ -15,36 +15,29 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
 #include "mapinc.h"
 
 static uint8 prot[4], prg, mode, chr, mirr;
 
-static SFORMAT StateRegs[]=
-{
-  {prot, 4, "PROT"},
-  {&prg, 1, "PRG"},
-  {&chr, 1, "CHR"},
-  {&mode, 1, "MODE"},
-  {&mirr, 1, "MIRR"},
-  {0}
-};
+static SFORMAT StateRegs[] = {{prot, 4, "PROT"},  {&prg, 1, "PRG"},
+                              {&chr, 1, "CHR"},   {&mode, 1, "MODE"},
+                              {&mirr, 1, "MIRR"}, {0}};
 
 static void Sync(void) {
-  if(mode) {
-    fceulib__.cart->setprg16(0x8000,prg);
-    fceulib__.cart->setprg16(0xC000,prg);
+  if (mode) {
+    fceulib__.cart->setprg16(0x8000, prg);
+    fceulib__.cart->setprg16(0xC000, prg);
   } else {
-    fceulib__.cart->setprg32(0x8000,prg>>1);
+    fceulib__.cart->setprg32(0x8000, prg >> 1);
   }
   fceulib__.cart->setchr8(chr);
   fceulib__.cart->setmirror(mirr);
 }
 
-static DECLFW(M225Write)
-{
+static DECLFW(M225Write) {
   uint32 bank = (A >> 14) & 1;
   mirr = (A >> 13) & 1;
   mode = (A >> 12) & 1;
@@ -53,42 +46,35 @@ static DECLFW(M225Write)
   Sync();
 }
 
-static DECLFW(M225LoWrite)
-{
-}
+static DECLFW(M225LoWrite) {}
 
-static DECLFR(M225LoRead)
-{
+static DECLFR(M225LoRead) {
   return 0;
 }
 
-static void M225Power(void)
-{
+static void M225Power(void) {
   prg = 0;
   mode = 0;
   Sync();
-  fceulib__.fceu->SetReadHandler(0x5000,0x5fff,M225LoRead);
-  fceulib__.fceu->SetWriteHandler(0x5000,0x5fff,M225LoWrite);
-  fceulib__.fceu->SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
-  fceulib__.fceu->SetWriteHandler(0x8000,0xFFFF,M225Write);
+  fceulib__.fceu->SetReadHandler(0x5000, 0x5fff, M225LoRead);
+  fceulib__.fceu->SetWriteHandler(0x5000, 0x5fff, M225LoWrite);
+  fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
+  fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, M225Write);
 }
 
-static void M225Reset(void)
-{
+static void M225Reset(void) {
   prg = 0;
   mode = 0;
   Sync();
 }
 
-static void StateRestore(int version)
-{
+static void StateRestore(int version) {
   Sync();
 }
 
-void Mapper225_Init(CartInfo *info)
-{
-  info->Reset=M225Reset;
-  info->Power=M225Power;
-  fceulib__.fceu->GameStateRestore=StateRestore;
+void Mapper225_Init(CartInfo *info) {
+  info->Reset = M225Reset;
+  info->Power = M225Power;
+  fceulib__.fceu->GameStateRestore = StateRestore;
   fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
 }

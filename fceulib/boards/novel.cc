@@ -15,41 +15,36 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
 #include "mapinc.h"
 
 static uint8 latch;
 
-static void DoNovel(void)
-{
-  fceulib__.cart->setprg32(0x8000,latch&3);
-  fceulib__.cart->setchr8(latch&7);
+static void DoNovel(void) {
+  fceulib__.cart->setprg32(0x8000, latch & 3);
+  fceulib__.cart->setchr8(latch & 7);
 }
 
-static DECLFW(NovelWrite)
-{
-  latch=A&0xFF;
+static DECLFW(NovelWrite) {
+  latch = A & 0xFF;
   DoNovel();
 }
 
-static void NovelReset(void)
-{
-  fceulib__.fceu->SetWriteHandler(0x8000,0xFFFF,NovelWrite);
-  fceulib__.fceu->SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
-  fceulib__.cart->setprg32(0x8000,0);
+static void NovelReset(void) {
+  fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, NovelWrite);
+  fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
+  fceulib__.cart->setprg32(0x8000, 0);
   fceulib__.cart->setchr8(0);
 }
 
-static void NovelRestore(int version)
-{
+static void NovelRestore(int version) {
   DoNovel();
 }
 
-void Novel_Init(CartInfo *info)
-{
-  fceulib__.state->AddExState(&latch, 1, 0,"L1");
-  info->Power=NovelReset;
-  fceulib__.fceu->GameStateRestore=NovelRestore;
+void Novel_Init(CartInfo *info) {
+  fceulib__.state->AddExState(&latch, 1, 0, "L1");
+  info->Power = NovelReset;
+  fceulib__.fceu->GameStateRestore = NovelRestore;
 }

@@ -15,7 +15,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  *
  * BMC 42-in-1 "reset switch" type
  */
@@ -24,65 +24,54 @@
 
 static uint8 regs[4];
 
-static SFORMAT StateRegs[]=
-{
-  {regs, 4, "REGS"},
-  {0}
-};
+static SFORMAT StateRegs[] = {{regs, 4, "REGS"}, {0}};
 
 static void Sync(void) {
-  if(regs[0]&0x80) {
-    if(regs[1]&0x80) {
-      fceulib__.cart->setprg32(0x8000,regs[1]&0x1F);
+  if (regs[0] & 0x80) {
+    if (regs[1] & 0x80) {
+      fceulib__.cart->setprg32(0x8000, regs[1] & 0x1F);
     } else {
-      int bank=((regs[1]&0x1f)<<1)|((regs[1]>>6)&1);
-      fceulib__.cart->setprg16(0x8000,bank);
-      fceulib__.cart->setprg16(0xC000,bank);
+      int bank = ((regs[1] & 0x1f) << 1) | ((regs[1] >> 6) & 1);
+      fceulib__.cart->setprg16(0x8000, bank);
+      fceulib__.cart->setprg16(0xC000, bank);
     }
   } else {
-    int bank=((regs[1]&0x1f)<<1)|((regs[1]>>6)&1);
-    fceulib__.cart->setprg16(0xC000,bank);
+    int bank = ((regs[1] & 0x1f) << 1) | ((regs[1] >> 6) & 1);
+    fceulib__.cart->setprg16(0xC000, bank);
   }
-  if(regs[0]&0x20)
+  if (regs[0] & 0x20)
     fceulib__.cart->setmirror(MI_H);
   else
     fceulib__.cart->setmirror(MI_V);
-  fceulib__.cart->setchr8((regs[2]<<2)|((regs[0]>>1)&3));
+  fceulib__.cart->setchr8((regs[2] << 2) | ((regs[0] >> 1) & 3));
 }
 
-static DECLFW(BMC64in1nrWriteLo)
-{
-  regs[A&3]=V;
+static DECLFW(BMC64in1nrWriteLo) {
+  regs[A & 3] = V;
   Sync();
 }
 
-static DECLFW(BMC64in1nrWriteHi)
-{
-  regs[3]=V;
+static DECLFW(BMC64in1nrWriteHi) {
+  regs[3] = V;
   Sync();
 }
 
-static void BMC64in1nrPower(void)
-{
-  regs[0]=0x80;
-  regs[1]=0x43;
-  regs[2]=regs[3]=0;
+static void BMC64in1nrPower(void) {
+  regs[0] = 0x80;
+  regs[1] = 0x43;
+  regs[2] = regs[3] = 0;
   Sync();
-  fceulib__.fceu->SetWriteHandler(0x5000,0x5003,BMC64in1nrWriteLo);
-  fceulib__.fceu->SetWriteHandler(0x8000,0xFFFF,BMC64in1nrWriteHi);
-  fceulib__.fceu->SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__.fceu->SetWriteHandler(0x5000, 0x5003, BMC64in1nrWriteLo);
+  fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, BMC64in1nrWriteHi);
+  fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
 }
 
-static void StateRestore(int version)
-{
+static void StateRestore(int version) {
   Sync();
 }
 
-void BMC64in1nr_Init(CartInfo *info)
-{
-  info->Power=BMC64in1nrPower;
+void BMC64in1nr_Init(CartInfo *info) {
+  info->Power = BMC64in1nrPower;
   fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
-  fceulib__.fceu->GameStateRestore=StateRestore;
+  fceulib__.fceu->GameStateRestore = StateRestore;
 }
-
-

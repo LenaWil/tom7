@@ -15,56 +15,50 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
 #include "mapinc.h"
 
 static uint16 cmdreg;
-static SFORMAT StateRegs[]=
-{
-  {&cmdreg, 2, "CREG"},
-  {0}
-};
+static SFORMAT StateRegs[] = {{&cmdreg, 2, "CREG"}, {0}};
 
-static void Sync(void)
-{
-  if(cmdreg&0x400)
+static void Sync(void) {
+  if (cmdreg & 0x400)
     fceulib__.cart->setmirror(MI_0);
   else
-    fceulib__.cart->setmirror(((cmdreg>>13)&1)^1);
-  if(cmdreg&0x800) {
-    fceulib__.cart->setprg16(0x8000,((cmdreg&0x300)>>3)|((cmdreg&0x1F)<<1)|((cmdreg>>12)&1));
-    fceulib__.cart->setprg16(0xC000,((cmdreg&0x300)>>3)|((cmdreg&0x1F)<<1)|((cmdreg>>12)&1));
-  }
-  else {
-    fceulib__.cart->setprg32(0x8000,((cmdreg&0x300)>>4)|(cmdreg&0x1F));
+    fceulib__.cart->setmirror(((cmdreg >> 13) & 1) ^ 1);
+  if (cmdreg & 0x800) {
+    fceulib__.cart->setprg16(0x8000, ((cmdreg & 0x300) >> 3) |
+                                         ((cmdreg & 0x1F) << 1) |
+                                         ((cmdreg >> 12) & 1));
+    fceulib__.cart->setprg16(0xC000, ((cmdreg & 0x300) >> 3) |
+                                         ((cmdreg & 0x1F) << 1) |
+                                         ((cmdreg >> 12) & 1));
+  } else {
+    fceulib__.cart->setprg32(0x8000, ((cmdreg & 0x300) >> 4) | (cmdreg & 0x1F));
   }
 }
 
-static DECLFW(M235Write)
-{
-  cmdreg=A;
+static DECLFW(M235Write) {
+  cmdreg = A;
   Sync();
 }
 
-static void M235Power(void)
-{
+static void M235Power(void) {
   fceulib__.cart->setchr8(0);
-  fceulib__.fceu->SetWriteHandler(0x8000,0xFFFF,M235Write);
-  fceulib__.fceu->SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
-  cmdreg=0;
+  fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, M235Write);
+  fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
+  cmdreg = 0;
   Sync();
 }
 
-static void M235Restore(int version)
-{
+static void M235Restore(int version) {
   Sync();
 }
 
-void Mapper235_Init(CartInfo *info)
-{
-  info->Power=M235Power;
-  fceulib__.fceu->GameStateRestore=M235Restore;
+void Mapper235_Init(CartInfo *info) {
+  info->Power = M235Power;
+  fceulib__.fceu->GameStateRestore = M235Restore;
   fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
 }

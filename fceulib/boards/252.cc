@@ -15,7 +15,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
 #include "mapinc.h"
@@ -27,16 +27,13 @@ static uint32 WRAMSIZE;
 static uint8 *CHRRAM = NULL;
 static uint32 CHRRAMSIZE;
 
-static SFORMAT StateRegs[] =
-{
-	{ creg, 8, "CREG" },
-	{ preg, 2, "PREG" },
-	{ &IRQa, 4, "IRQA" },
-	{ &IRQCount, 4, "IRQC" },
-	{ &IRQLatch, 4, "IRQL" },
-	{ &IRQClock, 4, "IRQK" },
-	{ 0 }
-};
+static SFORMAT StateRegs[] = {{creg, 8, "CREG"},
+                              {preg, 2, "PREG"},
+                              {&IRQa, 4, "IRQA"},
+                              {&IRQCount, 4, "IRQC"},
+                              {&IRQLatch, 4, "IRQL"},
+                              {&IRQClock, 4, "IRQK"},
+                              {0}};
 
 static void Sync(void) {
   fceulib__.cart->setprg8r(0x10, 0x6000, 0);
@@ -59,17 +56,36 @@ static DECLFW(M252Write) {
     Sync();
   } else
     switch (A & 0xF00C) {
-    case 0x8000:
-    case 0x8004:
-    case 0x8008:
-    case 0x800C: preg[0] = V; Sync(); break;
-    case 0xA000:
-    case 0xA004:
-    case 0xA008:
-    case 0xA00C: preg[1] = V; Sync(); break;
-    case 0xF000: fceulib__.X->IRQEnd(FCEU_IQEXT); IRQLatch &= 0xF0; IRQLatch |= V & 0xF; break;
-    case 0xF004: fceulib__.X->IRQEnd(FCEU_IQEXT); IRQLatch &= 0x0F; IRQLatch |= V << 4; break;
-    case 0xF008: fceulib__.X->IRQEnd(FCEU_IQEXT); IRQClock = 0; IRQCount = IRQLatch; IRQa = V & 2; break;
+      case 0x8000:
+      case 0x8004:
+      case 0x8008:
+      case 0x800C:
+        preg[0] = V;
+        Sync();
+        break;
+      case 0xA000:
+      case 0xA004:
+      case 0xA008:
+      case 0xA00C:
+        preg[1] = V;
+        Sync();
+        break;
+      case 0xF000:
+        fceulib__.X->IRQEnd(FCEU_IQEXT);
+        IRQLatch &= 0xF0;
+        IRQLatch |= V & 0xF;
+        break;
+      case 0xF004:
+        fceulib__.X->IRQEnd(FCEU_IQEXT);
+        IRQLatch &= 0x0F;
+        IRQLatch |= V << 4;
+        break;
+      case 0xF008:
+        fceulib__.X->IRQEnd(FCEU_IQEXT);
+        IRQClock = 0;
+        IRQCount = IRQLatch;
+        IRQa = V & 2;
+        break;
     }
 }
 
@@ -82,32 +98,30 @@ static void M252Power(void) {
 }
 
 static void M252IRQ(int a) {
-	#define LCYCS 341
-	if (IRQa) {
-		IRQClock += a * 3;
-		if (IRQClock >= LCYCS) {
-			while (IRQClock >= LCYCS) {
-				IRQClock -= LCYCS;
-				IRQCount++;
-				if (IRQCount & 0x100) {
-					fceulib__.X->IRQBegin(FCEU_IQEXT);
-					IRQCount = IRQLatch;
-				}
-			}
-		}
-	}
+#define LCYCS 341
+  if (IRQa) {
+    IRQClock += a * 3;
+    if (IRQClock >= LCYCS) {
+      while (IRQClock >= LCYCS) {
+        IRQClock -= LCYCS;
+        IRQCount++;
+        if (IRQCount & 0x100) {
+          fceulib__.X->IRQBegin(FCEU_IQEXT);
+          IRQCount = IRQLatch;
+        }
+      }
+    }
+  }
 }
 
 static void M252Close(void) {
-	if (WRAM)
-		free(WRAM);
-	if (CHRRAM)
-		free(CHRRAM);
-	WRAM = CHRRAM = NULL;
+  if (WRAM) free(WRAM);
+  if (CHRRAM) free(CHRRAM);
+  WRAM = CHRRAM = NULL;
 }
 
 static void StateRestore(int version) {
-	Sync();
+  Sync();
 }
 
 void Mapper252_Init(CartInfo *info) {
@@ -116,12 +130,12 @@ void Mapper252_Init(CartInfo *info) {
   fceulib__.X->MapIRQHook = M252IRQ;
 
   CHRRAMSIZE = 2048;
-  CHRRAM = (uint8*)FCEU_gmalloc(CHRRAMSIZE);
+  CHRRAM = (uint8 *)FCEU_gmalloc(CHRRAMSIZE);
   fceulib__.cart->SetupCartCHRMapping(0x10, CHRRAM, CHRRAMSIZE, 1);
   fceulib__.state->AddExState(CHRRAM, CHRRAMSIZE, 0, "CRAM");
 
   WRAMSIZE = 8192;
-  WRAM = (uint8*)FCEU_gmalloc(WRAMSIZE);
+  WRAM = (uint8 *)FCEU_gmalloc(WRAMSIZE);
   fceulib__.cart->SetupCartPRGMapping(0x10, WRAM, WRAMSIZE, 1);
   fceulib__.state->AddExState(WRAM, WRAMSIZE, 0, "WRAM");
   if (info->battery) {

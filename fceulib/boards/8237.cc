@@ -15,7 +15,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  *
  * Super Game (Sugar Softec) protected mapper
  * Pocahontas 2 (Unl) [U][!], etc.
@@ -27,168 +27,147 @@
 
 static uint8 cmdin;
 
-static constexpr uint8 regperm[8][8] =
-  {
-    {0, 1, 2, 3, 4, 5, 6, 7},
-    {0, 2, 6, 1, 7, 3, 4, 5},
-    {0, 5, 4, 1, 7, 2, 6, 3}, // unused
-    {0, 6, 3, 7, 5, 2, 4, 1},
-    {0, 2, 5, 3, 6, 1, 7, 4},
-    {0, 1, 2, 3, 4, 5, 6, 7}, // empty
-    {0, 1, 2, 3, 4, 5, 6, 7}, // empty
-    {0, 1, 2, 3, 4, 5, 6, 7}, // empty
-  };
+static constexpr uint8 regperm[8][8] = {
+    {0, 1, 2, 3, 4, 5, 6, 7}, {0, 2, 6, 1, 7, 3, 4, 5},
+    {0, 5, 4, 1, 7, 2, 6, 3},  // unused
+    {0, 6, 3, 7, 5, 2, 4, 1}, {0, 2, 5, 3, 6, 1, 7, 4},
+    {0, 1, 2, 3, 4, 5, 6, 7},  // empty
+    {0, 1, 2, 3, 4, 5, 6, 7},  // empty
+    {0, 1, 2, 3, 4, 5, 6, 7},  // empty
+};
 
-static constexpr uint8 adrperm[8][8] =
-  {
-    {0, 1, 2, 3, 4, 5, 6, 7},
-    {3, 2, 0, 4, 1, 5, 6, 7},
-    {0, 1, 2, 3, 4, 5, 6, 7}, // unused
-    {5, 0, 1, 2, 3, 7, 6, 4},
-    {3, 1, 0, 5, 2, 4, 6, 7},
-    {0, 1, 2, 3, 4, 5, 6, 7}, // empty
-    {0, 1, 2, 3, 4, 5, 6, 7}, // empty
-    {0, 1, 2, 3, 4, 5, 6, 7}, // empty
-  };
+static constexpr uint8 adrperm[8][8] = {
+    {0, 1, 2, 3, 4, 5, 6, 7}, {3, 2, 0, 4, 1, 5, 6, 7},
+    {0, 1, 2, 3, 4, 5, 6, 7},  // unused
+    {5, 0, 1, 2, 3, 7, 6, 4}, {3, 1, 0, 5, 2, 4, 6, 7},
+    {0, 1, 2, 3, 4, 5, 6, 7},  // empty
+    {0, 1, 2, 3, 4, 5, 6, 7},  // empty
+    {0, 1, 2, 3, 4, 5, 6, 7},  // empty
+};
 
-static void UNL8237CW(uint32 A, uint8 V)
-{
-  if (EXPREGS[0]&0x40)
-    fceulib__.cart->setchr1(A,((EXPREGS[1]&0xc)<<6)|(V&0x7F)|((EXPREGS[1]&0x20)<<2));
+static void UNL8237CW(uint32 A, uint8 V) {
+  if (EXPREGS[0] & 0x40)
+    fceulib__.cart->setchr1(
+        A, ((EXPREGS[1] & 0xc) << 6) | (V & 0x7F) | ((EXPREGS[1] & 0x20) << 2));
   else
-    fceulib__.cart->setchr1(A,((EXPREGS[1]&0xc)<<6)|V);
+    fceulib__.cart->setchr1(A, ((EXPREGS[1] & 0xc) << 6) | V);
 }
 
-static void UNL8237PW(uint32 A, uint8 V)
-{
-  if (EXPREGS[0]&0x40)
-  {
-    uint8 sbank = (EXPREGS[1]&0x10);
-    if (EXPREGS[0]&0x80)
-    {
-      uint8 bank = ((EXPREGS[1]&3)<<4)|(EXPREGS[0]&0x7)|(sbank>>1);
-      if (EXPREGS[0]&0x20)
-        fceulib__.cart->setprg32(0x8000,bank>>1);
-      else
-      {
-        fceulib__.cart->setprg16(0x8000,bank);
-        fceulib__.cart->setprg16(0xC000,bank);
+static void UNL8237PW(uint32 A, uint8 V) {
+  if (EXPREGS[0] & 0x40) {
+    uint8 sbank = (EXPREGS[1] & 0x10);
+    if (EXPREGS[0] & 0x80) {
+      uint8 bank = ((EXPREGS[1] & 3) << 4) | (EXPREGS[0] & 0x7) | (sbank >> 1);
+      if (EXPREGS[0] & 0x20)
+        fceulib__.cart->setprg32(0x8000, bank >> 1);
+      else {
+        fceulib__.cart->setprg16(0x8000, bank);
+        fceulib__.cart->setprg16(0xC000, bank);
       }
-    }
-    else
-      fceulib__.cart->setprg8(A,((EXPREGS[1]&3)<<5)|(V&0x0F)|sbank);
-  }
-  else
-  {
-    if (EXPREGS[0]&0x80)
-    {
-      uint8 bank = ((EXPREGS[1]&3)<<4)|(EXPREGS[0]&0xF);
-      if (EXPREGS[0]&0x20)
-        fceulib__.cart->setprg32(0x8000,bank>>1);
-      else
-      {
-        fceulib__.cart->setprg16(0x8000,bank);
-        fceulib__.cart->setprg16(0xC000,bank);
-      }
-    }
-    else
-      fceulib__.cart->setprg8(A,((EXPREGS[1]&3)<<5)|(V&0x1F));
-  }
-}
-
-static void UNL8237ACW(uint32 A, uint8 V)
-{
-  if (EXPREGS[0]&0x40)
-    fceulib__.cart->setchr1(A,((EXPREGS[1]&0xE)<<7)|(V&0x7F)|((EXPREGS[1]&0x20)<<2));
-  else
-    fceulib__.cart->setchr1(A,((EXPREGS[1]&0xE)<<7)|V);
-}
-
-static void UNL8237APW(uint32 A, uint8 V)
-{
-  if (EXPREGS[0]&0x40)
-  {
-    uint8 sbank = (EXPREGS[1]&0x10);
-    if (EXPREGS[0]&0x80)
-    {
-      uint8 bank = ((EXPREGS[1]&3)<<4)|((EXPREGS[1]&8)<<3)|(EXPREGS[0]&0x7)|(sbank>>1);
-      if (EXPREGS[0]&0x20)
-        fceulib__.cart->setprg32(0x8000,bank>>1);
-      else
-      {
-        fceulib__.cart->setprg16(0x8000,bank);
-        fceulib__.cart->setprg16(0xC000,bank);
-      }
-    }
-    else
-      fceulib__.cart->setprg8(A,((EXPREGS[1]&3)<<5)|((EXPREGS[1]&8)<<4)|(V&0x0F)|sbank);
-  }
-  else
-  {
-    if (EXPREGS[0]&0x80)
-    {
-      uint8 bank = ((EXPREGS[1]&3)<<4)|((EXPREGS[1]&8)<<3)|(EXPREGS[0]&0xF);
-      if (EXPREGS[0]&0x20)
-        fceulib__.cart->setprg32(0x8000,bank>>1);
-      else
-      {
-        fceulib__.cart->setprg16(0x8000,bank);
-        fceulib__.cart->setprg16(0xC000,bank);
-      }
-    }
-    else
-      fceulib__.cart->setprg8(A,((EXPREGS[1]&3)<<5)|((EXPREGS[1]&8)<<4)|(V&0x1F));
-  }
-}
-static DECLFW(UNL8237Write)
-{
-  uint8 dat = V;
-  uint8 adr = adrperm[EXPREGS[2]][((A>>12)&6)|(A&1)];
-  uint16 addr = (adr & 1)|((adr & 6)<<12)|0x8000;
-  if (adr < 4) {
-    if (!adr)
-      dat = (dat & 0xC0)|(regperm[EXPREGS[2]][dat & 7]);
-    MMC3_CMDWrite(fc, addr,dat);
+    } else
+      fceulib__.cart->setprg8(A, ((EXPREGS[1] & 3) << 5) | (V & 0x0F) | sbank);
   } else {
-    MMC3_IRQWrite(fc, addr,dat);
+    if (EXPREGS[0] & 0x80) {
+      uint8 bank = ((EXPREGS[1] & 3) << 4) | (EXPREGS[0] & 0xF);
+      if (EXPREGS[0] & 0x20)
+        fceulib__.cart->setprg32(0x8000, bank >> 1);
+      else {
+        fceulib__.cart->setprg16(0x8000, bank);
+        fceulib__.cart->setprg16(0xC000, bank);
+      }
+    } else
+      fceulib__.cart->setprg8(A, ((EXPREGS[1] & 3) << 5) | (V & 0x1F));
   }
 }
 
-static DECLFW(UNL8237ExWrite)
-{
-  switch(A)
-  {
-    case 0x5000: EXPREGS[0]=V; FixMMC3PRG(MMC3_cmd); break;
-    case 0x5001: EXPREGS[1]=V; FixMMC3PRG(MMC3_cmd); FixMMC3CHR(MMC3_cmd); break;
-    case 0x5007: EXPREGS[2]=V; break;
+static void UNL8237ACW(uint32 A, uint8 V) {
+  if (EXPREGS[0] & 0x40)
+    fceulib__.cart->setchr1(
+        A, ((EXPREGS[1] & 0xE) << 7) | (V & 0x7F) | ((EXPREGS[1] & 0x20) << 2));
+  else
+    fceulib__.cart->setchr1(A, ((EXPREGS[1] & 0xE) << 7) | V);
+}
+
+static void UNL8237APW(uint32 A, uint8 V) {
+  if (EXPREGS[0] & 0x40) {
+    uint8 sbank = (EXPREGS[1] & 0x10);
+    if (EXPREGS[0] & 0x80) {
+      uint8 bank = ((EXPREGS[1] & 3) << 4) | ((EXPREGS[1] & 8) << 3) |
+                   (EXPREGS[0] & 0x7) | (sbank >> 1);
+      if (EXPREGS[0] & 0x20)
+        fceulib__.cart->setprg32(0x8000, bank >> 1);
+      else {
+        fceulib__.cart->setprg16(0x8000, bank);
+        fceulib__.cart->setprg16(0xC000, bank);
+      }
+    } else
+      fceulib__.cart->setprg8(A, ((EXPREGS[1] & 3) << 5) |
+                                     ((EXPREGS[1] & 8) << 4) | (V & 0x0F) |
+                                     sbank);
+  } else {
+    if (EXPREGS[0] & 0x80) {
+      uint8 bank = ((EXPREGS[1] & 3) << 4) | ((EXPREGS[1] & 8) << 3) |
+                   (EXPREGS[0] & 0xF);
+      if (EXPREGS[0] & 0x20)
+        fceulib__.cart->setprg32(0x8000, bank >> 1);
+      else {
+        fceulib__.cart->setprg16(0x8000, bank);
+        fceulib__.cart->setprg16(0xC000, bank);
+      }
+    } else
+      fceulib__.cart->setprg8(
+          A, ((EXPREGS[1] & 3) << 5) | ((EXPREGS[1] & 8) << 4) | (V & 0x1F));
+  }
+}
+static DECLFW(UNL8237Write) {
+  uint8 dat = V;
+  uint8 adr = adrperm[EXPREGS[2]][((A >> 12) & 6) | (A & 1)];
+  uint16 addr = (adr & 1) | ((adr & 6) << 12) | 0x8000;
+  if (adr < 4) {
+    if (!adr) dat = (dat & 0xC0) | (regperm[EXPREGS[2]][dat & 7]);
+    MMC3_CMDWrite(fc, addr, dat);
+  } else {
+    MMC3_IRQWrite(fc, addr, dat);
   }
 }
 
-static void UNL8237Power(void)
-{
-  EXPREGS[0]=EXPREGS[2]=0;
-  EXPREGS[1]=3;
+static DECLFW(UNL8237ExWrite) {
+  switch (A) {
+    case 0x5000:
+      EXPREGS[0] = V;
+      FixMMC3PRG(MMC3_cmd);
+      break;
+    case 0x5001:
+      EXPREGS[1] = V;
+      FixMMC3PRG(MMC3_cmd);
+      FixMMC3CHR(MMC3_cmd);
+      break;
+    case 0x5007: EXPREGS[2] = V; break;
+  }
+}
+
+static void UNL8237Power(void) {
+  EXPREGS[0] = EXPREGS[2] = 0;
+  EXPREGS[1] = 3;
   GenMMC3Power();
-  fceulib__.fceu->SetWriteHandler(0x8000,0xFFFF,UNL8237Write);
-  fceulib__.fceu->SetWriteHandler(0x5000,0x7FFF,UNL8237ExWrite);
+  fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, UNL8237Write);
+  fceulib__.fceu->SetWriteHandler(0x5000, 0x7FFF, UNL8237ExWrite);
 }
 
-void UNL8237_Init(CartInfo *info)
-{
+void UNL8237_Init(CartInfo *info) {
   GenMMC3_Init(info, 256, 256, 0, 0);
-  cwrap=UNL8237CW;
-  pwrap=UNL8237PW;
-  info->Power=UNL8237Power;
+  cwrap = UNL8237CW;
+  pwrap = UNL8237PW;
+  info->Power = UNL8237Power;
   fceulib__.state->AddExState(EXPREGS, 3, 0, "EXPR");
   fceulib__.state->AddExState(&cmdin, 1, 0, "CMDI");
 }
 
-void UNL8237A_Init(CartInfo *info)
-{
+void UNL8237A_Init(CartInfo *info) {
   GenMMC3_Init(info, 256, 256, 0, 0);
-  cwrap=UNL8237ACW;
-  pwrap=UNL8237APW;
-  info->Power=UNL8237Power;
+  cwrap = UNL8237ACW;
+  pwrap = UNL8237APW;
+  info->Power = UNL8237Power;
   fceulib__.state->AddExState(EXPREGS, 3, 0, "EXPR");
   fceulib__.state->AddExState(&cmdin, 1, 0, "CMDI");
 }

@@ -16,7 +16,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  *
  * 22 + Contra Reset based custom mapper...
  *
@@ -25,15 +25,10 @@
 #include "mapinc.h"
 
 static uint8 latche, reset;
-static SFORMAT StateRegs[] =
-{
-	{ &reset, 1, "RST" },
-	{ &latche, 1, "LATC" },
-	{ 0 }
-};
+static SFORMAT StateRegs[] = {{&reset, 1, "RST"}, {&latche, 1, "LATC"}, {0}};
 
 static void Sync(void) {
-  if(reset) {
+  if (reset) {
     fceulib__.cart->setprg16(0x8000, latche & 7);
     fceulib__.cart->setprg16(0xC000, 7);
     fceulib__.cart->setmirror(MI_V);
@@ -51,29 +46,29 @@ static void Sync(void) {
 }
 
 static DECLFW(M230Write) {
-	latche = V;
-	Sync();
+  latche = V;
+  Sync();
 }
 
 static void M230Reset(void) {
-	reset ^= 1;
-	Sync();
+  reset ^= 1;
+  Sync();
 }
 
 static void M230Power(void) {
-	latche = reset = 0;
-	Sync();
-	fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, M230Write);
-	fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
+  latche = reset = 0;
+  Sync();
+  fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, M230Write);
+  fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
 }
 
 static void StateRestore(int version) {
-	Sync();
+  Sync();
 }
 
 void Mapper230_Init(CartInfo *info) {
-	info->Power = M230Power;
-	info->Reset = M230Reset;
-	fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
-	fceulib__.fceu->GameStateRestore = StateRestore;
+  info->Power = M230Power;
+  info->Reset = M230Reset;
+  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.fceu->GameStateRestore = StateRestore;
 }

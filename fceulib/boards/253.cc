@@ -15,7 +15,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
 #include "mapinc.h"
@@ -27,19 +27,11 @@ static uint32 WRAMSIZE;
 static uint8 *CHRRAM = NULL;
 static uint32 CHRRAMSIZE;
 
-static SFORMAT StateRegs[] =
-{
-	{ chrlo, 8, "CHRL" },
-	{ chrhi, 8, "CHRH" },
-	{ prg, 2, "PRGR" },
-	{ &mirr, 1, "MIRR" },
-	{ &vlock, 1, "VLCK" },
-	{ &IRQa, 4, "IRQA" },
-	{ &IRQCount, 4, "IRQC" },
-	{ &IRQLatch, 4, "IRQL" },
-	{ &IRQClock, 4, "IRQK" },
-	{ 0 }
-};
+static SFORMAT StateRegs[] = {{chrlo, 8, "CHRL"},     {chrhi, 8, "CHRH"},
+                              {prg, 2, "PRGR"},       {&mirr, 1, "MIRR"},
+                              {&vlock, 1, "VLCK"},    {&IRQa, 4, "IRQA"},
+                              {&IRQCount, 4, "IRQC"}, {&IRQLatch, 4, "IRQL"},
+                              {&IRQClock, 4, "IRQK"}, {0}};
 
 static void Sync(void) {
   uint8 i;
@@ -63,10 +55,10 @@ static void Sync(void) {
       fceulib__.cart->setchr1(i << 10, chr);
   }
   switch (mirr) {
-  case 0: fceulib__.cart->setmirror(MI_V); break;
-  case 1: fceulib__.cart->setmirror(MI_H); break;
-  case 2: fceulib__.cart->setmirror(MI_0); break;
-  case 3: fceulib__.cart->setmirror(MI_1); break;
+    case 0: fceulib__.cart->setmirror(MI_V); break;
+    case 1: fceulib__.cart->setmirror(MI_H); break;
+    case 2: fceulib__.cart->setmirror(MI_0); break;
+    case 3: fceulib__.cart->setmirror(MI_1); break;
   }
 }
 
@@ -75,17 +67,38 @@ static DECLFW(M253Write) {
     uint8 ind = ((((A & 8) | (A >> 8)) >> 3) + 2) & 7;
     uint8 sar = A & 4;
     chrlo[ind] = (chrlo[ind] & (0xF0 >> sar)) | ((V & 0x0F) << sar);
-    if (A & 4)
-      chrhi[ind] = V >> 4;
+    if (A & 4) chrhi[ind] = V >> 4;
     Sync();
   } else
     switch (A) {
-    case 0x8010: prg[0] = V; Sync(); break;
-    case 0xA010: prg[1] = V; Sync(); break;
-    case 0x9400: mirr = V & 3; Sync(); break;
-    case 0xF000: fceulib__.X->IRQEnd(FCEU_IQEXT); IRQLatch &= 0xF0; IRQLatch |= V & 0xF; break;
-    case 0xF004: fceulib__.X->IRQEnd(FCEU_IQEXT); IRQLatch &= 0x0F; IRQLatch |= V << 4; break;
-    case 0xF008: fceulib__.X->IRQEnd(FCEU_IQEXT); IRQClock = 0; IRQCount = IRQLatch; IRQa = V & 2;break;
+      case 0x8010:
+        prg[0] = V;
+        Sync();
+        break;
+      case 0xA010:
+        prg[1] = V;
+        Sync();
+        break;
+      case 0x9400:
+        mirr = V & 3;
+        Sync();
+        break;
+      case 0xF000:
+        fceulib__.X->IRQEnd(FCEU_IQEXT);
+        IRQLatch &= 0xF0;
+        IRQLatch |= V & 0xF;
+        break;
+      case 0xF004:
+        fceulib__.X->IRQEnd(FCEU_IQEXT);
+        IRQLatch &= 0x0F;
+        IRQLatch |= V << 4;
+        break;
+      case 0xF008:
+        fceulib__.X->IRQEnd(FCEU_IQEXT);
+        IRQClock = 0;
+        IRQCount = IRQLatch;
+        IRQa = V & 2;
+        break;
     }
 }
 
@@ -98,32 +111,30 @@ static void M253Power(void) {
 }
 
 static void M253Close(void) {
-	if (WRAM)
-		free(WRAM);
-	if (CHRRAM)
-		free(CHRRAM);
-	WRAM = CHRRAM = NULL;
+  if (WRAM) free(WRAM);
+  if (CHRRAM) free(CHRRAM);
+  WRAM = CHRRAM = NULL;
 }
 
 static void M253IRQ(int a) {
-	#define LCYCS 341
-	if (IRQa) {
-		IRQClock += a * 3;
-		if (IRQClock >= LCYCS) {
-			while (IRQClock >= LCYCS) {
-				IRQClock -= LCYCS;
-				IRQCount++;
-				if (IRQCount & 0x100) {
-					fceulib__.X->IRQBegin(FCEU_IQEXT);
-					IRQCount = IRQLatch;
-				}
-			}
-		}
-	}
+#define LCYCS 341
+  if (IRQa) {
+    IRQClock += a * 3;
+    if (IRQClock >= LCYCS) {
+      while (IRQClock >= LCYCS) {
+        IRQClock -= LCYCS;
+        IRQCount++;
+        if (IRQCount & 0x100) {
+          fceulib__.X->IRQBegin(FCEU_IQEXT);
+          IRQCount = IRQLatch;
+        }
+      }
+    }
+  }
 }
 
 static void StateRestore(int version) {
-	Sync();
+  Sync();
 }
 
 void Mapper253_Init(CartInfo *info) {
@@ -133,12 +144,12 @@ void Mapper253_Init(CartInfo *info) {
   fceulib__.fceu->GameStateRestore = StateRestore;
 
   CHRRAMSIZE = 2048;
-  CHRRAM = (uint8*)FCEU_gmalloc(CHRRAMSIZE);
+  CHRRAM = (uint8 *)FCEU_gmalloc(CHRRAMSIZE);
   fceulib__.cart->SetupCartCHRMapping(0x10, CHRRAM, CHRRAMSIZE, 1);
   fceulib__.state->AddExState(CHRRAM, CHRRAMSIZE, 0, "CRAM");
 
   WRAMSIZE = 8192;
-  WRAM = (uint8*)FCEU_gmalloc(WRAMSIZE);
+  WRAM = (uint8 *)FCEU_gmalloc(WRAMSIZE);
   fceulib__.cart->SetupCartPRGMapping(0x10, WRAM, WRAMSIZE, 1);
   fceulib__.state->AddExState(WRAM, WRAMSIZE, 0, "WRAM");
   if (info->battery) {

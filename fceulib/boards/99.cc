@@ -15,7 +15,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
 #include "mapinc.h"
@@ -23,43 +23,34 @@
 static uint8 latch;
 static writefunc old4016;
 
-static SFORMAT StateRegs[]=
-{
-  {&latch, 1, "LATC"},
-  {0}
-};
+static SFORMAT StateRegs[] = {{&latch, 1, "LATC"}, {0}};
 
-static void Sync(void)
-{
+static void Sync(void) {
   fceulib__.cart->setchr8((latch >> 2) & 1);
-  fceulib__.cart->setprg32(0x8000,0);
-  fceulib__.cart->setprg8(0x8000,latch & 4);        /* Special for VS Gumshoe */
+  fceulib__.cart->setprg32(0x8000, 0);
+  fceulib__.cart->setprg8(0x8000, latch & 4); /* Special for VS Gumshoe */
 }
 
-static DECLFW(M99Write)
-{
+static DECLFW(M99Write) {
   latch = V;
   Sync();
   old4016(DECLFW_FORWARD);
 }
 
-static void M99Power(void)
-{
+static void M99Power(void) {
   latch = 0;
   Sync();
-  old4016=fceulib__.fceu->GetWriteHandler(0x4016);
-  fceulib__.fceu->SetWriteHandler(0x4016,0x4016,M99Write);
-  fceulib__.fceu->SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  old4016 = fceulib__.fceu->GetWriteHandler(0x4016);
+  fceulib__.fceu->SetWriteHandler(0x4016, 0x4016, M99Write);
+  fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
 }
 
-static void StateRestore(int version)
-{
+static void StateRestore(int version) {
   Sync();
 }
 
-void Mapper99_Init(CartInfo *info)
-{
-  info->Power=M99Power;
-  fceulib__.fceu->GameStateRestore=StateRestore;
+void Mapper99_Init(CartInfo *info) {
+  info->Power = M99Power;
+  fceulib__.fceu->GameStateRestore = StateRestore;
   fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
 }

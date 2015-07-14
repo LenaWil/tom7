@@ -15,63 +15,82 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
 #include "mapinc.h"
 
 static uint8 preg, creg;
-static SFORMAT StateRegs[] =
-{
-	{ &preg, 1, "PREG" },
-	{ &creg, 1, "CREG" },
-	{ 0 }
-};
+static SFORMAT StateRegs[] = {{&preg, 1, "PREG"}, {&creg, 1, "CREG"}, {0}};
 
 static constexpr uint8 prg_perm[4][4] = {
-	{ 0, 1, 2, 3, },
-	{ 3, 2, 1, 0, },
-	{ 0, 2, 1, 3, },
-	{ 3, 1, 2, 0, },
+    {
+        0, 1, 2, 3,
+    },
+    {
+        3, 2, 1, 0,
+    },
+    {
+        0, 2, 1, 3,
+    },
+    {
+        3, 1, 2, 0,
+    },
 };
 
 static constexpr uint8 chr_perm[8][8] = {
-	{ 0, 1, 2, 3, 4, 5, 6, 7, },
-	{ 0, 2, 1, 3, 4, 6, 5, 7, },
-	{ 0, 1, 4, 5, 2, 3, 6, 7, },
-	{ 0, 4, 1, 5, 2, 6, 3, 7, },
-	{ 0, 4, 2, 6, 1, 5, 3, 7, },
-	{ 0, 2, 4, 6, 1, 3, 5, 7, },
-	{ 7, 6, 5, 4, 3, 2, 1, 0, },
-	{ 7, 6, 5, 4, 3, 2, 1, 0, },
+    {
+        0, 1, 2, 3, 4, 5, 6, 7,
+    },
+    {
+        0, 2, 1, 3, 4, 6, 5, 7,
+    },
+    {
+        0, 1, 4, 5, 2, 3, 6, 7,
+    },
+    {
+        0, 4, 1, 5, 2, 6, 3, 7,
+    },
+    {
+        0, 4, 2, 6, 1, 5, 3, 7,
+    },
+    {
+        0, 2, 4, 6, 1, 3, 5, 7,
+    },
+    {
+        7, 6, 5, 4, 3, 2, 1, 0,
+    },
+    {
+        7, 6, 5, 4, 3, 2, 1, 0,
+    },
 };
 
 static void Sync(void) {
-	fceulib__.cart->setprg32(0x8000, preg);
-	fceulib__.cart->setchr8(creg);
+  fceulib__.cart->setprg32(0x8000, preg);
+  fceulib__.cart->setchr8(creg);
 }
 
 static DECLFW(M244Write) {
-	if (V & 8)
-		creg = chr_perm[(V >> 4) & 7][V & 7];
-	else
-		preg = prg_perm[(V >> 4) & 3][V & 3];
-	Sync();
+  if (V & 8)
+    creg = chr_perm[(V >> 4) & 7][V & 7];
+  else
+    preg = prg_perm[(V >> 4) & 3][V & 3];
+  Sync();
 }
 
 static void M244Power(void) {
-	preg = creg = 0;
-	Sync();
-	fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, M244Write);
-	fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
+  preg = creg = 0;
+  Sync();
+  fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, M244Write);
+  fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
 }
 
 static void StateRestore(int version) {
-	Sync();
+  Sync();
 }
 
 void Mapper244_Init(CartInfo *info) {
-	info->Power = M244Power;
-	fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
-	fceulib__.fceu->GameStateRestore = StateRestore;
+  info->Power = M244Power;
+  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.fceu->GameStateRestore = StateRestore;
 }

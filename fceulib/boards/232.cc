@@ -15,22 +15,19 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
 #include "mapinc.h"
 
 static uint8 bank, preg;
-static SFORMAT StateRegs[] =
-{
-	{ &bank, 1, "BANK" },
-	{ &preg, 1, "PREG" },
-	{ 0 }
-};
+static SFORMAT StateRegs[] = {{&bank, 1, "BANK"}, {&preg, 1, "PREG"}, {0}};
 
 static void Sync(void) {
   //	uint32 bbank = (bank & 0x18) >> 1;
-  uint32 bbank = ((bank & 0x10) >> 2) | (bank & 8);   // some dumps have bbanks swapped, if swap commands,
+  uint32 bbank =
+      ((bank & 0x10) >> 2) |
+      (bank & 8);  // some dumps have bbanks swapped, if swap commands,
   // then all roms can be played, but with some swapped
   // games in menu. if not, some dumps are unplayable
   // make hard dump for both cart types to check
@@ -40,13 +37,13 @@ static void Sync(void) {
 }
 
 static DECLFW(M232WriteBank) {
-	bank = V;
-	Sync();
+  bank = V;
+  Sync();
 }
 
 static DECLFW(M232WritePreg) {
-	preg = V;
-	Sync();
+  preg = V;
+  Sync();
 }
 
 static void M232Power(void) {
@@ -58,11 +55,11 @@ static void M232Power(void) {
 }
 
 static void StateRestore(int version) {
-	Sync();
+  Sync();
 }
 
 void Mapper232_Init(CartInfo *info) {
-	info->Power = M232Power;
-	fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
-	fceulib__.fceu->GameStateRestore = StateRestore;
+  info->Power = M232Power;
+  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.fceu->GameStateRestore = StateRestore;
 }

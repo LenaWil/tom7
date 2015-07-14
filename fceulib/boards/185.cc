@@ -15,99 +15,83 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  *
  */
 
 #include "mapinc.h"
 
-static uint8 *DummyCHR=NULL;
+static uint8 *DummyCHR = NULL;
 static uint8 datareg;
-static void(*Sync)(void);
+static void (*Sync)(void);
 
-
-static SFORMAT StateRegs[]=
-{
-  {&datareg, 1, "DREG"},
-  {0}
-};
+static SFORMAT StateRegs[] = {{&datareg, 1, "DREG"}, {0}};
 
 //   on    off
-//1  0x0F, 0xF0 - Bird Week
-//2  0x33, 0x00 - B-Wings
-//3  0x11, 0x00 - Mighty Bomb Jack
-//4  0x22, 0x20 - Sansuu 1 Nen, Sansuu 2 Nen
-//5  0xFF, 0x00 - Sansuu 3 Nen
-//6  0x21, 0x13 - Spy vs Spy
-//7  0x20, 0x21 - Seicross
+// 1  0x0F, 0xF0 - Bird Week
+// 2  0x33, 0x00 - B-Wings
+// 3  0x11, 0x00 - Mighty Bomb Jack
+// 4  0x22, 0x20 - Sansuu 1 Nen, Sansuu 2 Nen
+// 5  0xFF, 0x00 - Sansuu 3 Nen
+// 6  0x21, 0x13 - Spy vs Spy
+// 7  0x20, 0x21 - Seicross
 
-static void Sync185(void)
-{
+static void Sync185(void) {
   // little dirty eh? ;_)
-  if((datareg&3)&&(datareg!=0x13)) // 1, 2, 3, 4, 5, 6
-   fceulib__.cart->setchr8(0);
+  if ((datareg & 3) && (datareg != 0x13))  // 1, 2, 3, 4, 5, 6
+    fceulib__.cart->setchr8(0);
   else
-   fceulib__.cart->setchr8r(0x10,0);
+    fceulib__.cart->setchr8r(0x10, 0);
 }
 
-static void Sync181(void)
-{
-  if(!(datareg&1))                      // 7
-   fceulib__.cart->setchr8(0);
+static void Sync181(void) {
+  if (!(datareg & 1))  // 7
+    fceulib__.cart->setchr8(0);
   else
-   fceulib__.cart->setchr8r(0x10,0);
+    fceulib__.cart->setchr8r(0x10, 0);
 }
 
-static DECLFW(MWrite)
-{
-  datareg=V;
+static DECLFW(MWrite) {
+  datareg = V;
   Sync();
 }
 
-static void MPower(void)
-{
-  datareg=0;
+static void MPower(void) {
+  datareg = 0;
   Sync();
-  fceulib__.cart->setprg16(0x8000,0);
-  fceulib__.cart->setprg16(0xC000,~0);
-  fceulib__.fceu->SetWriteHandler(0x8000,0xFFFF,MWrite);
-  fceulib__.fceu->SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__.cart->setprg16(0x8000, 0);
+  fceulib__.cart->setprg16(0xC000, ~0);
+  fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, MWrite);
+  fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
 }
 
-static void MClose(void)
-{
-  if(DummyCHR)
-    free(DummyCHR);
-  DummyCHR=NULL;
+static void MClose(void) {
+  if (DummyCHR) free(DummyCHR);
+  DummyCHR = NULL;
 }
 
-static void MRestore(int version)
-{
+static void MRestore(int version) {
   Sync();
 }
 
-void Mapper185_Init(CartInfo *info)
-{
-  Sync=Sync185;
-  info->Power=MPower;
-  info->Close=MClose;
-  fceulib__.fceu->GameStateRestore=MRestore;
-  DummyCHR=(uint8*)FCEU_gmalloc(8192);
-  for(int x=0;x<8192;x++)
-     DummyCHR[x]=0xff;
-  fceulib__.cart->SetupCartCHRMapping(0x10,DummyCHR,8192,0);
+void Mapper185_Init(CartInfo *info) {
+  Sync = Sync185;
+  info->Power = MPower;
+  info->Close = MClose;
+  fceulib__.fceu->GameStateRestore = MRestore;
+  DummyCHR = (uint8 *)FCEU_gmalloc(8192);
+  for (int x = 0; x < 8192; x++) DummyCHR[x] = 0xff;
+  fceulib__.cart->SetupCartCHRMapping(0x10, DummyCHR, 8192, 0);
   fceulib__.state->AddExState(StateRegs, ~0, 0, 0);
 }
 
-void Mapper181_Init(CartInfo *info)
-{
-  Sync=Sync181;
-  info->Power=MPower;
-  info->Close=MClose;
-  fceulib__.fceu->GameStateRestore=MRestore;
-  DummyCHR=(uint8*)FCEU_gmalloc(8192);
-  for(int x=0;x<8192;x++)
-     DummyCHR[x]=0xff;
-  fceulib__.cart->SetupCartCHRMapping(0x10,DummyCHR,8192,0);
+void Mapper181_Init(CartInfo *info) {
+  Sync = Sync181;
+  info->Power = MPower;
+  info->Close = MClose;
+  fceulib__.fceu->GameStateRestore = MRestore;
+  DummyCHR = (uint8 *)FCEU_gmalloc(8192);
+  for (int x = 0; x < 8192; x++) DummyCHR[x] = 0xff;
+  fceulib__.cart->SetupCartCHRMapping(0x10, DummyCHR, 8192, 0);
   fceulib__.state->AddExState(StateRegs, ~0, 0, 0);
 }

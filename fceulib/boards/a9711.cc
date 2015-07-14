@@ -15,35 +15,34 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
 #include "mapinc.h"
 #include "mmc3.h"
 
-//static uint8 m_perm[8] = {0, 1, 0, 3, 0, 5, 6, 7};
+// static uint8 m_perm[8] = {0, 1, 0, 3, 0, 5, 6, 7};
 
-static void UNLA9711PW(uint32 A, uint8 V)
-{
-  if((EXPREGS[0]&0xFF) == 0x37) {
+static void UNLA9711PW(uint32 A, uint8 V) {
+  if ((EXPREGS[0] & 0xFF) == 0x37) {
     fceulib__.cart->setprg8(0x8000, 0x13);
     fceulib__.cart->setprg8(0xA000, 0x13);
     fceulib__.cart->setprg8(0xC000, 0x13);
     fceulib__.cart->setprg8(0xE000, 0x0);
-//	  uint8 bank=EXPREGS[0]&0x1F;
-//	 if(EXPREGS[0]&0x20)
-//	    setprg32(0x8000,bank>>2);
-//	  else
-//	  {
-//	    setprg16(0x8000,bank);
-//	    setprg16(0xC000,bank);
-//	  }
+    //	  uint8 bank=EXPREGS[0]&0x1F;
+    //	 if(EXPREGS[0]&0x20)
+    //	    setprg32(0x8000,bank>>2);
+    //	  else
+    //	  {
+    //	    setprg16(0x8000,bank);
+    //	    setprg16(0xC000,bank);
+    //	  }
   } else {
-    fceulib__.cart->setprg8(A,V&0x3F);
+    fceulib__.cart->setprg8(A, V & 0x3F);
   }
 }
 
-//static DECLFW(UNLA9711Write8000)
+// static DECLFW(UNLA9711Write8000)
 //{
 //	FCEU_printf("bs %04x %02x\n",A,V);
 //	if(V&0x80)
@@ -53,25 +52,22 @@ static void UNLA9711PW(uint32 A, uint8 V)
 //	if(V!=0x86) MMC3_CMDWrite(A,V);
 //}
 
-static DECLFW(UNLA9711WriteLo)
-{
-  FCEU_printf("bs %04x %02x\n",A,V);
-  EXPREGS[0]=V;
+static DECLFW(UNLA9711WriteLo) {
+  FCEU_printf("bs %04x %02x\n", A, V);
+  EXPREGS[0] = V;
   FixMMC3PRG(MMC3_cmd);
 }
 
-static void UNLA9711Power(void)
-{
-  EXPREGS[0]=EXPREGS[1]=EXPREGS[2]=0;
+static void UNLA9711Power(void) {
+  EXPREGS[0] = EXPREGS[1] = EXPREGS[2] = 0;
   GenMMC3Power();
-  fceulib__.fceu->SetWriteHandler(0x5000,0x5FFF,UNLA9711WriteLo);
-//	fceulib__.fceu->SetWriteHandler(0x8000,0xbfff,UNLA9711Write8000);
+  fceulib__.fceu->SetWriteHandler(0x5000, 0x5FFF, UNLA9711WriteLo);
+  //	fceulib__.fceu->SetWriteHandler(0x8000,0xbfff,UNLA9711Write8000);
 }
 
-void UNLA9711_Init(CartInfo *info)
-{
+void UNLA9711_Init(CartInfo *info) {
   GenMMC3_Init(info, 256, 256, 0, 0);
-  pwrap=UNLA9711PW;
-  info->Power=UNLA9711Power;
+  pwrap = UNLA9711PW;
+  info->Power = UNLA9711Power;
   fceulib__.state->AddExState(EXPREGS, 3, 0, "EXPR");
 }

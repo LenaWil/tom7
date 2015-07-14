@@ -15,7 +15,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
 #include "mapinc.h"
@@ -25,15 +25,9 @@ static uint8 regs[8], mirr;
 static uint8 IRQa;
 static int16 IRQCount, IRQLatch;
 
-static SFORMAT StateRegs[] =
-{
-	{ regs, 8, "PREG" },
-	{ &mirr, 1, "MIRR" },
-	{ &IRQa, 1, "IRQA" },
-	{ &IRQCount, 2, "IRQC" },
-	{ &IRQLatch, 2, "IRQL" },
-	{ 0 }
-};
+static SFORMAT StateRegs[] = {{regs, 8, "PREG"},      {&mirr, 1, "MIRR"},
+                              {&IRQa, 1, "IRQA"},     {&IRQCount, 2, "IRQC"},
+                              {&IRQLatch, 2, "IRQL"}, {0}};
 
 static void Sync(void) {
   fceulib__.cart->setmirror(mirr);
@@ -51,53 +45,84 @@ static void Sync(void) {
 
 static DECLFW(M33Write) {
   A &= 0xF003;
-  switch(A) {
-  case 0x8000: regs[0] = V & 0x3F; if(!is48) mirr = ((V >> 6) & 1) ^ 1; Sync(); break;
-  case 0x8001: regs[1] = V & 0x3F; Sync(); break;
-  case 0x8002: regs[2] = V; Sync(); break;
-  case 0x8003: regs[3] = V; Sync(); break;
-  case 0xA000: regs[4] = V; Sync(); break;
-  case 0xA001: regs[5] = V; Sync(); break;
-  case 0xA002: regs[6] = V; Sync(); break;
-  case 0xA003: regs[7] = V; Sync(); break;
+  switch (A) {
+    case 0x8000:
+      regs[0] = V & 0x3F;
+      if (!is48) mirr = ((V >> 6) & 1) ^ 1;
+      Sync();
+      break;
+    case 0x8001:
+      regs[1] = V & 0x3F;
+      Sync();
+      break;
+    case 0x8002:
+      regs[2] = V;
+      Sync();
+      break;
+    case 0x8003:
+      regs[3] = V;
+      Sync();
+      break;
+    case 0xA000:
+      regs[4] = V;
+      Sync();
+      break;
+    case 0xA001:
+      regs[5] = V;
+      Sync();
+      break;
+    case 0xA002:
+      regs[6] = V;
+      Sync();
+      break;
+    case 0xA003:
+      regs[7] = V;
+      Sync();
+      break;
   }
 }
 
 static DECLFW(M48Write) {
-	switch (A & 0xF003) {
-	case 0xC000: IRQLatch = V; break;
-	case 0xC001: IRQCount = IRQLatch; break;
-	case 0xC003: IRQa = 0; fceulib__.X->IRQEnd(FCEU_IQEXT); break;
-	case 0xC002: IRQa = 1; break;
-	case 0xE000: mirr = ((V >> 6) & 1) ^ 1; Sync(); break;
-	}
+  switch (A & 0xF003) {
+    case 0xC000: IRQLatch = V; break;
+    case 0xC001: IRQCount = IRQLatch; break;
+    case 0xC003:
+      IRQa = 0;
+      fceulib__.X->IRQEnd(FCEU_IQEXT);
+      break;
+    case 0xC002: IRQa = 1; break;
+    case 0xE000:
+      mirr = ((V >> 6) & 1) ^ 1;
+      Sync();
+      break;
+  }
 }
 
 static void M33Power(void) {
-	Sync();
-	fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
-	fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, M33Write);
+  Sync();
+  fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
+  fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, M33Write);
 }
 
 static void M48Power(void) {
-	Sync();
-	fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
-	fceulib__.fceu->SetWriteHandler(0x8000, 0xBFFF, M33Write);
-	fceulib__.fceu->SetWriteHandler(0xC000, 0xFFFF, M48Write);
+  Sync();
+  fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
+  fceulib__.fceu->SetWriteHandler(0x8000, 0xBFFF, M33Write);
+  fceulib__.fceu->SetWriteHandler(0xC000, 0xFFFF, M48Write);
 }
 
 static void M48IRQ(void) {
-	if (IRQa) {
-		IRQCount++;
-		if (IRQCount == 0x100) {
-			fceulib__.X->IRQBegin(FCEU_IQEXT);
-			IRQa = 0;
-		}
-	}
+  if (IRQa) {
+    IRQCount++;
+    if (IRQCount == 0x100) {
+      fceulib__.X->IRQBegin(FCEU_IQEXT);
+      IRQa = 0;
+    }
+  }
 }
 
 static void StateRestore(int version) {
-	Sync();
+  Sync();
 }
 
 void Mapper33_Init(CartInfo *info) {
@@ -114,4 +139,3 @@ void Mapper48_Init(CartInfo *info) {
   fceulib__.fceu->GameStateRestore = StateRestore;
   fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
 }
-

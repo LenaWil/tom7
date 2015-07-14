@@ -15,48 +15,45 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
 #include "mapinc.h"
 
-static uint8 *WRAM=NULL;
+static uint8 *WRAM = NULL;
 static uint32 WRAMSIZE;
 
-// FIXME: 10/28 - now implemented in SDL as well. 
+// FIXME: 10/28 - now implemented in SDL as well.
 // should we rename this to a FCEUI_* function?
 unsigned int *GetKeyboard(void);
 
 static unsigned int *TransformerKeys, oldkeys[256];
 static int TransformerCycleCount, TransformerChar = 0;
 
-static void TransformerIRQHook(int a)
-{
- TransformerCycleCount+=a;
- if(TransformerCycleCount >= 1000)
- {
-   uint32 i;
-   TransformerCycleCount -= 1000;
-   TransformerKeys = GetKeyboard();
+static void TransformerIRQHook(int a) {
+  TransformerCycleCount += a;
+  if (TransformerCycleCount >= 1000) {
+    uint32 i;
+    TransformerCycleCount -= 1000;
+    TransformerKeys = GetKeyboard();
 
-   for(i=0; i<256; i++) {
-     if(oldkeys[i] != TransformerKeys[i]) {
-       if(oldkeys[i] == 0)
-         TransformerChar = i;
-       else
-         TransformerChar = i | 0x80;
-       fceulib__.X->IRQBegin(FCEU_IQEXT);
-       memcpy((void *)&oldkeys[0], (void *)TransformerKeys, 256);
-       break;
-     }
-   }
- }
+    for (i = 0; i < 256; i++) {
+      if (oldkeys[i] != TransformerKeys[i]) {
+        if (oldkeys[i] == 0)
+          TransformerChar = i;
+        else
+          TransformerChar = i | 0x80;
+        fceulib__.X->IRQBegin(FCEU_IQEXT);
+        memcpy((void *)&oldkeys[0], (void *)TransformerKeys, 256);
+        break;
+      }
+    }
+  }
 }
 
-static DECLFR(TransformerRead)
-{
+static DECLFR(TransformerRead) {
   uint8 ret = 0;
-  switch(A&3) {
+  switch (A & 3) {
     case 0: ret = TransformerChar & 15; break;
     case 1: ret = (TransformerChar >> 4); break;
     case 2: break;
@@ -67,37 +64,34 @@ static DECLFR(TransformerRead)
 }
 
 static void TransformerPower(void) {
-  fceulib__.cart->setprg8r(0x10,0x6000,0);
-  fceulib__.cart->setprg16(0x8000,0);
-  fceulib__.cart->setprg16(0xC000,~0);
+  fceulib__.cart->setprg8r(0x10, 0x6000, 0);
+  fceulib__.cart->setprg16(0x8000, 0);
+  fceulib__.cart->setprg16(0xC000, ~0);
   fceulib__.cart->setchr8(0);
 
-  fceulib__.fceu->SetReadHandler(0x5000,0x5004,TransformerRead);
-  fceulib__.fceu->SetReadHandler(0x6000,0x7FFF,Cart::CartBR);
-  fceulib__.fceu->SetWriteHandler(0x6000,0x7FFF,Cart::CartBW);
-  fceulib__.fceu->SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__.fceu->SetReadHandler(0x5000, 0x5004, TransformerRead);
+  fceulib__.fceu->SetReadHandler(0x6000, 0x7FFF, Cart::CartBR);
+  fceulib__.fceu->SetWriteHandler(0x6000, 0x7FFF, Cart::CartBW);
+  fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
 
-  fceulib__.X->MapIRQHook=TransformerIRQHook;
+  fceulib__.X->MapIRQHook = TransformerIRQHook;
 }
 
-static void TransformerClose(void)
-{
-  if(WRAM)
-    free(WRAM);
-  WRAM=NULL;
+static void TransformerClose(void) {
+  if (WRAM) free(WRAM);
+  WRAM = NULL;
 }
 
-void Transformer_Init(CartInfo *info)
-{
-  info->Power=TransformerPower;
-  info->Close=TransformerClose;
+void Transformer_Init(CartInfo *info) {
+  info->Power = TransformerPower;
+  info->Close = TransformerClose;
 
-  WRAMSIZE=8192;
-  WRAM=(uint8*)FCEU_gmalloc(WRAMSIZE);
-  fceulib__.cart->SetupCartPRGMapping(0x10,WRAM,WRAMSIZE,1);
-  if(info->battery) {
-    info->SaveGame[0]=WRAM;
-    info->SaveGameLen[0]=WRAMSIZE;
+  WRAMSIZE = 8192;
+  WRAM = (uint8 *)FCEU_gmalloc(WRAMSIZE);
+  fceulib__.cart->SetupCartPRGMapping(0x10, WRAM, WRAMSIZE, 1);
+  if (info->battery) {
+    info->SaveGame[0] = WRAM;
+    info->SaveGameLen[0] = WRAMSIZE;
   }
   fceulib__.state->AddExState(WRAM, WRAMSIZE, 0, "WRAM");
 }

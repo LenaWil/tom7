@@ -15,50 +15,41 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
 #include "mapinc.h"
 
 static uint8 regs[8];
 
-static SFORMAT StateRegs[]=
-{
-  {regs, 8, "REGS"},
-  {0}
-};
+static SFORMAT StateRegs[] = {{regs, 8, "REGS"}, {0}};
 
-static void Sync(void)
-{
-  fceulib__.cart->setprg8(0x8000,regs[0]);
-  fceulib__.cart->setprg8(0xA000,regs[2]);
-  fceulib__.cart->setprg8(0xC000,regs[4]);
-  fceulib__.cart->setprg8(0xE000,~0);
-  fceulib__.cart->setchr4(0x0000,regs[6]);
-  fceulib__.cart->setchr4(0x1000,regs[7]);
+static void Sync(void) {
+  fceulib__.cart->setprg8(0x8000, regs[0]);
+  fceulib__.cart->setprg8(0xA000, regs[2]);
+  fceulib__.cart->setprg8(0xC000, regs[4]);
+  fceulib__.cart->setprg8(0xE000, ~0);
+  fceulib__.cart->setchr4(0x0000, regs[6]);
+  fceulib__.cart->setchr4(0x1000, regs[7]);
 }
 
-static DECLFW(M151Write)
-{
-  regs[(A >> 12)&7] = V;
+static DECLFW(M151Write) {
+  regs[(A >> 12) & 7] = V;
   Sync();
 }
 
-static void M151Power(void)
-{
+static void M151Power(void) {
   Sync();
-  fceulib__.fceu->SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
-  fceulib__.fceu->SetWriteHandler(0x8000,0xFFFF,M151Write);
+  fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
+  fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, M151Write);
 }
 
-static void StateRestore(int version)
-{
+static void StateRestore(int version) {
   Sync();
 }
 
-void Mapper151_Init(CartInfo *info)
-{
-  info->Power=M151Power;
-  fceulib__.fceu->GameStateRestore=StateRestore;
+void Mapper151_Init(CartInfo *info) {
+  info->Power = M151Power;
+  fceulib__.fceu->GameStateRestore = StateRestore;
   fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
 }

@@ -16,16 +16,17 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  *
  * Bandai mappers
  *
  */
 
-//Famicom Jump 2 should get transformed to m153
-//All other games are not supporting EEPROM saving right now.
-//We may need to distinguish between 16 and 159 in order to know the EEPROM configuration.
-//Until then, we just return 0x00 from the EEPROM read
+// Famicom Jump 2 should get transformed to m153
+// All other games are not supporting EEPROM saving right now.
+// We may need to distinguish between 16 and 159 in order to know the EEPROM
+// configuration.
+// Until then, we just return 0x00 from the EEPROM read
 
 #include "mapinc.h"
 
@@ -33,25 +34,21 @@ static uint8 reg[16], is153;
 static uint8 IRQa;
 static int16 IRQCount, IRQLatch;
 
-static uint8 *WRAM=NULL;
+static uint8 *WRAM = NULL;
 static uint32 WRAMSIZE;
 
-static SFORMAT StateRegs[]=
-{
-  {reg, 16, "REGS"},
-  {&IRQa, 1, "IRQA"},
-  {&IRQCount, 2, "IRQC"},
-  {&IRQLatch, 2, "IRQL"}, // need for Famicom Jump II - Saikyou no 7 Nin (J) [!]
-  {0}
-};
+static SFORMAT StateRegs[] = {
+    {reg, 16, "REGS"},
+    {&IRQa, 1, "IRQA"},
+    {&IRQCount, 2, "IRQC"},
+    {&IRQLatch, 2,
+     "IRQL"},  // need for Famicom Jump II - Saikyou no 7 Nin (J) [!]
+    {0}};
 
-static void BandaiIRQHook(int a)
-{
-  if(IRQa)
-  {
+static void BandaiIRQHook(int a) {
+  if (IRQa) {
     IRQCount -= a;
-    if(IRQCount<0)
-    {
+    if (IRQCount < 0) {
       fceulib__.X->IRQBegin(FCEU_IQEXT);
       IRQa = 0;
       IRQCount = -1;
@@ -59,20 +56,18 @@ static void BandaiIRQHook(int a)
   }
 }
 
-static void BandaiSync(void)
-{
-  if(is153) {
-    int base=(reg[0]&1)<<4;
+static void BandaiSync(void) {
+  if (is153) {
+    int base = (reg[0] & 1) << 4;
     fceulib__.cart->setchr8(0);
-    fceulib__.cart->setprg16(0x8000,(reg[8]&0x0F)|base);
-    fceulib__.cart->setprg16(0xC000,0x0F|base);
+    fceulib__.cart->setprg16(0x8000, (reg[8] & 0x0F) | base);
+    fceulib__.cart->setprg16(0xC000, 0x0F | base);
   } else {
-    for(int i=0; i<8; i++)
-      fceulib__.cart->setchr1(i<<10,reg[i]);
-    fceulib__.cart->setprg16(0x8000,reg[8]);
-    fceulib__.cart->setprg16(0xC000,~0);
+    for (int i = 0; i < 8; i++) fceulib__.cart->setchr1(i << 10, reg[i]);
+    fceulib__.cart->setprg16(0x8000, reg[8]);
+    fceulib__.cart->setprg16(0xC000, ~0);
   }
-  switch(reg[9]&3) {
+  switch (reg[9] & 3) {
     case 0: fceulib__.cart->setmirror(MI_V); break;
     case 1: fceulib__.cart->setmirror(MI_H); break;
     case 2: fceulib__.cart->setmirror(MI_0); break;
@@ -80,82 +75,79 @@ static void BandaiSync(void)
   }
 }
 
-static DECLFW(BandaiWrite)
-{
-  A&=0x0F;
-  if(A<0x0A)
-  {
-    reg[A&0x0F]=V;
+static DECLFW(BandaiWrite) {
+  A &= 0x0F;
+  if (A < 0x0A) {
+    reg[A & 0x0F] = V;
     BandaiSync();
-  }
-  else
-    switch(A)
-    {
-      case 0x0A: fceulib__.X->IRQEnd(FCEU_IQEXT); IRQa=V&1; IRQCount=IRQLatch; break;
-      case 0x0B: IRQLatch&=0xFF00; IRQLatch|=V;  break;
-      case 0x0C: IRQLatch&=0xFF; IRQLatch|=V<<8; break;
-      case 0x0D: break;// Serial EEPROM control port
+  } else
+    switch (A) {
+      case 0x0A:
+        fceulib__.X->IRQEnd(FCEU_IQEXT);
+        IRQa = V & 1;
+        IRQCount = IRQLatch;
+        break;
+      case 0x0B:
+        IRQLatch &= 0xFF00;
+        IRQLatch |= V;
+        break;
+      case 0x0C:
+        IRQLatch &= 0xFF;
+        IRQLatch |= V << 8;
+        break;
+      case 0x0D: break;  // Serial EEPROM control port
     }
 }
 
-static void BandaiPower(void)
-{
+static void BandaiPower(void) {
   BandaiSync();
-  fceulib__.fceu->SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
-  fceulib__.fceu->SetWriteHandler(0x6000,0xFFFF,BandaiWrite);
+  fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
+  fceulib__.fceu->SetWriteHandler(0x6000, 0xFFFF, BandaiWrite);
 }
 
-static void StateRestore(int version)
-{
+static void StateRestore(int version) {
   BandaiSync();
 }
 
-void Mapper16_Init(CartInfo *info)
-{
-  is153=0;
-  info->Power=BandaiPower;
-  fceulib__.X->MapIRQHook=BandaiIRQHook;
-  fceulib__.fceu->GameStateRestore=StateRestore;
+void Mapper16_Init(CartInfo *info) {
+  is153 = 0;
+  info->Power = BandaiPower;
+  fceulib__.X->MapIRQHook = BandaiIRQHook;
+  fceulib__.fceu->GameStateRestore = StateRestore;
   fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
 }
 
-static void M153Power(void)
-{
+static void M153Power(void) {
   BandaiSync();
-  fceulib__.cart->setprg8r(0x10,0x6000,0);
-  fceulib__.fceu->SetReadHandler(0x6000,0x7FFF,Cart::CartBR);
-  fceulib__.fceu->SetWriteHandler(0x6000,0x7FFF,Cart::CartBW);
-  fceulib__.fceu->SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
-  fceulib__.fceu->SetWriteHandler(0x8000,0xFFFF,BandaiWrite);
+  fceulib__.cart->setprg8r(0x10, 0x6000, 0);
+  fceulib__.fceu->SetReadHandler(0x6000, 0x7FFF, Cart::CartBR);
+  fceulib__.fceu->SetWriteHandler(0x6000, 0x7FFF, Cart::CartBW);
+  fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
+  fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, BandaiWrite);
 }
 
-
-static void M153Close(void)
-{
-  if(WRAM)
-    free(WRAM);
-  WRAM=NULL;
+static void M153Close(void) {
+  if (WRAM) free(WRAM);
+  WRAM = NULL;
 }
 
-void Mapper153_Init(CartInfo *info)
-{
-  is153=1;
-  info->Power=M153Power;
-  info->Close=M153Close;
-  fceulib__.X->MapIRQHook=BandaiIRQHook;
+void Mapper153_Init(CartInfo *info) {
+  is153 = 1;
+  info->Power = M153Power;
+  info->Close = M153Close;
+  fceulib__.X->MapIRQHook = BandaiIRQHook;
 
-  WRAMSIZE=8192;
-  WRAM=(uint8*)FCEU_gmalloc(WRAMSIZE);
-  fceulib__.cart->SetupCartPRGMapping(0x10,WRAM,WRAMSIZE,1);
+  WRAMSIZE = 8192;
+  WRAM = (uint8 *)FCEU_gmalloc(WRAMSIZE);
+  fceulib__.cart->SetupCartPRGMapping(0x10, WRAM, WRAMSIZE, 1);
   fceulib__.state->AddExState(WRAM, WRAMSIZE, 0, "WRAM");
 
-  if(info->battery)
-  {
-    info->SaveGame[0]=WRAM;
-    info->SaveGameLen[0]=WRAMSIZE;
+  if (info->battery) {
+    info->SaveGame[0] = WRAM;
+    info->SaveGameLen[0] = WRAMSIZE;
   }
 
-  fceulib__.fceu->GameStateRestore=StateRestore;
+  fceulib__.fceu->GameStateRestore = StateRestore;
   fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
 }
 
@@ -166,182 +158,171 @@ static int BarcodeReadPos;
 static int BarcodeCycleCount;
 static uint32 BarcodeOut;
 
-int FCEUI_DatachSet(const uint8 *rcode)
-{
-  int prefix_parity_type[10][6] = {
-    {0,0,0,0,0,0}, {0,0,1,0,1,1}, {0,0,1,1,0,1}, {0,0,1,1,1,0},
-    {0,1,0,0,1,1}, {0,1,1,0,0,1}, {0,1,1,1,0,0}, {0,1,0,1,0,1},
-    {0,1,0,1,1,0}, {0,1,1,0,1,0}
-  };
-  int data_left_odd[10][7] = {
-    {0,0,0,1,1,0,1}, {0,0,1,1,0,0,1}, {0,0,1,0,0,1,1}, {0,1,1,1,1,0,1},
-    {0,1,0,0,0,1,1}, {0,1,1,0,0,0,1}, {0,1,0,1,1,1,1}, {0,1,1,1,0,1,1},
-    {0,1,1,0,1,1,1}, {0,0,0,1,0,1,1}
-  };
-  int  data_left_even[10][7] = {
-    {0,1,0,0,1,1,1}, {0,1,1,0,0,1,1}, {0,0,1,1,0,1,1}, {0,1,0,0,0,0,1},
-    {0,0,1,1,1,0,1}, {0,1,1,1,0,0,1}, {0,0,0,0,1,0,1}, {0,0,1,0,0,0,1},
-    {0,0,0,1,0,0,1}, {0,0,1,0,1,1,1}
-  };
-  int  data_right[10][7] = {
-    {1,1,1,0,0,1,0}, {1,1,0,0,1,1,0}, {1,1,0,1,1,0,0}, {1,0,0,0,0,1,0},
-    {1,0,1,1,1,0,0}, {1,0,0,1,1,1,0}, {1,0,1,0,0,0,0}, {1,0,0,0,1,0,0},
-    {1,0,0,1,0,0,0}, {1,1,1,0,1,0,0}
-  };
-  uint8 code[13+1];
-  uint32 tmp_p=0;
+int FCEUI_DatachSet(const uint8 *rcode) {
+  int prefix_parity_type[10][6] = {{0, 0, 0, 0, 0, 0}, {0, 0, 1, 0, 1, 1},
+                                   {0, 0, 1, 1, 0, 1}, {0, 0, 1, 1, 1, 0},
+                                   {0, 1, 0, 0, 1, 1}, {0, 1, 1, 0, 0, 1},
+                                   {0, 1, 1, 1, 0, 0}, {0, 1, 0, 1, 0, 1},
+                                   {0, 1, 0, 1, 1, 0}, {0, 1, 1, 0, 1, 0}};
+  int data_left_odd[10][7] = {{0, 0, 0, 1, 1, 0, 1}, {0, 0, 1, 1, 0, 0, 1},
+                              {0, 0, 1, 0, 0, 1, 1}, {0, 1, 1, 1, 1, 0, 1},
+                              {0, 1, 0, 0, 0, 1, 1}, {0, 1, 1, 0, 0, 0, 1},
+                              {0, 1, 0, 1, 1, 1, 1}, {0, 1, 1, 1, 0, 1, 1},
+                              {0, 1, 1, 0, 1, 1, 1}, {0, 0, 0, 1, 0, 1, 1}};
+  int data_left_even[10][7] = {{0, 1, 0, 0, 1, 1, 1}, {0, 1, 1, 0, 0, 1, 1},
+                               {0, 0, 1, 1, 0, 1, 1}, {0, 1, 0, 0, 0, 0, 1},
+                               {0, 0, 1, 1, 1, 0, 1}, {0, 1, 1, 1, 0, 0, 1},
+                               {0, 0, 0, 0, 1, 0, 1}, {0, 0, 1, 0, 0, 0, 1},
+                               {0, 0, 0, 1, 0, 0, 1}, {0, 0, 1, 0, 1, 1, 1}};
+  int data_right[10][7] = {{1, 1, 1, 0, 0, 1, 0}, {1, 1, 0, 0, 1, 1, 0},
+                           {1, 1, 0, 1, 1, 0, 0}, {1, 0, 0, 0, 0, 1, 0},
+                           {1, 0, 1, 1, 1, 0, 0}, {1, 0, 0, 1, 1, 1, 0},
+                           {1, 0, 1, 0, 0, 0, 0}, {1, 0, 0, 0, 1, 0, 0},
+                           {1, 0, 0, 1, 0, 0, 0}, {1, 1, 1, 0, 1, 0, 0}};
+  uint8 code[13 + 1];
+  uint32 tmp_p = 0;
   int i, j;
   int len;
 
-  for(i=len=0;i<13;i++)
-  {
-    if(!rcode[i]) break;
-    if((code[i]=rcode[i]-'0') > 9)
-      return(0);
+  for (i = len = 0; i < 13; i++) {
+    if (!rcode[i]) break;
+    if ((code[i] = rcode[i] - '0') > 9) return (0);
     len++;
   }
-  if(len!=13 && len!=12 && len!=8 && len!=7) return(0);
+  if (len != 13 && len != 12 && len != 8 && len != 7) return (0);
 
-  #define BS(x) BarcodeData[tmp_p]=x;tmp_p++
+#define BS(x)             \
+  BarcodeData[tmp_p] = x; \
+  tmp_p++
 
-  for(j=0;j<32;j++)
-  {
+  for (j = 0; j < 32; j++) {
     BS(0x00);
   }
 
   /* Left guard bars */
-  BS(1);    BS(0); BS(1);
+  BS(1);
+  BS(0);
+  BS(1);
 
-  if(len==13 || len==12)
-  {
+  if (len == 13 || len == 12) {
     uint32 csum;
 
-    for(i=0;i<6;i++)
-      if(prefix_parity_type[code[0]][i])
-      {
-        for(j=0;j<7;j++)
-        {
-          BS(data_left_even[code[i+1]][j]);
+    for (i = 0; i < 6; i++)
+      if (prefix_parity_type[code[0]][i]) {
+        for (j = 0; j < 7; j++) {
+          BS(data_left_even[code[i + 1]][j]);
         }
-      }
-      else
-        for(j=0;j<7;j++)
-        {
-          BS(data_left_odd[code[i+1]][j]);
+      } else
+        for (j = 0; j < 7; j++) {
+          BS(data_left_odd[code[i + 1]][j]);
         }
 
     /* Center guard bars */
-    BS(0); BS(1); BS(0); BS(1); BS(0);
+    BS(0);
+    BS(1);
+    BS(0);
+    BS(1);
+    BS(0);
 
-    for(i=7;i<12;i++)
-      for(j=0;j<7;j++)
-      {
+    for (i = 7; i < 12; i++)
+      for (j = 0; j < 7; j++) {
         BS(data_right[code[i]][j]);
       }
-    csum=0;
-    for(i=0;i<12;i++) csum+=code[i]*((i&1)?3:1);
-      csum=(10-(csum%10))%10;
-    for(j=0;j<7;j++)
-    {
+    csum = 0;
+    for (i = 0; i < 12; i++) csum += code[i] * ((i & 1) ? 3 : 1);
+    csum = (10 - (csum % 10)) % 10;
+    for (j = 0; j < 7; j++) {
       BS(data_right[csum][j]);
     }
 
-  }
-  else if(len==8 || len==7)
-  {
-    uint32 csum=0;
+  } else if (len == 8 || len == 7) {
+    uint32 csum = 0;
 
-    for(i=0;i<7;i++) csum+=(i&1)?code[i]:(code[i]*3);
+    for (i = 0; i < 7; i++) csum += (i & 1) ? code[i] : (code[i] * 3);
 
-    csum=(10-(csum%10))%10;
+    csum = (10 - (csum % 10)) % 10;
 
-    for(i=0;i<4;i++)
-      for(j=0;j<7;j++)
-      {
+    for (i = 0; i < 4; i++)
+      for (j = 0; j < 7; j++) {
         BS(data_left_odd[code[i]][j]);
       }
 
-
     /* Center guard bars */
-    BS(0); BS(1); BS(0); BS(1); BS(0);
+    BS(0);
+    BS(1);
+    BS(0);
+    BS(1);
+    BS(0);
 
-    for(i=4;i<7;i++)
-      for(j=0;j<7;j++)
-      {
+    for (i = 4; i < 7; i++)
+      for (j = 0; j < 7; j++) {
         BS(data_right[code[i]][j]);
       }
 
-    for(j=0;j<7;j++)
-      { BS(data_right[csum][j]);}
-
+    for (j = 0; j < 7; j++) {
+      BS(data_right[csum][j]);
+    }
   }
 
   /* Right guard bars */
-  BS(1); BS(0); BS(1);
+  BS(1);
+  BS(0);
+  BS(1);
 
-  for(j=0;j<32;j++)
-  {
+  for (j = 0; j < 32; j++) {
     BS(0x00);
   }
 
   BS(0xFF);
 
-  #undef BS
+#undef BS
 
-  BarcodeReadPos=0;
-  BarcodeOut=0x8;
-  BarcodeCycleCount=0;
-  return(1);
+  BarcodeReadPos = 0;
+  BarcodeOut = 0x8;
+  BarcodeCycleCount = 0;
+  return (1);
 }
 
-static void BarcodeIRQHook(int a)
-{
- BandaiIRQHook(a);
+static void BarcodeIRQHook(int a) {
+  BandaiIRQHook(a);
 
- BarcodeCycleCount+=a;
+  BarcodeCycleCount += a;
 
- if(BarcodeCycleCount >= 1000)
- {
-  BarcodeCycleCount -= 1000;
-  if(BarcodeData[BarcodeReadPos]==0xFF)
-  {
-   BarcodeOut=0;
+  if (BarcodeCycleCount >= 1000) {
+    BarcodeCycleCount -= 1000;
+    if (BarcodeData[BarcodeReadPos] == 0xFF) {
+      BarcodeOut = 0;
+    } else {
+      BarcodeOut = (BarcodeData[BarcodeReadPos] ^ 1) << 3;
+      BarcodeReadPos++;
+    }
   }
-  else
-  {
-   BarcodeOut=(BarcodeData[BarcodeReadPos]^1)<<3;
-   BarcodeReadPos++;
-  }
- }
 }
 
-static DECLFR(BarcodeRead)
-{
+static DECLFR(BarcodeRead) {
   return BarcodeOut;
 }
 
-static void M157Power(void)
-{
-  BarcodeData[0]=0xFF;
-  BarcodeReadPos=0;
-  BarcodeOut=0;
-  BarcodeCycleCount=0;
+static void M157Power(void) {
+  BarcodeData[0] = 0xFF;
+  BarcodeReadPos = 0;
+  BarcodeOut = 0;
+  BarcodeCycleCount = 0;
 
   BandaiSync();
 
-  fceulib__.fceu->SetWriteHandler(0x6000,0xFFFF,BandaiWrite);
-  fceulib__.fceu->SetReadHandler(0x6000,0x7FFF,BarcodeRead);
-  fceulib__.fceu->SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
+  fceulib__.fceu->SetWriteHandler(0x6000, 0xFFFF, BandaiWrite);
+  fceulib__.fceu->SetReadHandler(0x6000, 0x7FFF, BarcodeRead);
+  fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
 }
 
-void Mapper157_Init(CartInfo *info)
-{
-  is153=0;
-  info->Power=M157Power;
-  fceulib__.X->MapIRQHook=BarcodeIRQHook;
+void Mapper157_Init(CartInfo *info) {
+  is153 = 0;
+  info->Power = M157Power;
+  fceulib__.X->MapIRQHook = BarcodeIRQHook;
 
   fceulib__.fceu->GameInfo->cspecial = SIS_DATACH;
 
-  fceulib__.fceu->GameStateRestore=StateRestore;
+  fceulib__.fceu->GameStateRestore = StateRestore;
   fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
 }
