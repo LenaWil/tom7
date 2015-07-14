@@ -52,7 +52,9 @@
   }
 
 
-X6502::X6502(FC *fc) : fc(fc) {}
+X6502::X6502(FC *fc) : fc(fc) {
+  CHECK(fc != nullptr);
+}
 
 // XXX needs to take FCEU object as argument.
 
@@ -609,8 +611,16 @@ void X6502::Reset() {
 * Initializes the 6502 CPU
 **/
 void X6502::Init() {
-  // Initialize the CPU structure
-  memset((void *)this, 0, sizeof(X6502));
+  // Initialize the CPU fields.
+  // (Don't memset; we have non-CPU members now!)
+  tcount = 0;
+  reg_A = reg_X = reg_Y = reg_S = reg_P = reg_PI = 0;
+  jammed = 0;
+  count = 0;
+  IRQlow = 0;
+  DB = 0;
+  timestamp = 0;
+  MapIRQHook = nullptr;
 
 // Now initialized statically. -tom7
 #if 0

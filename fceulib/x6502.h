@@ -25,6 +25,9 @@
 #include "fceu.h"
 #include "fc.h"
 
+// XXX
+#include "base/logging.h"
+
 struct X6502 {
   // Initialize with fc pointer, since memory reads/writes
   // trigger callbacks.
@@ -62,7 +65,7 @@ struct X6502 {
   uint8 DMR(uint32 A);
   void DMW(uint32 A, uint8 V);
 
-  uint32 timestamp;
+  uint32 timestamp = 0;
 
   void (*MapIRQHook)(int) = nullptr;
 
@@ -90,7 +93,8 @@ private:
     fceulib__.fceu->RAM[A] = V;
   }
   
-  FC *fc;
+  FC *fc = nullptr;
+  DISALLOW_COPY_AND_ASSIGN(X6502);
 };
 
 #define NTSC_CPU 1789772.7272727272727272

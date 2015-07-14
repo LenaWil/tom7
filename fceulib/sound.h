@@ -48,9 +48,9 @@ struct EXPSOUND {
 struct Sound {
   explicit Sound(FC *fc);
   
-  int32 Wave[2048+512];
-  int32 WaveHi[40000];
-  int32 WaveFinal[2048+512];
+  int32 Wave[2048+512] = {};
+  int32 WaveHi[40000] = {};
+  int32 WaveFinal[2048+512] = {};
   
   EXPSOUND GameExpSound;
 
@@ -65,7 +65,7 @@ struct Sound {
 
   // For LQ sound
   uint32 soundtsi = 0;
-  int32 sqacc[2];
+  int32 sqacc[2] = {};
 
   void FCEUSND_Power();
   void FCEUSND_Reset();
@@ -97,16 +97,16 @@ struct Sound {
   const std::vector<SFORMAT> stateinfo;
 
   struct ENVUNIT {
-    uint8 Speed;
+    uint8 Speed = 0;
     /* Fixed volume(1), and loop(2) */
-    uint8 Mode;
-    uint8 DecCountTo1;
-    uint8 decvolume;
-    int reloaddec;
+    uint8 Mode = 0;
+    uint8 DecCountTo1 = 0;
+    uint8 decvolume = 0;
+    int reloaddec = 0;
   };
 
-  uint32 wlookup1[32];
-  uint32 wlookup2[203];
+  uint32 wlookup1[32] = {};
+  uint32 wlookup2[203] = {};
 
   // Used when exporting WaveFinal.
   int32 sound_buffer_length = 0;
@@ -130,10 +130,10 @@ struct Sound {
 
   ENVUNIT EnvUnits[3];
 
-  int32 RectDutyCount[2];
-  uint8 sweepon[2];
-  int32 curfreq[2];
-  uint8 SweepCount[2];
+  int32 RectDutyCount[2] = {};
+  uint8 sweepon[2] = {};
+  int32 curfreq[2] = {};
+  uint8 SweepCount[2] = {};
 
   uint16 nreg = 0;
 
@@ -141,7 +141,7 @@ struct Sound {
   int32 fhcnt = 0;
   int32 fhinc = 0;
 
-  int32 lengthcount[4];
+  int32 lengthcount[4] = {};
 
   int32 DMCacc = 1;
   int32 DMCPeriod = 0;
@@ -173,7 +173,7 @@ struct Sound {
   void (Sound::*DoSQ1)() = &Sound::Dummyfunc;
   void (Sound::*DoSQ2)() = &Sound::Dummyfunc;
 
-  uint32 ChannelBC[5];
+  uint32 ChannelBC[5] = {};
 
 
   void LoadDMCPeriod(uint8 V);

@@ -401,3 +401,7 @@ void State::AddExStateReal(void *v, uint32 s, int type,
   // End marker.
   SFMDATA[SFEXINDEX].v = 0;
 }
+
+State::State() {
+  printf("Created state object at %p.\n", this);
+}

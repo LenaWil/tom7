@@ -17,6 +17,25 @@
 #include "state.h"
 
 FC::FC() {
+  // Paranoia: Make sure that attempts to access
+  // other objects during initialization at least
+  // see nullptr.
+  cart = nullptr;
+  fceu = nullptr;
+  fds = nullptr;
+  filter = nullptr;
+  ines = nullptr;
+  input = nullptr;
+  palette = nullptr;
+  ppu = nullptr;
+  sound = nullptr;
+  unif = nullptr;
+  vsuni = nullptr;
+  X = nullptr;
+  state = nullptr;
+
+  printf("Creating FC at %p\n", this);
+  
   cart = new Cart;
   fceu = new FCEU;
   fds = new FDS;
@@ -30,9 +49,12 @@ FC::FC() {
   vsuni = new VSUni;
   X = new X6502(this);
   state = new State;
+  
+  printf("Done creating FC at %p\n", this);
 }
 
 FC::~FC() {
+  printf("Destroying fc at %p.\n");
   delete cart;
   delete fceu;
   delete fds;
@@ -46,6 +68,7 @@ FC::~FC() {
   delete vsuni;
   delete X;
   delete state;
+  printf("Done destroying fc at %p.\n");
 }
 
 FC fceulib__;
