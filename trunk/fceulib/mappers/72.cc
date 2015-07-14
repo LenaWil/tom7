@@ -15,23 +15,17 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
 #include "mapinc.h"
 
-
-DECLFW(Mapper72_write)
-{
- mapbyte1[0]=V;
- if(V&0x80)
-  ROM_BANK16(0x8000,V&0xF);
- if(V&0x40)
-  VROM_BANK8(V&0xF);
+DECLFW(Mapper72_write) {
+  mapbyte1[0] = V;
+  if (V & 0x80) ROM_BANK16(0x8000, V & 0xF);
+  if (V & 0x40) VROM_BANK8(V & 0xF);
 }
 
-void Mapper72_init(void)
-{
- fceulib__.fceu->SetWriteHandler(0x6000,0xffff,Mapper72_write);
+void Mapper72_init(void) {
+  fceulib__.fceu->SetWriteHandler(0x6000, 0xffff, Mapper72_write);
 }
-

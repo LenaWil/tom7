@@ -15,27 +15,21 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  * TXC mapper variation, F-15 City War
  */
 
 #include "mapinc.h"
 
-
-
-DECLFW(Mapper79_write)
-{
- if(A<0x8000 && ((A^0x4100)==0))
- {
-  ROM_BANK32((V>>3)&1);
- }
- VROM_BANK8(V);
+DECLFW(Mapper79_write) {
+  if (A < 0x8000 && ((A ^ 0x4100) == 0)) {
+    ROM_BANK32((V >> 3) & 1);
+  }
+  VROM_BANK8(V);
 }
 
-void Mapper79_init(void)
-{
- ROM_BANK32(~0);
- fceulib__.fceu->SetWriteHandler(0x8000,0xffff,Mapper79_write);
- fceulib__.fceu->SetWriteHandler(0x4020,0x5fff,Mapper79_write);
+void Mapper79_init(void) {
+  ROM_BANK32(~0);
+  fceulib__.fceu->SetWriteHandler(0x8000, 0xffff, Mapper79_write);
+  fceulib__.fceu->SetWriteHandler(0x4020, 0x5fff, Mapper79_write);
 }
-
