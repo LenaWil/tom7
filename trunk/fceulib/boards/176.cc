@@ -94,10 +94,10 @@ static DECLFW(M176Write_A001) {
 
 static DECLFW(M176Write_WriteSRAM) {
 //	if (we_sram)
-  Cart::CartBW(A,V);
+  Cart::CartBW(DECLFW_FORWARD);
 }
 
-static void M176Power(void) {
+static void M176Power() {
   fceulib__.fceu->SetReadHandler(0x6000,0x7fff,Cart::CartBR);
   fceulib__.fceu->SetWriteHandler(0x6000,0x7fff,M176Write_WriteSRAM);
   fceulib__.fceu->SetReadHandler(0x8000,0xFFFF,Cart::CartBR);

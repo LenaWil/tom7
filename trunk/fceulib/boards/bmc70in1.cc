@@ -61,11 +61,11 @@ static DECLFR(BMC70in1Read)
 {
   if(bank_mode==0x10)
 //    if(is_large_banks)
-    return Cart::CartBR((A&0xFFF0)|hw_switch);
+    return Cart::CartBR(fc, (A&0xFFF0)|hw_switch);
 //    else
 //      return CartBR((A&0xFFF0)|hw_switch);
   else
-    return Cart::CartBR(A);
+    return Cart::CartBR(DECLFR_FORWARD);
 }
 
 static DECLFW(BMC70in1Write)

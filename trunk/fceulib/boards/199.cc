@@ -63,15 +63,15 @@ static DECLFW(M199Write)
     FixMMC3PRG(MMC3_cmd);
     FixMMC3CHR(MMC3_cmd);
   }
-  else
+  else {
     if(A<0xC000)
-      MMC3_CMDWrite(A,V);
+      MMC3_CMDWrite(DECLFW_FORWARD);
     else
-      MMC3_IRQWrite(A,V);
+      MMC3_IRQWrite(DECLFW_FORWARD);
+  }
 }
 
-static void M199Power(void)
-{
+static void M199Power(void) {
   EXPREGS[0]=~1;
   EXPREGS[1]=~0;
   EXPREGS[2]=1;
@@ -80,11 +80,9 @@ static void M199Power(void)
   fceulib__.fceu->SetWriteHandler(0x8000,0xFFFF,M199Write);
 }
 
-static void M199Close(void)
-{
-  if(CHRRAM)
-    free(CHRRAM);
-  CHRRAM=NULL;
+static void M199Close(void) {
+  free(CHRRAM);
+  CHRRAM=nullptr;
 }
 
 void Mapper199_Init(CartInfo *info)

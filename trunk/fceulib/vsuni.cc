@@ -105,7 +105,7 @@ static DECLFR(A2002_Gumshoe) {
 }
 
 DECLFR_RET VSUni::A2002_Gumshoe_Direct(DECLFR_ARGS) {
-  return (OldReadPPU(A)&~0x3F) | 0x1C;
+  return (OldReadPPU(fc, A)&~0x3F) | 0x1C;
 }
 
 static DECLFR(A2002_Topgun) {
@@ -113,7 +113,7 @@ static DECLFR(A2002_Topgun) {
 }
 
 DECLFR_RET VSUni::A2002_Topgun_Direct(DECLFR_ARGS) {
-  return (OldReadPPU(A)&~0x3F) | 0x1B;
+  return (OldReadPPU(fc, A)&~0x3F) | 0x1B;
 }
 
 // Mighty Bomb Jack
@@ -122,7 +122,7 @@ static DECLFR(A2002_MBJ) {
 }
 
 DECLFR_RET VSUni::A2002_MBJ_Direct(DECLFR_ARGS) {
-  return (OldReadPPU(A)&~0x3F) | 0x3D;
+  return (OldReadPPU(fc, A)&~0x3F) | 0x3D;
 }
 
 static DECLFW(B2000_2001_2C05) {
@@ -130,7 +130,7 @@ static DECLFW(B2000_2001_2C05) {
 }
 
 void VSUni::B2000_2001_2C05_Direct(DECLFW_ARGS) {
-  OldWritePPU[(A&1)^1](A ^ 1, V);
+  OldWritePPU[(A&1)^1](fc, A ^ 1, V);
 }
 
 static DECLFR(XevRead) {

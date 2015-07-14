@@ -51,19 +51,19 @@
     timestamp += __x;        \
   }
 
+
+X6502::X6502(FC *fc) : fc(fc) {}
+
 // XXX needs to take FCEU object as argument.
-static inline void WrRAM(unsigned int A, uint8 V) {
-  fceulib__.fceu->RAM[A] = V;
-}
 
 uint8 X6502::DMR(uint32 A) {
   ADDCYC(1);
-  return (DB = fceulib__.fceu->ARead[A](A));
+  return (DB = fceulib__.fceu->ARead[A](fc, A));
 }
 
 void X6502::DMW(uint32 A, uint8 V) {
   ADDCYC(1);
-  fceulib__.fceu->BWrite[A](A, V);
+  fceulib__.fceu->BWrite[A](fc, A, V);
 }
 
 #define PUSH(V)              \

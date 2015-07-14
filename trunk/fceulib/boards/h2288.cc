@@ -39,8 +39,8 @@ static void H2288PW(uint32 A, uint8 V) {
 
 static DECLFW(H2288WriteHi) {
   switch (A&0x8001) {
-    case 0x8000: MMC3_CMDWrite(0x8000,(V&0xC0)|(m114_perm[V&7])); break;
-    case 0x8001: MMC3_CMDWrite(0x8001,V); break;
+  case 0x8000: MMC3_CMDWrite(fc, 0x8000,(V&0xC0)|(m114_perm[V&7])); break;
+  case 0x8001: MMC3_CMDWrite(fc, 0x8001,V); break;
   }
 }
 

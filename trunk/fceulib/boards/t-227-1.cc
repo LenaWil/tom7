@@ -76,8 +76,8 @@ static DECLFW(BMCT2271LoWrite)
 static DECLFR(BMCT2271HiRead)
 {
   uint32 av = A;
-  if(EXPREGS[0]&0x40) av = (av & 0xFFF0)|reset_flag;
-  return Cart::CartBR(av);
+  if (EXPREGS[0]&0x40) av = (av & 0xFFF0)|reset_flag;
+  return Cart::CartBR(fc, av);
 }
 
 static void BMCT2271Reset(void)

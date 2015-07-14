@@ -54,44 +54,44 @@ static void Sync(void) {
 }
 
 static DECLFW(UNLCITYFIGHTWrite) {
-	//FCEU_printf("%04x %02x",A,V);
-	switch (A & 0xF00C) {
-	case 0x9000: prg_reg = V & 0xC; mirr = V & 3; break;
-	case 0x9004:
-	case 0x9008:
-	case 0x900C:
-		if (A & 0x800)
-			pcmwrite(0x4011, (V & 0xf) << 3);
-		else
-			prg_reg = V & 0xC;
-		break;
-	case 0xC000:
-	case 0xC004:
-	case 0xC008:
-	case 0xC00C: prg_mode = V & 1; break;
-	case 0xD000: chr_reg[0] = (chr_reg[0] & 0xF0) | (V & 0x0F); break;
-	case 0xD004: chr_reg[0] = (chr_reg[0] & 0x0F) | (V << 4); break;
-	case 0xD008: chr_reg[1] = (chr_reg[1] & 0xF0) | (V & 0x0F); break;
-	case 0xD00C: chr_reg[1] = (chr_reg[1] & 0x0F) | (V << 4); break;
-	case 0xA000: chr_reg[2] = (chr_reg[2] & 0xF0) | (V & 0x0F); break;
-	case 0xA004: chr_reg[2] = (chr_reg[2] & 0x0F) | (V << 4); break;
-	case 0xA008: chr_reg[3] = (chr_reg[3] & 0xF0) | (V & 0x0F); break;
-	case 0xA00C: chr_reg[3] = (chr_reg[3] & 0x0F) | (V << 4); break;
-	case 0xB000: chr_reg[4] = (chr_reg[4] & 0xF0) | (V & 0x0F); break;
-	case 0xB004: chr_reg[4] = (chr_reg[4] & 0x0F) | (V << 4); break;
-	case 0xB008: chr_reg[5] = (chr_reg[5] & 0xF0) | (V & 0x0F); break;
-	case 0xB00C: chr_reg[5] = (chr_reg[5] & 0x0F) | (V << 4); break;
-	case 0xE000: chr_reg[6] = (chr_reg[6] & 0xF0) | (V & 0x0F); break;
-	case 0xE004: chr_reg[6] = (chr_reg[6] & 0x0F) | (V << 4); break;
-	case 0xE008: chr_reg[7] = (chr_reg[7] & 0xF0) | (V & 0x0F); break;
-	case 0xE00C: chr_reg[7] = (chr_reg[7] & 0x0F) | (V << 4); break;
-	case 0xF000: IRQCount = ((IRQCount & 0x1E0) | ((V & 0xF) << 1)); break;
-	case 0xF004: IRQCount = ((IRQCount & 0x1E) | ((V & 0xF) << 5)); break;
-	case 0xF008: IRQa = V & 2; fceulib__.X->IRQEnd(FCEU_IQEXT); break;
-	default:
-		break;
-	}
-	Sync();
+  //FCEU_printf("%04x %02x",A,V);
+  switch (A & 0xF00C) {
+  case 0x9000: prg_reg = V & 0xC; mirr = V & 3; break;
+  case 0x9004:
+  case 0x9008:
+  case 0x900C:
+    if (A & 0x800)
+      pcmwrite(fc, 0x4011, (V & 0xf) << 3);
+    else
+      prg_reg = V & 0xC;
+    break;
+  case 0xC000:
+  case 0xC004:
+  case 0xC008:
+  case 0xC00C: prg_mode = V & 1; break;
+  case 0xD000: chr_reg[0] = (chr_reg[0] & 0xF0) | (V & 0x0F); break;
+  case 0xD004: chr_reg[0] = (chr_reg[0] & 0x0F) | (V << 4); break;
+  case 0xD008: chr_reg[1] = (chr_reg[1] & 0xF0) | (V & 0x0F); break;
+  case 0xD00C: chr_reg[1] = (chr_reg[1] & 0x0F) | (V << 4); break;
+  case 0xA000: chr_reg[2] = (chr_reg[2] & 0xF0) | (V & 0x0F); break;
+  case 0xA004: chr_reg[2] = (chr_reg[2] & 0x0F) | (V << 4); break;
+  case 0xA008: chr_reg[3] = (chr_reg[3] & 0xF0) | (V & 0x0F); break;
+  case 0xA00C: chr_reg[3] = (chr_reg[3] & 0x0F) | (V << 4); break;
+  case 0xB000: chr_reg[4] = (chr_reg[4] & 0xF0) | (V & 0x0F); break;
+  case 0xB004: chr_reg[4] = (chr_reg[4] & 0x0F) | (V << 4); break;
+  case 0xB008: chr_reg[5] = (chr_reg[5] & 0xF0) | (V & 0x0F); break;
+  case 0xB00C: chr_reg[5] = (chr_reg[5] & 0x0F) | (V << 4); break;
+  case 0xE000: chr_reg[6] = (chr_reg[6] & 0xF0) | (V & 0x0F); break;
+  case 0xE004: chr_reg[6] = (chr_reg[6] & 0x0F) | (V << 4); break;
+  case 0xE008: chr_reg[7] = (chr_reg[7] & 0xF0) | (V & 0x0F); break;
+  case 0xE00C: chr_reg[7] = (chr_reg[7] & 0x0F) | (V << 4); break;
+  case 0xF000: IRQCount = ((IRQCount & 0x1E0) | ((V & 0xF) << 1)); break;
+  case 0xF004: IRQCount = ((IRQCount & 0x1E) | ((V & 0xF) << 5)); break;
+  case 0xF008: IRQa = V & 2; fceulib__.X->IRQEnd(FCEU_IQEXT); break;
+  default:
+    break;
+  }
+  Sync();
 }
 
 static void UNLCITYFIGHTIRQ(int a) {

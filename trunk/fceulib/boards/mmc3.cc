@@ -478,7 +478,7 @@ static DECLFW(M44Write)
   FixMMC3CHR(MMC3_cmd);
  }
  else
-  MMC3_CMDWrite(A,V);
+  MMC3_CMDWrite(DECLFW_FORWARD);
 }
 
 static void M44Power()
@@ -764,13 +764,13 @@ static void M114PWRAP(uint32 A, uint8 V) {
 
 static DECLFW(M114Write) {
   switch (A&0xE001) {
-   case 0x8001: MMC3_CMDWrite(0xA000,V); break;
-   case 0xA000: MMC3_CMDWrite(0x8000,(V&0xC0)|(m114_perm[V&7])); cmdin=1; break;
-   case 0xC000: if (!cmdin) break; MMC3_CMDWrite(0x8001,V); cmdin=0; break;
-   case 0xA001: IRQLatch=V; break;
-   case 0xC001: IRQReload=1; break;
-   case 0xE000: fceulib__.X->IRQEnd(FCEU_IQEXT);IRQa=0; break;
-   case 0xE001: IRQa=1; break;
+  case 0x8001: MMC3_CMDWrite(fc, 0xA000,V); break;
+  case 0xA000: MMC3_CMDWrite(fc, 0x8000,(V&0xC0)|(m114_perm[V&7])); cmdin=1; break;
+  case 0xC000: if (!cmdin) break; MMC3_CMDWrite(fc, 0x8001,V); cmdin=0; break;
+  case 0xA001: IRQLatch=V; break;
+  case 0xC001: IRQReload=1; break;
+  case 0xE000: fceulib__.X->IRQEnd(FCEU_IQEXT);IRQa=0; break;
+  case 0xE001: IRQa=1; break;
   }
 }
 
@@ -1121,16 +1121,14 @@ static void M196PW(uint32 A, uint8 V)
 //  fceulib__.cart->setchr1(A,(V&0xDD)|((V&0x20)>>4)|((V&2)<<4));
 //}
 
-static DECLFW(Mapper196Write)
-{
+static DECLFW(Mapper196Write) {
   if (A >= 0xC000) {
-   A=(A&0xFFFE)|((A>>2)&1)|((A>>3)&1);
-   MMC3_IRQWrite(A,V);
-  }
-  else {
-   A=(A&0xFFFE)|((A>>2)&1)|((A>>3)&1)|((A>>1)&1);
-//   A=(A&0xFFFE)|((A>>3)&1);                        // Mali Splash Bomb
-   MMC3_CMDWrite(A,V);
+    A=(A&0xFFFE)|((A>>2)&1)|((A>>3)&1);
+    MMC3_IRQWrite(DECLFW_FORWARD);
+  } else {
+    A=(A&0xFFFE)|((A>>2)&1)|((A>>3)&1)|((A>>1)&1);
+    //   A=(A&0xFFFE)|((A>>3)&1);                        // Mali Splash Bomb
+    MMC3_CMDWrite(DECLFW_FORWARD);
   }
 }
 
@@ -1219,7 +1217,7 @@ static DECLFW(M205Write) {
    FixMMC3PRG(MMC3_cmd);
    FixMMC3CHR(MMC3_cmd);
  } else {
-   Cart::CartBW(A,V);
+   Cart::CartBW(DECLFW_FORWARD);
  }
 }
 
@@ -1324,14 +1322,12 @@ void Mapper249_Init(CartInfo *info)
 
 // ---------------------------- Mapper 250 ------------------------------
 
-static DECLFW(M250Write)
-{
- MMC3_CMDWrite((A&0xE000)|((A&0x400)>>10),A&0xFF);
+static DECLFW(M250Write) {
+  MMC3_CMDWrite(fc, (A&0xE000)|((A&0x400)>>10),A&0xFF);
 }
 
-static DECLFW(M250IRQWrite)
-{
- MMC3_IRQWrite((A&0xE000)|((A&0x400)>>10),A&0xFF);
+static DECLFW(M250IRQWrite) {
+  MMC3_IRQWrite(fc, (A&0xE000)|((A&0x400)>>10),A&0xFF);
 }
 
 static void M250_Power()
@@ -1364,7 +1360,7 @@ static DECLFW(M254Write)
                break;
   case 0xA001: EXPREGS[1]=V;
  }
- MMC3_CMDWrite(A,V);
+ MMC3_CMDWrite(DECLFW_FORWARD);
 }
 
 static void M254_Power()

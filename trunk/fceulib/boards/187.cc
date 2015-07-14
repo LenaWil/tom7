@@ -49,13 +49,13 @@ static void M187PW(uint32 A, uint8 V) {
 static DECLFW(M187Write8000)
 {
   EXPREGS[1]=1;
-  MMC3_CMDWrite(A,V);
+  MMC3_CMDWrite(DECLFW_FORWARD);
 }
 
 static DECLFW(M187Write8001)
 {
   if(EXPREGS[1])
-    MMC3_CMDWrite(A,V);
+    MMC3_CMDWrite(DECLFW_FORWARD);
 }
 
 static DECLFW(M187WriteLo)

@@ -56,7 +56,7 @@ static DECLFR(UNLD2000Read) {
   if (prg & 0x40)
     return fceulib__.X->DB;
   else
-    return Cart::CartBR(A);
+    return Cart::CartBR(DECLFR_FORWARD);
 }
 
 static void UNLD2000Power(void) {

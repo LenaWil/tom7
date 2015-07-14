@@ -67,7 +67,7 @@ static DECLFW(VRC6SW) {
 static DECLFW(Mapper24_write) {
   if (swaparoo) A = (A & 0xFFFC) | ((A >> 1) & 1) | ((A << 1) & 2);
   if (A >= 0x9000 && A <= 0xb002) {
-    VRC6SW(A, V);
+    VRC6SW(DECLFW_FORWARD);
     return;
   }
   A &= 0xF003;

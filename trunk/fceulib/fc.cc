@@ -28,7 +28,7 @@ FC::FC() {
   sound = new Sound;
   unif = new Unif;
   vsuni = new VSUni;
-  X = new X6502;
+  X = new X6502(this);
   state = new State;
 }
 

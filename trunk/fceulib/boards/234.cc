@@ -40,7 +40,7 @@ static void Sync(void) {
 }
 
 DECLFR(M234ReadBank) {
-  uint8 r = Cart::CartBR(A);
+  uint8 r = Cart::CartBR(DECLFR_FORWARD);
   if (!bank) {
     bank = r;
     Sync();
@@ -49,7 +49,7 @@ DECLFR(M234ReadBank) {
 }
 
 DECLFR(M234ReadPreg) {
-  uint8 r = Cart::CartBR(A);
+  uint8 r = Cart::CartBR(DECLFR_FORWARD);
   preg = r;
   Sync();
   return r;

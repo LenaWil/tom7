@@ -117,7 +117,7 @@ static DECLFR(BMCD1038Read) {
   if (latche & 0x100)
     return dipswitch;
   else
-    return Cart::CartBR(A);
+    return Cart::CartBR(DECLFR_FORWARD);
 }
 
 static void BMCD1038Reset(void) {
@@ -144,9 +144,9 @@ static void UNL43272Sync(void) {
 
 static DECLFR(UNL43272Read) {
   if (latche & 0x400)
-    return Cart::CartBR(A & 0xFE);
+    return Cart::CartBR(fc, A & 0xFE);
   else
-    return Cart::CartBR(A);
+    return Cart::CartBR(DECLFR_FORWARD);
 }
 
 static void UNL43272Reset(void) {
@@ -189,7 +189,7 @@ static DECLFR(M59Read) {
   if (latche & 0x100)
     return 0;
   else
-    return Cart::CartBR(A);
+    return Cart::CartBR(DECLFR_FORWARD);
 }
 
 void Mapper59_Init(CartInfo *info) {
@@ -286,7 +286,7 @@ void Mapper204_Init(CartInfo *info) {
 //------------------ Map 212 ---------------------------
 
 static DECLFR(M212Read) {
-  uint8 ret = Cart::CartBROB(A);
+  uint8 ret = Cart::CartBROB(DECLFR_FORWARD);
   if ((A & 0xE010) == 0x6000)
     ret |= 0x80;
   return ret;

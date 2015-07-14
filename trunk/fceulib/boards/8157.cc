@@ -41,7 +41,7 @@ static DECLFR(UNL8157Read)
   if(invalid_data&&cmdreg&0x100)
     return 0xFF;
   else
-    return Cart::CartBR(A);
+    return Cart::CartBR(DECLFR_FORWARD);
 }
 
 static DECLFW(UNL8157Write)

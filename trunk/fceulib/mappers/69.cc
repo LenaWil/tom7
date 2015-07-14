@@ -35,7 +35,7 @@ static DECLFW(SUN5BWRAM) {
 
 static DECLFR(SUN5AWRAM) {
   if ((sungah & 0xC0) == 0x40) return fceulib__.X->DB;
-  return Cart::CartBROB(A);
+  return Cart::CartBROB(DECLFR_FORWARD);
 }
 
 static DECLFW(Mapper69_SWL) {
