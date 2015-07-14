@@ -27,6 +27,8 @@
 #include <map>
 #include "fceu.h"
 
+#include "fc.h"
+
 // This is the iNES ROM image format (probably actually NES 2.0), the
 // most popular one.
 //
@@ -39,7 +41,7 @@ struct INesTMasterRomInfo {
 };
 
 struct INes {
-  INes();
+  explicit INes(FC *fc);
 
   int iNESLoad(const char *name, FceuFile *fp, int OverwriteVidMode);
   void iNESStateRestore(int version);
@@ -109,6 +111,8 @@ struct INes {
   void iNESGI(GI h);
   void MapperInit();
   void CheckHInfo();
+
+  FC *fc = nullptr;
 };
 
 // These are allowed to be accessed by mappers. -tom7
@@ -137,16 +141,17 @@ struct INes {
 
 #endif  // INESPRIV
 
-void VRAM_BANK1(uint32 A, uint8 V);
-void VRAM_BANK4(uint32 A,uint32 V);
+// TODO: Maybe should be members of INes.
+void VRAM_BANK1(FC *fc, uint32 A, uint8 V);
+void VRAM_BANK4(FC *fc, uint32 A,uint32 V);
 
-void VROM_BANK1(uint32 A,uint32 V);
-void VROM_BANK2(uint32 A,uint32 V);
-void VROM_BANK4(uint32 A, uint32 V);
-void VROM_BANK8(uint32 V);
-void ROM_BANK8(uint32 A, uint32 V);
-void ROM_BANK16(uint32 A, uint32 V);
-void ROM_BANK32(uint32 V);
+void VROM_BANK1(FC *fc, uint32 A,uint32 V);
+void VROM_BANK2(FC *fc, uint32 A,uint32 V);
+void VROM_BANK4(FC *fc, uint32 A, uint32 V);
+void VROM_BANK8(FC *fc, uint32 V);
+void ROM_BANK8(FC *fc, uint32 A, uint32 V);
+void ROM_BANK16(FC *fc, uint32 A, uint32 V);
+void ROM_BANK32(FC *fc, uint32 V);
 
 // This list is pretty weird, I guess part of some transition
 // to the capital-i Init methods. Many of these are not even

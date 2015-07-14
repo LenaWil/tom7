@@ -83,51 +83,51 @@ static DECLFW(Mapper69_SWH) {
 
 static DECLFW(Mapper69_write) {
   switch (A & 0xE000) {
-    case 0x8000: sunselect = V; break;
-    case 0xa000:
-      sunselect &= 0xF;
-      if (sunselect <= 7)
-        VROM_BANK1(sunselect << 10, V);
-      else
-        switch (sunselect & 0x0f) {
-          case 8:
-            sungah = V;
-            if (V & 0x40) {
-              if (V & 0x80) {
-                // Select WRAM
-                fceulib__.cart->setprg8r(0x10, 0x6000, 0);
-              }
-            } else {
-              fceulib__.cart->setprg8(0x6000, V);
-            }
-            break;
-          case 9: ROM_BANK8(0x8000, V); break;
-          case 0xa: ROM_BANK8(0xa000, V); break;
-          case 0xb: ROM_BANK8(0xc000, V); break;
-          case 0xc:
-            switch (V & 3) {
-              case 0: fceulib__.ines->MIRROR_SET2(1); break;
-              case 1: fceulib__.ines->MIRROR_SET2(0); break;
-              case 2: fceulib__.ines->onemir(0); break;
-              case 3: fceulib__.ines->onemir(1); break;
-            }
-            break;
-          case 0xd:
-            fceulib__.ines->iNESIRQa = V;
-            fceulib__.X->IRQEnd(FCEU_IQEXT);
-            break;
-          case 0xe:
-            fceulib__.ines->iNESIRQCount &= 0xFF00;
-            fceulib__.ines->iNESIRQCount |= V;
-            fceulib__.X->IRQEnd(FCEU_IQEXT);
-            break;
-          case 0xf:
-            fceulib__.ines->iNESIRQCount &= 0x00FF;
-            fceulib__.ines->iNESIRQCount |= V << 8;
-            fceulib__.X->IRQEnd(FCEU_IQEXT);
-            break;
-        }
-      break;
+  case 0x8000: sunselect = V; break;
+  case 0xa000:
+    sunselect &= 0xF;
+    if (sunselect <= 7)
+      VROM_BANK1(fc, sunselect << 10, V);
+    else
+      switch (sunselect & 0x0f) {
+      case 8:
+	sungah = V;
+	if (V & 0x40) {
+	  if (V & 0x80) {
+	    // Select WRAM
+	    fceulib__.cart->setprg8r(0x10, 0x6000, 0);
+	  }
+	} else {
+	  fceulib__.cart->setprg8(0x6000, V);
+	}
+	break;
+      case 9: ROM_BANK8(fc, 0x8000, V); break;
+      case 0xa: ROM_BANK8(fc, 0xa000, V); break;
+      case 0xb: ROM_BANK8(fc, 0xc000, V); break;
+      case 0xc:
+	switch (V & 3) {
+	case 0: fceulib__.ines->MIRROR_SET2(1); break;
+	case 1: fceulib__.ines->MIRROR_SET2(0); break;
+	case 2: fceulib__.ines->onemir(0); break;
+	case 3: fceulib__.ines->onemir(1); break;
+	}
+	break;
+      case 0xd:
+	fceulib__.ines->iNESIRQa = V;
+	fceulib__.X->IRQEnd(FCEU_IQEXT);
+	break;
+      case 0xe:
+	fceulib__.ines->iNESIRQCount &= 0xFF00;
+	fceulib__.ines->iNESIRQCount |= V;
+	fceulib__.X->IRQEnd(FCEU_IQEXT);
+	break;
+      case 0xf:
+	fceulib__.ines->iNESIRQCount &= 0x00FF;
+	fceulib__.ines->iNESIRQCount |= V << 8;
+	fceulib__.X->IRQEnd(FCEU_IQEXT);
+	break;
+      }
+    break;
   }
 }
 

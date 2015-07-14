@@ -74,42 +74,42 @@ static DECLFW(Mapper24_write) {
   //        if (A>=0xF000) printf("%d, %d,
   //        $%04x:$%02x\n",scanline,timestamp,A,V);
   switch (A & 0xF003) {
-    case 0x8000: ROM_BANK16(0x8000, V); break;
-    case 0xB003:
-      switch (V & 0xF) {
-        case 0x0: fceulib__.ines->MIRROR_SET2(1); break;
-        case 0x4: fceulib__.ines->MIRROR_SET2(0); break;
-        case 0x8: fceulib__.ines->onemir(0); break;
-        case 0xC: fceulib__.ines->onemir(1); break;
-      }
-      break;
-    case 0xC000: ROM_BANK8(0xC000, V); break;
-    case 0xD000: VROM_BANK1(0x0000, V); break;
-    case 0xD001: VROM_BANK1(0x0400, V); break;
-    case 0xD002: VROM_BANK1(0x0800, V); break;
-    case 0xD003: VROM_BANK1(0x0c00, V); break;
-    case 0xE000: VROM_BANK1(0x1000, V); break;
-    case 0xE001: VROM_BANK1(0x1400, V); break;
-    case 0xE002: VROM_BANK1(0x1800, V); break;
-    case 0xE003: VROM_BANK1(0x1c00, V); break;
-    case 0xF000:
-      fceulib__.ines->iNESIRQLatch = V;
-      // acount=0;
-      break;
-    case 0xF001:
-      fceulib__.ines->iNESIRQa = V & 2;
-      vrctemp = V & 1;
-      if (V & 2) {
-        fceulib__.ines->iNESIRQCount = fceulib__.ines->iNESIRQLatch;
-        acount = 0;
-      }
-      fceulib__.X->IRQEnd(FCEU_IQEXT);
-      break;
-    case 0xf002:
-      fceulib__.ines->iNESIRQa = vrctemp;
-      fceulib__.X->IRQEnd(FCEU_IQEXT);
-      break;
-    case 0xF003: break;
+  case 0x8000: ROM_BANK16(fc, 0x8000, V); break;
+  case 0xB003:
+    switch (V & 0xF) {
+    case 0x0: fceulib__.ines->MIRROR_SET2(1); break;
+    case 0x4: fceulib__.ines->MIRROR_SET2(0); break;
+    case 0x8: fceulib__.ines->onemir(0); break;
+    case 0xC: fceulib__.ines->onemir(1); break;
+    }
+    break;
+  case 0xC000: ROM_BANK8(fc, 0xC000, V); break;
+  case 0xD000: VROM_BANK1(fc, 0x0000, V); break;
+  case 0xD001: VROM_BANK1(fc, 0x0400, V); break;
+  case 0xD002: VROM_BANK1(fc, 0x0800, V); break;
+  case 0xD003: VROM_BANK1(fc, 0x0c00, V); break;
+  case 0xE000: VROM_BANK1(fc, 0x1000, V); break;
+  case 0xE001: VROM_BANK1(fc, 0x1400, V); break;
+  case 0xE002: VROM_BANK1(fc, 0x1800, V); break;
+  case 0xE003: VROM_BANK1(fc, 0x1c00, V); break;
+  case 0xF000:
+    fceulib__.ines->iNESIRQLatch = V;
+    // acount=0;
+    break;
+  case 0xF001:
+    fceulib__.ines->iNESIRQa = V & 2;
+    vrctemp = V & 1;
+    if (V & 2) {
+      fceulib__.ines->iNESIRQCount = fceulib__.ines->iNESIRQLatch;
+      acount = 0;
+    }
+    fceulib__.X->IRQEnd(FCEU_IQEXT);
+    break;
+  case 0xf002:
+    fceulib__.ines->iNESIRQa = vrctemp;
+    fceulib__.X->IRQEnd(FCEU_IQEXT);
+    break;
+  case 0xF003: break;
   }
 }
 

@@ -21,7 +21,7 @@ FC::FC() {
   fceu = new FCEU;
   fds = new FDS;
   filter = new Filter;
-  ines = new INes;
+  ines = new INes(this);
   input = new Input;
   palette = new Palette;
   ppu = new PPU;

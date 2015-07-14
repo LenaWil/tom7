@@ -24,9 +24,7 @@
 #define page mapbyte1[1]
 
 static uint32 Get8K(uint32 A) {
-  uint32 bank;
-
-  bank = (page << 2) | ((A >> 13) & 1);
+  uint32 bank = (page << 2) | ((A >> 13) & 1);
 
   if (A & 0x4000 && !(mode & 1)) bank |= 0xC;
   if (!(A & 0x8000)) bank |= 0x20;
@@ -37,13 +35,12 @@ static uint32 Get8K(uint32 A) {
   return (bank);
 }
 
-static void Synco(void) {
-  uint32 x;
+static void Synco(FC *fc) {
   if (mapbyte1[0] <= 2)
     fceulib__.ines->MIRROR_SET2(1);
   else
     fceulib__.ines->MIRROR_SET2(0);
-  for (x = 0x6000; x < 0x10000; x += 8192) ROM_BANK8(x, Get8K(x));
+  for (uint32 x = 0x6000; x < 0x10000; x += 8192) ROM_BANK8(fc, x, Get8K(x));
 }
 
 static DECLFW(Write) {
@@ -53,7 +50,7 @@ static DECLFW(Write) {
     mapbyte1[0] = (mapbyte1[0] & 2) | ((V >> 1) & 1);
 
   if (A & 0x4000) mapbyte1[0] = (mapbyte1[0] & 1) | ((V >> 3) & 2);
-  Synco();
+  Synco(fc);
 }
 
 void Mapper51_init(void) {
@@ -61,5 +58,5 @@ void Mapper51_init(void) {
   fceulib__.fceu->SetReadHandler(0x6000, 0xFFFF, Cart::CartBR);
   mapbyte1[0] = 1;
   mapbyte1[1] = 0;
-  Synco();
+  Synco(&fceulib__);
 }

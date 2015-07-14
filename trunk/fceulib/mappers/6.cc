@@ -55,29 +55,29 @@ static void FFEIRQHook(int a) {
 DECLFW(Mapper6_write) {
   if (A < 0x8000) {
     switch (A) {
-      case 0x42FF: fceulib__.ines->MIRROR_SET((V >> 4) & 1); break;
-      case 0x42FE:
-        fceulib__.ines->onemir((V >> 3) & 2);
-        FFEmode = V & 0x80;
-        break;
-      case 0x4501:
-        fceulib__.ines->iNESIRQa = 0;
-        fceulib__.X->IRQEnd(FCEU_IQEXT);
-        break;
-      case 0x4502:
-        fceulib__.ines->iNESIRQCount &= 0xFF00;
-        fceulib__.ines->iNESIRQCount |= V;
-        break;
-      case 0x4503:
-        fceulib__.ines->iNESIRQCount &= 0xFF;
-        fceulib__.ines->iNESIRQCount |= V << 8;
-        fceulib__.ines->iNESIRQa = 1;
-        break;
+    case 0x42FF: fceulib__.ines->MIRROR_SET((V >> 4) & 1); break;
+    case 0x42FE:
+      fceulib__.ines->onemir((V >> 3) & 2);
+      FFEmode = V & 0x80;
+      break;
+    case 0x4501:
+      fceulib__.ines->iNESIRQa = 0;
+      fceulib__.X->IRQEnd(FCEU_IQEXT);
+      break;
+    case 0x4502:
+      fceulib__.ines->iNESIRQCount &= 0xFF00;
+      fceulib__.ines->iNESIRQCount |= V;
+      break;
+    case 0x4503:
+      fceulib__.ines->iNESIRQCount &= 0xFF;
+      fceulib__.ines->iNESIRQCount |= V << 8;
+      fceulib__.ines->iNESIRQa = 1;
+      break;
     }
   } else {
     switch (FFEmode) {
-      case 0x80: fceulib__.cart->setchr8(V); break;
-      default: ROM_BANK16(0x8000, V >> 2); FVRAM_BANK8(0x0000, V & 3);
+    case 0x80: fceulib__.cart->setchr8(V); break;
+    default: ROM_BANK16(fc, 0x8000, V >> 2); FVRAM_BANK8(0x0000, V & 3);
     }
   }
 }
@@ -99,7 +99,7 @@ void Mapper6_StateRestore(int version) {
 
 void Mapper6_init(void) {
   fceulib__.X->MapIRQHook = FFEIRQHook;
-  ROM_BANK16(0xc000, 7);
+  ROM_BANK16(&fceulib__, 0xc000, 7);
 
   fceulib__.fceu->SetWriteHandler(0x4020, 0x5fff, Mapper6_write);
   fceulib__.fceu->SetWriteHandler(0x8000, 0xffff, Mapper6_write);
