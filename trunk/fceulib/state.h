@@ -37,6 +37,8 @@ struct SFORMAT {
 };
 
 struct State {
+  State();
+
   // Tom 7's simplified versions. These should only be used for in-memory saves!
   bool FCEUSS_SaveRAW(std::vector<uint8> *out);
   bool FCEUSS_LoadRAW(std::vector<uint8> *in);
@@ -61,8 +63,8 @@ struct State {
   void (*SPostSave)() = nullptr;
 
   static constexpr int SFMDATA_SIZE = 64;
-  SFORMAT SFMDATA[SFMDATA_SIZE];
-  int SFEXINDEX;
+  SFORMAT SFMDATA[SFMDATA_SIZE] = {};
+  int SFEXINDEX = 0;
 
   // XXX Can probably init in constructor?
   bool state_initialized = false;

@@ -23,8 +23,9 @@ class PPU {
   void FCEUI_DisableSpriteLimitation(int a);
 
 
-  void (*PPU_hook)(uint32 A);
-  void (*GameHBIRQHook)(), (*GameHBIRQHook2)();
+  void (*PPU_hook)(uint32 A) = nullptr;
+  void (*GameHBIRQHook)() = nullptr;
+  void (*GameHBIRQHook2)() = nullptr;
 
 
   uint8 NTARAM[0x800], PALRAM[0x20], SPRAM[0x100], SPRBUF[0x100];
@@ -50,8 +51,8 @@ class PPU {
   uint8 PPUCHRRAM = 0;
 
   // scanline is equal to the current visible scanline we're on.
-  int scanline;
-  int g_rasterpos;
+  int scanline = 0;
+  int g_rasterpos = 0;
 
 
   // TODO: Kill these.
@@ -140,7 +141,7 @@ class PPU {
   int firsttile = 0;
   int linestartts = 0;
   int tofix = 0;
-  uint8 sprlinebuf[256+8] = {};
+  uint8 sprlinebuf[256 + 8] = {};
 
   // Any sprites on this line? Then this will be set to 1.
   // Needed for zapper emulation and sprite emulation.

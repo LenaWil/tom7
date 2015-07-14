@@ -177,26 +177,26 @@ void Sound::Write_DMCRegs_Direct(DECLFW_ARGS) {
   A &= 0xF;
 
   switch (A) {
-    case 0x00:
-      (this->*DoPCM)();
-      LoadDMCPeriod(V & 0xF);
+  case 0x00:
+    (this->*DoPCM)();
+    LoadDMCPeriod(V & 0xF);
 
-      if (SIRQStat & 0x80) {
-        if (!(V & 0x80)) {
-          fc->X->IRQEnd(FCEU_IQDPCM);
-          SIRQStat &= ~0x80;
-        } else {
-          fc->X->IRQBegin(FCEU_IQDPCM);
-        }
+    if (SIRQStat & 0x80) {
+      if (!(V & 0x80)) {
+	fc->X->IRQEnd(FCEU_IQDPCM);
+	SIRQStat &= ~0x80;
+      } else {
+	fc->X->IRQBegin(FCEU_IQDPCM);
       }
-      DMCFormat = V;
-      break;
-    case 0x01:
-      (this->*DoPCM)();
-      RawDALatch = V & 0x7F;
-      break;
-    case 0x02: DMCAddressLatch = V; break;
-    case 0x03: DMCSizeLatch = V; break;
+    }
+    DMCFormat = V;
+    break;
+  case 0x01:
+    (this->*DoPCM)();
+    RawDALatch = V & 0x7F;
+    break;
+  case 0x02: DMCAddressLatch = V; break;
+  case 0x03: DMCSizeLatch = V; break;
   }
 }
 
@@ -534,7 +534,7 @@ void Sound::RDoSQLQ() {
   }
 
   totalout =
-      wlookup1[ttable[0][RectDutyCount[0]] + ttable[1][RectDutyCount[1]]];
+	 wlookup1[ttable[0][RectDutyCount[0]] + ttable[1][RectDutyCount[1]]];
 
   if (!inie[0] && !inie[1]) {
     for (V = start; V < end; V++) Wave[V >> 4] += totalout;
