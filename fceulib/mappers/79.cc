@@ -23,13 +23,13 @@
 
 DECLFW(Mapper79_write) {
   if (A < 0x8000 && ((A ^ 0x4100) == 0)) {
-    ROM_BANK32((V >> 3) & 1);
+    ROM_BANK32(fc, (V >> 3) & 1);
   }
-  VROM_BANK8(V);
+  VROM_BANK8(fc, V);
 }
 
 void Mapper79_init(void) {
-  ROM_BANK32(~0);
+  ROM_BANK32(&fceulib__, ~0);
   fceulib__.fceu->SetWriteHandler(0x8000, 0xffff, Mapper79_write);
   fceulib__.fceu->SetWriteHandler(0x4020, 0x5fff, Mapper79_write);
 }

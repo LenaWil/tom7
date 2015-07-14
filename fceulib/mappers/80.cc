@@ -55,47 +55,47 @@ static void mira() {
 
 static DECLFW(Mapper80_write) {
   switch (A) {
-    case 0x7ef0:
-      mapbyte2[0] = V;
-      VROM_BANK2(0x0000, (V >> 1) & 0x3F);
-      mira();
-      break;
-    case 0x7ef1:
-      mapbyte2[1] = V;
-      VROM_BANK2(0x0800, (V >> 1) & 0x3f);
-      mira();
-      break;
+  case 0x7ef0:
+    mapbyte2[0] = V;
+    VROM_BANK2(fc, 0x0000, (V >> 1) & 0x3F);
+    mira();
+    break;
+  case 0x7ef1:
+    mapbyte2[1] = V;
+    VROM_BANK2(fc, 0x0800, (V >> 1) & 0x3f);
+    mira();
+    break;
 
-    case 0x7ef2:
-      mapbyte2[2] = V;
-      VROM_BANK1(0x1000, V);
-      mira();
-      break;
-    case 0x7ef3:
-      mapbyte2[3] = V;
-      VROM_BANK1(0x1400, V);
-      mira();
-      break;
-    case 0x7ef4:
-      mapbyte2[4] = V;
-      VROM_BANK1(0x1800, V);
-      mira();
-      break;
-    case 0x7ef5:
-      mapbyte2[5] = V;
-      VROM_BANK1(0x1c00, V);
-      mira();
-      break;
-    case 0x7ef6:
-      mapbyte1[0] = V;
-      mira();
-      break;
-    case 0x7efa:
-    case 0x7efb: ROM_BANK8(0x8000, V); break;
-    case 0x7efd:
-    case 0x7efc: ROM_BANK8(0xA000, V); break;
-    case 0x7efe:
-    case 0x7eff: ROM_BANK8(0xC000, V); break;
+  case 0x7ef2:
+    mapbyte2[2] = V;
+    VROM_BANK1(fc, 0x1000, V);
+    mira();
+    break;
+  case 0x7ef3:
+    mapbyte2[3] = V;
+    VROM_BANK1(fc, 0x1400, V);
+    mira();
+    break;
+  case 0x7ef4:
+    mapbyte2[4] = V;
+    VROM_BANK1(fc, 0x1800, V);
+    mira();
+    break;
+  case 0x7ef5:
+    mapbyte2[5] = V;
+    VROM_BANK1(fc, 0x1c00, V);
+    mira();
+    break;
+  case 0x7ef6:
+    mapbyte1[0] = V;
+    mira();
+    break;
+  case 0x7efa:
+  case 0x7efb: ROM_BANK8(fc, 0x8000, V); break;
+  case 0x7efd:
+  case 0x7efc: ROM_BANK8(fc, 0xA000, V); break;
+  case 0x7efe:
+  case 0x7eff: ROM_BANK8(fc, 0xC000, V); break;
   }
 }
 

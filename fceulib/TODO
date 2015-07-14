@@ -25,6 +25,8 @@ Stuff I should be able to get rid of:
 
  - DECLFR, DECLFW
 
+ - is "moo" defined? mappers/61.cc ifdefs it
+
 Memory todo:
  - Need to check that various objects are actually having their Free or Kill
    methods called, or roll those into the destructors, etc.

@@ -22,14 +22,14 @@
 
 DECLFW(Mapper71_write) {
   switch (A & 0xF000) {
-    case 0xF000:
-    case 0xE000:
-    case 0xD000:
-    case 0xC000: ROM_BANK16(0x8000, V); break;
-    case 0x9000: fceulib__.ines->onemir((V >> 3) & 2); break;
+  case 0xF000:
+  case 0xE000:
+  case 0xD000:
+  case 0xC000: ROM_BANK16(fc, 0x8000, V); break;
+  case 0x9000: fceulib__.ines->onemir((V >> 3) & 2); break;
   }
 }
 
-void Mapper71_init(void) {
+void Mapper71_init() {
   fceulib__.fceu->SetWriteHandler(0x4020, 0xffff, Mapper71_write);
 }

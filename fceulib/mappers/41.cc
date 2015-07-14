@@ -25,26 +25,26 @@
 
 DECLFW(Mapper41_write) {
   if (A < 0x8000) {
-    ROM_BANK32(A & 7);
+    ROM_BANK32(fc, A & 7);
     fceulib__.ines->MIRROR_SET((A >> 5) & 1);
     calreg = A;
     calchr &= 0x3;
     calchr |= (A >> 1) & 0xC;
-    VROM_BANK8(calchr);
+    VROM_BANK8(fc, calchr);
   } else if (calreg & 0x4) {
     calchr &= 0xC;
     calchr |= A & 3;
-    VROM_BANK8(calchr);
+    VROM_BANK8(fc, calchr);
   }
 }
 
-static void M41Reset(void) {
+static void M41Reset() {
   calreg = calchr = 0;
 }
 
-void Mapper41_init(void) {
+void Mapper41_init() {
   fceulib__.ines->MapperReset = M41Reset;
-  ROM_BANK32(0);
+  ROM_BANK32(&fceulib__, 0);
   fceulib__.fceu->SetWriteHandler(0x8000, 0xffff, Mapper41_write);
   fceulib__.fceu->SetWriteHandler(0x6000, 0x67ff, Mapper41_write);
 }
