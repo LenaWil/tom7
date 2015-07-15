@@ -3,6 +3,7 @@
 
 // for GI enum.
 #include "fceu.h"
+#include "fc.h"
 
 struct FceuFile;
 
@@ -12,6 +13,8 @@ struct FceuFile;
 // https://en.wikipedia.org/wiki/Family_Computer_Disk_System
 
 struct FDS {
+  explicit FDS(FC *fc);
+
   void FCEU_FDSInsert();
   void FCEU_FDSSelect();
 
@@ -37,8 +40,7 @@ struct FDS {
   uint8 FDSRegs[6] = {0};
   int32 IRQLatch = 0, IRQCount = 0;
   uint8 IRQa = 0;
-
-
+  
   void HQSync(int32 ts);
     
   void FDSInit();
@@ -101,6 +103,8 @@ struct FDS {
   int ta = 0;
   // TODO: Not saved?
   uint8 fdsread4013_z = 0;
+
+  FC *fc = nullptr;
 };
 
 #endif

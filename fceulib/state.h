@@ -24,6 +24,8 @@
 #include <vector>
 #include "types.h"
 
+#include "fc.h"
+
 struct SFORMAT {
   // a void* to the data or a void** to the data
   void *v;
@@ -37,14 +39,14 @@ struct SFORMAT {
 };
 
 struct State {
-  State();
+  explicit State(FC *fc);
 
   // Tom 7's simplified versions. These should only be used for in-memory saves!
   bool FCEUSS_SaveRAW(std::vector<uint8> *out);
   bool FCEUSS_LoadRAW(std::vector<uint8> *in);
 
   // I think these add additional locations to the set of saved memories.
-  void ResetExState(void (*PreSave)(),void (*PostSave)());
+  void ResetExState(void (*PreSave)(FC *),void (*PostSave)(FC *));
   void AddExStateReal(void *v, uint32 s, int type, char *desc, const char *src);
   
   #define STRINGIFY_LINE_2(x) #x
@@ -59,8 +61,8 @@ struct State {
   bool ReadStateChunk(EMUFILE* is, const SFORMAT *sf, int size);
   bool ReadStateChunks(EMUFILE* is, int32 totalsize);
   
-  void (*SPreSave)() = nullptr;
-  void (*SPostSave)() = nullptr;
+  void (*SPreSave)(FC *) = nullptr;
+  void (*SPostSave)(FC *) = nullptr;
 
   static constexpr int SFMDATA_SIZE = 64;
   SFORMAT SFMDATA[SFMDATA_SIZE] = {};
@@ -70,6 +72,8 @@ struct State {
   bool state_initialized = false;
   std::vector<SFORMAT> sfcpu, sfcpuc;
   void InitState();
+
+  FC *fc = nullptr;
 };
   
 // indicates that the value is a multibyte integer that needs to be
