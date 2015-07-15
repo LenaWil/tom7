@@ -38,7 +38,7 @@ FC::FC() {
   
   cart = new Cart;
   fceu = new FCEU;
-  fds = new FDS;
+  fds = new FDS(this);
   filter = new Filter;
   ines = new INes(this);
   input = new Input;
@@ -46,15 +46,14 @@ FC::FC() {
   ppu = new PPU;
   sound = new Sound(this);
   unif = new Unif;
-  vsuni = new VSUni;
+  vsuni = new VSUni(this);
   X = new X6502(this);
-  state = new State;
+  state = new State(this);
   
   printf("Done creating FC at %p\n", this);
 }
 
 FC::~FC() {
-  printf("Destroying fc at %p.\n");
   delete cart;
   delete fceu;
   delete fds;
@@ -68,7 +67,6 @@ FC::~FC() {
   delete vsuni;
   delete X;
   delete state;
-  printf("Done destroying fc at %p.\n");
 }
 
 FC fceulib__;

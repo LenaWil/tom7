@@ -291,14 +291,14 @@ bool State::FCEUSS_SaveRAW(std::vector<uint8> *out) {
   totalsize += WriteStateChunk(&os,5,fceulib__.sound->FCEUSND_STATEINFO());
   // TRACEV(*out);
 
-  if (SPreSave) SPreSave();
+  if (SPreSave) SPreSave(fc);
   // This allows other parts of the system to hook into things to be
   // saved. It is indeed used for "WRAM", "LATC", "BUSC". -tom7
   // TRACEF("SFMDATA:");
   totalsize += WriteStateChunk(&os,0x10,SFMDATA);
   // TRACEV(*out);
   // Was just spre, but that seems wrong -tom7
-  if (SPreSave && SPostSave) SPostSave();
+  if (SPreSave && SPostSave) SPostSave(fc);
 
   // save the length of the file
   const int len = os.size();
@@ -336,7 +336,7 @@ bool State::FCEUSS_LoadRAW(std::vector<uint8> *in) {
   }
 }
 
-void State::ResetExState(void (*PreSave)(), void (*PostSave)()) {
+void State::ResetExState(void (*PreSave)(FC *), void (*PostSave)(FC *)) {
   for (int x = 0; x < SFEXINDEX; x++) {
     free(SFMDATA[x].desc);
   }
@@ -402,6 +402,4 @@ void State::AddExStateReal(void *v, uint32 s, int type,
   SFMDATA[SFEXINDEX].v = 0;
 }
 
-State::State() {
-  printf("Created state object at %p.\n", this);
-}
+State::State(FC *fc) : fc(fc) {}

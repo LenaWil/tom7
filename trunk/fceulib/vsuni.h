@@ -4,6 +4,7 @@
 #include "state.h"
 #include "types.h"
 #include "fceu.h"
+#include "fc.h"
 
 // This is the VS. UniSystem, I believe, an arcade machine that runs
 // modified NES games.
@@ -13,8 +14,7 @@
 // I don't really test this one, so it may not work.
 
 struct VSUni {
-
-  VSUni();
+  explicit VSUni(FC *fc);
 
   void FCEU_VSUniPower();
   void FCEU_VSUniCheck(uint64 md5partial, int *, uint8 *);
@@ -43,10 +43,6 @@ struct VSUni {
  private:
   const VSUniEntry *curvs = nullptr;
 
-  // Dead?
-  static constexpr uint8 DIPS=0;
-
- 
   const uint8 *secptr = nullptr;
   uint8 VSindex = 0;
 
@@ -59,6 +55,7 @@ struct VSUni {
   uint8 xevselect = 0;
   
   std::vector<SFORMAT> stateinfo;
+  FC *fc = nullptr;
 };
 
 #endif
