@@ -29,169 +29,158 @@
 #include "fceu.h"
 #include "sound.h"
 #include "state.h"
-#include "input/zapper.h"
 #include "input.h"
 #include "vsuni.h"
 #include "fds.h"
 #include "driver.h"
 
+// TODO:
+//  There are a bunch of different input types, basically objects implementing
+//  the INPUTFC or INPUTCFC interface (via function pointers). We should make
+//  them just implement a proper interface, and have some state; Input itself
+//  can probably just have an InputFc and InputCfc pointer within it.
+#include "input/zapper.h"
+#include "input/powerpad.h"
+#include "input/arkanoid.h"
+#include "input/shadow.h"
+#include "input/suborkb.h"
+#include "input/fkb.h"
+#include "input/hypershot.h"
+#include "input/oekakids.h"
+#include "input/mahjong.h"
+#include "input/toprider.h"
+#include "input/bworld.h"
+#include "input/quiz.h"
+#include "input/ftrainer.h"
+
+#include "fc.h"
+
 #include "tracing.h"
 
 // These are from netplay and should be killed
-#define FCEUNPCMD_RESET   0x01
-#define FCEUNPCMD_POWER   0x02
+#define FCEUNPCMD_RESET 0x01
+#define FCEUNPCMD_POWER 0x02
 
-#define FCEUNPCMD_VSUNICOIN     0x07
-#define FCEUNPCMD_VSUNIDIP0	0x08
-#define FCEUNPCMD_FDSINSERTx	0x10
-#define FCEUNPCMD_FDSINSERT	0x18
-#define FCEUNPCMD_FDSSELECT	0x1A
+#define FCEUNPCMD_VSUNICOIN 0x07
+#define FCEUNPCMD_VSUNIDIP0 0x08
+#define FCEUNPCMD_FDSINSERTx 0x10
+#define FCEUNPCMD_FDSINSERT 0x18
+#define FCEUNPCMD_FDSSELECT 0x1A
 
-#define FCEUNPCMD_LOADSTATE     0x80
+#define FCEUNPCMD_LOADSTATE 0x80
 
-#define FCEUNPCMD_SAVESTATE     0x81 /* Sent from server to client. */
-#define FCEUNPCMD_LOADCHEATS	0x82
-#define FCEUNPCMD_TEXT		0x90
+#define FCEUNPCMD_SAVESTATE 0x81 /* Sent from server to client. */
+#define FCEUNPCMD_LOADCHEATS 0x82
+#define FCEUNPCMD_TEXT 0x90
 
-//it is easier to declare these input drivers extern here than include a bunch of files
-//-------------
-extern INPUTC *FCEU_InitZapper(int w);
-extern INPUTC *FCEU_InitPowerpadA(int w);
-extern INPUTC *FCEU_InitPowerpadB(int w);
-extern INPUTC *FCEU_InitArkanoid(int w);
-
-extern INPUTCFC *FCEU_InitArkanoidFC();
-extern INPUTCFC *FCEU_InitSpaceShadow();
-extern INPUTCFC *FCEU_InitFKB();
-extern INPUTCFC *FCEU_InitSuborKB();
-extern INPUTCFC *FCEU_InitHS();
-extern INPUTCFC *FCEU_InitMahjong();
-extern INPUTCFC *FCEU_InitQuizKing();
-extern INPUTCFC *FCEU_InitFamilyTrainerA();
-extern INPUTCFC *FCEU_InitFamilyTrainerB();
-extern INPUTCFC *FCEU_InitOekaKids();
-extern INPUTCFC *FCEU_InitTopRider();
-extern INPUTCFC *FCEU_InitBarcodeWorld();
-//---------------
+//--------------- FKB_LEFT  FCEU_InitMouse
 
 static constexpr bool replaceP2StartWithMicrophone = false;
 
-//This function is a quick hack to get the NSF player to use emulated gamepad input.
-uint8 Input::FCEU_GetJoyJoy() {
-  return joy[0] | joy[1] | joy[2] | joy[3];
-}
-
-//mbg 6/18/08 HACK
+// mbg 6/18/08 HACK
 // XXX no. move into input if we need to.
 extern ZAPPER ZD[2];
-Input::Input() : stateinfo {
-  { joy_readbit,	2, "JYRB"},
-  { joy,		4, "JOYS"},
-  { &LastStrobe,	1, "LSTS"},
-  { &ZD[0].bogo,	1, "ZBG0"},
-  { &ZD[1].bogo,	1, "ZBG1"},
-  { 0 },
-} {
+Input::Input(FC *fc)
+    : stateinfo{
+          {joy_readbit, 2, "JYRB"}, {joy, 4, "JOYS"},
+          {&LastStrobe, 1, "LSTS"}, {&ZD[0].bogo, 1, "ZBG0"},
+          {&ZD[1].bogo, 1, "ZBG1"}, {0},
+      }, fc(fc) {
   TRACEF("Constructing input object..");
   // Constructor body.
 
   // This is a mess -- maybe these things could be std::function, or maybe all
   // the different inputs could be members of Input or trampoline through it.
   GPC = INPUTC{
-    [](int i) { return fceulib__.input->ReadGP(i);},
-    0,
-    [](int i) { return fceulib__.input->StrobeGP(i);},
-    [](int i, void *data, int arg) { return fceulib__.input->UpdateGP(i, data, arg);},
-    0,
-    0,
-    [](int i, MovieRecord *mr) { return fceulib__.input->LogGP(i, mr);},
-    [](int i, MovieRecord *mr) { return fceulib__.input->LoadGP(i, mr);},
+      [](FC *fc, int i) { return fc->input->ReadGP(i); }, 0,
+      [](int i) { return fceulib__.input->StrobeGP(i); },
+      [](int i, void *data, int arg) {
+        return fceulib__.input->UpdateGP(i, data, arg);
+      },
+      0, 0,
+      [](int i, MovieRecord *mr) { return fceulib__.input->LogGP(i, mr); },
+      [](int i, MovieRecord *mr) { return fceulib__.input->LoadGP(i, mr); },
   };
 
   GPCVS = INPUTC{
-    [](int i) { return fceulib__.input->ReadGPVS(i);},
-    0,
-    [](int i) { return fceulib__.input->StrobeGP(i);},
-    [](int i, void *data, int arg) { return fceulib__.input->UpdateGP(i, data, arg);},
-    0,
-    0,
-    [](int i, MovieRecord *mr) { return fceulib__.input->LogGP(i, mr);},
-    [](int i, MovieRecord *mr) { return fceulib__.input->LoadGP(i, mr);},
+      [](FC *fc, int i) { return fc->input->ReadGPVS(i); }, 0,
+      [](int i) { return fceulib__.input->StrobeGP(i); },
+      [](int i, void *data, int arg) {
+        return fceulib__.input->UpdateGP(i, data, arg);
+      },
+      0, 0,
+      [](int i, MovieRecord *mr) { return fceulib__.input->LogGP(i, mr); },
+      [](int i, MovieRecord *mr) { return fceulib__.input->LoadGP(i, mr); },
   };
 
   FAMI4C = INPUTCFC{
-    [](int i, uint8 ret) { return fceulib__.input->ReadFami4(i, ret); },
-    0,
-    []() { return fceulib__.input->StrobeFami4(); },
-    0,
-    0,
-    0
-  };
+      [](FC *fc, int i, uint8 ret) { return fc->input->ReadFami4(i, ret); },
+      0,
+      []() { return fceulib__.input->StrobeFami4(); },
+      0,
+      0,
+      0};
 }
 
 static DECLFR(JPRead) {
-  return fceulib__.input->JPRead_Direct(DECLFR_FORWARD);
+  return fc->input->JPRead_Direct(DECLFR_FORWARD);
 }
 
 DECLFR_RET Input::JPRead_Direct(DECLFR_ARGS) {
   uint8 ret = 0;
 
-  ret|=joyports[A&1].driver->Read(A&1);
+  ret |= joyports[A & 1].driver->Read(fc, A & 1);
 
   // Test if the port 2 start button is being pressed.
   // On a famicom, port 2 start shouldn't exist, so this removes it.
   // Games can't automatically be checked for NES/Famicom status,
   // so it's an all-encompassing change in the input config menu.
-  if (replaceP2StartWithMicrophone && (A&1) && joy_readbit[1] == 4) {
+  if (replaceP2StartWithMicrophone && (A & 1) && joy_readbit[1] == 4) {
     // Nullify Port 2 Start Button
-    ret&=0xFE;
+    ret &= 0xFE;
   }
 
-  if (portFC.driver)
-    ret = portFC.driver->Read(A&1,ret);
+  if (portFC.driver) ret = portFC.driver->Read(fc, A & 1, ret);
 
   // Not verified against hardware.
   if (replaceP2StartWithMicrophone) {
-    if (joy[1]&8) {
+    if (joy[1] & 8) {
       microphone = !microphone;
       if (microphone) {
-	ret|=4;
+        ret |= 4;
       }
     } else {
       microphone = false;
     }
   }
 
-  ret |= fceulib__.X->DB & 0xC0;
+  ret |= fc->X->DB & 0xC0;
 
   return ret;
 }
 
 static DECLFW(B4016) {
-  return fceulib__.input->B4016_Direct(DECLFW_FORWARD);
+  return fc->input->B4016_Direct(DECLFW_FORWARD);
 }
 
 void Input::B4016_Direct(DECLFW_ARGS) {
-  if (portFC.driver)
-    portFC.driver->Write(V&7);
+  if (portFC.driver) portFC.driver->Write(V & 7);
 
-  for (int i=0;i<2;i++)
-    joyports[i].driver->Write(V & 1);
+  for (int i = 0; i < 2; i++) joyports[i].driver->Write(V & 1);
 
   if ((LastStrobe & 1) && !(V & 1)) {
-    //old comment:
-    //This strobe code is just for convenience.  If it were
-    //with the code in input / *.c, it would more accurately represent
-    //what's really going on.  But who wants accuracy? ;)
-    //Seriously, though, this shouldn't be a problem.
-    //new comment:
+    // old comment:
+    // This strobe code is just for convenience.  If it were
+    // with the code in input / *.c, it would more accurately represent
+    // what's really going on.  But who wants accuracy? ;)
+    // Seriously, though, this shouldn't be a problem.
+    // new comment:
 
-    //mbg 6/7/08 - I guess he means that the input drivers could track the strobing themselves
-    //I dont see why it is unreasonable here.
-    for (int i=0;i<2;i++)
-      joyports[i].driver->Strobe(i);
-    if (portFC.driver)
-      portFC.driver->Strobe();
+    // mbg 6/7/08 - I guess he means that the input drivers could track the
+    // strobing themselves
+    // I dont see why it is unreasonable here.
+    for (int i = 0; i < 2; i++) joyports[i].driver->Strobe(i);
+    if (portFC.driver) portFC.driver->Strobe();
   }
   LastStrobe = V & 0x1;
 }
@@ -202,11 +191,13 @@ void Input::StrobeFami4() {
 }
 
 uint8 Input::ReadFami4(int w, uint8 ret) {
-  ret&=1;
+  ret &= 1;
 
-  ret |= ((fceulib__.input->joy[2+w]>>(F4ReadBit[w]))&1)<<1;
-  if (F4ReadBit[w] >= 8) ret |= 2;
-  else F4ReadBit[w]++;
+  ret |= ((fc->input->joy[2 + w] >> (F4ReadBit[w])) & 1) << 1;
+  if (F4ReadBit[w] >= 8)
+    ret |= 2;
+  else
+    F4ReadBit[w]++;
 
   return ret;
 }
@@ -215,12 +206,11 @@ uint8 Input::ReadFami4(int w, uint8 ret) {
 
 //^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-
 uint8 Input::ReadGPVS(int w) {
-  uint8 ret=0;
+  uint8 ret = 0;
 
-  if (joy_readbit[w]>=8) {
-    ret=1;
+  if (joy_readbit[w] >= 8) {
+    ret = 1;
   } else {
     ret = (joy[w] >> joy_readbit[w]) & 1;
     joy_readbit[w]++;
@@ -238,8 +228,8 @@ void Input::UpdateGP(int w, void *data, int arg) {
   }
 }
 
-void Input::LogGP(int w, MovieRecord* mr) {
-  if (w==0) {
+void Input::LogGP(int w, MovieRecord *mr) {
+  if (w == 0) {
     mr->joysticks[0] = joy[0];
     mr->joysticks[2] = joy[2];
   } else {
@@ -248,8 +238,8 @@ void Input::LogGP(int w, MovieRecord* mr) {
   }
 }
 
-void Input::LoadGP(int w, MovieRecord* mr) {
-  if (w==0) {
+void Input::LoadGP(int w, MovieRecord *mr) {
+  if (w == 0) {
     joy[0] = mr->joysticks[0];
     if (FSAttached) joy[2] = mr->joysticks[2];
   } else {
@@ -262,16 +252,16 @@ void Input::LoadGP(int w, MovieRecord* mr) {
 uint8 Input::ReadGP(int w) {
   uint8 ret;
 
-  if (joy_readbit[w]>=8) {
-    ret = (joy[2+w]>>(joy_readbit[w]&7)) & 1;
+  if (joy_readbit[w] >= 8) {
+    ret = (joy[2 + w] >> (joy_readbit[w] & 7)) & 1;
   } else {
-    ret = (joy[w]>>(joy_readbit[w])) & 1;
+    ret = (joy[w] >> (joy_readbit[w])) & 1;
   }
-  if (joy_readbit[w]>=16) ret=0;
+  if (joy_readbit[w] >= 16) ret = 0;
   if (!FSAttached) {
-    if (joy_readbit[w]>=8) ret |= 1;
+    if (joy_readbit[w] >= 8) ret |= 1;
   } else {
-    if (joy_readbit[w]==19-w) ret |= 1;
+    if (joy_readbit[w] == 19 - w) ret |= 1;
   }
   joy_readbit[w]++;
   return ret;
@@ -284,59 +274,57 @@ void Input::StrobeGP(int w) {
 //^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^6
 
 void Input::FCEU_DrawInput(uint8 *buf) {
-  for (int pad=0; pad < 2; pad++)
-    joyports[pad].driver->Draw(pad,buf,joyports[pad].attrib);
-  if (portFC.driver)
-    portFC.driver->Draw(buf,portFC.attrib);
+  for (int pad = 0; pad < 2; pad++)
+    joyports[pad].driver->Draw(pad, buf, joyports[pad].attrib);
+  if (portFC.driver) portFC.driver->Draw(buf, portFC.attrib);
 }
 
 void Input::FCEU_UpdateInput() {
   TRACECALL();
-  //tell all drivers to poll input and set up their logical states
-  for (int port=0;port<2;port++) {
+  // tell all drivers to poll input and set up their logical states
+  for (int port = 0; port < 2; port++) {
     if (joyports[port].driver)
-      joyports[port].driver->Update(port,joyports[port].ptr,joyports[port].attrib);
+      joyports[port].driver->Update(port, joyports[port].ptr,
+                                    joyports[port].attrib);
   }
-  if (portFC.driver)
-    portFC.driver->Update(portFC.ptr,portFC.attrib);
+  if (portFC.driver) portFC.driver->Update(portFC.ptr, portFC.attrib);
 
-
-  if (fceulib__.fceu->GameInfo->type==GIT_VSUNI)
-    if (fceulib__.vsuni->coinon) fceulib__.vsuni->coinon--;
+  if (fc->fceu->GameInfo->type == GIT_VSUNI)
+    if (fc->vsuni->coinon) fc->vsuni->coinon--;
 
   // This saved it for display, and copied it from the movie if playing. Don't
   // need that any more as it's driven externally. -tom7
   // FCEUMOV_AddInputState();
 
-  //TODO - should this apply to the movie data? should this be displayed in the input hud?
-  if (fceulib__.fceu->GameInfo->type==GIT_VSUNI)
-    fceulib__.vsuni->FCEU_VSUniSwap(&joy[0],&joy[1]);
+  // TODO - should this apply to the movie data? should this be displayed in the
+  // input hud?
+  if (fc->fceu->GameInfo->type == GIT_VSUNI)
+    fc->vsuni->FCEU_VSUniSwap(&joy[0], &joy[1]);
 }
 
 static DECLFR(VSUNIRead0) {
-  return fceulib__.input->VSUNIRead0_Direct(DECLFR_FORWARD);
+  return fc->input->VSUNIRead0_Direct(DECLFR_FORWARD);
 }
 
 DECLFR_RET Input::VSUNIRead0_Direct(DECLFR_ARGS) {
-  uint8 ret=0;
+  uint8 ret = 0;
 
-  ret |= joyports[0].driver->Read(0) & 1;
+  ret |= joyports[0].driver->Read(fc, 0) & 1;
 
-  ret |= (fceulib__.vsuni->vsdip & 3) << 3;
-  if (fceulib__.vsuni->coinon)
-    ret |= 0x4;
+  ret |= (fc->vsuni->vsdip & 3) << 3;
+  if (fc->vsuni->coinon) ret |= 0x4;
   return ret;
 }
 
 static DECLFR(VSUNIRead1) {
-  return fceulib__.input->VSUNIRead1_Direct(DECLFR_FORWARD);
+  return fc->input->VSUNIRead1_Direct(DECLFR_FORWARD);
 }
 
 DECLFR_RET Input::VSUNIRead1_Direct(DECLFR_ARGS) {
-  uint8 ret=0;
+  uint8 ret = 0;
 
-  ret|=(joyports[1].driver->Read(1))&1;
-  ret|=fceulib__.vsuni->vsdip & 0xFC;
+  ret |= (joyports[1].driver->Read(fc, 1)) & 1;
+  ret |= fc->vsuni->vsdip & 0xFC;
   return ret;
 }
 
@@ -345,34 +333,24 @@ DECLFR_RET Input::VSUNIRead1_Direct(DECLFR_ARGS) {
 void Input::InputScanlineHook(uint8 *bg, uint8 *spr, uint32 linets, int final) {
   TRACECALL();
   for (int port = 0; port < 2; port++)
-    joyports[port].driver->SLHook(port,bg,spr,linets,final);
-  portFC.driver->SLHook(bg,spr,linets,final);
+    joyports[port].driver->SLHook(port, bg, spr, linets, final);
+  portFC.driver->SLHook(bg, spr, linets, final);
 }
 
 // binds JPorts[pad] to the driver specified in JPType[pad]
 void Input::SetInputStuff(int port) {
   switch (joyports[port].type) {
   case SI_GAMEPAD:
-    if (fceulib__.fceu->GameInfo->type==GIT_VSUNI)
+    if (fc->fceu->GameInfo->type == GIT_VSUNI)
       joyports[port].driver = &GPCVS;
     else
       joyports[port].driver = &GPC;
     break;
-  case SI_ARKANOID:
-    joyports[port].driver=FCEU_InitArkanoid(port);
-    break;
-  case SI_ZAPPER:
-    joyports[port].driver=FCEU_InitZapper(port);
-    break;
-  case SI_POWERPADA:
-    joyports[port].driver=FCEU_InitPowerpadA(port);
-    break;
-  case SI_POWERPADB:
-    joyports[port].driver=FCEU_InitPowerpadB(port);
-    break;
-  case SI_NONE:
-    joyports[port].driver=&DummyJPort;
-    break;
+  case SI_ARKANOID: joyports[port].driver = FCEU_InitArkanoid(port); break;
+  case SI_ZAPPER: joyports[port].driver = FCEU_InitZapper(port); break;
+  case SI_POWERPADA: joyports[port].driver = FCEU_InitPowerpadA(port); break;
+  case SI_POWERPADB: joyports[port].driver = FCEU_InitPowerpadB(port); break;
+  case SI_NONE: joyports[port].driver = &DummyJPort; break;
   default:;
   }
 }
@@ -380,49 +358,23 @@ void Input::SetInputStuff(int port) {
 void Input::SetInputStuffFC() {
   TRACEF("portfc type %d", portFC.type);
   switch (portFC.type) {
-  case SIFC_NONE:
-    portFC.driver=&DummyPortFC;
-    break;
-  case SIFC_ARKANOID:
-    portFC.driver=FCEU_InitArkanoidFC();
-    break;
-  case SIFC_SHADOW:
-    portFC.driver=FCEU_InitSpaceShadow();
-    break;
-  case SIFC_OEKAKIDS:
-    portFC.driver=FCEU_InitOekaKids();
-    break;
+  case SIFC_NONE: portFC.driver = &DummyPortFC; break;
+  case SIFC_ARKANOID: portFC.driver = FCEU_InitArkanoidFC(); break;
+  case SIFC_SHADOW: portFC.driver = FCEU_InitSpaceShadow(); break;
+  case SIFC_OEKAKIDS: portFC.driver = FCEU_InitOekaKids(); break;
   case SIFC_4PLAYER:
-    portFC.driver=&FAMI4C;
-    memset(&F4ReadBit,0,sizeof(F4ReadBit));
+    portFC.driver = &FAMI4C;
+    memset(&F4ReadBit, 0, sizeof(F4ReadBit));
     break;
-  case SIFC_FKB:
-    portFC.driver=FCEU_InitFKB();
-    break;
-  case SIFC_SUBORKB:
-    portFC.driver=FCEU_InitSuborKB();
-    break;
-  case SIFC_HYPERSHOT:
-    portFC.driver=FCEU_InitHS();
-    break;
-  case SIFC_MAHJONG:
-    portFC.driver=FCEU_InitMahjong();
-    break;
-  case SIFC_QUIZKING:
-    portFC.driver=FCEU_InitQuizKing();
-    break;
-  case SIFC_FTRAINERA:
-    portFC.driver=FCEU_InitFamilyTrainerA();
-    break;
-  case SIFC_FTRAINERB:
-    portFC.driver=FCEU_InitFamilyTrainerB();
-    break;
-  case SIFC_BWORLD:
-    portFC.driver=FCEU_InitBarcodeWorld();
-    break;
-  case SIFC_TOPRIDER:
-    portFC.driver=FCEU_InitTopRider();
-    break;
+  case SIFC_FKB: portFC.driver = FCEU_InitFKB(); break;
+  case SIFC_SUBORKB: portFC.driver = FCEU_InitSuborKB(); break;
+  case SIFC_HYPERSHOT: portFC.driver = FCEU_InitHS(); break;
+  case SIFC_MAHJONG: portFC.driver = FCEU_InitMahjong(); break;
+  case SIFC_QUIZKING: portFC.driver = FCEU_InitQuizKing(); break;
+  case SIFC_FTRAINERA: portFC.driver = FCEU_InitFamilyTrainerA(); break;
+  case SIFC_FTRAINERB: portFC.driver = FCEU_InitFamilyTrainerB(); break;
+  case SIFC_BWORLD: portFC.driver = FCEU_InitBarcodeWorld(); break;
+  case SIFC_TOPRIDER: portFC.driver = FCEU_InitTopRider(); break;
   default:;
   }
 }
@@ -441,28 +393,26 @@ void Input::FCEUI_SetInputFC(ESIFC type, void *ptr, int attrib) {
   SetInputStuffFC();
 }
 
-
 // initializes the input system to power-on state
 void Input::InitializeInput() {
-  memset(joy_readbit,0,sizeof(joy_readbit));
-  memset(joy,0,sizeof(joy));
+  memset(joy_readbit, 0, sizeof(joy_readbit));
+  memset(joy, 0, sizeof(joy));
   LastStrobe = 0;
 
-  if (fceulib__.fceu->GameInfo->type==GIT_VSUNI) {
-    fceulib__.fceu->SetReadHandler(0x4016,0x4016,VSUNIRead0);
-    fceulib__.fceu->SetReadHandler(0x4017,0x4017,VSUNIRead1);
+  if (fc->fceu->GameInfo->type == GIT_VSUNI) {
+    fc->fceu->SetReadHandler(0x4016, 0x4016, VSUNIRead0);
+    fc->fceu->SetReadHandler(0x4017, 0x4017, VSUNIRead1);
   } else {
-    fceulib__.fceu->SetReadHandler(0x4016,0x4017,JPRead);
+    fc->fceu->SetReadHandler(0x4016, 0x4017, JPRead);
   }
 
-  fceulib__.fceu->SetWriteHandler(0x4016,0x4016,B4016);
+  fc->fceu->SetWriteHandler(0x4016, 0x4016, B4016);
 
-  //force the port drivers to be setup
+  // force the port drivers to be setup
   SetInputStuff(0);
   SetInputStuff(1);
   SetInputStuffFC();
 }
-
 
 bool Input::FCEUI_GetInputFourscore() {
   return FSAttached;
@@ -477,16 +427,14 @@ void Input::FCEUI_SetInputFourscore(bool attachFourscore) {
 }
 
 void Input::FCEUI_FDSSelect() {
-  if (!fceulib__.fceu->FCEU_IsValidUI(FCEUI_SWITCH_DISK))
-    return;
+  if (!fc->fceu->FCEU_IsValidUI(FCEUI_SWITCH_DISK)) return;
 
   fprintf(stderr, "Command: Switch disk side");
   FCEU_DoSimpleCommand(FCEUNPCMD_FDSSELECT);
 }
 
 void Input::FCEUI_FDSInsert() {
-  if (!fceulib__.fceu->FCEU_IsValidUI(FCEUI_EJECT_DISK))
-    return;
+  if (!fc->fceu->FCEU_IsValidUI(FCEUI_EJECT_DISK)) return;
 
   fprintf(stderr, "Command: Insert/Eject disk");
   FCEU_DoSimpleCommand(FCEUNPCMD_FDSINSERT);
@@ -502,8 +450,7 @@ void Input::FCEUI_VSUniCoin() {
 
 // Resets the NES
 void Input::FCEUI_ResetNES() {
-  if (!fceulib__.fceu->FCEU_IsValidUI(FCEUI_RESET))
-    return;
+  if (!fc->fceu->FCEU_IsValidUI(FCEUI_RESET)) return;
 
   fprintf(stderr, "Command: Soft reset");
   FCEU_DoSimpleCommand(FCEUNPCMD_RESET);
@@ -511,8 +458,7 @@ void Input::FCEUI_ResetNES() {
 
 // Powers off the NES
 void Input::FCEUI_PowerNES() {
-  if (!fceulib__.fceu->FCEU_IsValidUI(FCEUI_POWER))
-    return;
+  if (!fc->fceu->FCEU_IsValidUI(FCEUI_POWER)) return;
 
   fprintf(stderr, "Command: Power switch");
   FCEU_DoSimpleCommand(FCEUNPCMD_POWER);
@@ -520,20 +466,20 @@ void Input::FCEUI_PowerNES() {
 
 void Input::FCEU_DoSimpleCommand(int cmd) {
   switch (cmd) {
-  case FCEUNPCMD_FDSINSERT: fceulib__.fds->FCEU_FDSInsert(); break;
-  case FCEUNPCMD_FDSSELECT: fceulib__.fds->FCEU_FDSSelect(); break;
-  case FCEUNPCMD_VSUNICOIN: fceulib__.vsuni->FCEU_VSUniCoin(); break;
+  case FCEUNPCMD_FDSINSERT: fc->fds->FCEU_FDSInsert(); break;
+  case FCEUNPCMD_FDSSELECT: fc->fds->FCEU_FDSSelect(); break;
+  case FCEUNPCMD_VSUNICOIN: fc->vsuni->FCEU_VSUniCoin(); break;
   case FCEUNPCMD_VSUNIDIP0:
-  case FCEUNPCMD_VSUNIDIP0+1:
-  case FCEUNPCMD_VSUNIDIP0+2:
-  case FCEUNPCMD_VSUNIDIP0+3:
-  case FCEUNPCMD_VSUNIDIP0+4:
-  case FCEUNPCMD_VSUNIDIP0+5:
-  case FCEUNPCMD_VSUNIDIP0+6:
-  case FCEUNPCMD_VSUNIDIP0+7: 
-    fceulib__.vsuni->FCEU_VSUniToggleDIP(cmd - FCEUNPCMD_VSUNIDIP0);
+  case FCEUNPCMD_VSUNIDIP0 + 1:
+  case FCEUNPCMD_VSUNIDIP0 + 2:
+  case FCEUNPCMD_VSUNIDIP0 + 3:
+  case FCEUNPCMD_VSUNIDIP0 + 4:
+  case FCEUNPCMD_VSUNIDIP0 + 5:
+  case FCEUNPCMD_VSUNIDIP0 + 6:
+  case FCEUNPCMD_VSUNIDIP0 + 7:
+    fc->vsuni->FCEU_VSUniToggleDIP(cmd - FCEUNPCMD_VSUNIDIP0);
     break;
-  case FCEUNPCMD_POWER: fceulib__.fceu->PowerNES(); break;
-  case FCEUNPCMD_RESET: fceulib__.fceu->ResetNES(); break;
+  case FCEUNPCMD_POWER: fc->fceu->PowerNES(); break;
+  case FCEUNPCMD_RESET: fc->fceu->ResetNES(); break;
   }
 }

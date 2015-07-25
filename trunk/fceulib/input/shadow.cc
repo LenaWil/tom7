@@ -89,7 +89,7 @@ static inline int CheckColor() {
 }
 
 
-static uint8 ReadZapper(int w, uint8 ret) {
+static uint8 ReadZapper(FC *fc, int w, uint8 ret) {
   if (w) {
     ret&=~0x18;
     if (ZD.bogo)
@@ -134,5 +134,3 @@ INPUTCFC *FCEU_InitSpaceShadow() {
   memset(&ZD,0,sizeof(ZAPPER));
   return &SHADOWC;
 }
-
-

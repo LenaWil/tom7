@@ -36,12 +36,12 @@ FC::FC() {
 
   printf("Creating FC at %p\n", this);
   
-  cart = new Cart;
+  cart = new Cart(this);
   fceu = new FCEU;
   fds = new FDS(this);
   filter = new Filter;
   ines = new INes(this);
-  input = new Input;
+  input = new Input(this);
   palette = new Palette;
   ppu = new PPU;
   sound = new Sound(this);

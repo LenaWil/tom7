@@ -4,6 +4,8 @@
 #include "types.h"
 #include "fceu.h"
 
+#include "fc.h"
+
 struct CartInfo {
   /* Set by mapper/board code: */
   void (*Power)();
@@ -35,7 +37,10 @@ struct Cart {
   void FCEU_LoadGameSave(CartInfo *LocalHWInfo);
   void FCEU_ClearGameSave(CartInfo *LocalHWInfo);
 
-  uint8 *Page[32],*VPage[8],*MMC5SPRVPage[8],*MMC5BGVPage[8];
+  uint8 *Page[32] = {};
+  uint8 *VPage[8] = {};
+  uint8 *MMC5SPRVPage[8] = {};
+  uint8 *MMC5BGVPage[8] = {};
 
   void ResetCartMapping();
   void SetupCartPRGMapping(int chip, uint8 *p, uint32 size, int ram);
@@ -46,22 +51,22 @@ struct Cart {
   // Maybe should always be true? -tom7
   int disableBatteryLoading = 0;
   
-  uint8 *PRGptr[32];
-  uint8 *CHRptr[32];
+  uint8 *PRGptr[32] = {};
+  uint8 *CHRptr[32] = {};
   
-  uint32 PRGsize[32];
-  uint32 CHRsize[32];
+  uint32 PRGsize[32] = {};
+  uint32 CHRsize[32] = {};
   
-  uint32 PRGmask2[32];
-  uint32 PRGmask4[32];
-  uint32 PRGmask8[32];
-  uint32 PRGmask16[32];
-  uint32 PRGmask32[32];
+  uint32 PRGmask2[32] = {};
+  uint32 PRGmask4[32] = {};
+  uint32 PRGmask8[32] = {};
+  uint32 PRGmask16[32] = {};
+  uint32 PRGmask32[32] = {};
   
-  uint32 CHRmask1[32];
-  uint32 CHRmask2[32];
-  uint32 CHRmask4[32];
-  uint32 CHRmask8[32];
+  uint32 CHRmask1[32] = {};
+  uint32 CHRmask2[32] = {};
+  uint32 CHRmask4[32] = {};
+  uint32 CHRmask8[32] = {};
 
   void setprg2(uint32 A, uint32 V);
   void setprg4(uint32 A, uint32 V);
@@ -97,10 +102,8 @@ struct Cart {
   void setmirrorw(int a, int b, int c, int d);
   void setntamem(uint8 *p, int ram, uint32 b);
 
-  Cart() {
-    VPageR = VPage;
-  }
-
+  Cart(FC *fc);
+  
   // TODO: Kill these.
   static DECLFW_RET CartBW(DECLFW_ARGS);
   static DECLFR_RET CartBR(DECLFR_ARGS);
@@ -116,7 +119,7 @@ private:
   uint8 PRGIsRAM[32] = { };  /* This page is/is not PRG RAM. */
 
   // Aliases VPage, don't know why. Fix? -tom7
-  uint8 **VPageR;
+  uint8 **VPageR = nullptr;
   
   // See comment on ResetCartMapping where negative offsets of nothing
   // are used..? TODO: Sort this out.
@@ -130,6 +133,8 @@ private:
   int mirrorhard = 0;
 
   void setpageptr(int s, uint32 A, uint8 *p, int ram);
+
+  FC *fc;
 };
 
 #define MI_H 0
