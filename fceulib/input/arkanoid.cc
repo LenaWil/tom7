@@ -22,6 +22,8 @@
 #include <stdlib.h>
 #include "share.h"
 
+#include "arkanoid.h"
+
 typedef struct {
   uint32 mzx, mzb;
   uint32 readbit;
@@ -34,7 +36,7 @@ static void StrobeARKFC(void) {
   FCArk.readbit = 0;
 }
 
-static uint8 ReadARKFC(int w, uint8 ret) {
+static uint8 ReadARKFC(FC *fc, int w, uint8 ret) {
   ret &= ~2;
 
   if (w) {
@@ -73,7 +75,7 @@ INPUTCFC *FCEU_InitArkanoidFC(void) {
   return &ARKCFC;
 }
 
-static uint8 ReadARK(int w) {
+static uint8 ReadARK(FC *fc, int w) {
   uint8 ret = 0;
 
   if (NESArk[w].readbit >= 8) {

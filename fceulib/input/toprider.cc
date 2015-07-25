@@ -15,48 +15,43 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
 #include <string.h>
 #include "share.h"
 
-static uint32 bs,bss;
+#include "toprider.h"
+
+static uint32 bs, bss;
 static uint32 boop;
 
-static uint8 Read(int w, uint8 ret)
-{
- if(w) 
- {
-  ret|=(bs&1)<<3;
-  ret|=(boop&1)<<4;
-  bs>>=1;  
-  boop>>=1;
-//  puts("Read");
- }
- return(ret);
+static uint8 Read(FC *fc, int w, uint8 ret) {
+  if (w) {
+    ret |= (bs & 1) << 3;
+    ret |= (boop & 1) << 4;
+    bs >>= 1;
+    boop >>= 1;
+    //  puts("Read");
+  }
+  return ret;
 }
 
-static void Write(uint8 V)
-{
- // if(V&0x2) 
- bs=bss;
- //printf("Write: %02x\n",V);
-// boop=0xC0;
+static void Write(uint8 V) {
+  // if(V&0x2)
+  bs = bss;
+  // printf("Write: %02x\n",V);
+  // boop=0xC0;
 }
 
-static void Update(void *data, int arg)
-{
- bss=*(uint8*)data;
- bss|=bss<<8;
- bss|=bss<<8;
+static void Update(void *data, int arg) {
+  bss = *(uint8 *)data;
+  bss |= bss << 8;
+  bss |= bss << 8;
 }
 
-static INPUTCFC TopRider={Read,Write,0,Update,0,0};
+static INPUTCFC TopRider = {Read, Write, 0, Update, 0, 0};
 
-INPUTCFC *FCEU_InitTopRider(void)
-{
-
- return(&TopRider);
+INPUTCFC *FCEU_InitTopRider(void) {
+  return &TopRider;
 }
-

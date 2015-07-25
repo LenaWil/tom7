@@ -93,7 +93,7 @@ static inline int CheckColor(int w) {
   return 1;
 }
 
-static uint8 ReadZapperVS(int w) {
+static uint8 ReadZapperVS(FC *fc, int w) {
   uint8 ret = 0;
 
   if (ZD[w].zap_readbit == 4) ret = 1;
@@ -112,7 +112,7 @@ static void StrobeZapperVS(int w) {
   ZD[w].zap_readbit = 0;
 }
 
-static uint8 ReadZapper(int w) {
+static uint8 ReadZapper(FC *fc, int w) {
   uint8 ret = 0;
   if (ZD[w].bogo) ret |= 0x10;
   if (CheckColor(w)) ret |= 0x8;

@@ -2,6 +2,7 @@
 #define _ZAPPER_H_
 
 #include "../types.h"
+#include "../input.h"
 
 struct ZAPPER {
   uint32 mzx,mzy,mzb;
@@ -11,5 +12,8 @@ struct ZAPPER {
   uint64 zaphit;
   uint32 lastInput;
 };
+
+extern INPUTC *FCEU_InitZapper(int w);
+
 
 #endif
