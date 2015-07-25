@@ -37,22 +37,23 @@ void DoVRC7Sound(void) {
   z = ((fceulib__.sound->SoundTS() << 16) / fceulib__.sound->soundtsinc) >> 4;
   a = z - dwave;
 
-  moocow(VRC7Sound, &fceulib__.sound->Wave[dwave], a, 1);
+  OPLL_FillBuffer(VRC7Sound, &fceulib__.sound->Wave[dwave], a, 1);
 
   dwave += a;
 }
 
-void UpdateOPLNEO(int32 *Wave, int Count) {
-  moocow(VRC7Sound, Wave, Count, 4);
+void UpdateOPLNEO(FC *fc, int32 *Wave, int Count) {
+  OPLL_FillBuffer(VRC7Sound, Wave, Count, 4);
 }
 
-void UpdateOPL(int Count) {
+void UpdateOPL(FC *fc, int Count) {
   int32 z, a;
 
-  z = ((fceulib__.sound->SoundTS() << 16) / fceulib__.sound->soundtsinc) >> 4;
+  z = ((fc->sound->SoundTS() << 16) / fc->sound->soundtsinc) >> 4;
   a = z - dwave;
 
-  if (VRC7Sound && a) moocow(VRC7Sound, &fceulib__.sound->Wave[dwave], a, 1);
+  if (VRC7Sound && a)
+    OPLL_FillBuffer(VRC7Sound, &fc->sound->Wave[dwave], a, 1);
 
   dwave = 0;
 }
@@ -159,11 +160,11 @@ void Mapper85_StateRestore(int version) {
   // LoadOPL();
 }
 
-static void M85SC(void) {
+static void M85SC(FC *fc) {
   if (VRC7Sound) OPLL_set_rate(VRC7Sound, FCEUS_SNDRATE);
 }
 
-static void M85SKill(void) {
+static void M85SKill(FC *fc) {
   if (VRC7Sound) OPLL_delete(VRC7Sound);
   VRC7Sound = NULL;
 }

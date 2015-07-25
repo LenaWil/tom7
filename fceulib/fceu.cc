@@ -60,6 +60,8 @@ using namespace std;
 // TODO: Delete.
 static constexpr int RWWrap = 0;
 
+FCEU::FCEU(FC *fc) : fc(fc) {}
+
 FCEUGI::FCEUGI() { }
 
 FCEUGI::~FCEUGI() { }
@@ -69,7 +71,7 @@ void FCEU::FCEU_CloseGame() {
     CHECK(GameInterface != nullptr);
     GameInterface(GI_CLOSE);
 
-    fceulib__.state->ResetExState(nullptr, nullptr);
+    fc->state->ResetExState(nullptr, nullptr);
 
     //clear screen when game is closed
     if (XBuf)
@@ -84,8 +86,8 @@ static DECLFW(BNull) {
 }
 
 static DECLFR(ANull) {
-  TRACEF("Read unmapped: %02x", fceulib__.X->DB);
-  return fceulib__.X->DB;
+  TRACEF("Read unmapped: %02x", fc->X->DB);
+  return fc->X->DB;
 }
 
 readfunc FCEU::GetReadHandler(int32 a) {
@@ -135,36 +137,36 @@ void FCEU::FreeBuffers() {
 }
 
 static DECLFW(BRAML) {
-  fceulib__.fceu->RAM[A]=V;
+  fc->fceu->RAM[A]=V;
 }
 
 static DECLFW(BRAMH) {
-  fceulib__.fceu->RAM[A&0x7FF]=V;
+  fc->fceu->RAM[A&0x7FF]=V;
 }
 
 static DECLFR(ARAML) {
-  return fceulib__.fceu->RAM[A];
+  return fc->fceu->RAM[A];
 }
 
 static DECLFR(ARAMH) {
-  return fceulib__.fceu->RAM[A&0x7FF];
+  return fc->fceu->RAM[A&0x7FF];
 }
 
 void FCEU::ResetGameLoaded() {
   if (GameInfo) FCEU_CloseGame();
   GameStateRestore=0;
-  fceulib__.ppu->PPU_hook=0;
-  fceulib__.ppu->GameHBIRQHook=0;
+  fc->ppu->PPU_hook=0;
+  fc->ppu->GameHBIRQHook=0;
   // Probably this should happen within sound itself.
-  if (fceulib__.sound->GameExpSound.Kill)
-    fceulib__.sound->GameExpSound.Kill();
-  memset(&fceulib__.sound->GameExpSound, 0,
-         sizeof (fceulib__.sound->GameExpSound));
+  if (fc->sound->GameExpSound.Kill)
+    fc->sound->GameExpSound.Kill(fc);
+  memset(&fc->sound->GameExpSound, 0,
+         sizeof (fc->sound->GameExpSound));
 
-  fceulib__.X->MapIRQHook = nullptr;
-  fceulib__.ppu->MMC5Hack = 0;
+  fc->X->MapIRQHook = nullptr;
+  fc->ppu->MMC5Hack = 0;
   PAL &= 1;
-  fceulib__.palette->pale = 0;
+  fc->palette->pale = 0;
 }
 
 FCEUGI *FCEU::FCEUI_LoadGame(const char *name, int OverwriteVidMode) {
@@ -185,7 +187,7 @@ FCEUGI *FCEU::FCEUI_LoadGame(const char *name, int OverwriteVidMode) {
 
   // reset parameters so they're cleared just in case a format's loader
   // doesnt know to do the clearing
-  fceulib__.ines->ClearMasterRomInfoParams();
+  fc->ines->ClearMasterRomInfoParams();
 
   FCEU_CloseGame();
   GameInfo = new FCEUGI();
@@ -198,11 +200,11 @@ FCEUGI *FCEU::FCEUI_LoadGame(const char *name, int OverwriteVidMode) {
   GameInfo->cspecial = SIS_NONE;
 
   // Try to load each different format
-  if (fceulib__.ines->iNESLoad(name, fp, OverwriteVidMode))
+  if (fc->ines->iNESLoad(name, fp, OverwriteVidMode))
     goto endlseq;
-  if (fceulib__.unif->UNIFLoad(name, fp))
+  if (fc->unif->UNIFLoad(name, fp))
     goto endlseq;
-  if (fceulib__.fds->FDSLoad(name, fp))
+  if (fc->fds->FDSLoad(name, fp))
     goto endlseq;
   
   FCEU_PrintError("An error occurred while loading the file.");
@@ -224,8 +226,8 @@ endlseq:
   TRACEF("PowerNES done.");
   // TRACEA(WRAM, sizeofWRAM);
 
-  fceulib__.palette->LoadGamePalette();
-  fceulib__.palette->ResetPalette();
+  fc->palette->LoadGamePalette();
+  fc->palette->ResetPalette();
 
   return GameInfo;
 }
@@ -243,7 +245,7 @@ bool FCEU::FCEUI_Initialize() {
   // XXX.
   GameInterface = (void (*)(GI))0xDEADBEEF;
   
-  fceulib__.X->Init();
+  fc->X->Init();
 
   return true;
 }
@@ -256,46 +258,30 @@ void FCEU::FCEUI_Kill() {
 // Skip may be passed in, if FRAMESKIP is #defined, to cause this to
 // emulate more than one frame
 // skip initiates frame skip if 1, or frame skip and sound skip if 2
-void FCEU::FCEUI_Emulate(uint8 **pXBuf, 
-			 int32 **SoundBuf, int32 *SoundBufSize, 
-			 int skip) {
-  fceulib__.input->FCEU_UpdateInput();
+void FCEU::FCEUI_Emulate(int skip) {
+  fc->input->FCEU_UpdateInput();
 
   // fprintf(stderr, "ppu loop..\n");
 
-  (void)fceulib__.ppu->FCEUPPU_Loop(skip);
+  (void)fc->ppu->FCEUPPU_Loop(skip);
 
   // fprintf(stderr, "sound thing loop skip=%d..\n", skip);
 
-  int ssize = 0;
   // If skip = 2 we are skipping sound processing
   if (skip != 2)
-    ssize = fceulib__.sound->FlushEmulateSound();
+    (void)fc->sound->FlushEmulateSound();
 
   // This is where cheat list stuff happened.
-  timestampbase += fceulib__.X->timestamp;
-  fceulib__.X->timestamp = 0;
-
-  if (pXBuf != nullptr) {
-    *pXBuf=skip?0:XBuf;
-  }
-
-  // If skip = 2, then bypass sound.
-  if (skip == 2) {
-    *SoundBuf=0;
-    *SoundBufSize=0;
-  } else {
-    *SoundBuf=fceulib__.sound->WaveFinal;
-    *SoundBufSize=ssize;
-  }
+  timestampbase += fc->X->timestamp;
+  fc->X->timestamp = 0;
 }
 
 void FCEU::ResetNES() {
   if (GameInfo == nullptr) return;
   GameInterface(GI_RESETM2);
-  fceulib__.sound->FCEUSND_Reset();
-  fceulib__.ppu->FCEUPPU_Reset();
-  fceulib__.X->Reset();
+  fc->sound->FCEUSND_Reset();
+  fc->ppu->FCEUPPU_Reset();
+  fc->X->Reset();
 
   // clear back baffer
   memset(XBackBuf,0,256*256);
@@ -317,22 +303,22 @@ void FCEU::PowerNES() {
   SetReadHandler(0x800,0x1FFF,ARAMH); // Part of a little
   SetWriteHandler(0x800,0x1FFF,BRAMH); //hack for a small speed boost.
 
-  fceulib__.input->InitializeInput();
-  fceulib__.sound->FCEUSND_Power();
-  fceulib__.ppu->FCEUPPU_Power();
+  fc->input->InitializeInput();
+  fc->sound->FCEUSND_Power();
+  fc->ppu->FCEUPPU_Power();
 
   // Have the external game hardware "powered" after the internal NES
   // stuff. Needed for the NSF code and VS System code.
   GameInterface(GI_POWER);
   if (GameInfo->type==GIT_VSUNI)
-    fceulib__.vsuni->FCEU_VSUniPower();
+    fc->vsuni->FCEU_VSUniPower();
 
   // if we are in a movie, then reset the saveram
-  if (fceulib__.cart->disableBatteryLoading)
+  if (fc->cart->disableBatteryLoading)
     GameInterface(GI_RESETSAVE);
 
   timestampbase = 0ULL;
-  fceulib__.X->Power();
+  fc->X->Power();
 
   // clear back baffer
   memset(XBackBuf,0,256*256);
@@ -351,15 +337,15 @@ void FCEU::FCEU_ResetVidSys() {
     w = fsettings_pal;
 
   PAL = !!w;
-  fceulib__.ppu->FCEUPPU_SetVideoSystem(w);
-  fceulib__.sound->SetSoundVariables();
+  fc->ppu->FCEUPPU_SetVideoSystem(w);
+  fc->sound->SetSoundVariables();
 }
 
 void FCEU::FCEUI_SetVidSystem(int a) {
   fsettings_pal = a ? 1 : 0;
   if (GameInfo) {
     FCEU_ResetVidSys();
-    fceulib__.palette->ResetPalette();
+    fc->palette->ResetPalette();
   }
 }
 

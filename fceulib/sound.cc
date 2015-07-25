@@ -836,7 +836,7 @@ int Sound::FlushEmulateSound() {
   if (FCEUS_SOUNDQ >= 1) {
     int32 *tmpo = &WaveHi[soundtsoffs];
 
-    if (GameExpSound.HiFill) GameExpSound.HiFill();
+    if (GameExpSound.HiFill) GameExpSound.HiFill(fc);
 
     for (int x = fc->X->timestamp; x; x--) {
       uint32 b = *tmpo;
@@ -848,11 +848,11 @@ int Sound::FlushEmulateSound() {
     memmove(WaveHi, WaveHi + SoundTS() - left, left * sizeof(uint32));
     memset(WaveHi + left, 0, sizeof(WaveHi) - left * sizeof(uint32));
 
-    if (GameExpSound.HiSync) GameExpSound.HiSync(left);
+    if (GameExpSound.HiSync) GameExpSound.HiSync(fc, left);
     for (int x = 0; x < 5; x++) ChannelBC[x] = left;
   } else {
     end = (SoundTS() << 16) / soundtsinc;
-    if (GameExpSound.Fill) GameExpSound.Fill(end & 0xF);
+    if (GameExpSound.Fill) GameExpSound.Fill(fc, end & 0xF);
 
     fc->filter->SexyFilter(Wave, WaveFinal, end >> 4);
 
@@ -978,7 +978,7 @@ void Sound::SetSoundVariables() {
 
   fc->filter->MakeFilters(FCEUS_SNDRATE);
 
-  if (GameExpSound.RChange) GameExpSound.RChange();
+  if (GameExpSound.RChange) GameExpSound.RChange(fc);
 
   nesincsize = (int64)(((int64)1 << 17) *
                        (double)(fc->fceu->PAL ? PAL_CPU : NTSC_CPU) /

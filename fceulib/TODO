@@ -9,7 +9,6 @@ Stuff I should be able to get rid of:
  - auto-fire
  - proper in-memory treatment of battery backed saves. lots of
    red herrings here! also, it leaks file descriptors.
- - get rid of _defines in x6502.cc
  - FCEUI_Initialize calls srand -- what is using random numbers?
  - NSF code in mapper.h and the uncalled functions therein?
 

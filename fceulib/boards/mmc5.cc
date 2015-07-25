@@ -25,8 +25,8 @@
 static void (*sfun)(int P);
 static void (*psfun)();
 
-void MMC5RunSound(int Count);
-void MMC5RunSoundHQ();
+static void MMC5RunSound(FC *fc, int Count);
+static void MMC5RunSoundHQ(FC *fc);
 
 static inline void MMC5SPRVROM_BANK1(uint32 A, uint32 V) {
   if (fceulib__.cart->CHRptr[0]) {
@@ -111,6 +111,7 @@ static uint8 PRGBanks[4];
 static uint8 WRAMPage;
 static uint16 CHRBanksA[8], CHRBanksB[4];
 static uint8 WRAMMaskEnable[2];
+// Used in ppu -tom7
 uint8 mmc5ABMode; /* A=0, B=1 */
 
 static uint8 IRQScanline, IRQEnable;
@@ -203,7 +204,7 @@ static constexpr cartdata MMC5CartList[] = {
 };
 
 #define MMC5_NUM_CARTS (sizeof(MMC5CartList) / sizeof(MMC5CartList[0]))
-int DetectMMC5WRAMSize(uint32 crc32) {
+static int DetectMMC5WRAMSize(uint32 crc32) {
   for (int x = 0; x < MMC5_NUM_CARTS; x++) {
     if (crc32 == MMC5CartList[x].crc32) {
       FCEU_printf(
@@ -546,7 +547,7 @@ static DECLFR(MMC5_read) {
   return fceulib__.X->DB;
 }
 
-void MMC5Synco() {
+static void MMC5Synco() {
   MMC5PRG();
   for (int x = 0; x < 4; x++) {
     switch ((NTAMirroring >> (x << 1)) & 3) {
@@ -594,6 +595,7 @@ void MMC5Synco() {
   fceulib__.ppu->MMC5HackCHRMode = CHRMode & 3;
 }
 
+// Called from ppu, ugh -tom7
 void MMC5_hb(int scanline) {
   TRACEF("MMC5_hb %d %02x %02x", scanline, MMC5LineCounter, MMC5IRQR);
   if (scanline == 240) {
@@ -615,7 +617,7 @@ void MMC5_hb(int scanline) {
   }
 }
 
-void MMC5_StateRestore(int version) {
+static void MMC5_StateRestore(int version) {
   MMC5Synco();
 }
 
@@ -767,24 +769,24 @@ static void Do5SQHQ(int P) {
   MMC5Sound.BC[P] = fceulib__.sound->SoundTS();
 }
 
-void MMC5RunSoundHQ() {
+static void MMC5RunSoundHQ(FC *fc) {
   Do5SQHQ(0);
   Do5SQHQ(1);
   Do5PCMHQ();
 }
 
-void MMC5HiSync(int32 ts) {
+static void MMC5HiSync(FC *fc, int32 ts) {
   for (int x = 0; x < 3; x++) MMC5Sound.BC[x] = ts;
 }
 
-void MMC5RunSound(int Count) {
+static void MMC5RunSound(FC *fc, int Count) {
   Do5SQ(0);
   Do5SQ(1);
   Do5PCM();
   for (int x = 0; x < 3; x++) MMC5Sound.BC[x] = Count;
 }
 
-void Mapper5_ESI() {
+static void Mapper5_ESI(FC *fc) {
   fceulib__.sound->GameExpSound.RChange = Mapper5_ESI;
   if (FCEUS_SNDRATE) {
     if (FCEUS_SOUNDQ >= 1) {
@@ -801,24 +803,6 @@ void Mapper5_ESI() {
   memset(MMC5Sound.BC, 0, sizeof(MMC5Sound.BC));
   memset(MMC5Sound.vcount, 0, sizeof(MMC5Sound.vcount));
   fceulib__.sound->GameExpSound.HiSync = MMC5HiSync;
-}
-
-void NSFMMC5_Init() {
-  memset(&MMC5Sound, 0, sizeof(MMC5Sound));
-  mul[0] = mul[1] = 0;
-  ExRAM = (uint8 *)FCEU_gmalloc(1024);
-  Mapper5_ESI();
-  fceulib__.fceu->SetWriteHandler(0x5c00, 0x5fef, MMC5_ExRAMWr);
-  fceulib__.fceu->SetReadHandler(0x5c00, 0x5fef, MMC5_ExRAMRd);
-  fceulib__.ppu->MMC5HackCHRMode = 2;
-  fceulib__.fceu->SetWriteHandler(0x5000, 0x5015, Mapper5_SW);
-  fceulib__.fceu->SetWriteHandler(0x5205, 0x5206, Mapper5_write);
-  fceulib__.fceu->SetReadHandler(0x5205, 0x5206, MMC5_read);
-}
-
-void NSFMMC5_Close() {
-  free(ExRAM);
-  ExRAM = 0;
 }
 
 static void GenMMC5Reset() {
@@ -921,7 +905,7 @@ static void GenMMC5_Init(CartInfo *info, int wsize, int battery) {
   fceulib__.ppu->MMC5HackCHRMode = 0;
   fceulib__.ppu->MMC5HackSPMode = fceulib__.ppu->MMC5HackSPScroll =
       fceulib__.ppu->MMC5HackSPPage = 0;
-  Mapper5_ESI();
+  Mapper5_ESI(&fceulib__);
 }
 
 void Mapper5_Init(CartInfo *info) {

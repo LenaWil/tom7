@@ -92,6 +92,6 @@ void OPLL_writeReg(OPLL *, uint32 reg, uint32 val);
 /* Misc */
 void OPLL_forceRefresh(OPLL *);
 
-void moocow(OPLL *opll, int32 *buf, int32 len, int shift);
+void OPLL_FillBuffer(OPLL *opll, int32 *buf, int32 len, int shift);
 
 #endif

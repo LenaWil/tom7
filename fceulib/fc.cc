@@ -37,13 +37,13 @@ FC::FC() {
   printf("Creating FC at %p\n", this);
   
   cart = new Cart(this);
-  fceu = new FCEU;
+  fceu = new FCEU(this);
   fds = new FDS(this);
-  filter = new Filter;
+  filter = new Filter(this);
   ines = new INes(this);
   input = new Input(this);
-  palette = new Palette;
-  ppu = new PPU;
+  palette = new Palette(this);
+  ppu = new PPU(this);
   sound = new Sound(this);
   unif = new Unif;
   vsuni = new VSUni(this);

@@ -251,24 +251,24 @@ static void DoSawVHQ(void) {
   CVBC[2] = fceulib__.sound->SoundTS();
 }
 
-void VRC6Sound(int Count) {
+static void VRC6Sound(FC *fc, int Count) {
   DoSQV1();
   DoSQV2();
   DoSawV();
   for (int x = 0; x < 3; x++) CVBC[x] = Count;
 }
 
-void VRC6SoundHQ(void) {
+static void VRC6SoundHQ(FC *fc) {
   DoSQV1HQ();
   DoSQV2HQ();
   DoSawVHQ();
 }
 
-void VRC6SyncHQ(int32 ts) {
+static void VRC6SyncHQ(FC *fc, int32 ts) {
   for (int x = 0; x < 3; x++) CVBC[x] = ts;
 }
 
-static void VRC6_ESI(void) {
+static void VRC6_ESI(FC *fc) {
   fceulib__.sound->GameExpSound.RChange = VRC6_ESI;
   fceulib__.sound->GameExpSound.Fill = VRC6Sound;
   fceulib__.sound->GameExpSound.HiFill = VRC6SoundHQ;
@@ -294,19 +294,19 @@ static void VRC6_ESI(void) {
 
 void Mapper24_init(void) {
   fceulib__.fceu->SetWriteHandler(0x8000, 0xffff, Mapper24_write);
-  VRC6_ESI();
+  VRC6_ESI(&fceulib__);
   fceulib__.X->MapIRQHook = KonamiIRQHook;
   swaparoo = 0;
 }
 
 void Mapper26_init(void) {
   fceulib__.fceu->SetWriteHandler(0x8000, 0xffff, Mapper24_write);
-  VRC6_ESI();
+  VRC6_ESI(&fceulib__);
   fceulib__.X->MapIRQHook = KonamiIRQHook;
   swaparoo = 1;
 }
 
 void NSFVRC6_Init(void) {
-  VRC6_ESI();
+  VRC6_ESI(&fceulib__);
   fceulib__.fceu->SetWriteHandler(0x8000, 0xbfff, VRC6SW);
 }

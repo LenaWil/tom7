@@ -26,14 +26,6 @@
 
 #include "tracing.h"
 
-// XXX get rid of this -tom7
-#define _A reg_A
-#define _X reg_X
-#define _Y reg_Y
-#define _S reg_S
-#define _P reg_P
-#define _PI reg_PI
-
 #define N_FLAG 0x80
 #define V_FLAG 0x40
 #define U_FLAG 0x20
@@ -56,26 +48,24 @@ X6502::X6502(FC *fc) : fc(fc) {
   CHECK(fc != nullptr);
 }
 
-// XXX needs to take FCEU object as argument.
-
 uint8 X6502::DMR(uint32 A) {
   ADDCYC(1);
-  return (DB = fceulib__.fceu->ARead[A](fc, A));
+  return (DB = fc->fceu->ARead[A](fc, A));
 }
 
 void X6502::DMW(uint32 A, uint8 V) {
   ADDCYC(1);
-  fceulib__.fceu->BWrite[A](fc, A, V);
+  fc->fceu->BWrite[A](fc, A, V);
 }
 
 #define PUSH(V)              \
   {                          \
     uint8 VTMP = V;          \
-    WrRAM(0x100 + _S, VTMP); \
-    _S--;                    \
+    WrRAM(0x100 + reg_S, VTMP); \
+    reg_S--;                    \
   }
 
-#define POP() RdRAM(0x100 + (++_S))
+#define POP() RdRAM(0x100 + (++reg_S))
 
 // I think this stands for "zero and negative" table, which has the
 // zero and negative cpu flag set for each possible byte. The
@@ -120,9 +110,9 @@ static constexpr uint8 ZNTable[256] = {
    constants are. */
 
 #define X_ZN(zort)          \
-  _P &= ~(Z_FLAG | N_FLAG); \
-  _P |= ZNTable[zort]
-#define X_ZNT(zort) _P |= ZNTable[zort]
+  reg_P &= ~(Z_FLAG | N_FLAG); \
+  reg_P |= ZNTable[zort]
+#define X_ZNT(zort) reg_P |= ZNTable[zort]
 
 #define JR(cond)                    \
   {                                 \
@@ -143,71 +133,71 @@ static constexpr uint8 ZNTable[256] = {
   }
 
 #define LDA \
-  _A = x;   \
-  X_ZN(_A)
+  reg_A = x;   \
+  X_ZN(reg_A)
 #define LDX \
-  _X = x;   \
-  X_ZN(_X)
+  reg_X = x;   \
+  X_ZN(reg_X)
 #define LDY \
-  _Y = x;   \
-  X_ZN(_Y)
+  reg_Y = x;   \
+  X_ZN(reg_Y)
 
 /*  All of the freaky arithmetic operations. */
 #define AND \
-  _A &= x;  \
-  X_ZN(_A)
+  reg_A &= x;  \
+  X_ZN(reg_A)
 #define BIT                          \
-  _P &= ~(Z_FLAG | V_FLAG | N_FLAG); \
-  _P |= ZNTable[x & _A] & Z_FLAG;    \
-  _P |= x & (V_FLAG | N_FLAG)
+  reg_P &= ~(Z_FLAG | V_FLAG | N_FLAG); \
+  reg_P |= ZNTable[x & reg_A] & Z_FLAG;    \
+  reg_P |= x & (V_FLAG | N_FLAG)
 #define EOR \
-  _A ^= x;  \
-  X_ZN(_A)
+  reg_A ^= x;  \
+  X_ZN(reg_A)
 #define ORA \
-  _A |= x;  \
-  X_ZN(_A)
+  reg_A |= x;  \
+  X_ZN(reg_A)
 
 #define ADC                                                      \
   {                                                              \
-    uint32 l = _A + x + (_P & 1);                                \
-    _P &= ~(Z_FLAG | C_FLAG | N_FLAG | V_FLAG);                  \
-    _P |= ((((_A ^ x) & 0x80) ^ 0x80) & ((_A ^ l) & 0x80)) >> 1; \
-    _P |= (l >> 8) & C_FLAG;                                     \
-    _A = l;                                                      \
-    X_ZNT(_A);                                                   \
+    uint32 l = reg_A + x + (reg_P & 1);                                \
+    reg_P &= ~(Z_FLAG | C_FLAG | N_FLAG | V_FLAG);                  \
+    reg_P |= ((((reg_A ^ x) & 0x80) ^ 0x80) & ((reg_A ^ l) & 0x80)) >> 1; \
+    reg_P |= (l >> 8) & C_FLAG;                                     \
+    reg_A = l;                                                      \
+    X_ZNT(reg_A);                                                   \
   }
 
 #define SBC                                     \
   {                                             \
-    uint32 l = _A - x - ((_P & 1) ^ 1);         \
-    _P &= ~(Z_FLAG | C_FLAG | N_FLAG | V_FLAG); \
-    _P |= ((_A ^ l) & (_A ^ x) & 0x80) >> 1;    \
-    _P |= ((l >> 8) & C_FLAG) ^ C_FLAG;         \
-    _A = l;                                     \
-    X_ZNT(_A);                                  \
+    uint32 l = reg_A - x - ((reg_P & 1) ^ 1);         \
+    reg_P &= ~(Z_FLAG | C_FLAG | N_FLAG | V_FLAG); \
+    reg_P |= ((reg_A ^ l) & (reg_A ^ x) & 0x80) >> 1;    \
+    reg_P |= ((l >> 8) & C_FLAG) ^ C_FLAG;         \
+    reg_A = l;                                     \
+    X_ZNT(reg_A);                                  \
   }
 
 #define CMPL(a1, a2)                    \
   {                                     \
     uint32 t = a1 - a2;                 \
     X_ZN(t & 0xFF);                     \
-    _P &= ~C_FLAG;                      \
-    _P |= ((t >> 8) & C_FLAG) ^ C_FLAG; \
+    reg_P &= ~C_FLAG;                      \
+    reg_P |= ((t >> 8) & C_FLAG) ^ C_FLAG; \
   }
 
 /* Special undocumented operation.  Very similar to CMP. */
 #define AXS                             \
   {                                     \
-    uint32 t = (_A & _X) - x;           \
+    uint32 t = (reg_A & reg_X) - x;           \
     X_ZN(t & 0xFF);                     \
-    _P &= ~C_FLAG;                      \
-    _P |= ((t >> 8) & C_FLAG) ^ C_FLAG; \
-    _X = t;                             \
+    reg_P &= ~C_FLAG;                      \
+    reg_P |= ((t >> 8) & C_FLAG) ^ C_FLAG; \
+    reg_X = t;                             \
   }
 
-#define CMP CMPL(_A, x)
-#define CPX CMPL(_X, x)
-#define CPY CMPL(_Y, x)
+#define CMP CMPL(reg_A, x)
+#define CPX CMPL(reg_X, x)
+#define CPY CMPL(reg_Y, x)
 
 /* The following operations modify the byte being worked on. */
 #define DEC \
@@ -218,39 +208,39 @@ static constexpr uint8 ZNTable[256] = {
   X_ZN(x)
 
 #define ASL      \
-  _P &= ~C_FLAG; \
-  _P |= x >> 7;  \
+  reg_P &= ~C_FLAG; \
+  reg_P |= x >> 7;  \
   x <<= 1;       \
   X_ZN(x)
 #define LSR                          \
-  _P &= ~(C_FLAG | N_FLAG | Z_FLAG); \
-  _P |= x & 1;                       \
+  reg_P &= ~(C_FLAG | N_FLAG | Z_FLAG); \
+  reg_P |= x & 1;                       \
   x >>= 1;                           \
   X_ZNT(x)
 
 /* For undocumented instructions, maybe for other things later... */
 #define LSRA                         \
-  _P &= ~(C_FLAG | N_FLAG | Z_FLAG); \
-  _P |= _A & 1;                      \
-  _A >>= 1;                          \
-  X_ZNT(_A)
+  reg_P &= ~(C_FLAG | N_FLAG | Z_FLAG); \
+  reg_P |= reg_A & 1;                      \
+  reg_A >>= 1;                          \
+  X_ZNT(reg_A)
 
 #define ROL                            \
   {                                    \
     uint8 l = x >> 7;                  \
     x <<= 1;                           \
-    x |= _P & C_FLAG;                  \
-    _P &= ~(Z_FLAG | N_FLAG | C_FLAG); \
-    _P |= l;                           \
+    x |= reg_P & C_FLAG;                  \
+    reg_P &= ~(Z_FLAG | N_FLAG | C_FLAG); \
+    reg_P |= l;                           \
     X_ZNT(x);                          \
   }
 #define ROR                            \
   {                                    \
     uint8 l = x & 1;                   \
     x >>= 1;                           \
-    x |= (_P & C_FLAG) << 7;           \
-    _P &= ~(Z_FLAG | N_FLAG | C_FLAG); \
-    _P |= l;                           \
+    x |= (reg_P & C_FLAG) << 7;           \
+    reg_P &= ~(Z_FLAG | N_FLAG | C_FLAG); \
+    reg_P |= l;                           \
     X_ZNT(x);                          \
   }
 
@@ -312,7 +302,7 @@ static constexpr uint8 ZNTable[256] = {
     uint8 tmp;                 \
     tmp = RdMem(reg_PC);       \
     reg_PC++;                  \
-    tmp += _X;                 \
+    tmp += reg_X;                 \
     target = RdRAM(tmp);       \
     tmp++;                     \
     target |= RdRAM(tmp) << 8; \
@@ -329,7 +319,7 @@ static constexpr uint8 ZNTable[256] = {
     tmp++;                       \
     rt |= RdRAM(tmp) << 8;       \
     target = rt;                 \
-    target += _Y;                \
+    target += reg_Y;                \
     if ((target ^ rt) & 0x100) { \
       target &= 0xFFFF;          \
       RdMem(target ^ 0x100);     \
@@ -348,7 +338,7 @@ static constexpr uint8 ZNTable[256] = {
     tmp++;                                    \
     rt |= RdRAM(tmp) << 8;                    \
     target = rt;                              \
-    target += _Y;                             \
+    target += reg_Y;                             \
     target &= 0xFFFF;                         \
     RdMem((target & 0x00FF) | (rt & 0xFF00)); \
   }
@@ -360,9 +350,9 @@ static constexpr uint8 ZNTable[256] = {
 
 #define RMW_A(op) \
   {               \
-    uint8 x = _A; \
+    uint8 x = reg_A; \
     op;           \
-    _A = x;       \
+    reg_A = x;       \
     break;        \
   }
 #define RMW_AB(op)   \
@@ -387,8 +377,8 @@ static constexpr uint8 ZNTable[256] = {
     WrMem(AA, x);        \
     break;               \
   }
-#define RMW_ABX(op) RMW_ABI(_X, op)
-#define RMW_ABY(op) RMW_ABI(_Y, op)
+#define RMW_ABX(op) RMW_ABI(reg_X, op)
+#define RMW_ABY(op) RMW_ABI(reg_Y, op)
 #define RMW_IX(op)   \
   {                  \
     unsigned int AA; \
@@ -425,7 +415,7 @@ static constexpr uint8 ZNTable[256] = {
   {                 \
     uint8 AA;       \
     uint8 x;        \
-    GetZPI(AA, _X); \
+    GetZPI(AA, reg_X); \
     x = RdRAM(AA);  \
     op;             \
     WrRAM(AA, x);   \
@@ -454,7 +444,7 @@ static constexpr uint8 ZNTable[256] = {
   {                 \
     uint8 AA;       \
     uint8 x;        \
-    GetZPI(AA, _X); \
+    GetZPI(AA, reg_X); \
     x = RdRAM(AA);  \
     op;             \
     break;          \
@@ -463,7 +453,7 @@ static constexpr uint8 ZNTable[256] = {
   {                 \
     uint8 AA;       \
     uint8 x;        \
-    GetZPI(AA, _Y); \
+    GetZPI(AA, reg_Y); \
     x = RdRAM(AA);  \
     op;             \
     break;          \
@@ -490,8 +480,8 @@ static constexpr uint8 ZNTable[256] = {
     op;                 \
     break;              \
   }
-#define LD_ABX(op) LD_ABI(_X, op)
-#define LD_ABY(op) LD_ABI(_Y, op)
+#define LD_ABX(op) LD_ABI(reg_X, op)
+#define LD_ABY(op) LD_ABI(reg_Y, op)
 #define LD_IX(op)    \
   {                  \
     unsigned int AA; \
@@ -521,14 +511,14 @@ static constexpr uint8 ZNTable[256] = {
 #define ST_ZPX(r)   \
   {                 \
     uint8 AA;       \
-    GetZPI(AA, _X); \
+    GetZPI(AA, reg_X); \
     WrRAM(AA, r);   \
     break;          \
   }
 #define ST_ZPY(r)   \
   {                 \
     uint8 AA;       \
-    GetZPI(AA, _Y); \
+    GetZPI(AA, reg_Y); \
     WrRAM(AA, r);   \
     break;          \
   }
@@ -546,8 +536,8 @@ static constexpr uint8 ZNTable[256] = {
     WrMem(AA, r);      \
     break;             \
   }
-#define ST_ABX(r) ST_ABI(_X, r)
-#define ST_ABY(r) ST_ABI(_Y, r)
+#define ST_ABX(r) ST_ABI(reg_X, r)
+#define ST_ABY(r) ST_ABI(reg_Y, r)
 #define ST_IX(r)     \
   {                  \
     unsigned int AA; \
@@ -637,8 +627,10 @@ void X6502::Init() {
 }
 
 void X6502::Power() {
-  count = tcount = IRQlow = reg_PC = _A = _X = _Y = _P = _PI = DB = jammed = 0;
-  _S = 0xFD;
+  count = tcount = IRQlow =
+    reg_PC = reg_A = reg_X = reg_Y = reg_P = reg_PI =
+    DB = jammed = 0;
+  reg_S = 0xFD;
   timestamp = 0;
   Reset();
 }
@@ -646,7 +638,8 @@ void X6502::Power() {
 #define TRACE_MACHINEFMT \
   "X: %d %04x %02x %02x %02x %02x %02x %02x / %02x %u %02x"
 #define TRACE_MACHINEARGS \
-  count, reg_PC, _A, _X, _Y, _S, _P, _PI, jammed, IRQlow, DB
+  count, reg_PC, reg_A, reg_X, reg_Y, reg_S, reg_P, reg_PI, \
+  jammed, IRQlow, DB
 
 void X6502::Run(int32 cycles) {
   // Temporarily disable tracing unless this is the particular cycle
@@ -656,9 +649,9 @@ void X6502::Run(int32 cycles) {
   TRACEF("x6502_Run(%d) @ %d " TRACE_MACHINEFMT, cycles, timestamp,
          TRACE_MACHINEARGS);
   TRACEA(RAM, 0x800);
-  // TRACEA(fceulib__.ppu->PPU_values, 4);
+  // TRACEA(fc->ppu->PPU_values, 4);
 
-  if (fceulib__.fceu->PAL) {
+  if (fc->fceu->PAL) {
     cycles *= 15;  // 15*4=60
   } else {
     cycles *= 16;  // 16*4=64
@@ -672,7 +665,6 @@ void X6502::Run(int32 cycles) {
     TRACE_SCOPED_STAY_ENABLED_IF(false);
     TRACEF("while " TRACE_MACHINEFMT, TRACE_MACHINEARGS);
     TRACEA(RAM, 0x800);
-    // TRACEA(fceulib__PPU_values, 4);
 
     if (IRQlow) {
       TRACEF("IRQlow set.");
@@ -680,7 +672,7 @@ void X6502::Run(int32 cycles) {
         reg_PC = RdMem(0xFFFC);
         reg_PC |= RdMem(0xFFFD) << 8;
         jammed = 0;
-        _PI = _P = I_FLAG;
+        reg_PI = reg_P = I_FLAG;
         IRQlow &= ~FCEU_IQRESET;
       } else if (IRQlow & FCEU_IQNMI2) {
         IRQlow &= ~FCEU_IQNMI2;
@@ -690,33 +682,33 @@ void X6502::Run(int32 cycles) {
           ADDCYC(7);
           PUSH(reg_PC >> 8);
           PUSH(reg_PC);
-          PUSH((_P & ~B_FLAG) | (U_FLAG));
-          _P |= I_FLAG;
+          PUSH((reg_P & ~B_FLAG) | (U_FLAG));
+          reg_P |= I_FLAG;
           reg_PC = RdMem(0xFFFA);
           reg_PC |= RdMem(0xFFFB) << 8;
           IRQlow &= ~FCEU_IQNMI;
         }
       } else {
-        if (!(_PI & I_FLAG) && !jammed) {
+        if (!(reg_PI & I_FLAG) && !jammed) {
           ADDCYC(7);
           PUSH(reg_PC >> 8);
           PUSH(reg_PC);
-          PUSH((_P & ~B_FLAG) | (U_FLAG));
-          _P |= I_FLAG;
+          PUSH((reg_P & ~B_FLAG) | (U_FLAG));
+          reg_P |= I_FLAG;
           reg_PC = RdMem(0xFFFE);
           reg_PC |= RdMem(0xFFFF) << 8;
         }
       }
       IRQlow &= ~(FCEU_IQTEMP);
       if (count <= 0) {
-        _PI = _P;
+        reg_PI = reg_P;
         return;
         // Should increase accuracy without a
         // major speed hit.
       }
     }
 
-    _PI = _P;
+    reg_PI = reg_P;
     const uint8 b1 = RdMem(reg_PC);
 
     ADDCYC(CycTable[b1]);
@@ -724,7 +716,7 @@ void X6502::Run(int32 cycles) {
     temp = tcount;
     tcount = 0;
     if (MapIRQHook) MapIRQHook(temp);
-    fceulib__.sound->FCEU_SoundCPUHook(temp);
+    fc->sound->FCEU_SoundCPUHook(temp);
     reg_PC++;
     TRACEN(b1);
     switch (b1) {
@@ -732,17 +724,17 @@ void X6502::Run(int32 cycles) {
         reg_PC++;
         PUSH(reg_PC >> 8);
         PUSH(reg_PC);
-        PUSH(_P | U_FLAG | B_FLAG);
-        _P |= I_FLAG;
-        _PI |= I_FLAG;
+        PUSH(reg_P | U_FLAG | B_FLAG);
+        reg_P |= I_FLAG;
+        reg_PI |= I_FLAG;
         reg_PC = RdMem(0xFFFE);
         reg_PC |= RdMem(0xFFFF) << 8;
         break;
 
       case 0x40: /* RTI */
-        _P = POP();
-        /* _PI=_P; This is probably incorrect, so it's commented out. */
-        _PI = _P;
+        reg_P = POP();
+        /* reg_PI=reg_P; This is probably incorrect, so it's commented out. */
+        reg_PI = reg_P;
         reg_PC = POP();
         reg_PC |= POP() << 8;
         break;
@@ -753,14 +745,15 @@ void X6502::Run(int32 cycles) {
         reg_PC++;
         break;
 
-      case 0x48: /* PHA */ PUSH(_A); break;
-      case 0x08: /* PHP */ PUSH(_P | U_FLAG | B_FLAG); break;
+      case 0x48: /* PHA */ PUSH(reg_A); break;
+      case 0x08: /* PHP */ PUSH(reg_P | U_FLAG | B_FLAG); break;
       case 0x68: /* PLA */
-        _A = POP();
-        X_ZN(_A);
+        reg_A = POP();
+        X_ZN(reg_A);
         break;
-      case 0x28: /* PLP */ _P = POP(); break;
+      case 0x28: /* PLP */ reg_P = POP(); break;
       case 0x4C: {
+	/* JMP ABSOLUTE */
         uint16 ptmp = reg_PC;
         unsigned int npc;
 
@@ -768,13 +761,15 @@ void X6502::Run(int32 cycles) {
         ptmp++;
         npc |= RdMem(ptmp) << 8;
         reg_PC = npc;
-      } break; /* JMP ABSOLUTE */
+      } break; 
       case 0x6C: {
+	/* JMP INDIRECT */
         uint32 tmp;
         GetAB(tmp);
         reg_PC = RdMem(tmp);
         reg_PC |= RdMem(((tmp + 1) & 0x00FF) | (tmp & 0xFF00)) << 8;
-      } break;
+	break;
+      }
       case 0x20: /* JSR */
       {
         uint8 npc;
@@ -784,59 +779,61 @@ void X6502::Run(int32 cycles) {
         PUSH(reg_PC);
         reg_PC = RdMem(reg_PC) << 8;
         reg_PC |= npc;
-      } break;
-
+	break;
+      } 
       case 0xAA: /* TAX */
-        _X = _A;
-        X_ZN(_A);
+        reg_X = reg_A;
+        X_ZN(reg_A);
         break;
 
       case 0x8A: /* TXA */
-        _A = _X;
-        X_ZN(_A);
+        reg_A = reg_X;
+        X_ZN(reg_A);
         break;
 
       case 0xA8: /* TAY */
-        _Y = _A;
-        X_ZN(_A);
+        reg_Y = reg_A;
+        X_ZN(reg_A);
         break;
       case 0x98: /* TYA */
-        _A = _Y;
-        X_ZN(_A);
+        reg_A = reg_Y;
+        X_ZN(reg_A);
         break;
 
       case 0xBA: /* TSX */
-        _X = _S;
-        X_ZN(_X);
+        reg_X = reg_S;
+        X_ZN(reg_X);
         break;
-      case 0x9A: /* TXS */ _S = _X; break;
+      case 0x9A: /* TXS */
+	reg_S = reg_X;
+	break;
 
       case 0xCA: /* DEX */
-        _X--;
-        X_ZN(_X);
+        reg_X--;
+        X_ZN(reg_X);
         break;
       case 0x88: /* DEY */
-        _Y--;
-        X_ZN(_Y);
+        reg_Y--;
+        X_ZN(reg_Y);
         break;
 
       case 0xE8: /* INX */
-        _X++;
-        X_ZN(_X);
+        reg_X++;
+        X_ZN(reg_X);
         break;
       case 0xC8: /* INY */
-        _Y++;
-        X_ZN(_Y);
+        reg_Y++;
+        X_ZN(reg_Y);
         break;
 
-      case 0x18: /* CLC */ _P &= ~C_FLAG; break;
-      case 0xD8: /* CLD */ _P &= ~D_FLAG; break;
-      case 0x58: /* CLI */ _P &= ~I_FLAG; break;
-      case 0xB8: /* CLV */ _P &= ~V_FLAG; break;
+      case 0x18: /* CLC */ reg_P &= ~C_FLAG; break;
+      case 0xD8: /* CLD */ reg_P &= ~D_FLAG; break;
+      case 0x58: /* CLI */ reg_P &= ~I_FLAG; break;
+      case 0xB8: /* CLV */ reg_P &= ~V_FLAG; break;
 
-      case 0x38: /* SEC */ _P |= C_FLAG; break;
-      case 0xF8: /* SED */ _P |= D_FLAG; break;
-      case 0x78: /* SEI */ _P |= I_FLAG; break;
+      case 0x38: /* SEC */ reg_P |= C_FLAG; break;
+      case 0xF8: /* SED */ reg_P |= D_FLAG; break;
+      case 0x78: /* SEI */ reg_P |= I_FLAG; break;
 
       case 0xEA: /* NOP */ break;
 
@@ -961,96 +958,95 @@ void X6502::Run(int32 cycles) {
       case 0xE1: LD_IX(SBC);
       case 0xF1: LD_IY(SBC);
 
-      case 0x85: ST_ZP(_A);
-      case 0x95: ST_ZPX(_A);
-      case 0x8D: ST_AB(_A);
-      case 0x9D: ST_ABX(_A);
-      case 0x99: ST_ABY(_A);
-      case 0x81: ST_IX(_A);
-      case 0x91: ST_IY(_A);
+      case 0x85: ST_ZP(reg_A);
+      case 0x95: ST_ZPX(reg_A);
+      case 0x8D: ST_AB(reg_A);
+      case 0x9D: ST_ABX(reg_A);
+      case 0x99: ST_ABY(reg_A);
+      case 0x81: ST_IX(reg_A);
+      case 0x91: ST_IY(reg_A);
 
-      case 0x86: ST_ZP(_X);
-      case 0x96: ST_ZPY(_X);
-      case 0x8E: ST_AB(_X);
+      case 0x86: ST_ZP(reg_X);
+      case 0x96: ST_ZPY(reg_X);
+      case 0x8E: ST_AB(reg_X);
 
-      case 0x84: ST_ZP(_Y);
-      case 0x94: ST_ZPX(_Y);
+      case 0x84: ST_ZP(reg_Y);
+      case 0x94: ST_ZPX(reg_Y);
       case 0x8C:
-        ST_AB(_Y);
+        ST_AB(reg_Y);
 
       /* BCC */
       case 0x90:
-        JR(!(_P & C_FLAG));
+        JR(!(reg_P & C_FLAG));
         break;
 
       /* BCS */
       case 0xB0:
-        JR(_P & C_FLAG);
+        JR(reg_P & C_FLAG);
         break;
 
       /* BEQ */
       case 0xF0:
-        JR(_P & Z_FLAG);
+        JR(reg_P & Z_FLAG);
         break;
 
       /* BNE */
       case 0xD0:
-        JR(!(_P & Z_FLAG));
+        JR(!(reg_P & Z_FLAG));
         break;
 
       /* BMI */
       case 0x30:
-        JR(_P & N_FLAG);
+        JR(reg_P & N_FLAG);
         break;
 
       /* BPL */
       case 0x10:
-        JR(!(_P & N_FLAG));
+        JR(!(reg_P & N_FLAG));
         break;
 
       /* BVC */
       case 0x50:
-        JR(!(_P & V_FLAG));
+        JR(!(reg_P & V_FLAG));
         break;
 
       /* BVS */
       case 0x70:
-        JR(_P & V_FLAG);
+        JR(reg_P & V_FLAG);
         break;
 
       // default: printf("Bad %02x at $%04x\n",b1,X.PC);break;
       /* Here comes the undocumented instructions block.  Note that this
-     implementation
-     may be "wrong".  If so, please tell me.
+	 implementation may be "wrong".  If so, please tell me.
       */
 
       /* AAC */
       case 0x2B:
       case 0x0B:
-        LD_IM(AND; _P &= ~C_FLAG; _P |= _A >> 7);
+        LD_IM(AND; reg_P &= ~C_FLAG; reg_P |= reg_A >> 7);
 
       /* AAX */
-      case 0x87: ST_ZP(_A & _X);
-      case 0x97: ST_ZPY(_A & _X);
-      case 0x8F: ST_AB(_A & _X);
+      case 0x87: ST_ZP(reg_A & reg_X);
+      case 0x97: ST_ZPY(reg_A & reg_X);
+      case 0x8F: ST_AB(reg_A & reg_X);
       case 0x83:
-        ST_IX(_A & _X);
+	ST_IX(reg_A & reg_X);
 
       /* ARR - ARGH, MATEY! */
       case 0x6B: {
         uint8 arrtmp;
-        LD_IM(AND; _P &= ~V_FLAG; _P |= (_A ^ (_A >> 1)) & 0x40;
-              arrtmp = _A >> 7; _A >>= 1; _A |= (_P & C_FLAG) << 7;
-              _P &= ~C_FLAG; _P |= arrtmp; X_ZN(_A));
+        LD_IM(AND; reg_P &= ~V_FLAG; reg_P |= (reg_A ^ (reg_A >> 1)) & 0x40;
+              arrtmp = reg_A >> 7; reg_A >>= 1; reg_A |= (reg_P & C_FLAG) << 7;
+              reg_P &= ~C_FLAG; reg_P |= arrtmp; X_ZN(reg_A));
       }
       /* ASR */
       case 0x4B:
         LD_IM(AND; LSRA);
 
       /* ATX(OAL) Is this(OR with $EE) correct? Blargg did some test
-     and found the constant to be OR with is $FF for NES */
+	 and found the constant to be OR with is $FF for NES */
       case 0xAB:
-        LD_IM(_A |= 0xFF; AND; _X = _A);
+        LD_IM(reg_A |= 0xFF; AND; reg_X = reg_A);
 
       /* AXS */
       case 0xCB:
@@ -1063,8 +1059,7 @@ void X6502::Run(int32 cycles) {
       case 0xDF: RMW_ABX(DEC; CMP);
       case 0xDB: RMW_ABY(DEC; CMP);
       case 0xC3: RMW_IX(DEC; CMP);
-      case 0xD3:
-        RMW_IY(DEC; CMP);
+      case 0xD3: RMW_IY(DEC; CMP);
 
       /* ISB */
       case 0xE7: RMW_ZP(INC; SBC);
@@ -1073,11 +1068,9 @@ void X6502::Run(int32 cycles) {
       case 0xFF: RMW_ABX(INC; SBC);
       case 0xFB: RMW_ABY(INC; SBC);
       case 0xE3: RMW_IX(INC; SBC);
-      case 0xF3:
-        RMW_IY(INC; SBC);
+      case 0xF3: RMW_IY(INC; SBC);
 
       /* DOP */
-
       case 0x04: reg_PC++; break;
       case 0x14: reg_PC++; break;
       case 0x34: reg_PC++; break;
@@ -1092,9 +1085,7 @@ void X6502::Run(int32 cycles) {
       case 0xC2: reg_PC++; break;
       case 0xD4: reg_PC++; break;
       case 0xE2: reg_PC++; break;
-      case 0xF4:
-        reg_PC++;
-        break;
+      case 0xF4: reg_PC++; break;
 
       /* KIL */
 
@@ -1117,7 +1108,7 @@ void X6502::Run(int32 cycles) {
 
       /* LAR */
       case 0xBB:
-        RMW_ABY(_S &= x; _A = _X = _S; X_ZN(_X));
+        RMW_ABY(reg_S &= x; reg_A = reg_X = reg_S; X_ZN(reg_X));
 
       /* LAX */
       case 0xA7: LD_ZP(LDA; LDX);
@@ -1125,8 +1116,7 @@ void X6502::Run(int32 cycles) {
       case 0xAF: LD_AB(LDA; LDX);
       case 0xBF: LD_ABY(LDA; LDX);
       case 0xA3: LD_IX(LDA; LDX);
-      case 0xB3:
-        LD_IY(LDA; LDX);
+      case 0xB3: LD_IY(LDA; LDX);
 
       /* NOP */
       case 0x1A:
@@ -1144,8 +1134,7 @@ void X6502::Run(int32 cycles) {
       case 0x3F: RMW_ABX(ROL; AND);
       case 0x3B: RMW_ABY(ROL; AND);
       case 0x23: RMW_IX(ROL; AND);
-      case 0x33:
-        RMW_IY(ROL; AND);
+      case 0x33: RMW_IY(ROL; AND);
 
       /* RRA */
       case 0x67: RMW_ZP(ROR; ADC);
@@ -1154,8 +1143,7 @@ void X6502::Run(int32 cycles) {
       case 0x7F: RMW_ABX(ROR; ADC);
       case 0x7B: RMW_ABY(ROR; ADC);
       case 0x63: RMW_IX(ROR; ADC);
-      case 0x73:
-        RMW_IY(ROR; ADC);
+      case 0x73: RMW_IY(ROR; ADC);
 
       /* SLO */
       case 0x07: RMW_ZP(ASL; ORA);
@@ -1164,8 +1152,7 @@ void X6502::Run(int32 cycles) {
       case 0x1F: RMW_ABX(ASL; ORA);
       case 0x1B: RMW_ABY(ASL; ORA);
       case 0x03: RMW_IX(ASL; ORA);
-      case 0x13:
-        RMW_IY(ASL; ORA);
+      case 0x13: RMW_IY(ASL; ORA);
 
       /* SRE */
       case 0x47: RMW_ZP(LSR; EOR);
@@ -1174,29 +1161,28 @@ void X6502::Run(int32 cycles) {
       case 0x5F: RMW_ABX(LSR; EOR);
       case 0x5B: RMW_ABY(LSR; EOR);
       case 0x43: RMW_IX(LSR; EOR);
-      case 0x53:
-        RMW_IY(LSR; EOR);
+      case 0x53: RMW_IY(LSR; EOR);
 
       /* AXA - SHA */
-      case 0x93: ST_IY(_A & _X & (((AA - _Y) >> 8) + 1));
-      case 0x9F:
-        ST_ABY(_A & _X & (((AA - _Y) >> 8) + 1));
+      case 0x93: ST_IY(reg_A & reg_X & (((AA - reg_Y) >> 8) + 1));
+      case 0x9F: ST_ABY(reg_A & reg_X & (((AA - reg_Y) >> 8) + 1));
 
       /* SYA */
       case 0x9C:
-        ST_ABX(_Y & (((AA - _X) >> 8) + 1));
+        ST_ABX(reg_Y & (((AA - reg_X) >> 8) + 1));
 
       /* SXA */
       case 0x9E:
-        ST_ABY(_X & (((AA - _Y) >> 8) + 1));
+        ST_ABY(reg_X & (((AA - reg_Y) >> 8) + 1));
 
       /* XAS */
       case 0x9B:
-        _S = _A & _X;
-        ST_ABY(_S & (((AA - _Y) >> 8) + 1));
+        reg_S = reg_A & reg_X;
+        ST_ABY(reg_S & (((AA - reg_Y) >> 8) + 1));
 
       /* TOP */
-      case 0x0C: LD_AB(;);
+      case 0x0C:
+	LD_AB(;);
       case 0x1C:
       case 0x3C:
       case 0x5C:
@@ -1207,10 +1193,9 @@ void X6502::Run(int32 cycles) {
 
       /* XAA - BIG QUESTION MARK HERE */
       case 0x8B:
-        _A |= 0xEE;
-        _A &= _X;
+        reg_A |= 0xEE;
+        reg_A &= reg_X;
         LD_IM(AND);
-        // endif
     }
   }
   TRACEF("Exiting X6502_Run normally: " TRACE_MACHINEFMT, TRACE_MACHINEARGS);

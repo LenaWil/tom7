@@ -26,8 +26,10 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+
 #include <tuple>
 #include <utility>
+#include <string>
 
 #include "types.h"
 #include "x6502.h"
@@ -61,7 +63,7 @@
 #define SpriteLeft8 (PPU_values[1]&0x04)
 #define BGLeft8 (PPU_values[1]&0x02)
 
-#define PPU_status      (PPU_values[2])
+#define PPU_status (PPU_values[2])
 
 // When BG is turned off, this is the fill color.
 // 0xFF shall indicate to use palette[0]
@@ -74,9 +76,8 @@ static constexpr uint8 gNoBGFillColor = 0xFF;
 static constexpr bool rendersprites = true;
 static constexpr bool renderbg = true;
 
-// XXX not thread safe. Only used in (disabled) debugging code.
-static const char *attrbits(uint8 b) {
-  static char buf[9] = {0};
+std::string attrbits(uint8 b) {
+  std::string buf = "01234567";
   for (int i = 0; i < 8; i ++) {
     buf[7 - i] = (b & (1 << i))? "VHB???11"[7 - i] : "__F___00"[7 - i];
   }
@@ -201,11 +202,11 @@ static constexpr uint32 ppulut3[128] = {
 0xcccccccc, 0xcccccccc, 0xcccccccc, 0xcccccccc, 0xcccccccc, 0xcccccccc,
 0xcccccccc, 0xcccccccc, };
 
-static inline uint8 *MMC5SPRVRAMADR(uint32 v) {
-  return &fceulib__.cart->MMC5SPRVPage[v >> 10][v];
+static inline uint8 *MMC5SPRVRAMADR(FC *fc, uint32 v) {
+  return &fc->cart->MMC5SPRVPage[v >> 10][v];
 }
-static inline uint8 *VRAMADR(uint32 v) {
-  return &fceulib__.cart->VPage[v >> 10][v];
+static inline uint8 *VRAMADR(FC *fc, uint32 v) {
+  return &fc->cart->VPage[v >> 10][v];
 }
 
 // mbg 8/6/08 - fix a bug relating to
@@ -215,15 +216,15 @@ uint8 *PPU::MMC5BGVRAMADR(uint32 V) {
   if (!Sprite16) {
     extern uint8 mmc5ABMode;                /* A=0, B=1 */
     if (mmc5ABMode==0)
-      return MMC5SPRVRAMADR(V);
+      return MMC5SPRVRAMADR(fc, V);
     else
-      return &fceulib__.cart->MMC5BGVPage[(V)>>10][(V)];
-  } else return &fceulib__.cart->MMC5BGVPage[(V)>>10][(V)];
+      return &fc->cart->MMC5BGVPage[(V)>>10][(V)];
+  } else return &fc->cart->MMC5BGVPage[(V)>>10][(V)];
 }
 
 // static 
 DECLFR_RET PPU::A2002(DECLFR_ARGS) {
-  return fceulib__.ppu->A2002_Direct(DECLFR_FORWARD);
+  return fc->ppu->A2002_Direct(DECLFR_FORWARD);
 }
 
 DECLFR_RET PPU::A2002_Direct(DECLFR_ARGS) {
@@ -244,7 +245,7 @@ DECLFR_RET PPU::A2002_Direct(DECLFR_ARGS) {
 }
 
 DECLFR_RET PPU::A2004(DECLFR_ARGS) {
-  return fceulib__.ppu->A2004_Direct(DECLFR_FORWARD);
+  return fc->ppu->A2004_Direct(DECLFR_FORWARD);
 }
 // static
 DECLFR_RET PPU::A2004_Direct(DECLFR_ARGS) {
@@ -254,7 +255,7 @@ DECLFR_RET PPU::A2004_Direct(DECLFR_ARGS) {
 
 /* Not correct for $2004 reads. */
 DECLFR_RET PPU::A200x(DECLFR_ARGS) {
-  return fceulib__.ppu->A200x_Direct(DECLFR_FORWARD);
+  return fc->ppu->A200x_Direct(DECLFR_FORWARD);
 }
 // static
 DECLFR_RET PPU::A200x_Direct(DECLFR_ARGS) {
@@ -263,21 +264,20 @@ DECLFR_RET PPU::A200x_Direct(DECLFR_ARGS) {
 }
 
 DECLFR_RET PPU::A2007(DECLFR_ARGS) {
-  return fceulib__.ppu->A2007_Direct(DECLFR_FORWARD);
+  return fc->ppu->A2007_Direct(DECLFR_FORWARD);
 }
 // static
 DECLFR_RET PPU::A2007_Direct(DECLFR_ARGS) {
-  uint8 ret;
-  uint32 tmp=RefreshAddr&0x3FFF;
+  uint32 tmp = RefreshAddr&0x3FFF;
 
   FCEUPPU_LineUpdate();
 
-  ret=VRAMBuffer;
+  uint8 ret=VRAMBuffer;
 
   if (PPU_hook) PPU_hook(tmp);
   PPUGenLatch=VRAMBuffer;
   if (tmp < 0x2000) {
-    VRAMBuffer=fceulib__.cart->VPage[tmp>>10][tmp];
+    VRAMBuffer=fc->cart->VPage[tmp>>10][tmp];
   } else if (tmp < 0x3F00) {
     VRAMBuffer=vnapage[(tmp>>10)&0x3][tmp&0x3FF];
   }
@@ -312,12 +312,12 @@ DECLFR_RET PPU::A2007_Direct(DECLFR_ARGS) {
 
 
 //static DECLFW(Write_PSG) {
-//  return fceulib__.sound->Write_PSG_Direct(DECLFW_FORWARD);
+//  return fc->sound->Write_PSG_Direct(DECLFW_FORWARD);
 //}
 //void Sound::Write_PSG_Direct(DECLFW_ARGS) {
 
 static DECLFW(B2000) {
-  fceulib__.ppu->B2000_Direct(DECLFW_FORWARD);
+  fc->ppu->B2000_Direct(DECLFW_FORWARD);
 }
 // static
 void PPU::B2000_Direct(DECLFW_ARGS) {
@@ -327,7 +327,7 @@ void PPU::B2000_Direct(DECLFW_ARGS) {
   PPUGenLatch=V;
   if (!(PPU_values[0]&0x80) && (V&0x80) && (PPU_status&0x80)) {
     //     FCEU_printf("Trigger NMI, %d, %d\n",timestamp,ppudead);
-    fceulib__.X->TriggerNMI2();
+    fc->X->TriggerNMI2();
   }
   PPU_values[0]=V;
   TempAddr&=0xF3FF;
@@ -335,7 +335,7 @@ void PPU::B2000_Direct(DECLFW_ARGS) {
 }
 
 static DECLFW(B2001) {
-  fceulib__.ppu->B2001_Direct(DECLFW_FORWARD);
+  fc->ppu->B2001_Direct(DECLFW_FORWARD);
 }
 // static
 void PPU::B2001_Direct(DECLFW_ARGS) {
@@ -348,7 +348,7 @@ void PPU::B2001_Direct(DECLFW_ARGS) {
 }
 
 static DECLFW(B2002) {
-  fceulib__.ppu->B2002_Direct(DECLFW_FORWARD);
+  fc->ppu->B2002_Direct(DECLFW_FORWARD);
 }
 // static
 void PPU::B2002_Direct(DECLFW_ARGS) {
@@ -356,7 +356,7 @@ void PPU::B2002_Direct(DECLFW_ARGS) {
 }
 
 static DECLFW(B2003) {
-  fceulib__.ppu->B2003_Direct(DECLFW_FORWARD);
+  fc->ppu->B2003_Direct(DECLFW_FORWARD);
 }
 // static
 void PPU::B2003_Direct(DECLFW_ARGS) {
@@ -367,7 +367,7 @@ void PPU::B2003_Direct(DECLFW_ARGS) {
 }
 
 static DECLFW(B2004) {
-  fceulib__.ppu->B2004_Direct(DECLFW_FORWARD);
+  fc->ppu->B2004_Direct(DECLFW_FORWARD);
 }
 // static
 void PPU::B2004_Direct(DECLFW_ARGS) {
@@ -385,7 +385,7 @@ void PPU::B2004_Direct(DECLFW_ARGS) {
 }
 
 static DECLFW(B2005) {
-  fceulib__.ppu->B2005_Direct(DECLFW_FORWARD);
+  fc->ppu->B2005_Direct(DECLFW_FORWARD);
 }
 // static
 void PPU::B2005_Direct(DECLFW_ARGS) {
@@ -407,7 +407,7 @@ void PPU::B2005_Direct(DECLFW_ARGS) {
 
 
 static DECLFW(B2006) {
-  fceulib__.ppu->B2006_Direct(DECLFW_FORWARD);
+  fc->ppu->B2006_Direct(DECLFW_FORWARD);
 }
 // static
 void PPU::B2006_Direct(DECLFW_ARGS) {
@@ -431,7 +431,7 @@ void PPU::B2006_Direct(DECLFW_ARGS) {
 }
 
 static DECLFW(B2007) {
-  fceulib__.ppu->B2007_Direct(DECLFW_FORWARD);
+  fc->ppu->B2007_Direct(DECLFW_FORWARD);
 }
 // static
 void PPU::B2007_Direct(DECLFW_ARGS) {
@@ -445,36 +445,36 @@ void PPU::B2007_Direct(DECLFW_ARGS) {
     else if (tmp&3) PALRAM[(tmp&0x1f)]=V&0x3f;
   } else if (tmp<0x2000) {
     if (PPUCHRRAM&(1<<(tmp>>10)))
-      fceulib__.cart->VPage[tmp>>10][tmp]=V;
+      fc->cart->VPage[tmp>>10][tmp]=V;
   } else {
     if (PPUNTARAM&(1<<((tmp&0xF00)>>10)))
       vnapage[((tmp&0xF00)>>10)][tmp&0x3FF]=V;
   }
-  //      FCEU_printf("ppu (%04x) %04x:%04x %d, %d\n",fceulib__.X->PC,RefreshAddr,PPUGenLatch,scanline,timestamp);
+  //      FCEU_printf("ppu (%04x) %04x:%04x %d, %d\n",fc->X->PC,RefreshAddr,PPUGenLatch,scanline,timestamp);
   if (INC32) RefreshAddr+=32;
   else RefreshAddr++;
   if (PPU_hook) PPU_hook(RefreshAddr&0x3fff);
 }
 
 static DECLFW(B4014) {
-  fceulib__.ppu->B4014_Direct(DECLFW_FORWARD);
+  fc->ppu->B4014_Direct(DECLFW_FORWARD);
 }
 // static
 void PPU::B4014_Direct(DECLFW_ARGS) {
   const uint32 t = V << 8;
 
   for (int x = 0; x < 256; x++) {
-    fceulib__.X->DMW(0x2004,fceulib__.X->DMR(t+x));
+    fc->X->DMW(0x2004,fc->X->DMR(t+x));
   }
 }
 
 void PPU::ResetRL(uint8 *target) {
   memset(target,0xFF,256);
-  fceulib__.input->InputScanlineHook(0,0,0,0);
+  fc->input->InputScanlineHook(0,0,0,0);
   Plinef=target;
   Pline=target;
   firsttile=0;
-  linestartts=fceulib__.X->timestamp*48+fceulib__.X->count;
+  linestartts=fc->X->timestamp*48+fc->X->count;
   tofix=0;
   FCEUPPU_LineUpdate();
   tofix=1;
@@ -482,9 +482,9 @@ void PPU::ResetRL(uint8 *target) {
 
 void PPU::FCEUPPU_LineUpdate() {
   if (Pline) {
-    const int l = (fceulib__.fceu->PAL ? 
-		   ((fceulib__.X->timestamp*48-linestartts)/15) : 
-		   ((fceulib__.X->timestamp*48-linestartts)>>4) );
+    const int l = (fc->fceu->PAL ? 
+		   ((fc->X->timestamp*48-linestartts)/15) : 
+		   ((fc->X->timestamp*48-linestartts)>>4) );
     RefreshLine(l);
   }
 }
@@ -609,7 +609,7 @@ inline std::pair<uint32, uint8 *> PPU::PPUTile(const int X1, uint8 *P,
     } else if (PPUT_MMC5) {
       C = MMC5BGVRAMADR(vadr);
     } else {
-      C = VRAMADR(vadr);
+      C = VRAMADR(fc, vadr);
     }
   }
 
@@ -686,7 +686,7 @@ void PPU::RefreshLine(int lastpixel) {
     }
 
     if ((lastpixel-16)>=0) {
-      fceulib__.input->InputScanlineHook(Plinef,any_sprites_on_line?sprlinebuf:0,
+      fc->input->InputScanlineHook(Plinef,any_sprites_on_line?sprlinebuf:0,
 				       linestartts,lasttile*8-16);
     }
     return;
@@ -764,7 +764,7 @@ void PPU::RefreshLine(int lastpixel) {
     }
   }
 
-  TRACEF("After PPU: %d %d", fceulib__.X->reg_PC, refreshaddr_local);
+  TRACEF("After PPU: %d %d", fc->X->reg_PC, refreshaddr_local);
   TRACEF("Moreover: %d %u %u %u %u %d",
          lastpixel, pshift[0], pshift[1], atlatch, refreshaddr_local,
          norecurse);
@@ -810,7 +810,7 @@ void PPU::RefreshLine(int lastpixel) {
   CheckSpriteHit(lastpixel);
 
   if (lastpixel - 16 >= 0) {
-    fceulib__.input->InputScanlineHook(Plinef, any_sprites_on_line ? sprlinebuf : 0,
+    fc->input->InputScanlineHook(Plinef, any_sprites_on_line ? sprlinebuf : 0,
 				     linestartts, lasttile * 8 - 16);
   }
   Pline=P;
@@ -849,11 +849,11 @@ void PPU::Fixit1() {
 
 void MMC5_hb(int);     //Ugh ugh ugh.
 void PPU::DoLine() {
-  uint8 *target = fceulib__.fceu->XBuf + (scanline << 8);
+  uint8 *target = fc->fceu->XBuf + (scanline << 8);
 
   if (MMC5Hack && (ScreenON || SpriteON)) MMC5_hb(scanline);
 
-  fceulib__.X->Run(256);
+  fc->X->Run(256);
   EndRL();
 
   if (!renderbg) {
@@ -897,15 +897,15 @@ void PPU::DoLine() {
     FetchSpriteData();
 
   if (GameHBIRQHook && (ScreenON || SpriteON) && ((PPU_values[0]&0x38)!=0x18)) {
-    fceulib__.X->Run(6);
+    fc->X->Run(6);
     Fixit2();
-    fceulib__.X->Run(4);
+    fc->X->Run(4);
     GameHBIRQHook();
-    fceulib__.X->Run(85-16-10);
+    fc->X->Run(85-16-10);
   } else {
-    fceulib__.X->Run(6);  // Tried 65, caused problems with Slalom(maybe others)
+    fc->X->Run(6);  // Tried 65, caused problems with Slalom(maybe others)
     Fixit2();
-    fceulib__.X->Run(85-6-16);
+    fc->X->Run(85-6-16);
 
     // A semi-hack for Star Trek: 25th Anniversary
     if (GameHBIRQHook && (ScreenON || SpriteON) && ((PPU_values[0]&0x38)!=0x18))
@@ -918,9 +918,9 @@ void PPU::DoLine() {
     GameHBIRQHook2();
   scanline++;
   if (scanline<240) {
-    ResetRL(fceulib__.fceu->XBuf+(scanline<<8));
+    ResetRL(fc->fceu->XBuf+(scanline<<8));
   }
-  fceulib__.X->Run(16);
+  fc->X->Run(16);
 }
 
 #define V_FLIP  0x80
@@ -977,7 +977,7 @@ void PPU::FetchSpriteData() {
       //printf("%d, %u\n",scanline,(unsigned int)(scanline-spr->y));
       if (ns < maxsprites) {
         DEBUGF(stderr, "   sp %2d: %d,%d #%d attr %s\n",
-               n, spr->x, spr->y, spr->no, attrbits(spr->atr));
+               n, spr->x, spr->y, spr->no, attrbits(spr->atr).c_str());
 
         if (n==63) sb=1;
 
@@ -1000,7 +1000,8 @@ void PPU::FetchSpriteData() {
             vadr+=t&8;
           }
 
-          const uint8 *C = (MMC5Hack) ? MMC5SPRVRAMADR(vadr) : VRAMADR(vadr);
+          const uint8 *C = (MMC5Hack) ?
+	    MMC5SPRVRAMADR(fc, vadr) : VRAMADR(fc, vadr);
 
           dst.ca[0]=C[0];
           dst.ca[1]=C[8];
@@ -1048,7 +1049,8 @@ void PPU::FetchSpriteData() {
             vadr+=t&8;
           }
 
-          const uint8 *C = MMC5Hack ? MMC5SPRVRAMADR(vadr): VRAMADR(vadr);
+          const uint8 *C = MMC5Hack ?
+	    MMC5SPRVRAMADR(fc, vadr): VRAMADR(fc, vadr);
           dst.ca[0]=C[0];
           if (ns<8) {
             PPU_hook(0x2000);
@@ -1124,7 +1126,7 @@ void PPU::RefreshSprites() {
     uint8 atr = spr->atr;
 
     DEBUGF(stderr, "   sp %2d: x=%d ca[%d,%d] attr %s\n",
-           n, spr->x, spr->ca[0], spr->ca[1], attrbits(spr->atr));
+           n, spr->x, spr->ca[0], spr->ca[1], attrbits(spr->atr).c_str());
 
     if (J) {
       if (n==0 && SpriteBlurp && !(PPU_status&0x40)) {
@@ -1347,35 +1349,35 @@ void PPU::FCEUPPU_Power() {
   FCEUPPU_Reset();
 
   for (int x = 0x2000; x < 0x4000; x += 8) {
-    fceulib__.fceu->ARead[x]=A200x;
-    fceulib__.fceu->BWrite[x]=B2000;
-    fceulib__.fceu->ARead[x+1]=A200x;
-    fceulib__.fceu->BWrite[x+1]=B2001;
-    fceulib__.fceu->ARead[x+2]=A2002;
-    fceulib__.fceu->BWrite[x+2]=B2002;
-    fceulib__.fceu->ARead[x+3]=A200x;
-    fceulib__.fceu->BWrite[x+3]=B2003;
-    fceulib__.fceu->ARead[x+4]=A2004; //A2004;
-    fceulib__.fceu->BWrite[x+4]=B2004;
-    fceulib__.fceu->ARead[x+5]=A200x;
-    fceulib__.fceu->BWrite[x+5]=B2005;
-    fceulib__.fceu->ARead[x+6]=A200x;
-    fceulib__.fceu->BWrite[x+6]=B2006;
-    fceulib__.fceu->ARead[x+7]=A2007;
-    fceulib__.fceu->BWrite[x+7]=B2007;
+    fc->fceu->ARead[x]=A200x;
+    fc->fceu->BWrite[x]=B2000;
+    fc->fceu->ARead[x+1]=A200x;
+    fc->fceu->BWrite[x+1]=B2001;
+    fc->fceu->ARead[x+2]=A2002;
+    fc->fceu->BWrite[x+2]=B2002;
+    fc->fceu->ARead[x+3]=A200x;
+    fc->fceu->BWrite[x+3]=B2003;
+    fc->fceu->ARead[x+4]=A2004; //A2004;
+    fc->fceu->BWrite[x+4]=B2004;
+    fc->fceu->ARead[x+5]=A200x;
+    fc->fceu->BWrite[x+5]=B2005;
+    fc->fceu->ARead[x+6]=A200x;
+    fc->fceu->BWrite[x+6]=B2006;
+    fc->fceu->ARead[x+7]=A2007;
+    fc->fceu->BWrite[x+7]=B2007;
   }
-  fceulib__.fceu->BWrite[0x4014]=B4014;
+  fc->fceu->BWrite[0x4014]=B4014;
 }
 
 int PPU::FCEUPPU_Loop(int skip) {
   // Needed for Knight Rider, possibly others.
   if (ppudead) {
-    memset(fceulib__.fceu->XBuf, 0x80, 256*240);
-    fceulib__.X->Run(scanlines_per_frame*(256+85));
+    memset(fc->fceu->XBuf, 0x80, 256*240);
+    fc->X->Run(scanlines_per_frame*(256+85));
     ppudead--;
   } else {
     TRACELOC();
-    fceulib__.X->Run(256+85);
+    fc->X->Run(256+85);
     TRACEA(RAM, 0x800);
 
     PPU_status |= 0x80;
@@ -1387,14 +1389,14 @@ int PPU::FCEUPPU_Loop(int skip) {
     PPU_values[3]=PPUSPL=0;
 
     // I need to figure out the true nature and length of this delay.
-    fceulib__.X->Run(12);
+    fc->X->Run(12);
 
     if (VBlankON)
-      fceulib__.X->TriggerNMI();
+      fc->X->TriggerNMI();
 
-    fceulib__.X->Run((scanlines_per_frame-242)*(256+85)-12);
+    fc->X->Run((scanlines_per_frame-242)*(256+85)-12);
     PPU_status&=0x1f;
-    fceulib__.X->Run(256);
+    fc->X->Run(256);
 
     if (ScreenON || SpriteON) {
       if (GameHBIRQHook && ((PPU_values[0]&0x38)!=0x18))
@@ -1404,7 +1406,7 @@ int PPU::FCEUPPU_Loop(int skip) {
       if (GameHBIRQHook2)
         GameHBIRQHook2();
     }
-    fceulib__.X->Run(85-16);
+    fc->X->Run(85-16);
     if (ScreenON || SpriteON) {
       RefreshAddr=TempAddr;
       if (PPU_hook) PPU_hook(RefreshAddr&0x3fff);
@@ -1412,9 +1414,9 @@ int PPU::FCEUPPU_Loop(int skip) {
 
     //Clean this stuff up later.
     any_sprites_on_line = numsprites = 0;
-    ResetRL(fceulib__.fceu->XBuf);
+    ResetRL(fc->fceu->XBuf);
 
-    fceulib__.X->Run(16 - cycle_parity);
+    fc->X->Run(16 - cycle_parity);
     cycle_parity ^= 1;
 
     // n.b. FRAMESKIP results in different behavior in memory, so don't do it.
@@ -1429,7 +1431,7 @@ int PPU::FCEUPPU_Loop(int skip) {
       TRACELOC();
       PPU_status|=0x20;       // Fixes "Bee 52".  Does it break anything?
       if (GameHBIRQHook) {
-        fceulib__.X->Run(256);
+        fc->X->Run(256);
         for (scanline=0;scanline<240;scanline++) {
           if (ScreenON || SpriteON)
             GameHBIRQHook();
@@ -1437,17 +1439,17 @@ int PPU::FCEUPPU_Loop(int skip) {
             TRACELOC();
             PPU_status|=0x40;
           }
-          fceulib__.X->Run((scanline==239)?85:(256+85));
+          fc->X->Run((scanline==239)?85:(256+85));
         }
       } else if (y<240) {
-        fceulib__.X->Run((256+85)*y);
+        fc->X->Run((256+85)*y);
         if (SpriteON) {
           TRACELOC();
           PPU_status|=0x40; // Quick and very dirty hack.
         }
-        fceulib__.X->Run((256+85)*(240-y));
+        fc->X->Run((256+85)*(240-y));
       } else {
-        fceulib__.X->Run((256+85)*240);
+        fc->X->Run((256+85)*240);
       }
     }
 #endif
@@ -1474,7 +1476,7 @@ int PPU::FCEUPPU_Loop(int skip) {
       //                  deempcnt[3],deempcnt[4],deempcnt[5],
       //                  deempcnt[6],deempcnt[7],maxref);
       // memset(deempcnt,0,sizeof(deempcnt));
-      fceulib__.palette->SetNESDeemph(maxref,0);
+      fc->palette->SetNESDeemph(maxref,0);
     }
   } //else... to if (ppudead)
 
@@ -1492,7 +1494,7 @@ void PPU::FCEUPPU_LoadState(int version) {
   RefreshAddr=RefreshAddrT;
 }
 
-PPU::PPU() :
+PPU::PPU(FC *fc) :
   stateinfo {
     { NTARAM, 0x800, "NTAR"},
     { PALRAM, 0x20, "PRAM"},
@@ -1512,7 +1514,7 @@ PPU::PPU() :
     { &sphitx, 4|FCEUSTATE_RLSB, "Psph" },
     { &sphitdata, 1, "Pspd" },
     { 0 },
-  } {
+  }, fc(fc) {
   // Constructor, empty.
 }
 

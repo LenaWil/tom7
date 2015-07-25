@@ -5,9 +5,11 @@
 #include <utility>
 #include <vector>
 
+#include "fc.h"
+
 class PPU {
  public:
-  PPU();
+  PPU(FC *fc);
 
   void FCEUPPU_Reset();
   void FCEUPPU_Power();
@@ -158,6 +160,8 @@ class PPU {
   int norecurse = 0;
 
   uint8 numsprites = 0, SpriteBlurp = 0;
+
+  FC *fc = nullptr;
 };
 
 #endif

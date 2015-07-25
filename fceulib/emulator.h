@@ -14,6 +14,8 @@
 
 #include "types.h"
 
+#include "fc.h"
+
 using namespace std;
 
 struct FCEUGI;
@@ -87,17 +89,17 @@ struct Emulator {
 
  protected:
   // Use factory method.
-  Emulator();
+  Emulator(FC *);
 
  private:
   int DriverInitialize(FCEUGI *gi);
   int LoadGame(const string &path);
+
+  FC *fc = nullptr;
   
   // Joystick data. I think used for both controller 0 and 1. Part of
   // the "API". TODO: Move into FCEU or input object?
   uint32 joydata = 0;
-
-
 
   // Maybe we should consider supporting cloning, actually.
   Emulator(const Emulator &) = delete;
