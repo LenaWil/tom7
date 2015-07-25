@@ -56,7 +56,7 @@ static DECLFW(MWrite) {
   Sync();
 }
 
-static void MPower() {
+static void MPower(FC *fc) {
   datareg = 0;
   Sync();
   fceulib__.cart->setprg16(0x8000, 0);
@@ -65,12 +65,12 @@ static void MPower() {
   fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
 }
 
-static void MClose() {
-  if (DummyCHR) free(DummyCHR);
-  DummyCHR = NULL;
+static void MClose(FC *fc) {
+  free(DummyCHR);
+  DummyCHR = nullptr;
 }
 
-static void MRestore(int version) {
+static void MRestore(FC *fc, int version) {
   Sync();
 }
 

@@ -51,14 +51,14 @@ static DECLFW(M226Write) {
   Sync();
 }
 
-static void M226Power() {
+static void M226Power(FC *fc) {
   latche[0] = latche[1] = reset = 0;
   Sync();
   fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, M226Write);
   fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
 }
 
-static void StateRestore(int version) {
+static void StateRestore(FC *fc, int version) {
   Sync();
 }
 
@@ -69,7 +69,7 @@ void Mapper226_Init(CartInfo *info) {
   fceulib__.fceu->GameStateRestore = StateRestore;
 }
 
-static void M233Reset() {
+static void M233Reset(FC *fc) {
   reset ^= 1;
   Sync();
 }

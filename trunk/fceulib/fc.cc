@@ -45,7 +45,7 @@ FC::FC() {
   palette = new Palette(this);
   ppu = new PPU(this);
   sound = new Sound(this);
-  unif = new Unif;
+  unif = new Unif(this);
   vsuni = new VSUni(this);
   X = new X6502(this);
   state = new State(this);

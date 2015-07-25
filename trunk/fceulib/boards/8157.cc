@@ -45,7 +45,7 @@ static DECLFW(UNL8157Write) {
   Sync();
 }
 
-static void UNL8157Power() {
+static void UNL8157Power(FC *fc) {
   fceulib__.cart->setchr8(0);
   fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, UNL8157Write);
   fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, UNL8157Read);
@@ -54,13 +54,13 @@ static void UNL8157Power() {
   Sync();
 }
 
-static void UNL8157Reset() {
+static void UNL8157Reset(FC *fc) {
   cmdreg = 0;
   invalid_data ^= 1;
   Sync();
 }
 
-static void UNL8157Restore(int version) {
+static void UNL8157Restore(FC *fc, int version) {
   Sync();
 }
 

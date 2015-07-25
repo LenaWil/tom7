@@ -43,7 +43,7 @@ static DECLFW(BMCT262Write) {
   Sync();
 }
 
-static void BMCT262Power() {
+static void BMCT262Power(FC *fc) {
   fceulib__.cart->setchr8(0);
   fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, BMCT262Write);
   fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
@@ -53,14 +53,14 @@ static void BMCT262Power() {
   Sync();
 }
 
-static void BMCT262Reset() {
+static void BMCT262Reset(FC *fc) {
   busy = 0;
   addrreg = 0;
   datareg = 0;
   Sync();
 }
 
-static void BMCT262Restore(int version) {
+static void BMCT262Restore(FC *fc, int version) {
   Sync();
 }
 

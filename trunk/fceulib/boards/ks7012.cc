@@ -46,7 +46,7 @@ static DECLFW(UNLKS7012Write) {
   }
 }
 
-static void UNLKS7012Power() {
+static void UNLKS7012Power(FC *fc) {
   reg = ~0;
   Sync();
   fceulib__.fceu->SetReadHandler(0x6000, 0x7FFF, Cart::CartBR);
@@ -55,18 +55,18 @@ static void UNLKS7012Power() {
   fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, UNLKS7012Write);
 }
 
-static void UNLKS7012Reset() {
+static void UNLKS7012Reset(FC *fc) {
   reg = ~0;
   Sync();
 }
 
-static void StateRestore(int version) {
+static void StateRestore(FC *fc, int version) {
   Sync();
 }
 
-static void UNLKS7012Close() {
-  if (WRAM) free(WRAM);
-  WRAM = NULL;
+static void UNLKS7012Close(FC *fc) {
+  free(WRAM);
+  WRAM = nullptr;
 }
 
 void UNLKS7012_Init(CartInfo *info) {

@@ -54,7 +54,7 @@ struct BFMAPPING {
 };
 }
 
-Unif::Unif() {}
+Unif::Unif(FC *fc) : fc(fc) {}
 
 static int FixRomSize(uint32 size, uint32 minimum) {
   uint32 x = 1;
@@ -500,17 +500,17 @@ void Unif::UNIFGI(GI h) {
 
   case GI_RESETM2:
     if (UNIFCart.Reset)
-      UNIFCart.Reset();
+      UNIFCart.Reset(fc);
     break;
   case GI_POWER:
     if (UNIFCart.Power)
-      UNIFCart.Power();
+      UNIFCart.Power(fc);
     if (UNIFchrrama) memset(UNIFchrrama,0,8192);
     break;
   case GI_CLOSE:
     fceulib__.cart->FCEU_SaveGameSave(&UNIFCart);
     if (UNIFCart.Close)
-      UNIFCart.Close();
+      UNIFCart.Close(fc);
     FreeUNIF();
     break;
   }
@@ -556,8 +556,8 @@ int Unif::UNIFLoad(const char *name, FceuFile *fp) {
 
   fceulib__.cart->FCEU_LoadGameSave(&UNIFCart);
 
-  fceulib__.fceu->GameInterface = [](GI gi) {
-    return fceulib__.unif->UNIFGI(gi);
+  fceulib__.fceu->GameInterface = [](FC *fc, GI gi) {
+    return fc->unif->UNIFGI(gi);
   };
   return 1;
 

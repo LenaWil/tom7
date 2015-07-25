@@ -56,7 +56,7 @@ static DECLFW(BSWRAM) {
   SWRAM[A - 0x4400] = V;
 }
 
-static void M186Power() {
+static void M186Power(FC *fc) {
   fceulib__.cart->setchr8(0);
   fceulib__.fceu->SetReadHandler(0x6000, 0xFFFF, Cart::CartBR);
   fceulib__.fceu->SetWriteHandler(0x6000, 0xFFFF, Cart::CartBW);
@@ -68,12 +68,12 @@ static void M186Power() {
   Sync();
 }
 
-static void M186Close() {
-  if (WRAM) free(WRAM);
-  WRAM = NULL;
+static void M186Close(FC *fc) {
+  free(WRAM);
+  WRAM = nullptr;
 }
 
-static void M186Restore(int version) {
+static void M186Restore(FC *fc, int version) {
   Sync();
 }
 

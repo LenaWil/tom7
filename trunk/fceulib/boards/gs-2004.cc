@@ -34,7 +34,7 @@ static DECLFW(BMCGS2004Write) {
   Sync();
 }
 
-static void BMCGS2004Power() {
+static void BMCGS2004Power(FC *fc) {
   reg = ~0;
   Sync();
   fceulib__.fceu->SetReadHandler(0x6000, 0x7FFF, Cart::CartBR);
@@ -42,11 +42,11 @@ static void BMCGS2004Power() {
   fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, BMCGS2004Write);
 }
 
-static void BMCGS2004Reset() {
+static void BMCGS2004Reset(FC *fc) {
   reg = ~0;
 }
 
-static void StateRestore(int version) {
+static void StateRestore(FC *fc, int version) {
   Sync();
 }
 

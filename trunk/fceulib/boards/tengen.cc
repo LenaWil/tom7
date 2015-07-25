@@ -121,7 +121,7 @@ static DECLFW(RAMBO1_write) {
   }
 }
 
-static void RAMBO1_Restore(int version) {
+static void RAMBO1_Restore(FC *fc, int version) {
   Synco();
   //  if (!nomirror)
   fceulib__.cart->setmirror(mir ^ 1);

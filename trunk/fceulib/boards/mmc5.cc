@@ -617,7 +617,7 @@ void MMC5_hb(int scanline) {
   }
 }
 
-static void MMC5_StateRestore(int version) {
+static void MMC5_StateRestore(FC *fc, int version) {
   MMC5Synco();
 }
 
@@ -805,7 +805,7 @@ static void Mapper5_ESI(FC *fc) {
   fceulib__.sound->GameExpSound.HiSync = MMC5HiSync;
 }
 
-static void GenMMC5Reset() {
+static void GenMMC5Reset(FC *fc) {
   for (int x = 0; x < 4; x++) PRGBanks[x] = ~0;
   for (int x = 0; x < 8; x++) CHRBanksA[x] = ~0;
   for (int x = 0; x < 4; x++) CHRBanksB[x] = ~0;

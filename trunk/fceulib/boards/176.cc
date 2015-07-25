@@ -93,7 +93,7 @@ static DECLFW(M176Write_WriteSRAM) {
   Cart::CartBW(DECLFW_FORWARD);
 }
 
-static void M176Power() {
+static void M176Power(FC *fc) {
   fceulib__.fceu->SetReadHandler(0x6000, 0x7fff, Cart::CartBR);
   fceulib__.fceu->SetWriteHandler(0x6000, 0x7fff, M176Write_WriteSRAM);
   fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
@@ -113,12 +113,12 @@ static void M176Power() {
   Sync();
 }
 
-static void M176Close() {
+static void M176Close(FC *fc) {
   free(wram176);
   wram176 = nullptr;
 }
 
-static void StateRestore(int version) {
+static void StateRestore(FC *fc, int version) {
   Sync();
 }
 

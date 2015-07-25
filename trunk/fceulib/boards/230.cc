@@ -50,19 +50,19 @@ static DECLFW(M230Write) {
   Sync();
 }
 
-static void M230Reset() {
+static void M230Reset(FC *fc) {
   reset ^= 1;
   Sync();
 }
 
-static void M230Power() {
+static void M230Power(FC *fc) {
   latche = reset = 0;
   Sync();
   fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, M230Write);
   fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
 }
 
-static void StateRestore(int version) {
+static void StateRestore(FC *fc, int version) {
   Sync();
 }
 

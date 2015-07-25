@@ -52,21 +52,21 @@ static DECLFW(M228Write) {
   Sync();
 }
 
-static void M228Reset() {
+static void M228Reset(FC *fc) {
   areg = 0x8000;
   vreg = 0;
   Sync();
 }
 
-static void M228Power() {
-  M228Reset();
+static void M228Power(FC *fc) {
+  M228Reset(fc);
   fceulib__.fceu->SetReadHandler(0x5000, 0x5FFF, M228RamRead);
   fceulib__.fceu->SetWriteHandler(0x5000, 0x5FFF, M228RamWrite);
   fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
   fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, M228Write);
 }
 
-static void StateRestore(int version) {
+static void StateRestore(FC *fc, int version) {
   Sync();
 }
 

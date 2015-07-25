@@ -8,9 +8,9 @@
 
 struct CartInfo {
   /* Set by mapper/board code: */
-  void (*Power)();
-  void (*Reset)();
-  void (*Close)();
+  void (*Power)(FC *fc);
+  void (*Reset)(FC *fc);
+  void (*Close)(FC *fc);
   /* Pointers to memory to save/load. */
   uint8 *SaveGame[4];
   /* How much memory to save/load. */

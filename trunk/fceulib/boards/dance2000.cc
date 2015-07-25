@@ -62,7 +62,7 @@ static DECLFR(UNLD2000Read) {
     return Cart::CartBR(DECLFR_FORWARD);
 }
 
-static void UNLD2000Power() {
+static void UNLD2000Power(FC *fc) {
   prg = prgmode = 0;
   Sync();
   fceulib__.fceu->SetReadHandler(0x6000, 0x7FFF, Cart::CartBR);
@@ -78,12 +78,12 @@ static void UNLAX5705IRQ() {
     fceulib__.cart->setchr4(0x0000, 0);
 }
 
-static void UNLD2000Close() {
+static void UNLD2000Close(FC *fc) {
   if (WRAM) free(WRAM);
   WRAM = NULL;
 }
 
-static void StateRestore(int version) {
+static void StateRestore(FC *fc, int version) {
   Sync();
 }
 

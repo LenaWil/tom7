@@ -39,7 +39,7 @@ static DECLFW(UNLEDU2000HiWrite) {
   Sync();
 }
 
-static void UNLEDU2000Power() {
+static void UNLEDU2000Power(FC *fc) {
   fceulib__.cart->setmirror(MI_0);
   fceulib__.fceu->SetReadHandler(0x6000, 0xFFFF, Cart::CartBR);
   fceulib__.fceu->SetWriteHandler(0x6000, 0xFFFF, Cart::CartBW);
@@ -48,12 +48,12 @@ static void UNLEDU2000Power() {
   Sync();
 }
 
-static void UNLEDU2000Close() {
-  if (WRAM) free(WRAM);
-  WRAM = NULL;
+static void UNLEDU2000Close(FC *fc) {
+  free(WRAM);
+  WRAM = nullptr;
 }
 
-static void UNLEDU2000Restore(int version) {
+static void UNLEDU2000Restore(FC *fc, int version) {
   Sync();
 }
 

@@ -186,7 +186,7 @@ static DECLFW(BMCFK23CWrite) {
   // %02X\n",EXPREGS[0],EXPREGS[1],EXPREGS[2],EXPREGS[3]);
 }
 
-static void BMCFK23CReset() {
+static void BMCFK23CReset(FC *fc) {
   // NOT NECESSARY ANYMORE
   // this little hack makes sure that we try all the dip switch settings
   // eventually, if we reset enough
@@ -196,25 +196,26 @@ static void BMCFK23CReset() {
 
   EXPREGS[0] = EXPREGS[1] = EXPREGS[2] = EXPREGS[3] = 0;
   EXPREGS[4] = EXPREGS[5] = EXPREGS[6] = EXPREGS[7] = 0xFF;
-  MMC3RegReset();
+  MMC3RegReset(fc);
   FixMMC3PRG(MMC3_cmd);
   FixMMC3CHR(MMC3_cmd);
 }
 
-static void BMCFK23CPower() {
+static void BMCFK23CPower(FC *fc) {
   dipswitch = 0;
-  GenMMC3Power();
+  GenMMC3Power(fc);
   EXPREGS[0] = EXPREGS[1] = EXPREGS[2] = EXPREGS[3] = 0;
   EXPREGS[4] = EXPREGS[5] = EXPREGS[6] = EXPREGS[7] = 0xFF;
-  GenMMC3Power();
+  // XXX Why is this called twice? -tom7
+  GenMMC3Power(fc);
   fceulib__.fceu->SetWriteHandler(0x5000, 0x5fff, BMCFK23CWrite);
   fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, BMCFK23CHiWrite);
   FixMMC3PRG(MMC3_cmd);
   FixMMC3CHR(MMC3_cmd);
 }
 
-static void BMCFK23CAPower() {
-  GenMMC3Power();
+static void BMCFK23CAPower(FC *fc) {
+  GenMMC3Power(fc);
   dipswitch = 0;
   EXPREGS[0] = EXPREGS[1] = EXPREGS[2] = EXPREGS[3] = 0;
   EXPREGS[4] = EXPREGS[5] = EXPREGS[6] = EXPREGS[7] = 0xFF;
@@ -224,7 +225,7 @@ static void BMCFK23CAPower() {
   FixMMC3CHR(MMC3_cmd);
 }
 
-static void BMCFK23CAClose() {
+static void BMCFK23CAClose(FC *fc) {
   free(CHRRAM);
   CHRRAM = nullptr;
 }

@@ -58,7 +58,7 @@ static DECLFW(Mapper167_write) {
   Sync();
 }
 
-static void StateRestore(int version) {
+static void StateRestore(FC *fc, int version) {
   Sync();
 }
 

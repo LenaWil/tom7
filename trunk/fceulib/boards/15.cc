@@ -62,11 +62,11 @@ static DECLFW(M15Write) {
   Sync();
 }
 
-static void StateRestore(int version) {
+static void StateRestore(FC *fc, int version) {
   Sync();
 }
 
-static void M15Power() {
+static void M15Power(FC *fc) {
   latchea = 0x8000;
   latched = 0;
   fceulib__.cart->setchr8(0);
@@ -78,15 +78,15 @@ static void M15Power() {
   Sync();
 }
 
-static void M15Reset() {
+static void M15Reset(FC *fc) {
   latchea = 0x8000;
   latched = 0;
   Sync();
 }
 
-static void M15Close() {
-  if (WRAM) free(WRAM);
-  WRAM = NULL;
+static void M15Close(FC *fc) {
+  free(WRAM);
+  WRAM = nullptr;
 }
 
 void Mapper15_Init(CartInfo *info) {

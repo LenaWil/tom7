@@ -21,7 +21,7 @@
 
 #include "mapinc.h"
 
-static void GenMMC1Power();
+static void GenMMC1Power(FC *fc);
 static void GenMMC1Init(CartInfo *info, int prg, int chr, int wram,
                         int battery);
 
@@ -163,7 +163,7 @@ static DECLFW(MMC1_write) {
   }
 }
 
-static void MMC1_Restore(int version) {
+static void MMC1_Restore(FC *fc, int version) {
   MMC1MIRROR();
   MMC1CHR();
   MMC1PRG();
@@ -239,8 +239,8 @@ static void NWCPRGHook(uint32 A, uint8 V) {
     fceulib__.cart->setprg32(0x8000, (NWCRec >> 1) & 3);
 }
 
-static void NWCPower() {
-  GenMMC1Power();
+static void NWCPower(FC *fc) {
+  GenMMC1Power(fc);
   fceulib__.cart->setchr8r(0, 0);
 }
 
@@ -252,7 +252,7 @@ void Mapper105_Init(CartInfo *info) {
   info->Power = NWCPower;
 }
 
-static void GenMMC1Power() {
+static void GenMMC1Power(FC *fc) {
   lreset = 0;
   if (mmc1opts & 1) {
     // FCEU_CheatAddRAM(8,0x6000,WRAM);
@@ -274,10 +274,10 @@ static void GenMMC1Power() {
   MMC1CMReset();
 }
 
-static void GenMMC1Close() {
-  if (CHRRAM) free(CHRRAM);
-  if (WRAM) free(WRAM);
-  CHRRAM = WRAM = NULL;
+static void GenMMC1Close(FC *fc) {
+  free(CHRRAM);
+  free(WRAM);
+  CHRRAM = WRAM = nullptr;
 }
 
 static void GenMMC1Init(CartInfo *info, int prg, int chr, int wram,

@@ -88,7 +88,7 @@ static DECLFW(M18WriteChr) {
   Sync();
 }
 
-static void M18Power() {
+static void M18Power(FC *fc) {
   preg[0] = 0;
   preg[1] = 1;
   preg[2] = ~1;
@@ -111,7 +111,7 @@ static void M18IRQHook(int a) {
   }
 }
 
-static void StateRestore(int version) {
+static void StateRestore(FC *fc, int version) {
   Sync();
 }
 

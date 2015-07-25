@@ -67,7 +67,7 @@ static DECLFW(Mapper95_write) {
   }
 }
 
-static void dragonbust_ppu(uint32 A) {
+static void DragonBust_PPU(uint32 A) {
   static int last = -1;
   static uint8 z;
 
@@ -82,7 +82,7 @@ static void dragonbust_ppu(uint32 A) {
   }
 }
 
-static void DBPower() {
+static void DBPower(FC *fc) {
   memset(DRegs, 0x3F, 8);
   DRegs[0] = DRegs[1] = 0x1F;
 
@@ -95,13 +95,13 @@ static void DBPower() {
   fceulib__.fceu->SetWriteHandler(0x8000, 0xffff, Mapper95_write);
 }
 
-static void StateRestore(int version) {
+static void StateRestore(FC *fc, int version) {
   Sync();
 }
 
 void Mapper95_Init(CartInfo *info) {
   info->Power = DBPower;
   fceulib__.state->AddExState(DB_StateRegs, ~0, 0, 0);
-  fceulib__.ppu->PPU_hook = dragonbust_ppu;
+  fceulib__.ppu->PPU_hook = DragonBust_PPU;
   fceulib__.fceu->GameStateRestore = StateRestore;
 }

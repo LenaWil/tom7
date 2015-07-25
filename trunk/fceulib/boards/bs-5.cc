@@ -49,14 +49,14 @@ static DECLFW(MBS5Write) {
   Sync();
 }
 
-static void MBS5Reset() {
+static void MBS5Reset(FC *fc) {
   dip_switch++;
   dip_switch &= 3;
   reg_prg[0] = reg_prg[1] = reg_prg[2] = reg_prg[3] = ~0;
   Sync();
 }
 
-static void MBS5Power() {
+static void MBS5Power(FC *fc) {
   dip_switch = 0;
   reg_prg[0] = reg_prg[1] = reg_prg[2] = reg_prg[3] = ~0;
   Sync();
@@ -64,7 +64,7 @@ static void MBS5Power() {
   fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, MBS5Write);
 }
 
-static void StateRestore(int version) {
+static void StateRestore(FC *fc, int version) {
   Sync();
 }
 

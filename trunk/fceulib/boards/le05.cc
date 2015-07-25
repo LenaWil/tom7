@@ -46,7 +46,7 @@ static DECLFW(LE05Write) {
   Sync();
 }
 
-static void LE05Power() {
+static void LE05Power(FC *fc) {
   Sync();
   fceulib__.fceu->SetReadHandler(0x6000, 0xFFFF, Cart::CartBR);
   fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, LE05Write);

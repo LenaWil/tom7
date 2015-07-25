@@ -66,16 +66,16 @@ static DECLFW(M199Write) {
   }
 }
 
-static void M199Power() {
+static void M199Power(FC *fc) {
   EXPREGS[0] = ~1;
   EXPREGS[1] = ~0;
   EXPREGS[2] = 1;
   EXPREGS[3] = 3;
-  GenMMC3Power();
+  GenMMC3Power(fc);
   fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, M199Write);
 }
 
-static void M199Close() {
+static void M199Close(FC *fc) {
   free(CHRRAM);
   CHRRAM = nullptr;
 }

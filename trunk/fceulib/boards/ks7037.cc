@@ -63,7 +63,7 @@ static DECLFW(UNLKS7037Write) {
   }
 }
 
-static void UNLKS7037Power() {
+static void UNLKS7037Power(FC *fc) {
   reg[0] = reg[1] = reg[2] = reg[3] = reg[4] = reg[5] = reg[6] = reg[7] = 0;
   WSync();
   fceulib__.fceu->SetReadHandler(0x6000, 0xFFFF, Cart::CartBR);
@@ -73,7 +73,7 @@ static void UNLKS7037Power() {
   fceulib__.fceu->SetWriteHandler(0xC000, 0xFFFF, UNLKS7037Write);
 }
 
-static void LH10Power() {
+static void LH10Power(FC *fc) {
   reg[0] = reg[1] = reg[2] = reg[3] = reg[4] = reg[5] = reg[6] = reg[7] = 0;
   WSync();
   fceulib__.fceu->SetReadHandler(0x6000, 0xFFFF, Cart::CartBR);
@@ -82,12 +82,12 @@ static void LH10Power() {
   fceulib__.fceu->SetWriteHandler(0xE000, 0xFFFF, UNLKS7037Write);
 }
 
-static void Close() {
-  if (WRAM) free(WRAM);
-  WRAM = NULL;
+static void Close(FC *fc) {
+  free(WRAM);
+  WRAM = nullptr;
 }
 
-static void StateRestore(int version) {
+static void StateRestore(FC *fc, int version) {
   WSync();
 }
 

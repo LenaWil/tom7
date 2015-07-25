@@ -139,10 +139,10 @@ static DECLFR(M121Read) {
   return EXPREGS[4];
 }
 
-static void M121Power() {
+static void M121Power(FC *fc) {
   EXPREGS[3] = 0x80;
   EXPREGS[5] = 0;
-  GenMMC3Power();
+  GenMMC3Power(fc);
   fceulib__.fceu->SetReadHandler(0x5000, 0x5FFF, M121Read);
   fceulib__.fceu->SetWriteHandler(0x5000, 0x5FFF, M121LoWrite);
   fceulib__.fceu->SetWriteHandler(0x8000, 0x9FFF, M121Write);

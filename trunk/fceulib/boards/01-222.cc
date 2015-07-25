@@ -70,7 +70,7 @@ static DECLFR(UNL22211ReadLo) {
   //		return fceulib__.X->DB;
 }
 
-static void UNL22211Power() {
+static void UNL22211Power(FC *fc) {
   Sync();
   fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
   fceulib__.fceu->SetReadHandler(0x4100, 0x4100, UNL22211ReadLo);
@@ -78,7 +78,7 @@ static void UNL22211Power() {
   fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, UNL22211WriteHi);
 }
 
-static void StateRestore(int version) {
+static void StateRestore(FC *fc, int version) {
   Sync();
 }
 

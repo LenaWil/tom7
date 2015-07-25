@@ -433,7 +433,7 @@ static void M90PPU(uint32 A) {
   }
 }
 
-static void togglie() {
+static void M90Reset(FC *fc) {
   tekker += 0x40;
   tekker &= 0xC0;
   FCEU_printf("tekker=%02x\n", tekker);
@@ -443,13 +443,13 @@ static void togglie() {
   tekvrom();
 }
 
-static void M90Restore(int version) {
+static void M90Restore(FC *fc, int version) {
   tekprom();
   tekvrom();
   mira();
 }
 
-static void M90Power() {
+static void M90Power(FC *fc) {
   fceulib__.fceu->SetWriteHandler(0x5000, 0x5fff, M90TekWrite);
   fceulib__.fceu->SetWriteHandler(0x8000, 0x8ff0, M90PRGWrite);
   fceulib__.fceu->SetWriteHandler(0x9000, 0x9fff, M90CHRlowWrite);
@@ -482,7 +482,7 @@ static void M90Power() {
 void Mapper90_Init(CartInfo *info) {
   is211 = 0;
   is209 = 0;
-  info->Reset = togglie;
+  info->Reset = M90Reset;
   info->Power = M90Power;
   fceulib__.ppu->PPU_hook = M90PPU;
   fceulib__.X->MapIRQHook = CPUWrap;
@@ -494,7 +494,7 @@ void Mapper90_Init(CartInfo *info) {
 void Mapper209_Init(CartInfo *info) {
   is211 = 0;
   is209 = 1;
-  info->Reset = togglie;
+  info->Reset = M90Reset;
   info->Power = M90Power;
   fceulib__.ppu->PPU_hook = M90PPU;
   fceulib__.X->MapIRQHook = CPUWrap;
@@ -505,7 +505,7 @@ void Mapper209_Init(CartInfo *info) {
 
 void Mapper211_Init(CartInfo *info) {
   is211 = 1;
-  info->Reset = togglie;
+  info->Reset = M90Reset;
   info->Power = M90Power;
   fceulib__.ppu->PPU_hook = M90PPU;
   fceulib__.X->MapIRQHook = CPUWrap;

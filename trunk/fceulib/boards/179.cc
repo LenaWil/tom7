@@ -44,7 +44,7 @@ static DECLFW(M179WriteLo) {
   Sync();
 }
 
-static void M179Power() {
+static void M179Power(FC *fc) {
   reg[0] = reg[1] = 0;
   Sync();
   fceulib__.fceu->SetWriteHandler(0x4020, 0x5fff, M179WriteLo);
@@ -54,12 +54,12 @@ static void M179Power() {
   fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, M179Write);
 }
 
-static void M179Close() {
-  if (WRAM) free(WRAM);
-  WRAM = NULL;
+static void M179Close(FC *fc) {
+  free(WRAM);
+  WRAM = nullptr;
 }
 
-static void StateRestore(int version) {
+static void StateRestore(FC *fc, int version) {
   Sync();
 }
 

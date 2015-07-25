@@ -34,7 +34,7 @@ static void Sync() {
   fceulib__.cart->setprg8(0xa000, DRegs[7]);
 }
 
-static void StateRestore(int version) {
+static void StateRestore(FC *fc, int version) {
   Sync();
 }
 
@@ -53,7 +53,7 @@ static DECLFW(DEIWrite) {
   }
 }
 
-static void DEIPower() {
+static void DEIPower(FC *fc) {
   fceulib__.cart->setprg8(0xc000, 0xE);
   fceulib__.cart->setprg8(0xe000, 0xF);
   cmd = 0;

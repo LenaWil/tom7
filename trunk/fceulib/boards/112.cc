@@ -62,12 +62,12 @@ static DECLFW(M112Write) {
   }
 }
 
-static void M112Close() {
-  if (WRAM) free(WRAM);
-  WRAM = NULL;
+static void M112Close(FC *fc) {
+  free(WRAM);
+  WRAM = nullptr;
 }
 
-static void M112Power() {
+static void M112Power(FC *fc) {
   bank = 0;
   fceulib__.cart->setprg16(0xC000, ~0);
   fceulib__.cart->setprg8r(0x10, 0x6000, 0);
@@ -78,7 +78,7 @@ static void M112Power() {
   fceulib__.fceu->SetWriteHandler(0x6000, 0x7FFF, Cart::CartBW);
 }
 
-static void StateRestore(int version) {
+static void StateRestore(FC *fc, int version) {
   Sync();
 }
 

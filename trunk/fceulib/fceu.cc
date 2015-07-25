@@ -69,7 +69,7 @@ FCEUGI::~FCEUGI() { }
 void FCEU::FCEU_CloseGame() {
   if (GameInfo != nullptr) {
     CHECK(GameInterface != nullptr);
-    GameInterface(GI_CLOSE);
+    GameInterface(fc, GI_CLOSE);
 
     fc->state->ResetExState(nullptr, nullptr);
 
@@ -243,7 +243,7 @@ bool FCEU::FCEUI_Initialize() {
   AllocBuffers();
 
   // XXX.
-  GameInterface = (void (*)(GI))0xDEADBEEF;
+  GameInterface = (void (*)(FC *, GI))0xDEADBEEF;
   
   fc->X->Init();
 
@@ -278,7 +278,7 @@ void FCEU::FCEUI_Emulate(int skip) {
 
 void FCEU::ResetNES() {
   if (GameInfo == nullptr) return;
-  GameInterface(GI_RESETM2);
+  GameInterface(fc, GI_RESETM2);
   fc->sound->FCEUSND_Reset();
   fc->ppu->FCEUPPU_Reset();
   fc->X->Reset();
@@ -309,13 +309,13 @@ void FCEU::PowerNES() {
 
   // Have the external game hardware "powered" after the internal NES
   // stuff. Needed for the NSF code and VS System code.
-  GameInterface(GI_POWER);
+  GameInterface(fc, GI_POWER);
   if (GameInfo->type==GIT_VSUNI)
     fc->vsuni->FCEU_VSUniPower();
 
   // if we are in a movie, then reset the saveram
   if (fc->cart->disableBatteryLoading)
-    GameInterface(GI_RESETSAVE);
+    GameInterface(fc, GI_RESETSAVE);
 
   timestampbase = 0ULL;
   fc->X->Power();

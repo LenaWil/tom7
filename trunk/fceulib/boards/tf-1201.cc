@@ -50,7 +50,7 @@ static void SyncChr() {
   fceulib__.cart->setmirror(mirr ^ 1);
 }
 
-static void StateRestore(int version) {
+static void StateRestore(FC *fc, int version) {
   SyncPrg();
   SyncChr();
 }
@@ -101,7 +101,7 @@ static void UNLTF1201IRQCounter() {
   }
 }
 
-static void UNLTF1201Power() {
+static void UNLTF1201Power(FC *fc) {
   IRQPre = IRQCount = IRQa = 0;
   fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
   fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, UNLTF1201Write);

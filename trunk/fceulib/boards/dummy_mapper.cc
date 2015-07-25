@@ -40,14 +40,14 @@ static void Sync() {}
 
 static DECLFW(MNNNWrite) {}
 
-static void MNNNPower() {
+static void MNNNPower(FC *fc) {
   //	fceulib__.fceu->SetReadHandler(0x6000,0x7fff,CartBR);
   //	fceulib__.fceu->SetWriteHandler(0x6000,0x7fff,CartBW);
   fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
   fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, MNNNWrite);
 }
 
-static void MNNNReset() {}
+static void MNNNReset(FC *) {}
 
 /*
 static void MNNNClose()
@@ -64,7 +64,7 @@ static void MNNNIRQHook() {
   fceulib__.X->IRQBegin(FCEU_IQEXT);
 }
 
-static void StateRestore(int version) {
+static void StateRestore(FC *fc, int version) {
   Sync();
 }
 

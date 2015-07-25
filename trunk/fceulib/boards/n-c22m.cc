@@ -55,7 +55,7 @@ static DECLFW(MCN22MWrite) {
   Sync();
 }
 
-static void MCN22MPower() {
+static void MCN22MPower(FC *fc) {
   reg[0] = reg[1] = reg[2] = 0;
   Sync();
   fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
@@ -81,7 +81,7 @@ static void MCN22MIRQHook()
   }
 }
 */
-static void StateRestore(int version) {
+static void StateRestore(FC *fc, int version) {
   Sync();
 }
 

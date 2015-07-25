@@ -68,7 +68,7 @@ static DECLFW(BMC13in1JY110Write) {
   Sync();
 }
 
-static void BMC13in1JY110Power() {
+static void BMC13in1JY110Power(FC *fc) {
   prgb[0] = prgb[1] = prgb[2] = prgb[3] = 0;
   bank_mode = 0;
   bank_value = 0;
@@ -78,7 +78,7 @@ static void BMC13in1JY110Power() {
   fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
 }
 
-static void StateRestore(int version) {
+static void StateRestore(FC *fc, int version) {
   Sync();
 }
 

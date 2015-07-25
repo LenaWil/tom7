@@ -45,14 +45,14 @@ static void M96Hook(uint32 A) {
   }
 }
 
-static void M96Power() {
+static void M96Power(FC *fc) {
   reg = ppulatch = 0;
   Sync();
   fceulib__.fceu->SetReadHandler(0x8000, 0xffff, Cart::CartBR);
   fceulib__.fceu->SetWriteHandler(0x8000, 0xffff, M96Write);
 }
 
-static void StateRestore(int version) {
+static void StateRestore(FC *fc, int version) {
   Sync();
 }
 

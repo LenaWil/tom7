@@ -66,7 +66,7 @@ static DECLFR(UNLPEC586Read) {
   return (fceulib__.X->DB & 0xD8) | br_tbl[reg[4] >> 4];
 }
 
-static void UNLPEC586Power() {
+static void UNLPEC586Power(FC *fc) {
   reg[0] = 0x0E;
   Sync();
   fceulib__.cart->setchr8(0);
@@ -87,12 +87,12 @@ static void UNLPEC586IRQ() {
   }
 }
 
-static void UNLPEC586Close() {
-  if (WRAM) free(WRAM);
-  WRAM = NULL;
+static void UNLPEC586Close(FC *fc) {
+  free(WRAM);
+  WRAM = nullptr;
 }
 
-static void StateRestore(int version) {
+static void StateRestore(FC *fc, int version) {
   Sync();
 }
 

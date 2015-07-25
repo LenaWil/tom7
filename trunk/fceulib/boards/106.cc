@@ -65,7 +65,7 @@ static DECLFW(M106Write) {
   }
 }
 
-static void M106Power() {
+static void M106Power(FC *fc) {
   reg[8] = reg[9] = reg[0xa] = reg[0xb] = -1;
   Sync();
   fceulib__.fceu->SetReadHandler(0x6000, 0x7FFF, Cart::CartBR);
@@ -74,11 +74,11 @@ static void M106Power() {
   fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, M106Write);
 }
 
-static void M106Reset() {}
+static void M106Reset(FC *fc) {}
 
-static void M106Close() {
-  if (WRAM) free(WRAM);
-  WRAM = NULL;
+static void M106Close(FC *fc) {
+  free(WRAM);
+  WRAM = nullptr;
 }
 
 void M106CpuHook(int a) {
@@ -91,7 +91,7 @@ void M106CpuHook(int a) {
   }
 }
 
-static void StateRestore(int version) {
+static void StateRestore(FC *fc, int version) {
   Sync();
 }
 

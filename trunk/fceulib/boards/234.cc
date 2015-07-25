@@ -50,19 +50,19 @@ DECLFR(M234ReadPreg) {
   return r;
 }
 
-static void M234Reset() {
+static void M234Reset(FC *fc) {
   bank = preg = 0;
   Sync();
 }
 
-static void M234Power() {
-  M234Reset();
+static void M234Power(FC *fc) {
+  M234Reset(fc);
   fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
   fceulib__.fceu->SetReadHandler(0xFF80, 0xFF9F, M234ReadBank);
   fceulib__.fceu->SetReadHandler(0xFFE8, 0xFFF7, M234ReadPreg);
 }
 
-static void StateRestore(int version) {
+static void StateRestore(FC *fc, int version) {
   Sync();
 }
 

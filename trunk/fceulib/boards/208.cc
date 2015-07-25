@@ -63,12 +63,12 @@ static DECLFW(M208ProtWrite) {
 }
 
 static DECLFR(M208ProtRead) {
-  return (EXPREGS[(A & 0x3)]);
+  return EXPREGS[(A & 0x3)];
 }
 
-static void M208Power() {
+static void M208Power(FC *fc) {
   EXPREGS[5] = 3;
-  GenMMC3Power();
+  GenMMC3Power(fc);
   fceulib__.fceu->SetWriteHandler(0x4800, 0x4FFF, M208Write);
   fceulib__.fceu->SetWriteHandler(0x5000, 0x5fff, M208ProtWrite);
   fceulib__.fceu->SetReadHandler(0x5800, 0x5FFF, M208ProtRead);

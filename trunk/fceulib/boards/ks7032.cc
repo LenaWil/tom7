@@ -87,14 +87,14 @@ static void UNLSMB2JIRQHook(int a) {
   }
 }
 
-static void UNLKS7032Power() {
+static void UNLKS7032Power(FC *fc) {
   Sync();
   fceulib__.fceu->SetReadHandler(0x6000, 0x7FFF, Cart::CartBR);
   fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
   fceulib__.fceu->SetWriteHandler(0x4020, 0xFFFF, UNLKS7032Write);
 }
 
-static void StateRestore(int version) {
+static void StateRestore(FC *fc, int version) {
   Sync();
 }
 

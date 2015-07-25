@@ -67,7 +67,7 @@ static DECLFR(S74LS374NRead) {
   return ret;
 }
 
-static void S74LS374NPower() {
+static void S74LS374NPower(FC *fc) {
   dip = 0;
   latch[0] = latch[1] = latch[2] = latch[3] = latch[4] = 0;
   S74LS374NSynco();
@@ -76,13 +76,13 @@ static void S74LS374NPower() {
   fceulib__.fceu->SetReadHandler(0x4100, 0x5fff, S74LS374NRead);
 }
 
-static void S74LS374NReset() {
+static void S74LS374NReset(FC *fc) {
   dip ^= 1;
   latch[0] = latch[1] = latch[2] = latch[3] = latch[4] = 0;
   S74LS374NSynco();
 }
 
-static void S74LS374NRestore(int version) {
+static void S74LS374NRestore(FC *fc, int version) {
   S74LS374NSynco();
 }
 
@@ -121,7 +121,7 @@ static DECLFW(S74LS374NAWrite) {
   }
 }
 
-static void S74LS374NAPower() {
+static void S74LS374NAPower(FC *fc) {
   latch[0] = latch[2] = latch[3] = latch[4] = 0;
   latch[1] = 3;
   S74LS374NASynco();
@@ -189,7 +189,7 @@ static DECLFW(S8259Write) {
   }
 }
 
-static void S8259Reset() {
+static void S8259Reset(FC *fc) {
   cmd = 0;
 
   for (int x = 0; x < 8; x++) latch[x] = 0;
@@ -200,7 +200,7 @@ static void S8259Reset() {
   fceulib__.fceu->SetWriteHandler(0x4100, 0x7FFF, S8259Write);
 }
 
-static void S8259Restore(int version) {
+static void S8259Restore(FC *, int version) {
   S8259Synco();
 }
 
@@ -249,14 +249,14 @@ static DECLFW(SAWrite) {
   }
 }
 
-static void SAPower() {
+static void SAPower(FC *fc) {
   latch[0] = 0;
   WSync();
   fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
   fceulib__.fceu->SetWriteHandler(0x4100, 0x5FFF, SAWrite);
 }
 
-static void SARestore(int version) {
+static void SARestore(FC *fc, int version) {
   WSync();
 }
 
@@ -265,7 +265,7 @@ static DECLFW(SADWrite) {
   WSync();
 }
 
-static void SADPower() {
+static void SADPower(FC *fc) {
   latch[0] = 0;
   WSync();
   fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
@@ -349,14 +349,14 @@ static DECLFW(TCU01Write) {
   }
 }
 
-static void TCU01Power() {
+static void TCU01Power(FC *fc) {
   latch[0] = 0;
   fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
   fceulib__.fceu->SetWriteHandler(0x4100, 0xFFFF, TCU01Write);
   TCU01Synco();
 }
 
-static void TCU01Restore(int version) {
+static void TCU01Restore(FC *fc, int version) {
   TCU01Synco();
 }
 
@@ -384,7 +384,7 @@ static DECLFR(TCU02Read) {
   return (latch[0] & 0x3F) | (fceulib__.X->DB & 0xC0);
 }
 
-static void TCU02Power() {
+static void TCU02Power(FC *fc) {
   latch[0] = 0;
   fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
   fceulib__.fceu->SetReadHandler(0x4100, 0x4100, TCU02Read);
@@ -392,7 +392,7 @@ static void TCU02Power() {
   TCU02Synco();
 }
 
-static void TCU02Restore(int version) {
+static void TCU02Restore(FC *fc, int version) {
   TCU02Synco();
 }
 
@@ -413,7 +413,7 @@ static DECLFR(TCA01Read) {
   return ret;
 }
 
-static void TCA01Power() {
+static void TCA01Power(FC *fc) {
   fceulib__.cart->setprg16(0x8000, 0);
   fceulib__.cart->setprg16(0xC000, 1);
   fceulib__.cart->setchr8(0);

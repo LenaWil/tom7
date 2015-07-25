@@ -324,7 +324,7 @@ bool State::FCEUSS_LoadRAW(std::vector<uint8> *in) {
   bool success = (ReadStateChunks(&is, totalsize) != 0);
 
   if (fceulib__.fceu->GameStateRestore != nullptr) {
-    fceulib__.fceu->GameStateRestore(stateversion);
+    fceulib__.fceu->GameStateRestore(&fceulib__, stateversion);
   }
 
   if (success) {

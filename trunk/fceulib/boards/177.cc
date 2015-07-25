@@ -39,7 +39,7 @@ static DECLFW(M177Write) {
   Sync();
 }
 
-static void M177Power() {
+static void M177Power(FC *fc) {
   reg = 0;
   Sync();
   fceulib__.fceu->SetReadHandler(0x6000, 0x7fff, Cart::CartBR);
@@ -48,12 +48,12 @@ static void M177Power() {
   fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, M177Write);
 }
 
-static void M177Close() {
-  if (WRAM) free(WRAM);
-  WRAM = NULL;
+static void M177Close(FC *fc) {
+  free(WRAM);
+  WRAM = nullptr;
 }
 
-static void StateRestore(int version) {
+static void StateRestore(FC *fc, int version) {
   Sync();
 }
 

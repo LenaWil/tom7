@@ -68,9 +68,9 @@ static DECLFR(M187Read) {
   return prot_data[EXPREGS[1] & 3];
 }
 
-static void M187Power() {
+static void M187Power(FC *fc) {
   EXPREGS[0] = EXPREGS[1] = 0;
-  GenMMC3Power();
+  GenMMC3Power(fc);
   fceulib__.fceu->SetReadHandler(0x5000, 0x5FFF, M187Read);
   fceulib__.fceu->SetWriteHandler(0x5000, 0x6FFF, M187WriteLo);
   fceulib__.fceu->SetWriteHandler(0x8000, 0x8000, M187Write8000);

@@ -54,7 +54,7 @@ static DECLFW(M34Write) {
   Sync();
 }
 
-static void M34Power() {
+static void M34Power(FC *fc) {
   regs[0] = regs[1] = 0;
   regs[2] = 1;
   Sync();
@@ -64,12 +64,12 @@ static void M34Power() {
   fceulib__.fceu->SetWriteHandler(0x7ffd, 0xffff, M34Write);
 }
 
-static void M34Close() {
-  if (WRAM) free(WRAM);
-  WRAM = NULL;
+static void M34Close(FC *fc) {
+  free(WRAM);
+  WRAM = nullptr;
 }
 
-static void StateRestore(int version) {
+static void StateRestore(FC *fc, int version) {
   Sync();
 }
 

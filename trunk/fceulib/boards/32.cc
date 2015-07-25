@@ -59,7 +59,7 @@ static DECLFW(M32Write3) {
   Sync();
 }
 
-static void M32Power() {
+static void M32Power(FC *fc) {
   Sync();
   fceulib__.fceu->SetReadHandler(0x6000, 0x7fff, Cart::CartBR);
   fceulib__.fceu->SetWriteHandler(0x6000, 0x7fff, Cart::CartBW);
@@ -70,12 +70,12 @@ static void M32Power() {
   fceulib__.fceu->SetWriteHandler(0xB000, 0xBFFF, M32Write3);
 }
 
-static void M32Close() {
-  if (WRAM) free(WRAM);
-  WRAM = NULL;
+static void M32Close(FC *fc) {
+  free(WRAM);
+  WRAM = nullptr;
 }
 
-static void StateRestore(int version) {
+static void StateRestore(FC *fc, int version) {
   Sync();
 }
 

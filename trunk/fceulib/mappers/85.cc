@@ -142,20 +142,20 @@ static void KonamiIRQHook(int a) {
   }
 }
 
-void Mapper85_StateRestore(int version) {
+void Mapper85_StateRestore(FC *fc, int version) {
 
   if (version < 7200) {
     for (int x = 0; x < 8; x++)
-      mapbyte3[x] = fceulib__.ines->iNESCHRBankList[x];
+      mapbyte3[x] = fc->ines->iNESCHRBankList[x];
     for (int x = 0; x < 3; x++) mapbyte2[x] = PRGBankList[x];
-    mapbyte2[3] = (fceulib__.ines->iNESMirroring < 0x10) ?
-                      fceulib__.ines->iNESMirroring :
-                      fceulib__.ines->iNESMirroring - 0xE;
+    mapbyte2[3] = (fc->ines->iNESMirroring < 0x10) ?
+                      fc->ines->iNESMirroring :
+                      fc->ines->iNESMirroring - 0xE;
   }
 
-  for (int x = 0; x < 8; x++) fceulib__.cart->setchr1(x * 0x400, mapbyte3[x]);
+  for (int x = 0; x < 8; x++) fc->cart->setchr1(x * 0x400, mapbyte3[x]);
   for (int x = 0; x < 3; x++)
-    fceulib__.cart->setprg8(0x8000 + x * 8192, mapbyte2[x]);
+    fc->cart->setprg8(0x8000 + x * 8192, mapbyte2[x]);
   DaMirror(mapbyte2[3]);
   // LoadOPL();
 }

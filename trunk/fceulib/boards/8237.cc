@@ -146,10 +146,10 @@ static DECLFW(UNL8237ExWrite) {
   }
 }
 
-static void UNL8237Power() {
+static void UNL8237Power(FC *fc) {
   EXPREGS[0] = EXPREGS[2] = 0;
   EXPREGS[1] = 3;
-  GenMMC3Power();
+  GenMMC3Power(fc);
   fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, UNL8237Write);
   fceulib__.fceu->SetWriteHandler(0x5000, 0x7FFF, UNL8237ExWrite);
 }

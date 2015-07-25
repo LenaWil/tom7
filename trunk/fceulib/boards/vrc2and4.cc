@@ -176,19 +176,19 @@ static DECLFW(M23Write) {
   VRC24Write(fc, A, V);
 }
 
-static void M21Power() {
+static void M21Power(FC *fc) {
   Sync();
   fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
   fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, M21Write);
 }
 
-static void M22Power() {
+static void M22Power(FC *fc) {
   Sync();
   fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
   fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, M22Write);
 }
 
-static void M23Power() {
+static void M23Power(FC *fc) {
   big_bank = 0x20;
   Sync();
   fceulib__.cart->setprg8r(0x10, 0x6000, 0);  // Only two Goemon games are have
@@ -201,7 +201,7 @@ static void M23Power() {
   fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, M23Write);
 }
 
-static void M25Power() {
+static void M25Power(FC *fc) {
   big_bank = 0x20;
   Sync();
   fceulib__.cart->setprg8r(0x10, 0x6000, 0);
@@ -212,7 +212,7 @@ static void M25Power() {
 }
 
 void VRC24IRQHook(int a) {
-#define LCYCS 341
+  static constexpr int LCYCS = 341;
   if (IRQa) {
     acount += a * 3;
     if (acount >= LCYCS) {
@@ -228,13 +228,13 @@ void VRC24IRQHook(int a) {
   }
 }
 
-static void StateRestore(int version) {
+static void StateRestore(FC *fc, int version) {
   Sync();
 }
 
-static void VRC24Close() {
-  if (WRAM) free(WRAM);
-  WRAM = NULL;
+static void VRC24Close(FC *fc) {
+  free(WRAM);
+  WRAM = nullptr;
 }
 
 void Mapper21_Init(CartInfo *info) {

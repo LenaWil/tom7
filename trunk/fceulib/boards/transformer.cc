@@ -21,7 +21,7 @@
 #include "mapinc.h"
 
 static uint8 *WRAM = NULL;
-static uint32 WRAMSIZE;
+static constexpr uint32 WRAMSIZE = 8192;
 
 // FIXME: 10/28 - now implemented in SDL as well.
 // should we rename this to a FCEUI_* function?
@@ -63,7 +63,7 @@ static DECLFR(TransformerRead) {
   return ret;
 }
 
-static void TransformerPower() {
+static void TransformerPower(FC *Fc) {
   fceulib__.cart->setprg8r(0x10, 0x6000, 0);
   fceulib__.cart->setprg16(0x8000, 0);
   fceulib__.cart->setprg16(0xC000, ~0);
@@ -77,16 +77,15 @@ static void TransformerPower() {
   fceulib__.X->MapIRQHook = TransformerIRQHook;
 }
 
-static void TransformerClose() {
-  if (WRAM) free(WRAM);
-  WRAM = NULL;
+static void TransformerClose(FC *fc) {
+  free(WRAM);
+  WRAM = nullptr;
 }
 
 void Transformer_Init(CartInfo *info) {
   info->Power = TransformerPower;
   info->Close = TransformerClose;
 
-  WRAMSIZE = 8192;
   WRAM = (uint8 *)FCEU_gmalloc(WRAMSIZE);
   fceulib__.cart->SetupCartPRGMapping(0x10, WRAM, WRAMSIZE, 1);
   if (info->battery) {

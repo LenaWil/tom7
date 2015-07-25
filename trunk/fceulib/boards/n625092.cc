@@ -59,7 +59,7 @@ static DECLFW(UNLN625092WriteBank) {
   Sync();
 }
 
-static void UNLN625092Power() {
+static void UNLN625092Power(FC *fc) {
   cmd = 0;
   bank = 0;
   Sync();
@@ -68,14 +68,14 @@ static void UNLN625092Power() {
   fceulib__.fceu->SetWriteHandler(0xC000, 0xFFFF, UNLN625092WriteBank);
 }
 
-static void UNLN625092Reset() {
+static void UNLN625092Reset(FC *fc) {
   cmd = 0;
   bank = 0;
   ass++;
   FCEU_printf("%04x\n", ass);
 }
 
-static void StateRestore(int version) {
+static void StateRestore(FC *fc, int version) {
   Sync();
 }
 

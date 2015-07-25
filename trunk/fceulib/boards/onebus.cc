@@ -271,8 +271,7 @@ static void UNLOneBusCpuHook(int a) {
   }
 }
 
-static void UNLOneBusPower() {
-  uint32 i;
+static void UNLOneBusPower(FC *fc) {
   IRQReload = IRQCount = IRQa = 0;
 
   memset(cpu410x, 0x00, sizeof(cpu410x));
@@ -282,7 +281,7 @@ static void UNLOneBusPower() {
   fceulib__.cart->SetupCartCHRMapping(0, fceulib__.cart->PRGptr[0],
                                       fceulib__.cart->PRGsize[0], 0);
 
-  for (i = 0; i < 64; i++) {
+  for (uint32 i = 0; i < 64; i++) {
     defapuread[i] = fceulib__.fceu->GetReadHandler(0x4000 | i);
     defapuwrite[i] = fceulib__.fceu->GetWriteHandler(0x4000 | i);
   }
@@ -297,7 +296,7 @@ static void UNLOneBusPower() {
   Sync();
 }
 
-static void UNLOneBusReset() {
+static void UNLOneBusReset(FC *fc) {
   IRQReload = IRQCount = IRQa = 0;
 
   memset(cpu410x, 0x00, sizeof(cpu410x));
@@ -307,7 +306,7 @@ static void UNLOneBusReset() {
   Sync();
 }
 
-static void StateRestore(int version) {
+static void StateRestore(FC *fc, int version) {
   Sync();
 }
 

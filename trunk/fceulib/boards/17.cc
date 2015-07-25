@@ -79,7 +79,7 @@ static DECLFW(M17WriteChr) {
   Sync();
 }
 
-static void M17Power() {
+static void M17Power(FC *fc) {
   preg[3] = ~0;
   Sync();
   fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
@@ -100,7 +100,7 @@ static void M17IRQHook(int a) {
   }
 }
 
-static void StateRestore(int version) {
+static void StateRestore(FC *fc, int version) {
   Sync();
 }
 

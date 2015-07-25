@@ -33,12 +33,12 @@ static DECLFW(LatchWrite) {
   WSync();
 }
 
-static void LatchReset() {
+static void LatchReset(FC *fc) {
   latche = latcheinit;
   WSync();
 }
 
-static void LatchPower() {
+static void LatchPower(FC *fc) {
   latche = latcheinit;
   WSync();
   if (WRAM) {
@@ -50,12 +50,12 @@ static void LatchPower() {
   fceulib__.fceu->SetWriteHandler(addrreg0, addrreg1, LatchWrite);
 }
 
-static void LatchClose() {
-  if (WRAM) free(WRAM);
-  WRAM = NULL;
+static void LatchClose(FC *fc) {
+  free(WRAM);
+  WRAM = nullptr;
 }
 
-static void StateRestore(int version) {
+static void StateRestore(FC *fc, int version) {
   WSync();
 }
 
@@ -118,7 +118,7 @@ static DECLFR(BMCD1038Read) {
     return Cart::CartBR(DECLFR_FORWARD);
 }
 
-static void BMCD1038Reset() {
+static void BMCD1038Reset(FC *fc) {
   dipswitch++;
   dipswitch &= 3;
 }
@@ -147,7 +147,7 @@ static DECLFR(UNL43272Read) {
     return Cart::CartBR(DECLFR_FORWARD);
 }
 
-static void UNL43272Reset() {
+static void UNL43272Reset(FC *fc) {
   latche = 0;
   UNL43272Sync();
 }

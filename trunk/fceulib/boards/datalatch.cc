@@ -21,7 +21,7 @@
 #include "mapinc.h"
 #include "../ines.h"
 
-static uint8 latche, latcheinit, bus_conflict;
+static uint8 latch, latchinit, bus_conflict;
 static uint16 addrreg0, addrreg1;
 static uint8 *WRAM = NULL;
 static uint32 WRAMSIZE;
@@ -30,14 +30,14 @@ static void (*WSync)();
 static DECLFW(LatchWrite) {
   //	FCEU_printf("bs %04x %02x\n",A,V);
   if (bus_conflict)
-    latche = V & Cart::CartBR(fc, A);
+    latch = V & Cart::CartBR(fc, A);
   else
-    latche = V;
+    latch = V;
   WSync();
 }
 
-static void LatchPower() {
-  latche = latcheinit;
+static void LatchPower(FC *fc) {
+  latch = latchinit;
   WSync();
   if (WRAM) {
     fceulib__.fceu->SetReadHandler(0x6000, 0xFFFF, Cart::CartBR);
@@ -48,19 +48,19 @@ static void LatchPower() {
   fceulib__.fceu->SetWriteHandler(addrreg0, addrreg1, LatchWrite);
 }
 
-static void LatchClose() {
-  if (WRAM) free(WRAM);
-  WRAM = NULL;
+static void LatchClose(FC *fc) {
+  free(WRAM);
+  WRAM = nullptr;
 }
 
-static void StateRestore(int version) {
+static void StateRestore(FC *fc, int version) {
   WSync();
 }
 
 static void Latch_Init(CartInfo *info, void (*proc)(), uint8 init,
                        uint16 adr0, uint16 adr1, uint8 wram, uint8 busc) {
   bus_conflict = busc;
-  latcheinit = init;
+  latchinit = init;
   addrreg0 = adr0;
   addrreg1 = adr1;
   WSync = proc;
@@ -77,7 +77,7 @@ static void Latch_Init(CartInfo *info, void (*proc)(), uint8 init,
     }
     fceulib__.state->AddExState(WRAM, WRAMSIZE, 0, "WRAM");
   }
-  fceulib__.state->AddExState(&latche, 1, 0, "LATC");
+  fceulib__.state->AddExState(&latch, 1, 0, "LATC");
   fceulib__.state->AddExState(&bus_conflict, 1, 0, "BUSC");
 }
 
@@ -90,7 +90,7 @@ static DECLFW(NROMWrite) {
 }
 #endif
 
-static void NROMPower() {
+static void NROMPower(FC *fc) {
   fceulib__.cart->setprg8r(
       0x10, 0x6000,
       0);  // Famili BASIC (v3.0) need it (uses only 4KB), FP-BASIC uses 8KB
@@ -126,14 +126,14 @@ void NROM_Init(CartInfo *info) {
 static void UNROMSync() {
   static uint32 mirror_in_use = 0;
   if (fceulib__.cart->PRGsize[0] <= 128 * 1024) {
-    fceulib__.cart->setprg16(0x8000, latche & 0x7);
-    if (latche & 8) mirror_in_use = 1;
+    fceulib__.cart->setprg16(0x8000, latch & 0x7);
+    if (latch & 8) mirror_in_use = 1;
     if (mirror_in_use) {
       // Higway Star Hacked mapper
-      fceulib__.cart->setmirror(((latche >> 3) & 1) ^ 1);
+      fceulib__.cart->setmirror(((latch >> 3) & 1) ^ 1);
     }
   } else {
-    fceulib__.cart->setprg16(0x8000, latche & 0xf);
+    fceulib__.cart->setprg16(0x8000, latch & 0xf);
   }
   fceulib__.cart->setprg16(0xc000, ~0);
   fceulib__.cart->setchr8(0);
@@ -146,7 +146,7 @@ void UNROM_Init(CartInfo *info) {
 //------------------ Map 3 ---------------------------
 
 static void CNROMSync() {
-  fceulib__.cart->setchr8(latche);
+  fceulib__.cart->setchr8(latch);
   fceulib__.cart->setprg32(0x8000, 0);
   fceulib__.cart->setprg8r(0x10, 0x6000, 0);  // Hayauchy IGO uses 2Kb or RAM
 }
@@ -158,8 +158,8 @@ void CNROM_Init(CartInfo *info) {
 //------------------ Map 7 ---------------------------
 
 static void ANROMSync() {
-  fceulib__.cart->setprg32(0x8000, latche & 0xf);
-  fceulib__.cart->setmirror(MI_0 + ((latche >> 4) & 1));
+  fceulib__.cart->setprg32(0x8000, latch & 0xf);
+  fceulib__.cart->setmirror(MI_0 + ((latch >> 4) & 1));
   fceulib__.cart->setchr8(0);
 }
 
@@ -170,9 +170,9 @@ void ANROM_Init(CartInfo *info) {
 //------------------ Map 8 ---------------------------
 
 static void M8Sync() {
-  fceulib__.cart->setprg16(0x8000, latche >> 3);
+  fceulib__.cart->setprg16(0x8000, latch >> 3);
   fceulib__.cart->setprg16(0xc000, 1);
-  fceulib__.cart->setchr8(latche & 3);
+  fceulib__.cart->setchr8(latch & 3);
 }
 
 void Mapper8_Init(CartInfo *info) {
@@ -182,8 +182,8 @@ void Mapper8_Init(CartInfo *info) {
 //------------------ Map 11 ---------------------------
 
 static void M11Sync() {
-  fceulib__.cart->setprg32(0x8000, latche & 0xf);
-  fceulib__.cart->setchr8(latche >> 4);
+  fceulib__.cart->setprg32(0x8000, latch & 0xf);
+  fceulib__.cart->setchr8(latch >> 4);
 }
 
 void Mapper11_Init(CartInfo *info) {
@@ -198,7 +198,7 @@ void Mapper144_Init(CartInfo *info) {
 
 static void CPROMSync() {
   fceulib__.cart->setchr4(0x0000, 0);
-  fceulib__.cart->setchr4(0x1000, latche & 3);
+  fceulib__.cart->setchr4(0x1000, latch & 3);
   fceulib__.cart->setprg32(0x8000, 0);
 }
 
@@ -209,8 +209,8 @@ void CPROM_Init(CartInfo *info) {
 //------------------ Map 36 ---------------------------
 
 static void M36Sync() {
-  fceulib__.cart->setprg32(0x8000, latche >> 4);
-  fceulib__.cart->setchr8((latche)&0xF);
+  fceulib__.cart->setprg32(0x8000, latch >> 4);
+  fceulib__.cart->setchr8(latch & 0xF);
 }
 
 void Mapper36_Init(CartInfo *info) {
@@ -220,8 +220,8 @@ void Mapper36_Init(CartInfo *info) {
 //------------------ Map 38 ---------------------------
 
 static void M38Sync() {
-  fceulib__.cart->setprg32(0x8000, latche & 3);
-  fceulib__.cart->setchr8(latche >> 2);
+  fceulib__.cart->setprg32(0x8000, latch & 3);
+  fceulib__.cart->setchr8(latch >> 2);
 }
 
 void Mapper38_Init(CartInfo *info) {
@@ -231,8 +231,8 @@ void Mapper38_Init(CartInfo *info) {
 //------------------ Map 66 ---------------------------
 
 static void MHROMSync() {
-  fceulib__.cart->setprg32(0x8000, latche >> 4);
-  fceulib__.cart->setchr8(latche & 0xf);
+  fceulib__.cart->setprg32(0x8000, latch >> 4);
+  fceulib__.cart->setchr8(latch & 0xf);
 }
 
 void MHROM_Init(CartInfo *info) {
@@ -242,9 +242,9 @@ void MHROM_Init(CartInfo *info) {
 //------------------ Map 70 ---------------------------
 
 static void M70Sync() {
-  fceulib__.cart->setprg16(0x8000, latche >> 4);
+  fceulib__.cart->setprg16(0x8000, latch >> 4);
   fceulib__.cart->setprg16(0xc000, ~0);
-  fceulib__.cart->setchr8(latche & 0xf);
+  fceulib__.cart->setchr8(latch & 0xf);
 }
 
 void Mapper70_Init(CartInfo *info) {
@@ -255,10 +255,10 @@ void Mapper70_Init(CartInfo *info) {
 /* Should be two separate emulation functions for this "mapper".  Sigh.  URGE TO
  * KILL RISING. */
 static void M78Sync() {
-  fceulib__.cart->setprg16(0x8000, (latche & 7));
+  fceulib__.cart->setprg16(0x8000, (latch & 7));
   fceulib__.cart->setprg16(0xc000, ~0);
-  fceulib__.cart->setchr8(latche >> 4);
-  fceulib__.cart->setmirror(MI_0 + ((latche >> 3) & 1));
+  fceulib__.cart->setchr8(latch >> 4);
+  fceulib__.cart->setmirror(MI_0 + ((latch >> 3) & 1));
 }
 
 void Mapper78_Init(CartInfo *info) {
@@ -268,8 +268,8 @@ void Mapper78_Init(CartInfo *info) {
 //------------------ Map 86 ---------------------------
 
 static void M86Sync() {
-  fceulib__.cart->setprg32(0x8000, (latche >> 4) & 3);
-  fceulib__.cart->setchr8((latche & 3) | ((latche >> 4) & 4));
+  fceulib__.cart->setprg32(0x8000, (latch >> 4) & 3);
+  fceulib__.cart->setchr8((latch & 3) | ((latch >> 4) & 4));
 }
 
 void Mapper86_Init(CartInfo *info) {
@@ -280,7 +280,7 @@ void Mapper86_Init(CartInfo *info) {
 
 static void M87Sync() {
   fceulib__.cart->setprg32(0x8000, 0);
-  fceulib__.cart->setchr8(((latche >> 1) & 1) | ((latche << 1) & 2));
+  fceulib__.cart->setchr8(((latch >> 1) & 1) | ((latch << 1) & 2));
 }
 
 void Mapper87_Init(CartInfo *info) {
@@ -290,10 +290,10 @@ void Mapper87_Init(CartInfo *info) {
 //------------------ Map 89 ---------------------------
 
 static void M89Sync() {
-  fceulib__.cart->setprg16(0x8000, (latche >> 4) & 7);
+  fceulib__.cart->setprg16(0x8000, (latch >> 4) & 7);
   fceulib__.cart->setprg16(0xc000, ~0);
-  fceulib__.cart->setchr8((latche & 7) | ((latche >> 4) & 8));
-  fceulib__.cart->setmirror(MI_0 + ((latche >> 3) & 1));
+  fceulib__.cart->setchr8((latch & 7) | ((latch >> 4) & 8));
+  fceulib__.cart->setmirror(MI_0 + ((latch >> 3) & 1));
 }
 
 void Mapper89_Init(CartInfo *info) {
@@ -303,7 +303,7 @@ void Mapper89_Init(CartInfo *info) {
 //------------------ Map 93 ---------------------------
 
 static void SSUNROMSync() {
-  fceulib__.cart->setprg16(0x8000, latche >> 4);
+  fceulib__.cart->setprg16(0x8000, latch >> 4);
   fceulib__.cart->setprg16(0xc000, ~0);
   fceulib__.cart->setchr8(0);
 }
@@ -315,7 +315,7 @@ void SUNSOFT_UNROM_Init(CartInfo *info) {
 //------------------ Map 94 ---------------------------
 
 static void M94Sync() {
-  fceulib__.cart->setprg16(0x8000, latche >> 2);
+  fceulib__.cart->setprg16(0x8000, latch >> 2);
   fceulib__.cart->setprg16(0xc000, ~0);
   fceulib__.cart->setchr8(0);
 }
@@ -329,14 +329,14 @@ void Mapper94_Init(CartInfo *info) {
 static void M97Sync() {
   fceulib__.cart->setchr8(0);
   fceulib__.cart->setprg16(0x8000, ~0);
-  fceulib__.cart->setprg16(0xc000, latche & 15);
-  switch (latche >> 6) {
+  fceulib__.cart->setprg16(0xc000, latch & 15);
+  switch (latch >> 6) {
     case 0: break;
     case 1: fceulib__.cart->setmirror(MI_H); break;
     case 2: fceulib__.cart->setmirror(MI_V); break;
     case 3: break;
   }
-  fceulib__.cart->setchr8(((latche >> 1) & 1) | ((latche << 1) & 2));
+  fceulib__.cart->setchr8(((latch >> 1) & 1) | ((latch << 1) & 2));
 }
 
 void Mapper97_Init(CartInfo *info) {
@@ -347,7 +347,7 @@ void Mapper97_Init(CartInfo *info) {
 
 static void M101Sync() {
   fceulib__.cart->setprg32(0x8000, 0);
-  fceulib__.cart->setchr8(latche);
+  fceulib__.cart->setchr8(latch);
 }
 
 void Mapper101_Init(CartInfo *info) {
@@ -357,8 +357,8 @@ void Mapper101_Init(CartInfo *info) {
 //------------------ Map 107 ---------------------------
 
 static void M107Sync() {
-  fceulib__.cart->setprg32(0x8000, (latche >> 1) & 3);
-  fceulib__.cart->setchr8(latche & 7);
+  fceulib__.cart->setprg32(0x8000, (latch >> 1) & 3);
+  fceulib__.cart->setchr8(latch & 7);
 }
 
 void Mapper107_Init(CartInfo *info) {
@@ -368,9 +368,9 @@ void Mapper107_Init(CartInfo *info) {
 //------------------ Map 113 ---------------------------
 
 static void M113Sync() {
-  fceulib__.cart->setprg32(0x8000, (latche >> 3) & 7);
-  fceulib__.cart->setchr8(((latche >> 3) & 8) | (latche & 7));
-  //	fceulib__.cart->setmirror(latche>>7); // only for HES 6in1
+  fceulib__.cart->setprg32(0x8000, (latch >> 3) & 7);
+  fceulib__.cart->setchr8(((latch >> 3) & 8) | (latch & 7));
+  //	fceulib__.cart->setmirror(latch>>7); // only for HES 6in1
 }
 
 void Mapper113_Init(CartInfo *info) {
@@ -386,11 +386,11 @@ void Mapper140_Init(CartInfo *info) {
 //------------------ Map 152 ---------------------------
 
 static void M152Sync() {
-  fceulib__.cart->setprg16(0x8000, (latche >> 4) & 7);
+  fceulib__.cart->setprg16(0x8000, (latch >> 4) & 7);
   fceulib__.cart->setprg16(0xc000, ~0);
-  fceulib__.cart->setchr8(latche & 0xf);
+  fceulib__.cart->setchr8(latch & 0xf);
   fceulib__.cart->setmirror(MI_0 +
-                            ((latche >> 7) & 1)); /* Saint Seiya...hmm. */
+                            ((latch >> 7) & 1)); /* Saint Seiya...hmm. */
 }
 
 void Mapper152_Init(CartInfo *info) {
@@ -401,7 +401,7 @@ void Mapper152_Init(CartInfo *info) {
 
 static void M180Sync() {
   fceulib__.cart->setprg16(0x8000, 0);
-  fceulib__.cart->setprg16(0xc000, latche);
+  fceulib__.cart->setprg16(0xc000, latch);
   fceulib__.cart->setchr8(0);
 }
 
@@ -412,8 +412,8 @@ void Mapper180_Init(CartInfo *info) {
 //------------------ Map 184 ---------------------------
 
 static void M184Sync() {
-  fceulib__.cart->setchr4(0x0000, latche);
-  fceulib__.cart->setchr4(0x1000, latche >> 4);
+  fceulib__.cart->setchr4(0x0000, latch);
+  fceulib__.cart->setchr4(0x1000, latch >> 4);
   fceulib__.cart->setprg32(0x8000, 0);
 }
 
@@ -424,9 +424,9 @@ void Mapper184_Init(CartInfo *info) {
 //------------------ Map 203 ---------------------------
 
 static void M203Sync() {
-  fceulib__.cart->setprg16(0x8000, (latche >> 2) & 3);
-  fceulib__.cart->setprg16(0xC000, (latche >> 2) & 3);
-  fceulib__.cart->setchr8(latche & 3);
+  fceulib__.cart->setprg16(0x8000, (latch >> 2) & 3);
+  fceulib__.cart->setprg16(0xC000, (latch >> 2) & 3);
+  fceulib__.cart->setchr8(latch & 3);
 }
 
 void Mapper203_Init(CartInfo *info) {
@@ -437,8 +437,8 @@ void Mapper203_Init(CartInfo *info) {
 
 static void M240Sync() {
   fceulib__.cart->setprg8r(0x10, 0x6000, 0);
-  fceulib__.cart->setprg32(0x8000, latche >> 4);
-  fceulib__.cart->setchr8(latche & 0xf);
+  fceulib__.cart->setprg32(0x8000, latch >> 4);
+  fceulib__.cart->setchr8(latch & 0xf);
 }
 
 void Mapper240_Init(CartInfo *info) {
@@ -452,7 +452,7 @@ void Mapper240_Init(CartInfo *info) {
 static void M241Sync() {
   fceulib__.cart->setchr8(0);
   fceulib__.cart->setprg8r(0x10, 0x6000, 0);
-  fceulib__.cart->setprg32(0x8000, latche);
+  fceulib__.cart->setprg32(0x8000, latch);
 }
 
 void Mapper241_Init(CartInfo *info) {
@@ -467,17 +467,17 @@ void Mapper241_Init(CartInfo *info) {
 // correlations between modes and they can be used in one mapper code.
 
 static void BMCA65ASSync() {
-  if (latche & 0x40) {
-    fceulib__.cart->setprg32(0x8000, (latche >> 1) & 0x0F);
+  if (latch & 0x40) {
+    fceulib__.cart->setprg32(0x8000, (latch >> 1) & 0x0F);
   } else {
-    fceulib__.cart->setprg16(0x8000, ((latche & 0x30) >> 1) | (latche & 7));
-    fceulib__.cart->setprg16(0xC000, ((latche & 0x30) >> 1) | 7);
+    fceulib__.cart->setprg16(0x8000, ((latch & 0x30) >> 1) | (latch & 7));
+    fceulib__.cart->setprg16(0xC000, ((latch & 0x30) >> 1) | 7);
   }
   fceulib__.cart->setchr8(0);
-  if (latche & 0x80)
-    fceulib__.cart->setmirror(MI_0 + (((latche >> 5) & 1)));
+  if (latch & 0x80)
+    fceulib__.cart->setmirror(MI_0 + (((latch >> 5) & 1)));
   else
-    fceulib__.cart->setmirror(((latche >> 3) & 1) ^ 1);
+    fceulib__.cart->setmirror(((latch >> 3) & 1) ^ 1);
 }
 
 void BMCA65AS_Init(CartInfo *info) {
@@ -488,10 +488,10 @@ void BMCA65AS_Init(CartInfo *info) {
 // Simple BMC discrete mapper by TXC
 
 static void BMC11160Sync() {
-  uint32 bank = (latche >> 4) & 7;
+  uint32 bank = (latch >> 4) & 7;
   fceulib__.cart->setprg32(0x8000, bank);
-  fceulib__.cart->setchr8((bank << 2) | (latche & 3));
-  fceulib__.cart->setmirror((latche >> 7) & 1);
+  fceulib__.cart->setchr8((bank << 2) | (latch & 3));
+  fceulib__.cart->setmirror((latch >> 7) & 1);
 }
 
 void BMC11160_Init(CartInfo *info) {

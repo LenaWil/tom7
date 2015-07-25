@@ -46,7 +46,7 @@ static DECLFW(AC08Write) {
   Sync();
 }
 
-static void AC08Power() {
+static void AC08Power(FC *fc) {
   reg = 0;
   Sync();
   fceulib__.fceu->SetReadHandler(0x6000, 0xFFFF, Cart::CartBR);
@@ -54,7 +54,7 @@ static void AC08Power() {
   fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, AC08Write);
 }
 
-static void StateRestore(int version) {
+static void StateRestore(FC *fc, int version) {
   Sync();
 }
 

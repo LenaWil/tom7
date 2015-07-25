@@ -43,19 +43,19 @@ static DECLFW(LH32Write) {
   Sync();
 }
 
-static void LH32Power() {
+static void LH32Power(FC *fc) {
   Sync();
   fceulib__.fceu->SetReadHandler(0x6000, 0xFFFF, Cart::CartBR);
   fceulib__.fceu->SetWriteHandler(0xC000, 0xDFFF, Cart::CartBW);
   fceulib__.fceu->SetWriteHandler(0x6000, 0x6000, LH32Write);
 }
 
-static void LH32Close() {
-  if (WRAM) free(WRAM);
-  WRAM = NULL;
+static void LH32Close(FC *fc) {
+  free(WRAM);
+  WRAM = nullptr;
 }
 
-static void StateRestore(int version) {
+static void StateRestore(FC *fc, int version) {
   Sync();
 }
 
