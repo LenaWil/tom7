@@ -1,12 +1,16 @@
 #ifndef __PALETTE_H
 #define __PALETTE_H
 
+#include "fc.h"
+
 struct PaletteEntry {
-  uint8 r,g,b;
+  uint8 r, g, b;
 };
 
 struct Palette {
  public:
+  explicit Palette(FC *fc);
+
   const PaletteEntry *palo = nullptr;
   uint8 pale = 0;
 
@@ -44,6 +48,8 @@ struct Palette {
     uint8 r, g, b;
   };
   Color s_psdl[256] = {};
+
+  FC *fc = nullptr;
 };
 
 #endif

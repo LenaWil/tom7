@@ -36,7 +36,7 @@ enum ESI {
   SI_COUNT = SI_MOUSE
 };
 
-const char* ESI_Name(ESI esi);
+const char *ESI_Name(ESI esi);
 
 // input device types for the expansion port
 enum ESIFC {

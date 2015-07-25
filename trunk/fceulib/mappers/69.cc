@@ -20,8 +20,8 @@
 
 #include "mapinc.h"
 
-static void AYSound(int Count);
-static void AYSoundHQ(void);
+static void AYSound(FC *fc, int Count);
+static void AYSoundHQ(FC *fc);
 static void DoAYSQ(int x);
 static void DoAYSQHQ(int x);
 
@@ -182,20 +182,20 @@ static void DoAYSQHQ(int x) {
   CAYBC[x] = fceulib__.sound->SoundTS();
 }
 
-static void AYSound(int Count) {
+static void AYSound(FC *fc, int Count) {
   DoAYSQ(0);
   DoAYSQ(1);
   DoAYSQ(2);
   for (int x = 0; x < 3; x++) CAYBC[x] = Count;
 }
 
-static void AYSoundHQ(void) {
+static void AYSoundHQ(FC *fc) {
   DoAYSQHQ(0);
   DoAYSQHQ(1);
   DoAYSQHQ(2);
 }
 
-static void AYHiSync(int32 ts) {
+static void AYHiSync(FC *fc, int32 ts) {
   for (int x = 0; x < 3; x++) {
     CAYBC[x] = ts;
   }
@@ -223,7 +223,7 @@ void Mapper69_StateRestore(int version) {
   }
 }
 
-void Mapper69_ESI(void) {
+void Mapper69_ESI(FC *fc) {
   fceulib__.sound->GameExpSound.RChange = Mapper69_ESI;
   fceulib__.sound->GameExpSound.HiSync = AYHiSync;
   memset(dcount, 0, sizeof(dcount));
@@ -235,7 +235,7 @@ void NSFAY_Init(void) {
   sunindex = 0;
   fceulib__.fceu->SetWriteHandler(0xc000, 0xdfff, Mapper69_SWL);
   fceulib__.fceu->SetWriteHandler(0xe000, 0xffff, Mapper69_SWH);
-  Mapper69_ESI();
+  Mapper69_ESI(&fceulib__);
 }
 
 void Mapper69_init(void) {
@@ -248,7 +248,7 @@ void Mapper69_init(void) {
   fceulib__.fceu->SetWriteHandler(0xe000, 0xffff, Mapper69_SWH);
   fceulib__.fceu->SetWriteHandler(0x6000, 0x7fff, SUN5BWRAM);
   fceulib__.fceu->SetReadHandler(0x6000, 0x7fff, SUN5AWRAM);
-  Mapper69_ESI();
+  Mapper69_ESI(&fceulib__);
   fceulib__.X->MapIRQHook = SunIRQHook;
   fceulib__.ines->MapStateRestore = Mapper69_StateRestore;
 }

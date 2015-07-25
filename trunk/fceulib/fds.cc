@@ -507,10 +507,14 @@ void FDS::FDS_ESI() {
 void FDS::FDSSoundReset() {
   memset(&fdso,0,sizeof(fdso));
   FDS_ESI();
-  fc->sound->GameExpSound.HiSync = [](int32 ts){ return fceulib__.fds->HQSync(ts); };
-  fc->sound->GameExpSound.HiFill = []() { return fceulib__.fds->RenderSoundHQ(); };
-  fc->sound->GameExpSound.Fill = [](int i) { return fceulib__.fds->FDSSound(i); };
-  fc->sound->GameExpSound.RChange =  []() { return fceulib__.fds->FDS_ESI(); };
+  fc->sound->GameExpSound.HiSync =
+    [](FC *fc, int32 ts){ return fc->fds->HQSync(ts); };
+  fc->sound->GameExpSound.HiFill =
+    [](FC *fc) {return fc->fds->RenderSoundHQ(); };
+  fc->sound->GameExpSound.Fill =
+    [](FC *fc, int i) { return fc->fds->FDSSound(i); };
+  fc->sound->GameExpSound.RChange =
+    [](FC *fc) { return fc->fds->FDS_ESI(); };
 }
 
 static DECLFW(FDSWrite) {

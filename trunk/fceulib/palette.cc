@@ -42,6 +42,8 @@ static constexpr PaletteEntry const *palpoint[]= {
   rp2c05004,
 };
 
+Palette::Palette(FC *fc) : fc(fc) {}
+
 // TODO: We certainly don't need to be able to change NTSC hues at
 // runtime, and maybe they should just be compile-time constants. Some
 // of this stuff then doesn't need to be per-instance. -tom7
@@ -146,8 +148,6 @@ void Palette::SetNESDeemph(uint8 d, int force) {
 
 // Converted from Kevin Horton's qbasic palette generator.
 void Palette::CalculatePalette() {
-  int r,g,b;
-  double s,luma,theta;
   static constexpr uint8 cols[16]={0,24,21,18,15,12,9,6,3,0,33,30,27,0,0,0};
   static constexpr uint8 br1[4]={6,9,12,12};
   static constexpr double br2[4]={.29,.45,.73,.9};
@@ -155,8 +155,8 @@ void Palette::CalculatePalette() {
 
   for (int x=0;x<=3;x++) {
     for (int z=0;z<16;z++) {
-      s=(double)ntsctint/128;
-      luma=br2[x];
+      double s=(double)ntsctint/128;
+      double luma=br2[x];
       if (z==0) { 
 	s=0;
 	luma=((double)br1[x])/12;
@@ -168,12 +168,13 @@ void Palette::CalculatePalette() {
 	  luma=br3[x];
       }
 
-      theta = 
+      double theta = 
 	PALETTE_PI *
 	(double)(((double)cols[z]*10+ (((double)ntschue/2)+300) )/(double)180);
-      r=(int)((luma+s*sin(theta))*256);
-      g=(int)((luma-(double)27/53*s*sin(theta)+(double)10/53*s*cos(theta))*256);
-      b=(int)((luma-s*cos(theta))*256);
+      int r=(int)((luma+s*sin(theta))*256);
+      int g=(int)((luma-(double)27/53*s*sin(theta)+
+		   (double)10/53*s*cos(theta))*256);
+      int b=(int)((luma-s*cos(theta))*256);
 
       if (r>255) r=255;
       if (g>255) g=255;
@@ -212,7 +213,7 @@ void Palette::LoadGamePalette() {
 }
 
 void Palette::ResetPalette() {
-  if (fceulib__.fceu->GameInfo != nullptr) {
+  if (fc->fceu->GameInfo != nullptr) {
     ChoosePalette();
     WritePalette();
   }
@@ -221,8 +222,8 @@ void Palette::ResetPalette() {
 void Palette::ChoosePalette() {
   if (ipalette) {
     palo=palettei;
-  } else if (ntsccol && !fceulib__.fceu->PAL && 
-	     fceulib__.fceu->GameInfo->type!=GIT_VSUNI) {
+  } else if (ntsccol && !fc->fceu->PAL && 
+	     fc->fceu->GameInfo->type!=GIT_VSUNI) {
     palo=paletten;
     CalculatePalette();
   } else {

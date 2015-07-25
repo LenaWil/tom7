@@ -29,7 +29,7 @@
 #include "fc.h"
 
 struct EXPSOUND {
-  void (*Fill)(int Count) = nullptr; /* Low quality ext sound. */
+  void (*Fill)(FC *fc, int Count) = nullptr; /* Low quality ext sound. */
   
   /* NeoFill is for sound devices that are emulated in a more
      high-level manner(VRC7) in HQ mode.  Interestingly,
@@ -37,12 +37,12 @@ struct EXPSOUND {
      often) in lq mode than in high-quality mode.  Maybe that
      should be fixed. :)
   */
-  void (*NeoFill)(int32 *Wave, int Count) = nullptr;
-  void (*HiFill)() = nullptr;
-  void (*HiSync)(int32 ts) = nullptr;
+  void (*NeoFill)(FC *fc, int32 *Wave, int Count) = nullptr;
+  void (*HiFill)(FC *fc) = nullptr;
+  void (*HiSync)(FC *fc, int32 ts) = nullptr;
 
-  void (*RChange)() = nullptr;
-  void (*Kill)() = nullptr;
+  void (*RChange)(FC *fc) = nullptr;
+  void (*Kill)(FC *fc) = nullptr;
 };
 
 struct Sound {

@@ -18,18 +18,20 @@
 #include "input.h"
 #include "ppu.h"
 
+#include "fc.h"
+
 // The current contents of the screen; part of the "API".
 // extern uint8 *XBuf, *XBackBuf;
 
 void Emulator::GetMemory(vector<uint8> *mem) {
   mem->resize(0x800);
-  memcpy(mem->data(), fceulib__.fceu->RAM, 0x800);
+  memcpy(mem->data(), fc->fceu->RAM, 0x800);
 }
 
 vector<uint8> Emulator::GetMemory() {
   vector<uint8> mem;
   mem.resize(0x800);
-  memcpy(mem.data(), fceulib__.fceu->RAM, 0x800);
+  memcpy(mem.data(), fc->fceu->RAM, 0x800);
   return mem;
 }
 
@@ -45,7 +47,7 @@ static inline uint64 MD5ToChecksum(const uint8 digest[16]) {
 uint64 Emulator::RamChecksum() {
   md5_context ctx;
   md5_starts(&ctx);
-  md5_update(&ctx, fceulib__.fceu->RAM, 0x800);
+  md5_update(&ctx, fc->fceu->RAM, 0x800);
   uint8 digest[16];
   md5_finish(&ctx, digest);
   return MD5ToChecksum(digest);
@@ -75,13 +77,13 @@ int Emulator::DriverInitialize(FCEUGI *gi) {
   // No fourscore support.
   // eoptions &= ~EO_FOURSCORE;
 
-  fceulib__.sound->FCEUI_InitSound();
+  fc->sound->FCEUI_InitSound();
 
   // Why do both point to the same joydata? -tom
-  fceulib__.input->FCEUI_SetInput(0, SI_GAMEPAD, &joydata, 0);
-  fceulib__.input->FCEUI_SetInput(1, SI_GAMEPAD, &joydata, 0);
+  fc->input->FCEUI_SetInput(0, SI_GAMEPAD, &joydata, 0);
+  fc->input->FCEUI_SetInput(1, SI_GAMEPAD, &joydata, 0);
 
-  fceulib__.input->FCEUI_SetInputFourscore(false);
+  fc->input->FCEUI_SetInputFourscore(false);
   return 1;
 }
 
@@ -92,10 +94,10 @@ int Emulator::DriverInitialize(FCEUGI *gi) {
  * render, what virtual input devices to use, etc.).
  */
 int Emulator::LoadGame(const string &path) {
-  fceulib__.fceu->FCEU_CloseGame();
-  fceulib__.fceu->GameInfo = nullptr;
+  fc->fceu->FCEU_CloseGame();
+  fc->fceu->GameInfo = nullptr;
 
-  if (!fceulib__.fceu->FCEUI_LoadGame(path.c_str(), 1)) {
+  if (!fc->fceu->FCEUI_LoadGame(path.c_str(), 1)) {
     return 0;
   }
 
@@ -103,7 +105,7 @@ int Emulator::LoadGame(const string &path) {
   // to override our input config, or something like that. No
   // weird stuff. Skip it.
 
-  if (!DriverInitialize(fceulib__.fceu->GameInfo)) {
+  if (!DriverInitialize(fc->fceu->GameInfo)) {
     return 0;
   }
 	
@@ -111,29 +113,30 @@ int Emulator::LoadGame(const string &path) {
   // and some parts of the code tried to figure it out from the presence of
   // (e) or (pal) in the ROM's *filename*. Maybe should be part of the external
   // intface.
-  fceulib__.fceu->FCEUI_SetVidSystem(GIV_NTSC);
+  fc->fceu->FCEUI_SetVidSystem(GIV_NTSC);
 
   return 1;
 }
 
 Emulator::~Emulator() {
-  fceulib__.fceu->FCEU_CloseGame();
-  fceulib__.fceu->GameInfo = nullptr;
-  fceulib__.fceu->FCEUI_Kill();
+  fc->fceu->FCEU_CloseGame();
+  fc->fceu->GameInfo = nullptr;
+  fc->fceu->FCEUI_Kill();
 }
 
-Emulator::Emulator() {
-
-}
+Emulator::Emulator(FC *fc) : fc(fc) {}
 
 Emulator *Emulator::Create(const string &romfile) {
   // XXX Need to get rid of IO too.
   fprintf(stderr, "Starting " FCEU_NAME_AND_VERSION "...\n");
 
+  // XXX Emulator should be the one creating an FC object,
+  // not referencing a global.
+  FC *fc = &fceulib__;
   // (Here's where SDL was initialized.)
 
   // initialize the infrastructure
-  int error = fceulib__.fceu->FCEUI_Initialize();
+  int error = fc->fceu->FCEUI_Initialize();
   if (error != 1) {
     fprintf(stderr, "Error initializing.\n");
     return nullptr;
@@ -156,15 +159,15 @@ Emulator *Emulator::Create(const string &romfile) {
   // TODO(tom7): Make these compile-time constants inside of Palette rather
   // than state.
   static constexpr int ntsccol = 0, ntsctint = 56, ntschue = 72;
-  fceulib__.palette->FCEUI_SetNTSCTH(ntsccol, ntsctint, ntschue);
+  fc->palette->FCEUI_SetNTSCTH(ntsccol, ntsctint, ntschue);
 
   // Set NTSC (1 = pal)
-  fceulib__.fceu->FCEUI_SetVidSystem(GIV_NTSC);
+  fc->fceu->FCEUI_SetVidSystem(GIV_NTSC);
 
   // Default.
-  fceulib__.ppu->FCEUI_DisableSpriteLimitation(1);
+  fc->ppu->FCEUI_DisableSpriteLimitation(1);
 
-  Emulator *emu = new Emulator;
+  Emulator *emu = new Emulator(fc);
   // Load the game.
   if (1 != emu->LoadGame(romfile.c_str())) {
     fprintf(stderr, "Couldn't load [%s]\n", romfile.c_str());
@@ -186,9 +189,7 @@ void Emulator::Step(uint8 inputs) {
   static constexpr int SKIP_VIDEO_AND_SOUND = 2;
 
   // Emulate a single frame.
-  int32 *sound;
-  int32 ssize;
-  fceulib__.fceu->FCEUI_Emulate(nullptr, &sound, &ssize, SKIP_VIDEO_AND_SOUND);
+  fc->fceu->FCEUI_Emulate(SKIP_VIDEO_AND_SOUND);
 }
 
 void Emulator::StepFull(uint8 inputs) {
@@ -199,9 +200,7 @@ void Emulator::StepFull(uint8 inputs) {
 
   // Emulate a single frame.
   // TODO: Remove these arguments, which we don't use.
-  int32 *sound;
-  int32 ssize;
-  fceulib__.fceu->FCEUI_Emulate(nullptr, &sound, &ssize, DO_VIDEO_AND_SOUND);
+  fc->fceu->FCEUI_Emulate(DO_VIDEO_AND_SOUND);
 }
 
 void Emulator::GetImage(vector<uint8> *rgba) {
@@ -213,8 +212,8 @@ void Emulator::GetImage(vector<uint8> *rgba) {
       uint8 r, g, b;
 
       // XBackBuf? or XBuf?
-      fceulib__.palette->FCEUD_GetPalette(fceulib__.fceu->XBuf[(y * 256) + x],
-					&r, &g, &b);
+      fc->palette->FCEUD_GetPalette(fc->fceu->XBuf[(y * 256) + x],
+					  &r, &g, &b);
 
       (*rgba)[y * 256 * 4 + x * 4 + 0] = r;
       (*rgba)[y * 256 * 4 + x * 4 + 1] = g; // XBackBuf[(y * 256) + x] << 4;
@@ -233,7 +232,7 @@ vector<uint8> Emulator::GetImage() {
 void Emulator::GetSound(vector<int16> *wav) {
   wav->clear();
   int32 *buffer = nullptr;
-  int samples = fceulib__.sound->GetSoundBuffer(&buffer);
+  int samples = fc->sound->GetSoundBuffer(&buffer);
   if (buffer == nullptr) {
     fprintf(stderr, "No sound buffer?\n");
     abort();
@@ -250,15 +249,15 @@ void Emulator::Save(vector<uint8> *out) {
 }
 
 void Emulator::GetBasis(vector<uint8> *out) {
-  fceulib__.state->FCEUSS_SaveRAW(out);
+  fc->state->FCEUSS_SaveRAW(out);
 }
 
 void Emulator::SaveUncompressed(vector<uint8> *out) {
-  fceulib__.state->FCEUSS_SaveRAW(out);
+  fc->state->FCEUSS_SaveRAW(out);
 }
 
 void Emulator::LoadUncompressed(vector<uint8> *in) {
-  if (!fceulib__.state->FCEUSS_LoadRAW(in)) {
+  if (!fc->state->FCEUSS_LoadRAW(in)) {
     fprintf(stderr, "Couldn't restore from state\n");
     abort();
   }
@@ -285,7 +284,7 @@ void Emulator::SaveEx(vector<uint8> *state, const vector<uint8> *basis) {
   //    all mapper data even if we're not using it)
 
   vector<uint8> raw;
-  fceulib__.state->FCEUSS_SaveRAW(&raw);
+  fc->state->FCEUSS_SaveRAW(&raw);
 
   // Encode.
   int blen = (basis == nullptr) ? 0 : (min(basis->size(), raw.size()));
@@ -350,7 +349,7 @@ void Emulator::LoadEx(vector<uint8> *state, const vector<uint8> *basis) {
     uncompressed[i] += (*basis)[i];
   }
 
-  if (!fceulib__.state->FCEUSS_LoadRAW(&uncompressed)) {
+  if (!fc->state->FCEUSS_LoadRAW(&uncompressed)) {
     fprintf(stderr, "Couldn't restore from state\n");
     abort();
   }
@@ -361,11 +360,11 @@ void Emulator::LoadEx(vector<uint8> *state, const vector<uint8> *basis) {
 // When compression is disabled, we ignore the basis (no point) and
 // don't store any size header. These functions become very simple.
 void Emulator::SaveEx(vector<uint8> *state, const vector<uint8> *basis) {
-  fceulib__.state->FCEUSS_SaveRAW(out);
+  fc->state->FCEUSS_SaveRAW(out);
 }
 
 void Emulator::LoadEx(vector<uint8> *state, const vector<uint8> *basis) {
-  if (!fceulib__.state->FCEUSS_LoadRAW(state)) {
+  if (!fc->state->FCEUSS_LoadRAW(state)) {
     fprintf(stderr, "Couldn't restore from state\n");
     abort();
   }

@@ -41,7 +41,8 @@ enum EFCEUI {
 };
 
 struct FCEU {
-
+  explicit FCEU(FC *fc);
+  
   void SetReadHandler(int32 start, int32 end, readfunc func);
 
   void SetWriteHandler(int32 start, int32 end, writefunc func);
@@ -56,7 +57,7 @@ struct FCEU {
   int FCEUI_DatachSet(const uint8 *rcode);
 
   // Emulates a frame.
-  void FCEUI_Emulate(uint8 **, int32 **, int32 *, int);
+  void FCEUI_Emulate(int video_and_sound_flags);
 
   // Deallocates all allocated memory.  Call after FCEUI_Emulate() returns.
   void FCEUI_Kill();
@@ -74,6 +75,7 @@ struct FCEU {
   // Used by some boards to do delayed memory writes, etc.
   uint64 timestampbase = 0ULL;
 
+  // PERF: Allocate dynamically based on mapper? -tom7
   #define GAME_MEM_BLOCK_SIZE 131072
 
   // Basic RAM of the system. RAM has size 0x800.
@@ -115,10 +117,11 @@ private:
   readfunc *AReadG = nullptr;
   writefunc *BWriteG = nullptr;
 
-
   void AllocBuffers();
   void FreeBuffers();
   void ResetGameLoaded();
+
+  FC *fc = nullptr;
 };
 
 // Stateless stuff that should probably be in its own header..
@@ -135,7 +138,5 @@ void FCEU_InitMemory(uint8 *ptr, uint32 size);
 #define JOY_DOWN        0x20
 #define JOY_LEFT        0x40
 #define JOY_RIGHT       0x80
-
-#define ARRAY_SIZE(a) (sizeof(a)/sizeof(a[0]))
 
 #endif

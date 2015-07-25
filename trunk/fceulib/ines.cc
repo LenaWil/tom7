@@ -44,6 +44,8 @@
 
 #include "tracing.h"
 
+#define ARRAY_SIZE(a) (sizeof(a)/sizeof(a[0]))
+
 INes::INes(FC *fc) : fc(fc) {}
 
 /*  MapperReset() is called when the NES is reset(with the reset button).
