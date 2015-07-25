@@ -54,7 +54,7 @@ static DECLFR(M175Read) {
   return Cart::CartBR(DECLFR_FORWARD);
 }
 
-static void M175Power() {
+static void M175Power(FC *fc) {
   reg = mirr = delay = 0;
   fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, M175Read);
   fceulib__.fceu->SetWriteHandler(0x8000, 0x8000, M175Write1);
@@ -62,7 +62,7 @@ static void M175Power() {
   Sync();
 }
 
-static void StateRestore(int version) {
+static void StateRestore(FC *fc, int version) {
   Sync();
 }
 

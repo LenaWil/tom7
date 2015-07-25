@@ -44,7 +44,7 @@ static DECLFR(ExtDev) {
   return 3;
 }
 
-static void Power() {
+static void Power(FC *fc) {
   latche = 0;
   Sync();
   fceulib__.cart->setchr8(0);
@@ -54,7 +54,7 @@ static void Power() {
   fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, M188Write);
 }
 
-static void StateRestore(int version) {
+static void StateRestore(FC *fc, int version) {
   Sync();
 }
 

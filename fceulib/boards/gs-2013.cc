@@ -34,7 +34,7 @@ static DECLFW(BMCGS2013Write) {
   Sync();
 }
 
-static void BMCGS2013Power() {
+static void BMCGS2013Power(FC *fc) {
   reg = ~0;
   Sync();
   fceulib__.fceu->SetReadHandler(0x6000, 0x7FFF, Cart::CartBR);
@@ -42,11 +42,11 @@ static void BMCGS2013Power() {
   fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, BMCGS2013Write);
 }
 
-static void BMCGS2013Reset() {
+static void BMCGS2013Reset(FC *fc) {
   reg = ~0;
 }
 
-static void StateRestore(int version) {
+static void StateRestore(FC *fc, int version) {
   Sync();
 }
 

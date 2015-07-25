@@ -56,7 +56,7 @@ void (*pwrap)(uint32 A, uint8 V);
 void (*cwrap)(uint32 A, uint8 V);
 void (*mwrap)(uint8 V);
 
-void GenMMC3Power();
+void GenMMC3Power(FC *fc);
 void FixMMC3PRG(int V);
 void FixMMC3CHR(int V);
 
@@ -94,7 +94,7 @@ void FixMMC3CHR(int V) {
   if (mwrap) mwrap(A000B);
 }
 
-void MMC3RegReset() {
+void MMC3RegReset(FC *fc) {
   IRQCount = IRQLatch = IRQa = MMC3_cmd = 0;
 
   DRegBuf[0] = 0;
@@ -192,7 +192,7 @@ static void MMC3_hb_PALStarWarsHack() {
   ClockMMC3Counter();
 }
 
-void GenMMC3Restore(int version) {
+void GenMMC3Restore(FC *fc, int version) {
   FixMMC3PRG(MMC3_cmd);
   FixMMC3CHR(MMC3_cmd);
 }
@@ -224,7 +224,7 @@ static DECLFR(MAWRAMMMC6) {
   return (MMC3_WRAM[A & 0x3ff]);
 }
 
-void GenMMC3Power() {
+void GenMMC3Power(FC *fc) {
   if (fceulib__.unif->UNIFchrrama) fceulib__.cart->setchr8(0);
 
   fceulib__.fceu->SetWriteHandler(0x8000, 0xBFFF, MMC3_CMDWrite);
@@ -247,11 +247,11 @@ void GenMMC3Power() {
     }
     if (!(mmc3opts & 2)) FCEU_dwmemset(MMC3_WRAM, 0, wrams);
   }
-  MMC3RegReset();
+  MMC3RegReset(fc);
   if (CHRRAM) FCEU_dwmemset(CHRRAM, 0, CHRRAMSize);
 }
 
-static void GenMMC3Close() {
+static void GenMMC3Close(FC *fc) {
   free(CHRRAM);
   free(MMC3_WRAM);
   CHRRAM = MMC3_WRAM = nullptr;
@@ -325,9 +325,9 @@ void GenMMC3_Init(CartInfo *info, int prg, int chr, int wram, int battery) {
 static int hackm4 =
     0; /* For Karnov, maybe others.  BLAH.  Stupid iNES format.*/
 
-static void M4Power() {
+static void M4Power(FC *fc) {
   TRACEF("M4power %d...", hackm4);
-  GenMMC3Power();
+  GenMMC3Power(fc);
   A000B = (hackm4 ^ 1) & 1;
   fceulib__.cart->setmirror(hackm4);
 }
@@ -360,9 +360,9 @@ static DECLFW(M12Write) {
   EXPREGS[1] = (V & 0x10) >> 4;
 }
 
-static void M12Power() {
+static void M12Power(FC *fc) {
   EXPREGS[0] = EXPREGS[1] = 0;
-  GenMMC3Power();
+  GenMMC3Power(fc);
   fceulib__.fceu->SetWriteHandler(0x4100, 0x5FFF, M12Write);
 }
 
@@ -399,14 +399,14 @@ static DECLFW(M37Write) {
   FixMMC3CHR(MMC3_cmd);
 }
 
-static void M37Reset() {
+static void M37Reset(FC *fc) {
   EXPREGS[0] = 0;
-  MMC3RegReset();
+  MMC3RegReset(fc);
 }
 
-static void M37Power() {
+static void M37Power(FC *fc) {
   EXPREGS[0] = 0;
-  GenMMC3Power();
+  GenMMC3Power(fc);
   fceulib__.fceu->SetWriteHandler(0x6000, 0x7FFF, M37Write);
 }
 
@@ -447,9 +447,9 @@ static DECLFW(M44Write) {
     MMC3_CMDWrite(DECLFW_FORWARD);
 }
 
-static void M44Power() {
+static void M44Power(FC *fc) {
   EXPREGS[0] = 0;
-  GenMMC3Power();
+  GenMMC3Power(fc);
   fceulib__.fceu->SetWriteHandler(0xA000, 0xBFFF, M44Write);
 }
 
@@ -510,16 +510,16 @@ static DECLFR(M45Read) {
     return fceulib__.X->DB;
 }
 
-static void M45Reset() {
+static void M45Reset(FC *fc) {
   EXPREGS[0] = EXPREGS[1] = EXPREGS[2] = EXPREGS[3] = EXPREGS[4] = 0;
   EXPREGS[5]++;
   EXPREGS[5] &= 7;
-  MMC3RegReset();
+  MMC3RegReset(fc);
 }
 
-static void M45Power() {
+static void M45Power(FC *fc) {
   fceulib__.cart->setchr8(0);
-  GenMMC3Power();
+  GenMMC3Power(fc);
   EXPREGS[0] = EXPREGS[1] = EXPREGS[2] = EXPREGS[3] = EXPREGS[4] = EXPREGS[5] =
       0;
   fceulib__.fceu->SetWriteHandler(0x5000, 0x7FFF, M45Write);
@@ -556,9 +556,9 @@ static DECLFW(M47Write) {
   FixMMC3CHR(MMC3_cmd);
 }
 
-static void M47Power() {
+static void M47Power(FC *fc) {
   EXPREGS[0] = 0;
-  GenMMC3Power();
+  GenMMC3Power(fc);
   fceulib__.fceu->SetWriteHandler(0x6000, 0x7FFF, M47Write);
   // fceulib__.fceu->SetReadHandler(0x6000,0x7FFF,0);
 }
@@ -597,14 +597,14 @@ static DECLFW(M49Write) {
   }
 }
 
-static void M49Reset() {
+static void M49Reset(FC *fc) {
   EXPREGS[0] = 0;
-  MMC3RegReset();
+  MMC3RegReset(fc);
 }
 
-static void M49Power() {
-  M49Reset();
-  GenMMC3Power();
+static void M49Power(FC *fc) {
+  M49Reset(fc);
+  GenMMC3Power(fc);
   fceulib__.fceu->SetWriteHandler(0x6000, 0x7FFF, M49Write);
   fceulib__.fceu->SetReadHandler(0x6000, 0x7FFF, 0);
 }
@@ -646,14 +646,14 @@ static DECLFW(M52Write) {
   FixMMC3CHR(MMC3_cmd);
 }
 
-static void M52Reset() {
+static void M52Reset(FC *fc) {
   EXPREGS[0] = EXPREGS[1] = 0;
-  MMC3RegReset();
+  MMC3RegReset(fc);
 }
 
-static void M52Power() {
-  M52Reset();
-  GenMMC3Power();
+static void M52Power(FC *fc) {
+  M52Reset(fc);
+  GenMMC3Power(fc);
   fceulib__.fceu->SetWriteHandler(0x6000, 0x7FFF, M52Write);
 }
 
@@ -729,15 +729,15 @@ static DECLFW(M114ExWrite) {
   }
 }
 
-static void M114Power() {
-  GenMMC3Power();
+static void M114Power(FC *fc) {
+  GenMMC3Power(fc);
   fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, M114Write);
   fceulib__.fceu->SetWriteHandler(0x5000, 0x7FFF, M114ExWrite);
 }
 
-static void M114Reset() {
+static void M114Reset(FC *fc) {
   EXPREGS[0] = 0;
-  MMC3RegReset();
+  MMC3RegReset(fc);
 }
 
 void Mapper114_Init(CartInfo *info) {
@@ -779,8 +779,8 @@ static DECLFR(M115Read) {
   return EXPREGS[2];
 }
 
-static void M115Power() {
-  GenMMC3Power();
+static void M115Power(FC *fc) {
+  GenMMC3Power(fc);
   fceulib__.fceu->SetWriteHandler(0x4100, 0x7FFF, M115Write);
   fceulib__.fceu->SetReadHandler(0x5000, 0x5FFF, M115Read);
 }
@@ -841,15 +841,15 @@ static DECLFW(M134Write) {
   FixMMC3PRG(MMC3_cmd);
 }
 
-static void M134Power() {
+static void M134Power(FC *fc) {
   EXPREGS[0] = 0;
-  GenMMC3Power();
+  GenMMC3Power(fc);
   fceulib__.fceu->SetWriteHandler(0x6001, 0x6001, M134Write);
 }
 
-static void M134Reset() {
+static void M134Reset(FC *fc) {
   EXPREGS[0] = 0;
-  MMC3RegReset();
+  MMC3RegReset(fc);
 }
 
 void Mapper134_Init(CartInfo *info) {
@@ -899,9 +899,9 @@ static void M165PPU(uint32 A) {
   }
 }
 
-static void M165Power() {
+static void M165Power(FC *fc) {
   EXPREGS[0] = 0xFD;
-  GenMMC3Power();
+  GenMMC3Power(fc);
 }
 
 void Mapper165_Init(CartInfo *info) {
@@ -979,16 +979,16 @@ static void M195CW(uint32 A, uint8 V) {
     fceulib__.cart->setchr1r(0, A, V);
 }
 
-static void M195Power() {
-  GenMMC3Power();
+static void M195Power(FC *fc) {
+  GenMMC3Power(fc);
   fceulib__.cart->setprg4r(0x10, 0x5000, 0);
   fceulib__.fceu->SetWriteHandler(0x5000, 0x5fff, Cart::CartBW);
   fceulib__.fceu->SetReadHandler(0x5000, 0x5fff, Cart::CartBR);
 }
 
-static void M195Close() {
-  if (wramtw) free(wramtw);
-  wramtw = NULL;
+static void M195Close(FC *fc) {
+  free(wramtw);
+  wramtw = nullptr;
 }
 
 void Mapper195_Init(CartInfo *info) {
@@ -1042,8 +1042,8 @@ static DECLFW(Mapper196WriteLo) {
   FixMMC3PRG(MMC3_cmd);
 }
 
-static void Mapper196Power() {
-  GenMMC3Power();
+static void Mapper196Power(FC *fc) {
+  GenMMC3Power(fc);
   EXPREGS[0] = EXPREGS[1] = 0;
   fceulib__.fceu->SetWriteHandler(0x6000, 0x6FFF, Mapper196WriteLo);
   fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, Mapper196Write);
@@ -1117,13 +1117,13 @@ static DECLFW(M205Write) {
   }
 }
 
-static void M205Reset() {
+static void M205Reset(FC *fc) {
   EXPREGS[0] = EXPREGS[2] = 0;
-  MMC3RegReset();
+  MMC3RegReset(fc);
 }
 
-static void M205Power() {
-  GenMMC3Power();
+static void M205Power(FC *fc) {
+  GenMMC3Power(fc);
   fceulib__.fceu->SetWriteHandler(0x6000, 0x6fff, M205Write);
 }
 
@@ -1150,9 +1150,9 @@ static void M245PW(uint32 A, uint8 V) {
   fceulib__.cart->setprg8(A, (V & 0x3F) | ((EXPREGS[0] & 2) << 5));
 }
 
-static void M245Power() {
+static void M245Power(FC *fc) {
   EXPREGS[0] = 0;
-  GenMMC3Power();
+  GenMMC3Power(fc);
 }
 
 void Mapper245_Init(CartInfo *info) {
@@ -1192,9 +1192,9 @@ static DECLFW(M249Write) {
   FixMMC3CHR(MMC3_cmd);
 }
 
-static void M249Power() {
+static void M249Power(FC *fc) {
   EXPREGS[0] = 0;
-  GenMMC3Power();
+  GenMMC3Power(fc);
   fceulib__.fceu->SetWriteHandler(0x5000, 0x5000, M249Write);
 }
 
@@ -1216,8 +1216,8 @@ static DECLFW(M250IRQWrite) {
   MMC3_IRQWrite(fc, (A & 0xE000) | ((A & 0x400) >> 10), A & 0xFF);
 }
 
-static void M250_Power() {
-  GenMMC3Power();
+static void M250_Power(FC *fc) {
+  GenMMC3Power(fc);
   fceulib__.fceu->SetWriteHandler(0x8000, 0xBFFF, M250Write);
   fceulib__.fceu->SetWriteHandler(0xC000, 0xFFFF, M250IRQWrite);
 }
@@ -1244,8 +1244,8 @@ static DECLFW(M254Write) {
   MMC3_CMDWrite(DECLFW_FORWARD);
 }
 
-static void M254_Power() {
-  GenMMC3Power();
+static void M254_Power(FC *fc) {
+  GenMMC3Power(fc);
   fceulib__.fceu->SetWriteHandler(0x8000, 0xBFFF, M254Write);
   fceulib__.fceu->SetReadHandler(0x6000, 0x7FFF, MR254WRAM);
 }

@@ -56,14 +56,14 @@ static DECLFW(M43Write) {
   }
 }
 
-static void M43Power() {
+static void M43Power(FC *fc) {
   reg = 0;
   Sync();
   fceulib__.fceu->SetReadHandler(0x5000, 0xffff, Cart::CartBR);
   fceulib__.fceu->SetWriteHandler(0x4020, 0xffff, M43Write);
 }
 
-static void M43Reset() {}
+static void M43Reset(FC *fc) {}
 
 static void M43IRQHook(int a) {
   IRQCount += a;
@@ -74,7 +74,7 @@ static void M43IRQHook(int a) {
     }
 }
 
-static void StateRestore(int version) {
+static void StateRestore(FC *fc, int version) {
   Sync();
 }
 

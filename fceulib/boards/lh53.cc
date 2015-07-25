@@ -67,7 +67,7 @@ static void LH53IRQ(int a) {
   }
 }
 
-static void LH53Power() {
+static void LH53Power(FC *fc) {
   Sync();
   fceulib__.fceu->SetReadHandler(0x6000, 0xFFFF, Cart::CartBR);
   fceulib__.fceu->SetWriteHandler(0xB800, 0xD7FF, LH53RamWrite);
@@ -75,12 +75,12 @@ static void LH53Power() {
   fceulib__.fceu->SetWriteHandler(0xF000, 0xFFFF, LH53Write);
 }
 
-static void LH53Close() {
-  if (WRAM) free(WRAM);
-  WRAM = NULL;
+static void LH53Close(FC *fc) {
+  free(WRAM);
+  WRAM = nullptr;
 }
 
-static void StateRestore(int version) {
+static void StateRestore(FC *fc, int version) {
   Sync();
 }
 

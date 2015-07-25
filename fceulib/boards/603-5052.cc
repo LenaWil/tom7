@@ -31,8 +31,8 @@ static DECLFR(UNL6035052ProtRead) {
   return EXPREGS[0];
 }
 
-static void UNL6035052Power() {
-  GenMMC3Power();
+static void UNL6035052Power(FC *fc) {
+  GenMMC3Power(fc);
   fceulib__.fceu->SetWriteHandler(0x4020, 0x7FFF, UNL6035052ProtWrite);
   fceulib__.fceu->SetReadHandler(0x4020, 0x7FFF, UNL6035052ProtRead);
 }

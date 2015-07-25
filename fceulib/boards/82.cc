@@ -55,7 +55,7 @@ static DECLFW(M82Write) {
   Sync();
 }
 
-static void M82Power() {
+static void M82Power(FC *fc) {
   Sync();
   fceulib__.fceu->SetReadHandler(0x6000, 0xffff, Cart::CartBR);
   fceulib__.fceu->SetWriteHandler(0x6000, 0x7fff, Cart::CartBW);
@@ -63,12 +63,12 @@ static void M82Power() {
       0x7ef0, 0x7efc, M82Write);  // external WRAM82 might end at $73FF
 }
 
-static void M82Close() {
+static void M82Close(FC *fc) {
   free(WRAM82);
   WRAM82 = NULL;
 }
 
-static void StateRestore(int version) {
+static void StateRestore(FC *fc, int version) {
   Sync();
 }
 

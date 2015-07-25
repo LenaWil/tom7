@@ -323,7 +323,7 @@ static void DoNamcoSound(int32 *Wave, int Count) {
   }
 }
 
-static void Mapper19_StateRestore(int version) {
+static void Mapper19_StateRestore(FC *fc, int version) {
   SyncPRG();
   FixNTAR();
   FixCRR();
@@ -348,7 +348,7 @@ void NSFN106_Init() {
   Mapper19_ESI(&fceulib__);
 }
 
-static void N106_Power() {
+static void N106_Power(FC *fc) {
   fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
   fceulib__.fceu->SetWriteHandler(0x8000, 0xffff, Mapper19_write);
   fceulib__.fceu->SetWriteHandler(0x4020, 0x5fff, Mapper19_write);
@@ -399,7 +399,7 @@ void Mapper19_Init(CartInfo *info) {
   }
 }
 
-static void Mapper210_StateRestore(int version) {
+static void Mapper210_StateRestore(FC *fc, int version) {
   SyncPRG();
   FixCRR();
 }

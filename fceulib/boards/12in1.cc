@@ -46,14 +46,14 @@ static DECLFW(BMC12IN1Write) {
   Sync();
 }
 
-static void BMC12IN1Power() {
+static void BMC12IN1Power(FC *fc) {
   reg[0] = reg[1] = reg[2] = reg[3] = 0;
   Sync();
   fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
   fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, BMC12IN1Write);
 }
 
-static void StateRestore(int version) {
+static void StateRestore(FC *fc, int version) {
   Sync();
 }
 

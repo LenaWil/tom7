@@ -79,7 +79,7 @@ static void Sync() {
   fceulib__.cart->setchr8(chr_reg);
 }
 
-static void StateRestore(int version) {
+static void StateRestore(FC *fc, int version) {
   Sync();
 }
 
@@ -100,7 +100,7 @@ static DECLFR(M216Read5000) {
   return 0;
 }
 
-static void Power() {
+static void Power(FC *fc) {
   prg_reg = 0;
   chr_reg = 0;
   Sync();

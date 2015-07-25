@@ -41,7 +41,7 @@ static DECLFW(UNLKS7013BHiWrite) {
   Sync();
 }
 
-static void UNLKS7013BPower() {
+static void UNLKS7013BPower(FC *fc) {
   reg = 0;
   mirr = 0;
   Sync();
@@ -50,12 +50,12 @@ static void UNLKS7013BPower() {
   fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, UNLKS7013BHiWrite);
 }
 
-static void UNLKS7013BReset() {
+static void UNLKS7013BReset(FC *fc) {
   reg = 0;
   Sync();
 }
 
-static void StateRestore(int version) {
+static void StateRestore(FC *fc, int version) {
   Sync();
 }
 

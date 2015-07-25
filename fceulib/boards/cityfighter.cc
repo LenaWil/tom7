@@ -103,7 +103,7 @@ static void UNLCITYFIGHTIRQ(int a) {
   }
 }
 
-static void UNLCITYFIGHTPower() {
+static void UNLCITYFIGHTPower(FC *fc) {
   prg_reg = 0;
   Sync();
   pcmwrite = fceulib__.fceu->GetWriteHandler(0x4011);
@@ -111,7 +111,7 @@ static void UNLCITYFIGHTPower() {
   fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, UNLCITYFIGHTWrite);
 }
 
-static void StateRestore(int version) {
+static void StateRestore(FC *fc, int version) {
   Sync();
 }
 

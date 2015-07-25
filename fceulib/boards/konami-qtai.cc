@@ -147,7 +147,7 @@ static DECLFW(M1902007Wrap) {
   }
 }
 
-static void M190Power() {
+static void M190Power(FC *fc) {
   fceulib__.cart->setprg4r(0x10, 0x7000, 2);
 
   old2007wrap = fceulib__.fceu->GetWriteHandler(0x2007);
@@ -161,14 +161,14 @@ static void M190Power() {
   Sync();
 }
 
-static void M190Close() {
-  if (CHRRAM) free(CHRRAM);
-  CHRRAM = NULL;
-  if (WRAM) free(WRAM);
-  WRAM = NULL;
+static void M190Close(FC *fc) {
+  free(CHRRAM);
+  CHRRAM = nullptr;
+  free(WRAM);
+  WRAM = nullptr;
 }
 
-static void StateRestore(int version) {
+static void StateRestore(FC *fc, int version) {
   Sync();
 }
 

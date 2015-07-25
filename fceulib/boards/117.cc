@@ -65,7 +65,7 @@ static DECLFW(M117Write) {
   }
 }
 
-static void M117Power() {
+static void M117Power(FC *fc) {
   prgreg[0] = ~3;
   prgreg[1] = ~2;
   prgreg[2] = ~1;
@@ -85,7 +85,7 @@ static void M117IRQHook() {
   }
 }
 
-static void StateRestore(int version) {
+static void StateRestore(FC *fc, int version) {
   Sync();
 }
 

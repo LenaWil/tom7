@@ -277,11 +277,11 @@ static void UNLSL12HBIRQ() {
   }
 }
 
-static void StateRestore(int version) {
+static void StateRestore(FC *fc, int version) {
   Sync();
 }
 
-static void UNLSL12Power() {
+static void UNLSL12Power(FC *fc) {
   mode = 0;
   vrc2_chr[0] = ~0;
   vrc2_chr[1] = ~0;

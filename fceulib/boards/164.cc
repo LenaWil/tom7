@@ -42,7 +42,7 @@ static void Sync() {
   fceulib__.cart->setchr8(0);
 }
 
-static void StateRestore(int version) {
+static void StateRestore(FC *fc, int version) {
   WSync();
 }
 
@@ -101,7 +101,7 @@ static DECLFW(Write) {
   }
 }
 
-static void Power() {
+static void Power(FC *fc) {
   memset(reg, 0, 8);
   reg[1] = 0xFF;
   fceulib__.fceu->SetWriteHandler(0x5000, 0x5FFF, Write);
@@ -110,9 +110,9 @@ static void Power() {
   WSync();
 }
 
-static void Close() {
-  if (WRAM) free(WRAM);
-  WRAM = NULL;
+static void Close(FC *fc) {
+  free(WRAM);
+  WRAM = nullptr;
 }
 
 void Mapper164_Init(CartInfo *info) {
@@ -160,7 +160,7 @@ static DECLFW(Write2) {
     }
 }
 
-static void Power2() {
+static void Power2(FC *fc) {
   memset(reg, 0, 8);
   laststrobe = 1;
   fceulib__.fceu->SetReadHandler(0x5000, 0x5FFF, ReadLow);
@@ -219,7 +219,7 @@ static DECLFW(Write3) {
   WSync();
 }
 
-static void Power3() {
+static void Power3(FC *fc) {
   reg[0] = 3;
   reg[1] = 0;
   reg[2] = 0;

@@ -98,13 +98,13 @@ static DECLFW(M48Write) {
   }
 }
 
-static void M33Power() {
+static void M33Power(FC *fc) {
   Sync();
   fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
   fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, M33Write);
 }
 
-static void M48Power() {
+static void M48Power(FC *fc) {
   Sync();
   fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
   fceulib__.fceu->SetWriteHandler(0x8000, 0xBFFF, M33Write);
@@ -121,7 +121,7 @@ static void M48IRQ() {
   }
 }
 
-static void StateRestore(int version) {
+static void StateRestore(FC *fc, int version) {
   Sync();
 }
 

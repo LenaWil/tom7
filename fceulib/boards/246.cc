@@ -43,7 +43,7 @@ static DECLFW(M246Write) {
   Sync();
 }
 
-static void M246Power() {
+static void M246Power(FC *fc) {
   regs[0] = regs[1] = regs[2] = regs[3] = ~0;
   Sync();
   fceulib__.fceu->SetWriteHandler(0x6000, 0x67FF, M246Write);
@@ -52,12 +52,12 @@ static void M246Power() {
   fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
 }
 
-static void M246Close() {
-  if (WRAM) free(WRAM);
-  WRAM = NULL;
+static void M246Close(FC *Fc) {
+  free(WRAM);
+  WRAM = nullptr;
 }
 
-static void StateRestore(int version) {
+static void StateRestore(FC *fc, int version) {
   Sync();
 }
 

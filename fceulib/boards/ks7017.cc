@@ -76,7 +76,7 @@ static void UNL7017IRQ(int a) {
   }
 }
 
-static void UNLKS7017Power() {
+static void UNLKS7017Power(FC *fc) {
   Sync();
   fceulib__.cart->setchr8(0);
   fceulib__.cart->setprg8r(0x10, 0x6000, 0);
@@ -87,12 +87,12 @@ static void UNLKS7017Power() {
   fceulib__.fceu->SetWriteHandler(0x4020, 0x5FFF, UNLKS7017Write);
 }
 
-static void UNLKS7017Close() {
-  if (WRAM) free(WRAM);
-  WRAM = NULL;
+static void UNLKS7017Close(FC *fc) {
+  free(WRAM);
+  WRAM = nullptr;
 }
 
-static void StateRestore(int version) {
+static void StateRestore(FC *fc, int version) {
   Sync();
 }
 

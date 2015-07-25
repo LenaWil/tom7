@@ -44,7 +44,7 @@ static void SyncChr() {
   for (int i = 0; i < 8; i++) fceulib__.cart->setchr1(i << 10, chr[i]);
 }
 
-static void StateRestore(int version) {
+static void StateRestore(FC *fc, int version) {
   SyncPrg();
   SyncChr();
 }
@@ -95,7 +95,7 @@ static void M183IRQCounter() {
   }
 }
 
-static void M183Power() {
+static void M183Power(FC *fc) {
   IRQPre = IRQCount = IRQa = 0;
   fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
   fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, M183Write);

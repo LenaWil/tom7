@@ -37,14 +37,14 @@ static DECLFW(M120Write) {
   }
 }
 
-static void M120Power() {
+static void M120Power(FC *fc) {
   reg = 0;
   Sync();
   fceulib__.fceu->SetReadHandler(0x6000, 0xFFFF, Cart::CartBR);
   fceulib__.fceu->SetWriteHandler(0x4100, 0x5FFF, M120Write);
 }
 
-static void StateRestore(int version) {
+static void StateRestore(FC *fc, int version) {
   Sync();
 }
 

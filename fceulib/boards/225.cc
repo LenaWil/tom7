@@ -52,7 +52,7 @@ static DECLFR(M225LoRead) {
   return 0;
 }
 
-static void M225Power() {
+static void M225Power(FC *fc) {
   prg = 0;
   mode = 0;
   Sync();
@@ -62,13 +62,13 @@ static void M225Power() {
   fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, M225Write);
 }
 
-static void M225Reset() {
+static void M225Reset(FC *fc) {
   prg = 0;
   mode = 0;
   Sync();
 }
 
-static void StateRestore(int version) {
+static void StateRestore(FC *fc, int version) {
   Sync();
 }
 

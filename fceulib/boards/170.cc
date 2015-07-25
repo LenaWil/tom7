@@ -38,7 +38,7 @@ static DECLFR(M170ProtR) {
   return reg | (fceulib__.X->DB & 0x7F);
 }
 
-static void M170Power() {
+static void M170Power(FC *fc) {
   Sync();
   fceulib__.fceu->SetWriteHandler(0x6502, 0x6502, M170ProtW);
   fceulib__.fceu->SetWriteHandler(0x7000, 0x7000, M170ProtW);
@@ -47,7 +47,7 @@ static void M170Power() {
   fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
 }
 
-static void StateRestore(int version) {
+static void StateRestore(FC *fc, int version) {
   Sync();
 }
 

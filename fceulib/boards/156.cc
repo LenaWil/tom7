@@ -84,7 +84,7 @@ static DECLFW(M156Write) {
   }
 }
 
-static void M156Reset() {
+static void M156Reset(FC *fc) {
   for (uint32 i = 0; i < 8; i++) {
     chrlo[i] = 0;
     chrhi[i] = 0;
@@ -94,20 +94,20 @@ static void M156Reset() {
   mirrisused = 0;
 }
 
-static void M156Power() {
-  M156Reset();
+static void M156Power(FC *fc) {
+  M156Reset(fc);
   Sync();
   fceulib__.fceu->SetReadHandler(0x6000, 0xFFFF, Cart::CartBR);
   fceulib__.fceu->SetWriteHandler(0x6000, 0x7FFF, Cart::CartBW);
   fceulib__.fceu->SetWriteHandler(0xC000, 0xCFFF, M156Write);
 }
 
-static void M156Close() {
-  if (WRAM) free(WRAM);
-  WRAM = NULL;
+static void M156Close(FC *fc) {
+  free(WRAM);
+  WRAM = nullptr;
 }
 
-static void StateRestore(int version) {
+static void StateRestore(FC *fc, int version) {
   Sync();
 }
 

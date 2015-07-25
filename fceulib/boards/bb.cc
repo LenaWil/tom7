@@ -39,7 +39,7 @@ static DECLFW(UNLBBWrite) {
   Sync();
 }
 
-static void UNLBBPower() {
+static void UNLBBPower(FC *fc) {
   chr = 0;
   reg = ~0;
   Sync();
@@ -48,7 +48,7 @@ static void UNLBBPower() {
   fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, UNLBBWrite);
 }
 
-static void StateRestore(int version) {
+static void StateRestore(FC *fc, int version) {
   Sync();
 }
 

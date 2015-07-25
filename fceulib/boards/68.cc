@@ -127,7 +127,7 @@ static DECLFW(M68WriteROM) {
   Sync();
 }
 
-static void M68Power() {
+static void M68Power(FC *fc) {
   prg_reg = 0;
   kogame = 0;
   Sync();
@@ -144,12 +144,12 @@ static void M68Power() {
   fceulib__.fceu->SetWriteHandler(0x6001, 0x7FFF, Cart::CartBW);
 }
 
-static void M68Close() {
-  if (WRAM) free(WRAM);
-  WRAM = NULL;
+static void M68Close(FC *fc) {
+  free(WRAM);
+  WRAM = nullptr;
 }
 
-static void StateRestore(int version) {
+static void StateRestore(FC *fc, int version) {
   Sync();
   M68NTfix();
 }

@@ -102,7 +102,7 @@ static DECLFW(M253Write) {
     }
 }
 
-static void M253Power() {
+static void M253Power(FC *fc) {
   Sync();
   fceulib__.fceu->SetReadHandler(0x6000, 0x7FFF, Cart::CartBR);
   fceulib__.fceu->SetWriteHandler(0x6000, 0x7FFF, Cart::CartBW);
@@ -110,14 +110,14 @@ static void M253Power() {
   fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, M253Write);
 }
 
-static void M253Close() {
-  if (WRAM) free(WRAM);
-  if (CHRRAM) free(CHRRAM);
-  WRAM = CHRRAM = NULL;
+static void M253Close(FC *fc) {
+  free(WRAM);
+  free(CHRRAM);
+  WRAM = CHRRAM = nullptr;
 }
 
 static void M253IRQ(int a) {
-#define LCYCS 341
+  static constexpr int LCYCS = 341;
   if (IRQa) {
     IRQClock += a * 3;
     if (IRQClock >= LCYCS) {
@@ -133,7 +133,7 @@ static void M253IRQ(int a) {
   }
 }
 
-static void StateRestore(int version) {
+static void StateRestore(FC *fc, int version) {
   Sync();
 }
 

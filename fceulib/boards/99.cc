@@ -37,7 +37,7 @@ static DECLFW(M99Write) {
   old4016(DECLFW_FORWARD);
 }
 
-static void M99Power() {
+static void M99Power(FC *fc) {
   latch = 0;
   Sync();
   old4016 = fceulib__.fceu->GetWriteHandler(0x4016);
@@ -45,7 +45,7 @@ static void M99Power() {
   fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
 }
 
-static void StateRestore(int version) {
+static void StateRestore(FC *fc, int version) {
   Sync();
 }
 

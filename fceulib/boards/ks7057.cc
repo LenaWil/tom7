@@ -121,13 +121,13 @@ static DECLFW(UNLKS7057Write) {
   }
 }
 
-static void UNLKS7057Power() {
+static void UNLKS7057Power(FC *fc) {
   Sync();
   fceulib__.fceu->SetReadHandler(0x6000, 0xFFFF, Cart::CartBR);
   fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, UNLKS7057Write);
 }
 
-static void UNLKS7057Reset() {
+static void UNLKS7057Reset(FC *fc) {
   Sync();
 }
 

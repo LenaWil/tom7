@@ -56,7 +56,7 @@ static DECLFW(BMC64in1nrWriteHi) {
   Sync();
 }
 
-static void BMC64in1nrPower() {
+static void BMC64in1nrPower(FC *fc) {
   regs[0] = 0x80;
   regs[1] = 0x43;
   regs[2] = regs[3] = 0;
@@ -66,7 +66,7 @@ static void BMC64in1nrPower() {
   fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
 }
 
-static void StateRestore(int version) {
+static void StateRestore(FC *fc, int version) {
   Sync();
 }
 

@@ -45,7 +45,7 @@ static DECLFW(M193Write) {
   Sync();
 }
 
-static void M193Power() {
+static void M193Power(FC *fc) {
   bank = 0;
   Sync();
   fceulib__.fceu->SetWriteHandler(0x6000, 0x6003, M193Write);
@@ -53,9 +53,9 @@ static void M193Power() {
   fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, Cart::CartBW);
 }
 
-static void M193Reset() {}
+static void M193Reset(FC *fc) {}
 
-static void StateRestore(int version) {
+static void StateRestore(FC *fc, int version) {
   Sync();
 }
 

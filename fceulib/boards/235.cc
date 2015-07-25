@@ -45,7 +45,7 @@ static DECLFW(M235Write) {
   Sync();
 }
 
-static void M235Power() {
+static void M235Power(FC *fc) {
   fceulib__.cart->setchr8(0);
   fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, M235Write);
   fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
@@ -53,7 +53,7 @@ static void M235Power() {
   Sync();
 }
 
-static void M235Restore(int version) {
+static void M235Restore(FC *fc, int version) {
   Sync();
 }
 

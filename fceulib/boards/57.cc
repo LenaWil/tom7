@@ -52,7 +52,7 @@ static DECLFW(M57Write) {
   Sync();
 }
 
-static void M57Power() {
+static void M57Power(FC *fc) {
   prg_reg = 0;
   chr_reg = 0;
   hrd_flag = 0;
@@ -62,13 +62,13 @@ static void M57Power() {
   Sync();
 }
 
-static void M57Reset() {
+static void M57Reset(FC *fc) {
   hrd_flag++;
   hrd_flag &= 3;
   FCEU_printf("Select Register = %02x\n", hrd_flag);
 }
 
-static void StateRestore(int version) {
+static void StateRestore(FC *fc, int version) {
   Sync();
 }
 

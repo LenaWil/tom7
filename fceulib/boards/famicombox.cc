@@ -63,7 +63,7 @@ static DECLFR(SSSNROMRead) {
   }
 }
 
-static void SSSNROMPower() {
+static void SSSNROMPower(FC *fc) {
   regs[0] = regs[1] = regs[2] = regs[3] = regs[4] = regs[5] = regs[6] = 0;
   regs[7] = 0xff;
   Sync();
@@ -78,11 +78,11 @@ static void SSSNROMPower() {
   fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
 }
 
-static void SSSNROMReset() {
+static void SSSNROMReset(FC *fc) {
   regs[1] = regs[2] = regs[3] = regs[4] = regs[5] = regs[6] = 0;
 }
 
-static void SSSNROMClose() {
+static void SSSNROMClose(FC *fc) {
   free(WRAM);
   WRAM = nullptr;
 }
@@ -91,7 +91,7 @@ static void SSSNROMIRQHook() {
   //  fceulib__.X->IRQBegin(FCEU_IQEXT);
 }
 
-static void StateRestore(int version) {
+static void StateRestore(FC *fc, int version) {
   Sync();
 }
 

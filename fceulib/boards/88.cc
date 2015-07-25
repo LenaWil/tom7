@@ -55,13 +55,13 @@ static DECLFW(M88Write) {
   }
 }
 
-static void M88Power() {
+static void M88Power(FC *fc) {
   fceulib__.cart->setprg16(0xC000, ~0);
   fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
   fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, M88Write);
 }
 
-static void StateRestore(int version) {
+static void StateRestore(FC *fc, int version) {
   Sync();
   MSync();
 }

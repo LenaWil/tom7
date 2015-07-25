@@ -22,6 +22,10 @@ Stuff I should be able to get rid of:
       A little left over in:
       ines.cc
 
+ - boards/ should be classes, only one of which is actually present
+   in the FC object. Maybe they could derive from cartinfo (or equivalent).
+   Some boards are based off of others, especially MMC3 but also MMC1.
+
  - DECLFR, DECLFW
 
  - is "moo" defined? mappers/61.cc ifdefs it
@@ -34,6 +38,10 @@ Cleanup to do:
  - There are some symbols that are both #defined (e.g. ines.h) and
    declared, maybe with #undef before like in mmc3.cc. So confusing!
  - clang format on the worst offenders
+ - NULL -> nullptr everywhere
+ - (void) args
+ - Common pattern in boards/* is to declare WRAMSIZE as a static
+   variable but always set it to a constant.
 
 Surprisingly necessary:
  - crc32 since ines.cc has a table of games and their CRCs.

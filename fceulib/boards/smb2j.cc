@@ -50,7 +50,7 @@ static DECLFW(UNLSMB2JWrite) {
   }
 }
 
-static void UNLSMB2JPower() {
+static void UNLSMB2JPower(FC *fc) {
   prg = ~0;
   Sync();
   fceulib__.fceu->SetReadHandler(0x5000, 0x7FFF, Cart::CartBR);
@@ -58,7 +58,7 @@ static void UNLSMB2JPower() {
   fceulib__.fceu->SetWriteHandler(0x4020, 0xffff, UNLSMB2JWrite);
 }
 
-static void UNLSMB2JReset() {
+static void UNLSMB2JReset(FC *fc) {
   prg = ~0;
   Sync();
 }
@@ -70,7 +70,7 @@ static void UNLSMB2JIRQHook(int a) {
   }
 }
 
-static void StateRestore(int version) {
+static void StateRestore(FC *fc, int version) {
   Sync();
 }
 

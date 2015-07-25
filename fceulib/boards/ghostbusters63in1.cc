@@ -56,22 +56,22 @@ static DECLFR(BMCGhostbusters63in1Read) {
     return Cart::CartBR(DECLFR_FORWARD);
 }
 
-static void BMCGhostbusters63in1Power() {
+static void BMCGhostbusters63in1Power(FC *fc) {
   reg[0] = reg[1] = 0;
   Sync();
   fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, BMCGhostbusters63in1Read);
   fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, BMCGhostbusters63in1Write);
 }
 
-static void BMCGhostbusters63in1Reset() {
+static void BMCGhostbusters63in1Reset(FC *fc) {
   reg[0] = reg[1] = 0;
 }
 
-static void StateRestore(int version) {
+static void StateRestore(FC *fc, int version) {
   Sync();
 }
 
-static void BMCGhostbusters63in1Close() {
+static void BMCGhostbusters63in1Close(FC *fc) {
   free(CHRROM);
   CHRROM = nullptr;
 }

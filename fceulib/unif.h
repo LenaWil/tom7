@@ -31,7 +31,7 @@ struct FceuFile;
 // http://wiki.nesdev.com/w/index.php/UNIF
 
 struct Unif {
-  Unif();
+  explicit Unif(FC *fc);
 
   int UNIFLoad(const char *name, FceuFile *fp);
   // So I can stop CHR RAM bank switcherooing with certain boards...
@@ -76,6 +76,8 @@ struct Unif {
   uint32 mallocedsizes[32] = {0};
 
   uint8 exntar[2048] = {0};
+
+  FC *fc = nullptr;
 };
 
 #endif

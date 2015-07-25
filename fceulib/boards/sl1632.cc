@@ -81,7 +81,7 @@ static DECLFW(UNLSL1632CMDWrite) {
   }
 }
 
-static void StateRestore(int version) {
+static void StateRestore(FC *fc, int version) {
   if (bbrk & 2) {
     FixMMC3PRG(MMC3_cmd);
     FixMMC3CHR(MMC3_cmd);
@@ -89,8 +89,8 @@ static void StateRestore(int version) {
     Sync();
 }
 
-static void UNLSL1632Power() {
-  GenMMC3Power();
+static void UNLSL1632Power(FC *fc) {
+  GenMMC3Power(fc);
   fceulib__.fceu->SetWriteHandler(0x4100, 0xFFFF, UNLSL1632CMDWrite);
 }
 

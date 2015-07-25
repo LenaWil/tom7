@@ -63,7 +63,7 @@ static DECLFW(M91Write1) {
   }
 }
 
-static void M91Power() {
+static void M91Power(FC *fc) {
   Sync();
   fceulib__.fceu->SetWriteHandler(0x6000, 0x6fff, M91Write0);
   fceulib__.fceu->SetWriteHandler(0x7000, 0x7fff, M91Write1);
@@ -79,7 +79,7 @@ static void M91IRQHook() {
   }
 }
 
-static void StateRestore(int version) {
+static void StateRestore(FC *fc, int version) {
   Sync();
 }
 

@@ -45,7 +45,7 @@ static DECLFW(M178Write) {
   Sync();
 }
 
-static void M178Power() {
+static void M178Power(FC *fc) {
   reg[0] = 1;
   reg[1] = 0;
   reg[2] = 0;
@@ -57,12 +57,12 @@ static void M178Power() {
   fceulib__.fceu->SetWriteHandler(0x4800, 0x4803, M178Write);
 }
 
-static void M178Close() {
-  if (WRAM) free(WRAM);
-  WRAM = NULL;
+static void M178Close(FC *fc) {
+  free(WRAM);
+  WRAM = nullptr;
 }
 
-static void StateRestore(int version) {
+static void StateRestore(FC *fc, int version) {
   Sync();
 }
 

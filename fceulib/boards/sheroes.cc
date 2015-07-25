@@ -49,21 +49,21 @@ static DECLFR(MSHRead) {
   return tekker;
 }
 
-static void MSHReset() {
-  MMC3RegReset();
+static void MSHReset(FC *fc) {
+  MMC3RegReset(fc);
   tekker ^= 0xFF;
 }
 
-static void MSHPower() {
+static void MSHPower(FC *fc) {
   tekker = 0x00;
-  GenMMC3Power();
+  GenMMC3Power(fc);
   fceulib__.fceu->SetWriteHandler(0x4100, 0x4100, MSHWrite);
   fceulib__.fceu->SetReadHandler(0x4100, 0x4100, MSHRead);
 }
 
-static void MSHClose() {
-  if (CHRRAM) free(CHRRAM);
-  CHRRAM = NULL;
+static void MSHClose(FC *fc) {
+  free(CHRRAM);
+  CHRRAM = nullptr;
 }
 
 void UNLSHeroes_Init(CartInfo *info) {

@@ -71,7 +71,7 @@ static DECLFW(M103Write2) {
   Sync();
 }
 
-static void M103Power() {
+static void M103Power(FC *fc) {
   reg0 = reg1 = 0;
   reg2 = 0;
   Sync();
@@ -84,12 +84,12 @@ static void M103Power() {
   fceulib__.fceu->SetWriteHandler(0xF000, 0xFFFF, M103Write2);
 }
 
-static void M103Close() {
+static void M103Close(FC *fc) {
   if (WRAM) free(WRAM);
   WRAM = NULL;
 }
 
-static void StateRestore(int version) {
+static void StateRestore(FC *fc, int version) {
   Sync();
 }
 

@@ -32,14 +32,14 @@ static DECLFW(NovelWrite) {
   DoNovel();
 }
 
-static void NovelReset() {
+static void NovelReset(FC *fc) {
   fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, NovelWrite);
   fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
   fceulib__.cart->setprg32(0x8000, 0);
   fceulib__.cart->setchr8(0);
 }
 
-static void NovelRestore(int version) {
+static void NovelRestore(FC *fc, int version) {
   DoNovel();
 }
 

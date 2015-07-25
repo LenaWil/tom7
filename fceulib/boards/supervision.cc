@@ -48,7 +48,7 @@ static DECLFW(SuperHi) {
   DoSuper();
 }
 
-static void SuperReset() {
+static void SuperReset(FC *fc) {
   fceulib__.fceu->SetWriteHandler(0x6000, 0x7FFF, SuperWrite);
   fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, SuperHi);
   fceulib__.fceu->SetReadHandler(0x6000, 0xFFFF, Cart::CartBR);
@@ -57,7 +57,7 @@ static void SuperReset() {
   fceulib__.cart->setchr8(0);
 }
 
-static void SuperRestore(int version) {
+static void SuperRestore(FC *fc, int version) {
   DoSuper();
 }
 

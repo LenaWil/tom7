@@ -231,7 +231,7 @@ static DECLFW(UNLYOKOWriteLow) {
   low[A & 3] = V;
 }
 
-static void UNLYOKOPower() {
+static void UNLYOKOPower(FC *fc) {
   mode = bank = 0;
   dip = 3;
   UNLYOKOSync();
@@ -242,7 +242,7 @@ static void UNLYOKOPower() {
   fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, UNLYOKOWrite);
 }
 
-static void M83Power() {
+static void M83Power(FC *fc) {
   is2kbank = 0;
   isnot2kbank = 0;
   mode = bank = 0;
@@ -258,20 +258,20 @@ static void M83Power() {
   fceulib__.fceu->SetWriteHandler(0x8000, 0xffff, M83Write);
 }
 
-static void UNLYOKOReset() {
+static void UNLYOKOReset(FC *fc) {
   dip = (dip + 1) & 3;
   mode = bank = 0;
   UNLYOKOSync();
 }
 
-static void M83Reset() {
+static void M83Reset(FC *fc) {
   dip ^= 1;
   M83Sync();
 }
 
-static void M83Close() {
-  if (WRAM) free(WRAM);
-  WRAM = NULL;
+static void M83Close(FC *fc) {
+  free(WRAM);
+  WRAM = nullptr;
 }
 
 static void UNLYOKOIRQHook(int a) {
@@ -285,11 +285,11 @@ static void UNLYOKOIRQHook(int a) {
   }
 }
 
-static void UNLYOKOStateRestore(int version) {
+static void UNLYOKOStateRestore(FC *fc, int version) {
   UNLYOKOSync();
 }
 
-static void M83StateRestore(int version) {
+static void M83StateRestore(FC *fc, int version) {
   M83Sync();
 }
 

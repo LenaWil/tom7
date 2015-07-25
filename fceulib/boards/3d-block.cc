@@ -55,13 +55,13 @@ static DECLFW(UNL3DBlockWrite) {
   }
 }
 
-static void UNL3DBlockPower() {
+static void UNL3DBlockPower(FC *fc) {
   Sync();
   fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
   fceulib__.fceu->SetWriteHandler(0x4800, 0x4E00, UNL3DBlockWrite);
 }
 
-static void UNL3DBlockReset() {
+static void UNL3DBlockReset(FC *fc) {
   Count += 0x10;
   FCEU_printf("Count=%04x\n", Count);
 }
@@ -83,7 +83,7 @@ static void UNL3DBlockIRQHook(int a) {
   }
 }
 
-static void StateRestore(int version) {
+static void StateRestore(FC *fc, int version) {
   Sync();
 }
 

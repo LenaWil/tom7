@@ -77,7 +77,7 @@ static DECLFW(BMC70in1Write) {
   Sync();
 }
 
-static void BMC70in1Reset() {
+static void BMC70in1Reset(FC *fc) {
   bank_mode = 0;
   large_bank = 0;
   Sync();
@@ -85,7 +85,7 @@ static void BMC70in1Reset() {
   hw_switch &= 0xf;
 }
 
-static void BMC70in1Power() {
+static void BMC70in1Power(FC *fc) {
   fceulib__.cart->setchr8(0);
   bank_mode = 0;
   large_bank = 0;
@@ -94,7 +94,7 @@ static void BMC70in1Power() {
   fceulib__.fceu->SetWriteHandler(0x8000, 0xffff, BMC70in1Write);
 }
 
-static void StateRestore(int version) {
+static void StateRestore(FC *fc, int version) {
   Sync();
 }
 

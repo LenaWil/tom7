@@ -62,10 +62,6 @@ static DECLFW(FDSRAMWrite);
 #define FDSRAM fc->fceu->GameMemBlock
 #define CHRRAM (fc->fceu->GameMemBlock+32768)
 
-static void FDSGI_Trampoline(GI h) {
-  return fceulib__.fds->FDSGI(h);
-}
-
 void FDS::FDSGI(GI h) {
   switch(h) {
   case GI_CLOSE: FDSClose(); break;
@@ -90,10 +86,6 @@ static void FDSFix_Trampoline(int a) {
   return fceulib__.fds->FDSFix(a);
 }
 
-static void FDSStateRestore_Trampoline(int version) {
-  return fceulib__.fds->FDSStateRestore(version);
-}
-
 void FDS::FDSInit() {
   memset(FDSRegs,0,sizeof(FDSRegs));
   writeskip=DiskPtr=DiskSeekIRQ=0;
@@ -104,7 +96,9 @@ void FDS::FDSInit() {
   fc->cart->setchr8(0);     // 8KB CHR RAM
 
   fc->X->MapIRQHook = FDSFix_Trampoline;
-  fc->fceu->GameStateRestore=FDSStateRestore_Trampoline;
+  fc->fceu->GameStateRestore = [](FC *fc, int v) {
+    return fc->fds->FDSStateRestore(v);
+  };
 
   fc->fceu->SetReadHandler(0x4030,0x4030,FDSRead4030);
   fc->fceu->SetReadHandler(0x4031,0x4031,FDSRead4031);
@@ -700,7 +694,9 @@ int FDS::FDSLoad(const char *name, FceuFile *fp) {
   }
 
   fc->fceu->GameInfo->type=GIT_FDS;
-  fc->fceu->GameInterface=FDSGI_Trampoline;
+  fc->fceu->GameInterface = [](FC *fc, GI gi) {
+    return fc->fds->FDSGI(gi);
+  };
 
   SelectDisk=0;
   InDisk=255;

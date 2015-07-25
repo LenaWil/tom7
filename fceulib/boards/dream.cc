@@ -20,32 +20,32 @@
 
 #include "mapinc.h"
 
-static uint8 latche;
+static uint8 latch;
 
 static void Sync() {
-  fceulib__.cart->setprg16(0x8000, latche);
+  fceulib__.cart->setprg16(0x8000, latch);
   fceulib__.cart->setprg16(0xC000, 8);
 }
 
 static DECLFW(DREAMWrite) {
-  latche = V & 7;
+  latch = V & 7;
   Sync();
 }
 
-static void DREAMPower() {
-  latche = 0;
+static void DREAMPower(FC *fc) {
+  latch = 0;
   Sync();
   fceulib__.cart->setchr8(0);
   fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
   fceulib__.fceu->SetWriteHandler(0x5020, 0x5020, DREAMWrite);
 }
 
-static void Restore(int version) {
+static void Restore(FC *fc, int version) {
   Sync();
 }
 
 void DreamTech01_Init(CartInfo *info) {
   fceulib__.fceu->GameStateRestore = Restore;
   info->Power = DREAMPower;
-  fceulib__.state->AddExState(&latche, 1, 0, "LATC");
+  fceulib__.state->AddExState(&latch, 1, 0, "LATC");
 }

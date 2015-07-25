@@ -100,7 +100,7 @@ static DECLFW(UNLKS7030Write1) {
   Sync();
 }
 
-static void UNLKS7030Power() {
+static void UNLKS7030Power(FC *fc) {
   reg0 = reg1 = ~0;
   Sync();
   fceulib__.fceu->SetReadHandler(0x6000, 0x7FFF, UNLKS7030RamRead0);
@@ -112,12 +112,12 @@ static void UNLKS7030Power() {
   fceulib__.fceu->SetWriteHandler(0xB800, 0xD7FF, UNLKS7030RamWrite1);
 }
 
-static void UNLKS7030Close() {
+static void UNLKS7030Close(FC *fc) {
   free(WRAM);
   WRAM = nullptr;
 }
 
-static void StateRestore(int version) {
+static void StateRestore(FC *fc, int version) {
   Sync();
 }
 

@@ -82,7 +82,7 @@ void INes::iNES_ExecPower() {
     FCEU_InitMemory(VROM, CHRRAMSize);
 
   if (iNESCart.Power)
-    iNESCart.Power();
+    iNESCart.Power(fc);
 
   if (trainerdata) {
     for (int x=0;x<512;x++) {
@@ -105,16 +105,18 @@ void INes::iNESGI(GI h) {
     if (MapperReset)
       MapperReset();
     if (iNESCart.Reset)
-      iNESCart.Reset();
+      iNESCart.Reset(fc);
     break;
+
   case GI_POWER:
     iNES_ExecPower();
 
     break;
+
   case GI_CLOSE:
     fc->cart->FCEU_SaveGameSave(&iNESCart);
 
-    if (iNESCart.Close) iNESCart.Close();
+    if (iNESCart.Close) iNESCart.Close(fc);
     free(ROM);
     ROM = nullptr;
     free(VROM);
@@ -306,8 +308,8 @@ struct CHINF {
 
 void INes::MapperInit() {
   if (!NewiNES_Init(mapper_number)) {
-    iNESCart.Power = []() {
-      return fceulib__.ines->iNESPower();
+    iNESCart.Power = [](FC *fc) {
+      return fc->ines->iNESPower();
     };
     if (head.ROM_type & 2) {
       TRACEF("Set savegame %d", head.ROM_type);
@@ -960,9 +962,9 @@ int INes::iNESLoad(const char *name, FceuFile *fp, int OverwriteVidMode) {
     name = strrchr(name, '\\') + 1;
   }
 
-  fc->fceu->GameInterface = [](GI h) {
+  fc->fceu->GameInterface = [](FC *fc, GI h) {
     // fprintf(stderr, "ines GameInterface %d\n", (int)h);
-    return fceulib__.ines->iNESGI(h);
+    return fc->ines->iNESGI(h);
   };
   FCEU_printf("\n");
 
@@ -1380,8 +1382,8 @@ void INes::iNESPower() {
   int type = mapper_number;
 
   fc->fceu->SetReadHandler(0x8000,0xFFFF,Cart::CartBR);
-  fc->fceu->GameStateRestore = [](int v) {
-    return fceulib__.ines->iNESStateRestore(v);
+  fc->fceu->GameStateRestore = [](FC *fc, int v) {
+    return fc->ines->iNESStateRestore(v);
   };
   MapClose=0;
   MapperReset=0;

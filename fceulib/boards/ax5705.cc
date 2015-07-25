@@ -118,13 +118,13 @@ static DECLFW(UNLAX5705Write) {
   Sync();
 }
 
-static void UNLAX5705Power() {
+static void UNLAX5705Power(FC *fc) {
   Sync();
   fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
   fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, UNLAX5705Write);
 }
 
-static void StateRestore(int version) {
+static void StateRestore(FC *fc, int version) {
   Sync();
 }
 

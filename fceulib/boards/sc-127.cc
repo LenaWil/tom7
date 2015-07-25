@@ -65,7 +65,7 @@ static DECLFW(UNLSC127Write) {
   Sync();
 }
 
-static void UNLSC127Power() {
+static void UNLSC127Power(FC *fc) {
   Sync();
   fceulib__.cart->setprg8r(0x10, 0x6000, 0);
   fceulib__.cart->setprg8(0xE000, ~0);
@@ -85,14 +85,14 @@ static void UNLSC127IRQ() {
   }
 }
 
-static void UNLSC127Reset() {}
+static void UNLSC127Reset(FC *fc) {}
 
-static void UNLSC127Close() {
+static void UNLSC127Close(FC *fc) {
   free(WRAM);
   WRAM = nullptr;
 }
 
-static void StateRestore(int version) {
+static void StateRestore(FC *fc, int version) {
   Sync();
 }
 

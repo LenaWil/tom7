@@ -40,7 +40,7 @@ static DECLFW(M168Write) {
 
 static DECLFW(M168Dummy) {}
 
-static void M168Power() {
+static void M168Power(FC *fc) {
   reg = 0;
   Sync();
   fceulib__.fceu->SetWriteHandler(0x4020, 0x7fff, M168Dummy);
@@ -50,12 +50,12 @@ static void M168Power() {
   fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
 }
 
-static void MNNNClose() {
-  if (CHRRAM) free(CHRRAM);
-  CHRRAM = NULL;
+static void MNNNClose(FC *fc) {
+  free(CHRRAM);
+  CHRRAM = nullptr;
 }
 
-static void StateRestore(int version) {
+static void StateRestore(FC *fc, int version) {
   Sync();
 }
 

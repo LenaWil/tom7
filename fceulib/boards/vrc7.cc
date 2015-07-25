@@ -114,7 +114,7 @@ static DECLFW(UNLVRC7Write) {
   }
 }
 
-static void UNLVRC7Power() {
+static void UNLVRC7Power(FC *fc) {
   Sync();
   fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
   fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, UNLVRC7Write);
@@ -134,7 +134,7 @@ static void UNLVRC7IRQHook(int a) {
   }
 }
 
-static void StateRestore(int version) {
+static void StateRestore(FC *fc, int version) {
   Sync();
 }
 

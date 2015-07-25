@@ -38,13 +38,13 @@ static DECLFW(M151Write) {
   Sync();
 }
 
-static void M151Power() {
+static void M151Power(FC *fc) {
   Sync();
   fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
   fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, M151Write);
 }
 
-static void StateRestore(int version) {
+static void StateRestore(FC *fc, int version) {
   Sync();
 }
 

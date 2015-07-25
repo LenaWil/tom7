@@ -84,13 +84,13 @@ static DECLFW(M222Write) {
   Sync();
 }
 
-static void M222Power() {
+static void M222Power(FC *fc) {
   fceulib__.cart->setprg16(0xC000, ~0);
   fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
   fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, M222Write);
 }
 
-static void StateRestore(int version) {
+static void StateRestore(FC *fc, int version) {
   Sync();
 }
 
