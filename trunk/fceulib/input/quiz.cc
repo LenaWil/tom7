@@ -27,8 +27,8 @@ struct QuizKing : public InputCFC {
 
   uint8 Read(int w, uint8 ret) override {
     if (w) {
-      // if(fceulib__.X->PC==0xdc7d) return(0xFF);
-      // printf("Blah: %04x\n",fceulib__.X->PC);
+      // if(fc->X->PC==0xdc7d) return(0xFF);
+      // printf("Blah: %04x\n",fc->X->PC);
       // FCEUI_DumpMem("dmp2",0xc000,0xffff);
 
       ret |= (QZValR & 0x7) << 2;

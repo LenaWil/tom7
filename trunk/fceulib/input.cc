@@ -213,6 +213,10 @@ void Input::B4016_Direct(DECLFW_ARGS) {
 }
 
 //--------4 player driver for expansion port--------
+// TODO: Can these just go into the Fami4C object? Only issue is
+// that maybe multiple input drivers should be aliasing the same
+// data?
+
 void Input::StrobeFami4() {
   F4ReadBit[0] = F4ReadBit[1] = 0;
 }
