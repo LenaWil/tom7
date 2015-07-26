@@ -125,8 +125,8 @@ private:
 };
 
 // Stateless stuff that should probably be in its own header..
-void FCEU_PrintError(char *format, ...);
-void FCEU_printf(char *format, ...);
+void FCEU_PrintError(const char *format, ...);
+void FCEU_printf(const char *format, ...);
 // Initialize memory to stripes of 0xFF and 0x00.
 void FCEU_InitMemory(uint8 *ptr, uint32 size);
 

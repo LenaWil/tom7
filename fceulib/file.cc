@@ -51,7 +51,9 @@ uint64 FCEU_ftell(FceuFile *fp) {
   return fp->stream->ftell();
 }
 
-FceuFile *FCEU_fopen(const std::string &path, char *mode, char *ext) {
+// XXX: Get rid of "ext" param.
+FceuFile *FCEU_fopen(const std::string &path,
+		     const char *mode, const char *ext) {
   // XXX simplify away; see below
   bool read = (string)mode == "rb";
   bool write = (string)mode == "wb";

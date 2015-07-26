@@ -24,12 +24,11 @@
 
 #include "arkanoid.h"
 
-typedef struct {
-  uint32 mzx, mzb;
-  uint32 readbit;
-} ARK;
+struct ARK {
+  uint32 mzx = 0, mzb = 0;
+  uint32 readbit = 0;
+};
 
-static ARK NESArk[2];
 static ARK FCArk;
 
 static void StrobeARKFC(void) {
@@ -75,34 +74,41 @@ INPUTCFC *FCEU_InitArkanoidFC(void) {
   return &ARKCFC;
 }
 
-static uint8 ReadARK(FC *fc, int w) {
-  uint8 ret = 0;
-
-  if (NESArk[w].readbit >= 8) {
-    ret |= 1 << 4;
-  } else {
-    ret |= ((NESArk[w].mzx >> (7 - NESArk[w].readbit)) & 1) << 4;
-
-    NESArk[w].readbit++;
+namespace {
+struct Arkanoid : public InputC {
+  Arkanoid(FC *fc, int w) : InputC(fc) {
+    NESArk[w].mzx = 98;
+    NESArk[w].mzb = 0;
   }
-  ret |= (NESArk[w].mzb & 1) << 3;
-  return ret;
+
+  uint8 Read(int w) override {
+    uint8 ret = 0;
+
+    if (NESArk[w].readbit >= 8) {
+      ret |= 1 << 4;
+    } else {
+      ret |= ((NESArk[w].mzx >> (7 - NESArk[w].readbit)) & 1) << 4;
+
+      NESArk[w].readbit++;
+    }
+    ret |= (NESArk[w].mzb & 1) << 3;
+    return ret;
+  }
+
+  void Strobe(int w) override {
+    NESArk[w].readbit = 0;
+  }
+
+  void Update(int w, void *data, int arg) override {
+    uint32 *ptr = (uint32 *)data;
+    NESArk[w].mzx = FixX(ptr[0]);
+    NESArk[w].mzb = ptr[2] ? 1 : 0;
+  }
+
+  ARK NESArk[2];
+};
 }
-
-static void StrobeARK(int w) {
-  NESArk[w].readbit = 0;
-}
-
-static void UpdateARK(int w, void *data, int arg) {
-  uint32 *ptr = (uint32 *)data;
-  NESArk[w].mzx = FixX(ptr[0]);
-  NESArk[w].mzb = ptr[2] ? 1 : 0;
-}
-
-static INPUTC ARKC = {ReadARK, nullptr, StrobeARK, UpdateARK, nullptr, nullptr};
-
-INPUTC *FCEU_InitArkanoid(int w) {
-  NESArk[w].mzx = 98;
-  NESArk[w].mzb = 0;
-  return &ARKC;
+  
+InputC *CreateArkanoid(FC *fc, int w) {
+  return new Arkanoid(fc, w);
 }

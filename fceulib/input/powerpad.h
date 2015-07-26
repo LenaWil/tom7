@@ -2,7 +2,8 @@
 #ifndef __POWERPAD_H
 #define __POWERPAD_H
 
-extern INPUTC *FCEU_InitPowerpadA(int w);
-extern INPUTC *FCEU_InitPowerpadB(int w);
+// Two sides to the power pad, A and B.
+extern InputC *CreatePowerpadA(FC *fc, int which);
+extern InputC *CreatePowerpadB(FC *fc, int which);
 
 #endif

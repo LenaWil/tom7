@@ -34,7 +34,9 @@ struct SFORMAT {
   uint32 s;
   
   // a string description of the element
-  char *desc;
+  // TODO(twm): This must always be at least 4 bytes (including the
+  // nul terminator). Is that satisfied?
+  const char *desc;
   // const char *src = nullptr;
 };
 
@@ -47,7 +49,8 @@ struct State {
 
   // I think these add additional locations to the set of saved memories.
   void ResetExState(void (*PreSave)(FC *),void (*PostSave)(FC *));
-  void AddExStateReal(void *v, uint32 s, int type, char *desc, const char *src);
+  void AddExStateReal(void *v, uint32 s, int type,
+		      const char *desc, const char *src);
   
   #define STRINGIFY_LINE_2(x) #x
   #define STRINGIFY_LINE(x) STRINGIFY_LINE_2(x)
@@ -65,6 +68,8 @@ struct State {
   void (*SPostSave)(FC *) = nullptr;
 
   static constexpr int SFMDATA_SIZE = 64;
+  // SFMDATA is dynamically allocated; its desc fields should be
+  // deleted with delete [].
   SFORMAT SFMDATA[SFMDATA_SIZE] = {};
   int SFEXINDEX = 0;
 

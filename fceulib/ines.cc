@@ -1455,7 +1455,8 @@ int INes::NewiNES_Init(int num) {
 
   while (tmp->init) {
     if (num == tmp->number) {
-      fc->unif->UNIFchrrama = 0; // need here for compatibility with UNIF mapper code
+      // need here for compatibility with UNIF mapper code
+      fc->unif->UNIFchrrama = 0;
       if (!VROM_size) {
 	if (num==13) {
 	  CHRRAMSize=16384;
