@@ -66,7 +66,7 @@ static void UNL3DBlockReset(FC *fc) {
   FCEU_printf("Count=%04x\n", Count);
 }
 
-static void UNL3DBlockIRQHook(int a) {
+static void UNL3DBlockIRQHook(FC *fc, int a) {
   if (IRQa) {
     if (IRQCount > 0) {
       IRQCount -= a;

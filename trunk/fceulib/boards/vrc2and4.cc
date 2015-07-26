@@ -211,7 +211,7 @@ static void M25Power(FC *fc) {
   fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, M22Write);
 }
 
-void VRC24IRQHook(int a) {
+void VRC24IRQHook(FC *fc, int a) {
   static constexpr int LCYCS = 341;
   if (IRQa) {
     acount += a * 3;

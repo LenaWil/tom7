@@ -63,7 +63,7 @@ static void UNLSMB2JReset(FC *fc) {
   Sync();
 }
 
-static void UNLSMB2JIRQHook(int a) {
+static void UNLSMB2JIRQHook(FC *fc, int a) {
   if (IRQa) {
     IRQCount += a * 3;
     if ((IRQCount >> 12) == IRQa) fceulib__.X->IRQBegin(FCEU_IQEXT);

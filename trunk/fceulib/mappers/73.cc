@@ -67,7 +67,7 @@ static DECLFW(Mapper73_write) {
   }
 }
 
-static void Mapper73IRQHook(int a) {
+static void Mapper73IRQHook(FC *fc, int a) {
   for (int i = 0; i < a; i++) {
     if (!fceulib__.ines->iNESIRQa) return;
     if (IRQm) {

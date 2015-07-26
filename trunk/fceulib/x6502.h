@@ -67,7 +67,7 @@ struct X6502 {
 
   uint32 timestamp = 0;
 
-  void (*MapIRQHook)(int) = nullptr;
+  void (*MapIRQHook)(FC *, int) = nullptr;
 
 private:
   // normal memory read

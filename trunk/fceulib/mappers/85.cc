@@ -123,7 +123,7 @@ DECLFW(Mapper85_write) {
   }
 }
 
-static void KonamiIRQHook(int a) {
+static void KonamiIRQHook(FC *fc, int a) {
 #define ACBOO 341
   //  #define ACBOO ((227*2)+1)
   if (fceulib__.ines->iNESIRQa) {

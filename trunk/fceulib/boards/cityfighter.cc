@@ -94,7 +94,7 @@ static DECLFW(UNLCITYFIGHTWrite) {
   Sync();
 }
 
-static void UNLCITYFIGHTIRQ(int a) {
+static void UNLCITYFIGHTIRQ(FC *fc, int a) {
   if (IRQa) {
     IRQCount -= a;
     if (IRQCount <= 0) {

@@ -30,7 +30,7 @@ unsigned int *GetKeyboard();
 static unsigned int *TransformerKeys, oldkeys[256];
 static int TransformerCycleCount, TransformerChar = 0;
 
-static void TransformerIRQHook(int a) {
+static void TransformerIRQHook(FC *fc, int a) {
   TransformerCycleCount += a;
   if (TransformerCycleCount >= 1000) {
     uint32 i;

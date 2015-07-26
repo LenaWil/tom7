@@ -274,7 +274,7 @@ static void M83Close(FC *fc) {
   WRAM = nullptr;
 }
 
-static void UNLYOKOIRQHook(int a) {
+static void UNLYOKOIRQHook(FC *fc, int a) {
   if (IRQa) {
     IRQCount -= a;
     if (IRQCount < 0) {

@@ -116,7 +116,7 @@ static void M253Close(FC *fc) {
   WRAM = CHRRAM = nullptr;
 }
 
-static void M253IRQ(int a) {
+static void M253IRQ(FC *fc, int a) {
   static constexpr int LCYCS = 341;
   if (IRQa) {
     IRQClock += a * 3;

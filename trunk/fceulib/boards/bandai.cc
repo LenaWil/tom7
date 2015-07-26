@@ -45,7 +45,7 @@ static SFORMAT StateRegs[] = {
      "IRQL"},  // need for Famicom Jump II - Saikyou no 7 Nin (J) [!]
     {0}};
 
-static void BandaiIRQHook(int a) {
+static void BandaiIRQHook(FC *fc, int a) {
   if (IRQa) {
     IRQCount -= a;
     if (IRQCount < 0) {
@@ -283,8 +283,8 @@ int FCEUI_DatachSet(const uint8 *rcode) {
   return (1);
 }
 
-static void BarcodeIRQHook(int a) {
-  BandaiIRQHook(a);
+static void BarcodeIRQHook(FC *fc, int a) {
+  BandaiIRQHook(fc, a);
 
   BarcodeCycleCount += a;
 

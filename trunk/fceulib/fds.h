@@ -31,10 +31,6 @@ struct FDS {
   DECLFR_RET FDSRAMRead_Direct(DECLFR_ARGS);
   DECLFR_RET FDSSRead_Direct(DECLFR_ARGS);
   DECLFR_RET FDSWaveRead_Direct(DECLFR_ARGS);
-  // These are also called from static fn pointers.
-  void FDSFix(int a);
-  void FDSStateRestore(int version);
-  void FDSGI(GI h);
 
  private:
   uint8 FDSRegs[6] = {0};
@@ -52,6 +48,10 @@ struct FDS {
   void RenderSound();
   void RenderSoundHQ();
 
+  void FDSFix(int a);
+  void FDSStateRestore(int version);
+  void FDSGI(GI h);
+  
   int32 FDSDoSound();
   void ClockRise();
   void ClockFall();

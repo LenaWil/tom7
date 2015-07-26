@@ -37,7 +37,7 @@ static DECLFW(Mapper42_write) {
   }
 }
 
-static void Mapper42IRQ(int a) {
+static void Mapper42IRQ(FC *fc, int a) {
   if (fceulib__.ines->iNESIRQa) {
     fceulib__.ines->iNESIRQCount += a;
     if (fceulib__.ines->iNESIRQCount >= 32768)

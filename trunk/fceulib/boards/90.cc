@@ -51,6 +51,8 @@ static uint8 chr[2];
 static uint16 names[4];
 static uint8 tekker;
 
+static uint32 lastread;
+
 static SFORMAT Tek_StateRegs[] = {{&IRQMode, 1, "IRQM"},
                                   {&IRQPre, 1, "IRQP"},
                                   {&IRQPreSize, 1, "IRQR"},
@@ -392,7 +394,7 @@ static void ClockCounter() {
   }
 }
 
-void CPUWrap(int a) {
+static void CPUWrap(FC *fc, int a) {
   int x;
   if ((IRQMode & 3) == 0)
     for (x = 0; x < a; x++) ClockCounter();
@@ -404,7 +406,6 @@ static void SLWrap() {
     for (x = 0; x < 8; x++) ClockCounter();
 }
 
-static uint32 lastread;
 static void M90PPU(uint32 A) {
   if ((IRQMode & 3) == 2) {
     if (lastread != A) {

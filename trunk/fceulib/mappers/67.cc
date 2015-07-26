@@ -56,7 +56,8 @@ static DECLFW(Mapper67_write) {
     case 0xf800: ROM_BANK16(fc, 0x8000, V); break;
     }
 }
-static void SunIRQHook(int a) {
+
+static void SunIRQHook(FC *fc, int a) {
   if (fceulib__.ines->iNESIRQa) {
     fceulib__.ines->iNESIRQCount -= a;
     if (fceulib__.ines->iNESIRQCount <= 0) {

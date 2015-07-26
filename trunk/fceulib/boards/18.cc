@@ -100,7 +100,7 @@ static void M18Power(FC *fc) {
   fceulib__.fceu->SetWriteHandler(0xE000, 0xFFFF, M18WriteIRQ);
 }
 
-static void M18IRQHook(int a) {
+static void M18IRQHook(FC *fc, int a) {
   if (IRQa && IRQCount) {
     IRQCount -= a;
     if (IRQCount <= 0) {

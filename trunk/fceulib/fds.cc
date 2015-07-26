@@ -82,10 +82,6 @@ void FDS::FDSStateRestore(int version) {
   }
 }
 
-static void FDSFix_Trampoline(int a) {
-  return fceulib__.fds->FDSFix(a);
-}
-
 void FDS::FDSInit() {
   memset(FDSRegs,0,sizeof(FDSRegs));
   writeskip=DiskPtr=DiskSeekIRQ=0;
@@ -95,7 +91,9 @@ void FDS::FDSInit() {
   fc->cart->setprg32r(1,0x6000,0);   // 32KB RAM
   fc->cart->setchr8(0);     // 8KB CHR RAM
 
-  fc->X->MapIRQHook = FDSFix_Trampoline;
+  fc->X->MapIRQHook = [](FC *fc, int a) {
+    return fc->fds->FDSFix(a);
+  };
   fc->fceu->GameStateRestore = [](FC *fc, int v) {
     return fc->fds->FDSStateRestore(v);
   };
