@@ -6,7 +6,4 @@
 
 extern InputC *CreateZapper(FC *fc, int w);
 
-extern INPUTC *FCEU_InitZapper(int w);
-
-
 #endif

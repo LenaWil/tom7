@@ -23,35 +23,39 @@
 
 #include "toprider.h"
 
-static uint32 bs, bss;
-static uint32 boop;
+namespace {
+struct TopRider : public InputCFC {
+  using InputCFC::InputCFC;
 
-static uint8 Read(FC *fc, int w, uint8 ret) {
-  if (w) {
-    ret |= (bs & 1) << 3;
-    ret |= (boop & 1) << 4;
-    bs >>= 1;
-    boop >>= 1;
-    //  puts("Read");
+  uint8 Read(int w, uint8 ret) override {
+    if (w) {
+      ret |= (bs & 1) << 3;
+      ret |= (boop & 1) << 4;
+      bs >>= 1;
+      boop >>= 1;
+      //  puts("Read");
+    }
+    return ret;
   }
-  return ret;
-}
 
-static void Write(uint8 V) {
-  // if(V&0x2)
-  bs = bss;
-  // printf("Write: %02x\n",V);
-  // boop=0xC0;
-}
+  void Write(uint8 V) override {
+    // if(V&0x2)
+    bs = bss;
+    // printf("Write: %02x\n",V);
+    // boop=0xC0;
+  }
 
-static void Update(void *data, int arg) {
-  bss = *(uint8 *)data;
-  bss |= bss << 8;
-  bss |= bss << 8;
-}
+  void Update(void *data, int arg) override {
+    bss = *(uint8 *)data;
+    bss |= bss << 8;
+    bss |= bss << 8;
+  }
 
-static INPUTCFC TopRider = {Read, Write, 0, Update, 0, 0};
+  uint32 bs = 0, bss = 0;
+  uint32 boop = 0;
+};
+}  // namespace
 
-INPUTCFC *FCEU_InitTopRider(void) {
-  return &TopRider;
+InputCFC *CreateTopRider(FC *fc) {
+  return new TopRider(fc);
 }

@@ -3,6 +3,6 @@
 
 #include "../input.h"
 
-extern INPUTCFC *FCEU_InitMahjong();
+extern InputCFC *CreateMahjong(FC *fc);
 
 #endif

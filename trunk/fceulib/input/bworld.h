@@ -3,6 +3,6 @@
 
 #include "../input.h"
 
-extern INPUTCFC *FCEU_InitBarcodeWorld();
+extern InputCFC *CreateBarcodeWorld(FC *fc);
 
 #endif

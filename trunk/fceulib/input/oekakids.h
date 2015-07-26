@@ -3,6 +3,6 @@
 
 #include "../input.h"
 
-extern INPUTCFC *FCEU_InitOekaKids();
+extern InputCFC *CreateOekaKids(FC *);
 
 #endif

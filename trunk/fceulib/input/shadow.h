@@ -3,6 +3,6 @@
 
 #include "../input.h"
 
-INPUTCFC *FCEU_InitSpaceShadow();
+extern InputCFC *CreateSpaceShadow(FC *fc);
 
 #endif

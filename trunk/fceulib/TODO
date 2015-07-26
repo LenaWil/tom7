@@ -42,8 +42,8 @@ Cleanup to do:
  - (void) args
  - Common pattern in boards/* is to declare WRAMSIZE as a static
    variable but always set it to a constant.
- - Get rid of -Wno-write-strings in build.
  - CHECKs in Zapper
+ - clang-format input/shadow.cc
 
 Surprisingly necessary:
  - crc32 since ines.cc has a table of games and their CRCs.
@@ -57,7 +57,7 @@ Possible performance improvements:
  - Can the ZNTable be replaced with a computation on the value itself?
    See my comment in x6502.cc.
 
- - ppulut2 is just a bit shift of ppulut1; bette for cache to just
+ - ppulut2 is just a bit shift of ppulut1; better for cache to just
    compute it?
  
  - Is it possible to remove the indirection when reading/writing memory,
