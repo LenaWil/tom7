@@ -89,7 +89,7 @@ static void M17Power(FC *fc) {
   fceulib__.fceu->SetWriteHandler(0x4510, 0x4517, M17WriteChr);
 }
 
-static void M17IRQHook(int a) {
+static void M17IRQHook(FC *fc, int a) {
   if (IRQa) {
     IRQCount += a;
     if (IRQCount >= 0x10000) {

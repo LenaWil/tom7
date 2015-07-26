@@ -81,7 +81,7 @@ static void M106Close(FC *fc) {
   WRAM = nullptr;
 }
 
-void M106CpuHook(int a) {
+static void M106CpuHook(FC *fc, int a) {
   if (IRQa) {
     IRQCount += a;
     if (IRQCount > 0x10000) {

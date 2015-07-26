@@ -20,7 +20,7 @@
 
 #include "mapinc.h"
 
-void IREMIRQHook(int a) {
+static void IREMIRQHook(FC *fc, int a) {
   if (fceulib__.ines->iNESIRQa) {
     fceulib__.ines->iNESIRQCount -= a;
     if (fceulib__.ines->iNESIRQCount < -4) {

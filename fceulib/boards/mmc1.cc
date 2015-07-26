@@ -208,7 +208,7 @@ static uint32 NWCIRQCount;
 static uint8 NWCRec;
 #define NWCDIP 0xE
 
-static void NWCIRQHook(int a) {
+static void NWCIRQHook(FC *fc, int a) {
   if (!(NWCRec & 0x10)) {
     NWCIRQCount += a;
     if ((NWCIRQCount | (NWCDIP << 25)) >= 0x3e000000) {

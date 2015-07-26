@@ -249,8 +249,7 @@ static DECLFR(UNLOneBusReadAPU40XX) {
   return result;
 }
 
-// XXX needs fc arg
-static void UNLOneBusCpuHook(int a) {
+static void UNLOneBusCpuHook(FC *fc, int a) {
   if (pcm_enable) {
     pcm_latch -= a;
     if (pcm_latch <= 0) {

@@ -687,7 +687,7 @@ void PPU::RefreshLine(int lastpixel) {
 
     if ((lastpixel-16)>=0) {
       fc->input->InputScanlineHook(Plinef,any_sprites_on_line?sprlinebuf:0,
-				       linestartts,lasttile*8-16);
+				   linestartts,lasttile*8-16);
     }
     return;
   }
@@ -958,8 +958,6 @@ void PPU::FCEUI_DisableSpriteLimitation(int a) {
 // http://wiki.nesdev.com/w/index.php/PPU_OAM
 // where the PPU is looking for sprites for the NEXT scanline.
 void PPU::FetchSpriteData() {
-  int n; // XXX in for loops.
-  int vofs;
   uint8 P0 = PPU_values[0];
 
   SPR *spr=(SPR *)SPRAM;
@@ -967,12 +965,12 @@ void PPU::FetchSpriteData() {
 
   uint8 ns = 0, sb = 0;
 
-  vofs=(unsigned int)(P0&0x8&(((P0&0x20)^0x20)>>2))<<9;
+  int vofs=(unsigned int)(P0&0x8&(((P0&0x20)^0x20)>>2))<<9;
   H+=(P0&0x20)>>2;
 
   DEBUGF(stderr, "FetchSprites @%d\n", scanline);
   if (!PPU_hook) {
-    for (n = 63; n >= 0; n--, spr++) {
+    for (int n = 63; n >= 0; n--, spr++) {
       if ((unsigned int)(scanline - spr->y) >= H) continue;
       //printf("%d, %u\n",scanline,(unsigned int)(scanline-spr->y));
       if (ns < maxsprites) {
@@ -1023,7 +1021,7 @@ void PPU::FetchSpriteData() {
       }
     }
   } else {
-    for (n=63;n>=0;n--,spr++) {
+    for (int n=63;n>=0;n--,spr++) {
       if ((unsigned int)(scanline-spr->y)>=H) continue;
 
       if (ns<maxsprites) {
@@ -1083,7 +1081,7 @@ void PPU::FetchSpriteData() {
     TRACELOC();
     PPU_status|=0x20;
   } else if (PPU_hook) {
-    for (n=0;n<(8-ns);n++) {
+    for (int n=0;n<(8-ns);n++) {
       PPU_hook(0x2000);
       PPU_hook(vofs);
     }
@@ -1093,15 +1091,13 @@ void PPU::FetchSpriteData() {
 }
 
 void PPU::RefreshSprites() {
-  SPRB *spr;
-
   any_sprites_on_line=0;
   if (!numsprites) return;
 
   // Initialize the line buffer to 0x80, meaning "no pixel here."
   FCEU_dwmemset(sprlinebuf,0x80808080,256);
   numsprites--;
-  spr = (SPRB*)SPRBUF + numsprites;
+  SPRB *spr = (SPRB*)SPRBUF + numsprites;
 
   DEBUGF(stderr, "RefreshSprites @%d with numsprites = %d\n",
          scanline, numsprites);

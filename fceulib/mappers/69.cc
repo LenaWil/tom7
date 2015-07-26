@@ -201,7 +201,7 @@ static void AYHiSync(FC *fc, int32 ts) {
   }
 }
 
-static void SunIRQHook(int a) {
+static void SunIRQHook(FC *fc, int a) {
   if (fceulib__.ines->iNESIRQa) {
     fceulib__.ines->iNESIRQCount -= a;
     if (fceulib__.ines->iNESIRQCount <= 0) {

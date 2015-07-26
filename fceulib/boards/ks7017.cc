@@ -66,7 +66,7 @@ static DECLFR(FDSRead4030) {
   return fceulib__.X->IRQlow & FCEU_IQEXT ? 1 : 0;
 }
 
-static void UNL7017IRQ(int a) {
+static void UNL7017IRQ(FC *fc, int a) {
   if (IRQa) {
     IRQCount -= a;
     if (IRQCount <= 0) {

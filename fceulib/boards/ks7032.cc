@@ -76,7 +76,7 @@ static DECLFW(UNLKS7032Write) {
   }
 }
 
-static void UNLSMB2JIRQHook(int a) {
+static void UNLSMB2JIRQHook(FC *fc, int a) {
   if (IRQa) {
     IRQCount += a;
     if (IRQCount >= 0xFFFF) {

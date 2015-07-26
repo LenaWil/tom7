@@ -34,7 +34,7 @@ static int swaparoo;
 
 static int acount = 0;
 
-static void KonamiIRQHook(int a) {
+static void KonamiIRQHook(FC *fc, int a) {
   static constexpr int LCYCS = 341;
   //  #define LCYCS ((227*2)+1)
   if (fceulib__.ines->iNESIRQa) {

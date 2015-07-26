@@ -41,7 +41,7 @@ static uint8 FFEmode;
     fceulib__.ppu->PPUCHRRAM = 0xFF;                                  \
   }
 
-static void FFEIRQHook(int a) {
+static void FFEIRQHook(FC *fc, int a) {
   if (fceulib__.ines->iNESIRQa) {
     fceulib__.ines->iNESIRQCount += a;
     if (fceulib__.ines->iNESIRQCount >= 0x10000) {

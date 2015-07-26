@@ -120,7 +120,7 @@ static void UNLVRC7Power(FC *fc) {
   fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, UNLVRC7Write);
 }
 
-static void UNLVRC7IRQHook(int a) {
+static void UNLVRC7IRQHook(FC *fc, int a) {
   if (IRQa) {
     CycleCount += a * 3;
     while (CycleCount >= 341) {

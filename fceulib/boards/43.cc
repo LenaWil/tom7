@@ -65,7 +65,7 @@ static void M43Power(FC *fc) {
 
 static void M43Reset(FC *fc) {}
 
-static void M43IRQHook(int a) {
+static void M43IRQHook(FC *fc, int a) {
   IRQCount += a;
   if (IRQa)
     if (IRQCount >= 4096) {

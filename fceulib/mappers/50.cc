@@ -20,7 +20,7 @@
 
 #include "mapinc.h"
 
-static void Mapper50IRQ(int a) {
+static void Mapper50IRQ(FC *fc, int a) {
   if (fceulib__.ines->iNESIRQa) {
     if (fceulib__.ines->iNESIRQCount < 4096) {
       fceulib__.ines->iNESIRQCount += a;

@@ -60,7 +60,7 @@ static DECLFW(LH53IRQaWrite) {
   if (!IRQa) fceulib__.X->IRQEnd(FCEU_IQEXT);
 }
 
-static void LH53IRQ(int a) {
+static void LH53IRQ(FC *fc, int a) {
   if (IRQa) {
     IRQCount += a;
     if (IRQCount > 7560) fceulib__.X->IRQBegin(FCEU_IQEXT);

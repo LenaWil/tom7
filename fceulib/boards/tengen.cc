@@ -35,7 +35,7 @@ static SFORMAT Rambo_StateRegs[] = {
 static void (*setchr1wrap)(unsigned int A, unsigned int V);
 // static int nomirror;
 
-static void RAMBO1_IRQHook(int a) {
+static void RAMBO1_IRQHook(FC *fc, int a) {
   if (!IRQmode) return;
 
   TRACEF("RAMBO1: %d %d %02x %02x", a, smallcount, IRQCount, IRQa);

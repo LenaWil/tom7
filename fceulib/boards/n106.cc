@@ -65,7 +65,7 @@ static void SyncPRG() {
   fceulib__.cart->setprg8(0xe000, 0x3F);
 }
 
-static void NamcoIRQHook(int a) {
+static void NamcoIRQHook(FC *fc, int a) {
   if (IRQa) {
     IRQCount += a;
     if (IRQCount >= 0x7FFF) {

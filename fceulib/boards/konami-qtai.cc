@@ -128,7 +128,7 @@ static DECLFR(M190Read) {
   // %d\n",A,regs[(A&0x0F00)>>8],scanline,timestamp);
   return regs[(A & 0x0F00) >> 8] + regs[0x0B];
 }
-static void VRC5IRQ(int a) {
+static void VRC5IRQ(FC *fc, int a) {
   if (IRQa) {
     IRQCount += a;
     if (IRQCount & 0x10000) {

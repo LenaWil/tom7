@@ -97,7 +97,7 @@ static void M252Power(FC *fc) {
   fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, M252Write);
 }
 
-static void M252IRQ(int a) {
+static void M252IRQ(FC *fc, int a) {
   static constexpr int LCYCS = 341;
   if (IRQa) {
     IRQClock += a * 3;
