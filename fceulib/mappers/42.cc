@@ -53,7 +53,7 @@ static void Mapper42_StateRestore(int version) {
   ROM_BANK8(&fceulib__, 0x6000, mapbyte1[0] & 0xF);
 }
 
-void Mapper42_init(void) {
+void Mapper42_init() {
   ROM_BANK8(&fceulib__, 0x6000, 0);
   ROM_BANK32(&fceulib__, ~0);
   fceulib__.fceu->SetWriteHandler(0x6000, 0xffff, Mapper42_write);

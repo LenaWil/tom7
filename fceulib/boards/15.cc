@@ -23,7 +23,7 @@
 
 static uint16 latchea;
 static uint8 latched;
-static uint8 *WRAM = NULL;
+static uint8 *WRAM = nullptr;
 static uint32 WRAMSIZE;
 static SFORMAT StateRegs[] = {
     {&latchea, 2, "AREG"}, {&latched, 1, "DREG"}, {0}};

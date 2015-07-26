@@ -231,14 +231,14 @@ void Mapper69_ESI(FC *fc) {
   memset(CAYBC, 0, sizeof(CAYBC));
 }
 
-void NSFAY_Init(void) {
+void NSFAY_Init() {
   sunindex = 0;
   fceulib__.fceu->SetWriteHandler(0xc000, 0xdfff, Mapper69_SWL);
   fceulib__.fceu->SetWriteHandler(0xe000, 0xffff, Mapper69_SWH);
   Mapper69_ESI(&fceulib__);
 }
 
-void Mapper69_init(void) {
+void Mapper69_init() {
   sunindex = 0;
 
   fceulib__.cart->SetupCartPRGMapping(0x10, WRAM, 8192, 1);

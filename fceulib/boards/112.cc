@@ -23,7 +23,7 @@
 
 static uint8 reg[8];
 static uint8 mirror, cmd, bank;
-static uint8 *WRAM = NULL;
+static uint8 *WRAM = nullptr;
 
 static SFORMAT StateRegs[] = {{&cmd, 1, "CMD"},
                               {&mirror, 1, "MIRR"},

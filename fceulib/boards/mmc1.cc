@@ -33,8 +33,8 @@ static int mmc1opts;
 static void (*MMC1CHRHook4)(uint32 A, uint8 V);
 static void (*MMC1PRGHook16)(uint32 A, uint8 V);
 
-static uint8 *WRAM = NULL;
-static uint8 *CHRRAM = NULL;
+static uint8 *WRAM = nullptr;
+static uint8 *CHRRAM = nullptr;
 static int is155, is171;
 
 static DECLFW(MBWRAM) {

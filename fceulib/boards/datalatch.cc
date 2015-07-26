@@ -23,7 +23,7 @@
 
 static uint8 latch, latchinit, bus_conflict;
 static uint16 addrreg0, addrreg1;
-static uint8 *WRAM = NULL;
+static uint8 *WRAM = nullptr;
 static uint32 WRAMSIZE;
 static void (*WSync)();
 

@@ -94,7 +94,7 @@ static void Mapper73IRQHook(FC *fc, int a) {
   }
 }
 
-void Mapper73_init(void) {
+void Mapper73_init() {
   fceulib__.fceu->SetWriteHandler(0x8000, 0xffff, Mapper73_write);
   fceulib__.X->MapIRQHook = Mapper73IRQHook;
   IRQr = IRQm = IRQx = 0;

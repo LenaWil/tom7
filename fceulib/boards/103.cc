@@ -21,7 +21,7 @@
 #include "mapinc.h"
 
 static uint8 reg0, reg1, reg2;
-static uint8 *WRAM = NULL;
+static uint8 *WRAM = nullptr;
 static uint32 WRAMSIZE;
 
 static SFORMAT StateRegs[] = {
@@ -86,7 +86,7 @@ static void M103Power(FC *fc) {
 
 static void M103Close(FC *fc) {
   if (WRAM) free(WRAM);
-  WRAM = NULL;
+  WRAM = nullptr;
 }
 
 static void StateRestore(FC *fc, int version) {

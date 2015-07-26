@@ -84,9 +84,9 @@ void SimpleFM2::WriteInputsWithSubtitles(const string &outputfile,
 	  romchecksum.c_str(),
 	  fakeguid.c_str());
 
-  const string *last = NULL;
+  const string *last = nullptr;
   for (int i = 0; i < subtitles.size(); i++) {
-    if (last == NULL || *last != subtitles[i]) {
+    if (last == nullptr || *last != subtitles[i]) {
       fprintf(f, "subtitle %d %s\n", i, subtitles[i].c_str());
     }
     last = &subtitles[i];

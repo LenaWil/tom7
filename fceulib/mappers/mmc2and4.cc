@@ -89,7 +89,7 @@ DECLFW(Mapper9and10_write) {
   }
 }
 
-void Mapper9_init(void) {
+void Mapper9_init() {
   latcha1 = 0xFE;
   latcha2 = 0xFE;
   ROM_BANK8(&fceulib__, 0xA000, ~2);
@@ -99,7 +99,7 @@ void Mapper9_init(void) {
   fceulib__.ppu->PPU_hook = latchcheck;
 }
 
-void Mapper10_init(void) {
+void Mapper10_init() {
   latcha1 = latcha2 = 0xFE;
   fceulib__.fceu->SetWriteHandler(0xA000, 0xAFFF, Mapper10_write);
   fceulib__.fceu->SetWriteHandler(0xB000, 0xFFFF, Mapper9and10_write);

@@ -25,7 +25,7 @@
 
 static uint8 reg, IRQa;
 static int32 IRQCount;
-static uint8 *WRAM = NULL;
+static uint8 *WRAM = nullptr;
 static uint32 WRAMSIZE;
 
 static SFORMAT StateRegs[] = {

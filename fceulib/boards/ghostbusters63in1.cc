@@ -23,7 +23,7 @@
 
 static uint8 reg[2], bank;
 static constexpr uint8 banks[4] = {0, 0, 1, 2};
-static uint8 *CHRROM = NULL;
+static uint8 *CHRROM = nullptr;
 static uint32 CHRROMSIZE;
 
 static SFORMAT StateRegs[] = {{reg, 2, "REGS"}, {&bank, 1, "BANK"}, {0}};

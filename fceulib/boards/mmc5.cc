@@ -122,9 +122,9 @@ static uint8 MMC5LineCounter;
 static uint8 mmc5psize, mmc5vsize;
 static uint8 mul[2];
 
-static uint8 *WRAM = NULL;
-static uint8 *MMC5fill = NULL;
-static uint8 *ExRAM = NULL;
+static uint8 *WRAM = nullptr;
+static uint8 *MMC5fill = nullptr;
+static uint8 *ExRAM = nullptr;
 
 static uint8 MMC5WRAMsize;
 static uint8 MMC5WRAMIndex[8];

@@ -97,7 +97,7 @@ void Mapper6_StateRestore(int version) {
     }
 }
 
-void Mapper6_init(void) {
+void Mapper6_init() {
   fceulib__.X->MapIRQHook = FFEIRQHook;
   ROM_BANK16(&fceulib__, 0xc000, 7);
 

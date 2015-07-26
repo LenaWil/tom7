@@ -49,6 +49,6 @@ DECLFW(Mapper75_write) {
   }
 }
 
-void Mapper75_init(void) {
+void Mapper75_init() {
   fceulib__.fceu->SetWriteHandler(0x8000, 0xffff, Mapper75_write);
 }

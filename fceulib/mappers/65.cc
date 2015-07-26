@@ -72,7 +72,7 @@ static DECLFW(Mapper65_write) {
   // fceulib__.ines->MIRROR_SET2(1);
 }
 
-void Mapper65_init(void) {
+void Mapper65_init() {
   fceulib__.X->MapIRQHook = IREMIRQHook;
   fceulib__.fceu->SetWriteHandler(0x8000, 0xffff, Mapper65_write);
 }

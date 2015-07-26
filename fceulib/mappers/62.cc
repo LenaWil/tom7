@@ -30,7 +30,7 @@ static DECLFW(Mapper62_write) {
   fceulib__.ines->MIRROR_SET((A & 0x80) >> 7);
 }
 
-void Mapper62_init(void) {
+void Mapper62_init() {
   fceulib__.fceu->SetWriteHandler(0x8000, 0xffff, Mapper62_write);
   ROM_BANK32(&fceulib__, 0);
 }

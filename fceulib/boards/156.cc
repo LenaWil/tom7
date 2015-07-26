@@ -21,7 +21,7 @@
 #include "mapinc.h"
 
 static uint8 chrlo[8], chrhi[8], prg, mirr, mirrisused = 0;
-static uint8 *WRAM = NULL;
+static uint8 *WRAM = nullptr;
 static uint32 WRAMSIZE;
 
 static SFORMAT StateRegs[] = {{&prg, 1, "PREG"},

@@ -21,7 +21,7 @@
 #include "mapinc.h"
 
 static uint8 regs[9], ctrl;
-static uint8 *WRAM82 = NULL;
+static uint8 *WRAM82 = nullptr;
 static uint32 WRAM82SIZE;
 
 static SFORMAT StateRegs[] = {{regs, 9, "REGS"}, {&ctrl, 1, "CTRL"}, {0}};
@@ -65,7 +65,7 @@ static void M82Power(FC *fc) {
 
 static void M82Close(FC *fc) {
   free(WRAM82);
-  WRAM82 = NULL;
+  WRAM82 = nullptr;
 }
 
 static void StateRestore(FC *fc, int version) {

@@ -21,7 +21,7 @@
 #include "mapinc.h"
 
 static uint8 reg;
-static uint8 *CHRRAM = NULL;
+static uint8 *CHRRAM = nullptr;
 static uint32 CHRRAMSIZE;
 
 static SFORMAT StateRegs[] = {{&reg, 1, "REGS"}, {0}};

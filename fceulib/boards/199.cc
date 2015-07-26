@@ -26,7 +26,7 @@
 #include "mapinc.h"
 #include "mmc3.h"
 
-static uint8 *CHRRAM = NULL;
+static uint8 *CHRRAM = nullptr;
 static uint32 CHRRAMSIZE;
 
 static void M199PW(uint32 A, uint8 V) {

@@ -221,7 +221,7 @@ inline static int32 Min(int32 i, int32 j) {
 }
 
 /* Table for AR to LogCurve. */
-static void makeAdjustTable(void) {
+static void makeAdjustTable() {
   int32 i;
 
   AR_ADJUST_TABLE[0] = (1 << EG_BITS);
@@ -231,7 +231,7 @@ static void makeAdjustTable(void) {
 }
 
 /* Table for dB(0 -- (1<<DB_BITS)-1) to Liner(0 -- DB2LIN_AMP_WIDTH) */
-static void makeDB2LinTable(void) {
+static void makeDB2LinTable() {
   int32 i;
 
   for (i = 0; i < DB_MUTE + DB_MUTE; i++) {
@@ -251,7 +251,7 @@ static int32 lin2db(double d) {
 }
 
 /* Sin Table */
-static void makeSinTable(void) {
+static void makeSinTable() {
   int32 i;
 
   for (i = 0; i < PG_WIDTH / 4; i++) {
@@ -272,7 +272,7 @@ static void makeSinTable(void) {
 }
 
 /* Table for Pitch Modulator */
-static void makePmTable(void) {
+static void makePmTable() {
   int32 i;
 
   for (i = 0; i < PM_PG_WIDTH; i++)
@@ -282,7 +282,7 @@ static void makePmTable(void) {
 }
 
 /* Table for Amp Modulator */
-static void makeAmTable(void) {
+static void makeAmTable() {
   int32 i;
 
   for (i = 0; i < AM_PG_WIDTH; i++)
@@ -291,7 +291,7 @@ static void makeAmTable(void) {
 }
 
 /* Phase increment counter table */
-static void makeDphaseTable(void) {
+static void makeDphaseTable() {
   uint32 fnum, block, ML;
   uint32 mltable[16] = {1,      1 * 2,  2 * 2,  3 * 2, 4 * 2,  5 * 2,
                         6 * 2,  7 * 2,  8 * 2,  9 * 2, 10 * 2, 10 * 2,
@@ -307,7 +307,7 @@ static void makeDphaseTable(void) {
 static constexpr double dB2(double x) {
   return x * 2.0;
 }
-static void makeTllTable(void) {
+static void makeTllTable() {
   // #define dB2(x) ((x) * 2)
 
   static constexpr double kltable[16] = {
@@ -334,7 +334,7 @@ static void makeTllTable(void) {
 }
 
 /* Rate Table for Attack */
-static void makeDphaseARTable(void) {
+static void makeDphaseARTable() {
   for (int32 AR = 0; AR < 16; AR++)
     for (int32 Rks = 0; Rks < 16; Rks++) {
       int32 RM = AR + (Rks >> 2);
@@ -351,7 +351,7 @@ static void makeDphaseARTable(void) {
 }
 
 /* Rate Table for Decay and Release */
-static void makeDphaseDRTable(void) {
+static void makeDphaseDRTable() {
   for (int32 DR = 0; DR < 16; DR++)
     for (int32 Rks = 0; Rks < 16; Rks++) {
       int32 RM = DR + (Rks >> 2);
@@ -366,7 +366,7 @@ static void makeDphaseDRTable(void) {
     }
 }
 
-static void makeRksTable(void) {
+static void makeRksTable() {
   int32 fnum8, block, KR;
 
   for (fnum8 = 0; fnum8 < 2; fnum8++)
@@ -521,7 +521,7 @@ static void OPLL_SLOT_reset(OPLL_SLOT *slot, int type) {
   slot->egout = 0;
 }
 
-static void internal_refresh(void) {
+static void internal_refresh() {
   makeDphaseTable();
   makeDphaseARTable();
   makeDphaseDRTable();
@@ -554,7 +554,7 @@ OPLL *OPLL_new(uint32 clk, uint32 rate) {
   maketables(clk, rate);
 
   opll = (OPLL *)calloc(sizeof(OPLL), 1);
-  if (opll == NULL) return NULL;
+  if (opll == nullptr) return nullptr;
 
   opll->mask = 0;
 
@@ -599,7 +599,7 @@ void OPLL_reset(OPLL *opll) {
 void OPLL_forceRefresh(OPLL *opll) {
   int32 i;
 
-  if (opll == NULL) return;
+  if (opll == nullptr) return;
 
   for (i = 0; i < 12; i++) {
     UPDATE_PG(&opll->slot[i]);

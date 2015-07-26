@@ -103,7 +103,7 @@ static void Restore(int version) {
   mira();
 }
 
-void Mapper80_init(void) {
+void Mapper80_init() {
   // 7f00-7fff battery backed ram inside mapper chip,
   // controlled by 7ef8 register, A8 - enable, FF - disable (?)
   fceulib__.fceu->SetWriteHandler(0x4020, 0x7eff, Mapper80_write);
@@ -111,7 +111,7 @@ void Mapper80_init(void) {
   isfu = 0;
 }
 
-void Mapper207_init(void) {
+void Mapper207_init() {
   Mapper80_init();
   isfu = 1;
   fceulib__.ppu->PPU_hook = Fudou_PPU;

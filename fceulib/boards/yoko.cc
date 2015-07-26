@@ -22,7 +22,7 @@
 
 static uint8 mode, bank, reg[11], low[4], dip, IRQa;
 static int32 IRQCount;
-static uint8 *WRAM = NULL;
+static uint8 *WRAM = nullptr;
 static uint32 WRAMSIZE;
 
 static uint8 is2kbank, isnot2kbank;
