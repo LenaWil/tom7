@@ -4,6 +4,6 @@
 
 #include "../input.h"
 
-extern INPUTCFC *FCEU_InitHS();
+extern InputCFC *CreateHS(FC *fc);
 
 #endif

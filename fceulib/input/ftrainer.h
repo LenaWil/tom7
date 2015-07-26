@@ -3,7 +3,7 @@
 
 #include "../input.h"
 
-extern INPUTCFC *FCEU_InitFamilyTrainerA();
-extern INPUTCFC *FCEU_InitFamilyTrainerB();
+extern InputCFC *CreateFamilyTrainerA(FC *fc);
+extern InputCFC *CreateFamilyTrainerB(FC *fc);
 
 #endif

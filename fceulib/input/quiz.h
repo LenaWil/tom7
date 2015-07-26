@@ -3,6 +3,6 @@
 
 #include "../input.h"
 
-extern INPUTCFC *FCEU_InitQuizKing();
+extern InputCFC *CreateQuizKing(FC *fc);
 
 #endif

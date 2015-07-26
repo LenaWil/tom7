@@ -3,6 +3,6 @@
 
 #include "../input.h"
 
-extern INPUTCFC *FCEU_InitFKB();
+extern InputCFC *CreateFKB(FC *fc);
 
 #endif

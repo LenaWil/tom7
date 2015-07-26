@@ -24,33 +24,11 @@
 
 #include "arkanoid.h"
 
+namespace {
 struct ARK {
   uint32 mzx = 0, mzb = 0;
   uint32 readbit = 0;
 };
-
-static ARK FCArk;
-
-static void StrobeARKFC(void) {
-  FCArk.readbit = 0;
-}
-
-static uint8 ReadARKFC(FC *fc, int w, uint8 ret) {
-  ret &= ~2;
-
-  if (w) {
-    if (FCArk.readbit >= 8) {
-      ret |= 2;
-    } else {
-      ret |= ((FCArk.mzx >> (7 - FCArk.readbit)) & 1) << 1;
-
-      FCArk.readbit++;
-    }
-  } else {
-    ret |= FCArk.mzb << 1;
-  }
-  return ret;
-}
 
 static uint32 FixX(uint32 x) {
   x = 98 + x * 144 / 240;
@@ -59,22 +37,6 @@ static uint32 FixX(uint32 x) {
   return x;
 }
 
-static void UpdateARKFC(void *data, int arg) {
-  uint32 *ptr = (uint32 *)data;
-  FCArk.mzx = FixX(ptr[0]);
-  FCArk.mzb = ptr[2] ? 1 : 0;
-}
-
-static INPUTCFC ARKCFC = {ReadARKFC, nullptr, StrobeARKFC, UpdateARKFC,
-			  nullptr, nullptr};
-
-INPUTCFC *FCEU_InitArkanoidFC(void) {
-  FCArk.mzx = 98;
-  FCArk.mzb = 0;
-  return &ARKCFC;
-}
-
-namespace {
 struct Arkanoid : public InputC {
   Arkanoid(FC *fc, int w) : InputC(fc) {
     NESArk[w].mzx = 98;
@@ -107,8 +69,48 @@ struct Arkanoid : public InputC {
 
   ARK NESArk[2];
 };
+
+struct ArkanoidFC : public InputCFC {
+  ArkanoidFC(FC *fc) : InputCFC(fc) {
+    FCArk.mzx = 98;
+    FCArk.mzb = 0;
+  }
+
+  void Update(void *data, int arg) override {
+    uint32 *ptr = (uint32 *)data;
+    FCArk.mzx = FixX(ptr[0]);
+    FCArk.mzb = ptr[2] ? 1 : 0;
+  }
+
+  void Strobe() override {
+    FCArk.readbit = 0;
+  }
+
+  uint8 Read(int w, uint8 ret) override {
+    ret &= ~2;
+    
+    if (w) {
+      if (FCArk.readbit >= 8) {
+	ret |= 2;
+      } else {
+	ret |= ((FCArk.mzx >> (7 - FCArk.readbit)) & 1) << 1;
+	
+	FCArk.readbit++;
+      }
+    } else {
+      ret |= FCArk.mzb << 1;
+    }
+    return ret;
+  }
+
+  ARK FCArk;
+};
 }
   
 InputC *CreateArkanoid(FC *fc, int w) {
   return new Arkanoid(fc, w);
+}
+
+InputCFC *CreateArkanoidFC(FC *fc) {
+  return new ArkanoidFC(fc);
 }

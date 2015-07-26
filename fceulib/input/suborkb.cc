@@ -101,11 +101,7 @@
 #define AK2(x, y) ((FKB_##x) | (FKB_##y << 8))
 #define AK(x) FKB_##x
 
-static uint8 bufit[0x61];
-static uint8 ksmode;
-static uint8 ksindex;
-
-static uint16 matrix[13][2][4] = {
+static constexpr uint16 const matrix[13][2][4] = {
     {{AK(4), AK(G), AK(F), AK(C)}, {AK(F2), AK(E), AK(5), AK(V)}},
     {{AK(2), AK(D), AK(S), AK(END)}, {AK(F1), AK(W), AK(3), AK(X)}},
     {{AK(INSERT), AK(BACK), AK(NEXT), AK(RIGHT)},
@@ -128,50 +124,56 @@ static uint16 matrix[13][2][4] = {
      {AK(F9), AK(NUMPAD3), AK(DECIMAL), AK(NUMPAD0)}},
 };
 
-static void SuborKB_Write(uint8 v) {
-  v >>= 1;
-  if (v & 2) {
-    if ((ksmode & 1) && !(v & 1)) ksindex = (ksindex + 1) % 13;
+namespace {
+struct SuborKB : public InputCFC {
+  SuborKB(FC *fc) : InputCFC(fc) {}
+
+  void Write(uint8 v) override {
+    v >>= 1;
+    if (v & 2) {
+      if ((ksmode & 1) && !(v & 1)) ksindex = (ksindex + 1) % 13;
+    }
+    ksmode = v;
   }
-  ksmode = v;
-}
 
-static uint8 SuborKB_Read(FC *fc, int w, uint8 ret) {
-  if (w) {
-    int x;
+  uint8 Read(int w, uint8 ret) override {
+    if (w) {
+      int x;
 
-    ret &= ~0x1E;
-    //  if(ksindex==9)
-    //  {
-    //     if(ksmode&1)
-    //        ret|=2;
-    //  }
-    //  else
-    //  {
-    for (x = 0; x < 4; x++)
-      if (bufit[matrix[ksindex][ksmode & 1][x] & 0xFF] ||
-          bufit[matrix[ksindex][ksmode & 1][x] >> 8])
-        ret |= 1 << (x + 1);
-    //  }
-    ret ^= 0x1E;
+      ret &= ~0x1E;
+      //  if(ksindex==9)
+      //  {
+      //     if(ksmode&1)
+      //        ret|=2;
+      //  }
+      //  else
+      //  {
+      for (x = 0; x < 4; x++)
+	if (bufit[matrix[ksindex][ksmode & 1][x] & 0xFF] ||
+	    bufit[matrix[ksindex][ksmode & 1][x] >> 8])
+	  ret |= 1 << (x + 1);
+      //  }
+      ret ^= 0x1E;
+    }
+    return ret;
   }
-  return (ret);
-}
 
-static void SuborKB_Strobe(void) {
-  ksmode = 0;
-  ksindex = 0;
-}
+  void Strobe() override {
+    ksmode = 0;
+    ksindex = 0;
+  }
 
-static void SuborKB_Update(void *data, int arg) {
-  memcpy(bufit + 1, data, 0x60);
-}
+  void Update(void *data, int arg) override {
+    memcpy(bufit + 1, data, 0x60);
+  }
 
-static INPUTCFC SuborKB = {
-    SuborKB_Read, SuborKB_Write, SuborKB_Strobe, SuborKB_Update, 0, 0};
+  uint8 bufit[0x61] = {};
+  uint8 ksmode = 0;
+  uint8 ksindex = 0;
+};
+}  // namespace
 
-INPUTCFC *FCEU_InitSuborKB() {
-  memset(bufit, 0, sizeof(bufit));
-  ksmode = ksindex = 0;
-  return &SuborKB;
+
+InputCFC *CreateSuborKB(FC *fc) {
+  return new SuborKB(fc);
 }

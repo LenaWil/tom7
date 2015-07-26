@@ -21,25 +21,27 @@
 #include <string.h>
 #include "share.h"
 
-static uint8 HSVal, HSValR;
+namespace {
+struct HyperShot : public InputCFC {
+  using InputCFC::InputCFC;
+  
+  uint8 Read(int w, uint8 ret) override {
+    if (w) ret |= HSValR;
+    return ret;
+  }
 
-static uint8 HS_Read(FC *fc, int w, uint8 ret) {
-  if (w) ret |= HSValR;
+  void Strobe(void) override {
+    HSValR = HSVal << 1;
+  }
 
-  return ret;
-}
+  void Update(void *data, int arg) override {
+    HSVal = *(uint8 *)data;
+  }
 
-static void HS_Strobe(void) {
-  HSValR = HSVal << 1;
-}
+  uint8 HSVal = 0, HSValR = 0;
+};
+}  // namespace
 
-static void HS_Update(void *data, int arg) {
-  HSVal = *(uint8 *)data;
-}
-
-static INPUTCFC HyperShot = {HS_Read, 0, HS_Strobe, HS_Update, 0, 0};
-
-INPUTCFC *FCEU_InitHS(void) {
-  HSVal = HSValR = 0;
-  return &HyperShot;
+extern InputCFC *CreateHS(FC *fc) {
+  return new HyperShot(fc);
 }

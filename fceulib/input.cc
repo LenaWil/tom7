@@ -34,11 +34,8 @@
 #include "fds.h"
 #include "driver.h"
 
-// TODO:
-//  There are a bunch of different input types, basically objects implementing
-//  the INPUTFC or INPUTCFC interface (via function pointers). We should make
-//  them just implement a proper interface, and have some state; Input itself
-//  can probably just have an InputFc and InputCfc pointer within it.
+// There are a bunch of different input types, implementing the InputC or
+// InputCFC interfaces.
 #include "input/zapper.h"
 #include "input/powerpad.h"
 #include "input/arkanoid.h"
@@ -78,9 +75,11 @@
 static constexpr bool replaceP2StartWithMicrophone = false;
 
 InputC::InputC(FC *fc) : fc(fc) {}
+InputCFC::InputCFC(FC *fc) : fc(fc) {}
 
 struct Input::GPC : public InputC {
-  explicit GPC(FC *fc) : InputC(fc) {}
+  using InputC::InputC;
+
   uint8 Read(int i) override {
     return fc->input->ReadGP(i);
   }
@@ -102,7 +101,8 @@ struct Input::GPC : public InputC {
 };
 
 struct Input::GPCVS : public InputC {
-  explicit GPCVS(FC *fc) : InputC(fc) {}
+  using InputC::InputC;
+
   uint8 Read(int i) override {
     return fc->input->ReadGPVS(i);
   }
@@ -123,11 +123,21 @@ struct Input::GPCVS : public InputC {
   }
 };
 
+struct Input::Fami4C : public InputCFC {
+  using InputCFC::InputCFC;
+
+  uint8 Read(int i, uint8 ret) override {
+    return fc->input->ReadFami4(i, ret);
+  }
+
+  void Strobe() override {
+    return fc->input->StrobeFami4();
+  }
+};
+
 Input::~Input() {
 }
 
-// mbg 6/18/08 HACK
-// XXX no. move into input if we need to.
 Input::Input(FC *fc)
     : stateinfo{
           {joy_readbit, 2, "JYRB"},
@@ -137,15 +147,6 @@ Input::Input(FC *fc)
       }, fc(fc) {
   TRACEF("Constructing input object..");
   // Constructor body.
-
-  // TODO: Same deal as GPCVS, etc. -tom7
-  FAMI4C = INPUTCFC{
-      [](FC *fc, int i, uint8 ret) { return fc->input->ReadFami4(i, ret); },
-      0,
-      []() { return fceulib__.input->StrobeFami4(); },
-      0,
-      0,
-      0};
 }
 
 static DECLFR(JPRead) {
@@ -166,7 +167,7 @@ DECLFR_RET Input::JPRead_Direct(DECLFR_ARGS) {
     ret &= 0xFE;
   }
 
-  if (portFC.driver) ret = portFC.driver->Read(fc, A & 1, ret);
+  if (portFC.driver) ret = portFC.driver->Read(A & 1, ret);
 
   // Not verified against hardware.
   if (replaceP2StartWithMicrophone) {
@@ -386,23 +387,23 @@ void Input::SetInputStuff(int port) {
 void Input::SetInputStuffFC() {
   TRACEF("portfc type %d", portFC.type);
   switch (portFC.type) {
-  case SIFC_NONE: portFC.driver = &DummyPortFC; break;
-  case SIFC_ARKANOID: portFC.driver = FCEU_InitArkanoidFC(); break;
-  case SIFC_SHADOW: portFC.driver = FCEU_InitSpaceShadow(); break;
-  case SIFC_OEKAKIDS: portFC.driver = FCEU_InitOekaKids(); break;
+  case SIFC_NONE: portFC.driver = new InputCFC(fc); break;
   case SIFC_4PLAYER:
-    portFC.driver = &FAMI4C;
+    portFC.driver = new Fami4C(fc);
     memset(&F4ReadBit, 0, sizeof(F4ReadBit));
     break;
-  case SIFC_FKB: portFC.driver = FCEU_InitFKB(); break;
-  case SIFC_SUBORKB: portFC.driver = FCEU_InitSuborKB(); break;
-  case SIFC_HYPERSHOT: portFC.driver = FCEU_InitHS(); break;
-  case SIFC_MAHJONG: portFC.driver = FCEU_InitMahjong(); break;
-  case SIFC_QUIZKING: portFC.driver = FCEU_InitQuizKing(); break;
-  case SIFC_FTRAINERA: portFC.driver = FCEU_InitFamilyTrainerA(); break;
-  case SIFC_FTRAINERB: portFC.driver = FCEU_InitFamilyTrainerB(); break;
-  case SIFC_BWORLD: portFC.driver = FCEU_InitBarcodeWorld(); break;
-  case SIFC_TOPRIDER: portFC.driver = FCEU_InitTopRider(); break;
+  case SIFC_ARKANOID: portFC.driver = CreateArkanoidFC(fc); break;
+  case SIFC_OEKAKIDS: portFC.driver = CreateOekaKids(fc); break;
+  case SIFC_SHADOW: portFC.driver = CreateSpaceShadow(fc); break;
+  case SIFC_FKB: portFC.driver = CreateFKB(fc); break;
+  case SIFC_SUBORKB: portFC.driver = CreateSuborKB(fc); break;
+  case SIFC_HYPERSHOT: portFC.driver = CreateHS(fc); break;
+  case SIFC_MAHJONG: portFC.driver = CreateMahjong(fc); break;
+  case SIFC_QUIZKING: portFC.driver = CreateQuizKing(fc); break;
+  case SIFC_BWORLD: portFC.driver = CreateBarcodeWorld(fc); break;
+  case SIFC_TOPRIDER: portFC.driver = CreateTopRider(fc); break;
+  case SIFC_FTRAINERA: portFC.driver = CreateFamilyTrainerA(fc); break;
+  case SIFC_FTRAINERB: portFC.driver = CreateFamilyTrainerB(fc); break;
   default:;
   }
 }
@@ -511,3 +512,4 @@ void Input::FCEU_DoSimpleCommand(int cmd) {
   case FCEUNPCMD_RESET: fc->fceu->ResetNES(); break;
   }
 }
+

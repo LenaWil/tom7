@@ -23,6 +23,7 @@ struct MovieRecord {
 };
 
 // MBG TODO - COMBINE THESE INPUTC AND INPUTCFC
+// (tom7: I think this TODO still makes sense...)
 
 // Interface for standard joystic port device drivers.
 struct InputC {
@@ -46,58 +47,26 @@ struct InputC {
   virtual ~InputC() {}
   
  protected:
-  FC *fc;
+  FC *fc = nullptr;
 };
 
-// The interface for standard joystick port device drivers
-// (legacy -- tom7 kill!)
-struct INPUTC {
-  // these methods call the function pointers (or not, if they are null)
-  uint8 Read(FC *fc, int w) {
-    if (_Read)
-      return _Read(fc, w);
-    else
-      return 0;
+struct InputCFC {
+  InputCFC(FC *fc);
+  virtual uint8 Read(int w, uint8 ret) {
+    return ret;
   }
-  void Write(uint8 w) {
-    if (_Write) _Write(w);
-  }
-  void Strobe(int w) {
-    if (_Strobe) _Strobe(w);
-  }
-  void Update(int w, void *data, int arg) {
-    if (_Update) _Update(w, data, arg);
-  }
-  void SLHook(int w, uint8 *bg, uint8 *spr, uint32 linets, int final) {
-    if (_SLHook) _SLHook(w, bg, spr, linets, final);
-  }
-  void Draw(int w, uint8 *buf, int arg) {
-    if (_Draw) _Draw(w, buf, arg);
-  }
-  void Log(int w, MovieRecord *mr) {
-    if (_Log) _Log(w, mr);
-  }
-  void Load(int w, MovieRecord *mr) {
-    if (_Load) _Load(w, mr);
-  }
-
-  uint8 (*_Read)(FC *fc, int w);
-  void (*_Write)(uint8 v);
-  void (*_Strobe)(int w);
-  // update will be called if input is coming from the user. refresh
-  // your logical state from user input devices
-  void (*_Update)(int w, void *data, int arg);
-  void (*_SLHook)(int w, uint8 *bg, uint8 *spr, uint32 linets, int final);
-  void (*_Draw)(int w, uint8 *buf, int arg);
-
-  // log is called when you need to put your logical state into a
-  // movie record for recording
-  void (*_Log)(int w, MovieRecord *mr);
-  // load will be called if input is coming from a movie. refresh your
-  // logical state from a movie record
-  void (*_Load)(int w, MovieRecord *mr);
+  virtual void Write(uint8 v) {}
+  virtual void Strobe() {}
+  virtual void Update(void *data, int arg) {}
+  virtual void SLHook(uint8 *bg, uint8 *spr, uint32 linets, int final) {}
+  virtual void Draw(uint8 *buf, int arg) {}
+  virtual void Log(MovieRecord *mr) {}
+  virtual void Load(MovieRecord *mr) {}
+ protected:
+  FC *fc = nullptr;
 };
 
+// XXX KILL.
 // The interface for the expansion port device drivers
 struct INPUTCFC {
   // these methods call the function pointers (or not, if they are null)
@@ -164,7 +133,7 @@ struct FCPORT {
   int attrib = 0;
   ESIFC type = SIFC_NONE;
   void *ptr = nullptr;
-  INPUTCFC *driver = nullptr;
+  InputCFC *driver = nullptr;
 };
 
 struct Input {
@@ -213,6 +182,7 @@ struct Input {
 
   struct GPC;
   struct GPCVS;
+  struct Fami4C;
   // Joyports are where the emulator looks to find input during simulation.
   // They're set by FCEUI_SetInput. Each joyport knows its index (w), type,
   // and pointer to data. I think the data pointer for two gamepads is usually
@@ -254,10 +224,7 @@ struct Input {
 
   // a main joystick port driver representing the case where nothing
   // is plugged in
-  INPUTC DummyJPort{0, 0, 0, 0, 0, 0};
   INPUTCFC DummyPortFC{0, 0, 0, 0, 0, 0};
-
-  INPUTCFC FAMI4C;
 
   FC *fc = nullptr;
 };

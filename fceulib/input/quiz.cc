@@ -21,46 +21,50 @@
 #include <string.h>
 #include "share.h"
 
-static uint8 QZVal, QZValR;
-static uint8 FunkyMode;
+namespace {
+struct QuizKing : public InputCFC {
+  using InputCFC::InputCFC;
 
-static uint8 QZ_Read(FC *fc, int w, uint8 ret) {
-  if (w) {
-    // if(fceulib__.X->PC==0xdc7d) return(0xFF);
-    // printf("Blah: %04x\n",fceulib__.X->PC);
-    // FCEUI_DumpMem("dmp2",0xc000,0xffff);
+  uint8 Read(int w, uint8 ret) override {
+    if (w) {
+      // if(fceulib__.X->PC==0xdc7d) return(0xFF);
+      // printf("Blah: %04x\n",fceulib__.X->PC);
+      // FCEUI_DumpMem("dmp2",0xc000,0xffff);
 
-    ret |= (QZValR & 0x7) << 2;
-    QZValR = QZValR >> 3;
+      ret |= (QZValR & 0x7) << 2;
+      QZValR = QZValR >> 3;
 
-    if (FunkyMode) {
-      // ret=0x14;
-      // puts("Funky");
-      QZValR |= 0x28;
-    } else {
-      QZValR |= 0x38;
+      if (FunkyMode) {
+	// ret=0x14;
+	// puts("Funky");
+	QZValR |= 0x28;
+      } else {
+	QZValR |= 0x38;
+      }
     }
+    return (ret);
   }
-  return (ret);
-}
 
-static void QZ_Strobe(void) {
-  QZValR = QZVal;
-  // puts("Strobe");
-}
+  void Strobe() override {
+    QZValR = QZVal;
+    // puts("Strobe");
+  }
 
-static void QZ_Write(uint8 V) {
-  // printf("Wr: %02x\n",V);
-  FunkyMode = V & 4;
-}
+  void Write(uint8 V) override {
+    // printf("Wr: %02x\n",V);
+    FunkyMode = V & 4;
+  }
 
-static void QZ_Update(void *data, int arg) {
-  QZVal = *(uint8 *)data;
-}
+  void Update(void *data, int arg) override {
+    QZVal = *(uint8 *)data;
+  }
 
-static INPUTCFC QuizKing = {QZ_Read, QZ_Write, QZ_Strobe, QZ_Update, 0, 0};
+  uint8 QZVal = 0, QZValR = 0;
+  uint8 FunkyMode = 0;
+};
+}  // namespace
 
-INPUTCFC *FCEU_InitQuizKing() {
-  QZVal = QZValR = 0;
-  return &QuizKing;
+InputCFC *CreateQuizKing(FC *fc) {
+  return new QuizKing(fc);
 }
+  

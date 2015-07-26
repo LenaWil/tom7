@@ -3,6 +3,6 @@
 
 #include "../input.h"
 
-extern INPUTCFC *FCEU_InitTopRider();
+extern InputCFC *CreateTopRider(FC *fc);
 
 #endif

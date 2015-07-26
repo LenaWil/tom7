@@ -98,11 +98,7 @@
 #define AK2(x, y) ((FKB_##x) | (FKB_##y << 8))
 #define AK(x) FKB_##x
 
-static uint8 bufit[0x49];
-static uint8 ksmode;
-static uint8 ksindex;
-
-static uint16 matrix[9][2][4] = {
+static constexpr uint16 const matrix[9][2][4] = {
     {{AK(F8), AK(RETURN), AK(BRACKETLEFT), AK(BRACKETRIGHT)},
      {AK(KANA), AK(RIGHTSHIFT), AK(BACKSLASH), AK(STOP)}},
     {{AK(F7), AK(AT), AK(COLON), AK(SEMICOLON)},
@@ -118,44 +114,51 @@ static uint16 matrix[9][2][4] = {
      {AK(DOWN), AK(SPACE), AK(DELETE), AK(INSERT)}},
 };
 
-static void FKB_Write(uint8 v) {
-  v >>= 1;
-  if (v & 2) {
-    if ((ksmode & 1) && !(v & 1)) ksindex = (ksindex + 1) % 9;
+namespace {
+struct FKB : public InputCFC {
+  FKB(FC *fc) : InputCFC(fc) {}
+
+  void Write(uint8 v) override {
+    v >>= 1;
+    if (v & 2) {
+      if ((ksmode & 1) && !(v & 1)) ksindex = (ksindex + 1) % 9;
+    }
+    ksmode = v;
   }
-  ksmode = v;
-}
 
-static uint8 FKB_Read(FC *fc, int w, uint8 ret) {
-  // printf("$%04x, %d, %d\n",w+0x4016,ksindex,ksmode&1);
-  if (w) {
-    int x;
+  uint8 Read(int w, uint8 ret) override {
+    // printf("$%04x, %d, %d\n",w+0x4016,ksindex,ksmode&1);
+    if (w) {
+      int x;
 
-    ret &= ~0x1E;
-    for (x = 0; x < 4; x++)
-      if (bufit[matrix[ksindex][ksmode & 1][x] & 0xFF] ||
-          bufit[matrix[ksindex][ksmode & 1][x] >> 8]) {
-        ret |= 1 << (x + 1);
-      }
-    ret ^= 0x1E;
+      ret &= ~0x1E;
+      for (x = 0; x < 4; x++)
+	if (bufit[matrix[ksindex][ksmode & 1][x] & 0xFF] ||
+	    bufit[matrix[ksindex][ksmode & 1][x] >> 8]) {
+	  ret |= 1 << (x + 1);
+	}
+      ret ^= 0x1E;
+    }
+    return ret;
   }
-  return (ret);
-}
 
-static void FKB_Strobe() {
-  ksmode = 0;
-  ksindex = 0;
-  // printf("strobe\n");
-}
+  void Strobe() override {
+    ksmode = 0;
+    ksindex = 0;
+    // printf("strobe\n");
+  }
 
-static void FKB_Update(void *data, int arg) {
-  memcpy(bufit + 1, data, 0x48);
-}
+  void Update(void *data, int arg) override {
+    memcpy(bufit + 1, data, 0x48);
+  }
+  
+  uint8 bufit[0x49] = {};
+  uint8 ksmode = 0;
+  uint8 ksindex = 0;
+};
 
-static INPUTCFC FKB = {FKB_Read, FKB_Write, FKB_Strobe, FKB_Update, 0, 0};
+}  // namespace
 
-INPUTCFC *FCEU_InitFKB() {
-  memset(bufit, 0, sizeof(bufit));
-  ksmode = ksindex = 0;
-  return &FKB;
+extern InputCFC *CreateFKB(FC *fc) {
+  return new FKB(fc);
 }

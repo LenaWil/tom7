@@ -3,6 +3,6 @@
 
 #include "../input.h"
 
-extern INPUTCFC *FCEU_InitSuborKB();
+extern InputCFC *CreateSuborKB(FC *fc);
 
 #endif
