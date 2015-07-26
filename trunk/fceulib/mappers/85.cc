@@ -27,10 +27,10 @@ static uint8 indox;
 
 static int acount = 0;
 
-static OPLL *VRC7Sound = NULL;
+static OPLL *VRC7Sound = nullptr;
 static int dwave = 0;
 
-void DoVRC7Sound(void) {
+void DoVRC7Sound() {
   int32 z, a;
 
   if (FCEUS_SOUNDQ >= 1) return;
@@ -166,10 +166,10 @@ static void M85SC(FC *fc) {
 
 static void M85SKill(FC *fc) {
   if (VRC7Sound) OPLL_delete(VRC7Sound);
-  VRC7Sound = NULL;
+  VRC7Sound = nullptr;
 }
 
-static void VRC7SI(void) {
+static void VRC7SI() {
   fceulib__.sound->GameExpSound.RChange = M85SC;
   fceulib__.sound->GameExpSound.Kill = M85SKill;
 
@@ -178,13 +178,13 @@ static void VRC7SI(void) {
   OPLL_reset(VRC7Sound);
 }
 
-void NSFVRC7_Init(void) {
+void NSFVRC7_Init() {
   fceulib__.fceu->SetWriteHandler(0x9010, 0x901F, Mapper85_write);
   fceulib__.fceu->SetWriteHandler(0x9030, 0x903F, Mapper85_write);
   VRC7SI();
 }
 
-void Mapper85_init(void) {
+void Mapper85_init() {
   fceulib__.X->MapIRQHook = KonamiIRQHook;
   fceulib__.fceu->SetWriteHandler(0x8000, 0xffff, Mapper85_write);
   fceulib__.fceu->GameStateRestore = Mapper85_StateRestore;

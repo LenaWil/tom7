@@ -43,7 +43,7 @@ static void Mapper40IRQ(FC *fc, int a) {
   }
 }
 
-void Mapper40_init(void) {
+void Mapper40_init() {
   ROM_BANK8(&fceulib__, 0x6000, (~0) - 1);
   ROM_BANK8(&fceulib__, 0x8000, (~0) - 3);
   ROM_BANK8(&fceulib__, 0xa000, (~0) - 2);

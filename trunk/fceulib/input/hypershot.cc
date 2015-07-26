@@ -30,7 +30,7 @@ struct HyperShot : public InputCFC {
     return ret;
   }
 
-  void Strobe(void) override {
+  void Strobe() override {
     HSValR = HSVal << 1;
   }
 

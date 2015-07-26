@@ -21,7 +21,7 @@
 #include "mapinc.h"
 
 static uint8 prg, mirr, prgmode;
-static uint8 *WRAM = NULL;
+static uint8 *WRAM = nullptr;
 static uint32 WRAMSIZE;
 
 static SFORMAT StateRegs[] = {
@@ -80,7 +80,7 @@ static void UNLAX5705IRQ() {
 
 static void UNLD2000Close(FC *fc) {
   if (WRAM) free(WRAM);
-  WRAM = NULL;
+  WRAM = nullptr;
 }
 
 static void StateRestore(FC *fc, int version) {

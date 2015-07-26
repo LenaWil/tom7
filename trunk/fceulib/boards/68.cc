@@ -23,7 +23,7 @@
 static uint8 chr_reg[4];
 static uint8 kogame, prg_reg, nt1, nt2, mirr;
 
-static uint8 *WRAM = NULL;
+static uint8 *WRAM = nullptr;
 static uint32 WRAMSIZE, count;
 
 static SFORMAT StateRegs[] = {{&nt1, 1, "NT1"},     {&nt2, 1, "NT2"},

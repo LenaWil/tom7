@@ -27,8 +27,8 @@ static writefunc old2007wrap;
 
 static uint16 CHRSIZE = 8192;
 static uint16 WRAMSIZE = 8192 + 4096;
-static uint8 *CHRRAM = NULL;
-static uint8 *WRAM = NULL;
+static uint8 *CHRRAM = nullptr;
+static uint8 *WRAM = nullptr;
 
 static uint8 IRQa, K4IRQ;
 static uint32 IRQLatch, IRQCount;

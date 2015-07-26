@@ -35,7 +35,7 @@ DECLFW(Mapper46_write) {
   VROM_BANK8(fc, ((V >> 4) & 7) + ((A64reg & 0xF0) >> 1));
 }
 
-void Mapper46_init(void) {
+void Mapper46_init() {
   fceulib__.ines->MIRROR_SET(0);
   ROM_BANK32(&fceulib__, 0);
   fceulib__.fceu->SetWriteHandler(0x8000, 0xffff, Mapper46_write);

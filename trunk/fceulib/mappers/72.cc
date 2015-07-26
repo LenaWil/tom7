@@ -26,6 +26,6 @@ DECLFW(Mapper72_write) {
   if (V & 0x40) VROM_BANK8(fc, V & 0xF);
 }
 
-void Mapper72_init(void) {
+void Mapper72_init() {
   fceulib__.fceu->SetWriteHandler(0x6000, 0xffff, Mapper72_write);
 }

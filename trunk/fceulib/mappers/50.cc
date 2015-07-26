@@ -49,7 +49,7 @@ static DECLFW(M50W) {
   }
 }
 
-void Mapper50_init(void) {
+void Mapper50_init() {
   fceulib__.fceu->SetWriteHandler(0x4020, 0x5fff, M50W);
   fceulib__.fceu->SetReadHandler(0x6000, 0xffff, Cart::CartBR);
   fceulib__.ines->MapStateRestore = M50Restore;

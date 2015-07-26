@@ -25,7 +25,7 @@ static uint16 addrreg0, addrreg1;
 static uint8 dipswitch;
 static void (*WSync)();
 static readfunc defread;
-static uint8 *WRAM = NULL;
+static uint8 *WRAM = nullptr;
 static uint32 WRAMSIZE;
 
 static DECLFW(LatchWrite) {
@@ -65,7 +65,7 @@ static void Latch_Init(CartInfo *info, void (*proc)(), readfunc func,
   addrreg0 = adr0;
   addrreg1 = adr1;
   WSync = proc;
-  if (func != NULL)
+  if (func != nullptr)
     defread = func;
   else
     defread = Cart::CartBROB;
@@ -95,7 +95,7 @@ static void UNLCC21Sync() {
 }
 
 void UNLCC21_Init(CartInfo *info) {
-  Latch_Init(info, UNLCC21Sync, NULL, 0x0000, 0x8000, 0xFFFF, 0);
+  Latch_Init(info, UNLCC21Sync, nullptr, 0x0000, 0x8000, 0xFFFF, 0);
 }
 
 //------------------ BMCD1038 ---------------------------
@@ -172,7 +172,7 @@ static void BMCGK192Sync() {
 }
 
 void BMCGK192_Init(CartInfo *info) {
-  Latch_Init(info, BMCGK192Sync, NULL, 0x0000, 0x8000, 0xFFFF, 0);
+  Latch_Init(info, BMCGK192Sync, nullptr, 0x0000, 0x8000, 0xFFFF, 0);
 }
 
 //------------------ Map 059 ---------------------------
@@ -218,7 +218,7 @@ static void M92Sync() {
 }
 
 void Mapper92_Init(CartInfo *info) {
-  Latch_Init(info, M92Sync, NULL, 0x80B0, 0x8000, 0xFFFF, 0);
+  Latch_Init(info, M92Sync, nullptr, 0x80B0, 0x8000, 0xFFFF, 0);
 }
 
 //------------------ Map 200 ---------------------------
@@ -231,7 +231,7 @@ static void M200Sync() {
 }
 
 void Mapper200_Init(CartInfo *info) {
-  Latch_Init(info, M200Sync, NULL, 0xFFFF, 0x8000, 0xFFFF, 0);
+  Latch_Init(info, M200Sync, nullptr, 0xFFFF, 0x8000, 0xFFFF, 0);
 }
 
 //------------------ Map 201 ---------------------------
@@ -247,7 +247,7 @@ static void M201Sync() {
 }
 
 void Mapper201_Init(CartInfo *info) {
-  Latch_Init(info, M201Sync, NULL, 0xFFFF, 0x8000, 0xFFFF, 0);
+  Latch_Init(info, M201Sync, nullptr, 0xFFFF, 0x8000, 0xFFFF, 0);
 }
 
 //------------------ Map 202 ---------------------------
@@ -264,7 +264,7 @@ static void M202Sync() {
 }
 
 void Mapper202_Init(CartInfo *info) {
-  Latch_Init(info, M202Sync, NULL, 0x0000, 0x8000, 0xFFFF, 0);
+  Latch_Init(info, M202Sync, nullptr, 0x0000, 0x8000, 0xFFFF, 0);
 }
 
 //------------------ Map 204 ---------------------------
@@ -279,7 +279,7 @@ static void M204Sync() {
 }
 
 void Mapper204_Init(CartInfo *info) {
-  Latch_Init(info, M204Sync, NULL, 0xFFFF, 0x8000, 0xFFFF, 0);
+  Latch_Init(info, M204Sync, nullptr, 0xFFFF, 0x8000, 0xFFFF, 0);
 }
 
 //------------------ Map 212 ---------------------------
@@ -313,7 +313,7 @@ static void M213Sync() {
 }
 
 void Mapper213_Init(CartInfo *info) {
-  Latch_Init(info, M213Sync, NULL, 0x0000, 0x8000, 0xFFFF, 0);
+  Latch_Init(info, M213Sync, nullptr, 0x0000, 0x8000, 0xFFFF, 0);
 }
 
 //------------------ Map 214 ---------------------------
@@ -325,7 +325,7 @@ static void M214Sync() {
 }
 
 void Mapper214_Init(CartInfo *info) {
-  Latch_Init(info, M214Sync, NULL, 0x0000, 0x8000, 0xFFFF, 0);
+  Latch_Init(info, M214Sync, nullptr, 0x0000, 0x8000, 0xFFFF, 0);
 }
 
 //------------------ Map 217 ---------------------------
@@ -336,7 +336,7 @@ static void M217Sync() {
 }
 
 void Mapper217_Init(CartInfo *info) {
-  Latch_Init(info, M217Sync, NULL, 0x0000, 0x8000, 0xFFFF, 0);
+  Latch_Init(info, M217Sync, nullptr, 0x0000, 0x8000, 0xFFFF, 0);
 }
 
 //------------------ Map 227 ---------------------------
@@ -379,7 +379,7 @@ static void M227Sync() {
 }
 
 void Mapper227_Init(CartInfo *info) {
-  Latch_Init(info, M227Sync, NULL, 0x0000, 0x8000, 0xFFFF, 1);
+  Latch_Init(info, M227Sync, nullptr, 0x0000, 0x8000, 0xFFFF, 1);
 }
 
 //------------------ Map 229 ---------------------------
@@ -396,7 +396,7 @@ static void M229Sync() {
 }
 
 void Mapper229_Init(CartInfo *info) {
-  Latch_Init(info, M229Sync, NULL, 0x0000, 0x8000, 0xFFFF, 0);
+  Latch_Init(info, M229Sync, nullptr, 0x0000, 0x8000, 0xFFFF, 0);
 }
 
 //------------------ Map 231 ---------------------------
@@ -413,7 +413,7 @@ static void M231Sync() {
 }
 
 void Mapper231_Init(CartInfo *info) {
-  Latch_Init(info, M231Sync, NULL, 0x0000, 0x8000, 0xFFFF, 0);
+  Latch_Init(info, M231Sync, nullptr, 0x0000, 0x8000, 0xFFFF, 0);
 }
 
 //------------------ Map 242 ---------------------------
@@ -426,7 +426,7 @@ static void M242Sync() {
 }
 
 void Mapper242_Init(CartInfo *info) {
-  Latch_Init(info, M242Sync, NULL, 0x0000, 0x8000, 0xFFFF, 1);
+  Latch_Init(info, M242Sync, nullptr, 0x0000, 0x8000, 0xFFFF, 1);
 }
 
 //------------------ 190in1 ---------------------------
@@ -439,7 +439,7 @@ static void BMC190in1Sync() {
 }
 
 void BMC190in1_Init(CartInfo *info) {
-  Latch_Init(info, BMC190in1Sync, NULL, 0x0000, 0x8000, 0xFFFF, 0);
+  Latch_Init(info, BMC190in1Sync, nullptr, 0x0000, 0x8000, 0xFFFF, 0);
 }
 
 //-------------- BMC810544-C-A1 ------------------------
@@ -457,7 +457,7 @@ static void BMC810544CA1Sync() {
 }
 
 void BMC810544CA1_Init(CartInfo *info) {
-  Latch_Init(info, BMC810544CA1Sync, NULL, 0x0000, 0x8000, 0xFFFF, 0);
+  Latch_Init(info, BMC810544CA1Sync, nullptr, 0x0000, 0x8000, 0xFFFF, 0);
 }
 
 //-------------- BMCNTD-03 ------------------------
@@ -480,7 +480,7 @@ static void BMCNTD03Sync() {
 }
 
 void BMCNTD03_Init(CartInfo *info) {
-  Latch_Init(info, BMCNTD03Sync, NULL, 0x0000, 0x8000, 0xFFFF, 0);
+  Latch_Init(info, BMCNTD03Sync, nullptr, 0x0000, 0x8000, 0xFFFF, 0);
 }
 
 //-------------- BMCG-146 ------------------------
@@ -503,5 +503,5 @@ static void BMCG146Sync() {
 }
 
 void BMCG146_Init(CartInfo *info) {
-  Latch_Init(info, BMCG146Sync, NULL, 0x0000, 0x8000, 0xFFFF, 0);
+  Latch_Init(info, BMCG146Sync, nullptr, 0x0000, 0x8000, 0xFFFF, 0);
 }

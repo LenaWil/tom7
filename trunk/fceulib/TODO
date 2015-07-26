@@ -15,7 +15,6 @@ Stuff I should be able to get rid of:
       Still to objectify:
 
       emulator.cc
-      input/*
       boards/*
       mappers/*
 
@@ -38,12 +37,9 @@ Cleanup to do:
  - There are some symbols that are both #defined (e.g. ines.h) and
    declared, maybe with #undef before like in mmc3.cc. So confusing!
  - clang format on the worst offenders
- - NULL -> nullptr everywhere
- - (void) args
  - Common pattern in boards/* is to declare WRAMSIZE as a static
    variable but always set it to a constant.
  - CHECKs in Zapper
- - clang-format unif.cc
 
 Surprisingly necessary:
  - crc32 since ines.cc has a table of games and their CRCs.

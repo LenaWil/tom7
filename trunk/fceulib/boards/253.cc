@@ -22,9 +22,9 @@
 
 static uint8 chrlo[8], chrhi[8], prg[2], mirr, vlock;
 static int32 IRQa, IRQCount, IRQLatch, IRQClock;
-static uint8 *WRAM = NULL;
+static uint8 *WRAM = nullptr;
 static uint32 WRAMSIZE;
-static uint8 *CHRRAM = NULL;
+static uint8 *CHRRAM = nullptr;
 static uint32 CHRRAMSIZE;
 
 static SFORMAT StateRegs[] = {{chrlo, 8, "CHRL"},     {chrhi, 8, "CHRH"},

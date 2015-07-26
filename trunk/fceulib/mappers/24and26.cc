@@ -20,15 +20,15 @@
 
 #include "mapinc.h"
 
-static void (*sfun[3])(void);
+static void (*sfun[3])();
 
 #define vrctemp mapbyte1[0]
 #define VPSG2 mapbyte3
 #define VPSG mapbyte2
 
-static void DoSQV1(void);
-static void DoSQV2(void);
-static void DoSawV(void);
+static void DoSQV1();
+static void DoSQV2();
+static void DoSawV();
 
 static int swaparoo;
 
@@ -149,15 +149,15 @@ static inline void DoSQV(int x) {
   }
 }
 
-static void DoSQV1(void) {
+static void DoSQV1() {
   DoSQV(0);
 }
 
-static void DoSQV2(void) {
+static void DoSQV2() {
   DoSQV(1);
 }
 
-static void DoSawV(void) {
+static void DoSawV() {
   int32 start = CVBC[2];
   int32 end = (fceulib__.sound->SoundTS() << 16) / fceulib__.sound->soundtsinc;
   if (end <= start) return;
@@ -220,15 +220,15 @@ static inline void DoSQVHQ(int x) {
   CVBC[x] = fceulib__.sound->SoundTS();
 }
 
-static void DoSQV1HQ(void) {
+static void DoSQV1HQ() {
   DoSQVHQ(0);
 }
 
-static void DoSQV2HQ(void) {
+static void DoSQV2HQ() {
   DoSQVHQ(1);
 }
 
-static void DoSawVHQ(void) {
+static void DoSawVHQ() {
   static uint8 b3 = 0;
   static int32 phaseacc = 0;
   uint32 V;  // mbg merge 7/17/06 made uint32
@@ -292,21 +292,21 @@ static void VRC6_ESI(FC *fc) {
   }
 }
 
-void Mapper24_init(void) {
+void Mapper24_init() {
   fceulib__.fceu->SetWriteHandler(0x8000, 0xffff, Mapper24_write);
   VRC6_ESI(&fceulib__);
   fceulib__.X->MapIRQHook = KonamiIRQHook;
   swaparoo = 0;
 }
 
-void Mapper26_init(void) {
+void Mapper26_init() {
   fceulib__.fceu->SetWriteHandler(0x8000, 0xffff, Mapper24_write);
   VRC6_ESI(&fceulib__);
   fceulib__.X->MapIRQHook = KonamiIRQHook;
   swaparoo = 1;
 }
 
-void NSFVRC6_Init(void) {
+void NSFVRC6_Init() {
   VRC6_ESI(&fceulib__);
   fceulib__.fceu->SetWriteHandler(0x8000, 0xbfff, VRC6SW);
 }

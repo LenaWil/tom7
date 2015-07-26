@@ -27,7 +27,7 @@
 static bool is_BMCFK23CA;
 static uint8 unromchr;
 static uint32 dipswitch;
-static uint8 *CHRRAM = NULL;
+static uint8 *CHRRAM = nullptr;
 static uint32 CHRRAMSize;
 
 static void BMCFK23CCW(uint32 A, uint8 V) {

@@ -43,6 +43,6 @@ static DECLFW(Mapper76_write) {
   }
 }
 
-void Mapper76_init(void) {
+void Mapper76_init() {
   fceulib__.fceu->SetWriteHandler(0x8000, 0xffff, Mapper76_write);
 }

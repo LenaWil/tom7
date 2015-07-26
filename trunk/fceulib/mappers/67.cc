@@ -68,7 +68,7 @@ static void SunIRQHook(FC *fc, int a) {
   }
 }
 
-void Mapper67_init(void) {
+void Mapper67_init() {
   fceulib__.fceu->SetWriteHandler(0x8000, 0xffff, Mapper67_write);
   fceulib__.X->MapIRQHook = SunIRQHook;
 }

@@ -27,7 +27,7 @@
 
 static uint8 reg, mirr;
 static int32 IRQa, IRQCount, IRQLatch;
-static uint8 *WRAM = NULL;
+static uint8 *WRAM = nullptr;
 static uint32 WRAMSIZE;
 
 static SFORMAT StateRegs[] = {{&mirr, 1, "MIRR"},     {&reg, 1, "REGS"},

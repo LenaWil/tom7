@@ -24,9 +24,9 @@ static uint8 reg[8];
 static uint8 IRQa;
 static int16 IRQCount, IRQLatch;
 /*
-static uint8 *WRAM=NULL;
+static uint8 *WRAM=nullptr;
 static uint32 WRAMSIZE;
-static uint8 *CHRRAM=NULL;
+static uint8 *CHRRAM=nullptr;
 static uint32 CHRRAMSIZE;
 */
 
@@ -56,7 +56,7 @@ static void MNNNClose()
         free(WRAM);
     if (CHRRAM)
         free(CHRRAM);
-    WRAM = CHRRAM = NULL;
+    WRAM = CHRRAM = nullptr;
 }
 */
 

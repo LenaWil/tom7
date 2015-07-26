@@ -29,7 +29,7 @@ static uint8 regcmd, irqcmd, mirr, big_bank;
 static uint16 acount = 0;
 static uint16 weirdo = 0;
 
-static uint8 *WRAM = NULL;
+static uint8 *WRAM = nullptr;
 static uint32 WRAMSIZE;
 
 static SFORMAT StateRegs[] = {{prgreg, 2, "PREG"},

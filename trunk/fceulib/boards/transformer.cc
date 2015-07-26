@@ -20,7 +20,7 @@
 
 #include "mapinc.h"
 
-static uint8 *WRAM = NULL;
+static uint8 *WRAM = nullptr;
 static constexpr uint32 WRAMSIZE = 8192;
 
 // FIXME: 10/28 - now implemented in SDL as well.

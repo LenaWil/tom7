@@ -21,7 +21,7 @@
 
 #include "mapinc.h"
 
-static uint8 *DummyCHR = NULL;
+static uint8 *DummyCHR = nullptr;
 static uint8 datareg;
 static void (*Sync)();
 

@@ -23,7 +23,7 @@
 #include "mapinc.h"
 
 static uint8 SWRAM[2816];
-static uint8 *WRAM = NULL;
+static uint8 *WRAM = nullptr;
 static uint8 regs[4];
 
 static SFORMAT StateRegs[] = {{regs, 4, "DREG"}, {SWRAM, 2816, "SWRM"}, {0}};

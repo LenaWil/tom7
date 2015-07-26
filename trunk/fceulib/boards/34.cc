@@ -30,7 +30,7 @@
 #include "mapinc.h"
 
 static uint8 regs[3];
-static uint8 *WRAM = NULL;
+static uint8 *WRAM = nullptr;
 static uint32 WRAMSIZE;
 
 static SFORMAT StateRegs[] = {{regs, 3, "REGS"}, {0}};

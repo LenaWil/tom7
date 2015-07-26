@@ -36,7 +36,7 @@ static void Mapper77_StateRestore(int version) {
   for (int x = 2; x < 8; x++) VRAM_BANK1(&fceulib__, x * 0x400, x);
 }
 
-void Mapper77_init(void) {
+void Mapper77_init() {
   int x;
 
   ROM_BANK32(&fceulib__, 0);

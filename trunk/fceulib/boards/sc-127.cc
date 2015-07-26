@@ -23,7 +23,7 @@
 #include "mapinc.h"
 
 static uint8 reg[8], chr[8];
-static uint8 *WRAM = NULL;
+static uint8 *WRAM = nullptr;
 static uint32 WRAMSIZE;
 static uint16 IRQCount, IRQa;
 

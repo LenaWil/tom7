@@ -22,9 +22,9 @@
 
 static uint8 creg[8], preg[2];
 static int32 IRQa, IRQCount, IRQClock, IRQLatch;
-static uint8 *WRAM = NULL;
+static uint8 *WRAM = nullptr;
 static uint32 WRAMSIZE;
-static uint8 *CHRRAM = NULL;
+static uint8 *CHRRAM = nullptr;
 static uint32 CHRRAMSIZE;
 
 static SFORMAT StateRegs[] = {{creg, 8, "CREG"},
