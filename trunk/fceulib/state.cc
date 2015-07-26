@@ -165,7 +165,7 @@ const SFORMAT *State::CheckS(const SFORMAT *sf, uint32 tsize, char *desc) {
     }
     if (!memcmp(desc,sf->desc,4)) {
       if (tsize!=(sf->s&(~FCEUSTATE_FLAGS)))
-	return(0);
+	return nullptr;
       return sf;
     }
     sf++;
@@ -294,6 +294,8 @@ bool State::FCEUSS_SaveRAW(std::vector<uint8> *out) {
   if (SPreSave) SPreSave(fc);
   // This allows other parts of the system to hook into things to be
   // saved. It is indeed used for "WRAM", "LATC", "BUSC". -tom7
+  // M probably stands for Mapper, but I also use it in input, at least.
+  //
   // TRACEF("SFMDATA:");
   totalsize += WriteStateChunk(&os,0x10,SFMDATA);
   // TRACEV(*out);
@@ -338,7 +340,8 @@ bool State::FCEUSS_LoadRAW(std::vector<uint8> *in) {
 
 void State::ResetExState(void (*PreSave)(FC *), void (*PostSave)(FC *)) {
   for (int x = 0; x < SFEXINDEX; x++) {
-    free(SFMDATA[x].desc);
+    delete []SFMDATA[x].desc;
+    SFMDATA[x].desc = nullptr;
   }
   // adelikat, 3/14/09: had to add this to clear out the size
   // parameter. NROM(mapper 0) games were having savestate
@@ -353,19 +356,19 @@ void State::ResetExState(void (*PreSave)(FC *), void (*PostSave)(FC *)) {
 }
 
 void State::AddExStateReal(void *v, uint32 s, int type,
-			   char *desc, const char *src) {
+			   const char *desc, const char *src) {
   if (s == ~0) {
     const SFORMAT *sf = (const SFORMAT*)v;
     map<string, bool> names;
     while (sf->v) {
       char tmp[5] = {0};
       memcpy(tmp,sf->desc,4);
-      std::string desc = tmp;
-      if (names.find(desc) != names.end()) {
-	fprintf(stderr, "SFORMAT with duplicate key: %s\n", desc.c_str());
+      std::string descr = tmp;
+      if (names.find(descr) != names.end()) {
+	fprintf(stderr, "SFORMAT with duplicate key: %s\n", descr.c_str());
 	abort();
       }
-      names[desc] = true;
+      names[descr] = true;
       sf++;
     }
   }
@@ -375,6 +378,8 @@ void State::AddExStateReal(void *v, uint32 s, int type,
     // std::map or something.
     for (int i = 0; i < SFEXINDEX; i++) {
       if (SFMDATA[i].desc != nullptr &&
+	  // TODO: Sometimes we use strcmp and sometimes memcmp, but
+	  // these strings also have 0s in them...
 	  0 == strcmp(SFMDATA[i].desc, desc)) {
 	fprintf(stderr, "AddExState: The key '%s' was registered twice.\n"
 		"Second was from %s.\n",
@@ -383,8 +388,12 @@ void State::AddExStateReal(void *v, uint32 s, int type,
       }
     }
 
-    SFMDATA[SFEXINDEX].desc=(char *)FCEU_malloc(strlen(desc)+1);
-    strcpy(SFMDATA[SFEXINDEX].desc,desc);
+    // Using new[] so that we can delete[] a const pointer.
+    // These dynamically allocated pointers are stored in the same
+    // field also initialized with string literals.
+    char *s = new char[strlen(desc) + 1];
+    strcpy(s, desc);
+    SFMDATA[SFEXINDEX].desc = s;
   } else {
     SFMDATA[SFEXINDEX].desc = nullptr;
   }

@@ -3,7 +3,7 @@
 
 #include "../input.h"
 
-extern INPUTC *FCEU_InitArkanoid(int w);
+extern InputC *CreateArkanoid(FC *fc, int w);
 
 extern INPUTCFC *FCEU_InitArkanoidFC();
 

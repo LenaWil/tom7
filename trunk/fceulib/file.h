@@ -25,7 +25,7 @@ struct FceuFile {
   } mode;
 };
 
-FceuFile *FCEU_fopen(const std::string &path, char *mode, char *ext);
+FceuFile *FCEU_fopen(const std::string &path, const char *mode, const char *ext);
 int FCEU_fclose(FceuFile*);
 uint64 FCEU_fread(void *ptr, size_t size, size_t nmemb, FceuFile*);
 int FCEU_fseek(FceuFile*, long offset, int whence);

@@ -42,6 +42,8 @@ Cleanup to do:
  - (void) args
  - Common pattern in boards/* is to declare WRAMSIZE as a static
    variable but always set it to a constant.
+ - Get rid of -Wno-write-strings in build.
+ - CHECKs in Zapper
 
 Surprisingly necessary:
  - crc32 since ines.cc has a table of games and their CRCs.

@@ -77,42 +77,68 @@
 
 static constexpr bool replaceP2StartWithMicrophone = false;
 
+InputC::InputC(FC *fc) : fc(fc) {}
+
+struct Input::GPC : public InputC {
+  explicit GPC(FC *fc) : InputC(fc) {}
+  uint8 Read(int i) override {
+    return fc->input->ReadGP(i);
+  }
+
+  void Strobe(int i) override {
+    return fc->input->StrobeGP(i);
+  }
+  void Update(int i, void *data, int arg) override {
+    return fc->input->UpdateGP(i, data, arg);
+  }
+
+  void Log(int i, MovieRecord *mr) override {
+    return fc->input->LogGP(i, mr);
+  }
+
+  void Load(int i, MovieRecord *mr) override {
+    return fc->input->LoadGP(i, mr);
+  }
+};
+
+struct Input::GPCVS : public InputC {
+  explicit GPCVS(FC *fc) : InputC(fc) {}
+  uint8 Read(int i) override {
+    return fc->input->ReadGPVS(i);
+  }
+
+  void Strobe(int i) override {
+    return fc->input->StrobeGP(i);
+  }
+  void Update(int i, void *data, int arg) override {
+    return fc->input->UpdateGP(i, data, arg);
+  }
+
+  void Log(int i, MovieRecord *mr) override {
+    return fc->input->LogGP(i, mr);
+  }
+
+  void Load(int i, MovieRecord *mr) override {
+    return fc->input->LoadGP(i, mr);
+  }
+};
+
+Input::~Input() {
+}
+
 // mbg 6/18/08 HACK
 // XXX no. move into input if we need to.
-extern ZAPPER ZD[2];
 Input::Input(FC *fc)
     : stateinfo{
-          {joy_readbit, 2, "JYRB"}, {joy, 4, "JOYS"},
-          {&LastStrobe, 1, "LSTS"}, {&ZD[0].bogo, 1, "ZBG0"},
-          {&ZD[1].bogo, 1, "ZBG1"}, {0},
+          {joy_readbit, 2, "JYRB"},
+	  {joy, 4, "JOYS"},
+          {&LastStrobe, 1, "LSTS"},
+	  {0},
       }, fc(fc) {
   TRACEF("Constructing input object..");
   // Constructor body.
 
-  // This is a mess -- maybe these things could be std::function, or maybe all
-  // the different inputs could be members of Input or trampoline through it.
-  GPC = INPUTC{
-      [](FC *fc, int i) { return fc->input->ReadGP(i); }, 0,
-      [](int i) { return fceulib__.input->StrobeGP(i); },
-      [](int i, void *data, int arg) {
-        return fceulib__.input->UpdateGP(i, data, arg);
-      },
-      0, 0,
-      [](int i, MovieRecord *mr) { return fceulib__.input->LogGP(i, mr); },
-      [](int i, MovieRecord *mr) { return fceulib__.input->LoadGP(i, mr); },
-  };
-
-  GPCVS = INPUTC{
-      [](FC *fc, int i) { return fc->input->ReadGPVS(i); }, 0,
-      [](int i) { return fceulib__.input->StrobeGP(i); },
-      [](int i, void *data, int arg) {
-        return fceulib__.input->UpdateGP(i, data, arg);
-      },
-      0, 0,
-      [](int i, MovieRecord *mr) { return fceulib__.input->LogGP(i, mr); },
-      [](int i, MovieRecord *mr) { return fceulib__.input->LoadGP(i, mr); },
-  };
-
+  // TODO: Same deal as GPCVS, etc. -tom7
   FAMI4C = INPUTCFC{
       [](FC *fc, int i, uint8 ret) { return fc->input->ReadFami4(i, ret); },
       0,
@@ -129,7 +155,7 @@ static DECLFR(JPRead) {
 DECLFR_RET Input::JPRead_Direct(DECLFR_ARGS) {
   uint8 ret = 0;
 
-  ret |= joyports[A & 1].driver->Read(fc, A & 1);
+  ret |= joyports[A & 1].driver->Read(A & 1);
 
   // Test if the port 2 start button is being pressed.
   // On a famicom, port 2 start shouldn't exist, so this removes it.
@@ -309,7 +335,7 @@ static DECLFR(VSUNIRead0) {
 DECLFR_RET Input::VSUNIRead0_Direct(DECLFR_ARGS) {
   uint8 ret = 0;
 
-  ret |= joyports[0].driver->Read(fc, 0) & 1;
+  ret |= joyports[0].driver->Read(0) & 1;
 
   ret |= (fc->vsuni->vsdip & 3) << 3;
   if (fc->vsuni->coinon) ret |= 0x4;
@@ -323,7 +349,7 @@ static DECLFR(VSUNIRead1) {
 DECLFR_RET Input::VSUNIRead1_Direct(DECLFR_ARGS) {
   uint8 ret = 0;
 
-  ret |= (joyports[1].driver->Read(fc, 1)) & 1;
+  ret |= joyports[1].driver->Read(1) & 1;
   ret |= fc->vsuni->vsdip & 0xFC;
   return ret;
 }
@@ -337,20 +363,22 @@ void Input::InputScanlineHook(uint8 *bg, uint8 *spr, uint32 linets, int final) {
   portFC.driver->SLHook(bg, spr, linets, final);
 }
 
-// binds JPorts[pad] to the driver specified in JPType[pad]
+// binds JPorts[pad] to the driver specified in JPType[pad] (allocating
+// a new InputC).
 void Input::SetInputStuff(int port) {
   switch (joyports[port].type) {
   case SI_GAMEPAD:
-    if (fc->fceu->GameInfo->type == GIT_VSUNI)
-      joyports[port].driver = &GPCVS;
-    else
-      joyports[port].driver = &GPC;
+    if (fc->fceu->GameInfo->type == GIT_VSUNI) {
+      joyports[port].driver = new GPCVS(fc);
+    } else {
+      joyports[port].driver = new GPC(fc);
+    }
     break;
-  case SI_ARKANOID: joyports[port].driver = FCEU_InitArkanoid(port); break;
-  case SI_ZAPPER: joyports[port].driver = FCEU_InitZapper(port); break;
-  case SI_POWERPADA: joyports[port].driver = FCEU_InitPowerpadA(port); break;
-  case SI_POWERPADB: joyports[port].driver = FCEU_InitPowerpadB(port); break;
-  case SI_NONE: joyports[port].driver = &DummyJPort; break;
+  case SI_ARKANOID: joyports[port].driver = CreateArkanoid(fc, port); break;
+  case SI_ZAPPER: joyports[port].driver = CreateZapper(fc, port); break;
+  case SI_POWERPADA: joyports[port].driver = CreatePowerpadA(fc, port); break;
+  case SI_POWERPADB: joyports[port].driver = CreatePowerpadB(fc, port); break;
+  case SI_NONE: joyports[port].driver = new InputC(fc); break;
   default:;
   }
 }

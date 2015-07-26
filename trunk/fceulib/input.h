@@ -24,7 +24,33 @@ struct MovieRecord {
 
 // MBG TODO - COMBINE THESE INPUTC AND INPUTCFC
 
+// Interface for standard joystic port device drivers.
+struct InputC {
+  InputC(FC *fc);
+  virtual uint8 Read(int w) {
+    return 0;
+  }
+  virtual void Write(uint8 w) {}
+  virtual void Strobe(int w) {}
+  // update will be called if input is coming from the user. refresh
+  // your logical state from user input devices
+  virtual void Update(int w, void *data, int arg) {}
+  virtual void SLHook(int w, uint8 *bg, uint8 *spr,
+		      uint32 linets, int final) {}
+  virtual void Draw(int w, uint8 *buf, int arg) {}
+
+  // XXX Kill? -tom7
+  virtual void Log(int w, MovieRecord *mr) {}
+  virtual void Load(int w, MovieRecord *mr) {}
+
+  virtual ~InputC() {}
+  
+ protected:
+  FC *fc;
+};
+
 // The interface for standard joystick port device drivers
+// (legacy -- tom7 kill!)
 struct INPUTC {
   // these methods call the function pointers (or not, if they are null)
   uint8 Read(FC *fc, int w) {
@@ -128,7 +154,7 @@ struct JOYPORT {
   int attrib = 0;
   ESI type = SI_NONE;
   void *ptr = nullptr;
-  INPUTC *driver = nullptr;
+  InputC *driver = nullptr;
 
   void log(MovieRecord *mr) { driver->Log(w, mr); }
   void load(MovieRecord *mr) { driver->Load(w, mr); }
@@ -143,7 +169,8 @@ struct FCPORT {
 
 struct Input {
   Input(FC *fc);
-
+  ~Input();
+  
   FCPORT portFC;
 
   void FCEUI_ResetNES();
@@ -182,6 +209,10 @@ struct Input {
   const SFORMAT *FCEUINPUT_STATEINFO() { return stateinfo.data(); }
 
  private:
+  friend class InputC;
+
+  struct GPC;
+  struct GPCVS;
   // Joyports are where the emulator looks to find input during simulation.
   // They're set by FCEUI_SetInput. Each joyport knows its index (w), type,
   // and pointer to data. I think the data pointer for two gamepads is usually
@@ -189,8 +220,7 @@ struct Input {
   //
   // Ultimately these get copied into joy[4]. I don't know which is which
   // (see the confusing UpdateGP below) but it seems joy[0] is the least
-  // significant
-  // byte of the pointer. -tom7
+  // significant byte of the pointer. -tom7
   JOYPORT joyports[2] = {JOYPORT(0), JOYPORT(1)};
 
   const std::vector<SFORMAT> stateinfo;
@@ -199,7 +229,7 @@ struct Input {
   bool microphone = false;
 
   uint8 joy_readbit[2] = {0, 0};
-  // HACK - should be static but movie needs it
+  // HACK - should be static but movie needs it (still? -tom7)
   uint8 joy[4] = {0, 0, 0, 0};
   uint8 LastStrobe = 0;
 
@@ -222,10 +252,8 @@ struct Input {
   uint8 ReadFami4(int w, uint8 ret);
   void StrobeFami4();
 
-  INPUTC GPC, GPCVS;
-
-  // a main joystick port driver representing the case where nothing is plugged
-  // in
+  // a main joystick port driver representing the case where nothing
+  // is plugged in
   INPUTC DummyJPort{0, 0, 0, 0, 0, 0};
   INPUTCFC DummyPortFC{0, 0, 0, 0, 0, 0};
 

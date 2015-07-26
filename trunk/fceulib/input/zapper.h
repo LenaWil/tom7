@@ -4,14 +4,7 @@
 #include "../types.h"
 #include "../input.h"
 
-struct ZAPPER {
-  uint32 mzx,mzy,mzb;
-  int zap_readbit;
-  uint8 bogo;
-  int zappo;
-  uint64 zaphit;
-  uint32 lastInput;
-};
+extern InputC *CreateZapper(FC *fc, int w);
 
 extern INPUTC *FCEU_InitZapper(int w);
 

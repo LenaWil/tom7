@@ -382,7 +382,7 @@ void FCEU::SetReadHandler(int32 start, int32 end, readfunc func) {
 // This is kind of silly since it just eta-expands printf with
 // a limit of 2k. Probably nothing should be printing in fceulib
 // unless there's an error, though.
-void FCEU_printf(char *format, ...) {
+void FCEU_printf(const char *format, ...) {
   char temp[2048];
 
   va_list ap;
@@ -395,7 +395,7 @@ void FCEU_printf(char *format, ...) {
   va_end(ap);
 }
 
-void FCEU_PrintError(char *format, ...) {
+void FCEU_PrintError(const char *format, ...) {
   char temp[2048];
 
   va_list ap;
