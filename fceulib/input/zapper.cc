@@ -104,8 +104,8 @@ struct ZapperBase : public InputC {
 
     if (xe > 256) xe = 256;
 
-    if (fceulib__.ppu->scanline >= (zy - 4) &&
-	fceulib__.ppu->scanline <= (zy + 4)) {
+    if (fc->ppu->scanline >= (zy - 4) &&
+	fc->ppu->scanline <= (zy + 4)) {
       while (xs < xe) {
 	uint8 a1, a2;
 	uint32 sum;
@@ -120,14 +120,14 @@ struct ZapperBase : public InputC {
 	  a1 &= 63;
 
 	  sum =
-	    fceulib__.palette->palo[a1].r +
-	    fceulib__.palette->palo[a1].g +
-	    fceulib__.palette->palo[a1].b;
+	    fc->palette->palo[a1].r +
+	    fc->palette->palo[a1].g +
+	    fc->palette->palo[a1].b;
 	  if (sum >= 100 * 3) {
 	    ZD.zaphit =
-              ((uint64)linets + (xs + 16) * (fceulib__.fceu->PAL ? 15 : 16)) /
+              ((uint64)linets + (xs + 16) * (fc->fceu->PAL ? 15 : 16)) /
 	      48 +
-              fceulib__.fceu->timestampbase;
+              fc->fceu->timestampbase;
 	    goto endo;
 	  }
 	}
@@ -210,7 +210,7 @@ struct ZapperVSC : public ZapperBase {
 }  // namespace
 
 InputC *CreateZapper(FC *fc, int w) {
-  if (fceulib__.fceu->GameInfo->type == GIT_VSUNI) {
+  if (fc->fceu->GameInfo->type == GIT_VSUNI) {
     return new ZapperVSC(fc, w);
   } else {
     return new ZapperC(fc, w);

@@ -91,12 +91,12 @@ void Unif::ResetUNIF() {
 
 void Unif::MooMirroring() {
   if (mirrortodo<0x4) {
-    fceulib__.cart->SetupCartMirroring(mirrortodo,1,0);
+    fc->cart->SetupCartMirroring(mirrortodo,1,0);
   } else if (mirrortodo==0x4) {
-    fceulib__.cart->SetupCartMirroring(4,1,exntar);
-    fceulib__.state->AddExState(exntar, 2048, 0,"EXNR");
+    fc->cart->SetupCartMirroring(4,1,exntar);
+    fc->state->AddExState(exntar, 2048, 0,"EXNR");
   } else {
-    fceulib__.cart->SetupCartMirroring(0,0,0);
+    fc->cart->SetupCartMirroring(0,0,0);
   }
 }
 
@@ -171,11 +171,11 @@ int Unif::CTRL(FceuFile *fp) {
      better than nothing...maybe.
   */
 
-  if (t&1) fceulib__.fceu->GameInfo->input[0]=fceulib__.fceu->GameInfo->input[1]=SI_GAMEPAD;
-  else fceulib__.fceu->GameInfo->input[0]=fceulib__.fceu->GameInfo->input[1]=SI_NONE;
+  if (t&1) fc->fceu->GameInfo->input[0]=fc->fceu->GameInfo->input[1]=SI_GAMEPAD;
+  else fc->fceu->GameInfo->input[0]=fc->fceu->GameInfo->input[1]=SI_NONE;
 
-  if (t&2) fceulib__.fceu->GameInfo->input[1]=SI_ZAPPER;
-  //else if (t&0x10) fceulib__.fceu->GameInfo->input[1]=SI_POWERPAD;
+  if (t&2) fc->fceu->GameInfo->input[1]=SI_ZAPPER;
+  //else if (t&0x10) fc->fceu->GameInfo->input[1]=SI_POWERPAD;
 
   return 1;
 }
@@ -189,11 +189,11 @@ int Unif::TVCI(FceuFile *fp) {
       "NTSC", "PAL", "NTSC and PAL"
     };
     if (t==0) {
-      fceulib__.fceu->GameInfo->vidsys=GIV_NTSC;
-      fceulib__.fceu->FCEUI_SetVidSystem(0);
+      fc->fceu->GameInfo->vidsys=GIV_NTSC;
+      fc->fceu->FCEUI_SetVidSystem(0);
     } else if (t==1) {
-      fceulib__.fceu->GameInfo->vidsys=GIV_PAL;
-      fceulib__.fceu->FCEUI_SetVidSystem(1);
+      fc->fceu->GameInfo->vidsys=GIV_PAL;
+      fc->fceu->FCEUI_SetVidSystem(1);
     }
     FCEU_printf(" TV Standard Compatibility: %s\n",stuffo[t]);
   }
@@ -228,7 +228,7 @@ int Unif::LoadPRG(FceuFile *fp) {
     FCEU_printf("\n");
   }
 
-  fceulib__.cart->SetupCartPRGMapping(z, malloced[z], t, 0);
+  fc->cart->SetupCartPRGMapping(z, malloced[z], t, 0);
   return 1;
 }
 
@@ -268,7 +268,7 @@ int Unif::LoadCHR(FceuFile *fp) {
     FCEU_printf("\n");
   }
 
-  fceulib__.cart->SetupCartCHRMapping(z, malloced[16+z], t, 0);
+  fc->cart->SetupCartCHRMapping(z, malloced[16+z], t, 0);
   return 1;
 }
 
@@ -474,8 +474,8 @@ int Unif::InitializeBoard() {
 	else
 	  CHRRAMSize = 8192;
 	if ((UNIFchrrama=(uint8 *)FCEU_malloc(CHRRAMSize))) {
-	  fceulib__.cart->SetupCartCHRMapping(0,UNIFchrrama,CHRRAMSize,1);
-	  fceulib__.state->AddExState(UNIFchrrama, CHRRAMSize, 0,"CHRR");
+	  fc->cart->SetupCartCHRMapping(0,UNIFchrrama,CHRRAMSize,1);
+	  fc->state->AddExState(UNIFchrrama, CHRRAMSize, 0,"CHRR");
 	} else {
 	  return -1;
 	}
@@ -495,7 +495,7 @@ int Unif::InitializeBoard() {
 void Unif::UNIFGI(GI h) {
   switch(h) {
   case GI_RESETSAVE:
-    fceulib__.cart->FCEU_ClearGameSave(&UNIFCart);
+    fc->cart->FCEU_ClearGameSave(&UNIFCart);
     break;
 
   case GI_RESETM2:
@@ -508,7 +508,7 @@ void Unif::UNIFGI(GI h) {
     if (UNIFchrrama) memset(UNIFchrrama,0,8192);
     break;
   case GI_CLOSE:
-    fceulib__.cart->FCEU_SaveGameSave(&UNIFCart);
+    fc->cart->FCEU_SaveGameSave(&UNIFCart);
     if (UNIFCart.Close)
       UNIFCart.Close(fc);
     FreeUNIF();
@@ -522,9 +522,9 @@ int Unif::UNIFLoad(const char *name, FceuFile *fp) {
   if (memcmp(&unhead,"UNIF",4))
     return 0;
 
-  fceulib__.cart->ResetCartMapping();
+  fc->cart->ResetCartMapping();
 
-  fceulib__.state->ResetExState(nullptr, nullptr);
+  fc->state->ResetExState(nullptr, nullptr);
   ResetUNIF();
   if (!FCEU_read32le(&unhead.info,fp))
     goto aborto;
@@ -548,15 +548,15 @@ int Unif::UNIFLoad(const char *name, FceuFile *fp) {
     for (int x=0; x < 16; x++)
       FCEU_printf("%02x",UNIFCart.MD5[x]);
     FCEU_printf("\n");
-    memcpy(&fceulib__.fceu->GameInfo->MD5,&UNIFCart.MD5,sizeof(UNIFCart.MD5));
+    memcpy(&fc->fceu->GameInfo->MD5,&UNIFCart.MD5,sizeof(UNIFCart.MD5));
   }
 
   if (!InitializeBoard())
     goto aborto;
 
-  fceulib__.cart->FCEU_LoadGameSave(&UNIFCart);
+  fc->cart->FCEU_LoadGameSave(&UNIFCart);
 
-  fceulib__.fceu->GameInterface = [](FC *fc, GI gi) {
+  fc->fceu->GameInterface = [](FC *fc, GI gi) {
     return fc->unif->UNIFGI(gi);
   };
   return 1;

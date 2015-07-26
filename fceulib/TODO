@@ -43,7 +43,7 @@ Cleanup to do:
  - Common pattern in boards/* is to declare WRAMSIZE as a static
    variable but always set it to a constant.
  - CHECKs in Zapper
- - clang-format input/shadow.cc
+ - clang-format unif.cc
 
 Surprisingly necessary:
  - crc32 since ines.cc has a table of games and their CRCs.

@@ -66,56 +66,6 @@ struct InputCFC {
   FC *fc = nullptr;
 };
 
-// XXX KILL.
-// The interface for the expansion port device drivers
-struct INPUTCFC {
-  // these methods call the function pointers (or not, if they are null)
-  uint8 Read(FC *fc, int w, uint8 ret) {
-    if (_Read)
-      return _Read(fc, w, ret);
-    else
-      return ret;
-  }
-  void Write(uint8 v) {
-    if (_Write) _Write(v);
-  }
-  void Strobe() {
-    if (_Strobe) _Strobe();
-  }
-  void Update(void *data, int arg) {
-    if (_Update) _Update(data, arg);
-  }
-  void SLHook(uint8 *bg, uint8 *spr, uint32 linets, int final) {
-    if (_SLHook) _SLHook(bg, spr, linets, final);
-  }
-  void Draw(uint8 *buf, int arg) {
-    if (_Draw) _Draw(buf, arg);
-  }
-  void Log(MovieRecord *mr) {
-    if (_Log) _Log(mr);
-  }
-  void Load(MovieRecord *mr) {
-    if (_Load) _Load(mr);
-  }
-
-  uint8 (*_Read)(FC *fc, int w, uint8 ret);
-  void (*_Write)(uint8 v);
-  void (*_Strobe)();
-  // update will be called if input is coming from the user. refresh
-  // your logical state from user input devices
-  void (*_Update)(void *data, int arg);
-  void (*_SLHook)(uint8 *bg, uint8 *spr, uint32 linets, int final);
-  void (*_Draw)(uint8 *buf, int arg);
-
-  // log is called when you need to put your logical state into a movie record
-  // for recording
-  void (*_Log)(MovieRecord *mr);
-
-  // load will be called if input is coming from a movie. refresh your logical
-  // state from a movie record
-  void (*_Load)(MovieRecord *mr);
-};
-
 struct JOYPORT {
   explicit JOYPORT(int w) : w(w) {}
 
@@ -165,7 +115,7 @@ struct Input {
   void FCEU_UpdateInput();
   void InitializeInput();
   void FCEU_UpdateBot();
-  void (*PStrobe[2])();
+  void (*PStrobe[2])() = {nullptr, nullptr};
 
   // called from PPU on scanline events.
   void InputScanlineHook(uint8 *bg, uint8 *spr, uint32 linets, int final);
@@ -202,7 +152,7 @@ struct Input {
   // HACK - should be static but movie needs it (still? -tom7)
   uint8 joy[4] = {0, 0, 0, 0};
   uint8 LastStrobe = 0;
-
+ 
   // set to true if the fourscore is attached
   bool FSAttached = false;
 
@@ -221,10 +171,6 @@ struct Input {
   uint8 F4ReadBit[2] = {};
   uint8 ReadFami4(int w, uint8 ret);
   void StrobeFami4();
-
-  // a main joystick port driver representing the case where nothing
-  // is plugged in
-  INPUTCFC DummyPortFC{0, 0, 0, 0, 0, 0};
 
   FC *fc = nullptr;
 };
