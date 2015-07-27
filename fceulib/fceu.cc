@@ -235,11 +235,6 @@ endlseq:
 
 // Return: Flag that indicates whether the function was succesful or not.
 bool FCEU::FCEUI_Initialize() {
-  // XXX I think we shouldn't do anything randomly in fceulib --tom7.
-  // (There don't appear to be any calls to rand(), but I checked during
-  // the FCEU objectification and don't want to mess with it now)
-  srand(time(0));
-
   AllocBuffers();
 
   // XXX.
