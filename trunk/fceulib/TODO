@@ -27,7 +27,10 @@ Stuff I should be able to get rid of:
 
  - is "moo" defined? mappers/61.cc ifdefs it
 
-fceulib__
+ - Get rid of "linked" style state, like
+    fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
+   in many boards. Just pass a vector.
+
 
 Memory todo:
  - Need to check that various objects are actually having their Free or Kill

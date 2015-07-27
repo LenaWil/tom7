@@ -42,6 +42,7 @@ enum EFCEUI {
 
 struct FCEU {
   explicit FCEU(FC *fc);
+  ~FCEU();
   
   void SetReadHandler(int32 start, int32 end, readfunc func);
 
@@ -58,9 +59,6 @@ struct FCEU {
 
   // Emulates a frame.
   void FCEUI_Emulate(int video_and_sound_flags);
-
-  // Deallocates all allocated memory.  Call after FCEUI_Emulate() returns.
-  void FCEUI_Kill();
 
   void ResetMapping();
   void ResetNES();
@@ -117,8 +115,6 @@ private:
   readfunc *AReadG = nullptr;
   writefunc *BWriteG = nullptr;
 
-  void AllocBuffers();
-  void FreeBuffers();
   void ResetGameLoaded();
 
   FC *fc = nullptr;
