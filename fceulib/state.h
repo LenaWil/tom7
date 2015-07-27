@@ -31,6 +31,8 @@ struct SFORMAT {
   void *v;
 
   // size, plus flags
+  // Also, if this is ~0, then that means that it's actually a link
+  // to another SFORMAT structure. Gross.
   uint32 s;
   
   // a string description of the element
@@ -84,10 +86,13 @@ struct State {
 // indicates that the value is a multibyte integer that needs to be
 // put in the correct byte order
 #define FCEUSTATE_RLSB            0x80000000
+
+// Got rid of this since it was only used for RAM, and not necessary
+// there. -tom7
 // void*v is actually a void** which will be indirected before reading
-#define FCEUSTATE_INDIRECT            0x40000000
+// #define FCEUSTATE_INDIRECT            0x40000000
 // all FCEUSTATE flags together so that we can mask them out and get
 // the size
-#define FCEUSTATE_FLAGS (FCEUSTATE_RLSB|FCEUSTATE_INDIRECT)
+#define FCEUSTATE_FLAGS (FCEUSTATE_RLSB /*|FCEUSTATE_INDIRECT */)
 
 #endif

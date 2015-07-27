@@ -58,7 +58,7 @@ void State::InitState() {
       {&fc->X->reg_X, 1, "X\0\0"},
       {&fc->X->reg_Y, 1, "Y\0\0"},
       {&fc->X->reg_S, 1, "S\0\0"},
-      {&fc->fceu->RAM, 0x800 | FCEUSTATE_INDIRECT, "RAM"},
+      {fc->fceu->RAM, 0x800, "RAM"},
       {0},
   };
 
@@ -111,7 +111,7 @@ int State::SubWrite(EMUFILE *os, const SFORMAT *sf) {
       TRACE_SCOPED_ENABLE_IF(sf->desc[0] == 'P' && sf->desc[1] == 'C');
       TRACEF("%s for %d", sf->desc, sf->s & ~FCEUSTATE_FLAGS);
 
-      if (sf->s & FCEUSTATE_INDIRECT)
+      if (false /* sf->s & FCEUSTATE_INDIRECT */)
         TRACEA(*(uint8 **)sf->v, sf->s & (~FCEUSTATE_FLAGS));
       else
         TRACEA((uint8 *)sf->v, sf->s & (~FCEUSTATE_FLAGS));
@@ -121,7 +121,7 @@ int State::SubWrite(EMUFILE *os, const SFORMAT *sf) {
         FlipByteOrder((uint8 *)sf->v, sf->s & (~FCEUSTATE_FLAGS));
 #endif
 
-      if (sf->s & FCEUSTATE_INDIRECT)
+      if (false /* sf->s & FCEUSTATE_INDIRECT */)
         os->fwrite(*(char **)sf->v, sf->s & (~FCEUSTATE_FLAGS));
       else
         os->fwrite((char *)sf->v, sf->s & (~FCEUSTATE_FLAGS));
@@ -180,7 +180,7 @@ bool State::ReadStateChunk(EMUFILE *is, const SFORMAT *sf, int size) {
     read32le(&tsize, is);
 
     if (const SFORMAT *tmp = CheckS(sf, tsize, toa)) {
-      if (tmp->s & FCEUSTATE_INDIRECT)
+      if (false /* tmp->s & FCEUSTATE_INDIRECT */)
         is->fread(*(char **)tmp->v, tmp->s & (~FCEUSTATE_FLAGS));
       else
         is->fread((char *)tmp->v, tmp->s & (~FCEUSTATE_FLAGS));

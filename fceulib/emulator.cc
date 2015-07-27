@@ -121,7 +121,8 @@ int Emulator::LoadGame(const string &path) {
 Emulator::~Emulator() {
   fc->fceu->FCEU_CloseGame();
   fc->fceu->GameInfo = nullptr;
-  fc->fceu->FCEUI_Kill();
+
+  // TODO: delete owned FC object...
 }
 
 Emulator::Emulator(FC *fc) : fc(fc) {}

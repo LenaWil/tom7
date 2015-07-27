@@ -60,7 +60,12 @@ using namespace std;
 // TODO: Delete.
 static constexpr int RWWrap = 0;
 
-FCEU::FCEU(FC *fc) : fc(fc) {}
+FCEU::FCEU(FC *fc) : fc(fc) {
+  GameMemBlock = (uint8*)FCEU_gmalloc(GAME_MEM_BLOCK_SIZE);
+  RAM = (uint8*)FCEU_gmalloc(0x800);
+  XBuf = (uint8*)FCEU_gmalloc(256 * 256);
+  XBackBuf = (uint8*)FCEU_gmalloc(256 * 256);
+}
 
 FCEUGI::FCEUGI() { }
 
@@ -73,13 +78,16 @@ void FCEU::FCEU_CloseGame() {
 
     fc->state->ResetExState(nullptr, nullptr);
 
-    //clear screen when game is closed
-    if (XBuf)
-      memset(XBuf,0,256*256);
-
     delete GameInfo;
     GameInfo = nullptr;
   }
+
+  // Zero out all the buffers I own. FCEU didn't do this (just xbuf),
+  // but it seems like the sane thing to do. -tom7
+  memset(GameMemBlock, 0, GAME_MEM_BLOCK_SIZE);
+  memset(RAM, 0, 0x800);
+  memset(XBuf, 0, 256 * 256);
+  memset(XBackBuf, 0, 256 * 256);
 }
 
 static DECLFW(BNull) {
@@ -122,19 +130,13 @@ void FCEU::SetWriteHandler(int32 start, int32 end, writefunc func) {
   }
 }
 
-void FCEU::AllocBuffers() {
-  GameMemBlock = (uint8*)FCEU_gmalloc(GAME_MEM_BLOCK_SIZE);
-  RAM = (uint8*)FCEU_gmalloc(0x800);
-  XBuf = (uint8*)FCEU_gmalloc(256 * 256);
-  XBackBuf = (uint8*)FCEU_gmalloc(256 * 256);
-}
-
-void FCEU::FreeBuffers() {
+FCEU::~FCEU() {
   free(GameMemBlock);
   free(RAM);
   free(XBuf);
   free(XBackBuf);
 }
+
 
 static DECLFW(BRAML) {
   fc->fceu->RAM[A]=V;
@@ -154,9 +156,9 @@ static DECLFR(ARAMH) {
 
 void FCEU::ResetGameLoaded() {
   if (GameInfo) FCEU_CloseGame();
-  GameStateRestore=0;
-  fc->ppu->PPU_hook=0;
-  fc->ppu->GameHBIRQHook=0;
+  GameStateRestore = nullptr;
+  fc->ppu->PPU_hook = nullptr;
+  fc->ppu->GameHBIRQHook = nullptr;
   // Probably this should happen within sound itself.
   if (fc->sound->GameExpSound.Kill)
     fc->sound->GameExpSound.Kill(fc);
@@ -235,18 +237,12 @@ endlseq:
 
 // Return: Flag that indicates whether the function was succesful or not.
 bool FCEU::FCEUI_Initialize() {
-  AllocBuffers();
-
   // XXX.
   GameInterface = (void (*)(FC *, GI))0xDEADBEEF;
   
   fc->X->Init();
 
   return true;
-}
-
-void FCEU::FCEUI_Kill() {
-  FreeBuffers();
 }
 
 // Emulates a single frame.
