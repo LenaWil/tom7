@@ -50,89 +50,86 @@
 using namespace std;
 
 void State::InitState() {
-  // Note: these will crash if fceulib__ is not initialized first. FIX
   if (state_initialized) return;
   sfcpu = {
-    { &fceulib__.X->reg_PC, 2|FCEUSTATE_RLSB, "PC\0" },
-    { &fceulib__.X->reg_A, 1, "A\0\0" },
-    { &fceulib__.X->reg_P, 1, "P\0\0" },
-    { &fceulib__.X->reg_X, 1, "X\0\0" },
-    { &fceulib__.X->reg_Y, 1, "Y\0\0" },
-    { &fceulib__.X->reg_S, 1, "S\0\0" },
-    { &fceulib__.fceu->RAM, 0x800 | FCEUSTATE_INDIRECT, "RAM" },
-    { 0 },
+      {&fc->X->reg_PC, 2 | FCEUSTATE_RLSB, "PC\0"},
+      {&fc->X->reg_A, 1, "A\0\0"},
+      {&fc->X->reg_P, 1, "P\0\0"},
+      {&fc->X->reg_X, 1, "X\0\0"},
+      {&fc->X->reg_Y, 1, "Y\0\0"},
+      {&fc->X->reg_S, 1, "S\0\0"},
+      {&fc->fceu->RAM, 0x800 | FCEUSTATE_INDIRECT, "RAM"},
+      {0},
   };
 
   sfcpuc = {
-    { &fceulib__.X->jammed, 1, "JAMM" },
-    { &fceulib__.X->IRQlow, 4|FCEUSTATE_RLSB, "IQLB" },
-    { &fceulib__.X->tcount, 4|FCEUSTATE_RLSB, "ICoa" },
-    { &fceulib__.X->count,  4|FCEUSTATE_RLSB, "ICou" },
-    { &fceulib__.fceu->timestampbase, 
-      sizeof (fceulib__.fceu->timestampbase) | FCEUSTATE_RLSB, "TSBS" },
-    // alternative to the "quick and dirty hack"
-    { &fceulib__.X->reg_PI, 1, "MooP" },
-    // This was not included in FCEUltra, but I can't see any
-    // reason why it shouldn't be (it's updated with each memory
-    // read and used by some boards), and execution diverges if
-    // it's not saved/restored. (See "Skull & Crossbones" around
-    // FCEUlib revision 2379.)
-    { &fceulib__.X->DB, 1, "DBDB" },
-    { 0 }
+      {&fc->X->jammed, 1, "JAMM"},
+      {&fc->X->IRQlow, 4 | FCEUSTATE_RLSB, "IQLB"},
+      {&fc->X->tcount, 4 | FCEUSTATE_RLSB, "ICoa"},
+      {&fc->X->count, 4 | FCEUSTATE_RLSB, "ICou"},
+      {&fc->fceu->timestampbase,
+       sizeof(fc->fceu->timestampbase) | FCEUSTATE_RLSB, "TSBS"},
+      // alternative to the "quick and dirty hack"
+      {&fc->X->reg_PI, 1, "MooP"},
+      // This was not included in FCEUltra, but I can't see any
+      // reason why it shouldn't be (it's updated with each memory
+      // read and used by some boards), and execution diverges if
+      // it's not saved/restored. (See "Skull & Crossbones" around
+      // FCEUlib revision 2379.)
+      {&fc->X->DB, 1, "DBDB"},
+      {0}
   };
 
   state_initialized = true;
 }
 
-int State::SubWrite(EMUFILE* os, const SFORMAT *sf) {
-  uint32 acc=0;
+int State::SubWrite(EMUFILE *os, const SFORMAT *sf) {
+  uint32 acc = 0;
 
   TRACE_SCOPED_STAY_ENABLED_IF(false);
 
   while (sf->v) {
-    if (sf->s==~0) {
+    if (sf->s == ~0) {
       // Link to another struct
-      const uint32 tmp = SubWrite(os,(const SFORMAT *)sf->v);
+      const uint32 tmp = SubWrite(os, (const SFORMAT *)sf->v);
 
-      if (!tmp)
-	return 0;
-      acc+=tmp;
+      if (!tmp) return 0;
+      acc += tmp;
       sf++;
       continue;
     }
 
     // 8 bytes for tag + size
     acc += 8;
-    acc += sf->s&(~FCEUSTATE_FLAGS);
+    acc += sf->s & (~FCEUSTATE_FLAGS);
 
-    //Are we writing or calculating the size of this block?
+    // Are we writing or calculating the size of this block?
     if (os) {
-      os->fwrite(sf->desc,4);
-      write32le(sf->s&(~FCEUSTATE_FLAGS),os);
-      
+      os->fwrite(sf->desc, 4);
+      write32le(sf->s & (~FCEUSTATE_FLAGS), os);
+
       TRACE_SCOPED_ENABLE_IF(sf->desc[0] == 'P' && sf->desc[1] == 'C');
       TRACEF("%s for %d", sf->desc, sf->s & ~FCEUSTATE_FLAGS);
 
-      if (sf->s&FCEUSTATE_INDIRECT)
-	TRACEA(*(uint8 **)sf->v, sf->s&(~FCEUSTATE_FLAGS));
+      if (sf->s & FCEUSTATE_INDIRECT)
+        TRACEA(*(uint8 **)sf->v, sf->s & (~FCEUSTATE_FLAGS));
       else
-	TRACEA((uint8 *)sf->v, sf->s&(~FCEUSTATE_FLAGS));
-
+        TRACEA((uint8 *)sf->v, sf->s & (~FCEUSTATE_FLAGS));
 
 #ifndef LSB_FIRST
-      if (sf->s&FCEUSTATE_RLSB)
-	FlipByteOrder((uint8*)sf->v,sf->s&(~FCEUSTATE_FLAGS));
+      if (sf->s & FCEUSTATE_RLSB)
+        FlipByteOrder((uint8 *)sf->v, sf->s & (~FCEUSTATE_FLAGS));
 #endif
 
-      if (sf->s&FCEUSTATE_INDIRECT)
-	os->fwrite(*(char **)sf->v,sf->s&(~FCEUSTATE_FLAGS));
+      if (sf->s & FCEUSTATE_INDIRECT)
+        os->fwrite(*(char **)sf->v, sf->s & (~FCEUSTATE_FLAGS));
       else
-	os->fwrite((char*)sf->v,sf->s&(~FCEUSTATE_FLAGS));
+        os->fwrite((char *)sf->v, sf->s & (~FCEUSTATE_FLAGS));
 
-      //Now restore the original byte order.
+// Now restore the original byte order.
 #ifndef LSB_FIRST
-      if (sf->s&FCEUSTATE_RLSB)
-	FlipByteOrder((uint8*)sf->v,sf->s&(~FCEUSTATE_FLAGS));
+      if (sf->s & FCEUSTATE_RLSB)
+        FlipByteOrder((uint8 *)sf->v, sf->s & (~FCEUSTATE_FLAGS));
 #endif
     }
     sf++;
@@ -141,13 +138,13 @@ int State::SubWrite(EMUFILE* os, const SFORMAT *sf) {
   return acc;
 }
 
-int State::WriteStateChunk(EMUFILE* os, int type, const SFORMAT *sf) {
+int State::WriteStateChunk(EMUFILE *os, int type, const SFORMAT *sf) {
   os->fputc(type);
-  int bsize = SubWrite((EMUFILE*)0,sf);
-  write32le(bsize,os);
+  int bsize = SubWrite((EMUFILE *)0, sf);
+  write32le(bsize, os);
   // TRACEF("Write %s etc. sized %d", sf->desc, bsize);
 
-  if (!SubWrite(os,sf)) {
+  if (!SubWrite(os, sf)) {
     return 5;
   }
   return bsize + 5;
@@ -155,117 +152,111 @@ int State::WriteStateChunk(EMUFILE* os, int type, const SFORMAT *sf) {
 
 const SFORMAT *State::CheckS(const SFORMAT *sf, uint32 tsize, char *desc) {
   while (sf->v) {
-    if (sf->s==~0) {
+    if (sf->s == ~0) {
       // Link to another SFORMAT structure.
-		  
+
       if (const SFORMAT *tmp = CheckS((const SFORMAT *)sf->v, tsize, desc))
-	return tmp;
+        return tmp;
       sf++;
       continue;
     }
-    if (!memcmp(desc,sf->desc,4)) {
-      if (tsize!=(sf->s&(~FCEUSTATE_FLAGS)))
-	return nullptr;
+    if (!memcmp(desc, sf->desc, 4)) {
+      if (tsize != (sf->s & (~FCEUSTATE_FLAGS))) return nullptr;
       return sf;
     }
     sf++;
   }
   return nullptr;
 }
-			      
-bool State::ReadStateChunk(EMUFILE* is, const SFORMAT *sf, int size) {
+
+bool State::ReadStateChunk(EMUFILE *is, const SFORMAT *sf, int size) {
   int temp = is->ftell();
 
-  while (is->ftell()<temp+size) {
+  while (is->ftell() < temp + size) {
     uint32 tsize;
     char toa[4];
-    if (is->fread(toa,4)<4)
-      return false;
+    if (is->fread(toa, 4) < 4) return false;
 
-    read32le(&tsize,is);
+    read32le(&tsize, is);
 
-    if (const SFORMAT *tmp = CheckS(sf,tsize,toa)) {
-      if (tmp->s&FCEUSTATE_INDIRECT)
-	is->fread(*(char **)tmp->v,tmp->s&(~FCEUSTATE_FLAGS));
+    if (const SFORMAT *tmp = CheckS(sf, tsize, toa)) {
+      if (tmp->s & FCEUSTATE_INDIRECT)
+        is->fread(*(char **)tmp->v, tmp->s & (~FCEUSTATE_FLAGS));
       else
-	is->fread((char *)tmp->v,tmp->s&(~FCEUSTATE_FLAGS));
+        is->fread((char *)tmp->v, tmp->s & (~FCEUSTATE_FLAGS));
 
 #ifndef LSB_FIRST
-      if (tmp->s&FCEUSTATE_RLSB)
-	FlipByteOrder((uint8*)tmp->v,tmp->s&(~FCEUSTATE_FLAGS));
+      if (tmp->s & FCEUSTATE_RLSB)
+        FlipByteOrder((uint8 *)tmp->v, tmp->s & (~FCEUSTATE_FLAGS));
 #endif
     } else {
-      is->fseek(tsize,SEEK_CUR);
+      is->fseek(tsize, SEEK_CUR);
     }
   }
   return true;
 }
 
-bool State::ReadStateChunks(EMUFILE* is, int32 totalsize) {
+bool State::ReadStateChunks(EMUFILE *is, int32 totalsize) {
   InitState();
   uint32 size;
-  bool ret=true;
-  bool warned=false;
+  bool ret = true;
+  bool warned = false;
 
   while (totalsize > 0) {
     int t = is->fgetc();
-    if (t==EOF) break;
-    if (!read32le(&size,is)) break;
+    if (t == EOF) break;
+    if (!read32le(&size, is)) break;
     totalsize -= size + 5;
 
     switch (t) {
-    case 1:
-      if (!ReadStateChunk(is,sfcpu.data(),size))
-	ret=false;
-      break;
-    case 3:
-      if (!ReadStateChunk(is,fceulib__.ppu->FCEUPPU_STATEINFO(),size))
-	ret=false;
-      break;
-    case 4:
-      if (!ReadStateChunk(is,fceulib__.input->FCEUINPUT_STATEINFO(),size))
-	ret=false;
-      break;
-    case 7:
-      fprintf(stderr, "This used to be mid-movie recording. -tom7.\n");
-      abort();
-      break;
-    case 0x10:
-      if (!ReadStateChunk(is,SFMDATA,size))
-	ret=false;
-      break;
-    case 5:
-      if (!ReadStateChunk(is,fceulib__.sound->FCEUSND_STATEINFO(),size))
-	ret=false;
-      break;
-    case 6:
-      is->fseek(size,SEEK_CUR);
-      break;
-    case 8:
-      // load back buffer
-      {
-	if (is->fread((char*)fceulib__.fceu->XBackBuf,size) != size)
-	  ret = false;
-      }
-      break;
-    case 2:
-      if (!ReadStateChunk(is,sfcpuc.data(),size))
-	ret=false;
-      break;
-    default:
-      // for somebody's sanity's sake, at least warn about it:
-      // XXX should probably just abort here since we don't try to provide
-      // save-state compatibility. -tom7
-      if (!warned) {
-	char str[256];
-	sprintf(str, "Warning: Found unknown save chunk of type %d.\n"
-		"This could indicate the save state is corrupted\n"
-		"or made with a different (incompatible) emulator version.", t);
-	FCEUD_PrintError(str);
-	warned=true;
-      }
-      //if (fseek(st,size,SEEK_CUR)<0) goto endo;break;
-      is->fseek(size,SEEK_CUR);
+      case 1:
+        if (!ReadStateChunk(is, sfcpu.data(), size)) ret = false;
+        break;
+      case 3:
+        if (!ReadStateChunk(is, fc->ppu->FCEUPPU_STATEINFO(), size))
+          ret = false;
+        break;
+      case 4:
+        if (!ReadStateChunk(is, fc->input->FCEUINPUT_STATEINFO(), size))
+          ret = false;
+        break;
+      case 7:
+        fprintf(stderr, "This used to be mid-movie recording. -tom7.\n");
+        abort();
+        break;
+      case 0x10:
+        if (!ReadStateChunk(is, SFMDATA, size)) ret = false;
+        break;
+      case 5:
+        if (!ReadStateChunk(is, fc->sound->FCEUSND_STATEINFO(), size))
+          ret = false;
+        break;
+      case 6: is->fseek(size, SEEK_CUR); break;
+      case 8:
+        // load back buffer
+        {
+          if (is->fread((char *)fc->fceu->XBackBuf, size) != size) ret = false;
+        }
+        break;
+      case 2:
+        if (!ReadStateChunk(is, sfcpuc.data(), size)) ret = false;
+        break;
+      default:
+        // for somebody's sanity's sake, at least warn about it:
+        // XXX should probably just abort here since we don't try to provide
+        // save-state compatibility. -tom7
+        if (!warned) {
+          char str[256];
+          sprintf(str,
+                  "Warning: Found unknown save chunk of type %d.\n"
+                  "This could indicate the save state is corrupted\n"
+                  "or made with a different (incompatible) emulator version.",
+                  t);
+          FCEUD_PrintError(str);
+          warned = true;
+        }
+        // if (fseek(st,size,SEEK_CUR)<0) goto endo;break;
+        is->fseek(size, SEEK_CUR);
     }
   }
 
@@ -279,16 +270,16 @@ bool State::FCEUSS_SaveRAW(std::vector<uint8> *out) {
 
   uint32 totalsize = 0;
 
-  fceulib__.ppu->FCEUPPU_SaveState();
-  fceulib__.sound->FCEUSND_SaveState();
-  totalsize = WriteStateChunk(&os,1,sfcpu.data());
-  totalsize += WriteStateChunk(&os,2,sfcpuc.data());
+  fc->ppu->FCEUPPU_SaveState();
+  fc->sound->FCEUSND_SaveState();
+  totalsize = WriteStateChunk(&os, 1, sfcpu.data());
+  totalsize += WriteStateChunk(&os, 2, sfcpuc.data());
   TRACEF("PPU:");
-  totalsize += WriteStateChunk(&os,3,fceulib__.ppu->FCEUPPU_STATEINFO());
+  totalsize += WriteStateChunk(&os, 3, fc->ppu->FCEUPPU_STATEINFO());
   TRACEV(*out);
-  totalsize += WriteStateChunk(&os,4,fceulib__.input->FCEUINPUT_STATEINFO());
+  totalsize += WriteStateChunk(&os, 4, fc->input->FCEUINPUT_STATEINFO());
   // TRACEV(*out);
-  totalsize += WriteStateChunk(&os,5,fceulib__.sound->FCEUSND_STATEINFO());
+  totalsize += WriteStateChunk(&os, 5, fc->sound->FCEUSND_STATEINFO());
   // TRACEV(*out);
 
   if (SPreSave) SPreSave(fc);
@@ -297,16 +288,16 @@ bool State::FCEUSS_SaveRAW(std::vector<uint8> *out) {
   // M probably stands for Mapper, but I also use it in input, at least.
   //
   // TRACEF("SFMDATA:");
-  totalsize += WriteStateChunk(&os,0x10,SFMDATA);
+  totalsize += WriteStateChunk(&os, 0x10, SFMDATA);
   // TRACEV(*out);
   // Was just spre, but that seems wrong -tom7
   if (SPreSave && SPostSave) SPostSave(fc);
 
   // save the length of the file
   const int len = os.size();
-  
+
   // PERF shrink to fit?
-  
+
   // sanity check: len and totalsize should be the same
   if (len != totalsize) {
     FCEUD_PrintError("sanity violation: len != totalsize");
@@ -325,13 +316,13 @@ bool State::FCEUSS_LoadRAW(std::vector<uint8> *in) {
 
   bool success = (ReadStateChunks(&is, totalsize) != 0);
 
-  if (fceulib__.fceu->GameStateRestore != nullptr) {
-    fceulib__.fceu->GameStateRestore(&fceulib__, stateversion);
+  if (fc->fceu->GameStateRestore != nullptr) {
+    fc->fceu->GameStateRestore(fc, stateversion);
   }
 
   if (success) {
-    fceulib__.ppu->FCEUPPU_LoadState(stateversion);
-    fceulib__.sound->FCEUSND_LoadState(stateversion);
+    fc->ppu->FCEUPPU_LoadState(stateversion);
+    fc->sound->FCEUSND_LoadState(stateversion);
     return true;
   } else {
     return false;
@@ -340,7 +331,7 @@ bool State::FCEUSS_LoadRAW(std::vector<uint8> *in) {
 
 void State::ResetExState(void (*PreSave)(FC *), void (*PostSave)(FC *)) {
   for (int x = 0; x < SFEXINDEX; x++) {
-    delete []SFMDATA[x].desc;
+    delete[] SFMDATA[x].desc;
     SFMDATA[x].desc = nullptr;
   }
   // adelikat, 3/14/09: had to add this to clear out the size
@@ -355,18 +346,18 @@ void State::ResetExState(void (*PreSave)(FC *), void (*PostSave)(FC *)) {
   SFEXINDEX = 0;
 }
 
-void State::AddExStateReal(void *v, uint32 s, int type,
-			   const char *desc, const char *src) {
+void State::AddExStateReal(void *v, uint32 s, int type, const char *desc,
+                           const char *src) {
   if (s == ~0) {
-    const SFORMAT *sf = (const SFORMAT*)v;
+    const SFORMAT *sf = (const SFORMAT *)v;
     map<string, bool> names;
     while (sf->v) {
       char tmp[5] = {0};
-      memcpy(tmp,sf->desc,4);
+      memcpy(tmp, sf->desc, 4);
       std::string descr = tmp;
       if (names.find(descr) != names.end()) {
-	fprintf(stderr, "SFORMAT with duplicate key: %s\n", descr.c_str());
-	abort();
+        fprintf(stderr, "SFORMAT with duplicate key: %s\n", descr.c_str());
+        abort();
       }
       names[descr] = true;
       sf++;
@@ -378,13 +369,14 @@ void State::AddExStateReal(void *v, uint32 s, int type,
     // std::map or something.
     for (int i = 0; i < SFEXINDEX; i++) {
       if (SFMDATA[i].desc != nullptr &&
-	  // TODO: Sometimes we use strcmp and sometimes memcmp, but
-	  // these strings also have 0s in them...
-	  0 == strcmp(SFMDATA[i].desc, desc)) {
-	fprintf(stderr, "AddExState: The key '%s' was registered twice.\n"
-		"Second was from %s.\n",
-		desc, src);
-	abort();
+          // TODO: Sometimes we use strcmp and sometimes memcmp, but
+          // these strings also have 0s in them...
+          0 == strcmp(SFMDATA[i].desc, desc)) {
+        fprintf(stderr,
+                "AddExState: The key '%s' was registered twice.\n"
+                "Second was from %s.\n",
+                desc, src);
+        abort();
       }
     }
 
@@ -400,11 +392,12 @@ void State::AddExStateReal(void *v, uint32 s, int type,
   SFMDATA[SFEXINDEX].v = v;
   SFMDATA[SFEXINDEX].s = s;
   if (type) SFMDATA[SFEXINDEX].s |= FCEUSTATE_RLSB;
-  if (SFEXINDEX < SFMDATA_SIZE-1) {
+  if (SFEXINDEX < SFMDATA_SIZE - 1) {
     SFEXINDEX++;
   } else {
-    fprintf(stderr, "Error in AddExState: SFEXINDEX overflow.\n"
-	    "Somebody made SFMDATA_SIZE too small.\n");
+    fprintf(stderr,
+            "Error in AddExState: SFEXINDEX overflow.\n"
+            "Somebody made SFMDATA_SIZE too small.\n");
     abort();
   }
   // End marker.

@@ -25,9 +25,9 @@ Stuff I should be able to get rid of:
    in the FC object. Maybe they could derive from cartinfo (or equivalent).
    Some boards are based off of others, especially MMC3 but also MMC1.
 
- - DECLFR, DECLFW
-
  - is "moo" defined? mappers/61.cc ifdefs it
+
+fceulib__
 
 Memory todo:
  - Need to check that various objects are actually having their Free or Kill
