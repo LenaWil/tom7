@@ -21,133 +21,173 @@
 
 #include "mapinc.h"
 
-static void GenMMC1Power(FC *fc);
-static void GenMMC1Init(CartInfo *info, int prg, int chr, int wram,
-                        int battery);
-
-static uint8 DRegs[4];
-static uint8 Buffer, BufferShift;
-
-static int mmc1opts;
-
-static void (*MMC1CHRHook4)(uint32 A, uint8 V);
-static void (*MMC1PRGHook16)(uint32 A, uint8 V);
-
-static uint8 *WRAM = nullptr;
-static uint8 *CHRRAM = nullptr;
-static int is155, is171;
-
-static DECLFW(MBWRAM) {
-  if (!(DRegs[3] & 0x10) || is155)
-    fceulib__.cart->Page[A >> 11][A] = V;  // WRAM is enabled.
+static int DetectMMC1WRAMSize(uint32 crc32) {
+  switch (crc32) {
+  case 0xc6182024: /* Romance of the 3 Kingdoms */
+  case 0x2225c20f: /* Genghis Khan */
+  case 0x4642dda6: /* Nobunaga's Ambition */
+  case 0x29449ba9: /* ""        "" (J) */
+  case 0x2b11e0b0: /* ""        "" (J) */
+  case 0xb8747abf: /* Best Play Pro Yakyuu Special (J) */
+  case 0xc9556b36: /* Final Fantasy I & II (J) [!] */
+    FCEU_printf(
+	" >8KB external WRAM present.  Use UNIF if you hack the ROM "
+	"image.\n");
+    return 16;
+    break;
+  default: return 8;
+  }
 }
 
-static DECLFR(MAWRAM) {
-  if ((DRegs[3] & 0x10) && !is155) return fceulib__.X->DB;  // WRAM is disabled
-  return fceulib__.cart->Page[A >> 11][A];
-}
+struct MMC1 : public CartInterface {
+  using CartInterface::CartInterface;
 
-static void MMC1CHR() {
-  if (mmc1opts & 4) {
-    if (DRegs[0] & 0x10)
-      fceulib__.cart->setprg8r(0x10, 0x6000, (DRegs[1] >> 4) & 1);
-    else
-      fceulib__.cart->setprg8r(0x10, 0x6000, (DRegs[1] >> 3) & 1);
+  void GenMMC1Power(FC *fc);
+  void GenMMC1Init(CartInfo *info, int prg, int chr, int wram,
+		   int battery);
+
+  uint8 DRegs[4] = {};
+  uint8 Buffer = 0, BufferShift = 0;
+
+  int mmc1opts = 0;
+
+  // Used to play some tricks with function pointers; this is
+  // simpler and avoids creating more subclasses. -tom7
+  bool is_105 = false;
+
+  // These were only used by mapper 105.
+  // XXX tom7
+    // void (MMC1::*MMC1CHRHook4)(uint32 A, uint8 V) = nullptr;
+  // void (MMC1::*MMC1PRGHook16)(uint32 A, uint8 V) = nullptr;
+
+  uint8 *WRAM = nullptr;
+  uint8 *CHRRAM = nullptr;
+  int is155 = 0, is171 = 0;
+
+  uint64 lreset = 0ULL;
+  
+  static DECLFW(MBWRAM) {
+    return ((MMC1*)fc->fceu->cartiface)->MBWRAM_Direct(DECLFW_FORWARD);
   }
 
-  if (MMC1CHRHook4) {
-    if (DRegs[0] & 0x10) {
-      MMC1CHRHook4(0x0000, DRegs[1]);
-      MMC1CHRHook4(0x1000, DRegs[2]);
+  void MBWRAM_Direct(DECLFW_ARGS) {
+    if (!(DRegs[3] & 0x10) || is155)
+      fc->cart->Page[A >> 11][A] = V;  // WRAM is enabled.
+  }
+
+  static DECLFR(MAWRAM) {
+    return ((MMC1*)fc->fceu->cartiface)->MAWRAM_Direct(DECLFR_FORWARD);
+  }
+
+  DECLFR_RET MAWRAM_Direct(DECLFR_ARGS) {
+    if ((DRegs[3] & 0x10) && !is155)
+      return fc->X->DB;  // WRAM is disabled
+    return fc->cart->Page[A >> 11][A];
+  }
+
+  void MMC1CHR() {
+    if (mmc1opts & 4) {
+      if (DRegs[0] & 0x10)
+	fc->cart->setprg8r(0x10, 0x6000, (DRegs[1] >> 4) & 1);
+      else
+	fc->cart->setprg8r(0x10, 0x6000, (DRegs[1] >> 3) & 1);
+    }
+
+    if (is_105) {
+      if (DRegs[0] & 0x10) {
+	NWCCHRHook(0x0000, DRegs[1]);
+	NWCCHRHook(0x1000, DRegs[2]);
+      } else {
+	NWCCHRHook(0x0000, (DRegs[1] & 0xFE));
+	NWCCHRHook(0x1000, DRegs[1] | 1);
+      }
     } else {
-      MMC1CHRHook4(0x0000, (DRegs[1] & 0xFE));
-      MMC1CHRHook4(0x1000, DRegs[1] | 1);
-    }
-  } else {
-    if (DRegs[0] & 0x10) {
-      fceulib__.cart->setchr4(0x0000, DRegs[1]);
-      fceulib__.cart->setchr4(0x1000, DRegs[2]);
-    } else
-      fceulib__.cart->setchr8(DRegs[1] >> 1);
-  }
-}
-
-static void MMC1PRG() {
-  uint8 offs = DRegs[1] & 0x10;
-  if (MMC1PRGHook16) {
-    switch (DRegs[0] & 0xC) {
-      case 0xC:
-        MMC1PRGHook16(0x8000, (DRegs[3] + offs));
-        MMC1PRGHook16(0xC000, 0xF + offs);
-        break;
-      case 0x8:
-        MMC1PRGHook16(0xC000, (DRegs[3] + offs));
-        MMC1PRGHook16(0x8000, offs);
-        break;
-      case 0x0:
-      case 0x4:
-        MMC1PRGHook16(0x8000, ((DRegs[3] & ~1) + offs));
-        MMC1PRGHook16(0xc000, ((DRegs[3] & ~1) + offs + 1));
-        break;
-    }
-  } else {
-    switch (DRegs[0] & 0xC) {
-      case 0xC:
-        fceulib__.cart->setprg16(0x8000, (DRegs[3] + offs));
-        fceulib__.cart->setprg16(0xC000, 0xF + offs);
-        break;
-      case 0x8:
-        fceulib__.cart->setprg16(0xC000, (DRegs[3] + offs));
-        fceulib__.cart->setprg16(0x8000, offs);
-        break;
-      case 0x0:
-      case 0x4:
-        fceulib__.cart->setprg16(0x8000, ((DRegs[3] & ~1) + offs));
-        fceulib__.cart->setprg16(0xc000, ((DRegs[3] & ~1) + offs + 1));
-        break;
+      if (DRegs[0] & 0x10) {
+	fc->cart->setchr4(0x0000, DRegs[1]);
+	fc->cart->setchr4(0x1000, DRegs[2]);
+      } else
+	fc->cart->setchr8(DRegs[1] >> 1);
     }
   }
-}
 
-static void MMC1MIRROR() {
-  if (!is171) switch (DRegs[0] & 3) {
-      case 2: fceulib__.cart->setmirror(MI_V); break;
-      case 3: fceulib__.cart->setmirror(MI_H); break;
-      case 0: fceulib__.cart->setmirror(MI_0); break;
-      case 1: fceulib__.cart->setmirror(MI_1); break;
+  void MMC1PRG() {
+    uint8 offs = DRegs[1] & 0x10;
+    if (is_105) {
+      switch (DRegs[0] & 0xC) {
+	case 0xC:
+	  NWCPRGHook(0x8000, (DRegs[3] + offs));
+	  NWCPRGHook(0xC000, 0xF + offs);
+	  break;
+	case 0x8:
+	  NWCPRGHook(0xC000, (DRegs[3] + offs));
+	  NWCPRGHook(0x8000, offs);
+	  break;
+	case 0x0:
+	case 0x4:
+	  NWCPRGHook(0x8000, ((DRegs[3] & ~1) + offs));
+	  NWCPRGHook(0xc000, ((DRegs[3] & ~1) + offs + 1));
+	  break;
+      }
+    } else {
+      switch (DRegs[0] & 0xC) {
+	case 0xC:
+	  fc->cart->setprg16(0x8000, (DRegs[3] + offs));
+	  fc->cart->setprg16(0xC000, 0xF + offs);
+	  break;
+	case 0x8:
+	  fc->cart->setprg16(0xC000, (DRegs[3] + offs));
+	  fc->cart->setprg16(0x8000, offs);
+	  break;
+	case 0x0:
+	case 0x4:
+	  fc->cart->setprg16(0x8000, ((DRegs[3] & ~1) + offs));
+	  fc->cart->setprg16(0xc000, ((DRegs[3] & ~1) + offs + 1));
+	  break;
+      }
     }
-}
-
-static uint64 lreset;
-static DECLFW(MMC1_write) {
-  int n = (A >> 13) - 4;
-  // FCEU_DispMessage("%016x",fceulib__.fceu->timestampbase+fceulib__.X->timestamp);
-  //  FCEU_printf("$%04x:$%02x, $%04x\n",A,V,fceulib__.X->PC);
-  // DumpMem("out",0xe000,0xffff);
-
-  /* The MMC1 is busy so ignore the write. */
-  /* As of version FCE Ultra 0.81, the timestamp is only
-     increased before each instruction is executed(in other words
-     precision isn't that great), but this should still work to
-       deal with 2 writes in a row from a single RMW instruction.
-    */
-  if ((fceulib__.fceu->timestampbase + fceulib__.X->timestamp) < (lreset + 2))
-    return;
-  //  FCEU_printf("Write %04x:%02x\n",A,V);
-  if (V & 0x80) {
-    DRegs[0] |= 0xC;
-    BufferShift = Buffer = 0;
-    MMC1PRG();
-    lreset = fceulib__.fceu->timestampbase + fceulib__.X->timestamp;
-    return;
   }
 
-  Buffer |= (V & 1) << (BufferShift++);
+  void MMC1MIRROR() {
+    if (!is171) switch (DRegs[0] & 3) {
+	case 2: fc->cart->setmirror(MI_V); break;
+	case 3: fc->cart->setmirror(MI_H); break;
+	case 0: fc->cart->setmirror(MI_0); break;
+	case 1: fc->cart->setmirror(MI_1); break;
+      }
+  }
 
-  if (BufferShift == 5) {
-    DRegs[n] = Buffer;
-    BufferShift = Buffer = 0;
-    switch (n) {
+  static DECLFW(MMC1_write) {
+    return ((MMC1*)fc->fceu->cartiface)->MMC1_write_Direct(DECLFW_FORWARD);
+  }
+    
+  void MMC1_write_Direct(DECLFW_ARGS) {
+    int n = (A >> 13) - 4;
+    // FCEU_DispMessage("%016x",fc->fceu->timestampbase+fc->X->timestamp);
+    //  FCEU_printf("$%04x:$%02x, $%04x\n",A,V,fc->X->PC);
+    // DumpMem("out",0xe000,0xffff);
+
+    /* The MMC1 is busy so ignore the write. */
+    /* As of version FCE Ultra 0.81, the timestamp is only
+       increased before each instruction is executed(in other words
+       precision isn't that great), but this should still work to
+       deal with 2 writes in a row from a single RMW instruction. */
+    if ((fc->fceu->timestampbase + fc->X->timestamp) < (lreset + 2))
+      return;
+    //  FCEU_printf("Write %04x:%02x\n",A,V);
+    if (V & 0x80) {
+      DRegs[0] |= 0xC;
+      BufferShift = Buffer = 0;
+      MMC1PRG();
+      lreset = fc->fceu->timestampbase + fc->X->timestamp;
+      return;
+    }
+
+    Buffer |= (V & 1) << (BufferShift++);
+
+    if (BufferShift == 5) {
+      DRegs[n] = Buffer;
+      BufferShift = Buffer = 0;
+      switch (n) {
       case 0:
         MMC1MIRROR();
         MMC1CHR();
@@ -159,245 +199,225 @@ static DECLFW(MMC1_write) {
         break;
       case 2: MMC1CHR(); break;
       case 3: MMC1PRG(); break;
+      }
     }
   }
-}
 
-static void MMC1_Restore(FC *fc, int version) {
-  MMC1MIRROR();
-  MMC1CHR();
-  MMC1PRG();
-  lreset = 0; /* timestamp(base) is not stored in save states. */
-}
-
-static void MMC1CMReset() {
-  int i;
-
-  for (i = 0; i < 4; i++) DRegs[i] = 0;
-  Buffer = BufferShift = 0;
-  DRegs[0] = 0x1F;
-
-  DRegs[1] = 0;
-  DRegs[2] = 0;  // Should this be something other than 0?
-  DRegs[3] = 0;
-
-  MMC1MIRROR();
-  MMC1CHR();
-  MMC1PRG();
-}
-
-static int DetectMMC1WRAMSize(uint32 crc32) {
-  switch (crc32) {
-    case 0xc6182024: /* Romance of the 3 Kingdoms */
-    case 0x2225c20f: /* Genghis Khan */
-    case 0x4642dda6: /* Nobunaga's Ambition */
-    case 0x29449ba9: /* ""        "" (J) */
-    case 0x2b11e0b0: /* ""        "" (J) */
-    case 0xb8747abf: /* Best Play Pro Yakyuu Special (J) */
-    case 0xc9556b36: /* Final Fantasy I & II (J) [!] */
-      FCEU_printf(
-          " >8KB external WRAM present.  Use UNIF if you hack the ROM "
-          "image.\n");
-      return 16;
-      break;
-    default: return 8;
-  }
-}
-
-static uint32 NWCIRQCount;
-static uint8 NWCRec;
-#define NWCDIP 0xE
-
-static void NWCIRQHook(FC *fc, int a) {
-  if (!(NWCRec & 0x10)) {
-    NWCIRQCount += a;
-    if ((NWCIRQCount | (NWCDIP << 25)) >= 0x3e000000) {
-      NWCIRQCount = 0;
-      fceulib__.X->IRQBegin(FCEU_IQEXT);
-    }
-  }
-}
-
-static void NWCCHRHook(uint32 A, uint8 V) {
-  if ((V & 0x10))  // && !(NWCRec&0x10))
-  {
-    NWCIRQCount = 0;
-    fceulib__.X->IRQEnd(FCEU_IQEXT);
+  static void MMC1_Restore(FC *fc, int version) {
+    MMC1 *me = (MMC1*)fc->fceu->cartiface;
+    me->MMC1MIRROR();
+    me->MMC1CHR();
+    me->MMC1PRG();
+    me->lreset = 0; /* timestamp(base) is not stored in save states. */
   }
 
-  NWCRec = V;
-  if (V & 0x08)
+  void MMC1CMReset() {
+    for (int i = 0; i < 4; i++) DRegs[i] = 0;
+    Buffer = BufferShift = 0;
+    DRegs[0] = 0x1F;
+
+    DRegs[1] = 0;
+    DRegs[2] = 0;  // Should this be something other than 0?
+    DRegs[3] = 0;
+
+    MMC1MIRROR();
+    MMC1CHR();
     MMC1PRG();
-  else
-    fceulib__.cart->setprg32(0x8000, (V >> 1) & 3);
-}
+  }
 
-static void NWCPRGHook(uint32 A, uint8 V) {
-  if (NWCRec & 0x8)
-    fceulib__.cart->setprg16(A, 8 | (V & 0x7));
-  else
-    fceulib__.cart->setprg32(0x8000, (NWCRec >> 1) & 3);
-}
+  uint32 NWCIRQCount = 0;
+  uint8 NWCRec = 0;
+  #define NWCDIP 0xE
 
-static void NWCPower(FC *fc) {
-  GenMMC1Power(fc);
-  fceulib__.cart->setchr8r(0, 0);
-}
-
-void Mapper105_Init(CartInfo *info) {
-  GenMMC1Init(info, 256, 256, 8, 0);
-  MMC1CHRHook4 = NWCCHRHook;
-  MMC1PRGHook16 = NWCPRGHook;
-  fceulib__.X->MapIRQHook = NWCIRQHook;
-  info->Power = NWCPower;
-}
-
-static void GenMMC1Power(FC *fc) {
-  lreset = 0;
-  if (mmc1opts & 1) {
-    // FCEU_CheatAddRAM(8,0x6000,WRAM);
-    if (mmc1opts & 4) {
-      FCEU_dwmemset(WRAM, 0, 8192);
-    } else if (!(mmc1opts & 2)) {
-      FCEU_dwmemset(WRAM, 0, 8192);
+  // Used in mapper 105.
+  static void NWCIRQHook(FC *fc, int a) {
+    MMC1 *me = (MMC1*)fc->fceu->cartiface;
+    if (!(me->NWCRec & 0x10)) {
+      me->NWCIRQCount += a;
+      if ((me->NWCIRQCount | (NWCDIP << 25)) >= 0x3e000000) {
+	me->NWCIRQCount = 0;
+	fc->X->IRQBegin(FCEU_IQEXT);
+      }
     }
   }
-  fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, MMC1_write);
-  fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
 
-  if (mmc1opts & 1) {
-    fceulib__.fceu->SetReadHandler(0x6000, 0x7FFF, MAWRAM);
-    fceulib__.fceu->SetWriteHandler(0x6000, 0x7FFF, MBWRAM);
-    fceulib__.cart->setprg8r(0x10, 0x6000, 0);
+  void NWCCHRHook(uint32 A, uint8 V) {
+    if ((V & 0x10)) {  // && !(NWCRec&0x10))
+      NWCIRQCount = 0;
+      fc->X->IRQEnd(FCEU_IQEXT);
+    }
+
+    NWCRec = V;
+    if (V & 0x08)
+      MMC1PRG();
+    else
+      fc->cart->setprg32(0x8000, (V >> 1) & 3);
   }
 
-  MMC1CMReset();
-}
+  void NWCPRGHook(uint32 A, uint8 V) {
+    if (NWCRec & 0x8)
+      fc->cart->setprg16(A, 8 | (V & 0x7));
+    else
+      fc->cart->setprg32(0x8000, (NWCRec >> 1) & 3);
+  }
 
-static void GenMMC1Close(FC *fc) {
-  free(CHRRAM);
-  free(WRAM);
-  CHRRAM = WRAM = nullptr;
-}
+  void Power() override {
+    lreset = 0;
+    if (mmc1opts & 1) {
+      // FCEU_CheatAddRAM(8,0x6000,WRAM);
+      if (mmc1opts & 4) {
+	FCEU_dwmemset(WRAM, 0, 8192);
+      } else if (!(mmc1opts & 2)) {
+	FCEU_dwmemset(WRAM, 0, 8192);
+      }
+    }
+    fc->fceu->SetWriteHandler(0x8000, 0xFFFF, MMC1_write);
+    fc->fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
 
-static void GenMMC1Init(CartInfo *info, int prg, int chr, int wram,
-                        int battery) {
-  is155 = 0;
+    if (mmc1opts & 1) {
+      fc->fceu->SetReadHandler(0x6000, 0x7FFF, MAWRAM);
+      fc->fceu->SetWriteHandler(0x6000, 0x7FFF, MBWRAM);
+      fc->cart->setprg8r(0x10, 0x6000, 0);
+    }
 
-  info->Close = GenMMC1Close;
-  MMC1PRGHook16 = MMC1CHRHook4 = 0;
-  mmc1opts = 0;
-  fceulib__.cart->PRGmask16[0] &= (prg >> 14) - 1;
-  fceulib__.cart->CHRmask4[0] &= (chr >> 12) - 1;
-  fceulib__.cart->CHRmask8[0] &= (chr >> 13) - 1;
+    MMC1CMReset();
 
-  if (wram) {
-    WRAM = (uint8 *)FCEU_gmalloc(wram * 1024);
-    // mbg 17-jun-08 - this shouldve been cleared to re-initialize save ram
-    // ch4 10-dec-08 - nope, this souldn't
-    // mbg 29-mar-09 - no time to debate this, we need to keep from breaking
-    // some old stuff.
-    // we really need to make up a policy for how compatibility and accuracy can
-    // be resolved.
-    memset(WRAM, 0, wram * 1024);
-    mmc1opts |= 1;
-    if (wram > 8) mmc1opts |= 4;
-    fceulib__.cart->SetupCartPRGMapping(0x10, WRAM, wram * 1024, 1);
-    fceulib__.state->AddExState(WRAM, wram * 1024, 0, "WRAM");
-    if (battery) {
-      mmc1opts |= 2;
-      info->SaveGame[0] = WRAM + ((mmc1opts & 4) ? 8192 : 0);
-      info->SaveGameLen[0] = 8192;
+    if (is_105) {
+      fc->cart->setchr8r(0, 0);
     }
   }
-  if (!chr) {
-    CHRRAM = (uint8 *)FCEU_gmalloc(8192);
-    fceulib__.cart->SetupCartCHRMapping(0, CHRRAM, 8192, 1);
-    fceulib__.state->AddExState(CHRRAM, 8192, 0, "CHRR");
-  }
-  fceulib__.state->AddExState(DRegs, 4, 0, "DREG");
 
-  info->Power = GenMMC1Power;
-  fceulib__.fceu->GameStateRestore = MMC1_Restore;
-  fceulib__.state->AddExState(&lreset, 8, 1, "LRST");
-  fceulib__.state->AddExState(&Buffer, 1, 1, "BFFR");
-  fceulib__.state->AddExState(&BufferShift, 1, 1, "BFRS");
+  void Close() override {
+    free(CHRRAM);
+    free(WRAM);
+    CHRRAM = WRAM = nullptr;
+  }
+
+  MMC1(FC *fc, CartInfo *info, int prg, int chr, int wram,
+       int battery) : CartInterface(fc), is155(0) {
+
+    mmc1opts = 0;
+    fc->cart->PRGmask16[0] &= (prg >> 14) - 1;
+    fc->cart->CHRmask4[0] &= (chr >> 12) - 1;
+    fc->cart->CHRmask8[0] &= (chr >> 13) - 1;
+
+    if (wram) {
+      WRAM = (uint8 *)FCEU_gmalloc(wram * 1024);
+      // mbg 17-jun-08 - this shouldve been cleared to re-initialize save ram
+      // ch4 10-dec-08 - nope, this souldn't
+      // mbg 29-mar-09 - no time to debate this, we need to keep from breaking
+      // some old stuff.
+      // we really need to make up a policy for how compatibility and
+      // accuracy can be resolved.
+      memset(WRAM, 0, wram * 1024);
+      mmc1opts |= 1;
+      if (wram > 8) mmc1opts |= 4;
+      fc->cart->SetupCartPRGMapping(0x10, WRAM, wram * 1024, 1);
+      fc->state->AddExState(WRAM, wram * 1024, 0, "WRAM");
+      if (battery) {
+	mmc1opts |= 2;
+	info->SaveGame[0] = WRAM + ((mmc1opts & 4) ? 8192 : 0);
+	info->SaveGameLen[0] = 8192;
+      }
+    }
+    if (!chr) {
+      CHRRAM = (uint8 *)FCEU_gmalloc(8192);
+      fc->cart->SetupCartCHRMapping(0, CHRRAM, 8192, 1);
+      fc->state->AddExState(CHRRAM, 8192, 0, "CHRR");
+    }
+    fc->state->AddExState(DRegs, 4, 0, "DREG");
+
+    fc->fceu->GameStateRestore = MMC1_Restore;
+    fc->state->AddExState(&lreset, 8, 1, "LRST");
+    fc->state->AddExState(&Buffer, 1, 1, "BFFR");
+    fc->state->AddExState(&BufferShift, 1, 1, "BFRS");
+  }
+};
+  
+CartInterface *Mapper105_Init(FC *fc, CartInfo *info) {
+  MMC1 *mmc = new MMC1(fc, info, 256, 256, 8, 0);
+  mmc->is_105 = true;
+  fc->X->MapIRQHook = MMC1::NWCIRQHook;
+  return mmc;
 }
 
-void Mapper1_Init(CartInfo *info) {
+
+CartInterface *Mapper1_Init(FC *fc, CartInfo *info) {
   int ws = DetectMMC1WRAMSize(info->CRC32);
-  GenMMC1Init(info, 512, 256, ws, info->battery);
+  return new MMC1(fc, info, 512, 256, ws, info->battery);
 }
 
 /* Same as mapper 1, without respect for WRAM enable bit. */
-void Mapper155_Init(CartInfo *info) {
-  GenMMC1Init(info, 512, 256, 8, info->battery);
-  is155 = 1;
+CartInterface *Mapper155_Init(FC *fc, CartInfo *info) {
+  MMC1 *mmc1 = new MMC1(fc, info, 512, 256, 8, info->battery);
+  mmc1->is155 = 1;
+  return mmc1;
 }
 
 /* Same as mapper 1, with different (or without) mirroring control. */
 /* Kaiser KS7058 board, KS203 custom chip */
-void Mapper171_Init(CartInfo *info) {
-  GenMMC1Init(info, 32, 32, 0, 0);
-  is171 = 1;
+CartInterface *Mapper171_Init(FC *fc, CartInfo *info) {
+  MMC1 *mmc1 = new MMC1(fc, info, 32, 32, 0, 0);
+  mmc1->is171 = 1;
+  return mmc1;
 }
 
-void SAROM_Init(CartInfo *info) {
-  GenMMC1Init(info, 128, 64, 8, info->battery);
+CartInterface *SAROM_Init(FC *fc, CartInfo *info) {
+  return new MMC1(fc, info, 128, 64, 8, info->battery);
 }
 
-void SBROM_Init(CartInfo *info) {
-  GenMMC1Init(info, 128, 64, 0, 0);
+CartInterface *SBROM_Init(FC *fc, CartInfo *info) {
+  return new MMC1(fc, info, 128, 64, 0, 0);
 }
 
-void SCROM_Init(CartInfo *info) {
-  GenMMC1Init(info, 128, 128, 0, 0);
+CartInterface *SCROM_Init(FC *fc, CartInfo *info) {
+  return new MMC1(fc, info, 128, 128, 0, 0);
 }
 
-void SEROM_Init(CartInfo *info) {
-  GenMMC1Init(info, 32, 64, 0, 0);
+CartInterface *SEROM_Init(FC *fc, CartInfo *info) {
+  return new MMC1(fc, info, 32, 64, 0, 0);
 }
 
-void SGROM_Init(CartInfo *info) {
-  GenMMC1Init(info, 256, 0, 0, 0);
+CartInterface *SGROM_Init(FC *fc, CartInfo *info) {
+  return new MMC1(fc, info, 256, 0, 0, 0);
 }
 
-void SKROM_Init(CartInfo *info) {
-  GenMMC1Init(info, 256, 64, 8, info->battery);
+CartInterface *SKROM_Init(FC *fc, CartInfo *info) {
+  return new MMC1(fc, info, 256, 64, 8, info->battery);
 }
 
-void SLROM_Init(CartInfo *info) {
-  GenMMC1Init(info, 256, 128, 0, 0);
+CartInterface *SLROM_Init(FC *fc, CartInfo *info) {
+  return new MMC1(fc, info, 256, 128, 0, 0);
 }
 
-void SL1ROM_Init(CartInfo *info) {
-  GenMMC1Init(info, 128, 128, 0, 0);
+CartInterface *SL1ROM_Init(FC *fc, CartInfo *info) {
+  return new MMC1(fc, info, 128, 128, 0, 0);
 }
 
 /* Begin unknown - may be wrong - perhaps they use different MMC1s from the
    similarly functioning boards?
 */
 
-void SL2ROM_Init(CartInfo *info) {
-  GenMMC1Init(info, 256, 256, 0, 0);
+CartInterface *SL2ROM_Init(FC *fc, CartInfo *info) {
+  return new MMC1(fc, info, 256, 256, 0, 0);
 }
 
-void SFROM_Init(CartInfo *info) {
-  GenMMC1Init(info, 256, 256, 0, 0);
+CartInterface *SFROM_Init(FC *fc, CartInfo *info) {
+  return new MMC1(fc, info, 256, 256, 0, 0);
 }
 
-void SHROM_Init(CartInfo *info) {
-  GenMMC1Init(info, 256, 256, 0, 0);
+CartInterface *SHROM_Init(FC *fc, CartInfo *info) {
+  return new MMC1(fc, info, 256, 256, 0, 0);
 }
 
 /* End unknown  */
 /*              */
 /*              */
 
-void SNROM_Init(CartInfo *info) {
-  GenMMC1Init(info, 256, 0, 8, info->battery);
+CartInterface *SNROM_Init(FC *fc, CartInfo *info) {
+  return new MMC1(fc, info, 256, 0, 8, info->battery);
 }
 
-void SOROM_Init(CartInfo *info) {
-  GenMMC1Init(info, 256, 0, 16, info->battery);
+CartInterface *SOROM_Init(FC *fc, CartInfo *info) {
+  return new MMC1(fc, info, 256, 0, 16, info->battery);
 }

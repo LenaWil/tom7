@@ -6,11 +6,21 @@
 
 #include "fc.h"
 
-struct CartInfo {
+struct CartInterface {
+  explicit CartInterface(FC *fc) : fc(fc) {}
+  virtual ~CartInterface() {}
   /* Set by mapper/board code: */
-  void (*Power)(FC *fc);
-  void (*Reset)(FC *fc);
-  void (*Close)(FC *fc);
+  virtual void Power() {}
+  virtual void Reset() {}
+  virtual void Close() {}
+
+protected:
+  FC *fc = nullptr;
+};
+
+struct CartInfo {
+  // Maybe some of this should go into CartInterface.
+
   /* Pointers to memory to save/load. */
   uint8 *SaveGame[4];
   /* How much memory to save/load. */

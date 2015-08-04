@@ -764,16 +764,18 @@ int main(int argc, char **argv) {
   // sharded comprehensive mode.
   if (!MAKE_COMPREHENSIVE && my_index == 0) { 
     RunGameToCollage(dw4);
-    RunGameToCollage(kirby);
-    RunGameToCollage(banditkings);
-    RunGameToCollage(castlevania3);
-    RunGameToCollage(ubasketball);
+
     RunGameToCollage(karate);
     RunGameToCollage(mario);
     RunGameToCollage(arkanoid);
     RunGameToCollage(escape);
     RunGameToCollage(skull);
     RunGameToCollage(escape);
+
+    RunGameToCollage(ubasketball);
+    RunGameToCollage(castlevania3);
+    RunGameToCollage(banditkings);
+    RunGameToCollage(kirby);
   }
  
   if (write_collage)

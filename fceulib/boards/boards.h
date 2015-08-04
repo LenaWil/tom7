@@ -2,7 +2,10 @@
 #define __BOARDS_H
 
 struct CartInfo;
+struct FC;
+struct CartInterface;
 
+#if 0
 void AC08_Init(CartInfo *info);
 void ANROM_Init(CartInfo *info);
 void BMC11160_Init(CartInfo *info);
@@ -60,16 +63,22 @@ void SA0161M_Init(CartInfo *info);
 void SA72007_Init(CartInfo *info);
 void SA72008_Init(CartInfo *info);
 void SA9602B_Init(CartInfo *info);
-void SAROM_Init(CartInfo *info);
-void SBROM_Init(CartInfo *info);
-void SCROM_Init(CartInfo *info);
-void SEROM_Init(CartInfo *info);
-void SGROM_Init(CartInfo *info);
-void SKROM_Init(CartInfo *info);
-void SL1ROM_Init(CartInfo *info);
-void SLROM_Init(CartInfo *info);
-void SNROM_Init(CartInfo *info);
-void SOROM_Init(CartInfo *info);
+#endif
+
+// MMC1
+CartInterface *SAROM_Init(FC *fc, CartInfo *info);
+CartInterface *SBROM_Init(FC *fc, CartInfo *info);
+CartInterface *SCROM_Init(FC *fc, CartInfo *info);
+CartInterface *SEROM_Init(FC *fc, CartInfo *info);
+CartInterface *SGROM_Init(FC *fc, CartInfo *info);
+CartInterface *SKROM_Init(FC *fc, CartInfo *info);
+CartInterface *SLROM_Init(FC *fc, CartInfo *info);
+CartInterface *SL1ROM_Init(FC *fc, CartInfo *info);
+// SL2ROM? SFROM? SHROM?
+CartInterface *SNROM_Init(FC *fc, CartInfo *info);
+CartInterface *SOROM_Init(FC *fc, CartInfo *info);
+
+#if 0
 void SSSNROM_Init(CartInfo *info);
 void SUNSOFT_UNROM_Init(CartInfo *info);  // "Shanghi" original version mapper
 void Super24_Init(CartInfo *info);
@@ -127,5 +136,6 @@ void UNLTF1201_Init(CartInfo *info);
 void UNLVRC7_Init(CartInfo *info);
 void UNLYOKO_Init(CartInfo *info);
 void UNROM_Init(CartInfo *info);
+#endif
 
 #endif

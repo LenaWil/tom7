@@ -805,7 +805,8 @@ static void Mapper5_ESI(FC *fc) {
   fceulib__.sound->GameExpSound.HiSync = MMC5HiSync;
 }
 
-static void GenMMC5Reset(FC *fc) {
+// this should override Power; was called "Reset" -tom7
+static void Power(FC *fc) {
   for (int x = 0; x < 4; x++) PRGBanks[x] = ~0;
   for (int x = 0; x < 8; x++) CHRBanksA[x] = ~0;
   for (int x = 0; x < 4; x++) CHRBanksB[x] = ~0;
@@ -887,7 +888,8 @@ static void GenMMC5_Init(CartInfo *info, int wsize, int battery) {
   MMC5WRAMsize = wsize / 8;
   BuildWRAMSizeTable();
   fceulib__.fceu->GameStateRestore = MMC5_StateRestore;
-  info->Power = GenMMC5Reset;
+  // -tom7 in in-progress rewrite of mappers
+  // info->Power = GenMMC5Reset;
 
   if (battery) {
     info->SaveGame[0] = WRAM;

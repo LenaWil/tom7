@@ -43,7 +43,7 @@
 namespace {
 struct BMAPPING {
   const char *const name;
-  void (*const init)(CartInfo *);
+  CartInterface *(*const init)(FC *, CartInfo *);
   const int flags;
 };
 
@@ -74,6 +74,9 @@ void Unif::FreeUNIF() {
     free(malloced[x]);
     malloced[x] = nullptr;
   }
+
+  delete fc->fceu->cartiface;
+  fc->fceu->cartiface = nullptr;
 }
 
 void Unif::ResetUNIF() {
@@ -82,6 +85,8 @@ void Unif::ResetUNIF() {
   boardname = nullptr;
   mirrortodo = 0;
   memset(&UNIFCart, 0, sizeof(UNIFCart));
+  delete fc->fceu->cartiface;
+  fc->fceu->cartiface = nullptr;
   UNIFchrrama = nullptr;
 }
 
@@ -263,6 +268,7 @@ int Unif::LoadCHR(FceuFile *fp) {
 #define BMCFLAG_EXPCHRR 8
 
 static constexpr BMAPPING bmap[] = {
+#if 0
     {"11160", BMC11160_Init, 0},
     {"12-IN-1", BMC12IN1_Init, 0},
     {"13in1JY110", BMC13in1JY110_Init, 0},
@@ -346,21 +352,25 @@ static constexpr BMAPPING bmap[] = {
     {"SA-72008", SA72008_Init, 0},
     {"SA-9602B", SA9602B_Init, BMCFLAG_32KCHRR},
     {"SA-NROM", TCA01_Init, 0},
+#endif
+    // MMC1
     {"SAROM", SAROM_Init, 0},
     {"SBROM", SBROM_Init, 0},
-    {"SC-127", UNLSC127_Init, 0},
     {"SCROM", SCROM_Init, 0},
     {"SEROM", SEROM_Init, 0},
     {"SGROM", SGROM_Init, 0},
-    {"SHERO", UNLSHeroes_Init, 0},
     {"SKROM", SKROM_Init, 0},
-    {"SL12", UNLSL12_Init, 0},
-    {"SL1632", UNLSL1632_Init, 0},
-    {"SL1ROM", SL1ROM_Init, 0},
-    {"SLROM", SLROM_Init, 0},
-    {"SMB2J", UNLSMB2J_Init, 0},
     {"SNROM", SNROM_Init, 0},
     {"SOROM", SOROM_Init, 0},
+    {"SL1ROM", SL1ROM_Init, 0},
+    {"SLROM", SLROM_Init, 0},
+
+#if 0
+    {"SC-127", UNLSC127_Init, 0},
+    {"SHERO", UNLSHeroes_Init, 0},
+    {"SL12", UNLSL12_Init, 0},
+    {"SL1632", UNLSL1632_Init, 0},
+    {"SMB2J", UNLSMB2J_Init, 0},
     {"SSS-NROM-256", SSSNROM_Init, 0},
     {"SUNSOFT_UNROM", SUNSOFT_UNROM_Init, 0},
     {"Sachen-74LS374N", S74LS374N_Init, 0},
@@ -395,6 +405,7 @@ static constexpr BMAPPING bmap[] = {
     {"UOROM", UNROM_Init, 0},
     {"VRC7", UNLVRC7_Init, 0},
     {"YOKO", UNLYOKO_Init, 0},
+#endif
     {0, 0, 0}};
 
 int Unif::LoadUNIFChunks(FceuFile *fp) {
@@ -462,7 +473,8 @@ int Unif::InitializeBoard() {
       }
       if (bmap[x].flags & BMCFLAG_FORCE4) mirrortodo = 4;
       MooMirroring();
-      bmap[x].init(&UNIFCart);
+      fc->fceu->cartiface = bmap[x].init(fc, &UNIFCart);
+      // bmap[x].init(&UNIFCart);
       return 1;
     }
   }
@@ -475,15 +487,15 @@ void Unif::UNIFGI(GI h) {
     case GI_RESETSAVE: fc->cart->FCEU_ClearGameSave(&UNIFCart); break;
 
     case GI_RESETM2:
-      if (UNIFCart.Reset) UNIFCart.Reset(fc);
+      fc->fceu->cartiface->Reset();
       break;
     case GI_POWER:
-      if (UNIFCart.Power) UNIFCart.Power(fc);
+      fc->fceu->cartiface->Power();
       if (UNIFchrrama) memset(UNIFchrrama, 0, 8192);
       break;
     case GI_CLOSE:
       fc->cart->FCEU_SaveGameSave(&UNIFCart);
-      if (UNIFCart.Close) UNIFCart.Close(fc);
+      fc->fceu->cartiface->Close();
       FreeUNIF();
       break;
   }

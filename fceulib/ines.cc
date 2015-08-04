@@ -48,6 +48,10 @@
 
 INes::INes(FC *fc) : fc(fc) {}
 
+INes::~INes() {
+  // Lots more needs to be deleted here :(
+}
+
 /*  MapperReset() is called when the NES is reset(with the reset button).
 Mapperxxx_init is called when the NES has been powered on.
 */
@@ -81,8 +85,7 @@ void INes::iNES_ExecPower() {
   if (CHRRAMSize != -1)
     FCEU_InitMemory(VROM, CHRRAMSize);
 
-  if (iNESCart.Power)
-    iNESCart.Power(fc);
+  fc->fceu->cartiface->Power();
 
   if (trainerdata) {
     for (int x=0;x<512;x++) {
@@ -104,8 +107,7 @@ void INes::iNESGI(GI h) {
   case GI_RESETM2:
     if (MapperReset)
       MapperReset();
-    if (iNESCart.Reset)
-      iNESCart.Reset(fc);
+    fc->fceu->cartiface->Reset();
     break;
 
   case GI_POWER:
@@ -116,7 +118,7 @@ void INes::iNESGI(GI h) {
   case GI_CLOSE:
     fc->cart->FCEU_SaveGameSave(&iNESCart);
 
-    if (iNESCart.Close) iNESCart.Close(fc);
+    fc->fceu->cartiface->Close();
     free(ROM);
     ROM = nullptr;
     free(VROM);
@@ -306,11 +308,16 @@ struct CHINF {
 };
 }
 
+struct INes::OldCartiface : public CartInterface {
+  using CartInterface::CartInterface;
+  virtual void Power() {
+    return fc->ines->iNESPower();
+  }
+};
+
 void INes::MapperInit() {
   if (!NewiNES_Init(mapper_number)) {
-    iNESCart.Power = [](FC *fc) {
-      return fc->ines->iNESPower();
-    };
+    fc->fceu->cartiface = new OldCartiface(fc);
     if (head.ROM_type & 2) {
       TRACEF("Set savegame %d", head.ROM_type);
       iNESCart.SaveGame[0] = WRAM;
@@ -400,14 +407,14 @@ void INes::CheckHInfo() {
   uint64 partialmd5 = 0ULL;
 
   for (int x=0;x<8;x++) {
-    partialmd5 |= (uint64)iNESCart.MD5[15-x] << (x*8);
+    partialmd5 |= (uint64)iNESCart.MD5[15 - x] << (x * 8);
     //printf("%16llx\n",partialmd5);
   }
   CheckBad(partialmd5);
 
   MasterRomInfo = nullptr;
   for (int i = 0; i < ARRAY_SIZE(sMasterRomInfo); i++) {
-    const INesTMasterRomInfo& info = sMasterRomInfo[i];
+    const INesTMasterRomInfo &info = sMasterRomInfo[i];
     if (info.md5lower != partialmd5)
       continue;
 
@@ -512,13 +519,16 @@ namespace {
 struct BoardMapping {
   const char *const name;
   const int number;
-  void (* const init)(CartInfo *);
+  CartInterface *(* const init)(FC *, CartInfo *);
 };
 }
 
 static constexpr BoardMapping const board_map[] = {
+#if 0
   {"NROM", 0, NROM_Init},
+#endif
   {"MMC1", 1, Mapper1_Init},
+#if 0
   {"UNROM", 2, UNROM_Init},
   {"CNROM", 3, CNROM_Init},
   {"MMC3", 4, Mapper4_Init},
@@ -773,6 +783,7 @@ static constexpr BoardMapping const board_map[] = {
   {"DRAGON BALL PIRATE", 253, Mapper253_Init},
   {"", 254, Mapper254_Init},
   // {"", 255, Mapper255_Init}, // No good dumps for this mapper
+#endif
   {"", 0, nullptr},
 };
 
@@ -811,10 +822,12 @@ int INes::iNESLoad(const char *name, FceuFile *fp, int OverwriteVidMode) {
   CleanupHeader(&head);
 
   memset(&iNESCart, 0, sizeof(iNESCart));
-
-  mapper_number = (head.ROM_type>>4);
+  delete fc->fceu->cartiface;
+  fc->fceu->cartiface = nullptr;
+  
+  mapper_number = head.ROM_type >> 4;
   mapper_number |= (head.ROM_type2&0xF0);
-  iNESMirroring = (head.ROM_type&1);
+  iNESMirroring = head.ROM_type & 1;
 
 
   //  int ROM_size=0;
@@ -1088,6 +1101,7 @@ void INes::NONE_init() {
 }
 
 static constexpr void (* const MapInitTab[256])() = {
+#if 0
   0,
   0,
   0, //Mapper2_init,
@@ -1344,6 +1358,7 @@ static constexpr void (* const MapInitTab[256])() = {
   0,
   0,
   0, //Mapper255_init
+#endif
 };
 
 static DECLFW(BWRAM) {
@@ -1378,6 +1393,10 @@ void INes::iNESStateRestore(int version) {
 }
 
 void INes::iNESPower() {
+  // This is the old loading code. It's only called if NewiNES_Init
+  // fails. Can we do without it? -tom7
+  printf("Ugh! Old iNESPower mapper code!\n");
+  
   TRACEF("iNESPower %d", mapper_number);
   int type = mapper_number;
 
@@ -1477,7 +1496,7 @@ int INes::NewiNES_Init(int num) {
       }
       if (head.ROM_type&8)
 	fc->state->AddExState(ExtraNTARAM, 2048, 0, "EXNR");
-      tmp->init(&iNESCart);
+      fc->fceu->cartiface = tmp->init(fc, &iNESCart);
       TRACEF("NewiNES init done.");
       return 1;
     }
