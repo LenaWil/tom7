@@ -21,7 +21,7 @@
 #include "mapinc.h"
 
 static uint8 bank, preg;
-static SFORMAT StateRegs[] = {{&bank, 1, "BANK"}, {&preg, 1, "PREG"}, {0}};
+static vector<SFORMAT> StateRegs = {{&bank, 1, "BANK"}, {&preg, 1, "PREG"}};
 
 static void Sync() {
   //	uint32 bbank = (bank & 0x18) >> 1;
@@ -60,6 +60,6 @@ static void StateRestore(FC *fc, int version) {
 
 void Mapper232_Init(CartInfo *info) {
   info->Power = M232Power;
-  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExVec(StateRegs);
   fceulib__.fceu->GameStateRestore = StateRestore;
 }

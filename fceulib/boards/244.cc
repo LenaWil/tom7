@@ -21,7 +21,7 @@
 #include "mapinc.h"
 
 static uint8 preg, creg;
-static SFORMAT StateRegs[] = {{&preg, 1, "PREG"}, {&creg, 1, "CREG"}, {0}};
+static vector<SFORMAT> StateRegs = {{&preg, 1, "PREG"}, {&creg, 1, "CREG"}};
 
 static constexpr uint8 prg_perm[4][4] = {
     {0, 1, 2, 3,},
@@ -67,6 +67,6 @@ static void StateRestore(FC *fc, int version) {
 
 void Mapper244_Init(CartInfo *info) {
   info->Power = M244Power;
-  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExVec(StateRegs);
   fceulib__.fceu->GameStateRestore = StateRestore;
 }

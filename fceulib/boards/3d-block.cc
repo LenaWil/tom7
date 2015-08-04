@@ -25,8 +25,8 @@ static int16 IRQCount, IRQPause;
 
 static int16 Count = 0x0000;
 
-static SFORMAT StateRegs[] = {
-    {reg, 4, "REGS"}, {&IRQa, 1, "IRQA"}, {&IRQCount, 2, "IRQC"}, {0}};
+static vector<SFORMAT> StateRegs = {
+    {reg, 4, "REGS"}, {&IRQa, 1, "IRQA"}, {&IRQCount, 2, "IRQC"}};
 
 static void Sync() {
   fceulib__.cart->setprg32(0x8000, 0);
@@ -92,5 +92,5 @@ void UNL3DBlock_Init(CartInfo *info) {
   info->Reset = UNL3DBlockReset;
   fceulib__.X->MapIRQHook = UNL3DBlockIRQHook;
   fceulib__.fceu->GameStateRestore = StateRestore;
-  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExVec(StateRegs);
 }

@@ -35,10 +35,9 @@
 #define IOPTION_PREDIP    0x10
 
 VSUni::VSUni(FC *fc) : stateinfo {
-  { &vsdip, 1, "vsdp" },
-  { &coinon, 1, "vscn" },
-  { &VSindex, 1, "vsin" },
-  { 0 },
+    { &vsdip, 1, "vsdp" },
+    { &coinon, 1, "vscn" },
+    { &VSindex, 1, "vsin" },
   },
   fc(fc) {
   // constructor, empty

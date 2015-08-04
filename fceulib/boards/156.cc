@@ -24,11 +24,10 @@ static uint8 chrlo[8], chrhi[8], prg, mirr, mirrisused = 0;
 static uint8 *WRAM = nullptr;
 static uint32 WRAMSIZE;
 
-static SFORMAT StateRegs[] = {{&prg, 1, "PREG"},
+static vector<SFORMAT> StateRegs = {{&prg, 1, "PREG"},
                               {chrlo, 8, "CRGL"},
                               {chrhi, 8, "CRGH"},
-                              {&mirr, 1, "MIRR"},
-                              {0}};
+                              {&mirr, 1, "MIRR"}};
 
 static void Sync() {
   for (uint32 i = 0; i < 8; i++)
@@ -122,5 +121,5 @@ void Mapper156_Init(CartInfo *info) {
   fceulib__.state->AddExState(WRAM, WRAMSIZE, 0, "WRAM");
 
   fceulib__.fceu->GameStateRestore = StateRestore;
-  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExVec(StateRegs);
 }

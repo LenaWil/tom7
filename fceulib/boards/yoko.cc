@@ -27,7 +27,7 @@ static uint32 WRAMSIZE;
 
 static uint8 is2kbank, isnot2kbank;
 
-static SFORMAT StateRegs[] = {
+static vector<SFORMAT> StateRegs = {
     {&mode, 1, "MODE"},
     {&bank, 1, "BANK"},
     {&IRQCount, 4, "IRQC"},
@@ -36,7 +36,6 @@ static SFORMAT StateRegs[] = {
     {low, 4, "LOWR"},
     {&is2kbank, 1, "IS2K"},
     {&isnot2kbank, 1, "NT2K"},
-    {0}
 };
 
 static void UNLYOKOSync() {
@@ -298,7 +297,7 @@ void UNLYOKO_Init(CartInfo *info) {
   info->Reset = UNLYOKOReset;
   fceulib__.X->MapIRQHook = UNLYOKOIRQHook;
   fceulib__.fceu->GameStateRestore = UNLYOKOStateRestore;
-  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExVec(StateRegs);
 }
 
 void Mapper83_Init(CartInfo *info) {
@@ -313,5 +312,5 @@ void Mapper83_Init(CartInfo *info) {
   fceulib__.cart->SetupCartPRGMapping(0x10, WRAM, WRAMSIZE, 1);
   fceulib__.state->AddExState(WRAM, WRAMSIZE, 0, "WRAM");
 
-  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExVec(StateRegs);
 }

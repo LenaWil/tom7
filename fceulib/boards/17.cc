@@ -24,13 +24,12 @@ static uint8 preg[4], creg[8];
 static uint8 IRQa, mirr;
 static int32 IRQCount, IRQLatch;
 
-static SFORMAT StateRegs[] = {{preg, 4, "PREG"},
+static vector<SFORMAT> StateRegs = {{preg, 4, "PREG"},
                               {creg, 8, "CREG"},
                               {&mirr, 1, "MIRR"},
                               {&IRQa, 1, "IRQA"},
                               {&IRQCount, 4, "IRQC"},
-                              {&IRQLatch, 4, "IRQL"},
-                              {0}};
+                              {&IRQLatch, 4, "IRQL"}};
 
 static void Sync() {
   for (int i = 0; i < 8; i++) fceulib__.cart->setchr1(i << 10, creg[i]);
@@ -109,5 +108,5 @@ void Mapper17_Init(CartInfo *info) {
   fceulib__.X->MapIRQHook = M17IRQHook;
   fceulib__.fceu->GameStateRestore = StateRestore;
 
-  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExVec(StateRegs);
 }

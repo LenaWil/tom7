@@ -24,8 +24,8 @@
 
 static uint8 prg_reg;
 static uint8 chr_reg;
-static SFORMAT StateRegs[] = {
-    {&prg_reg, 1, "PREG"}, {&chr_reg, 1, "CREG"}, {0}};
+static vector<SFORMAT> StateRegs = {
+    {&prg_reg, 1, "PREG"}, {&chr_reg, 1, "CREG"}};
 
 /*
 
@@ -113,5 +113,5 @@ static void Power(FC *fc) {
 void Mapper216_Init(CartInfo *info) {
   info->Power = Power;
   fceulib__.fceu->GameStateRestore = StateRestore;
-  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExVec(StateRegs);
 }

@@ -25,8 +25,8 @@ static uint16 latchea;
 static uint8 latched;
 static uint8 *WRAM = nullptr;
 static uint32 WRAMSIZE;
-static SFORMAT StateRegs[] = {
-    {&latchea, 2, "AREG"}, {&latched, 1, "DREG"}, {0}};
+static vector<SFORMAT> StateRegs = {
+    {&latchea, 2, "AREG"}, {&latched, 1, "DREG"}};
 
 static void Sync() {
   int i;
@@ -102,5 +102,5 @@ void Mapper15_Init(CartInfo *info) {
     info->SaveGameLen[0] = WRAMSIZE;
   }
   fceulib__.state->AddExState(WRAM, WRAMSIZE, 0, "WRAM");
-  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExVec(StateRegs);
 }

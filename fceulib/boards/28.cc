@@ -176,9 +176,12 @@ static void M28Power(FC *fc) {
 
 static void M28Close(FC *fc) {}
 
-static SFORMAT StateRegs[] = {{&reg, 1, "REG"},    {&chr, 1, "CHR"},
-                              {&prg, 1, "PRG"},    {&mode, 1, "MODE"},
-                              {&outer, 1, "OUTR"}, {0}};
+static vector<SFORMAT> StateRegs = {
+  {&reg, 1, "REGS"},
+  {&chr, 1, "CHR0"},
+  {&prg, 1, "PRG0"},
+  {&mode, 1, "MODE"},
+  {&outer, 1, "OUTR"}};
 
 static void StateRestore(FC *fc, int version) {
   Sync();
@@ -189,5 +192,5 @@ void Mapper28_Init(CartInfo* info) {
   info->Reset = M28Reset;
   info->Close = M28Close;
   fceulib__.fceu->GameStateRestore = StateRestore;
-  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExVec(StateRegs);
 }

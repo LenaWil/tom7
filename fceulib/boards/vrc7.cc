@@ -24,10 +24,10 @@ static uint8 prg[3], chr[8], mirr;
 static uint8 IRQLatch, IRQa, IRQd;
 static uint32 IRQCount, CycleCount;
 
-static SFORMAT StateRegs[] = {
-    {prg, 3, "PRG"},        {chr, 8, "CHR"},          {&mirr, 1, "MIRR"},
+static vector<SFORMAT> StateRegs = {
+    {prg, 3, "PRG0"},        {chr, 8, "CHR0"},          {&mirr, 1, "MIRR"},
     {&IRQa, 1, "IRQA"},     {&IRQd, 1, "IRQD"},       {&IRQLatch, 1, "IRQC"},
-    {&IRQCount, 4, "IRQC"}, {&CycleCount, 4, "CYCC"}, {0}};
+    {&IRQCount, 4, "IRQC"}, {&CycleCount, 4, "CYCC"}};
 
 static void Sync() {
   fceulib__.cart->setprg8(0x8000, prg[0]);
@@ -142,5 +142,5 @@ void UNLVRC7_Init(CartInfo *info) {
   info->Power = UNLVRC7Power;
   fceulib__.X->MapIRQHook = UNLVRC7IRQHook;
   fceulib__.fceu->GameStateRestore = StateRestore;
-  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExVec(StateRegs);
 }

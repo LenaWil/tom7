@@ -126,7 +126,7 @@ static void BMCD1038Reset(FC *fc) {
 void BMCD1038_Init(CartInfo *info) {
   Latch_Init(info, BMCD1038Sync, BMCD1038Read, 0x0000, 0x8000, 0xFFFF, 0);
   info->Reset = BMCD1038Reset;
-  fceulib__.state->AddExState(&dipswitch, 1, 0, "DIPSW");
+  fceulib__.state->AddExState(&dipswitch, 1, 0, "DIPs");
 }
 
 //------------------ UNL43272 ---------------------------
@@ -155,7 +155,7 @@ static void UNL43272Reset(FC *fc) {
 void UNL43272_Init(CartInfo *info) {
   Latch_Init(info, UNL43272Sync, UNL43272Read, 0x0081, 0x8000, 0xFFFF, 0);
   info->Reset = UNL43272Reset;
-  fceulib__.state->AddExState(&dipswitch, 1, 0, "DIPSW");
+  fceulib__.state->AddExState(&dipswitch, 1, 0, "DIPs");
 }
 
 //------------------ Map 058 ---------------------------

@@ -22,7 +22,7 @@
 
 static uint8 reg;
 
-static SFORMAT StateRegs[] = {{&reg, 1, "REG"}, {0}};
+static vector<SFORMAT> StateRegs = {{&reg, 1, "REGS"}};
 
 static void Sync() {
   fceulib__.cart->setprg8(0x6000, reg);
@@ -51,5 +51,5 @@ static void StateRestore(FC *fc, int version) {
 void Mapper108_Init(CartInfo *info) {
   info->Power = M108Power;
   fceulib__.fceu->GameStateRestore = StateRestore;
-  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExVec(StateRegs);
 }

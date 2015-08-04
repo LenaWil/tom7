@@ -37,13 +37,12 @@ static int16 IRQCount, IRQLatch;
 static uint8 *WRAM = nullptr;
 static uint32 WRAMSIZE;
 
-static SFORMAT StateRegs[] = {
+static vector<SFORMAT> StateRegs = {
     {reg, 16, "REGS"},
     {&IRQa, 1, "IRQA"},
     {&IRQCount, 2, "IRQC"},
-    {&IRQLatch, 2,
-     "IRQL"},  // need for Famicom Jump II - Saikyou no 7 Nin (J) [!]
-    {0}};
+    // need for Famicom Jump II - Saikyou no 7 Nin (J) [!]
+    {&IRQLatch, 2, "IRQL"}};
 
 static void BandaiIRQHook(FC *fc, int a) {
   if (IRQa) {
@@ -114,7 +113,7 @@ void Mapper16_Init(CartInfo *info) {
   info->Power = BandaiPower;
   fceulib__.X->MapIRQHook = BandaiIRQHook;
   fceulib__.fceu->GameStateRestore = StateRestore;
-  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExVec(StateRegs);
 }
 
 static void M153Power(FC *fc) {
@@ -148,7 +147,7 @@ void Mapper153_Init(CartInfo *info) {
   }
 
   fceulib__.fceu->GameStateRestore = StateRestore;
-  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExVec(StateRegs);
 }
 
 // Datach Barcode Battler
@@ -324,5 +323,5 @@ void Mapper157_Init(CartInfo *info) {
   fceulib__.fceu->GameInfo->cspecial = SIS_DATACH;
 
   fceulib__.fceu->GameStateRestore = StateRestore;
-  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExVec(StateRegs);
 }

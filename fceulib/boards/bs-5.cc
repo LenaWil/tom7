@@ -24,7 +24,7 @@ static uint8 reg_prg[4];
 static uint8 reg_chr[4];
 static uint8 dip_switch;
 
-static SFORMAT StateRegs[] = {{reg_prg, 4, "PREG"}, {reg_chr, 4, "CREG"}, {0}};
+static vector<SFORMAT> StateRegs = {{reg_prg, 4, "PREG"}, {reg_chr, 4, "CREG"}};
 
 static void Sync() {
   fceulib__.cart->setprg8(0x8000, reg_prg[0]);
@@ -72,5 +72,5 @@ void BMCBS5_Init(CartInfo *info) {
   info->Power = MBS5Power;
   info->Reset = MBS5Reset;
   fceulib__.fceu->GameStateRestore = StateRestore;
-  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExVec(StateRegs);
 }

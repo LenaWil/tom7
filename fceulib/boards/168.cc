@@ -24,7 +24,7 @@ static uint8 reg;
 static uint8 *CHRRAM = nullptr;
 static uint32 CHRRAMSIZE;
 
-static SFORMAT StateRegs[] = {{&reg, 1, "REGS"}, {0}};
+static vector<SFORMAT> StateRegs = {{&reg, 1, "REGS"}};
 
 static void Sync() {
   fceulib__.cart->setchr4r(0x10, 0x0000, 0);
@@ -63,7 +63,7 @@ void Mapper168_Init(CartInfo *info) {
   info->Power = M168Power;
   info->Close = MNNNClose;
   fceulib__.fceu->GameStateRestore = StateRestore;
-  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExVec(StateRegs);
 
   CHRRAMSIZE = 8192 * 8;
   CHRRAM = (uint8 *)FCEU_gmalloc(CHRRAMSIZE);

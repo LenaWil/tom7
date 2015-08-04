@@ -28,13 +28,12 @@ static uint8 prg_reg, prg_mode, mirr;
 static uint8 chr_reg[8];
 static writefunc pcmwrite;
 
-static SFORMAT StateRegs[] = {{&IRQCount, 4, "IRQC"},
+static vector<SFORMAT> StateRegs = {{&IRQCount, 4, "IRQC"},
                               {&IRQa, 1, "IRQA"},
                               {&prg_reg, 1, "PREG"},
                               {&prg_mode, 1, "PMOD"},
                               {&mirr, 1, "MIRR"},
-                              {chr_reg, 8, "CREG"},
-                              {0}};
+                              {chr_reg, 8, "CREG"}};
 
 static void Sync() {
   fceulib__.cart->setprg32(0x8000, prg_reg >> 2);
@@ -119,5 +118,5 @@ void UNLCITYFIGHT_Init(CartInfo *info) {
   info->Power = UNLCITYFIGHTPower;
   fceulib__.X->MapIRQHook = UNLCITYFIGHTIRQ;
   fceulib__.fceu->GameStateRestore = StateRestore;
-  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExVec(StateRegs);
 }

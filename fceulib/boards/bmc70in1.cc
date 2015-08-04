@@ -26,13 +26,12 @@ static uint8 prg_bank;
 static uint8 chr_bank;
 static uint8 bank_mode;
 static uint8 mirroring;
-static SFORMAT StateRegs[] = {{&large_bank, 1, "LB"},
+static vector<SFORMAT> StateRegs = {{&large_bank, 1, "LB00"},
                               {&hw_switch, 1, "DPSW"},
-                              {&prg_bank, 1, "PRG"},
-                              {&chr_bank, 1, "CHR"},
-                              {&bank_mode, 1, "BM"},
-                              {&mirroring, 1, "MIRR"},
-                              {0}};
+                              {&prg_bank, 1, "PRG0"},
+                              {&chr_bank, 1, "CHR0"},
+                              {&bank_mode, 1, "BM00"},
+                              {&mirroring, 1, "MIRR"}};
 
 static void Sync() {
   switch (bank_mode) {
@@ -104,7 +103,7 @@ void BMC70in1_Init(CartInfo *info) {
   info->Power = BMC70in1Power;
   info->Reset = BMC70in1Reset;
   fceulib__.fceu->GameStateRestore = StateRestore;
-  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExVec(StateRegs);
 }
 
 void BMC70in1B_Init(CartInfo *info) {
@@ -113,5 +112,5 @@ void BMC70in1B_Init(CartInfo *info) {
   info->Power = BMC70in1Power;
   info->Reset = BMC70in1Reset;
   fceulib__.fceu->GameStateRestore = StateRestore;
-  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExVec(StateRegs);
 }

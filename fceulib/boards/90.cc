@@ -53,25 +53,25 @@ static uint8 tekker;
 
 static uint32 lastread;
 
-static SFORMAT Tek_StateRegs[] = {{&IRQMode, 1, "IRQM"},
-                                  {&IRQPre, 1, "IRQP"},
-                                  {&IRQPreSize, 1, "IRQR"},
-                                  {&IRQCount, 1, "IRQC"},
-                                  {&IRQXOR, 1, "IRQX"},
-                                  {&IRQa, 1, "IRQA"},
-                                  {mul, 2, "MUL"},
-                                  {&regie, 1, "REGI"},
-                                  {tkcom, 4, "TKCO"},
-                                  {prgb, 4, "PRGB"},
-                                  {chr, 2, "CLTC"},
-                                  {chrlow, 4, "CHRL"},
-                                  {chrhigh, 8, "CHRH"},
-                                  {&names[0], 2 | FCEUSTATE_RLSB, "NMS0"},
-                                  {&names[1], 2 | FCEUSTATE_RLSB, "NMS1"},
-                                  {&names[2], 2 | FCEUSTATE_RLSB, "NMS2"},
-                                  {&names[3], 2 | FCEUSTATE_RLSB, "NMS3"},
-                                  {&tekker, 1, "TEKR"},
-                                  {0}};
+static vector<SFORMAT> Tek_StateRegs =
+  {{&IRQMode, 1, "IRQM"},
+   {&IRQPre, 1, "IRQP"},
+   {&IRQPreSize, 1, "IRQR"},
+   {&IRQCount, 1, "IRQC"},
+   {&IRQXOR, 1, "IRQX"},
+   {&IRQa, 1, "IRQA"},
+   {mul, 2, "MUL0"},
+   {&regie, 1, "REGI"},
+   {tkcom, 4, "TKCO"},
+   {prgb, 4, "PRGB"},
+   {chr, 2, "CLTC"},
+   {chrlow, 4, "CHRL"},
+   {chrhigh, 8, "CHRH"},
+   {&names[0], 2 | FCEUSTATE_RLSB, "NMS0"},
+   {&names[1], 2 | FCEUSTATE_RLSB, "NMS1"},
+   {&names[2], 2 | FCEUSTATE_RLSB, "NMS2"},
+   {&names[3], 2 | FCEUSTATE_RLSB, "NMS3"},
+   {&tekker, 1, "TEKR"}};
 
 static void mira() {
   if ((tkcom[0] & 0x20 && is209) || is211) {
@@ -489,7 +489,7 @@ void Mapper90_Init(CartInfo *info) {
   fceulib__.X->MapIRQHook = CPUWrap;
   fceulib__.ppu->GameHBIRQHook2 = SLWrap;
   fceulib__.fceu->GameStateRestore = M90Restore;
-  fceulib__.state->AddExState(Tek_StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExVec(Tek_StateRegs);
 }
 
 void Mapper209_Init(CartInfo *info) {
@@ -501,7 +501,7 @@ void Mapper209_Init(CartInfo *info) {
   fceulib__.X->MapIRQHook = CPUWrap;
   fceulib__.ppu->GameHBIRQHook2 = SLWrap;
   fceulib__.fceu->GameStateRestore = M90Restore;
-  fceulib__.state->AddExState(Tek_StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExVec(Tek_StateRegs);
 }
 
 void Mapper211_Init(CartInfo *info) {
@@ -512,5 +512,5 @@ void Mapper211_Init(CartInfo *info) {
   fceulib__.X->MapIRQHook = CPUWrap;
   fceulib__.ppu->GameHBIRQHook2 = SLWrap;
   fceulib__.fceu->GameStateRestore = M90Restore;
-  fceulib__.state->AddExState(Tek_StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExVec(Tek_StateRegs);
 }

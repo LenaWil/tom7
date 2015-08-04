@@ -33,8 +33,8 @@ static uint32 WRAMSIZE;
 
 static void (*WSync)();
 
-static SFORMAT StateRegs[] = {
-    {&laststrobe, 1, "STB"}, {&trigger, 1, "TRG"}, {reg, 8, "REGS"}, {0}};
+static vector<SFORMAT> StateRegs = {
+    {&laststrobe, 1, "STB0"}, {&trigger, 1, "TRG0"}, {reg, 8, "REGS"}};
 
 static void Sync() {
   fceulib__.cart->setprg8r(0x10, 0x6000, 0);
@@ -131,7 +131,7 @@ void Mapper164_Init(CartInfo *info) {
   }
 
   fceulib__.fceu->GameStateRestore = StateRestore;
-  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExVec(StateRegs);
 }
 
 static DECLFW(Write2) {
@@ -186,7 +186,7 @@ void Mapper163_Init(CartInfo *info) {
     info->SaveGameLen[0] = WRAMSIZE;
   }
   fceulib__.fceu->GameStateRestore = StateRestore;
-  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExVec(StateRegs);
 }
 
 static void Sync3() {
@@ -246,5 +246,5 @@ void UNLFS304_Init(CartInfo *info) {
   }
 
   fceulib__.fceu->GameStateRestore = StateRestore;
-  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExVec(StateRegs);
 }

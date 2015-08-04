@@ -1426,10 +1426,15 @@ void INes::iNESPower() {
   if (type && type != 13 && type != 96) {
     fc->state->AddExState(mapbyte1, 32, 0, "MPBY");
     fc->state->AddExState(&iNESMirroring, 1, 0, "MIRR");
-    fc->state->AddExState(&iNESIRQCount, 4, 1, "IRQC");
+    // Note that ines.cc also has its own IRQCount; these once had the
+    // same key "IRQC" but I renamed them to use different keys. They
+    // also conflicted with many boards (e.g. skull.nes exhibits this
+    // failure).
+    fc->state->AddExState(&iNESIRQCount, 4, 1, "iRQC");
     fc->state->AddExState(&iNESIRQLatch, 4, 1, "IQL1");
-    fc->state->AddExState(&iNESIRQa, 1, 0, "IRQA");
-    fc->state->AddExState(PRGBankList, 4, 0, "PBL");
+    // Similarly with iRQA.
+    fc->state->AddExState(&iNESIRQa, 1, 0, "iRQA");
+    fc->state->AddExState(PRGBankList, 4, 0, "PBL0");
     for (int x = 0; x < 8; x++) {
       char tak[8];
       sprintf(tak,"CBL%d",x);

@@ -27,9 +27,9 @@ static uint8 prg_reg[2];
 static uint8 chr_reg[8];
 static uint8 mirr;
 
-static SFORMAT StateRegs[] = {{&IRQCount, 1, "IRQC"}, {&IRQa, 1, "IRQA"},
-                              {prg_reg, 2, "PRG"},    {chr_reg, 8, "CHR"},
-                              {&mirr, 1, "MIRR"},     {0}};
+static vector<SFORMAT> StateRegs = {{&IRQCount, 1, "IRQC"}, {&IRQa, 1, "IRQA"},
+                              {prg_reg, 2, "PRG0"},    {chr_reg, 8, "CHR0"},
+                              {&mirr, 1, "MIRR"}};
 
 static void M222IRQ() {
   if (IRQa) {
@@ -98,5 +98,5 @@ void Mapper222_Init(CartInfo *info) {
   info->Power = M222Power;
   fceulib__.ppu->GameHBIRQHook = M222IRQ;
   fceulib__.fceu->GameStateRestore = StateRestore;
-  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExVec(StateRegs);
 }

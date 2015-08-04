@@ -77,8 +77,8 @@ struct Sound {
 
   void FCEU_SoundCPUHook(int);
 
-  const SFORMAT *FCEUSND_STATEINFO() {
-    return stateinfo.data();
+  const std::vector<SFORMAT> &FCEUSND_STATEINFO() {
+    return stateinfo;
   }
 
   uint32 SoundTS() const {

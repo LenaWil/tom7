@@ -23,7 +23,7 @@
 static uint8 latch;
 static writefunc old4016;
 
-static SFORMAT StateRegs[] = {{&latch, 1, "LATC"}, {0}};
+static vector<SFORMAT> StateRegs = {{&latch, 1, "LATC"}};
 
 static void Sync() {
   fceulib__.cart->setchr8((latch >> 2) & 1);
@@ -52,5 +52,5 @@ static void StateRestore(FC *fc, int version) {
 void Mapper99_Init(CartInfo *info) {
   info->Power = M99Power;
   fceulib__.fceu->GameStateRestore = StateRestore;
-  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExVec(StateRegs);
 }

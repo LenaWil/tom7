@@ -22,7 +22,7 @@
 
 static uint8 reg, delay, mirr;
 
-static SFORMAT StateRegs[] = {{&reg, 1, "REG"}, {&mirr, 1, "MIRR"}, {0}};
+static vector<SFORMAT> StateRegs = {{&reg, 1, "REGS"}, {&mirr, 1, "MIRR"}};
 
 static void Sync() {
   fceulib__.cart->setchr8(reg);
@@ -70,5 +70,5 @@ void Mapper175_Init(CartInfo *info) {
   info->Power = M175Power;
   fceulib__.fceu->GameStateRestore = StateRestore;
 
-  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExVec(StateRegs);
 }

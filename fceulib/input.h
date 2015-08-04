@@ -125,7 +125,7 @@ struct Input {
   DECLFR_RET JPRead_Direct(DECLFR_ARGS);
   void B4016_Direct(DECLFW_ARGS);
 
-  const SFORMAT *FCEUINPUT_STATEINFO() { return stateinfo.data(); }
+  const std::vector<SFORMAT> &FCEUINPUT_STATEINFO() { return stateinfo; }
 
  private:
   friend class InputC;

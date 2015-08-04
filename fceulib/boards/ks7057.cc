@@ -24,7 +24,7 @@
 #include "mapinc.h"
 
 static uint8 reg[8], mirror;
-static SFORMAT StateRegs[] = {{reg, 8, "PRG"}, {&mirror, 1, "MIRR"}, {0}};
+static vector<SFORMAT> StateRegs = {{reg, 8, "PRG0"}, {&mirror, 1, "MIRR"}};
 
 static void Sync() {
   fceulib__.cart->setprg2(0x6000, reg[4]);
@@ -134,5 +134,5 @@ static void UNLKS7057Reset(FC *fc) {
 void UNLKS7057_Init(CartInfo *info) {
   info->Power = UNLKS7057Power;
   info->Reset = UNLKS7057Reset;
-  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExVec(StateRegs);
 }

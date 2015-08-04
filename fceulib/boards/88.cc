@@ -23,8 +23,8 @@
 static uint8 reg[8];
 static uint8 mirror, cmd, is154;
 
-static SFORMAT StateRegs[] = {
-    {&cmd, 1, "CMD"}, {&mirror, 1, "MIRR"}, {reg, 8, "REGS"}, {0}};
+static vector<SFORMAT> StateRegs = {
+    {&cmd, 1, "CMD0"}, {&mirror, 1, "MIRR"}, {reg, 8, "REGS"}};
 
 static void Sync() {
   fceulib__.cart->setchr2(0x0000, reg[0] >> 1);
@@ -70,12 +70,12 @@ void Mapper88_Init(CartInfo *info) {
   is154 = 0;
   info->Power = M88Power;
   fceulib__.fceu->GameStateRestore = StateRestore;
-  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExVec(StateRegs);
 }
 
 void Mapper154_Init(CartInfo *info) {
   is154 = 1;
   info->Power = M88Power;
   fceulib__.fceu->GameStateRestore = StateRestore;
-  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExVec(StateRegs);
 }

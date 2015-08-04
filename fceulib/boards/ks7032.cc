@@ -23,11 +23,10 @@
 static uint8 reg[8], cmd, IRQa = 0, isirqused = 0;
 static int32 IRQCount;
 
-static SFORMAT StateRegs[] = {{&cmd, 1, "CMD"},
+static vector<SFORMAT> StateRegs = {{&cmd, 1, "CMD0"},
                               {reg, 8, "REGS"},
                               {&IRQa, 1, "IRQA"},
-                              {&IRQCount, 4, "IRQC"},
-                              {0}};
+                              {&IRQCount, 4, "IRQC"}};
 
 static void Sync() {
   fceulib__.cart->setprg8(0x6000, reg[4]);
@@ -102,5 +101,5 @@ void UNLKS7032_Init(CartInfo *info) {
   info->Power = UNLKS7032Power;
   fceulib__.X->MapIRQHook = UNLSMB2JIRQHook;
   fceulib__.fceu->GameStateRestore = StateRestore;
-  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExVec(StateRegs);
 }

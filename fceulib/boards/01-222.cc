@@ -36,7 +36,7 @@
 #include "mapinc.h"
 
 static uint8 reg[4], cmd, is172, is173;
-static SFORMAT StateRegs[] = {{reg, 4, "REGS"}, {&cmd, 1, "CMD"}, {0}};
+static vector<SFORMAT> StateRegs = {{reg, 4, "REGS"}, {&cmd, 1, "CMD0"}};
 
 static void Sync() {
   fceulib__.cart->setprg32(0x8000, (reg[2] >> 2) & 1);
@@ -87,7 +87,7 @@ void UNL22211_Init(CartInfo *info) {
   is173 = 0;
   info->Power = UNL22211Power;
   fceulib__.fceu->GameStateRestore = StateRestore;
-  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExVec(StateRegs);
 }
 
 void Mapper172_Init(CartInfo *info) {
@@ -95,7 +95,7 @@ void Mapper172_Init(CartInfo *info) {
   is173 = 0;
   info->Power = UNL22211Power;
   fceulib__.fceu->GameStateRestore = StateRestore;
-  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExVec(StateRegs);
 }
 
 void Mapper173_Init(CartInfo *info) {
@@ -103,5 +103,5 @@ void Mapper173_Init(CartInfo *info) {
   is173 = 1;
   info->Power = UNL22211Power;
   fceulib__.fceu->GameStateRestore = StateRestore;
-  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExVec(StateRegs);
 }

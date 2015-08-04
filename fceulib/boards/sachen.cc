@@ -91,8 +91,8 @@ void S74LS374N_Init(CartInfo *info) {
   info->Reset = S74LS374NReset;
   fceulib__.fceu->GameStateRestore = S74LS374NRestore;
   fceulib__.state->AddExState(latch, 5, 0, "LATC");
-  fceulib__.state->AddExState(&cmd, 1, 0, "CMD");
-  fceulib__.state->AddExState(&dip, 1, 0, "DIP");
+  fceulib__.state->AddExState(&cmd, 1, 0, "CMD0");
+  fceulib__.state->AddExState(&dip, 1, 0, "DIP0");
 }
 
 static void S74LS374NASynco() {
@@ -133,7 +133,7 @@ void S74LS374NA_Init(CartInfo *info) {
   info->Power = S74LS374NAPower;
   fceulib__.fceu->GameStateRestore = S74LS374NRestore;
   fceulib__.state->AddExState(latch, 5, 0, "LATC");
-  fceulib__.state->AddExState(&cmd, 1, 0, "CMD");
+  fceulib__.state->AddExState(&cmd, 1, 0, "CMD0");
 }
 
 static int type;
@@ -209,7 +209,7 @@ void S8259A_Init(CartInfo *info)  // Kevin's Horton 141 mapper
   info->Power = S8259Reset;
   fceulib__.fceu->GameStateRestore = S8259Restore;
   fceulib__.state->AddExState(latch, 8, 0, "LATC");
-  fceulib__.state->AddExState(&cmd, 1, 0, "CMD");
+  fceulib__.state->AddExState(&cmd, 1, 0, "CMD0");
   type = 0;
 }
 
@@ -218,7 +218,7 @@ void S8259B_Init(CartInfo *info)  // Kevin's Horton 138 mapper
   info->Power = S8259Reset;
   fceulib__.fceu->GameStateRestore = S8259Restore;
   fceulib__.state->AddExState(latch, 8, 0, "LATC");
-  fceulib__.state->AddExState(&cmd, 1, 0, "CMD");
+  fceulib__.state->AddExState(&cmd, 1, 0, "CMD0");
   type = 1;
 }
 
@@ -227,7 +227,7 @@ void S8259C_Init(CartInfo *info)  // Kevin's Horton 139 mapper
   info->Power = S8259Reset;
   fceulib__.fceu->GameStateRestore = S8259Restore;
   fceulib__.state->AddExState(latch, 8, 0, "LATC");
-  fceulib__.state->AddExState(&cmd, 1, 0, "CMD");
+  fceulib__.state->AddExState(&cmd, 1, 0, "CMD0");
   type = 2;
 }
 
@@ -236,7 +236,7 @@ void S8259D_Init(CartInfo *info)  // Kevin's Horton 137 mapper
   info->Power = S8259Reset;
   fceulib__.fceu->GameStateRestore = S8259Restore;
   fceulib__.state->AddExState(latch, 8, 0, "LATC");
-  fceulib__.state->AddExState(&cmd, 1, 0, "CMD");
+  fceulib__.state->AddExState(&cmd, 1, 0, "CMD0");
   type = 3;
 }
 

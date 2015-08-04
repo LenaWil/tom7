@@ -22,9 +22,9 @@
 
 static uint8 prot[4], prg, mode, chr, mirr;
 
-static SFORMAT StateRegs[] = {{prot, 4, "PROT"},  {&prg, 1, "PRG"},
-                              {&chr, 1, "CHR"},   {&mode, 1, "MODE"},
-                              {&mirr, 1, "MIRR"}, {0}};
+static vector<SFORMAT> StateRegs = {{prot, 4, "PROT"},  {&prg, 1, "PRG0"},
+                              {&chr, 1, "CHR0"},   {&mode, 1, "MODE"},
+                              {&mirr, 1, "MIRR"}};
 
 static void Sync() {
   if (mode) {
@@ -76,5 +76,5 @@ void Mapper225_Init(CartInfo *info) {
   info->Reset = M225Reset;
   info->Power = M225Power;
   fceulib__.fceu->GameStateRestore = StateRestore;
-  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExVec(StateRegs);
 }

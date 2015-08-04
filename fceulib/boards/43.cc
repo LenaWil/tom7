@@ -25,8 +25,8 @@
 static uint8 reg;
 static uint32 IRQCount, IRQa;
 
-static SFORMAT StateRegs[] = {
-    {&IRQCount, 4, "IRQC"}, {&IRQa, 1, "IRQA"}, {&reg, 1, "REG"}, {0}};
+static vector<SFORMAT> StateRegs = {
+    {&IRQCount, 4, "IRQC"}, {&IRQa, 1, "IRQA"}, {&reg, 1, "REGS"}};
 
 static void Sync() {
   fceulib__.cart->setprg4(0x5000, 16);  // Only YS-612 advdnced version
@@ -83,5 +83,5 @@ void Mapper43_Init(CartInfo *info) {
   info->Power = M43Power;
   fceulib__.X->MapIRQHook = M43IRQHook;
   fceulib__.fceu->GameStateRestore = StateRestore;
-  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExVec(StateRegs);
 }

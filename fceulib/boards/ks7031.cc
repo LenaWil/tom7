@@ -25,7 +25,7 @@
 
 static uint8 reg[4];
 
-static SFORMAT StateRegs[] = {{reg, 4, "REGS"}, {0}};
+static vector<SFORMAT> StateRegs = {{reg, 4, "REGS"}};
 
 static void Sync() {
   fceulib__.cart->setprg2(0x6000, reg[0]);
@@ -72,5 +72,5 @@ static void StateRestore(FC *fc, int version) {
 void UNLKS7031_Init(CartInfo *info) {
   info->Power = UNLKS7031Power;
   fceulib__.fceu->GameStateRestore = StateRestore;
-  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExVec(StateRegs);
 }

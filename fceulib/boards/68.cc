@@ -26,10 +26,14 @@ static uint8 kogame, prg_reg, nt1, nt2, mirr;
 static uint8 *WRAM = nullptr;
 static uint32 WRAMSIZE, count;
 
-static SFORMAT StateRegs[] = {{&nt1, 1, "NT1"},     {&nt2, 1, "NT2"},
-                              {&mirr, 1, "MIRR"},   {&prg_reg, 1, "PRG"},
-                              {&kogame, 1, "KGME"}, {&count, 4, "CNT"},
-                              {chr_reg, 4, "CHR"},  {0}};
+static vector<SFORMAT> StateRegs =
+  {{&nt1, 1, "NT10"},
+   {&nt2, 1, "NT20"},
+   {&mirr, 1, "MIRR"},
+   {&prg_reg, 1, "PRG0"},
+   {&kogame, 1, "KGME"},
+   {&count, 4, "CNT0"},
+   {chr_reg, 4, "CHR0"}};
 
 static void M68NTfix() {
   if ((!fceulib__.unif->UNIFchrrama) && (mirr & 0x10)) {
@@ -166,5 +170,5 @@ void Mapper68_Init(CartInfo *info) {
     info->SaveGameLen[0] = WRAMSIZE;
   }
   fceulib__.state->AddExState(WRAM, WRAMSIZE, 0, "WRAM");
-  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExVec(StateRegs);
 }

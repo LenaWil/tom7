@@ -26,8 +26,8 @@ static uint8 DRegs[8];
 static uint8 cmd;
 static uint8 MirCache[8];
 
-static SFORMAT DB_StateRegs[] = {
-    {DRegs, 8, "DREG"}, {&cmd, 1, "CMD"}, {&lastA, 1, "LAST"}, {0}};
+static vector<SFORMAT> DB_StateRegs = {
+    {DRegs, 8, "DREG"}, {&cmd, 1, "CMD0"}, {&lastA, 1, "LAST"}};
 
 static void toot() {
   MirCache[0] = MirCache[1] = (DRegs[0] >> 4) & 1;
@@ -101,7 +101,7 @@ static void StateRestore(FC *fc, int version) {
 
 void Mapper95_Init(CartInfo *info) {
   info->Power = DBPower;
-  fceulib__.state->AddExState(DB_StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExVec(DB_StateRegs);
   fceulib__.ppu->PPU_hook = DragonBust_PPU;
   fceulib__.fceu->GameStateRestore = StateRestore;
 }

@@ -21,7 +21,7 @@
 #include "mapinc.h"
 
 static uint8 bank, preg;
-static SFORMAT StateRegs[] = {{&bank, 1, "BANK"}, {&preg, 1, "PREG"}, {0}};
+static vector<SFORMAT> StateRegs = {{&bank, 1, "BANK"}, {&preg, 1, "PREG"}};
 
 static void Sync() {
   if (bank & 0x40) {
@@ -69,6 +69,6 @@ static void StateRestore(FC *fc, int version) {
 void Mapper234_Init(CartInfo *info) {
   info->Power = M234Power;
   info->Reset = M234Reset;
-  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExVec(StateRegs);
   fceulib__.fceu->GameStateRestore = StateRestore;
 }

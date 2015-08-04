@@ -21,7 +21,7 @@
 #include "mapinc.h"
 
 static uint8 reg, mirr;
-static SFORMAT StateRegs[] = {{&reg, 1, "REGS"}, {&mirr, 1, "MIRR"}, {0}};
+static vector<SFORMAT> StateRegs = {{&reg, 1, "REGS"}, {&mirr, 1, "MIRR"}};
 
 static void Sync() {
   fceulib__.cart->setprg8r(0, 0x6000, ~0);
@@ -54,5 +54,5 @@ void BMCGS2013_Init(CartInfo *info) {
   info->Reset = BMCGS2013Reset;
   info->Power = BMCGS2013Power;
   fceulib__.fceu->GameStateRestore = StateRestore;
-  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExVec(StateRegs);
 }

@@ -22,8 +22,8 @@
 
 static uint16 cmdreg;
 static uint8 invalid_data;
-static SFORMAT StateRegs[] = {
-    {&invalid_data, 1, "INVD"}, {&cmdreg, 2, "CREG"}, {0}};
+static vector<SFORMAT> StateRegs = {
+    {&invalid_data, 1, "INVD"}, {&cmdreg, 2, "CREG"}};
 
 static void Sync() {
   fceulib__.cart->setprg16r((cmdreg & 0x060) >> 5, 0x8000,
@@ -68,5 +68,5 @@ void UNL8157_Init(CartInfo *info) {
   info->Power = UNL8157Power;
   info->Reset = UNL8157Reset;
   fceulib__.fceu->GameStateRestore = UNL8157Restore;
-  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExVec(StateRegs);
 }

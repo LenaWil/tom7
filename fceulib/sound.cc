@@ -1001,7 +1001,7 @@ void Sound::FCEUI_InitSound() {
 Sound::Sound(FC *fc)
     : stateinfo{{&fhcnt, 4 | FCEUSTATE_RLSB, "FHCN"},
                 {&fcnt, 1, "FCNT"},
-                {PSG, 0x10, "PSG"},
+                {PSG, 0x10, "PSG0"},
                 {&EnabledChannels, 1, "ENCH"},
                 {&IRQFrameMode, 1, "IQFM"},
                 {&nreg, 2 | FCEUSTATE_RLSB, "NREG"},
@@ -1041,14 +1041,14 @@ Sound::Sound(FC *fc)
                 {&DMCSize, 4 | FCEUSTATE_RLSB, "5SIZ"},
                 {&DMCShift, 1, "5SHF"},
 
-                {&DMCHaveDMA, 1, "5HVDM"},
-                {&DMCHaveSample, 1, "5HVSP"},
+                {&DMCHaveDMA, 1, "5HVD"},
+                {&DMCHaveSample, 1, "5HVS"},
 
                 {&DMCSizeLatch, 1, "5SZL"},
                 {&DMCAddressLatch, 1, "5ADL"},
                 {&DMCFormat, 1, "5FMT"},
                 {&RawDALatch, 1, "RWDA"},
-		{0}},
+	  },
       fc(fc) {
           // Constructor, empty.
       };

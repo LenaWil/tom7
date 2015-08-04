@@ -85,8 +85,8 @@ class PPU {
   void B2007_Direct(DECLFW_ARGS);
   void B4014_Direct(DECLFW_ARGS);
 
-  const SFORMAT *FCEUPPU_STATEINFO() {
-    return stateinfo.data();
+  const std::vector<SFORMAT> &FCEUPPU_STATEINFO() {
+    return stateinfo;
   }
 
  private:

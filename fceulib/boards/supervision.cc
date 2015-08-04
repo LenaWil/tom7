@@ -62,8 +62,8 @@ static void SuperRestore(FC *fc, int version) {
 }
 
 void Supervision16_Init(CartInfo *info) {
-  fceulib__.state->AddExState(&cmd0, 1, 0, "L1");
-  fceulib__.state->AddExState(&cmd1, 1, 0, "L2");
+  fceulib__.state->AddExState(&cmd0, 1, 0, "L100");
+  fceulib__.state->AddExState(&cmd1, 1, 0, "L200");
   info->Power = SuperReset;
   fceulib__.fceu->GameStateRestore = SuperRestore;
 }

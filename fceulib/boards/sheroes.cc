@@ -75,5 +75,5 @@ void UNLSHeroes_Init(CartInfo *info) {
   CHRRAM = (uint8 *)FCEU_gmalloc(8192);
   fceulib__.cart->SetupCartCHRMapping(0x10, CHRRAM, 8192, 1);
   fceulib__.state->AddExState(EXPREGS, 4, 0, "EXPR");
-  fceulib__.state->AddExState(&tekker, 1, 0, "DIPSW");
+  fceulib__.state->AddExState(&tekker, 1, 0, "DIPs");
 }

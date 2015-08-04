@@ -28,8 +28,8 @@ static int32 IRQCount;
 static uint8 *WRAM = nullptr;
 static uint32 WRAMSIZE;
 
-static SFORMAT StateRegs[] = {
-    {&reg, 1, "REG"}, {&IRQa, 1, "IRQA"}, {&IRQCount, 4, "IRQC"}, {0}};
+static vector<SFORMAT> StateRegs = {
+    {&reg, 1, "REGS"}, {&IRQa, 1, "IRQA"}, {&IRQCount, 4, "IRQC"}};
 
 static void Sync() {
   fceulib__.cart->setchr8(0);
@@ -95,5 +95,5 @@ void LH53_Init(CartInfo *info) {
   fceulib__.cart->SetupCartPRGMapping(0x10, WRAM, WRAMSIZE, 1);
   fceulib__.state->AddExState(WRAM, WRAMSIZE, 0, "WRAM");
 
-  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExVec(StateRegs);
 }

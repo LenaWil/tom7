@@ -22,19 +22,19 @@
 
 #include "mapinc.h"
 
-static uint8 prg0, prg1, mirr, swap;
+static uint8 prg0, prg1, mirr, tfswap;
 static uint8 chr[8];
 static uint8 IRQCount;
 static uint8 IRQPre;
 static uint8 IRQa;
 
-static SFORMAT StateRegs[] = {
+static vector<SFORMAT> StateRegs = {
     {&prg0, 1, "PRG0"},   {&prg0, 1, "PRG1"}, {&mirr, 1, "MIRR"},
-    {&swap, 1, "SWAP"},   {chr, 8, "CHR"},    {&IRQCount, 1, "IRQC"},
-    {&IRQPre, 1, "IRQP"}, {&IRQa, 1, "IRQA"}, {0}};
+    {&tfswap, 1, "SWAP"},   {chr, 8, "CHR0"},    {&IRQCount, 1, "IRQC"},
+    {&IRQPre, 1, "IRQP"}, {&IRQa, 1, "IRQA"}};
 
 static void SyncPrg() {
-  if (swap & 3) {
+  if (tfswap & 3) {
     fceulib__.cart->setprg8(0x8000, ~1);
     fceulib__.cart->setprg8(0xC000, prg0);
   } else {
@@ -77,7 +77,7 @@ static DECLFW(UNLTF1201Write) {
         SyncChr();
         break;
       case 0x9001:
-        swap = V & 3;
+        tfswap = V & 3;
         SyncPrg();
         break;
       case 0xF000: IRQCount = ((IRQCount & 0xF0) | (V & 0xF)); break;
@@ -113,5 +113,5 @@ void UNLTF1201_Init(CartInfo *info) {
   info->Power = UNLTF1201Power;
   fceulib__.ppu->GameHBIRQHook = UNLTF1201IRQCounter;
   fceulib__.fceu->GameStateRestore = StateRestore;
-  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExVec(StateRegs);
 }

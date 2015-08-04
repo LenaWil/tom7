@@ -26,7 +26,7 @@
 
 static uint8 isresetbased = 0;
 static uint8 latche[2], reset;
-static SFORMAT StateRegs[] = {{&reset, 1, "RST"}, {latche, 2, "LATC"}, {0}};
+static vector<SFORMAT> StateRegs = {{&reset, 1, "RST0"}, {latche, 2, "LATC"}};
 
 static void Sync() {
   uint8 bank;
@@ -65,7 +65,7 @@ static void StateRestore(FC *fc, int version) {
 void Mapper226_Init(CartInfo *info) {
   isresetbased = 0;
   info->Power = M226Power;
-  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExVec(StateRegs);
   fceulib__.fceu->GameStateRestore = StateRestore;
 }
 
@@ -78,6 +78,6 @@ void Mapper233_Init(CartInfo *info) {
   isresetbased = 1;
   info->Power = M226Power;
   info->Reset = M233Reset;
-  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExVec(StateRegs);
   fceulib__.fceu->GameStateRestore = StateRestore;
 }

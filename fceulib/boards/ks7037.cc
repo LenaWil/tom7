@@ -29,7 +29,7 @@ static uint32 WRAMSIZE;
 
 static void (*WSync)();
 
-static SFORMAT StateRegs[] = {{&cmd, 1, "CMD"}, {reg, 8, "REGS"}, {0}};
+static vector<SFORMAT> StateRegs = {{&cmd, 1, "CMD0"}, {reg, 8, "REGS"}};
 
 static void SyncKS7037() {
   fceulib__.cart->setprg4r(0x10, 0x6000, 0);
@@ -103,7 +103,7 @@ void UNLKS7037_Init(CartInfo *info) {
   fceulib__.state->AddExState(WRAM, WRAMSIZE, 0, "WRAM");
 
   fceulib__.fceu->GameStateRestore = StateRestore;
-  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExVec(StateRegs);
 }
 
 void LH10_Init(CartInfo *info) {
@@ -118,5 +118,5 @@ void LH10_Init(CartInfo *info) {
   fceulib__.state->AddExState(WRAM, WRAMSIZE, 0, "WRAM");
 
   fceulib__.fceu->GameStateRestore = StateRestore;
-  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExVec(StateRegs);
 }

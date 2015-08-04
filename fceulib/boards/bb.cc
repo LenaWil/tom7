@@ -22,7 +22,7 @@
 
 static uint8 reg, chr;
 
-static SFORMAT StateRegs[] = {{&reg, 1, "REG"}, {&chr, 1, "CHR"}, {0}};
+static vector<SFORMAT> StateRegs = {{&reg, 1, "REGS"}, {&chr, 1, "CHR0"}};
 
 static void Sync() {
   fceulib__.cart->setprg8(0x6000, reg & 3);
@@ -55,5 +55,5 @@ static void StateRestore(FC *fc, int version) {
 void UNLBB_Init(CartInfo *info) {
   info->Power = UNLBBPower;
   fceulib__.fceu->GameStateRestore = StateRestore;
-  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExVec(StateRegs);
 }

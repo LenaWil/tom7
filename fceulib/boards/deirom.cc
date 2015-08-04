@@ -23,7 +23,7 @@
 static uint8 cmd;
 static uint8 DRegs[8];
 
-static SFORMAT DEI_StateRegs[] = {{&cmd, 1, "CMD"}, {DRegs, 8, "DREG"}, {0}};
+static vector<SFORMAT> DEI_StateRegs = {{&cmd, 1, "CMD0"}, {DRegs, 8, "DREG"}};
 
 static void Sync() {
   fceulib__.cart->setchr2(0x0000, DRegs[0]);
@@ -66,5 +66,5 @@ static void DEIPower(FC *fc) {
 void DEIROM_Init(CartInfo *info) {
   info->Power = DEIPower;
   fceulib__.fceu->GameStateRestore = StateRestore;
-  fceulib__.state->AddExState(&DEI_StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExVec(DEI_StateRegs);
 }

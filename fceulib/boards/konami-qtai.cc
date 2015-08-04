@@ -35,9 +35,10 @@ static uint32 IRQLatch, IRQCount;
 
 static uint8 regs[16];
 
-static SFORMAT StateRegs[] = {{&IRQCount, 1, "IRQC"}, {&IRQLatch, 1, "IRQL"},
-                              {&IRQa, 1, "IRQA"},     {&K4IRQ, 1, "KIRQ"},
-                              {regs, 16, "REGS"},     {0}};
+static vector<SFORMAT> StateRegs =
+  {{&IRQCount, 1, "IRQC"}, {&IRQLatch, 1, "IRQL"},
+   {&IRQa, 1, "IRQA"},     {&K4IRQ, 1, "KIRQ"},
+   {regs, 16, "REGS"}};
 
 static void chrSync() {
   fceulib__.cart->setchr4r(0x10, 0x0000, regs[5] & 1);
@@ -193,5 +194,5 @@ void Mapper190_Init(CartInfo *info) {
     info->SaveGameLen[0] = WRAMSIZE - 4096;
   }
 
-  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExVec(StateRegs);
 }

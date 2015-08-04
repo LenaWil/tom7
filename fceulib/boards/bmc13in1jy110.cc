@@ -25,7 +25,7 @@
 static uint8 bank_mode;
 static uint8 bank_value;
 static uint8 prgb[4];
-static SFORMAT StateRegs[] = {{0}};
+static vector<SFORMAT> StateRegs = {};
 
 static void Sync() {
   FCEU_printf("%02x: %02x %02x\n", bank_mode, bank_value, prgb[0]);
@@ -84,6 +84,6 @@ static void StateRestore(FC *fc, int version) {
 
 void BMC13in1JY110_Init(CartInfo *info) {
   info->Power = BMC13in1JY110Power;
-  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExVec(StateRegs);
   fceulib__.fceu->GameStateRestore = StateRestore;
 }

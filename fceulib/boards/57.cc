@@ -25,8 +25,8 @@ static uint8 prg_reg;
 static uint8 chr_reg;
 static uint8 hrd_flag;
 
-static SFORMAT StateRegs[] = {
-    {&hrd_flag, 1, "DPSW"}, {&prg_reg, 1, "PRG"}, {&chr_reg, 1, "CHR"}, {0}};
+static vector<SFORMAT> StateRegs = {
+    {&hrd_flag, 1, "DPSW"}, {&prg_reg, 1, "PRG0"}, {&chr_reg, 1, "CHR0"}};
 
 static void Sync() {
   if (prg_reg & 0x80)
@@ -76,5 +76,5 @@ void Mapper57_Init(CartInfo *info) {
   info->Power = M57Power;
   info->Reset = M57Reset;
   fceulib__.fceu->GameStateRestore = StateRestore;
-  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExVec(StateRegs);
 }

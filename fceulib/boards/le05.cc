@@ -24,7 +24,7 @@
 #include "mapinc.h"
 
 static uint8 chr;
-static SFORMAT StateRegs[] = {{&chr, 1, "CHR"}, {0}};
+static vector<SFORMAT> StateRegs = {{&chr, 1, "CHR0"}};
 
 static void Sync() {
   fceulib__.cart->setprg2r(0, 0xE000, 0);
@@ -54,5 +54,5 @@ static void LE05Power(FC *fc) {
 
 void LE05_Init(CartInfo *info) {
   info->Power = LE05Power;
-  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExVec(StateRegs);
 }

@@ -24,7 +24,7 @@ static uint8 reg[7];
 static uint8 *WRAM = nullptr;
 static uint32 WRAMSIZE;
 
-static SFORMAT StateRegs[] = {{reg, 2, "REG"}, {0}};
+static vector<SFORMAT> StateRegs = {{reg, 2, "REGS"}};
 
 static constexpr uint8 bs_tbl[128] = {
     0x03, 0x13, 0x23, 0x33, 0x03, 0x13, 0x23, 0x33, 0x03, 0x13, 0x23, 0x33,
@@ -107,5 +107,5 @@ void UNLPEC586Init(CartInfo *info) {
   fceulib__.cart->SetupCartPRGMapping(0x10, WRAM, WRAMSIZE, 1);
   fceulib__.state->AddExState(WRAM, WRAMSIZE, 0, "WRAM");
 
-  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExVec(StateRegs);
 }

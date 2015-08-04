@@ -27,13 +27,12 @@ static uint32 WRAMSIZE;
 static uint8 *CHRRAM = nullptr;
 static uint32 CHRRAMSIZE;
 
-static SFORMAT StateRegs[] = {{creg, 8, "CREG"},
+static vector<SFORMAT> StateRegs = {{creg, 8, "CREG"},
                               {preg, 2, "PREG"},
                               {&IRQa, 4, "IRQA"},
                               {&IRQCount, 4, "IRQC"},
                               {&IRQLatch, 4, "IRQL"},
-                              {&IRQClock, 4, "IRQK"},
-                              {0}};
+                              {&IRQClock, 4, "IRQK"}};
 
 static void Sync() {
   fceulib__.cart->setprg8r(0x10, 0x6000, 0);
@@ -143,5 +142,5 @@ void Mapper252_Init(CartInfo *info) {
     info->SaveGameLen[0] = WRAMSIZE;
   }
   fceulib__.fceu->GameStateRestore = StateRestore;
-  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExVec(StateRegs);
 }

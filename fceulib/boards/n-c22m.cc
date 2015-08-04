@@ -23,7 +23,7 @@
 
 static uint8 reg[8];
 
-static SFORMAT StateRegs[] = {{reg, 8, "REGS"}, {0}};
+static vector<SFORMAT> StateRegs = {{reg, 8, "REGS"}};
 
 static void Sync() {
   //  FCEU_printf("(%02x, %02x)\n",reg[3],reg[4]);
@@ -89,5 +89,5 @@ void UNLCN22M_Init(CartInfo *info) {
   info->Power = MCN22MPower;
   //  GameHBIRQHook=MCN22MIRQHook;
   fceulib__.fceu->GameStateRestore = StateRestore;
-  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExVec(StateRegs);
 }

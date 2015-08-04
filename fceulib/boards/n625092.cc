@@ -23,7 +23,7 @@
 
 static uint16 cmd, bank;
 
-static SFORMAT StateRegs[] = {{&cmd, 2, "CMD"}, {&bank, 2, "BANK"}, {0}};
+static vector<SFORMAT> StateRegs = {{&cmd, 2, "CMD0"}, {&bank, 2, "BANK"}};
 
 static void Sync() {
   fceulib__.cart->setmirror((cmd & 1) ^ 1);
@@ -83,5 +83,5 @@ void UNLN625092_Init(CartInfo *info) {
   info->Reset = UNLN625092Reset;
   info->Power = UNLN625092Power;
   fceulib__.fceu->GameStateRestore = StateRestore;
-  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExVec(StateRegs);
 }

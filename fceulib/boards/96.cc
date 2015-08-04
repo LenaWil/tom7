@@ -24,7 +24,7 @@
 
 static uint8 reg, ppulatch;
 
-static SFORMAT StateRegs[] = {{&reg, 1, "REG"}, {&ppulatch, 1, "PPUL"}, {0}};
+static vector<SFORMAT> StateRegs = {{&reg, 1, "REGS"}, {&ppulatch, 1, "PPUL"}};
 
 static void Sync() {
   fceulib__.cart->setmirror(MI_0);
@@ -60,5 +60,5 @@ void Mapper96_Init(CartInfo *info) {
   info->Power = M96Power;
   fceulib__.ppu->PPU_hook = M96Hook;
   fceulib__.fceu->GameStateRestore = StateRestore;
-  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExVec(StateRegs);
 }

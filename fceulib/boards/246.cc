@@ -24,7 +24,7 @@ static uint8 regs[8];
 static uint8 *WRAM = nullptr;
 static uint32 WRAMSIZE;
 
-static SFORMAT StateRegs[] = {{regs, 8, "REGS"}, {0}};
+static vector<SFORMAT> StateRegs = {{regs, 8, "REGS"}};
 
 static void Sync() {
   fceulib__.cart->setprg2r(0x10, 0x6800, 0);
@@ -76,5 +76,5 @@ void Mapper246_Init(CartInfo *info) {
     info->SaveGameLen[0] = WRAMSIZE;
   }
 
-  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExVec(StateRegs);
 }
