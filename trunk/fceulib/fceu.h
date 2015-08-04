@@ -40,6 +40,8 @@ enum EFCEUI {
   FCEUI_EJECT_DISK, FCEUI_SWITCH_DISK
 };
 
+struct CartInterface;
+
 struct FCEU {
   explicit FCEU(FC *fc);
   ~FCEU();
@@ -111,6 +113,15 @@ struct FCEU {
   // checks whether an EFCEUI is valid right now
   bool FCEU_IsValidUI(EFCEUI ui);
 
+  // Cart interface, which can be set by either the ines or unif
+  // loading code. It has to be in a shared location rather than
+  // a member of (both of) those, because mapper code needs to
+  // be able to find itself from a FC pointer (e.g. within a
+  // DECLFW handler).
+  //
+  // If this is deleted, make sure it is set to nullptr.
+  CartInterface *cartiface = nullptr;
+  
 private:
   readfunc *AReadG = nullptr;
   writefunc *BWriteG = nullptr;

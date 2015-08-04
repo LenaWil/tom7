@@ -63,7 +63,7 @@ struct Unif {
   void FreeUNIF();
 
   CartInfo UNIFCart = {};
-
+  
   int vramo = 0;
   int mirrortodo = 0;
   uint8 *boardname = nullptr;
