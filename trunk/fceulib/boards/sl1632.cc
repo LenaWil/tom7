@@ -22,14 +22,15 @@
 #include "mmc3.h"
 
 // brk is a system call in *nix, and is an illegal variable name - soules
-// same goes for 'swap' -tom7   (BTW: swap is dead?)
-static uint8 chrcmd[8], prg0, prg1, bbrk, mirr, slswap;
-static vector<SFORMAT> StateRegs = {{chrcmd, 8, "CHRC"},
-                              {&prg0, 1, "PRG0"},
-                              {&prg1, 1, "PRG1"},
-                              {&bbrk, 1, "BRK0"},
-                              {&mirr, 1, "MIRR"},
-                              {&slswap, 1, "SWAP"}};
+// tom7 removed 'swap' which had the same problem but was dead
+static uint8 chrcmd[8], prg0, prg1, bbrk, mirr;
+static vector<SFORMAT> StateRegs = {
+  {chrcmd, 8, "CHRC"},
+  {&prg0, 1, "PRG0"},
+  {&prg1, 1, "PRG1"},
+  {&bbrk, 1, "BRK0"},
+  {&mirr, 1, "MIRR"}
+};
 
 static void Sync() {
   fceulib__.cart->setprg8(0x8000, prg0);

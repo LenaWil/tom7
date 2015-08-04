@@ -9,7 +9,6 @@ Stuff I should be able to get rid of:
  - auto-fire
  - proper in-memory treatment of battery backed saves. lots of
    red herrings here! also, it leaks file descriptors.
- - FCEUI_Initialize calls srand -- what is using random numbers?
  - NSF code in mapper.h and the uncalled functions therein?
 
       Still to objectify:
@@ -26,10 +25,6 @@ Stuff I should be able to get rid of:
    Some boards are based off of others, especially MMC3 but also MMC1.
 
  - is "moo" defined? mappers/61.cc ifdefs it
-
- - Get rid of "linked" style state, like
-    fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
-   in many boards. Just pass a vector.
 
 
 Memory todo:
