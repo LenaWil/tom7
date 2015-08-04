@@ -33,7 +33,7 @@ static uint8 regs[3];
 static uint8 *WRAM = nullptr;
 static uint32 WRAMSIZE;
 
-static SFORMAT StateRegs[] = {{regs, 3, "REGS"}, {0}};
+static vector<SFORMAT> StateRegs = {{regs, 3, "REGS"}};
 
 static void Sync() {
   fceulib__.cart->setprg8r(0x10, 0x6000, 0);
@@ -83,5 +83,5 @@ void Mapper34_Init(CartInfo *info) {
   fceulib__.cart->SetupCartPRGMapping(0x10, WRAM, WRAMSIZE, 1);
   fceulib__.state->AddExState(WRAM, WRAMSIZE, 0, "WRAM");
 
-  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExVec(StateRegs);
 }

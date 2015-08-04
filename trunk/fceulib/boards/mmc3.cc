@@ -44,10 +44,10 @@ uint8 mmc3opts = 0;
 static uint8 IRQCount, IRQLatch, IRQa;
 static uint8 IRQReload;
 
-static SFORMAT MMC3_StateRegs[] = {
-    {DRegBuf, 8, "REGS"},   {&MMC3_cmd, 1, "CMD"},   {&A000B, 1, "A000"},
+static vector<SFORMAT> MMC3_StateRegs = {
+    {DRegBuf, 8, "REGS"},   {&MMC3_cmd, 1, "CMD0"},   {&A000B, 1, "A000"},
     {&A001B, 1, "A001"},    {&IRQReload, 1, "IRQR"}, {&IRQCount, 1, "IRQC"},
-    {&IRQLatch, 1, "IRQL"}, {&IRQa, 1, "IRQA"},      {0}};
+    {&IRQLatch, 1, "IRQL"}, {&IRQa, 1, "IRQA"}};
 
 static int wrams;
 static int isRevB = 1;
@@ -292,7 +292,7 @@ void GenMMC3_Init(CartInfo *info, int prg, int chr, int wram, int battery) {
     info->SaveGameLen[0] = wrams;
   }
 
-  fceulib__.state->AddExState(MMC3_StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExVec(MMC3_StateRegs);
 
   info->Power = GenMMC3Power;
   info->Reset = MMC3RegReset;
@@ -1096,13 +1096,12 @@ void Mapper198_Init(CartInfo *info) {
 // GN-45 BOARD
 
 static void M205PW(uint32 A, uint8 V) {
-  // GN-30A - начальная маска должна быть 1F + аппаратный переключатель на шине
-  // адреса
+  // GN-30A - (some badly encoded characters deleted -tom7)
   fceulib__.cart->setprg8(A, (V & 0x0f) | EXPREGS[0]);
 }
 
 static void M205CW(uint32 A, uint8 V) {
-  // GN-30A - начальная маска должна быть FF
+  // GN-30A - (some badly encoded characters deleted -tom7)
   fceulib__.cart->setchr1(A, (V & 0x7F) | (EXPREGS[0] << 3));
 }
 

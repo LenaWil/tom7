@@ -23,7 +23,7 @@
 static uint8 mode;
 static uint8 DRegs[4];
 
-static SFORMAT StateRegs[] = {{DRegs, 4, "DREG"}, {0}};
+static vector<SFORMAT> StateRegs = {{DRegs, 4, "DREG"}};
 
 static void Sync() {
   int base, bank;
@@ -68,7 +68,7 @@ void Mapper166_init() {
   Sync();
   fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, Mapper167_write);
   fceulib__.fceu->GameStateRestore = StateRestore;
-  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExVec(StateRegs);
 }
 
 void Mapper167_init() {
@@ -77,5 +77,5 @@ void Mapper167_init() {
   Sync();
   fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, Mapper167_write);
   fceulib__.fceu->GameStateRestore = StateRestore;
-  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExVec(StateRegs);
 }

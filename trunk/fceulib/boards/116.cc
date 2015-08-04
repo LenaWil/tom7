@@ -45,7 +45,7 @@ static uint8 IRQCount, IRQLatch, IRQa;
 static uint8 IRQReload;
 static uint8 mmc1_regs[4], mmc1_buffer, mmc1_shift;
 
-static SFORMAT StateRegs[] = {{&mode, 1, "MODE"},
+static vector<SFORMAT> StateRegs = {{&mode, 1, "MODE"},
                               {vrc2_chr, 8, "VRCC"},
                               {vrc2_prg, 2, "VRCP"},
                               {&vrc2_mirr, 1, "VRCM"},
@@ -58,8 +58,7 @@ static SFORMAT StateRegs[] = {{&mode, 1, "MODE"},
                               {&IRQa, 1, "IRQA"},
                               {mmc1_regs, 4, "M1RG"},
                               {&mmc1_buffer, 1, "M1BF"},
-                              {&mmc1_shift, 1, "M1MR"},
-                              {0}};
+                              {&mmc1_shift, 1, "M1MR"}};
 
 static void SyncPRG() {
   switch (mode & 3) {
@@ -322,7 +321,7 @@ void UNLSL12_Init(CartInfo *info) {
   info->Power = UNLSL12Power;
   fceulib__.ppu->GameHBIRQHook = UNLSL12HBIRQ;
   fceulib__.fceu->GameStateRestore = StateRestore;
-  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExVec(StateRegs);
 }
 
 void Mapper116_Init(CartInfo *info) {

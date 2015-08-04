@@ -28,8 +28,8 @@
 static uint8 prg, IRQa;
 static uint16 IRQCount;
 
-static SFORMAT StateRegs[] = {
-    {&prg, 1, "PRG"}, {&IRQa, 1, "IRQA"}, {&IRQCount, 2, "IRQC"}, {0}};
+static vector<SFORMAT> StateRegs = {
+    {&prg, 1, "PRG0"}, {&IRQa, 1, "IRQA"}, {&IRQCount, 2, "IRQC"}};
 
 static void Sync() {
   fceulib__.cart->setprg4r(1, 0x5000, 1);
@@ -79,5 +79,5 @@ void UNLSMB2J_Init(CartInfo *info) {
   info->Power = UNLSMB2JPower;
   fceulib__.X->MapIRQHook = UNLSMB2JIRQHook;
   fceulib__.fceu->GameStateRestore = StateRestore;
-  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExVec(StateRegs);
 }

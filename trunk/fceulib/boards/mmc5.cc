@@ -836,7 +836,7 @@ static void GenMMC5Reset(FC *fc) {
   // FCEU_CheatAddRAM(1,0x5c00,ExRAM);
 }
 
-static SFORMAT MMC5_StateRegs[] = {
+static vector<SFORMAT> MMC5_StateRegs = {
     {PRGBanks, 4, "PRGB"},
     {CHRBanksA, 16, "CHRA"},
     {CHRBanksB, 8, "CHRB"},
@@ -861,8 +861,7 @@ static SFORMAT MMC5_StateRegs[] = {
     {&mul, 2, "5mul"},
     // And Castlevania III.
     {&MMC5LineCounter, 1, "5lic"},
-    {&MMC5IRQR, 1, "5irq"},
-    {0}};
+    {&MMC5IRQR, 1, "5irq"}};
 
 static void GenMMC5_Init(CartInfo *info, int wsize, int battery) {
   if (wsize) {
@@ -876,7 +875,7 @@ static void GenMMC5_Init(CartInfo *info, int wsize, int battery) {
   MMC5fill = (uint8 *)FCEU_gmalloc(1024);
   ExRAM = (uint8 *)FCEU_gmalloc(1024);
 
-  fceulib__.state->AddExState(MMC5_StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExVec(MMC5_StateRegs);
   fceulib__.state->AddExState(WRAM, wsize * 1024, 0, "WRAM");
   fceulib__.state->AddExState(ExRAM, 1024, 0, "ERAM");
   // XXX perhaps these variables should be moved to here from PPU?

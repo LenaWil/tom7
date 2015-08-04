@@ -712,9 +712,14 @@ int FDS::FDSLoad(const char *name, FceuFile *fp) {
   fc->state->AddExState(FDSRAM,32768,0,"FDSR");
   fc->state->AddExState(FDSRegs,sizeof(FDSRegs),0,"FREG");
   fc->state->AddExState(CHRRAM,8192,0,"CHRR");
-  fc->state->AddExState(&IRQCount, 4, 1, "IRQC");
+  // Note that ines.cc also has its own IRQCount; these once had the
+  // same key "IRQC" but I renamed them to use different keys. They
+  // also conflicted with many boards (e.g. skull.nes exhibits this
+  // failure).
+  fc->state->AddExState(&IRQCount, 4, 1, "fRQC");
   fc->state->AddExState(&IRQLatch, 4, 1, "IQL1");
-  fc->state->AddExState(&IRQa, 1, 0, "IRQA");
+  // Similarly with IRQA.
+  fc->state->AddExState(&IRQa, 1, 0, "fRQA");
   fc->state->AddExState(&writeskip,1,0,"WSKI");
   fc->state->AddExState(&DiskPtr,4,1,"DPTR");
   fc->state->AddExState(&DiskSeekIRQ,4,1,"DSIR");

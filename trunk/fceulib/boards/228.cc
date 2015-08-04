@@ -23,8 +23,8 @@
 static uint8 mram[4], vreg;
 static uint16 areg;
 
-static SFORMAT StateRegs[] = {
-    {mram, 4, "MRAM"}, {&areg, 2, "AREG"}, {&vreg, 1, "VREG"}, {0}};
+static vector<SFORMAT> StateRegs = {
+    {mram, 4, "MRAM"}, {&areg, 2, "AREG"}, {&vreg, 1, "VREG"}};
 
 static void Sync() {
   uint32 prgl, prgh, page = (areg >> 7) & 0x3F;
@@ -74,5 +74,5 @@ void Mapper228_Init(CartInfo *info) {
   info->Reset = M228Reset;
   info->Power = M228Power;
   fceulib__.fceu->GameStateRestore = StateRestore;
-  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExVec(StateRegs);
 }

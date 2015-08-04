@@ -26,8 +26,8 @@ static uint8 prg[4], chr, sbw, we_sram;
 static uint8 *wram176 = nullptr;
 static constexpr uint32 WRAM176SIZE = 8192;
 
-static SFORMAT StateRegs[] = {
-    {prg, 4, "PRG"}, {&chr, 1, "CHR"}, {&sbw, 1, "SBW"}, {0}};
+static vector<SFORMAT> StateRegs = {
+    {prg, 4, "PRG0"}, {&chr, 1, "CHR0"}, {&sbw, 1, "SBW0"}};
 
 static void Sync() {
   fceulib__.cart->setprg8r(0x10, 0x6000, 0);
@@ -131,5 +131,5 @@ void Mapper176_Init(CartInfo *info) {
   wram176 = (uint8 *)FCEU_gmalloc(WRAM176SIZE);
   fceulib__.cart->SetupCartPRGMapping(0x10, wram176, WRAM176SIZE, 1);
   fceulib__.state->AddExState(wram176, WRAM176SIZE, 0, "WRAM");
-  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExVec(StateRegs);
 }

@@ -23,11 +23,10 @@
 static uint8 reg[8];
 static uint8 mirror, cmd, bank;
 
-static SFORMAT StateRegs[] = {{&cmd, 1, "CMD"},
+static vector<SFORMAT> StateRegs = {{&cmd, 1, "CMD0"},
                               {&mirror, 1, "MIRR"},
                               {&bank, 1, "BANK"},
-                              {reg, 8, "REGS"},
-                              {0}};
+                              {reg, 8, "REGS"}};
 
 static void Sync() {
   fceulib__.cart->setmirror(mirror ^ 1);
@@ -63,5 +62,5 @@ void Mapper193_Init(CartInfo *info) {
   info->Reset = M193Reset;
   info->Power = M193Power;
   fceulib__.fceu->GameStateRestore = StateRestore;
-  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExVec(StateRegs);
 }

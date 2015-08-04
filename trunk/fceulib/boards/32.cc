@@ -25,8 +25,8 @@ static uint8 preg[2], creg[8], mirr;
 static uint8 *WRAM = nullptr;
 static uint32 WRAMSIZE;
 
-static SFORMAT StateRegs[] = {
-    {preg, 4, "PREG"}, {creg, 8, "CREG"}, {&mirr, 1, "MIRR"}, {0}};
+static vector<SFORMAT> StateRegs = {
+    {preg, 4, "PREG"}, {creg, 8, "CREG"}, {&mirr, 1, "MIRR"}};
 
 static void Sync() {
   uint16 swap = ((mirr & 2) << 13);
@@ -89,5 +89,5 @@ void Mapper32_Init(CartInfo *info) {
   fceulib__.cart->SetupCartPRGMapping(0x10, WRAM, WRAMSIZE, 1);
   fceulib__.state->AddExState(WRAM, WRAMSIZE, 0, "WRAM");
 
-  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExVec(StateRegs);
 }

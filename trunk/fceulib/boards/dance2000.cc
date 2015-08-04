@@ -24,8 +24,8 @@ static uint8 prg, mirr, prgmode;
 static uint8 *WRAM = nullptr;
 static uint32 WRAMSIZE;
 
-static SFORMAT StateRegs[] = {
-    {&prg, 1, "REGS"}, {&mirr, 1, "MIRR"}, {&prgmode, 1, "MIRR"}, {0}};
+static vector<SFORMAT> StateRegs = {
+    {&prg, 1, "REGS"}, {&mirr, 1, "MIRR"}, {&prgmode, 1, "MIRR"}};
 
 static void Sync() {
   fceulib__.cart->setmirror(mirr);
@@ -98,5 +98,5 @@ void UNLD2000_Init(CartInfo *info) {
   fceulib__.cart->SetupCartPRGMapping(0x10, WRAM, WRAMSIZE, 1);
   fceulib__.state->AddExState(WRAM, WRAMSIZE, 0, "WRAM");
 
-  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExVec(StateRegs);
 }

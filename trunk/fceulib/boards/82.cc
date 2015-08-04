@@ -24,7 +24,7 @@ static uint8 regs[9], ctrl;
 static uint8 *WRAM82 = nullptr;
 static uint32 WRAM82SIZE;
 
-static SFORMAT StateRegs[] = {{regs, 9, "REGS"}, {&ctrl, 1, "CTRL"}, {0}};
+static vector<SFORMAT> StateRegs = {{regs, 9, "REGS"}, {&ctrl, 1, "CTRL"}};
 
 static void Sync() {
   uint32 swap = ((ctrl & 2) << 11);
@@ -87,5 +87,5 @@ void Mapper82_Init(CartInfo *info) {
     info->SaveGameLen[0] = WRAM82SIZE;
   }
   fceulib__.fceu->GameStateRestore = StateRestore;
-  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExVec(StateRegs);
 }

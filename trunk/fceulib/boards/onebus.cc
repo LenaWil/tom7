@@ -49,7 +49,7 @@ static int16 pcm_addr, pcm_size, pcm_latch, pcm_clock = 0xF6;
 static writefunc defapuwrite[64];
 static readfunc defapuread[64];
 
-static SFORMAT StateRegs[] = {{cpu410x, 16, "REGC"},
+static vector<SFORMAT> StateRegs = {{cpu410x, 16, "REGC"},
                               {ppu201x, 16, "REGS"},
                               {apu40xx, 64, "REGA"},
                               {&IRQReload, 1, "IRQR"},
@@ -60,8 +60,7 @@ static SFORMAT StateRegs[] = {{cpu410x, 16, "REGC"},
                               {&pcm_addr, 2, "PCMA"},
                               {&pcm_size, 2, "PCMS"},
                               {&pcm_latch, 2, "PCML"},
-                              {&pcm_clock, 2, "PCMC"},
-                              {0}};
+                              {&pcm_clock, 2, "PCMC"}};
 
 static void PSync() {
   uint8 bankmode = cpu410x[0xb] & 7;
@@ -323,5 +322,5 @@ void UNLOneBus_Init(CartInfo *info) {
   fceulib__.ppu->GameHBIRQHook = UNLOneBusIRQHook;
   fceulib__.X->MapIRQHook = UNLOneBusCpuHook;
   fceulib__.fceu->GameStateRestore = StateRestore;
-  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExVec(StateRegs);
 }

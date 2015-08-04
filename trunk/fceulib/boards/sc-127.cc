@@ -27,11 +27,10 @@ static uint8 *WRAM = nullptr;
 static uint32 WRAMSIZE;
 static uint16 IRQCount, IRQa;
 
-static SFORMAT StateRegs[] = {{reg, 8, "REGS"},
+static vector<SFORMAT> StateRegs = {{reg, 8, "REGS"},
                               {chr, 8, "CHRS"},
                               {&IRQCount, 16, "IRQc"},
-                              {&IRQa, 16, "IRQa"},
-                              {0}};
+                              {&IRQa, 16, "IRQa"}};
 
 static void Sync() {
   fceulib__.cart->setprg8(0x8000, reg[0]);
@@ -106,5 +105,5 @@ void UNLSC127_Init(CartInfo *info) {
   WRAM = (uint8 *)FCEU_gmalloc(WRAMSIZE);
   fceulib__.cart->SetupCartPRGMapping(0x10, WRAM, WRAMSIZE, 1);
   fceulib__.state->AddExState(WRAM, WRAMSIZE, 0, "WRAM");
-  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExVec(StateRegs);
 }

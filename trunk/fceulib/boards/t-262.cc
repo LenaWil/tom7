@@ -23,8 +23,8 @@
 static uint16 addrreg;
 static uint8 datareg;
 static uint8 busy;
-static SFORMAT StateRegs[] = {
-    {&addrreg, 2, "AREG"}, {&datareg, 1, "DREG"}, {&busy, 1, "BUSY"}, {0}};
+static vector<SFORMAT> StateRegs = {
+    {&addrreg, 2, "AREG"}, {&datareg, 1, "DREG"}, {&busy, 1, "BUSY"}};
 
 static void Sync() {
   uint16 base = ((addrreg & 0x60) >> 2) | ((addrreg & 0x100) >> 3);
@@ -68,5 +68,5 @@ void BMCT262_Init(CartInfo *info) {
   info->Power = BMCT262Power;
   info->Reset = BMCT262Reset;
   fceulib__.fceu->GameStateRestore = BMCT262Restore;
-  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExVec(StateRegs);
 }

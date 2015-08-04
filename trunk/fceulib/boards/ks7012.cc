@@ -24,7 +24,7 @@ static uint8 reg;
 static uint8 *WRAM = nullptr;
 static uint32 WRAMSIZE;
 
-static SFORMAT StateRegs[] = {{&reg, 1, "REGS"}, {0}};
+static vector<SFORMAT> StateRegs = {{&reg, 1, "REGS"}};
 
 static void Sync() {
   fceulib__.cart->setprg8r(0x10, 0x6000, 0);
@@ -80,5 +80,5 @@ void UNLKS7012_Init(CartInfo *info) {
   fceulib__.state->AddExState(WRAM, WRAMSIZE, 0, "WRAM");
 
   fceulib__.fceu->GameStateRestore = StateRestore;
-  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExVec(StateRegs);
 }

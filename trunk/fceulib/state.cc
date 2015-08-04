@@ -52,14 +52,13 @@ using namespace std;
 void State::InitState() {
   if (state_initialized) return;
   sfcpu = {
-      {&fc->X->reg_PC, 2 | FCEUSTATE_RLSB, "PC\0"},
-      {&fc->X->reg_A, 1, "A\0\0"},
-      {&fc->X->reg_P, 1, "P\0\0"},
-      {&fc->X->reg_X, 1, "X\0\0"},
-      {&fc->X->reg_Y, 1, "Y\0\0"},
-      {&fc->X->reg_S, 1, "S\0\0"},
-      {fc->fceu->RAM, 0x800, "RAM"},
-      {0},
+      {&fc->X->reg_PC, 2 | FCEUSTATE_RLSB, "rgPC"},
+      {&fc->X->reg_A, 1, "regA"},
+      {&fc->X->reg_P, 1, "regP"},
+      {&fc->X->reg_X, 1, "regX"},
+      {&fc->X->reg_Y, 1, "regY"},
+      {&fc->X->reg_S, 1, "regS"},
+      {fc->fceu->RAM, 0x800, "RAMM"},
   };
 
   sfcpuc = {
@@ -77,18 +76,21 @@ void State::InitState() {
       // it's not saved/restored. (See "Skull & Crossbones" around
       // FCEUlib revision 2379.)
       {&fc->X->DB, 1, "DBDB"},
-      {0}
   };
 
   state_initialized = true;
 }
 
-int State::SubWrite(EMUFILE *os, const SFORMAT *sf) {
+// Write the vector to the output file. If the file pointer is
+// null, just return the size.
+int State::SubWrite(EMUFILE *os, const vector<SFORMAT> &sf) {
   uint32 acc = 0;
 
   TRACE_SCOPED_STAY_ENABLED_IF(false);
 
-  while (sf->v) {
+  for (const SFORMAT &f : sf) {
+    CHECK(f.s != ~0);
+    #if 0
     if (sf->s == ~0) {
       // Link to another struct
       const uint32 tmp = SubWrite(os, (const SFORMAT *)sf->v);
@@ -98,49 +100,46 @@ int State::SubWrite(EMUFILE *os, const SFORMAT *sf) {
       sf++;
       continue;
     }
-
+    #endif
+    
     // 8 bytes for tag + size
     acc += 8;
-    acc += sf->s & (~FCEUSTATE_FLAGS);
+    acc += f.s & (~FCEUSTATE_FLAGS);
 
     // Are we writing or calculating the size of this block?
-    if (os) {
-      os->fwrite(sf->desc, 4);
-      write32le(sf->s & (~FCEUSTATE_FLAGS), os);
+    if (os != nullptr) {
+      os->fwrite(f.desc.data(), 4);
+      write32le(f.s & (~FCEUSTATE_FLAGS), os);
 
-      TRACE_SCOPED_ENABLE_IF(sf->desc[0] == 'P' && sf->desc[1] == 'C');
-      TRACEF("%s for %d", sf->desc, sf->s & ~FCEUSTATE_FLAGS);
+      // TRACE_SCOPED_ENABLE_IF(f.desc[2] == 'P' && f.desc[3] == 'C');
+      // TRACEF("%s for %d", f.desc, f.s & ~FCEUSTATE_FLAGS);
 
-      if (false /* sf->s & FCEUSTATE_INDIRECT */)
-        TRACEA(*(uint8 **)sf->v, sf->s & (~FCEUSTATE_FLAGS));
-      else
-        TRACEA((uint8 *)sf->v, sf->s & (~FCEUSTATE_FLAGS));
+      TRACEA((uint8 *)f.v, f.s & (~FCEUSTATE_FLAGS));
 
 #ifndef LSB_FIRST
-      if (sf->s & FCEUSTATE_RLSB)
-        FlipByteOrder((uint8 *)sf->v, sf->s & (~FCEUSTATE_FLAGS));
+      // TODO: Copy the data instead of byte-swapping in place. -tom7
+      if (f.s & FCEUSTATE_RLSB)
+        FlipByteOrder((uint8 *)f.v, f.s & (~FCEUSTATE_FLAGS));
 #endif
 
-      if (false /* sf->s & FCEUSTATE_INDIRECT */)
-        os->fwrite(*(char **)sf->v, sf->s & (~FCEUSTATE_FLAGS));
-      else
-        os->fwrite((char *)sf->v, sf->s & (~FCEUSTATE_FLAGS));
+      os->fwrite((char *)f.v, f.s & (~FCEUSTATE_FLAGS));
 
 // Now restore the original byte order.
 #ifndef LSB_FIRST
-      if (sf->s & FCEUSTATE_RLSB)
-        FlipByteOrder((uint8 *)sf->v, sf->s & (~FCEUSTATE_FLAGS));
+      if (f.s & FCEUSTATE_RLSB)
+        FlipByteOrder((uint8 *)f.v, f.s & (~FCEUSTATE_FLAGS));
 #endif
     }
-    sf++;
   }
 
   return acc;
 }
 
-int State::WriteStateChunk(EMUFILE *os, int type, const SFORMAT *sf) {
+// Write all the sformats to the output file.
+int State::WriteStateChunk(EMUFILE *os, int type,
+			   const vector<SFORMAT> &sf) {
   os->fputc(type);
-  int bsize = SubWrite((EMUFILE *)0, sf);
+  int bsize = SubWrite(nullptr, sf);
   write32le(bsize, os);
   // TRACEF("Write %s etc. sized %d", sf->desc, bsize);
 
@@ -150,40 +149,32 @@ int State::WriteStateChunk(EMUFILE *os, int type, const SFORMAT *sf) {
   return bsize + 5;
 }
 
-const SFORMAT *State::CheckS(const SFORMAT *sf, uint32 tsize, char *desc) {
-  while (sf->v) {
-    if (sf->s == ~0) {
-      // Link to another SFORMAT structure.
-
-      if (const SFORMAT *tmp = CheckS((const SFORMAT *)sf->v, tsize, desc))
-        return tmp;
-      sf++;
-      continue;
+// Find the SFORMAT structure with the name 'desc', if any.
+const SFORMAT *State::CheckS(const vector<SFORMAT> &sf,
+			     uint32 tsize, SKEY desc) {
+  for (const SFORMAT &f : sf) {
+    CHECK(f.s != ~0);
+    if (f.desc == desc) {
+      if (tsize != (f.s & (~FCEUSTATE_FLAGS))) return nullptr;
+      return &f;
     }
-    if (!memcmp(desc, sf->desc, 4)) {
-      if (tsize != (sf->s & (~FCEUSTATE_FLAGS))) return nullptr;
-      return sf;
-    }
-    sf++;
   }
   return nullptr;
 }
 
-bool State::ReadStateChunk(EMUFILE *is, const SFORMAT *sf, int size) {
+bool State::ReadStateChunk(EMUFILE *is,
+			   const vector<SFORMAT> &sf, int size) {
   int temp = is->ftell();
-
+  
   while (is->ftell() < temp + size) {
     uint32 tsize;
-    char toa[4];
-    if (is->fread(toa, 4) < 4) return false;
+    SKEY toa;
+    if (is->fread(toa.data(), 4) < 4) return false;
 
     read32le(&tsize, is);
 
     if (const SFORMAT *tmp = CheckS(sf, tsize, toa)) {
-      if (false /* tmp->s & FCEUSTATE_INDIRECT */)
-        is->fread(*(char **)tmp->v, tmp->s & (~FCEUSTATE_FLAGS));
-      else
-        is->fread((char *)tmp->v, tmp->s & (~FCEUSTATE_FLAGS));
+      is->fread((char *)tmp->v, tmp->s & (~FCEUSTATE_FLAGS));
 
 #ifndef LSB_FIRST
       if (tmp->s & FCEUSTATE_RLSB)
@@ -210,7 +201,7 @@ bool State::ReadStateChunks(EMUFILE *is, int32 totalsize) {
 
     switch (t) {
       case 1:
-        if (!ReadStateChunk(is, sfcpu.data(), size)) ret = false;
+        if (!ReadStateChunk(is, sfcpu, size)) ret = false;
         break;
       case 3:
         if (!ReadStateChunk(is, fc->ppu->FCEUPPU_STATEINFO(), size))
@@ -225,7 +216,7 @@ bool State::ReadStateChunks(EMUFILE *is, int32 totalsize) {
         abort();
         break;
       case 0x10:
-        if (!ReadStateChunk(is, SFMDATA, size)) ret = false;
+        if (!ReadStateChunk(is, sfmdata, size)) ret = false;
         break;
       case 5:
         if (!ReadStateChunk(is, fc->sound->FCEUSND_STATEINFO(), size))
@@ -239,7 +230,7 @@ bool State::ReadStateChunks(EMUFILE *is, int32 totalsize) {
         }
         break;
       case 2:
-        if (!ReadStateChunk(is, sfcpuc.data(), size)) ret = false;
+        if (!ReadStateChunk(is, sfcpuc, size)) ret = false;
         break;
       default:
         // for somebody's sanity's sake, at least warn about it:
@@ -272,15 +263,13 @@ bool State::FCEUSS_SaveRAW(std::vector<uint8> *out) {
 
   fc->ppu->FCEUPPU_SaveState();
   fc->sound->FCEUSND_SaveState();
-  totalsize = WriteStateChunk(&os, 1, sfcpu.data());
-  totalsize += WriteStateChunk(&os, 2, sfcpuc.data());
+  totalsize = WriteStateChunk(&os, 1, sfcpu);
+  totalsize += WriteStateChunk(&os, 2, sfcpuc);
   TRACEF("PPU:");
   totalsize += WriteStateChunk(&os, 3, fc->ppu->FCEUPPU_STATEINFO());
   TRACEV(*out);
   totalsize += WriteStateChunk(&os, 4, fc->input->FCEUINPUT_STATEINFO());
-  // TRACEV(*out);
   totalsize += WriteStateChunk(&os, 5, fc->sound->FCEUSND_STATEINFO());
-  // TRACEV(*out);
 
   if (SPreSave) SPreSave(fc);
   // This allows other parts of the system to hook into things to be
@@ -288,7 +277,7 @@ bool State::FCEUSS_SaveRAW(std::vector<uint8> *out) {
   // M probably stands for Mapper, but I also use it in input, at least.
   //
   // TRACEF("SFMDATA:");
-  totalsize += WriteStateChunk(&os, 0x10, SFMDATA);
+  totalsize += WriteStateChunk(&os, 0x10, sfmdata);
   // TRACEV(*out);
   // Was just spre, but that seems wrong -tom7
   if (SPreSave && SPostSave) SPostSave(fc);
@@ -330,24 +319,47 @@ bool State::FCEUSS_LoadRAW(std::vector<uint8> *in) {
 }
 
 void State::ResetExState(void (*PreSave)(FC *), void (*PostSave)(FC *)) {
-  for (int x = 0; x < SFEXINDEX; x++) {
-    delete[] SFMDATA[x].desc;
-    SFMDATA[x].desc = nullptr;
-  }
+
+  // If this needs to happen, it's a bug in the way the savestate
+  // system is being used. Fix it! It's not even really possible to
+  // do this hack in the reimplementation.
+  #if 0 
   // adelikat, 3/14/09: had to add this to clear out the size
   // parameter. NROM(mapper 0) games were having savestate
   // crashes if loaded after a non NROM game because the size
   // variable was carrying over and causing savestates to save
   // too much data
   SFMDATA[0].s = 0;
-
+  #endif
+  
   SPreSave = PreSave;
   SPostSave = PostSave;
-  SFEXINDEX = 0;
+  sfmdata.clear();
 }
 
-void State::AddExStateReal(void *v, uint32 s, int type, const char *desc,
+void State::AddExVec(const vector<SFORMAT> &vec) {
+  for (const SFORMAT &sf : vec) {
+    int flags = sf.s & FCEUSTATE_FLAGS;
+    AddExStateReal(sf.v, sf.s & ~FCEUSTATE_FLAGS, flags, sf.desc,
+		   "via AddExVec");
+  }
+}
+
+void State::AddExStateReal(void *v, uint32 s, int type, SKEY desc,
                            const char *src) {
+  // PERF: n^2. Use a map/set.
+  for (const SFORMAT &sf : sfmdata) {
+    if (sf.desc == desc) {
+      fprintf(stderr, "SFORMAT with duplicate key: %c%c%c%c\n"
+	      "Second called from %s\n",
+	      desc[0], desc[1], desc[2], desc[3],
+	      src);
+      abort();
+    }
+  }
+  
+  CHECK(s != ~0);
+  #if 0
   if (s == ~0) {
     const SFORMAT *sf = (const SFORMAT *)v;
     map<string, bool> names;
@@ -363,7 +375,12 @@ void State::AddExStateReal(void *v, uint32 s, int type, const char *desc,
       sf++;
     }
   }
+  #endif
 
+  // impossible now
+  // CHECK(desc != nullptr);
+  
+  #if 0
   if (desc != nullptr) {
     // PERF: n^2 paranoia. Should rewrite this to keep a regular
     // std::map or something.
@@ -379,29 +396,12 @@ void State::AddExStateReal(void *v, uint32 s, int type, const char *desc,
         abort();
       }
     }
-
-    // Using new[] so that we can delete[] a const pointer.
-    // These dynamically allocated pointers are stored in the same
-    // field also initialized with string literals.
-    char *s = new char[strlen(desc) + 1];
-    strcpy(s, desc);
-    SFMDATA[SFEXINDEX].desc = s;
-  } else {
-    SFMDATA[SFEXINDEX].desc = nullptr;
   }
-  SFMDATA[SFEXINDEX].v = v;
-  SFMDATA[SFEXINDEX].s = s;
-  if (type) SFMDATA[SFEXINDEX].s |= FCEUSTATE_RLSB;
-  if (SFEXINDEX < SFMDATA_SIZE - 1) {
-    SFEXINDEX++;
-  } else {
-    fprintf(stderr,
-            "Error in AddExState: SFEXINDEX overflow.\n"
-            "Somebody made SFMDATA_SIZE too small.\n");
-    abort();
-  }
-  // End marker.
-  SFMDATA[SFEXINDEX].v = 0;
+  #endif
+    
+  SFORMAT sf{v, s, desc};
+  if (type) sf.s |= FCEUSTATE_RLSB;
+  sfmdata.push_back(sf);
 }
 
 State::State(FC *fc) : fc(fc) {}

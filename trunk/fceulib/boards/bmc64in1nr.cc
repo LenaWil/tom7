@@ -24,7 +24,7 @@
 
 static uint8 regs[4];
 
-static SFORMAT StateRegs[] = {{regs, 4, "REGS"}, {0}};
+static vector<SFORMAT> StateRegs = {{regs, 4, "REGS"}};
 
 static void Sync() {
   if (regs[0] & 0x80) {
@@ -72,6 +72,6 @@ static void StateRestore(FC *fc, int version) {
 
 void BMC64in1nr_Init(CartInfo *info) {
   info->Power = BMC64in1nrPower;
-  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExVec(StateRegs);
   fceulib__.fceu->GameStateRestore = StateRestore;
 }

@@ -21,7 +21,7 @@
 #include "mapinc.h"
 
 static uint16 cmdreg;
-static SFORMAT StateRegs[] = {{&cmdreg, 2, "CREG"}, {0}};
+static vector<SFORMAT> StateRegs = {{&cmdreg, 2, "CREG"}};
 
 static void Sync() {
   if (cmdreg & 0x400)
@@ -60,5 +60,5 @@ static void M235Restore(FC *fc, int version) {
 void Mapper235_Init(CartInfo *info) {
   info->Power = M235Power;
   fceulib__.fceu->GameStateRestore = M235Restore;
-  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExVec(StateRegs);
 }

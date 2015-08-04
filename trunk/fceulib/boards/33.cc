@@ -25,9 +25,9 @@ static uint8 regs[8], mirr;
 static uint8 IRQa;
 static int16 IRQCount, IRQLatch;
 
-static SFORMAT StateRegs[] = {{regs, 8, "PREG"},      {&mirr, 1, "MIRR"},
+static vector<SFORMAT> StateRegs = {{regs, 8, "PREG"},      {&mirr, 1, "MIRR"},
                               {&IRQa, 1, "IRQA"},     {&IRQCount, 2, "IRQC"},
-                              {&IRQLatch, 2, "IRQL"}, {0}};
+                              {&IRQLatch, 2, "IRQL"}};
 
 static void Sync() {
   fceulib__.cart->setmirror(mirr);
@@ -129,7 +129,7 @@ void Mapper33_Init(CartInfo *info) {
   is48 = 0;
   info->Power = M33Power;
   fceulib__.fceu->GameStateRestore = StateRestore;
-  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExVec(StateRegs);
 }
 
 void Mapper48_Init(CartInfo *info) {
@@ -137,5 +137,5 @@ void Mapper48_Init(CartInfo *info) {
   info->Power = M48Power;
   fceulib__.ppu->GameHBIRQHook = M48IRQ;
   fceulib__.fceu->GameStateRestore = StateRestore;
-  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExVec(StateRegs);
 }

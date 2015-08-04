@@ -32,7 +32,7 @@ static uint16 weirdo = 0;
 static uint8 *WRAM = nullptr;
 static uint32 WRAMSIZE;
 
-static SFORMAT StateRegs[] = {{prgreg, 2, "PREG"},
+static vector<SFORMAT> StateRegs = {{prgreg, 2, "PREG"},
                               {chrreg, 8, "CREG"},
                               {chrhi, 16, "CRGH"},
                               {&regcmd, 1, "CMDR"},
@@ -41,8 +41,7 @@ static SFORMAT StateRegs[] = {{prgreg, 2, "PREG"},
                               {&big_bank, 1, "BIGB"},
                               {&IRQCount, 2, "IRQC"},
                               {&IRQLatch, 1, "IRQL"},
-                              {&IRQa, 1, "IRQA"},
-                              {0}};
+                              {&IRQa, 1, "IRQA"}};
 
 static void Sync() {
   if (regcmd & 2) {
@@ -244,7 +243,7 @@ void Mapper21_Init(CartInfo *info) {
   fceulib__.X->MapIRQHook = VRC24IRQHook;
   fceulib__.fceu->GameStateRestore = StateRestore;
 
-  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExVec(StateRegs);
 }
 
 void Mapper22_Init(CartInfo *info) {
@@ -253,7 +252,7 @@ void Mapper22_Init(CartInfo *info) {
   info->Power = M22Power;
   fceulib__.fceu->GameStateRestore = StateRestore;
 
-  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExVec(StateRegs);
 }
 
 void VRC24_Init(CartInfo *info) {
@@ -271,7 +270,7 @@ void VRC24_Init(CartInfo *info) {
     info->SaveGameLen[0] = WRAMSIZE;
   }
 
-  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExVec(StateRegs);
 }
 
 void Mapper23_Init(CartInfo *info) {

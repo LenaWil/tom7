@@ -31,7 +31,7 @@ static uint8 reg0, reg1;
 static uint8 *WRAM = nullptr;
 static uint32 WRAMSIZE;
 
-static SFORMAT StateRegs[] = {{&reg0, 1, "REG0"}, {&reg1, 1, "REG1"}, {0}};
+static vector<SFORMAT> StateRegs = {{&reg0, 1, "REG0"}, {&reg1, 1, "REG1"}};
 
 static void Sync() {
   fceulib__.cart->setchr8(0);
@@ -130,5 +130,5 @@ void UNLKS7030_Init(CartInfo *info) {
   WRAM = (uint8 *)FCEU_gmalloc(WRAMSIZE);
   fceulib__.state->AddExState(WRAM, WRAMSIZE, 0, "WRAM");
 
-  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExVec(StateRegs);
 }

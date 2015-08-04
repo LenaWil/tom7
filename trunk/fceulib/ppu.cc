@@ -1509,7 +1509,6 @@ PPU::PPU(FC *fc) :
     { &pshift[1], 4|FCEUSTATE_RLSB, "PSH2" },
     { &sphitx, 4|FCEUSTATE_RLSB, "Psph" },
     { &sphitdata, 1, "Pspd" },
-    { 0 },
   }, fc(fc) {
   // Constructor, empty.
 }

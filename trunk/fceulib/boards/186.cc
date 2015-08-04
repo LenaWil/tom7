@@ -26,7 +26,7 @@ static uint8 SWRAM[2816];
 static uint8 *WRAM = nullptr;
 static uint8 regs[4];
 
-static SFORMAT StateRegs[] = {{regs, 4, "DREG"}, {SWRAM, 2816, "SWRM"}, {0}};
+static vector<SFORMAT> StateRegs = {{regs, 4, "DREG"}, {SWRAM, 2816, "SWRM"}};
 
 static void Sync() {
   fceulib__.cart->setprg8r(0x10, 0x6000, regs[0] >> 6);
@@ -84,5 +84,5 @@ void Mapper186_Init(CartInfo *info) {
   WRAM = (uint8 *)FCEU_gmalloc(32768);
   fceulib__.cart->SetupCartPRGMapping(0x10, WRAM, 32768, 1);
   fceulib__.state->AddExState(WRAM, 32768, 0, "WRAM");
-  fceulib__.state->AddExState(StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExVec(StateRegs);
 }

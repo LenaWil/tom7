@@ -143,7 +143,6 @@ Input::Input(FC *fc)
           {joy_readbit, 2, "JYRB"},
 	  {joy, 4, "JOYS"},
           {&LastStrobe, 1, "LSTS"},
-	  {0},
       }, fc(fc) {
   TRACEF("Constructing input object..");
   // Constructor body.

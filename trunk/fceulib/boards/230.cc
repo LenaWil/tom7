@@ -25,7 +25,7 @@
 #include "mapinc.h"
 
 static uint8 latche, reset;
-static SFORMAT StateRegs[] = {{&reset, 1, "RST"}, {&latche, 1, "LATC"}, {0}};
+static vector<SFORMAT> StateRegs = {{&reset, 1, "RST0"}, {&latche, 1, "LATC"}};
 
 static void Sync() {
   if (reset) {
@@ -69,6 +69,6 @@ static void StateRestore(FC *fc, int version) {
 void Mapper230_Init(CartInfo *info) {
   info->Power = M230Power;
   info->Reset = M230Reset;
-  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExVec(StateRegs);
   fceulib__.fceu->GameStateRestore = StateRestore;
 }

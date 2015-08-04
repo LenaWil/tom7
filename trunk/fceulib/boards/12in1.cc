@@ -21,7 +21,7 @@
 #include "mapinc.h"
 
 static uint8 reg[4];
-static SFORMAT StateRegs[] = {{reg, 4, "REGS"}, {0}};
+static vector<SFORMAT> StateRegs = {{reg, 4, "REGS"}};
 
 static void Sync() {
   uint8 bank = (reg[3] & 3) << 3;
@@ -60,5 +60,5 @@ static void StateRestore(FC *fc, int version) {
 void BMC12IN1_Init(CartInfo *info) {
   info->Power = BMC12IN1Power;
   fceulib__.fceu->GameStateRestore = StateRestore;
-  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExVec(StateRegs);
 }

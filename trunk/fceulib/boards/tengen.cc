@@ -25,12 +25,12 @@ static uint8 DRegs[11];
 static uint8 IRQCount, IRQa, IRQLatch;
 static int smallcount;
 
-static SFORMAT Rambo_StateRegs[] = {
-    {&cmd, 1, "CMD"},         {&mir, 1, "MIR"},
+static vector<SFORMAT> Rambo_StateRegs = {
+    {&cmd, 1, "CMD0"},         {&mir, 1, "MIR0"},
     {&rmode, 1, "RMOD"},      {&IRQmode, 1, "IRQM"},
     {&IRQCount, 1, "IRQC"},   {&IRQa, 1, "IRQA"},
     {&IRQLatch, 1, "IRQL"},   {DRegs, 11, "DREG"},
-    {&smallcount, 4, "SMAC"}, {0}};
+    {&smallcount, 4, "SMAC"}};
 
 static void (*setchr1wrap)(unsigned int A, unsigned int V);
 // static int nomirror;
@@ -137,7 +137,7 @@ static void RAMBO1_init() {
   fceulib__.X->MapIRQHook = RAMBO1_IRQHook;
   fceulib__.fceu->GameStateRestore = RAMBO1_Restore;
   fceulib__.fceu->SetWriteHandler(0x8000, 0xffff, RAMBO1_write);
-  fceulib__.state->AddExState(Rambo_StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExVec(Rambo_StateRegs);
 }
 
 static void CHRWrap(unsigned int A, unsigned int V) {

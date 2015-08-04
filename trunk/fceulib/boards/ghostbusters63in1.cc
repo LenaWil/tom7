@@ -26,7 +26,7 @@ static constexpr uint8 banks[4] = {0, 0, 1, 2};
 static uint8 *CHRROM = nullptr;
 static uint32 CHRROMSIZE;
 
-static SFORMAT StateRegs[] = {{reg, 2, "REGS"}, {&bank, 1, "BANK"}, {0}};
+static vector<SFORMAT> StateRegs = {{reg, 2, "REGS"}, {&bank, 1, "BANK"}};
 
 static void Sync() {
   if (reg[0] & 0x20) {
@@ -87,5 +87,5 @@ void BMCGhostbusters63in1_Init(CartInfo *info) {
   fceulib__.state->AddExState(CHRROM, CHRROMSIZE, 0, "CROM");
 
   fceulib__.fceu->GameStateRestore = StateRestore;
-  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExVec(StateRegs);
 }

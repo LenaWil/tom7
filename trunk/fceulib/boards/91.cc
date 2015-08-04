@@ -23,11 +23,10 @@
 static uint8 cregs[4], pregs[2];
 static uint8 IRQCount, IRQa;
 
-static SFORMAT StateRegs[] = {{cregs, 4, "CREG"},
+static vector<SFORMAT> StateRegs = {{cregs, 4, "CREG"},
                               {pregs, 2, "PREG"},
                               {&IRQa, 1, "IRQA"},
-                              {&IRQCount, 1, "IRQC"},
-                              {0}};
+                              {&IRQCount, 1, "IRQC"}};
 
 static void Sync() {
   fceulib__.cart->setprg8(0x8000, pregs[0]);
@@ -87,5 +86,5 @@ void Mapper91_Init(CartInfo *info) {
   info->Power = M91Power;
   fceulib__.ppu->GameHBIRQHook = M91IRQHook;
   fceulib__.fceu->GameStateRestore = StateRestore;
-  fceulib__.state->AddExState(&StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExVec(StateRegs);
 }

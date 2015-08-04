@@ -55,8 +55,8 @@ static uint8 CHR[8];
 
 static int battery = 0;
 
-static SFORMAT N106_StateRegs[] = {
-    {PRG, 3, "PRG"}, {CHR, 8, "CHR"}, {NTAPage, 4, "NTA"}, {0}};
+static vector<SFORMAT> N106_StateRegs = {
+    {PRG, 3, "PRG0"}, {CHR, 8, "CHR0"}, {NTAPage, 4, "NTA0"}};
 
 static void SyncPRG() {
   fceulib__.cart->setprg8(0x8000, PRG[0]);
@@ -389,7 +389,7 @@ void Mapper19_Init(CartInfo *info) {
 
   fceulib__.state->AddExState(WRAM, 8192, 0, "WRAM");
   fceulib__.state->AddExState(IRAM, 128, 0, "IRAM");
-  fceulib__.state->AddExState(N106_StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExVec(N106_StateRegs);
 
   if (info->battery) {
     info->SaveGame[0] = WRAM;
@@ -409,5 +409,5 @@ void Mapper210_Init(CartInfo *info) {
   fceulib__.fceu->GameStateRestore = Mapper210_StateRestore;
   info->Power = N106_Power;
   fceulib__.state->AddExState(WRAM, 8192, 0, "WRAM");
-  fceulib__.state->AddExState(N106_StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExVec(N106_StateRegs);
 }

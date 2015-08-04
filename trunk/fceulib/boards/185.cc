@@ -25,7 +25,7 @@ static uint8 *DummyCHR = nullptr;
 static uint8 datareg;
 static void (*Sync)();
 
-static SFORMAT StateRegs[] = {{&datareg, 1, "DREG"}, {0}};
+static vector<SFORMAT> StateRegs = {{&datareg, 1, "DREG"}};
 
 //   on    off
 // 1  0x0F, 0xF0 - Bird Week
@@ -82,7 +82,7 @@ void Mapper185_Init(CartInfo *info) {
   DummyCHR = (uint8 *)FCEU_gmalloc(8192);
   for (int x = 0; x < 8192; x++) DummyCHR[x] = 0xff;
   fceulib__.cart->SetupCartCHRMapping(0x10, DummyCHR, 8192, 0);
-  fceulib__.state->AddExState(StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExVec(StateRegs);
 }
 
 void Mapper181_Init(CartInfo *info) {
@@ -93,5 +93,5 @@ void Mapper181_Init(CartInfo *info) {
   DummyCHR = (uint8 *)FCEU_gmalloc(8192);
   for (int x = 0; x < 8192; x++) DummyCHR[x] = 0xff;
   fceulib__.cart->SetupCartCHRMapping(0x10, DummyCHR, 8192, 0);
-  fceulib__.state->AddExState(StateRegs, ~0, 0, 0);
+  fceulib__.state->AddExVec(StateRegs);
 }
