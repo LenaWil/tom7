@@ -675,10 +675,10 @@ struct
     end handle _ => NONE
 
   fun reverse v =
-    let val len = String.length v
+    let val len = CharVector.length v
     in
-      String.tabulate (len,
-                       (fn i => String.sub(v, len - 1 - i)))
+      CharVector.tabulate (len,
+                           (fn i => CharVector.sub(v, len - 1 - i)))
     end
 
 end
