@@ -11,7 +11,7 @@ sig
     val findi : ('a -> bool) -> 'a Vector.vector -> (int * 'a) option
 
     (* raises VectorUtil if the vectors are not the same length *)
-    val mappair : ('a * 'b -> 'res) -> 
+    val mappair : ('a * 'b -> 'res) ->
                   'a Vector.vector -> 'b Vector.vector -> 'res Vector.vector
 
     (* portable across 1997 and 2002 basis *)
@@ -20,5 +20,7 @@ sig
     val unzip : ('a * 'b) Vector.vector -> ('a Vector.vector * 'b Vector.vector)
 
     val count : ('a -> bool) -> 'a Vector.vector -> int
+
+    val reverse : 'a Vector.vector -> 'a Vector.vector
 
 end

@@ -32,3 +32,8 @@ I have made some local modifications to FXP to support this.
 
 (PS. Despite the headaches, thanks to the FXP authors for all their
 useful work on FXP!)
+
+
+Note 27 Mar 2014: I think that this library may have trouble parsing
+files that are larger than 4GB, even in 64 bit mode? A cursory look
+doesn't give any clues, though.
