@@ -36,6 +36,8 @@ sig
   val ucase : string -> string
   val lcase : string -> string
 
+  val reverse : string -> string
+
   (* XXX: Do these really belong here? *)
   (* read a whole file into a string. *)
   val readfile : string -> string
