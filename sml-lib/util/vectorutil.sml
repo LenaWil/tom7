@@ -24,7 +24,7 @@ struct
     fun mappair f va vb =
         if Vector.length va <> Vector.length vb
         then raise VectorUtil "in mappair, uneven vectors"
-        else 
+        else
             Vector.tabulate(Vector.length va,
                             fn i =>
                             f(Vector.sub(va, i),
@@ -50,8 +50,15 @@ struct
             c (0, 0)
         end
 
-    (* PERF could avoid intermediate allocation, but should (probably) 
+    (* PERF could avoid intermediate allocation, but should (probably)
        make sure we only call f once for each element... *)
     fun filter f v = Vector.fromList (List.filter f (Vector.foldr op:: nil v))
+
+    fun reverse v =
+      let val len = Vector.length v
+      in
+        Vector.tabulate (len,
+                         (fn i => Vector.sub(v, len - 1 - i)))
+      end
 
 end
