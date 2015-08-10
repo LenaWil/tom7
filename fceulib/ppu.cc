@@ -900,7 +900,7 @@ void PPU::DoLine() {
     fc->X->Run(6);
     Fixit2();
     fc->X->Run(4);
-    GameHBIRQHook();
+    GameHBIRQHook(fc);
     fc->X->Run(85-16-10);
   } else {
     fc->X->Run(6);  // Tried 65, caused problems with Slalom(maybe others)
@@ -909,13 +909,13 @@ void PPU::DoLine() {
 
     // A semi-hack for Star Trek: 25th Anniversary
     if (GameHBIRQHook && (ScreenON || SpriteON) && ((PPU_values[0]&0x38)!=0x18))
-      GameHBIRQHook();
+      GameHBIRQHook(fc);
   }
 
   if (SpriteON)
     RefreshSprites();
   if (GameHBIRQHook2 && (ScreenON || SpriteON))
-    GameHBIRQHook2();
+    GameHBIRQHook2(fc);
   scanline++;
   if (scanline<240) {
     ResetRL(fc->fceu->XBuf+(scanline<<8));
@@ -1396,11 +1396,11 @@ int PPU::FCEUPPU_Loop(int skip) {
 
     if (ScreenON || SpriteON) {
       if (GameHBIRQHook && ((PPU_values[0]&0x38)!=0x18))
-        GameHBIRQHook();
+        GameHBIRQHook(fc);
       if (PPU_hook)
         for (int x=0;x<42;x++) {PPU_hook(0x2000); PPU_hook(0);}
       if (GameHBIRQHook2)
-        GameHBIRQHook2();
+        GameHBIRQHook2(fc);
     }
     fc->X->Run(85-16);
     if (ScreenON || SpriteON) {
@@ -1430,7 +1430,7 @@ int PPU::FCEUPPU_Loop(int skip) {
         fc->X->Run(256);
         for (scanline=0;scanline<240;scanline++) {
           if (ScreenON || SpriteON)
-            GameHBIRQHook();
+            GameHBIRQHook(fc);
           if (scanline==y && SpriteON) {
             TRACELOC();
             PPU_status|=0x40;

@@ -26,8 +26,8 @@ class PPU {
 
 
   void (*PPU_hook)(uint32 A) = nullptr;
-  void (*GameHBIRQHook)() = nullptr;
-  void (*GameHBIRQHook2)() = nullptr;
+  void (*GameHBIRQHook)(FC *) = nullptr;
+  void (*GameHBIRQHook2)(FC *) = nullptr;
 
 
   uint8 NTARAM[0x800], PALRAM[0x20], SPRAM[0x100], SPRBUF[0x100];

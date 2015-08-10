@@ -412,9 +412,11 @@ CartInterface *Mapper240_Init(FC *fc, CartInfo *info);
 CartInterface *Mapper241_Init(FC *fc, CartInfo *info);
 
 
+// MMC3
+CartInterface *Mapper4_Init(FC *fc, CartInfo *);
+
 // ?
 CartInterface *Mapper1_Init(FC *fc, CartInfo *);
-CartInterface *Mapper4_Init(FC *fc, CartInfo *);
 CartInterface *Mapper5_Init(FC *fc, CartInfo *);
 CartInterface *Mapper12_Init(FC *fc, CartInfo *);
 CartInterface *Mapper15_Init(FC *fc, CartInfo *);
