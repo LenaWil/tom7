@@ -10,7 +10,6 @@ struct MMC3 : public CartInterface {
   uint8 mmc3opts = 0;
   uint8 A000B = 0;
   uint8 A001B = 0;
-  uint8 EXPREGS[8] = {};
   uint8 DRegBuf[8] = {};
 
   static void MMC3_CMDWrite(DECLFW_ARGS);
@@ -29,16 +28,16 @@ struct MMC3 : public CartInterface {
   // void GenMMC3_Init(CartInfo *info, int prg, int chr, int wram, int battery);
 
  protected:
-  void GenMMC3Power(FC *fc);
-  void MMC3RegReset(FC *fc);
   void FixMMC3PRG(int V);
   void FixMMC3CHR(int V);
 
- private:
-  vector<SFORMAT> MMC3_StateRegs;
-
   DECLFW_RET MMC3_CMDWrite_Direct(DECLFW_ARGS);
   DECLFW_RET MMC3_IRQWrite_Direct(DECLFW_ARGS);
+  
+  int isRevB = 1;
+  
+ private:
+  vector<SFORMAT> MMC3_StateRegs;
 
   DECLFW_RET MBWRAMMMC6(DECLFW_ARGS);
   DECLFR_RET MAWRAMMMC6(DECLFR_ARGS);
@@ -55,7 +54,6 @@ struct MMC3 : public CartInterface {
   uint8 irq_reload = 0;
 
   int wrams = 0;
-  int isRevB = 1;
 };
 
 #endif
