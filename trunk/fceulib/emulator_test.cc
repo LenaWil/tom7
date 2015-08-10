@@ -201,10 +201,10 @@ struct Collage {
 };
 
 struct SerialResult {
-  uint64 after_inputs;
-  uint64 after_random;
-  uint64 image_after_inputs;
-  uint64 image_after_random;
+  uint64 after_inputs = 0ULL;
+  uint64 after_random = 0ULL;
+  uint64 image_after_inputs = 0ULL;
+  uint64 image_after_random = 0ULL;
   // Only in FULL+ mode.
   vector<uint8> final_image;
 };
@@ -292,6 +292,12 @@ static SerialResult RunGameSerially(const Game &game) {
   vector<vector<uint8>> images;
   vector<uint8> inputs;
   std::unique_ptr<Emulator> emu{Emulator::Create(game.cart)};
+
+  if (emu.get() == nullptr) {
+    printf("FAILED LOADING!\n");
+    return SerialResult{};
+  }
+
   CHECK(emu.get() != nullptr) << game.cart.c_str();
   CHECK_RAM(game.after_load);
   TRACEF("after_load %llu.", emu->RamChecksum());

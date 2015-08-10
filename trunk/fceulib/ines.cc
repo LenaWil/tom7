@@ -315,8 +315,12 @@ struct INes::OldCartiface : public CartInterface {
   }
 };
 
-void INes::MapperInit() {
+// Returns true on success.
+bool INes::MapperInit() {
   if (!NewiNES_Init(mapper_number)) {
+    printf("Ugh! I disabled old cartiface interface -tom7.\n");
+    return false;
+    
     fc->fceu->cartiface = new OldCartiface(fc);
     if (head.ROM_type & 2) {
       TRACEF("Set savegame %d", head.ROM_type);
@@ -324,6 +328,8 @@ void INes::MapperInit() {
       iNESCart.SaveGameLen[0] = 8192;
     }
   }
+
+  return true;
 }
 
 static constexpr INesTMasterRomInfo const sMasterRomInfo[] = {
@@ -808,14 +814,14 @@ static uint32 uppow2(uint32 n) {
   return n;
 }
 
-int INes::iNESLoad(const char *name, FceuFile *fp, int OverwriteVidMode) {
+bool INes::iNESLoad(const char *name, FceuFile *fp, int OverwriteVidMode) {
   struct md5_context md5;
 
   if (FCEU_fread(&head,1,16,fp)!=16)
-    return 0;
+    return false;
 
   if (memcmp(&head,"NES\x1a",4))
-    return 0;
+    return false;
 
   CleanupHeader(&head);
 
@@ -824,18 +830,17 @@ int INes::iNESLoad(const char *name, FceuFile *fp, int OverwriteVidMode) {
   fc->fceu->cartiface = nullptr;
   
   mapper_number = head.ROM_type >> 4;
-  mapper_number |= (head.ROM_type2&0xF0);
+  mapper_number |= (head.ROM_type2 & 0xF0);
   iNESMirroring = head.ROM_type & 1;
-
 
   //  int ROM_size=0;
   if (!head.ROM_size) {
     //   FCEU_PrintError("No PRG ROM!");
     //   return(0);
-    ROM_size=256;
+    ROM_size = 256;
     //head.ROM_size++;
   } else {
-    ROM_size=uppow2(head.ROM_size);
+    ROM_size = uppow2(head.ROM_size);
   }
 
   //    ROM_size = head.ROM_size;
@@ -867,7 +872,7 @@ int INes::iNESLoad(const char *name, FceuFile *fp, int OverwriteVidMode) {
     if ((VROM = (uint8 *)FCEU_malloc(VROM_size<<13)) == nullptr) {
       free(ROM);
       ROM = nullptr;
-      return 0;
+      return false;
     }
     memset(VROM,0xFF,VROM_size<<13);
   }
@@ -961,7 +966,12 @@ int INes::iNESLoad(const char *name, FceuFile *fp, int OverwriteVidMode) {
   iNESCart.mirror=iNESMirroring;
 
   fc->fceu->GameInfo->mappernum = mapper_number;
-  MapperInit();
+  if (!MapperInit()) {
+    // XXX tom7 added this possibility during the mapper rewrite,
+    // so that I could run comprehensive tests on the covered
+    // mappers at least. It probably doesn't clean up enough?
+    return false;
+  }
   
   fc->cart->FCEU_LoadGameSave(&iNESCart);
   TRACEA(WRAM, 8192);
@@ -994,7 +1004,7 @@ int INes::iNESLoad(const char *name, FceuFile *fp, int OverwriteVidMode) {
     }
   }
 
-  return 1;
+  return true;
 }
 
 void VRAM_BANK1(FC *fc, uint32 A, uint8 V) {

@@ -43,8 +43,9 @@ struct INesTMasterRomInfo {
 struct INes {
   explicit INes(FC *fc);
   ~INes();
-  
-  int iNESLoad(const char *name, FceuFile *fp, int OverwriteVidMode);
+
+  // Returns true on success.
+  bool iNESLoad(const char *name, FceuFile *fp, int OverwriteVidMode);
   void iNESStateRestore(int version);
 
   void ClearMasterRomInfoParams() {
@@ -111,7 +112,7 @@ struct INes {
   void iNESPower();
   void iNES_ExecPower();
   void iNESGI(GI h);
-  void MapperInit();
+  bool MapperInit();
   void CheckHInfo();
 
   FC *fc = nullptr;
