@@ -534,17 +534,21 @@ static constexpr BoardMapping const board_map[] = {
   {"MMC1", 1, Mapper1_Init},
   {"UNROM", 2, UNROM_Init},
   {"CNROM", 3, CNROM_Init},
-#if 0
   {"MMC3", 4, Mapper4_Init},
+#if 0
   {"MMC5", 5, Mapper5_Init},
  // {"", 6, Mapper6_Init},
+#endif
   {"ANROM", 7, ANROM_Init},
+#if 0
   {"", 8, Mapper8_Init}, // Nogaems, it's worthless
   // {"", 9, Mapper9_Init},
   // {"", 10, Mapper10_Init},
   {"Color Dreams", 11, Mapper11_Init},
   {"", 12, Mapper12_Init},
+#endif
   {"CPROM", 13, CPROM_Init},
+#if 0
   // {"", 14, Mapper14_Init},
   {"100-in-1", 15, Mapper15_Init},
   {"Bandai", 16, Mapper16_Init},
@@ -597,7 +601,9 @@ static constexpr BoardMapping const board_map[] = {
   // {"", 63, Mapper63_Init},
   // {"", 64, Mapper64_Init},
   // {"", 65, Mapper65_Init},
+#endif
   {"MHOM", 66, MHROM_Init},
+#if 0
   // {"", 67, Mapper67_Init},
   {"Sunsoft Mapper #4", 68, Mapper68_Init},
   // {"", 69, Mapper69_Init},
@@ -624,7 +630,9 @@ static constexpr BoardMapping const board_map[] = {
   {"", 90, Mapper90_Init},
   {"", 91, Mapper91_Init},
   {"", 92, Mapper92_Init},
+#endif
   {"Sunsoft UNROM", 93, SUNSOFT_UNROM_Init},
+#if 0
   {"", 94, Mapper94_Init},
   {"", 95, Mapper95_Init},
   {"", 96, Mapper96_Init},

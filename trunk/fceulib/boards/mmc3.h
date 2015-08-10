@@ -1,26 +1,61 @@
-extern uint8 MMC3_cmd;
-extern uint8 mmc3opts;
-extern uint8 A000B;
-extern uint8 A001B;
-extern uint8 EXPREGS[8];
-extern uint8 DRegBuf[8];
 
-#undef IRQCount
-#undef IRQLatch
-#undef IRQa
-// extern uint8 IRQCount,IRQLatch,IRQa;
-// extern uint8 IRQReload;
-//
-extern void (*pwrap)(uint32 A, uint8 V);
-extern void (*cwrap)(uint32 A, uint8 V);
-extern void (*mwrap)(uint8 V);
+#ifndef __MMC3_H
+#define __MMC3_H
 
-void GenMMC3Power(FC *fc);
-void GenMMC3Restore(FC *fc,int version);
-void MMC3RegReset(FC *fc);
-void FixMMC3PRG(int V);
-void FixMMC3CHR(int V);
-DECLFW(MMC3_CMDWrite);
-DECLFW(MMC3_IRQWrite);
+#include "cart.h"
 
-void GenMMC3_Init(CartInfo *info, int prg, int chr, int wram, int battery);
+struct MMC3 : public CartInterface {
+
+  uint8 MMC3_cmd = 0;
+  uint8 mmc3opts = 0;
+  uint8 A000B = 0;
+  uint8 A001B = 0;
+  uint8 EXPREGS[8] = {};
+  uint8 DRegBuf[8] = {};
+
+  static void MMC3_CMDWrite(DECLFW_ARGS);
+  static void MMC3_IRQWrite(DECLFW_ARGS);
+
+  virtual void PWrap(uint32 A, uint8 V);
+  virtual void CWrap(uint32 A, uint8 V);
+  virtual void MWrap(uint8 V);
+
+  void Close() override;
+  void Reset() override;
+  void Power() override;
+
+  MMC3(FC *fc, CartInfo *info, int prg, int chr, int wram, int battery);
+  // was:
+  // void GenMMC3_Init(CartInfo *info, int prg, int chr, int wram, int battery);
+
+ protected:
+  void GenMMC3Power(FC *fc);
+  void MMC3RegReset(FC *fc);
+  void FixMMC3PRG(int V);
+  void FixMMC3CHR(int V);
+
+ private:
+  vector<SFORMAT> MMC3_StateRegs;
+
+  DECLFW_RET MMC3_CMDWrite_Direct(DECLFW_ARGS);
+  DECLFW_RET MMC3_IRQWrite_Direct(DECLFW_ARGS);
+
+  DECLFW_RET MBWRAMMMC6(DECLFW_ARGS);
+  DECLFR_RET MAWRAMMMC6(DECLFR_ARGS);
+
+  void GenMMC3Restore(FC *fc, int version);
+  
+  void ClockMMC3Counter();
+  
+  uint8 *MMC3_WRAM = nullptr;
+  uint8 *CHRRAM = nullptr;
+  uint32 CHRRAMSize = 0;
+
+  uint8 irq_count = 0, irq_latch = 0, irq_a = 0;
+  uint8 irq_reload = 0;
+
+  int wrams = 0;
+  int isRevB = 1;
+};
+
+#endif
