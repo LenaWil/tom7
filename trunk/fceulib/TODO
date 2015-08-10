@@ -38,6 +38,8 @@ Cleanup to do:
  - Common pattern in boards/* is to declare WRAMSIZE as a static
    variable but always set it to a constant.
  - CHECKs in Zapper
+ - In MMC3, an EXPREGS[8] in each subclass, often obviously more than is
+   necessary
 
 Surprisingly necessary:
  - crc32 since ines.cc has a table of games and their CRCs.

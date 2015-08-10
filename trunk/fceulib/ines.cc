@@ -545,8 +545,8 @@ static constexpr BoardMapping const board_map[] = {
   // {"", 9, Mapper9_Init},
   // {"", 10, Mapper10_Init},
   {"Color Dreams", 11, Mapper11_Init},
-  {"", 12, Mapper12_Init},
 #endif
+  {"", 12, Mapper12_Init},
   {"CPROM", 13, CPROM_Init},
 #if 0
   // {"", 14, Mapper14_Init},
@@ -572,14 +572,18 @@ static constexpr BoardMapping const board_map[] = {
   {"", 34, Mapper34_Init},
   {"Wario Land 2", 35, UNLSC127_Init},
   {"TXC Policeman", 36, Mapper36_Init},
+#endif
   {"", 37, Mapper37_Init},
+#if 0
   {"Bit Corp.", 38, Mapper38_Init}, // Crime Busters
   // {"", 39, Mapper39_Init},
   // {"", 40, Mapper40_Init},
   // {"", 41, Mapper41_Init},
   // {"", 42, Mapper42_Init},
   {"", 43, Mapper43_Init},
+#endif
   {"", 44, Mapper44_Init},
+#if 0
   {"", 45, Mapper45_Init},
   // {"", 46, Mapper46_Init},
   {"", 47, Mapper47_Init},

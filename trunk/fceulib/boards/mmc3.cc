@@ -321,6 +321,7 @@ MMC3::MMC3(FC *fc, CartInfo *info, int prg, int chr, int wram, int battery)
 
 // ---------------------------- Mapper 4 --------------------------------
 
+namespace {
 struct Mapper4 : public MMC3 {
   /* For Karnov, maybe others.  BLAH.  Stupid iNES format.*/
   int hackm4 = 0;
@@ -337,7 +338,8 @@ struct Mapper4 : public MMC3 {
     hackm4 = info->mirror;
   }
 };
-  
+}
+
 CartInterface *Mapper4_Init(FC *fc, CartInfo *info) {
   int ws = 8;
 
@@ -353,123 +355,150 @@ CartInterface *Mapper4_Init(FC *fc, CartInfo *info) {
   return new Mapper4(fc, info, ws);
 }
 
-#if 0
-
 // ---------------------------- Mapper 12 -------------------------------
 
-static void M12CW(uint32 A, uint8 V) {
-  fc->cart->setchr1(A, (EXPREGS[(A & 0x1000) >> 12] << 8) + V);
+namespace {
+struct Mapper12 : public MMC3 {
+  // PERF can probably be 2? -tom7
+  uint8 EXPREGS[8] = {};
+  
+  void M12Write(DECLFW_ARGS) {
+    EXPREGS[0] = V & 0x01;
+    EXPREGS[1] = (V & 0x10) >> 4;
+  }
+
+  void Power() override {
+    EXPREGS[0] = EXPREGS[1] = 0;
+    MMC3::Power();
+    fc->fceu->SetWriteHandler(0x4100, 0x5FFF, [](DECLFW_ARGS) {
+      ((Mapper12 *)fc->fceu->cartiface)->M12Write(DECLFW_FORWARD);
+    });
+  }
+
+  void CWrap(uint32 A, uint8 V) override {
+    fc->cart->setchr1(A, (EXPREGS[(A & 0x1000) >> 12] << 8) + V);
+  }
+
+  Mapper12(FC *fc, CartInfo *info)
+    : MMC3(fc, info, 512, 256, 8, info->battery) {
+    fc->state->AddExState(EXPREGS, 2, 0, "EXPR");
+    isRevB = 0;
+  }
+};
 }
 
-static DECLFW(M12Write) {
-  EXPREGS[0] = V & 0x01;
-  EXPREGS[1] = (V & 0x10) >> 4;
-}
-
-static void M12Power(FC *fc) {
-  EXPREGS[0] = EXPREGS[1] = 0;
-  GenMMC3Power(fc);
-  fc->fceu->SetWriteHandler(0x4100, 0x5FFF, M12Write);
-}
-
-void Mapper12_Init(CartInfo *info) {
-  GenMMC3_Init(info, 512, 256, 8, info->battery);
-  cwrap = M12CW;
-  isRevB = 0;
-
-  info->Power = M12Power;
-  fc->state->AddExState(EXPREGS, 2, 0, "EXPR");
+CartInterface *Mapper12_Init(FC *fc, CartInfo *info) {
+  return new Mapper12(fc, info);
 }
 
 // ---------------------------- Mapper 37 -------------------------------
 
-static void M37PW(uint32 A, uint8 V) {
-  if (EXPREGS[0] != 2)
-    V &= 0x7;
-  else
-    V &= 0xF;
-  V |= EXPREGS[0] << 3;
-  fc->cart->setprg8(A, V);
+namespace {
+struct Mapper37 : public MMC3 {
+  // PERF 1? Just value?
+  uint8 EXPREGS[8] = {};
+  
+  void PWrap(uint32 A, uint8 V) override {
+    if (EXPREGS[0] != 2)
+      V &= 0x7;
+    else
+      V &= 0xF;
+    V |= EXPREGS[0] << 3;
+    fc->cart->setprg8(A, V);
+  }
+
+  void CWrap(uint32 A, uint8 V) override {
+    uint32 NV = V;
+    NV &= 0x7F;
+    NV |= EXPREGS[0] << 6;
+    fc->cart->setchr1(A, NV);
+  }
+
+  void M37Write(DECLFW_ARGS) {
+    EXPREGS[0] = (V & 6) >> 1;
+    FixMMC3PRG(MMC3_cmd);
+    FixMMC3CHR(MMC3_cmd);
+  }
+
+  void Reset() override {
+    EXPREGS[0] = 0;
+    MMC3::Reset();
+  }
+
+  void Power() override {
+    EXPREGS[0] = 0;
+    MMC3::Power();
+    fc->fceu->SetWriteHandler(0x6000, 0x7FFF, [](DECLFW_ARGS) {
+      ((Mapper37*)fc->fceu->cartiface)->M37Write(DECLFW_FORWARD);
+    });
+  }
+
+  Mapper37(FC *fc, CartInfo *info) :
+    MMC3(fc, info, 512, 256, 8, info->battery) {
+    fc->state->AddExState(EXPREGS, 1, 0, "EXPR");    
+  }
+};
 }
 
-static void M37CW(uint32 A, uint8 V) {
-  uint32 NV = V;
-  NV &= 0x7F;
-  NV |= EXPREGS[0] << 6;
-  fc->cart->setchr1(A, NV);
-}
-
-static DECLFW(M37Write) {
-  EXPREGS[0] = (V & 6) >> 1;
-  FixMMC3PRG(MMC3_cmd);
-  FixMMC3CHR(MMC3_cmd);
-}
-
-static void M37Reset(FC *fc) {
-  EXPREGS[0] = 0;
-  MMC3RegReset(fc);
-}
-
-static void M37Power(FC *fc) {
-  EXPREGS[0] = 0;
-  GenMMC3Power(fc);
-  fc->fceu->SetWriteHandler(0x6000, 0x7FFF, M37Write);
-}
-
-void Mapper37_Init(CartInfo *info) {
-  GenMMC3_Init(info, 512, 256, 8, info->battery);
-  pwrap = M37PW;
-  cwrap = M37CW;
-  info->Power = M37Power;
-  info->Reset = M37Reset;
-  fc->state->AddExState(EXPREGS, 1, 0, "EXPR");
+CartInterface *Mapper37_Init(FC *fc, CartInfo *info) {
+  return new Mapper37(fc, info);
 }
 
 // ---------------------------- Mapper 44 -------------------------------
 
-static void M44PW(uint32 A, uint8 V) {
-  uint32 NV = V;
-  if (EXPREGS[0] >= 6)
-    NV &= 0x1F;
-  else
-    NV &= 0x0F;
-  NV |= EXPREGS[0] << 4;
-  fc->cart->setprg8(A, NV);
-}
-
-static void M44CW(uint32 A, uint8 V) {
-  uint32 NV = V;
-  if (EXPREGS[0] < 6) NV &= 0x7F;
-  NV |= EXPREGS[0] << 7;
-  fc->cart->setchr1(A, NV);
-}
-
-static DECLFW(M44Write) {
-  if (A & 1) {
-    EXPREGS[0] = V & 7;
-    FixMMC3PRG(MMC3_cmd);
-    FixMMC3CHR(MMC3_cmd);
-  } else {
-    MMC3_CMDWrite(DECLFW_FORWARD);
+namespace {
+struct Mapper44 : public MMC3 {
+  uint8 EXPREGS[8] = {};
+  void PWrap(uint32 A, uint8 V) override {
+    uint32 NV = V;
+    if (EXPREGS[0] >= 6)
+      NV &= 0x1F;
+    else
+      NV &= 0x0F;
+    NV |= EXPREGS[0] << 4;
+    fc->cart->setprg8(A, NV);
   }
+
+  void CWrap(uint32 A, uint8 V) override {
+    uint32 NV = V;
+    if (EXPREGS[0] < 6) NV &= 0x7F;
+    NV |= EXPREGS[0] << 7;
+    fc->cart->setchr1(A, NV);
+  }
+
+  void M44Write(DECLFW_ARGS) {
+    if (A & 1) {
+      EXPREGS[0] = V & 7;
+      FixMMC3PRG(MMC3_cmd);
+      FixMMC3CHR(MMC3_cmd);
+    } else {
+      MMC3_CMDWrite_Direct(DECLFW_FORWARD);
+    }
+  }
+
+  void Power() override {
+    EXPREGS[0] = 0;
+    MMC3::Power();
+    fc->fceu->SetWriteHandler(0xA000, 0xBFFF, [](DECLFW_ARGS) {
+      ((Mapper44*)fc->fceu->cartiface)->M44Write(DECLFW_FORWARD);
+    });
+  }
+
+  Mapper44(FC *fc, CartInfo *info) :
+    MMC3(fc, info, 512, 256, 8, info->battery) {
+    fc->state->AddExState(EXPREGS, 1, 0, "EXPR");
+  }
+};
 }
 
-static void M44Power(FC *fc) {
-  EXPREGS[0] = 0;
-  GenMMC3Power(fc);
-  fc->fceu->SetWriteHandler(0xA000, 0xBFFF, M44Write);
+CartInterface *Mapper44_Init(FC *fc, CartInfo *info) {
+  return new Mapper44(fc, info);
 }
 
-void Mapper44_Init(CartInfo *info) {
-  GenMMC3_Init(info, 512, 256, 8, info->battery);
-  cwrap = M44CW;
-  pwrap = M44PW;
-  info->Power = M44Power;
-  fc->state->AddExState(EXPREGS, 1, 0, "EXPR");
-}
-
+#if 0
 // ---------------------------- Mapper 45 -------------------------------
 
+//   uint8 EXPREGS[8] = {};
 static void M45CW(uint32 A, uint8 V) {
   if (!fc->unif->UNIFchrrama) {
     uint32 NV = V;
@@ -521,12 +550,12 @@ static void M45Reset(FC *fc) {
   EXPREGS[0] = EXPREGS[1] = EXPREGS[2] = EXPREGS[3] = EXPREGS[4] = 0;
   EXPREGS[5]++;
   EXPREGS[5] &= 7;
-  MMC3RegReset(fc);
+  MMC3::Reset();
 }
 
-static void M45Power(FC *fc) {
+static void M45Power() override {
   fc->cart->setchr8(0);
-  GenMMC3Power(fc);
+  MMC3::Power();
   EXPREGS[0] = EXPREGS[1] = EXPREGS[2] = EXPREGS[3] = EXPREGS[4] = EXPREGS[5] =
       0;
   fc->fceu->SetWriteHandler(0x5000, 0x7FFF, M45Write);
@@ -544,6 +573,7 @@ void Mapper45_Init(CartInfo *info) {
 
 // ---------------------------- Mapper 47 -------------------------------
 
+//   uint8 EXPREGS[8] = {};
 static void M47PW(uint32 A, uint8 V) {
   V &= 0xF;
   V |= EXPREGS[0] << 4;
@@ -563,9 +593,9 @@ static DECLFW(M47Write) {
   FixMMC3CHR(MMC3_cmd);
 }
 
-static void M47Power(FC *fc) {
+static void M47Power() override {
   EXPREGS[0] = 0;
-  GenMMC3Power(fc);
+  MMC3::Power();
   fc->fceu->SetWriteHandler(0x6000, 0x7FFF, M47Write);
   // fc->fceu->SetReadHandler(0x6000,0x7FFF,0);
 }
@@ -580,6 +610,7 @@ void Mapper47_Init(CartInfo *info) {
 
 // ---------------------------- Mapper 49 -------------------------------
 
+//   uint8 EXPREGS[8] = {};
 static void M49PW(uint32 A, uint8 V) {
   if (EXPREGS[0] & 1) {
     V &= 0xF;
@@ -606,12 +637,12 @@ static DECLFW(M49Write) {
 
 static void M49Reset(FC *fc) {
   EXPREGS[0] = 0;
-  MMC3RegReset(fc);
+  MMC3::Reset();
 }
 
-static void M49Power(FC *fc) {
+static void M49Power() override {
   M49Reset(fc);
-  GenMMC3Power(fc);
+  MMC3::Power();
   fc->fceu->SetWriteHandler(0x6000, 0x7FFF, M49Write);
   fc->fceu->SetReadHandler(0x6000, 0x7FFF, 0);
 }
@@ -626,6 +657,7 @@ void Mapper49_Init(CartInfo *info) {
 }
 
 // ---------------------------- Mapper 52 -------------------------------
+//   uint8 EXPREGS[8] = {};
 static void M52PW(uint32 A, uint8 V) {
   uint32 mask = 0x1F ^ ((EXPREGS[0] & 8) << 1);
   uint32 bank = ((EXPREGS[0] & 6) | ((EXPREGS[0] >> 3) & EXPREGS[0] & 1)) << 4;
@@ -655,12 +687,12 @@ static DECLFW(M52Write) {
 
 static void M52Reset(FC *fc) {
   EXPREGS[0] = EXPREGS[1] = 0;
-  MMC3RegReset(fc);
+  MMC3::Reset();
 }
 
-static void M52Power(FC *fc) {
+static void M52Power() override {
   M52Reset(fc);
-  GenMMC3Power(fc);
+  MMC3::Power();
   fc->fceu->SetWriteHandler(0x6000, 0x7FFF, M52Write);
 }
 
@@ -697,6 +729,7 @@ void Mapper74_Init(CartInfo *info) {
 
 static uint8 cmdin;
 static constexpr uint8 m114_perm[8] = {0, 3, 1, 5, 6, 7, 2, 4};
+//   uint8 EXPREGS[8] = {};
 
 static void M114PWRAP(uint32 A, uint8 V) {
   if (EXPREGS[0] & 0x80) {
@@ -709,14 +742,14 @@ static void M114PWRAP(uint32 A, uint8 V) {
 
 static DECLFW(M114Write) {
   switch (A & 0xE001) {
-    case 0x8001: MMC3_CMDWrite(fc, 0xA000, V); break;
+    case 0x8001: MMC3_CMDWrite_Direct(fc, 0xA000, V); break;
     case 0xA000:
-      MMC3_CMDWrite(fc, 0x8000, (V & 0xC0) | (m114_perm[V & 7]));
+      MMC3_CMDWrite_Direct(fc, 0x8000, (V & 0xC0) | (m114_perm[V & 7]));
       cmdin = 1;
       break;
     case 0xC000:
       if (!cmdin) break;
-      MMC3_CMDWrite(fc, 0x8001, V);
+      MMC3_CMDWrite_Direct(fc, 0x8001, V);
       cmdin = 0;
       break;
     case 0xA001: irq_latch = V; break;
@@ -736,15 +769,15 @@ static DECLFW(M114ExWrite) {
   }
 }
 
-static void M114Power(FC *fc) {
-  GenMMC3Power(fc);
+static void M114Power() override {
+  MMC3::Power();
   fc->fceu->SetWriteHandler(0x8000, 0xFFFF, M114Write);
   fc->fceu->SetWriteHandler(0x5000, 0x7FFF, M114ExWrite);
 }
 
 static void M114Reset(FC *fc) {
   EXPREGS[0] = 0;
-  MMC3RegReset(fc);
+  MMC3::Reset();
 }
 
 void Mapper114_Init(CartInfo *info) {
@@ -760,6 +793,7 @@ void Mapper114_Init(CartInfo *info) {
 // ---------------------------- Mapper 115 KN-658 board
 // ------------------------------
 
+//   uint8 EXPREGS[8] = {};
 static void M115PW(uint32 A, uint8 V) {
   // zero 09-apr-2012 - #3515357 - changed to support Bao Qing Tian (mapper 248)
   // which was missing BG gfx. 115 game(s?) seem still to work OK.
@@ -786,8 +820,8 @@ static DECLFR(M115Read) {
   return EXPREGS[2];
 }
 
-static void M115Power(FC *fc) {
-  GenMMC3Power(fc);
+static void M115Power() override {
+  MMC3::Power();
   fc->fceu->SetWriteHandler(0x4100, 0x7FFF, M115Write);
   fc->fceu->SetReadHandler(0x5000, 0x5FFF, M115Read);
 }
@@ -834,6 +868,7 @@ void Mapper119_Init(CartInfo *info) {
 
 // ---------------------------- Mapper 134 ------------------------------
 
+//   uint8 EXPREGS[8] = {};
 static void M134PW(uint32 A, uint8 V) {
   fc->cart->setprg8(A, (V & 0x1F) | ((EXPREGS[0] & 2) << 4));
 }
@@ -848,15 +883,15 @@ static DECLFW(M134Write) {
   FixMMC3PRG(MMC3_cmd);
 }
 
-static void M134Power(FC *fc) {
+static void M134Power(FC *fc) override {
   EXPREGS[0] = 0;
-  GenMMC3Power(fc);
+  MMC3::Power();
   fc->fceu->SetWriteHandler(0x6001, 0x6001, M134Write);
 }
 
 static void M134Reset(FC *fc) {
   EXPREGS[0] = 0;
-  MMC3RegReset(fc);
+  MMC3::Reset();
 }
 
 void Mapper134_Init(CartInfo *info) {
@@ -870,6 +905,7 @@ void Mapper134_Init(CartInfo *info) {
 
 // ---------------------------- Mapper 165 ------------------------------
 
+//   uint8 EXPREGS[8] = {};
 static void M165CW(uint32 A, uint8 V) {
   if (V == 0)
     fc->cart->setchr4r(0x10, A, 0);
@@ -906,9 +942,9 @@ static void M165PPU(uint32 A) {
   }
 }
 
-static void M165Power(FC *fc) {
+static void M165Power(FC *fc) override {
   EXPREGS[0] = 0xFD;
-  GenMMC3Power(fc);
+  MMC3::Power();
 }
 
 void Mapper165_Init(CartInfo *info) {
@@ -986,8 +1022,8 @@ static void M195CW(uint32 A, uint8 V) {
     fc->cart->setchr1r(0, A, V);
 }
 
-static void M195Power(FC *fc) {
-  GenMMC3Power(fc);
+static void M195Power(FC *fc) override {
+  MMC3::Power();
   fc->cart->setprg4r(0x10, 0x5000, 0);
   fc->fceu->SetWriteHandler(0x5000, 0x5fff, Cart::CartBW);
   fc->fceu->SetReadHandler(0x5000, 0x5fff, Cart::CartBR);
@@ -1035,11 +1071,11 @@ static void M196PW(uint32 A, uint8 V) {
 static DECLFW(Mapper196Write) {
   if (A >= 0xC000) {
     A = (A & 0xFFFE) | ((A >> 2) & 1) | ((A >> 3) & 1);
-    MMC3_IRQWrite(DECLFW_FORWARD);
+    MMC3_IRQWrite_Direct(DECLFW_FORWARD);
   } else {
     A = (A & 0xFFFE) | ((A >> 2) & 1) | ((A >> 3) & 1) | ((A >> 1) & 1);
     //   A=(A&0xFFFE)|((A>>3)&1);                        // Mali Splash Bomb
-    MMC3_CMDWrite(DECLFW_FORWARD);
+    MMC3_CMDWrite_Direct(DECLFW_FORWARD);
   }
 }
 
@@ -1049,8 +1085,8 @@ static DECLFW(Mapper196WriteLo) {
   FixMMC3PRG(MMC3_cmd);
 }
 
-static void Mapper196Power(FC *fc) {
-  GenMMC3Power(fc);
+static void Mapper196Power(FC *fc) override {
+  MMC3::Power();
   EXPREGS[0] = EXPREGS[1] = 0;
   fc->fceu->SetWriteHandler(0x6000, 0x6FFF, Mapper196WriteLo);
   fc->fceu->SetWriteHandler(0x8000, 0xFFFF, Mapper196Write);
@@ -1125,11 +1161,11 @@ static DECLFW(M205Write) {
 
 static void M205Reset(FC *fc) {
   EXPREGS[0] = EXPREGS[2] = 0;
-  MMC3RegReset(fc);
+  MMC3::Reset();
 }
 
-static void M205Power(FC *fc) {
-  GenMMC3Power(fc);
+static void M205Power(FC *fc) override {
+  MMC3::Power();
   fc->fceu->SetWriteHandler(0x6000, 0x6fff, M205Write);
 }
 
@@ -1156,9 +1192,9 @@ static void M245PW(uint32 A, uint8 V) {
   fc->cart->setprg8(A, (V & 0x3F) | ((EXPREGS[0] & 2) << 5));
 }
 
-static void M245Power(FC *fc) {
+static void M245Power(FC *fc) override {
   EXPREGS[0] = 0;
-  GenMMC3Power(fc);
+  MMC3::Power();
 }
 
 void Mapper245_Init(CartInfo *info) {
@@ -1198,9 +1234,9 @@ static DECLFW(M249Write) {
   FixMMC3CHR(MMC3_cmd);
 }
 
-static void M249Power(FC *fc) {
+static void M249Power(FC *fc) override {
   EXPREGS[0] = 0;
-  GenMMC3Power(fc);
+  MMC3::Power();
   fc->fceu->SetWriteHandler(0x5000, 0x5000, M249Write);
 }
 
@@ -1215,15 +1251,15 @@ void Mapper249_Init(CartInfo *info) {
 // ---------------------------- Mapper 250 ------------------------------
 
 static DECLFW(M250Write) {
-  MMC3_CMDWrite(fc, (A & 0xE000) | ((A & 0x400) >> 10), A & 0xFF);
+  MMC3_CMDWrite_Direct(fc, (A & 0xE000) | ((A & 0x400) >> 10), A & 0xFF);
 }
 
 static DECLFW(M250IRQWrite) {
-  MMC3_IRQWrite(fc, (A & 0xE000) | ((A & 0x400) >> 10), A & 0xFF);
+  MMC3_IRQWrite_Direct(fc, (A & 0xE000) | ((A & 0x400) >> 10), A & 0xFF);
 }
 
-static void M250_Power(FC *fc) {
-  GenMMC3Power(fc);
+static void M250_Power(FC *fc) override {
+  MMC3::Power();
   fc->fceu->SetWriteHandler(0x8000, 0xBFFF, M250Write);
   fc->fceu->SetWriteHandler(0xC000, 0xFFFF, M250IRQWrite);
 }
@@ -1247,11 +1283,11 @@ static DECLFW(M254Write) {
     case 0x8000: EXPREGS[0] = 0xff; break;
     case 0xA001: EXPREGS[1] = V;
   }
-  MMC3_CMDWrite(DECLFW_FORWARD);
+  MMC3_CMDWrite_Direct(DECLFW_FORWARD);
 }
 
-static void M254_Power(FC *fc) {
-  GenMMC3Power(fc);
+static void M254_Power(FC *fc) override {
+  MMC3::Power();
   fc->fceu->SetWriteHandler(0x8000, 0xBFFF, M254Write);
   fc->fceu->SetReadHandler(0x6000, 0x7FFF, MR254WRAM);
 }
