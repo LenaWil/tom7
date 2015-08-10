@@ -66,7 +66,8 @@ uint64 Emulator::ImageChecksum() {
 /**
  * Initialize all of the subsystem drivers: video, audio, and joystick.
  */
-int Emulator::DriverInitialize(FCEUGI *gi) {
+// Return true on success.
+bool Emulator::DriverInitialize(FCEUGI *gi) {
   // Used to init video. I think it's safe to skip.
 
   // Here we initialized sound. Assuming it's safe to skip,
@@ -84,21 +85,21 @@ int Emulator::DriverInitialize(FCEUGI *gi) {
   fc->input->FCEUI_SetInput(1, SI_GAMEPAD, &joydata, 0);
 
   fc->input->FCEUI_SetInputFourscore(false);
-  return 1;
+  return true;
 }
 
-/**
- * Loads a game, given a full path/filename.  The driver code must be
- * initialized after the game is loaded, because the emulator code
- * provides data necessary for the driver code (number of scanlines to
- * render, what virtual input devices to use, etc.).
- */
-int Emulator::LoadGame(const string &path) {
+/* Loads a game, given a full path/filename. The driver code must be
+   initialized after the game is loaded, because the emulator code
+   provides data necessary for the driver code (number of scanlines to
+   render, what virtual input devices to use, etc.).
+   
+   Returns true on success. */
+bool Emulator::LoadGame(const string &path) {
   fc->fceu->FCEU_CloseGame();
   fc->fceu->GameInfo = nullptr;
 
   if (!fc->fceu->FCEUI_LoadGame(path.c_str(), 1)) {
-    return 0;
+    return false;
   }
 
   // Here we used to do ParseGIInput, which allows the gameinfo
@@ -106,7 +107,7 @@ int Emulator::LoadGame(const string &path) {
   // weird stuff. Skip it.
 
   if (!DriverInitialize(fc->fceu->GameInfo)) {
-    return 0;
+    return false;
   }
 	
   // Set NTSC (1 = pal). Note that cartridges don't contain this information
@@ -115,7 +116,7 @@ int Emulator::LoadGame(const string &path) {
   // intface.
   fc->fceu->FCEUI_SetVidSystem(GIV_NTSC);
 
-  return 1;
+  return true;
 }
 
 Emulator::~Emulator() {

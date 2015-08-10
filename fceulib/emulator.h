@@ -92,8 +92,8 @@ struct Emulator {
   Emulator(FC *);
 
  private:
-  int DriverInitialize(FCEUGI *gi);
-  int LoadGame(const string &path);
+  bool DriverInitialize(FCEUGI *gi);
+  bool LoadGame(const string &path);
 
   FC *fc = nullptr;
   
