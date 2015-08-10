@@ -8,7 +8,6 @@ struct CartInterface;
 #if 0
 void AC08_Init(CartInfo *info);
 void ANROM_Init(CartInfo *info);
-void BMC11160_Init(CartInfo *info);
 void BMC12IN1_Init(CartInfo *info);
 void BMC13in1JY110_Init(CartInfo *info);
 void BMC190in1_Init(CartInfo *info);
@@ -18,7 +17,6 @@ void BMC70in1B_Init(CartInfo *info);
 void BMC70in1_Init(CartInfo *info);
 void BMC810544CA1_Init(CartInfo *info);
 void BMC830118C_Init(CartInfo *info);
-void BMCA65AS_Init(CartInfo *info);
 void BMCBS5_Init(CartInfo *info);
 void BMCD1038_Init(CartInfo *info);
 void BMCFK23CA_Init(CartInfo *info);
@@ -31,8 +29,6 @@ void BMCGhostbusters63in1_Init(CartInfo *info);
 void BMCNTD03_Init(CartInfo *info);
 void BMCT2271_Init(CartInfo *info);
 void BMCT262_Init(CartInfo *info);
-void CNROM_Init(CartInfo *info);
-void CPROM_Init(CartInfo *info);
 void DEIROM_Init(CartInfo *info);
 void DreamTech01_Init(CartInfo *info);
 void EKROM_Init(CartInfo *info);
@@ -46,9 +42,7 @@ void LH10_Init(CartInfo *info);
 void LH32_Init(CartInfo *info);
 void LH53_Init(CartInfo *info);
 void MALEE_Init(CartInfo *info);
-void MHROM_Init(CartInfo *info);
 void Mapper190_Init(CartInfo *info);
-void NROM_Init(CartInfo *info);
 void Novel_Init(CartInfo *info);
 void S74LS374NA_Init(CartInfo *info);
 void S74LS374N_Init(CartInfo *info);
@@ -65,6 +59,17 @@ void SA72008_Init(CartInfo *info);
 void SA9602B_Init(CartInfo *info);
 #endif
 
+// Datalatch
+CartInterface *NROM_Init(FC *fc, CartInfo *info);
+CartInterface *UNROM_Init(FC *fc, CartInfo *info);
+CartInterface *CNROM_Init(FC *fc, CartInfo *info);
+CartInterface *ANROM_Init(FC *fc, CartInfo *info);
+CartInterface *CPROM_Init(FC *fc, CartInfo *info);
+CartInterface *MHROM_Init(FC *fc, CartInfo *info);
+CartInterface *SUNSOFT_UNROM_Init(FC *fc, CartInfo *info);
+CartInterface *BMCA65AS_Init(FC *fc, CartInfo *info);
+CartInterface *BMC11160_Init(FC *fc, CartInfo *info);
+
 // MMC1
 CartInterface *SAROM_Init(FC *fc, CartInfo *info);
 CartInterface *SBROM_Init(FC *fc, CartInfo *info);
@@ -80,7 +85,6 @@ CartInterface *SOROM_Init(FC *fc, CartInfo *info);
 
 #if 0
 void SSSNROM_Init(CartInfo *info);
-void SUNSOFT_UNROM_Init(CartInfo *info);  // "Shanghi" original version mapper
 void Super24_Init(CartInfo *info);
 void Supervision16_Init(CartInfo *info);
 void TBROM_Init(CartInfo *info);
@@ -135,7 +139,6 @@ void UNLT230_Init(CartInfo *info);
 void UNLTF1201_Init(CartInfo *info);
 void UNLVRC7_Init(CartInfo *info);
 void UNLYOKO_Init(CartInfo *info);
-void UNROM_Init(CartInfo *info);
 #endif
 
 #endif

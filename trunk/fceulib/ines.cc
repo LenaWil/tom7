@@ -524,13 +524,11 @@ struct BoardMapping {
 }
 
 static constexpr BoardMapping const board_map[] = {
-#if 0
   {"NROM", 0, NROM_Init},
-#endif
   {"MMC1", 1, Mapper1_Init},
-#if 0
   {"UNROM", 2, UNROM_Init},
   {"CNROM", 3, CNROM_Init},
+#if 0
   {"MMC3", 4, Mapper4_Init},
   {"MMC5", 5, Mapper5_Init},
  // {"", 6, Mapper6_Init},
