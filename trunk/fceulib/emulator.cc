@@ -101,10 +101,6 @@ bool Emulator::LoadGame(const string &path) {
   if (!fc->fceu->FCEUI_LoadGame(path.c_str(), 1)) {
     return false;
   }
-
-  // Already different by this point -tom7
-  TRACEF("Post FCEUI_LoadGame...");
-  fc->ppu->Trace();
   
   // Here we used to do ParseGIInput, which allows the gameinfo
   // to override our input config, or something like that. No
@@ -113,9 +109,6 @@ bool Emulator::LoadGame(const string &path) {
   if (!DriverInitialize(fc->fceu->GameInfo)) {
     return false;
   }
-
-  TRACEF("Post DriverInitialize...");
-  fc->ppu->Trace();
   
   
   // Set NTSC (1 = pal). Note that cartridges don't contain this information
