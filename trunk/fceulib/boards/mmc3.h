@@ -36,7 +36,9 @@ struct MMC3 : public CartInterface {
   
   int isRevB = 1;
   
- private:
+  uint8 *MMC3_WRAM = nullptr;
+
+private:
   vector<SFORMAT> MMC3_StateRegs;
 
   DECLFW_RET MBWRAMMMC6(DECLFW_ARGS);
@@ -46,7 +48,6 @@ struct MMC3 : public CartInterface {
   
   void ClockMMC3Counter();
   
-  uint8 *MMC3_WRAM = nullptr;
   uint8 *CHRRAM = nullptr;
   uint32 CHRRAMSize = 0;
 

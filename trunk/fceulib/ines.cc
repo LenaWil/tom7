@@ -583,8 +583,8 @@ static constexpr BoardMapping const board_map[] = {
   {"", 43, Mapper43_Init},
 #endif
   {"", 44, Mapper44_Init},
-#if 0
   {"", 45, Mapper45_Init},
+#if 0
   // {"", 46, Mapper46_Init},
   {"", 47, Mapper47_Init},
   {"TAITO TCxxx", 48, Mapper48_Init},
