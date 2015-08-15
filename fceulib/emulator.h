@@ -87,6 +87,9 @@ struct Emulator {
   void SaveEx(vector<uint8> *out, const vector<uint8> *basis);
   void LoadEx(vector<uint8> *in, const vector<uint8> *basis);
 
+  // XXXXX debugging only.
+  FC *GetFC() { return fc; }
+  
  protected:
   // Use factory method.
   Emulator(FC *);

@@ -44,7 +44,7 @@ struct Traces {
   // tracing is done via macros in tracing.h.
   void SetEnabled(bool);
   bool IsEnabled() const;
-
+  
   // Adds a trace like printf.
   // void TraceF(const char *fmt, ...);
   void TraceString(const std::string &s);

@@ -5,6 +5,7 @@
 #include <utility>
 #include <vector>
 
+#include "fceu.h"
 #include "fc.h"
 
 class PPU {

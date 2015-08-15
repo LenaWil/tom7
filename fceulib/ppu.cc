@@ -1329,12 +1329,16 @@ void PPU::FCEUPPU_SetVideoSystem(int is_pal) {
 
 void PPU::FCEUPPU_Reset() {
   VRAMBuffer = PPU_values[0] = PPU_values[1] = PPU_status = PPU_values[3] = 0;
-  PPUSPL=0;
+  PPUSPL = 0;
   PPUGenLatch = 0;
   RefreshAddr = TempAddr = 0;
   vtoggle = 0;
   ppudead = 2;
   cycle_parity = 0;
+  // Used to not be saved. -tom7.
+  RefreshAddrT = TempAddrT = 0;
+  sphitx = 0;
+  sphitdata = 0;
 }
 
 void PPU::FCEUPPU_Power() {
@@ -1366,6 +1370,27 @@ void PPU::FCEUPPU_Power() {
 }
 
 int PPU::FCEUPPU_Loop(int skip) {
+  { TRACE_SCOPED_ENABLE_IF(true);
+    TRACEFUN();
+    TRACEF("%d %d %d | "
+	   "%d %d %d | "
+	   "%d %d %d | "
+	   "%d %d %d | "
+	   "%d",
+	   cycle_parity, ppudead, PPUSPL,
+	   RefreshAddrT, TempAddrT, VRAMBuffer,
+	   PPUGenLatch, pshift[0], pshift[1],
+	   XOffset, vtoggle, sphitx,
+	   sphitdata);
+  }
+
+  /*
+    { NTARAM, 0x800, "NTAR"},
+    { PALRAM, 0x20, "PRAM"},
+    { SPRAM, 0x100, "SPRA"},
+    { PPU_values, 0x4, "PPUR"},
+  */
+  
   // Needed for Knight Rider, possibly others.
   if (ppudead) {
     memset(fc->fceu->XBuf, 0x80, 256*240);
@@ -1374,7 +1399,7 @@ int PPU::FCEUPPU_Loop(int skip) {
   } else {
     TRACELOC();
     fc->X->Run(256+85);
-    TRACEA(RAM, 0x800);
+    TRACEA(fc->fceu->RAM, 0x800);
 
     PPU_status |= 0x80;
 
