@@ -495,82 +495,90 @@ CartInterface *Mapper44_Init(FC *fc, CartInfo *info) {
   return new Mapper44(fc, info);
 }
 
-#if 0
 // ---------------------------- Mapper 45 -------------------------------
 
-//   uint8 EXPREGS[8] = {};
-static void M45CW(uint32 A, uint8 V) {
-  if (!fc->unif->UNIFchrrama) {
-    uint32 NV = V;
-    if (EXPREGS[2] & 8)
-      NV &= (1 << ((EXPREGS[2] & 7) + 1)) - 1;
-    else if (EXPREGS[2])
-      NV &= 0;  // hack ;( don't know exactly how it should be
-    NV |= EXPREGS[0] | ((EXPREGS[2] & 0xF0) << 4);
-    fc->cart->setchr1(A, NV);
+struct Mapper45 : public MMC3 {
+  uint8 EXPREGS[8] = {};
+
+  void CWrap(uint32 A, uint8 V) override {
+    if (!fc->unif->UNIFchrrama) {
+      uint32 NV = V;
+      if (EXPREGS[2] & 8)
+	NV &= (1 << ((EXPREGS[2] & 7) + 1)) - 1;
+      else if (EXPREGS[2])
+	NV &= 0;  // hack ;( don't know exactly how it should be
+      NV |= EXPREGS[0] | ((EXPREGS[2] & 0xF0) << 4);
+      fc->cart->setchr1(A, NV);
+    }
   }
-}
 
-static void M45PW(uint32 A, uint8 V) {
-  V &= (EXPREGS[3] & 0x3F) ^ 0x3F;
-  V |= EXPREGS[1];
-  fc->cart->setprg8(A, V);
-}
-
-static DECLFW(M45Write) {
-  if (EXPREGS[3] & 0x40) {
-    MMC3_WRAM[A - 0x6000] = V;
-    return;
+  void PWrap(uint32 A, uint8 V) override {
+    V &= (EXPREGS[3] & 0x3F) ^ 0x3F;
+    V |= EXPREGS[1];
+    fc->cart->setprg8(A, V);
   }
-  EXPREGS[EXPREGS[4]] = V;
-  EXPREGS[4] = (EXPREGS[4] + 1) & 3;
-  // if (!EXPREGS[4])
-  // {
-  //   FCEU_printf("CHROR %02x, PRGOR %02x, CHRAND %02x, PRGAND
-  //   %02x\n",EXPREGS[0],EXPREGS[1],EXPREGS[2],EXPREGS[3]);
-  //   FCEU_printf("CHR0 %03x, CHR1 %03x, PRG0 %03x, PRG1 %03x\n",
-  //               (0x00&((1<<((EXPREGS[2]&7)+1))-1))|(EXPREGS[0]|((EXPREGS[2]&0xF0)<<4)),
-  //               (0xFF&((1<<((EXPREGS[2]&7)+1))-1))|(EXPREGS[0]|((EXPREGS[2]&0xF0)<<4)),
-  //               (0x00&((EXPREGS[3]&0x3F)^0x3F))|(EXPREGS[1]),
-  //               (0xFF&((EXPREGS[3]&0x3F)^0x3F))|(EXPREGS[1]));
-  // }
-  FixMMC3PRG(MMC3_cmd);
-  FixMMC3CHR(MMC3_cmd);
-}
 
-static DECLFR(M45Read) {
-  uint32 addr = 1 << (EXPREGS[5] + 4);
-  if (A & (addr | (addr - 1)))
-    return fc->X->DB | 1;
-  else
-    return fc->X->DB;
-}
+  void M45_Write(DECLFW_ARGS) {
+    if (EXPREGS[3] & 0x40) {
+      MMC3_WRAM[A - 0x6000] = V;
+      return;
+    }
+    EXPREGS[EXPREGS[4]] = V;
+    EXPREGS[4] = (EXPREGS[4] + 1) & 3;
+    // if (!EXPREGS[4])
+    // {
+    //   FCEU_printf("CHROR %02x, PRGOR %02x, CHRAND %02x, PRGAND
+    //   %02x\n",EXPREGS[0],EXPREGS[1],EXPREGS[2],EXPREGS[3]);
+    //   FCEU_printf("CHR0 %03x, CHR1 %03x, PRG0 %03x, PRG1 %03x\n",
+    //               (0x00&((1<<((EXPREGS[2]&7)+1))-1))|(EXPREGS[0]|((EXPREGS[2]&0xF0)<<4)),
+    //               (0xFF&((1<<((EXPREGS[2]&7)+1))-1))|(EXPREGS[0]|((EXPREGS[2]&0xF0)<<4)),
+    //               (0x00&((EXPREGS[3]&0x3F)^0x3F))|(EXPREGS[1]),
+    //               (0xFF&((EXPREGS[3]&0x3F)^0x3F))|(EXPREGS[1]));
+    // }
+    FixMMC3PRG(MMC3_cmd);
+    FixMMC3CHR(MMC3_cmd);
+  }
 
-static void M45Reset(FC *fc) {
-  EXPREGS[0] = EXPREGS[1] = EXPREGS[2] = EXPREGS[3] = EXPREGS[4] = 0;
-  EXPREGS[5]++;
-  EXPREGS[5] &= 7;
-  MMC3::Reset();
-}
+  DECLFR_RET M45_Read(DECLFR_ARGS) {
+    uint32 addr = 1 << (EXPREGS[5] + 4);
+    if (A & (addr | (addr - 1)))
+      return fc->X->DB | 1;
+    else
+      return fc->X->DB;
+  }
 
-static void M45Power() override {
-  fc->cart->setchr8(0);
-  MMC3::Power();
-  EXPREGS[0] = EXPREGS[1] = EXPREGS[2] = EXPREGS[3] = EXPREGS[4] = EXPREGS[5] =
+  void Reset() override {
+    EXPREGS[0] = EXPREGS[1] = EXPREGS[2] = EXPREGS[3] = EXPREGS[4] = 0;
+    EXPREGS[5]++;
+    EXPREGS[5] &= 7;
+    MMC3::Reset();
+  }
+
+  void Power() override {
+    fc->cart->setchr8(0);
+    MMC3::Power();
+    EXPREGS[0] = EXPREGS[1] = EXPREGS[2] =
+      EXPREGS[3] = EXPREGS[4] = EXPREGS[5] =
       0;
-  fc->fceu->SetWriteHandler(0x5000, 0x7FFF, M45Write);
-  fc->fceu->SetReadHandler(0x5000, 0x5FFF, M45Read);
+    fc->fceu->SetWriteHandler(0x5000, 0x7FFF, [](DECLFW_ARGS) {
+      return ((Mapper45*)fc->fceu->cartiface)->M45_Write(DECLFW_FORWARD);
+    });
+    fc->fceu->SetReadHandler(0x5000, 0x5FFF, [](DECLFR_ARGS) {
+      return ((Mapper45*)fc->fceu->cartiface)->M45_Read(DECLFR_FORWARD);
+    });
+  }
+
+  Mapper45(FC *fc, CartInfo *info) :
+    MMC3(fc, info, 512, 256, 8, info->battery) {
+    fc->state->AddExState(EXPREGS, 5, 0, "EXPR");
+  }
+};
+
+CartInterface *Mapper45_Init(FC *fc, CartInfo *info) {
+  return new Mapper45(fc, info);
 }
 
-void Mapper45_Init(CartInfo *info) {
-  GenMMC3_Init(info, 512, 256, 8, info->battery);
-  cwrap = M45CW;
-  pwrap = M45PW;
-  info->Reset = M45Reset;
-  info->Power = M45Power;
-  fc->state->AddExState(EXPREGS, 5, 0, "EXPR");
-}
-
+#if 0
 // ---------------------------- Mapper 47 -------------------------------
 
 //   uint8 EXPREGS[8] = {};
@@ -616,8 +624,9 @@ static void M49PW(uint32 A, uint8 V) {
     V &= 0xF;
     V |= (EXPREGS[0] & 0xC0) >> 2;
     fc->cart->setprg8(A, V);
-  } else
+  } else {
     fc->cart->setprg32(0x8000, (EXPREGS[0] >> 4) & 3);
+  }
 }
 
 static void M49CW(uint32 A, uint8 V) {
