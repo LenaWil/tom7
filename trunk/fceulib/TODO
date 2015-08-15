@@ -1,15 +1,15 @@
-Stuff I should be able to get rid of:
 
+
+Bugs:
+ - Cobra Triangle chnaged between 2559 and 2567. (just its image
+   hash.) This is Mapper 7, ANROM.
+
+Misc:
  - I've been compiling with -g instead of -O3 for quite a while.
    Do a comprehensive test to make sure it's okay!
 
- - ines.cpp "trainerpoo"
- - file wrappers can be massively simplified
- - file archive support
- - auto-fire
  - proper in-memory treatment of battery backed saves. lots of
    red herrings here! also, it leaks file descriptors.
- - NSF code in mapper.h and the uncalled functions therein?
 
       Still to objectify:
 
@@ -26,6 +26,12 @@ Stuff I should be able to get rid of:
 
  - is "moo" defined? mappers/61.cc ifdefs it
 
+Can get rid of:
+ - ines.cpp "trainerpoo"
+ - file wrappers can be massively simplified
+ - file archive support
+ - auto-fire
+ - NSF code in mapper.h and the uncalled functions therein?
 
 Memory todo:
  - Need to check that various objects are actually having their Free or Kill

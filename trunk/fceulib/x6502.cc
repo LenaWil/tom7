@@ -426,7 +426,6 @@ static constexpr uint8 ZNTable[256] = {
   {                    \
     uint8 x;           \
     x = RdMem(reg_PC); \
-    TRACEN(x);         \
     reg_PC++;          \
     op;                \
     break;             \
@@ -648,7 +647,7 @@ void X6502::Run(int32 cycles) {
   TRACE_SCOPED_STAY_ENABLED_IF(false);
   TRACEF("x6502_Run(%d) @ %d " TRACE_MACHINEFMT, cycles, timestamp,
          TRACE_MACHINEARGS);
-  TRACEA(RAM, 0x800);
+  TRACEA(fc->fceu->RAM, 0x800);
   // TRACEA(fc->ppu->PPU_values, 4);
 
   if (fc->fceu->PAL) {
@@ -664,7 +663,7 @@ void X6502::Run(int32 cycles) {
 
     TRACE_SCOPED_STAY_ENABLED_IF(false);
     TRACEF("while " TRACE_MACHINEFMT, TRACE_MACHINEARGS);
-    TRACEA(RAM, 0x800);
+    TRACEA(fc->fceu->RAM, 0x800);
 
     if (IRQlow) {
       TRACEF("IRQlow set.");
@@ -1199,5 +1198,5 @@ void X6502::Run(int32 cycles) {
     }
   }
   TRACEF("Exiting X6502_Run normally: " TRACE_MACHINEFMT, TRACE_MACHINEARGS);
-  TRACEA(RAM, 0x800);
+  TRACEA(fc->fceu->RAM, 0x800);
 }

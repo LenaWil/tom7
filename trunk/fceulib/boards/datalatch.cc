@@ -42,7 +42,7 @@ struct DataLatch : public CartInterface {
     if (bus_conflict)
       latch = V & Cart::CartBR(fc, A);
     else
-    latch = V;
+      latch = V;
     WSync();
   }
 
