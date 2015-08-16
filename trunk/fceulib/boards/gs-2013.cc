@@ -20,39 +20,47 @@
 
 #include "mapinc.h"
 
-static uint8 reg, mirr;
-static vector<SFORMAT> StateRegs = {{&reg, 1, "REGS"}, {&mirr, 1, "MIRR"}};
+namespace {
+struct MapperGS2013 : public CartInterface {
+  uint8 reg = 0, mirr = 0;
 
-static void Sync() {
-  fceulib__.cart->setprg8r(0, 0x6000, ~0);
-  fceulib__.cart->setprg32r((reg & 8) >> 3, 0x8000, reg);
-  fceulib__.cart->setchr8(0);
+  void Sync() {
+    fc->cart->setprg8r(0, 0x6000, ~0);
+    fc->cart->setprg32r((reg & 8) >> 3, 0x8000, reg);
+    fc->cart->setchr8(0);
+  }
+
+  void BMCGS2013Write(DECLFW_ARGS) {
+    reg = V;
+    Sync();
+  }
+
+  void Power() override {
+    reg = ~0;
+    Sync();
+    fc->fceu->SetReadHandler(0x6000, 0x7FFF, Cart::CartBR);
+    fc->fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
+    fc->fceu->SetWriteHandler(0x8000, 0xFFFF, [](DECLFW_ARGS) {
+      return ((MapperGS2013*)fc->fceu->cartiface)->
+	BMCGS2013Write(DECLFW_FORWARD);
+    });
+  }
+
+  void Reset() override {
+    reg = ~0;
+  }
+
+  static void StateRestore(FC *fc, int version) {
+    ((MapperGS2013*)fc->fceu->cartiface)->Sync();
+  }
+
+  MapperGS2013(FC *fc, CartInfo *info) : CartInterface(fc) {
+    fc->fceu->GameStateRestore = StateRestore;
+    fc->state->AddExVec({{&reg, 1, "REGS"}, {&mirr, 1, "MIRR"}});
+  }
+};
 }
 
-static DECLFW(BMCGS2013Write) {
-  reg = V;
-  Sync();
-}
-
-static void BMCGS2013Power(FC *fc) {
-  reg = ~0;
-  Sync();
-  fceulib__.fceu->SetReadHandler(0x6000, 0x7FFF, Cart::CartBR);
-  fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
-  fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, BMCGS2013Write);
-}
-
-static void BMCGS2013Reset(FC *fc) {
-  reg = ~0;
-}
-
-static void StateRestore(FC *fc, int version) {
-  Sync();
-}
-
-void BMCGS2013_Init(CartInfo *info) {
-  info->Reset = BMCGS2013Reset;
-  info->Power = BMCGS2013Power;
-  fceulib__.fceu->GameStateRestore = StateRestore;
-  fceulib__.state->AddExVec(StateRegs);
+CartInterface *BMCGS2013_Init(FC *fc, CartInfo *info) {
+  return new MapperGS2013(fc, info);
 }

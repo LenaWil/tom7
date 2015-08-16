@@ -438,6 +438,20 @@ CartInterface *Mapper249_Init(FC *fc, CartInfo *);
 CartInterface *Mapper250_Init(FC *fc, CartInfo *);
 CartInterface *Mapper254_Init(FC *fc, CartInfo *);
 
+// 01-222
+CartInterface *Mapper172_Init(FC *fc, CartInfo *);
+CartInterface *Mapper173_Init(FC *fc, CartInfo *);
+
+// 32
+CartInterface *Mapper32_Init(FC *fc, CartInfo *);
+
+// 103
+CartInterface *Mapper103_Init(FC *fc, CartInfo *);
+
+// 33
+CartInterface *Mapper33_Init(FC *fc, CartInfo *);
+CartInterface *Mapper48_Init(FC *fc, CartInfo *);
+
 // ?
 CartInterface *Mapper1_Init(FC *fc, CartInfo *);
 CartInterface *Mapper5_Init(FC *fc, CartInfo *);
@@ -451,11 +465,8 @@ CartInterface *Mapper22_Init(FC *fc, CartInfo *);
 CartInterface *Mapper23_Init(FC *fc, CartInfo *);
 CartInterface *Mapper25_Init(FC *fc, CartInfo *);
 CartInterface *Mapper28_Init(FC *fc, CartInfo *);
-CartInterface *Mapper32_Init(FC *fc, CartInfo *);
-CartInterface *Mapper33_Init(FC *fc, CartInfo *);
 CartInterface *Mapper34_Init(FC *fc, CartInfo *);
 CartInterface *Mapper43_Init(FC *fc, CartInfo *);
-CartInterface *Mapper48_Init(FC *fc, CartInfo *);
 CartInterface *Mapper57_Init(FC *fc, CartInfo *);
 CartInterface *Mapper59_Init(FC *fc, CartInfo *);
 CartInterface *Mapper68_Init(FC *fc, CartInfo *);
@@ -469,7 +480,6 @@ CartInterface *Mapper93_Init(FC *fc, CartInfo *);
 CartInterface *Mapper95_Init(FC *fc, CartInfo *);
 CartInterface *Mapper96_Init(FC *fc, CartInfo *);
 CartInterface *Mapper99_Init(FC *fc, CartInfo *);
-CartInterface *Mapper103_Init(FC *fc, CartInfo *);
 CartInterface *Mapper105_Init(FC *fc, CartInfo *);
 CartInterface *Mapper106_Init(FC *fc, CartInfo *);
 CartInterface *Mapper108_Init(FC *fc, CartInfo *);
@@ -489,8 +499,6 @@ CartInterface *Mapper164_Init(FC *fc, CartInfo *);
 CartInterface *Mapper168_Init(FC *fc, CartInfo *);
 CartInterface *Mapper170_Init(FC *fc, CartInfo *);
 CartInterface *Mapper171_Init(FC *fc, CartInfo *);
-CartInterface *Mapper172_Init(FC *fc, CartInfo *);
-CartInterface *Mapper173_Init(FC *fc, CartInfo *);
 CartInterface *Mapper175_Init(FC *fc, CartInfo *);
 CartInterface *Mapper177_Init(FC *fc, CartInfo *);
 CartInterface *Mapper178_Init(FC *fc, CartInfo *);

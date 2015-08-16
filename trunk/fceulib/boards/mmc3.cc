@@ -612,7 +612,7 @@ struct Mapper47 : public MMC3 {
   }
 
   Mapper47(FC *fc, CartInfo *info)
-    : MMC3(fc, info,  512, 256, 8, 0) {
+    : MMC3(fc, info, 512, 256, 8, 0) {
     fc->state->AddExState(EXPREGS, 1, 0, "EXPR");
   }
 };
@@ -665,7 +665,7 @@ struct Mapper49 : public MMC3 {
   }
   
  Mapper49(FC *fc, CartInfo *info)
-   : MMC3(fc, info,  512, 256, 0, 0) {
+   : MMC3(fc, info, 512, 256, 0, 0) {
    fc->state->AddExState(EXPREGS, 1, 0, "EXPR");
  }
 };
@@ -721,7 +721,7 @@ struct Mapper52 : public MMC3 {
   }
 
   Mapper52(FC *fc, CartInfo *info)
-    : MMC3(fc, info,  256, 256, 8, info->battery) {
+    : MMC3(fc, info, 256, 256, 8, info->battery) {
     fc->state->AddExState(EXPREGS, 2, 0, "EXPR");
   }
 };
@@ -743,7 +743,7 @@ struct Mapper74 : public MMC3 {
   }
 
   Mapper74(FC *fc, CartInfo *info)
-    : MMC3(fc, info,  512, 256, 8, info->battery) {
+    : MMC3(fc, info, 512, 256, 8, info->battery) {
     CHRRAMSize = 2048;
     CHRRAM = (uint8 *)FCEU_gmalloc(CHRRAMSize);
     fc->cart->SetupCartCHRMapping(0x10, CHRRAM, CHRRAMSize, 1);
@@ -814,7 +814,7 @@ struct Mapper114 : public MMC3 {
   }
   
   Mapper114(FC *fc, CartInfo *info)
-    : MMC3(fc, info,  256, 256, 0, 0) {
+    : MMC3(fc, info, 256, 256, 0, 0) {
     isRevB = 0;  
     fc->state->AddExState(EXPREGS, 1, 0, "EXPR");
     fc->state->AddExState(&cmdin, 1, 0, "CMDI");
@@ -869,7 +869,7 @@ struct Mapper115 : public MMC3 {
   }
 
   Mapper115(FC *fc, CartInfo *info)
-    : MMC3(fc, info,  128, 512, 0, 0) {
+    : MMC3(fc, info, 128, 512, 0, 0) {
     fc->state->AddExState(EXPREGS, 2, 0, "EXPR");
   }
 
@@ -892,7 +892,7 @@ struct Mapper119 : public MMC3 {
   }
 
   Mapper119(FC *fc, CartInfo *info)
-    : MMC3(fc, info,  512, 64, 0, 0) {
+    : MMC3(fc, info, 512, 64, 0, 0) {
     CHRRAMSize = 8192;
     CHRRAM = (uint8 *)FCEU_gmalloc(CHRRAMSize);
     fc->cart->SetupCartCHRMapping(0x10, CHRRAM, CHRRAMSize, 1);
@@ -935,7 +935,7 @@ struct Mapper134 : public MMC3 {
   }
 
   Mapper134(FC *fc, CartInfo *info)
-    : MMC3(fc, info,  256, 256, 0, 0) {
+    : MMC3(fc, info, 256, 256, 0, 0) {
     fc->state->AddExState(EXPREGS, 4, 0, "EXPR");  
   }
 };
@@ -993,7 +993,7 @@ struct Mapper165 : public MMC3 {
   }
   
   Mapper165(FC *fc, CartInfo *info)
-    : MMC3(fc, info,  512, 128, 8, info->battery) {
+    : MMC3(fc, info, 512, 128, 8, info->battery) {
     fc->ppu->PPU_hook = M165PPU;
     CHRRAMSize = 4096;
     CHRRAM = (uint8 *)FCEU_gmalloc(CHRRAMSize);
@@ -1016,7 +1016,7 @@ struct Mapper191 : public MMC3 {
   }
   
   Mapper191(FC *fc, CartInfo *info)
-    : MMC3(fc, info,  256, 256, 8, info->battery) {
+    : MMC3(fc, info, 256, 256, 8, info->battery) {
     CHRRAMSize = 2048;
     CHRRAM = (uint8 *)FCEU_gmalloc(CHRRAMSize);
     fc->cart->SetupCartCHRMapping(0x10, CHRRAM, CHRRAMSize, 1);
@@ -1041,7 +1041,7 @@ struct Mapper192 : public MMC3 {
   }
   
   Mapper192(FC *fc, CartInfo *info)
-    : MMC3(fc, info,  512, 256, 8, info->battery) {
+    : MMC3(fc, info, 512, 256, 8, info->battery) {
     CHRRAMSize = 4096;
     CHRRAM = (uint8 *)FCEU_gmalloc(CHRRAMSize);
     fc->cart->SetupCartCHRMapping(0x10, CHRRAM, CHRRAMSize, 1);
@@ -1065,7 +1065,7 @@ struct Mapper194 : public MMC3 {
   }
 
   Mapper194(FC *fc, CartInfo *info)
-    : MMC3(fc, info,  512, 256, 8, info->battery) {
+    : MMC3(fc, info, 512, 256, 8, info->battery) {
     CHRRAMSize = 2048;
     CHRRAM = (uint8 *)FCEU_gmalloc(CHRRAMSize);
     fc->cart->SetupCartCHRMapping(0x10, CHRRAM, CHRRAMSize, 1);
@@ -1105,7 +1105,7 @@ struct Mapper195 : public MMC3 {
   }
   
   Mapper195(FC *fc, CartInfo *info)
-    : MMC3(fc, info,  512, 256, 8, info->battery) {
+    : MMC3(fc, info, 512, 256, 8, info->battery) {
     CHRRAMSize = 4096;
     CHRRAM = (uint8 *)FCEU_gmalloc(CHRRAMSize);
     fc->cart->SetupCartCHRMapping(0x10, CHRRAM, CHRRAMSize, 1);
@@ -1176,7 +1176,7 @@ struct Mapper196 : public MMC3 {
   }
   
   Mapper196(FC *fc, CartInfo *info)
-    : MMC3(fc, info,  128, 128, 0, 0) {
+    : MMC3(fc, info, 128, 128, 0, 0) {
   }
 };
 CartInterface *Mapper196_Init(FC *fc, CartInfo *info) {
@@ -1196,7 +1196,7 @@ struct Mapper197 : public MMC3 {
   }
 
   Mapper197(FC *fc, CartInfo *info)
-    : MMC3(fc, info,  128, 512, 8, 0) {}
+    : MMC3(fc, info, 128, 512, 8, 0) {}
 };
 CartInterface *Mapper197_Init(FC *fc, CartInfo *info) {
   return new Mapper197(fc, info);
@@ -1216,7 +1216,7 @@ struct Mapper198 : public MMC3 {
   }
   
   Mapper198(FC *fc, CartInfo *info)
-    : MMC3(fc, info,  1024, 256, 8, info->battery) {
+    : MMC3(fc, info, 1024, 256, 8, info->battery) {
     wramsize = 4096;
     wramtw = (uint8 *)FCEU_gmalloc(wramsize);
     fc->cart->SetupCartPRGMapping(0x10, wramtw, wramsize, 1);
@@ -1266,7 +1266,7 @@ struct Mapper205 : public MMC3 {
   }
   
   Mapper205(FC *fc, CartInfo *info)
-      : MMC3(fc, info,  256, 256, 8, 0) {
+      : MMC3(fc, info, 256, 256, 8, 0) {
     fc->state->AddExState(EXPREGS, 1, 0, "EXPR");  
   }
 };
@@ -1298,7 +1298,7 @@ struct Mapper245 : public MMC3 {
   }
 
   Mapper245(FC *fc, CartInfo *info)
-    : MMC3(fc, info,  512, 256, 8, info->battery) {
+    : MMC3(fc, info, 512, 256, 8, info->battery) {
     fc->state->AddExState(EXPREGS, 1, 0, "EXPR");
   }
 };
@@ -1347,7 +1347,7 @@ struct Mapper249 : public MMC3 {
   }
 
   Mapper249(FC *fc, CartInfo *info)
-    : MMC3(fc, info,  512, 256, 8, info->battery) {
+    : MMC3(fc, info, 512, 256, 8, info->battery) {
     fc->state->AddExState(EXPREGS, 1, 0, "EXPR");
   }
 
@@ -1377,7 +1377,7 @@ struct Mapper250 : public MMC3 {
     });
   }
   Mapper250(FC *fc, CartInfo *info)
-    : MMC3(fc, info,  512, 256, 8, info->battery) {
+    : MMC3(fc, info, 512, 256, 8, info->battery) {
   }
 };
 CartInterface *Mapper250_Init(FC *fc, CartInfo *info) {
@@ -1386,6 +1386,7 @@ CartInterface *Mapper250_Init(FC *fc, CartInfo *info) {
 
 // ---------------------------- Mapper 254 ------------------------------
 
+namespace {
 struct Mapper254 : public MMC3 {
   uint8 EXPREGS[8] = {};
 
@@ -1415,10 +1416,12 @@ struct Mapper254 : public MMC3 {
   }
 
   Mapper254(FC *fc, CartInfo *info)
-    : MMC3(fc, info,  128, 128, 8, info->battery) {
+    : MMC3(fc, info, 128, 128, 8, info->battery) {
     fc->state->AddExState(EXPREGS, 2, 0, "EXPR");
   }
 };
+}
+
 CartInterface *Mapper254_Init(FC *fc, CartInfo *info) {
   return new Mapper254(fc, info);
 }

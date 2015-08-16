@@ -567,8 +567,10 @@ static constexpr BoardMapping const board_map[] = {
   // {"", 29, Mapper29_Init},
   // {"", 30, Mapper30_Init},
   // {"", 31, Mapper31_Init},
+#endif
   {"IREM G-101", 32, Mapper32_Init},
   {"TC0190FMC/TC0350FMR", 33, Mapper33_Init},
+#if 0
   {"", 34, Mapper34_Init},
   {"Wario Land 2", 35, UNLSC127_Init},
   {"TXC Policeman", 36, Mapper36_Init},
@@ -586,9 +588,7 @@ static constexpr BoardMapping const board_map[] = {
   {"", 45, Mapper45_Init},
   // {"", 46, Mapper46_Init},
   {"", 47, Mapper47_Init},
-#if 0
   {"TAITO TCxxx", 48, Mapper48_Init},
-#endif
   {"", 49, Mapper49_Init},
 
   // {"", 50, Mapper50_Init},
@@ -651,7 +651,9 @@ static constexpr BoardMapping const board_map[] = {
   // {"", 100, Mapper100_Init},
   {"", 101, Mapper101_Init},
   // {"", 102, Mapper102_Init},
+#endif
   {"", 103, Mapper103_Init},
+#if 0
   // {"", 104, Mapper104_Init},
   {"", 105, Mapper105_Init},
   {"", 106, Mapper106_Init},
@@ -728,8 +730,10 @@ static constexpr BoardMapping const board_map[] = {
   // {"", 169, Mapper169_Init},
   {"", 170, Mapper170_Init},
   {"", 171, Mapper171_Init},
+#endif
   {"", 172, Mapper172_Init},
   {"", 173, Mapper173_Init},
+#if 0
   // {"", 174, Mapper174_Init},
   {"", 175, Mapper175_Init},
   {"BMCFK23C", 176, BMCFK23C_Init}, //zero 26-may-2012 - well, i have some WXN junk games that use 176 for instance ????. i dont know what game uses this BMCFK23C as mapper 176. we'll have to make a note when we find it.

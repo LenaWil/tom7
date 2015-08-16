@@ -35,73 +35,84 @@
 
 #include "mapinc.h"
 
-static uint8 reg[4], cmd, is172, is173;
-static vector<SFORMAT> StateRegs = {{reg, 4, "REGS"}, {&cmd, 1, "CMD0"}};
+namespace {
+struct Mapper01_222 : public CartInterface {
+  const bool is172, is173;
+  uint8 reg[4] = {}, cmd = 0;
+  vector<SFORMAT> StateRegs;
 
-static void Sync() {
-  fceulib__.cart->setprg32(0x8000, (reg[2] >> 2) & 1);
-  if (is172) {
-    // 1991 DU MA Racing probably CHR bank sequence is WRONG, so it is
-    // possible to rearrange CHR banks for normal UNIF board and
-    // mapper 172 is unneccessary
-    fceulib__.cart->setchr8((((cmd ^ reg[2]) >> 3) & 2) |
-                            (((cmd ^ reg[2]) >> 5) & 1));
-  } else {
-    fceulib__.cart->setchr8(reg[2] & 3);
+  void Sync() {
+    fc->cart->setprg32(0x8000, (reg[2] >> 2) & 1);
+    if (is172) {
+      // 1991 DU MA Racing probably CHR bank sequence is WRONG, so it is
+      // possible to rearrange CHR banks for normal UNIF board and
+      // mapper 172 is unneccessary
+      fc->cart->setchr8((((cmd ^ reg[2]) >> 3) & 2) |
+			      (((cmd ^ reg[2]) >> 5) & 1));
+    } else {
+      fc->cart->setchr8(reg[2] & 3);
+    }
   }
+
+  void UNL22211WriteLo(DECLFW_ARGS) {
+    //	FCEU_printf("bs %04x %02x\n",A,V);
+    reg[A & 3] = V;
+  }
+
+  void UNL22211WriteHi(DECLFW_ARGS) {
+    //	FCEU_printf("bs %04x %02x\n",A,V);
+    cmd = V;
+    Sync();
+  }
+
+  DECLFR_RET UNL22211ReadLo(DECLFR_ARGS) {
+    return (reg[1] ^ reg[2]) | (is173 ? 0x01 : 0x40);
+    //	if(reg[3])
+    //		return reg[2];
+    //	else
+    //		return fc->X->DB;
+  }
+
+  void Power() override {
+    Sync();
+    fc->fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
+    fc->fceu->SetReadHandler(0x4100, 0x4100, [](DECLFR_ARGS) {
+      return ((Mapper01_222*)fc->fceu->cartiface)->
+	UNL22211ReadLo(DECLFR_FORWARD);
+    });
+    fc->fceu->SetWriteHandler(0x4100, 0x4103, [](DECLFW_ARGS) {
+      return ((Mapper01_222*)fc->fceu->cartiface)->
+	UNL22211WriteLo(DECLFW_FORWARD);
+    });
+    fc->fceu->SetWriteHandler(0x8000, 0xFFFF, [](DECLFW_ARGS) {
+      return ((Mapper01_222*)fc->fceu->cartiface)->
+	UNL22211WriteHi(DECLFW_FORWARD);
+    });
+  }
+
+  static void StateRestore(FC *fc, int version) {
+    ((Mapper01_222*)fc->fceu->cartiface)->Sync();
+  }
+
+  Mapper01_222(FC *fc, CartInfo *info,
+	       bool is172, bool is173) : CartInterface(fc),
+					 is172(is172), is173(is173) {
+    // PERF probably doesn't need to stick around
+    StateRegs = {{reg, 4, "REGS"}, {&cmd, 1, "CMD0"}};
+    fc->fceu->GameStateRestore = StateRestore;
+    fc->state->AddExVec(StateRegs);
+  }
+};
 }
 
-static DECLFW(UNL22211WriteLo) {
-  //	FCEU_printf("bs %04x %02x\n",A,V);
-  reg[A & 3] = V;
+CartInterface *UNL22211_Init(FC *fc, CartInfo *info) {
+  return new Mapper01_222(fc, info, 0, 0);
 }
 
-static DECLFW(UNL22211WriteHi) {
-  //	FCEU_printf("bs %04x %02x\n",A,V);
-  cmd = V;
-  Sync();
+CartInterface *Mapper172_Init(FC *fc, CartInfo *info) {
+  return new Mapper01_222(fc, info, 1, 0);
 }
 
-static DECLFR(UNL22211ReadLo) {
-  return (reg[1] ^ reg[2]) | (is173 ? 0x01 : 0x40);
-  //	if(reg[3])
-  //		return reg[2];
-  //	else
-  //		return fceulib__.X->DB;
-}
-
-static void UNL22211Power(FC *fc) {
-  Sync();
-  fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
-  fceulib__.fceu->SetReadHandler(0x4100, 0x4100, UNL22211ReadLo);
-  fceulib__.fceu->SetWriteHandler(0x4100, 0x4103, UNL22211WriteLo);
-  fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, UNL22211WriteHi);
-}
-
-static void StateRestore(FC *fc, int version) {
-  Sync();
-}
-
-void UNL22211_Init(CartInfo *info) {
-  is172 = 0;
-  is173 = 0;
-  info->Power = UNL22211Power;
-  fceulib__.fceu->GameStateRestore = StateRestore;
-  fceulib__.state->AddExVec(StateRegs);
-}
-
-void Mapper172_Init(CartInfo *info) {
-  is172 = 1;
-  is173 = 0;
-  info->Power = UNL22211Power;
-  fceulib__.fceu->GameStateRestore = StateRestore;
-  fceulib__.state->AddExVec(StateRegs);
-}
-
-void Mapper173_Init(CartInfo *info) {
-  is172 = 0;
-  is173 = 1;
-  info->Power = UNL22211Power;
-  fceulib__.fceu->GameStateRestore = StateRestore;
-  fceulib__.state->AddExVec(StateRegs);
+CartInterface *Mapper173_Init(FC *fc, CartInfo *info) {
+  return new Mapper01_222(fc, info, 0, 1);
 }
