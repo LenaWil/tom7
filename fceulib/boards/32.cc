@@ -20,74 +20,90 @@
 
 #include "mapinc.h"
 
-static uint8 preg[2], creg[8], mirr;
+static constexpr int WRAMSIZE = 8192;
 
-static uint8 *WRAM = nullptr;
-static uint32 WRAMSIZE;
+namespace {
+struct Mapper32 : public CartInterface {
+  uint8 preg[2] = {}, creg[8] = {}, mirr = 0;
 
-static vector<SFORMAT> StateRegs = {
-    {preg, 4, "PREG"}, {creg, 8, "CREG"}, {&mirr, 1, "MIRR"}};
+  uint8 *WRAM = nullptr;
 
-static void Sync() {
-  uint16 swap = ((mirr & 2) << 13);
-  fceulib__.cart->setmirror((mirr & 1) ^ 1);
-  fceulib__.cart->setprg8r(0x10, 0x6000, 0);
-  fceulib__.cart->setprg8(0x8000 ^ swap, preg[0]);
-  fceulib__.cart->setprg8(0xA000, preg[1]);
-  fceulib__.cart->setprg8(0xC000 ^ swap, ~1);
-  fceulib__.cart->setprg8(0xE000, ~0);
-  for (uint8 i = 0; i < 8; i++) fceulib__.cart->setchr1(i << 10, creg[i]);
+  void Sync() {
+    uint16 swap = ((mirr & 2) << 13);
+    fc->cart->setmirror((mirr & 1) ^ 1);
+    fc->cart->setprg8r(0x10, 0x6000, 0);
+    fc->cart->setprg8(0x8000 ^ swap, preg[0]);
+    fc->cart->setprg8(0xA000, preg[1]);
+    fc->cart->setprg8(0xC000 ^ swap, ~1);
+    fc->cart->setprg8(0xE000, ~0);
+    for (uint8 i = 0; i < 8; i++) fc->cart->setchr1(i << 10, creg[i]);
+  }
+
+  void M32Write0(DECLFW_ARGS) {
+    preg[0] = V;
+    Sync();
+  }
+
+  void M32Write1(DECLFW_ARGS) {
+    mirr = V;
+    Sync();
+  }
+
+  void M32Write2(DECLFW_ARGS) {
+    preg[1] = V;
+    Sync();
+  }
+
+  void M32Write3(DECLFW_ARGS) {
+    creg[A & 7] = V;
+    Sync();
+  }
+
+  void Power() override {
+    Sync();
+    fc->fceu->SetReadHandler(0x6000, 0x7fff, Cart::CartBR);
+    fc->fceu->SetWriteHandler(0x6000, 0x7fff, Cart::CartBW);
+    fc->fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
+    fc->fceu->SetWriteHandler(0x8000, 0x8FFF, [](DECLFW_ARGS) {
+      return ((Mapper32*)fc->fceu->cartiface)->
+	M32Write0(DECLFW_FORWARD);
+    });
+    fc->fceu->SetWriteHandler(0x9000, 0x9FFF, [](DECLFW_ARGS) {
+      return ((Mapper32*)fc->fceu->cartiface)->
+	M32Write1(DECLFW_FORWARD);
+    });
+    fc->fceu->SetWriteHandler(0xA000, 0xAFFF, [](DECLFW_ARGS) {
+      return ((Mapper32*)fc->fceu->cartiface)->
+	M32Write2(DECLFW_FORWARD);
+    });
+    fc->fceu->SetWriteHandler(0xB000, 0xBFFF, [](DECLFW_ARGS) {
+      return ((Mapper32*)fc->fceu->cartiface)->
+	M32Write3(DECLFW_FORWARD);
+    });
+  }
+
+  void Close() override {
+    free(WRAM);
+    WRAM = nullptr;
+  }
+
+  static void StateRestore(FC *fc, int version) {
+    ((Mapper32*)fc->fceu->cartiface)->Sync();
+  }
+
+  Mapper32(FC *fc, CartInfo *info) : CartInterface(fc) {
+    fc->fceu->GameStateRestore = StateRestore;
+
+    WRAM = (uint8 *)FCEU_gmalloc(WRAMSIZE);
+    fc->cart->SetupCartPRGMapping(0x10, WRAM, WRAMSIZE, 1);
+    fc->state->AddExState(WRAM, WRAMSIZE, 0, "WRAM");
+
+    fc->state->AddExVec({
+	{preg, 4, "PREG"}, {creg, 8, "CREG"}, {&mirr, 1, "MIRR"}});
+  }
+};
 }
 
-static DECLFW(M32Write0) {
-  preg[0] = V;
-  Sync();
-}
-
-static DECLFW(M32Write1) {
-  mirr = V;
-  Sync();
-}
-
-static DECLFW(M32Write2) {
-  preg[1] = V;
-  Sync();
-}
-
-static DECLFW(M32Write3) {
-  creg[A & 7] = V;
-  Sync();
-}
-
-static void M32Power(FC *fc) {
-  Sync();
-  fceulib__.fceu->SetReadHandler(0x6000, 0x7fff, Cart::CartBR);
-  fceulib__.fceu->SetWriteHandler(0x6000, 0x7fff, Cart::CartBW);
-  fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
-  fceulib__.fceu->SetWriteHandler(0x8000, 0x8FFF, M32Write0);
-  fceulib__.fceu->SetWriteHandler(0x9000, 0x9FFF, M32Write1);
-  fceulib__.fceu->SetWriteHandler(0xA000, 0xAFFF, M32Write2);
-  fceulib__.fceu->SetWriteHandler(0xB000, 0xBFFF, M32Write3);
-}
-
-static void M32Close(FC *fc) {
-  free(WRAM);
-  WRAM = nullptr;
-}
-
-static void StateRestore(FC *fc, int version) {
-  Sync();
-}
-
-void Mapper32_Init(CartInfo *info) {
-  info->Power = M32Power;
-  info->Close = M32Close;
-  fceulib__.fceu->GameStateRestore = StateRestore;
-
-  WRAMSIZE = 8192;
-  WRAM = (uint8 *)FCEU_gmalloc(WRAMSIZE);
-  fceulib__.cart->SetupCartPRGMapping(0x10, WRAM, WRAMSIZE, 1);
-  fceulib__.state->AddExState(WRAM, WRAMSIZE, 0, "WRAM");
-
-  fceulib__.state->AddExVec(StateRegs);
+CartInterface *Mapper32_Init(FC *fc, CartInfo *info) {
+  return new Mapper32(fc, info);
 }
