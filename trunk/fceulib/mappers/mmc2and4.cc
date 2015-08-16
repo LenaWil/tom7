@@ -24,7 +24,7 @@
 #define latcha1 mapbyte2[0]
 #define latcha2 mapbyte2[1]
 
-static void latchcheck(uint32 VAddr) {
+static void latchcheck(FC *fc, uint32 VAddr) {
   uint8 h = VAddr >> 8;
 
   if (h >= 0x20 || ((h & 0xF) != 0xF)) return;

@@ -26,7 +26,7 @@ class PPU {
   void FCEUI_DisableSpriteLimitation(int a);
 
 
-  void (*PPU_hook)(uint32 A) = nullptr;
+  void (*PPU_hook)(FC *, uint32 A) = nullptr;
   void (*GameHBIRQHook)(FC *) = nullptr;
   void (*GameHBIRQHook2)(FC *) = nullptr;
 

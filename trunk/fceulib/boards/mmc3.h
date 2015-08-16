@@ -37,6 +37,11 @@ struct MMC3 : public CartInterface {
   int isRevB = 1;
   
   uint8 *MMC3_WRAM = nullptr;
+  uint8 *CHRRAM = nullptr;
+  uint32 CHRRAMSize = 0;
+  
+  uint8 irq_count = 0, irq_latch = 0, irq_a = 0;
+  uint8 irq_reload = 0;
 
 private:
   vector<SFORMAT> MMC3_StateRegs;
@@ -45,15 +50,8 @@ private:
   DECLFR_RET MAWRAMMMC6(DECLFR_ARGS);
 
   void GenMMC3Restore(FC *fc, int version);
-  
+
   void ClockMMC3Counter();
-  
-  uint8 *CHRRAM = nullptr;
-  uint32 CHRRAMSize = 0;
-
-  uint8 irq_count = 0, irq_latch = 0, irq_a = 0;
-  uint8 irq_reload = 0;
-
   int wrams = 0;
 };
 

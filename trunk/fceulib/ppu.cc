@@ -274,7 +274,7 @@ DECLFR_RET PPU::A2007_Direct(DECLFR_ARGS) {
 
   uint8 ret=VRAMBuffer;
 
-  if (PPU_hook) PPU_hook(tmp);
+  if (PPU_hook) PPU_hook(fc, tmp);
   PPUGenLatch=VRAMBuffer;
   if (tmp < 0x2000) {
     VRAMBuffer=fc->cart->VPage[tmp>>10][tmp];
@@ -304,7 +304,7 @@ DECLFR_RET PPU::A2007_Direct(DECLFR_ARGS) {
     else
       RefreshAddr++;
   }
-  if (PPU_hook) PPU_hook(RefreshAddr&0x3fff);
+  if (PPU_hook) PPU_hook(fc, RefreshAddr & 0x3fff);
 
   return ret;
 }
@@ -423,7 +423,7 @@ void PPU::B2006_Direct(DECLFW_ARGS) {
 
     RefreshAddr=TempAddr;
     if (PPU_hook)
-      PPU_hook(RefreshAddr);
+      PPU_hook(fc, RefreshAddr);
     // printf("%d, %04x\n",scanline,RefreshAddr);
   }
 
@@ -453,7 +453,7 @@ void PPU::B2007_Direct(DECLFW_ARGS) {
   //      FCEU_printf("ppu (%04x) %04x:%04x %d, %d\n",fc->X->PC,RefreshAddr,PPUGenLatch,scanline,timestamp);
   if (INC32) RefreshAddr+=32;
   else RefreshAddr++;
-  if (PPU_hook) PPU_hook(RefreshAddr&0x3fff);
+  if (PPU_hook) PPU_hook(fc, RefreshAddr & 0x3fff);
 }
 
 static DECLFW(B4014) {
@@ -574,7 +574,7 @@ inline std::pair<uint32, uint8 *> PPU::PPUTile(const int X1, uint8 *P,
   }
 
   if (PPUT_HOOK) {
-    PPU_hook(0x2000 | (refreshaddr_local & 0xfff));
+    PPU_hook(fc, 0x2000 | (refreshaddr_local & 0xfff));
   }
 
   if (PPUT_MMC5SP) {
@@ -614,7 +614,7 @@ inline std::pair<uint32, uint8 *> PPU::PPUTile(const int X1, uint8 *P,
   }
 
   if (PPUT_HOOK) {
-    PPU_hook(vadr);
+    PPU_hook(fc, vadr);
   }
 
   pshift[0] |= C[0];
@@ -627,7 +627,7 @@ inline std::pair<uint32, uint8 *> PPU::PPUTile(const int X1, uint8 *P,
   }
 
   if (PPUT_HOOK) {
-    PPU_hook(0x2000 | (refreshaddr_local & 0xfff));
+    PPU_hook(fc, 0x2000 | (refreshaddr_local & 0xfff));
   }
 
   return std::make_pair(refreshaddr_local, P);
@@ -747,7 +747,7 @@ void PPU::RefreshLine(int lastpixel) {
       }
     }
   } else if (PPU_hook) {
-    norecurse=1;
+    norecurse = 1;
     for (int X1 = firsttile; X1 < lasttile; X1++) {
       TRACELOC();
       // HOOK
@@ -823,8 +823,8 @@ void PPU::Fixit2() {
     rad&=0xFBE0;
     rad|=TempAddr&0x041f;
     RefreshAddr=rad;
-    //PPU_hook(RefreshAddr);
-    //PPU_hook(RefreshAddr,-1);
+    //PPU_hook(fc, RefreshAddr);
+    //PPU_hook(fc, RefreshAddr,-1);
   }
 }
 
@@ -1051,8 +1051,8 @@ void PPU::FetchSpriteData() {
 	    MMC5SPRVRAMADR(fc, vadr): VRAMADR(fc, vadr);
           dst.ca[0]=C[0];
           if (ns<8) {
-            PPU_hook(0x2000);
-            PPU_hook(vadr);
+            PPU_hook(fc, 0x2000);
+            PPU_hook(fc, vadr);
           }
           dst.ca[1]=C[8];
           dst.x=spr->x;
@@ -1082,8 +1082,8 @@ void PPU::FetchSpriteData() {
     PPU_status|=0x20;
   } else if (PPU_hook) {
     for (int n=0;n<(8-ns);n++) {
-      PPU_hook(0x2000);
-      PPU_hook(vofs);
+      PPU_hook(fc, 0x2000);
+      PPU_hook(fc, vofs);
     }
   }
   numsprites = ns;
@@ -1423,14 +1423,14 @@ int PPU::FCEUPPU_Loop(int skip) {
       if (GameHBIRQHook && ((PPU_values[0]&0x38)!=0x18))
         GameHBIRQHook(fc);
       if (PPU_hook)
-        for (int x=0;x<42;x++) {PPU_hook(0x2000); PPU_hook(0);}
+        for (int x=0;x<42;x++) {PPU_hook(fc, 0x2000); PPU_hook(fc, 0);}
       if (GameHBIRQHook2)
         GameHBIRQHook2(fc);
     }
     fc->X->Run(85-16);
     if (ScreenON || SpriteON) {
       RefreshAddr=TempAddr;
-      if (PPU_hook) PPU_hook(RefreshAddr&0x3fff);
+      if (PPU_hook) PPU_hook(fc, RefreshAddr & 0x3fff);
     }
 
     //Clean this stuff up later.
