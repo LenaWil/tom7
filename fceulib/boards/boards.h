@@ -36,7 +36,6 @@ void ELROM_Init(CartInfo *info);
 void ETROM_Init(CartInfo *info);
 void EWROM_Init(CartInfo *info);
 void GNROM_Init(CartInfo *info);
-void HKROM_Init(CartInfo *info);
 void LE05_Init(CartInfo *info);
 void LH10_Init(CartInfo *info);
 void LH32_Init(CartInfo *info);
@@ -83,24 +82,27 @@ CartInterface *SL1ROM_Init(FC *fc, CartInfo *info);
 CartInterface *SNROM_Init(FC *fc, CartInfo *info);
 CartInterface *SOROM_Init(FC *fc, CartInfo *info);
 
+// MMC3
+CartInterface *TBROM_Init(FC *fc, CartInfo *info);
+CartInterface *TEROM_Init(FC *fc, CartInfo *info);
+CartInterface *TFROM_Init(FC *fc, CartInfo *info);
+CartInterface *TGROM_Init(FC *fc, CartInfo *info);
+CartInterface *TKROM_Init(FC *fc, CartInfo *info);
+CartInterface *TKSROM_Init(FC *fc, CartInfo *info);
+CartInterface *TLROM_Init(FC *fc, CartInfo *info);
+CartInterface *TLSROM_Init(FC *fc, CartInfo *info);
+CartInterface *TQROM_Init(FC *fc, CartInfo *info);
+CartInterface *TSROM_Init(FC *fc, CartInfo *info);
+CartInterface *HKROM_Init(FC *fc, CartInfo *info);
+
 #if 0
 void SSSNROM_Init(CartInfo *info);
 void Super24_Init(CartInfo *info);
 void Supervision16_Init(CartInfo *info);
-void TBROM_Init(CartInfo *info);
+
 void TCA01_Init(CartInfo *info);
 void TCU01_Init(CartInfo *info);
 void TCU02_Init(CartInfo *info);
-void TEROM_Init(CartInfo *info);
-void TFROM_Init(CartInfo *info);
-void TGROM_Init(CartInfo *info);
-void TKROM_Init(CartInfo *info);
-void TKSROM_Init(CartInfo *info);
-void TLROM_Init(CartInfo *info);
-void TLSROM_Init(CartInfo *info);
-void TQROM_Init(CartInfo *info);
-void TQROM_Init(CartInfo *info);
-void TSROM_Init(CartInfo *info);
 void Transformer_Init(CartInfo *info);
 void UNL22211_Init(CartInfo *info);
 void UNL3DBlock_Init(CartInfo *info);

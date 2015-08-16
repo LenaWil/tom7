@@ -315,7 +315,9 @@ static constexpr BMAPPING bmap[] = {
     {"GS-2013", BMCGS2013_Init, 0},
     {"Ghostbusters63in1", BMCGhostbusters63in1_Init, 0},
     {"H2288", UNLH2288_Init, 0},
+#endif
     {"HKROM", HKROM_Init, 0},
+#if 0
     {"KOF97", UNLKOF97_Init, 0},
     {"KONAMI-QTAI", Mapper190_Init, 0},
     {"KS7012", UNLKS7012_Init, 0},
@@ -385,11 +387,14 @@ static constexpr BMAPPING bmap[] = {
     {"T-227-1", BMCT2271_Init, 0},
     {"T-230", UNLT230_Init, 0},
     {"T-262", BMCT262_Init, 0},
+#endif
     {"TBROM", TBROM_Init, 0},
+#if 0
     {"TC-U01-1.5M", TCU01_Init, 0},
     {"TEK90", Mapper90_Init, 0},
     {"TEROM", TEROM_Init, 0},
     {"TF1201", UNLTF1201_Init, 0},
+#endif
     {"TFROM", TFROM_Init, 0},
     {"TGROM", TGROM_Init, 0},
     {"TKROM", TKROM_Init, 0},
@@ -397,8 +402,11 @@ static constexpr BMAPPING bmap[] = {
     {"TLROM", TLROM_Init, 0},
     {"TLSROM", TLSROM_Init, 0},
     {"TQROM", TQROM_Init, 0},
+#if 0
     {"TR1ROM", TFROM_Init, BMCFLAG_FORCE4},
+#endif
     {"TSROM", TSROM_Init, 0},
+#if 0
     {"TVROM", TLROM_Init, BMCFLAG_FORCE4},
     {"Transformer", Transformer_Init, 0},
     {"UNROM", UNROM_Init, 0},

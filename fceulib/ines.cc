@@ -747,21 +747,27 @@ static constexpr BoardMapping const board_map[] = {
   {"", 188, Mapper188_Init},
   {"", 189, Mapper189_Init},
   // {"", 190, Mapper190_Init},
+#endif
   {"", 191, Mapper191_Init},
   {"", 192, Mapper192_Init},
+#if 0
   {"", 193, Mapper193_Init},
+#endif
   {"", 194, Mapper194_Init},
   {"", 195, Mapper195_Init},
   {"", 196, Mapper196_Init},
   {"", 197, Mapper197_Init},
   {"", 198, Mapper198_Init},
+#if 0
   {"", 199, Mapper199_Init},
   {"", 200, Mapper200_Init},
   {"", 201, Mapper201_Init},
   {"", 202, Mapper202_Init},
   {"", 203, Mapper203_Init},
   {"", 204, Mapper204_Init},
+#endif
   {"", 205, Mapper205_Init},
+#if 0
   {"DEIROM", 206, DEIROM_Init},
   // {"", 207, Mapper207_Init},
   {"", 208, Mapper208_Init},
@@ -805,14 +811,16 @@ static constexpr BoardMapping const board_map[] = {
   {"FONG SHEN BANG", 246, Mapper246_Init},
   // {"", 247, Mapper247_Init},
   // {"", 248, Mapper248_Init},
+#endif
   {"", 249, Mapper249_Init},
   {"", 250, Mapper250_Init},
+#if 0
   // {"", 251, Mapper251_Init}, // No good dumps for this mapper, use UNIF version
   {"SAN GUO ZHI PIRATE", 252, Mapper252_Init},
   {"DRAGON BALL PIRATE", 253, Mapper253_Init},
+#endif
   {"", 254, Mapper254_Init},
   // {"", 255, Mapper255_Init}, // No good dumps for this mapper
-#endif
   {"", 0, nullptr},
 };
 
