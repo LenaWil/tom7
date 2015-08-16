@@ -46,6 +46,9 @@ Cleanup to do:
  - CHECKs in Zapper
  - In MMC3, an EXPREGS[8] in each subclass, often obviously more than is
    necessary
+ - Most mapper classes can be in namespace { } to reduce link-time
+   symbols, since they are just exported through the _Init function.
+ - in mmc3.cc, replace "info,  " with "info, "
 
 Surprisingly necessary:
  - crc32 since ines.cc has a table of games and their CRCs.

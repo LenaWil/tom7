@@ -411,7 +411,6 @@ CartInterface *Mapper203_Init(FC *fc, CartInfo *info);
 CartInterface *Mapper240_Init(FC *fc, CartInfo *info);
 CartInterface *Mapper241_Init(FC *fc, CartInfo *info);
 
-
 // MMC3
 CartInterface *Mapper4_Init(FC *fc, CartInfo *);
 CartInterface *Mapper12_Init(FC *fc, CartInfo *);
@@ -427,6 +426,17 @@ CartInterface *Mapper115_Init(FC *fc, CartInfo *);
 CartInterface *Mapper119_Init(FC *fc, CartInfo *);
 CartInterface *Mapper134_Init(FC *fc, CartInfo *);
 CartInterface *Mapper165_Init(FC *fc, CartInfo *);
+CartInterface *Mapper191_Init(FC *fc, CartInfo *);
+CartInterface *Mapper192_Init(FC *fc, CartInfo *);
+CartInterface *Mapper194_Init(FC *fc, CartInfo *);
+CartInterface *Mapper195_Init(FC *fc, CartInfo *);
+CartInterface *Mapper196_Init(FC *fc, CartInfo *);
+CartInterface *Mapper197_Init(FC *fc, CartInfo *);
+CartInterface *Mapper198_Init(FC *fc, CartInfo *);
+CartInterface *Mapper205_Init(FC *fc, CartInfo *);
+CartInterface *Mapper249_Init(FC *fc, CartInfo *);
+CartInterface *Mapper250_Init(FC *fc, CartInfo *);
+CartInterface *Mapper254_Init(FC *fc, CartInfo *);
 
 // ?
 CartInterface *Mapper1_Init(FC *fc, CartInfo *);
@@ -491,19 +501,11 @@ CartInterface *Mapper186_Init(FC *fc, CartInfo *);
 CartInterface *Mapper187_Init(FC *fc, CartInfo *);
 CartInterface *Mapper188_Init(FC *fc, CartInfo *);
 CartInterface *Mapper189_Init(FC *fc, CartInfo *);
-CartInterface *Mapper191_Init(FC *fc, CartInfo *);
-CartInterface *Mapper192_Init(FC *fc, CartInfo *);
 CartInterface *Mapper193_Init(FC *fc, CartInfo *);
-CartInterface *Mapper194_Init(FC *fc, CartInfo *);
-CartInterface *Mapper195_Init(FC *fc, CartInfo *);
-CartInterface *Mapper196_Init(FC *fc, CartInfo *);
-CartInterface *Mapper197_Init(FC *fc, CartInfo *);
-CartInterface *Mapper198_Init(FC *fc, CartInfo *);
 CartInterface *Mapper199_Init(FC *fc, CartInfo *);
 CartInterface *Mapper200_Init(FC *fc, CartInfo *);
 CartInterface *Mapper201_Init(FC *fc, CartInfo *);
 CartInterface *Mapper202_Init(FC *fc, CartInfo *);
-CartInterface *Mapper205_Init(FC *fc, CartInfo *);
 CartInterface *Mapper204_Init(FC *fc, CartInfo *);
 CartInterface *Mapper208_Init(FC *fc, CartInfo *);
 CartInterface *Mapper209_Init(FC *fc, CartInfo *);
@@ -533,10 +535,7 @@ CartInterface *Mapper242_Init(FC *fc, CartInfo *);
 CartInterface *Mapper244_Init(FC *fc, CartInfo *);
 CartInterface *Mapper245_Init(FC *fc, CartInfo *);
 CartInterface *Mapper246_Init(FC *fc, CartInfo *);
-CartInterface *Mapper249_Init(FC *fc, CartInfo *);
-CartInterface *Mapper250_Init(FC *fc, CartInfo *);
 CartInterface *Mapper252_Init(FC *fc, CartInfo *);
 CartInterface *Mapper253_Init(FC *fc, CartInfo *);
-CartInterface *Mapper254_Init(FC *fc, CartInfo *);
 
 #endif
