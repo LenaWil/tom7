@@ -24,7 +24,7 @@ static uint32 lastA;
 static int isfu;
 static uint8 CCache[8];
 
-static void Fudou_PPU(uint32 A) {
+static void Fudou_PPU(FC *fc, uint32 A) {
   static int last = -1;
   static uint8 z;
 
@@ -35,7 +35,7 @@ static void Fudou_PPU(uint32 A) {
 
   z = CCache[A];
   if (z != last) {
-    fceulib__.ines->onemir(z);
+    fc->ines->onemir(z);
     last = z;
   }
 }

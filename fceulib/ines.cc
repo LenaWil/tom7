@@ -584,14 +584,17 @@ static constexpr BoardMapping const board_map[] = {
 #endif
   {"", 44, Mapper44_Init},
   {"", 45, Mapper45_Init},
-#if 0
   // {"", 46, Mapper46_Init},
   {"", 47, Mapper47_Init},
+#if 0
   {"TAITO TCxxx", 48, Mapper48_Init},
+#endif
   {"", 49, Mapper49_Init},
+
   // {"", 50, Mapper50_Init},
   // {"", 51, Mapper51_Init},
   {"", 52, Mapper52_Init},
+#if 0
   // {"", 53, Mapper53_Init}, // iNES version of complex UNIF board, can't emulate properly as iNES
   // {"", 54, Mapper54_Init},
   // {"", 55, Mapper55_Init},
@@ -615,7 +618,9 @@ static constexpr BoardMapping const board_map[] = {
   // {"", 71, Mapper71_Init},
   // {"", 72, Mapper72_Init},
   // {"", 73, Mapper73_Init},
+#endif
   {"", 74, Mapper74_Init},
+#if 0
   // {"", 75, Mapper75_Init},
   // {"", 76, Mapper76_Init},
   // {"", 77, Mapper77_Init},
@@ -657,12 +662,16 @@ static constexpr BoardMapping const board_map[] = {
   // {"", 111, Mapper111_Init},
   {"", 112, Mapper112_Init},
   {"", 113, Mapper113_Init},
+#endif
   {"", 114, Mapper114_Init},
   {"", 115, Mapper115_Init},
+#if 0
   {"", 116, UNLSL12_Init},
   {"", 117, Mapper117_Init},
   {"TSKROM", 118, TKSROM_Init},
+#endif
   {"", 119, Mapper119_Init},
+#if 0
   {"", 120, Mapper120_Init},
   {"", 121, Mapper121_Init},
   // {"", 122, Mapper122_Init},
@@ -677,7 +686,9 @@ static constexpr BoardMapping const board_map[] = {
   // {"", 131, Mapper131_Init},
   {"UNL22211", 132, UNL22211_Init},
   {"SA72008", 133, SA72008_Init},
+#endif
   {"", 134, Mapper134_Init},
+#if 0
   // {"", 135, Mapper135_Init},
   {"TCU02", 136, TCU02_Init},
   {"S8259D", 137, S8259D_Init},
@@ -708,7 +719,9 @@ static constexpr BoardMapping const board_map[] = {
   {"", 162, UNLFS304_Init},
   {"", 163, Mapper163_Init},
   {"", 164, Mapper164_Init},
+#endif
   {"", 165, Mapper165_Init},
+#if 0
   // {"", 166, Mapper166_Init},
   // {"", 167, Mapper167_Init},
   {"", 168, Mapper168_Init},
