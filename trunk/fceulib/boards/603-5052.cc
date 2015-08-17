@@ -21,24 +21,37 @@
 #include "mapinc.h"
 #include "mmc3.h"
 
-static uint8 lut[4] = {0x00, 0x02, 0x02, 0x03};
+static constexpr uint8 lut[4] = {0x00, 0x02, 0x02, 0x03};
 
-static DECLFW(UNL6035052ProtWrite) {
-  EXPREGS[0] = lut[V & 3];
+namespace {
+struct UNL6035052 : public MMC3 {
+  uint8 EXPREGS[8] = {};
+
+  void UNL6035052ProtWrite(DECLFW_ARGS) {
+    EXPREGS[0] = lut[V & 3];
+  }
+
+  DECLFR_RET UNL6035052ProtRead(DECLFR_ARGS) {
+    return EXPREGS[0];
+  }
+
+  void Power() override {
+    MMC3::Power();
+    fc->fceu->SetWriteHandler(0x4020, 0x7FFF, [](DECLFW_ARGS) {
+      ((UNL6035052*)fc->fceu->cartiface)->UNL6035052ProtWrite(DECLFW_FORWARD);
+    });
+    fc->fceu->SetReadHandler(0x4020, 0x7FFF, [](DECLFR_ARGS) {
+      return ((UNL6035052*)fc->fceu->cartiface)->
+	UNL6035052ProtRead(DECLFR_FORWARD);
+    });
+  }
+
+  UNL6035052(FC *fc, CartInfo *info) : MMC3(fc, info, 128, 256, 0, 0) {
+    fc->state->AddExState(EXPREGS, 6, 0, "EXPR");
+  }
+};
 }
 
-static DECLFR(UNL6035052ProtRead) {
-  return EXPREGS[0];
-}
-
-static void UNL6035052Power(FC *fc) {
-  GenMMC3Power(fc);
-  fceulib__.fceu->SetWriteHandler(0x4020, 0x7FFF, UNL6035052ProtWrite);
-  fceulib__.fceu->SetReadHandler(0x4020, 0x7FFF, UNL6035052ProtRead);
-}
-
-void UNL6035052_Init(CartInfo *info) {
-  GenMMC3_Init(info, 128, 256, 0, 0);
-  info->Power = UNL6035052Power;
-  fceulib__.state->AddExState(EXPREGS, 6, 0, "EXPR");
+CartInterface *UNL6035052_Init(FC *fc, CartInfo *info) {
+  return new UNL6035052(fc, info);
 }

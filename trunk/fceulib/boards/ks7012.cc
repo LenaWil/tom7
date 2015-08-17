@@ -20,65 +20,69 @@
 
 #include "mapinc.h"
 
-static uint8 reg;
-static uint8 *WRAM = nullptr;
-static uint32 WRAMSIZE;
+static constexpr int WRAMSIZE = 8192;
 
-static vector<SFORMAT> StateRegs = {{&reg, 1, "REGS"}};
+namespace {
+struct KS7012 : public CartInterface {
+  uint8 reg = 0;
+  uint8 *WRAM = nullptr;
 
-static void Sync() {
-  fceulib__.cart->setprg8r(0x10, 0x6000, 0);
-  fceulib__.cart->setprg32(0x8000, reg & 1);
-  fceulib__.cart->setchr8(0);
-}
-
-static DECLFW(UNLKS7012Write) {
-  //  FCEU_printf("bs %04x %02x\n",A,V);
-  switch (A) {
-    case 0xE0A0:
-      reg = 0;
-      Sync();
-      break;
-    case 0xEE36:
-      reg = 1;
-      Sync();
-      break;
+  void Sync() {
+    fc->cart->setprg8r(0x10, 0x6000, 0);
+    fc->cart->setprg32(0x8000, reg & 1);
+    fc->cart->setchr8(0);
   }
+
+  void UNLKS7012Write(DECLFW_ARGS) {
+    //  FCEU_printf("bs %04x %02x\n",A,V);
+    switch (A) {
+      case 0xE0A0:
+	reg = 0;
+	Sync();
+	break;
+      case 0xEE36:
+	reg = 1;
+	Sync();
+	break;
+    }
+  }
+
+  void Power() override {
+    reg = ~0;
+    Sync();
+    fc->fceu->SetReadHandler(0x6000, 0x7FFF, Cart::CartBR);
+    fc->fceu->SetWriteHandler(0x6000, 0x7FFF, Cart::CartBW);
+    fc->fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
+    fc->fceu->SetWriteHandler(0x8000, 0xFFFF, [](DECLFW_ARGS) {
+      ((KS7012*)fc->fceu->cartiface)->UNLKS7012Write(DECLFW_FORWARD);
+    });
+  }
+
+  void Reset() override {
+    reg = ~0;
+    Sync();
+  }
+
+  static void StateRestore(FC *fc, int version) {
+    ((KS7012*)fc->fceu->cartiface)->Sync();
+  }
+
+  void Close() override {
+    free(WRAM);
+    WRAM = nullptr;
+  }
+
+  KS7012(FC *fc, CartInfo *info) : CartInterface(fc) {
+    WRAM = (uint8 *)FCEU_gmalloc(WRAMSIZE);
+    fc->cart->SetupCartPRGMapping(0x10, WRAM, WRAMSIZE, 1);
+    fc->state->AddExState(WRAM, WRAMSIZE, 0, "WRAM");
+
+    fc->fceu->GameStateRestore = StateRestore;
+    fc->state->AddExVec({{&reg, 1, "REGS"}});
+  }
+};
 }
-
-static void UNLKS7012Power(FC *fc) {
-  reg = ~0;
-  Sync();
-  fceulib__.fceu->SetReadHandler(0x6000, 0x7FFF, Cart::CartBR);
-  fceulib__.fceu->SetWriteHandler(0x6000, 0x7FFF, Cart::CartBW);
-  fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
-  fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, UNLKS7012Write);
-}
-
-static void UNLKS7012Reset(FC *fc) {
-  reg = ~0;
-  Sync();
-}
-
-static void StateRestore(FC *fc, int version) {
-  Sync();
-}
-
-static void UNLKS7012Close(FC *fc) {
-  free(WRAM);
-  WRAM = nullptr;
-}
-
-void UNLKS7012_Init(CartInfo *info) {
-  info->Power = UNLKS7012Power;
-  info->Reset = UNLKS7012Reset;
-  info->Close = UNLKS7012Close;
-
-  WRAMSIZE = 8192;
-  WRAM = (uint8 *)FCEU_gmalloc(WRAMSIZE);
-  fceulib__.cart->SetupCartPRGMapping(0x10, WRAM, WRAMSIZE, 1);
-  fceulib__.state->AddExState(WRAM, WRAMSIZE, 0, "WRAM");
-
-  fceulib__.fceu->GameStateRestore = StateRestore;
-  fceulib__.state->AddExVec(StateRegs);
+  
+CartInterface *UNLKS7012_Init(FC *fc, CartInfo *info) {
+  return new KS7012(fc, info);
 }

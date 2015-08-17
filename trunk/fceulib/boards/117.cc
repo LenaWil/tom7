@@ -20,77 +20,86 @@
 
 #include "mapinc.h"
 
-static uint8 prgreg[4], chrreg[8], mirror;
-static uint8 IRQa, IRQCount, IRQLatch;
+namespace {
+struct Mapper117 : public CartInterface {
+  uint8 prgreg[4] = {}, chrreg[8] = {}, mirror = 0;
+  uint8 IRQa = 0, IRQCount = 0, IRQLatch = 0;
 
-static vector<SFORMAT> StateRegs = {{&IRQa, 1, "IRQA"},
-                              {&IRQCount, 1, "IRQC"},
-                              {&IRQLatch, 1, "IRQL"},
-                              {prgreg, 4, "PREG"},
-                              {chrreg, 8, "CREG"},
-                              {&mirror, 1, "MREG"}};
+  void Sync() {
+    fc->cart->setprg8(0x8000, prgreg[0]);
+    fc->cart->setprg8(0xa000, prgreg[1]);
+    fc->cart->setprg8(0xc000, prgreg[2]);
+    fc->cart->setprg8(0xe000, prgreg[3]);
+    for (int i = 0; i < 8; i++) fc->cart->setchr1(i << 10, chrreg[i]);
+    fc->cart->setmirror(mirror ^ 1);
+  }
 
-static void Sync() {
-  fceulib__.cart->setprg8(0x8000, prgreg[0]);
-  fceulib__.cart->setprg8(0xa000, prgreg[1]);
-  fceulib__.cart->setprg8(0xc000, prgreg[2]);
-  fceulib__.cart->setprg8(0xe000, prgreg[3]);
-  for (int i = 0; i < 8; i++) fceulib__.cart->setchr1(i << 10, chrreg[i]);
-  fceulib__.cart->setmirror(mirror ^ 1);
-}
-
-static DECLFW(M117Write) {
-  if (A < 0x8004) {
-    prgreg[A & 3] = V;
-    Sync();
-  } else if ((A >= 0xA000) && (A <= 0xA007)) {
-    chrreg[A & 7] = V;
-    Sync();
-  } else {
-    switch (A) {
-      case 0xc001: IRQLatch = V; break;
-      case 0xc003:
-        IRQCount = IRQLatch;
-        IRQa |= 2;
-        break;
-      case 0xe000:
-        IRQa &= ~1;
-        IRQa |= V & 1;
-        fceulib__.X->IRQEnd(FCEU_IQEXT);
-        break;
-      case 0xc002: fceulib__.X->IRQEnd(FCEU_IQEXT); break;
-      case 0xd000: mirror = V & 1;
+  void M117Write(DECLFW_ARGS) {
+    if (A < 0x8004) {
+      prgreg[A & 3] = V;
+      Sync();
+    } else if ((A >= 0xA000) && (A <= 0xA007)) {
+      chrreg[A & 7] = V;
+      Sync();
+    } else {
+      switch (A) {
+	case 0xc001: IRQLatch = V; break;
+	case 0xc003:
+	  IRQCount = IRQLatch;
+	  IRQa |= 2;
+	  break;
+	case 0xe000:
+	  IRQa &= ~1;
+	  IRQa |= V & 1;
+	  fc->X->IRQEnd(FCEU_IQEXT);
+	  break;
+	case 0xc002: fc->X->IRQEnd(FCEU_IQEXT); break;
+	case 0xd000: mirror = V & 1;
+      }
     }
   }
-}
 
-static void M117Power(FC *fc) {
-  prgreg[0] = ~3;
-  prgreg[1] = ~2;
-  prgreg[2] = ~1;
-  prgreg[3] = ~0;
-  Sync();
-  fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
-  fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, M117Write);
-}
+  void Power() override {
+    prgreg[0] = ~3;
+    prgreg[1] = ~2;
+    prgreg[2] = ~1;
+    prgreg[3] = ~0;
+    Sync();
+    fc->fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
+    fc->fceu->SetWriteHandler(0x8000, 0xFFFF, [](DECLFW_ARGS) {
+      ((Mapper117*)fc->fceu->cartiface)->M117Write(DECLFW_FORWARD);
+    });
+  }
 
-static void M117IRQHook() {
-  if (IRQa == 3 && IRQCount) {
-    IRQCount--;
-    if (!IRQCount) {
-      IRQa &= 1;
-      fceulib__.X->IRQBegin(FCEU_IQEXT);
+  void M117IRQHook() {
+    if (IRQa == 3 && IRQCount) {
+      IRQCount--;
+      if (!IRQCount) {
+	IRQa &= 1;
+	fc->X->IRQBegin(FCEU_IQEXT);
+      }
     }
   }
-}
 
-static void StateRestore(FC *fc, int version) {
-  Sync();
-}
+  static void StateRestore(FC *fc, int version) {
+    ((Mapper117*)fc->fceu->cartiface)->Sync();
+  }
 
-void Mapper117_Init(CartInfo *info) {
-  info->Power = M117Power;
-  fceulib__.ppu->GameHBIRQHook = M117IRQHook;
-  fceulib__.fceu->GameStateRestore = StateRestore;
-  fceulib__.state->AddExVec(StateRegs);
+  Mapper117(FC *fc, CartInfo *info) : CartInterface(fc) {
+    fc->ppu->GameHBIRQHook = [](FC *fc) {
+      ((Mapper117*)fc->fceu->cartiface)->M117IRQHook();
+    };
+    fc->fceu->GameStateRestore = StateRestore;
+    fc->state->AddExVec({{&IRQa, 1, "IRQA"},
+	                 {&IRQCount, 1, "IRQC"},
+			 {&IRQLatch, 1, "IRQL"},
+			 {prgreg, 4, "PREG"},
+			 {chrreg, 8, "CREG"},
+			 {&mirror, 1, "MREG"}});
+  }
+};
+}
+  
+CartInterface *Mapper117_Init(FC *fc, CartInfo *info) {
+  return new Mapper117(fc, info);
 }

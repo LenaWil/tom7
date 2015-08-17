@@ -594,12 +594,12 @@ static constexpr BoardMapping const board_map[] = {
   // {"", 50, Mapper50_Init},
   // {"", 51, Mapper51_Init},
   {"", 52, Mapper52_Init},
-#if 0
   // {"", 53, Mapper53_Init}, // iNES version of complex UNIF board, can't emulate properly as iNES
   // {"", 54, Mapper54_Init},
   // {"", 55, Mapper55_Init},
   // {"", 56, Mapper56_Init},
   {"", 57, Mapper57_Init},
+#if 0
   {"", 58, BMCGK192_Init},
   {"", 59, Mapper59_Init}, // Check this out
   {"", 60, BMCD1038_Init},
@@ -673,15 +673,13 @@ static constexpr BoardMapping const board_map[] = {
   {"", 115, Mapper115_Init},
   // Gave this one a name. -tom7
   {"SL12", 116, Mapper116_Init},
-#if 0
   {"", 117, Mapper117_Init},
   {"TSKROM", 118, TKSROM_Init},
-#endif
   {"", 119, Mapper119_Init},
-#if 0
   {"", 120, Mapper120_Init},
   {"", 121, Mapper121_Init},
   // {"", 122, Mapper122_Init},
+#if 0
   {"UNLH2288", 123, UNLH2288_Init},
   // {"", 124, Mapper124_Init},
   {"", 125, LH32_Init},
@@ -691,7 +689,9 @@ static constexpr BoardMapping const board_map[] = {
   // {"", 129, Mapper129_Init},
   // {"", 130, Mapper130_Init},
   // {"", 131, Mapper131_Init},
+#endif
   {"UNL22211", 132, UNL22211_Init},
+#if 0
   {"SA72008", 133, SA72008_Init},
 #endif
   {"", 134, Mapper134_Init},
@@ -815,7 +815,9 @@ static constexpr BoardMapping const board_map[] = {
   {"", 235, Mapper235_Init},
   // {"", 236, Mapper236_Init},
   // {"", 237, Mapper237_Init},
+#endif
   {"UNL6035052", 238, UNL6035052_Init},
+#if 0
   // {"", 239, Mapper239_Init},
   {"", 240, Mapper240_Init},
   {"", 241, Mapper241_Init},
