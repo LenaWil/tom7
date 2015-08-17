@@ -113,6 +113,9 @@ CartInterface *UNL3DBlock_Init(FC *fc, CartInfo *info);
 // kof97
 CartInterface *UNLKOF97_Init(FC *fc, CartInfo *info);
 
+// 116
+CartInterface *UNLSL12_Init(FC *fc, CartInfo *info);
+
 #if 0
 CartInterface *SSSNROM_Init(FC *fc, CartInfo *info);
 CartInterface *Super24_Init(FC *fc, CartInfo *info);
@@ -147,7 +150,6 @@ CartInterface *UNLOneBus_Init(FC *fc, CartInfo *info);
 CartInterface *UNLPEC586Init(FC *fc, CartInfo *info);
 CartInterface *UNLSC127_Init(FC *fc, CartInfo *info);
 CartInterface *UNLSHeroes_Init(FC *fc, CartInfo *info);
-CartInterface *UNLSL12_Init(FC *fc, CartInfo *info);
 CartInterface *UNLSL1632_Init(FC *fc, CartInfo *info);
 CartInterface *UNLSMB2J_Init(FC *fc, CartInfo *info);
 CartInterface *UNLT230_Init(FC *fc, CartInfo *info);
