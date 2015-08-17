@@ -21,30 +21,42 @@
 #include "mapinc.h"
 #include "mmc3.h"
 
-static DECLFW(UNLKOF97CMDWrite) {
-  V = (V & 0xD8) | ((V & 0x20) >> 4) | ((V & 4) << 3) | ((V & 2) >> 1) |
-      ((V & 1) << 2);  // 76143502
-  if (A == 0x9000) A = 0x8001;
-  MMC3_CMDWrite(DECLFW_FORWARD);
+namespace {
+struct KOF97 : public MMC3 {
+
+  void UNLKOF97CMDWrite(DECLFW_ARGS) {
+    // 76143502
+    V = (V & 0xD8) | ((V & 0x20) >> 4) | ((V & 4) << 3) |
+      ((V & 2) >> 1) | ((V & 1) << 2);
+    if (A == 0x9000) A = 0x8001;
+    MMC3_CMDWrite(DECLFW_FORWARD);
+  }
+
+  void UNLKOF97IRQWrite(DECLFW_ARGS) {
+    V = (V & 0xD8) | ((V & 0x20) >> 4) | ((V & 4) << 3) |
+      ((V & 2) >> 1) | ((V & 1) << 2);
+    if (A == 0xD000)
+      A = 0xC001;
+    else if (A == 0xF000)
+      A = 0xE001;
+    MMC3_IRQWrite(DECLFW_FORWARD);
+  }
+
+  void Power() override {
+    MMC3::Power();
+    fc->fceu->SetWriteHandler(0x8000, 0xA000, [](DECLFW_ARGS) {
+      ((KOF97*)fc->fceu->cartiface)->UNLKOF97CMDWrite(DECLFW_FORWARD);
+    });
+    fc->fceu->SetWriteHandler(0xC000, 0xF000, [](DECLFW_ARGS) {
+      ((KOF97*)fc->fceu->cartiface)->UNLKOF97IRQWrite(DECLFW_FORWARD);
+    });
+  }
+
+  KOF97(FC *fc, CartInfo *info) : MMC3(fc, info, 128, 256, 0, 0) {
+  }
+};
 }
 
-static DECLFW(UNLKOF97IRQWrite) {
-  V = (V & 0xD8) | ((V & 0x20) >> 4) | ((V & 4) << 3) | ((V & 2) >> 1) |
-      ((V & 1) << 2);
-  if (A == 0xD000)
-    A = 0xC001;
-  else if (A == 0xF000)
-    A = 0xE001;
-  MMC3_IRQWrite(DECLFW_FORWARD);
-}
-
-static void UNLKOF97Power(FC *fc) {
-  GenMMC3Power(fc);
-  fceulib__.fceu->SetWriteHandler(0x8000, 0xA000, UNLKOF97CMDWrite);
-  fceulib__.fceu->SetWriteHandler(0xC000, 0xF000, UNLKOF97IRQWrite);
-}
-
-void UNLKOF97_Init(CartInfo *info) {
-  GenMMC3_Init(info, 128, 256, 0, 0);
-  info->Power = UNLKOF97Power;
+CartInterface *UNLKOF97_Init(FC *fc, CartInfo *info) {
+  return new KOF97(fc, info);
 }

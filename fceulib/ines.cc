@@ -665,8 +665,8 @@ static constexpr BoardMapping const board_map[] = {
   // {"", 109, Mapper109_Init},
   // {"", 110, Mapper110_Init},
   // {"", 111, Mapper111_Init},
-#if 0
   {"", 112, Mapper112_Init},
+#if 0
   {"", 113, Mapper113_Init},
 #endif
   {"", 114, Mapper114_Init},
@@ -740,7 +740,10 @@ static constexpr BoardMapping const board_map[] = {
 #if 0
   // {"", 174, Mapper174_Init},
   {"", 175, Mapper175_Init},
-  {"BMCFK23C", 176, BMCFK23C_Init}, //zero 26-may-2012 - well, i have some WXN junk games that use 176 for instance ????. i dont know what game uses this BMCFK23C as mapper 176. we'll have to make a note when we find it.
+  // zero 26-may-2012 - well, i have some WXN junk games that use 176
+  // for instance ????. i dont know what game uses this BMCFK23C as
+  // mapper 176. we'll have to make a note when we find it.
+  {"BMCFK23C", 176, BMCFK23C_Init},
   {"", 177, Mapper177_Init},
   {"", 178, Mapper178_Init},
   // {"", 179, Mapper179_Init},
@@ -756,8 +759,9 @@ static constexpr BoardMapping const board_map[] = {
   {"", 188, Mapper188_Init},
 #if 0
   {"", 189, Mapper189_Init},
-  // {"", 190, Mapper190_Init},
 #endif
+  // Mapper190_Init is only enabled in unif? -tom7
+  // {"", 190, Mapper190_Init},
   {"", 191, Mapper191_Init},
   {"", 192, Mapper192_Init},
 #if 0

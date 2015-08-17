@@ -23,42 +23,48 @@
 #include "mapinc.h"
 #include "mmc3.h"
 
-static uint8 reset_flag = 0;
+namespace {
+struct BMC411120C : public MMC3 {
+  uint8 EXPREGS[8] = {};
+  uint8 reset_flag = 0;
 
-static void BMC411120CCW(uint32 A, uint8 V) {
-  fceulib__.cart->setchr1(A, V | ((EXPREGS[0] & 3) << 7));
+  void CWrap(uint32 A, uint8 V) override {
+    fc->cart->setchr1(A, V | ((EXPREGS[0] & 3) << 7));
+  }
+
+  void PWrap(uint32 A, uint8 V) override {
+    if (EXPREGS[0] & (8 | reset_flag))
+      fc->cart->setprg32(0x8000, ((EXPREGS[0] >> 4) & 3) | (0x0C));
+    else
+      fc->cart->setprg8(A, (V & 0x0F) | ((EXPREGS[0] & 3) << 4));
+  }
+
+  void BMC411120CLoWrite(DECLFW_ARGS) {
+    EXPREGS[0] = A;
+    FixMMC3PRG(MMC3_cmd);
+    FixMMC3CHR(MMC3_cmd);
+  }
+
+  void Reset() override {
+    EXPREGS[0] = 0;
+    reset_flag ^= 4;
+    MMC3::Reset();
+  }
+
+  void Power() override {
+    EXPREGS[0] = 0;
+    MMC3::Power();
+    fc->fceu->SetWriteHandler(0x6000, 0x7FFF, [](DECLFW_ARGS) {
+      ((BMC411120C*)fc->fceu->cartiface)->BMC411120CLoWrite(DECLFW_FORWARD);
+    });
+  }
+
+  BMC411120C(FC *fc, CartInfo *info) : MMC3(fc, info, 128, 128, 8, 0) {
+    fc->state->AddExState(EXPREGS, 1, 0, "EXPR");
+  }
+};
 }
-
-static void BMC411120CPW(uint32 A, uint8 V) {
-  if (EXPREGS[0] & (8 | reset_flag))
-    fceulib__.cart->setprg32(0x8000, ((EXPREGS[0] >> 4) & 3) | (0x0C));
-  else
-    fceulib__.cart->setprg8(A, (V & 0x0F) | ((EXPREGS[0] & 3) << 4));
-}
-
-static DECLFW(BMC411120CLoWrite) {
-  EXPREGS[0] = A;
-  FixMMC3PRG(MMC3_cmd);
-  FixMMC3CHR(MMC3_cmd);
-}
-
-static void BMC411120CReset(FC *fc) {
-  EXPREGS[0] = 0;
-  reset_flag ^= 4;
-  MMC3RegReset(fc);
-}
-
-static void BMC411120CPower(FC *fc) {
-  EXPREGS[0] = 0;
-  GenMMC3Power(fc);
-  fceulib__.fceu->SetWriteHandler(0x6000, 0x7FFF, BMC411120CLoWrite);
-}
-
-void BMC411120C_Init(CartInfo *info) {
-  GenMMC3_Init(info, 128, 128, 8, 0);
-  pwrap = BMC411120CPW;
-  cwrap = BMC411120CCW;
-  info->Power = BMC411120CPower;
-  info->Reset = BMC411120CReset;
-  fceulib__.state->AddExState(EXPREGS, 1, 0, "EXPR");
+  
+CartInterface *BMC411120C_Init(FC *fc, CartInfo *info) {
+  return new BMC411120C(fc, info);
 }
