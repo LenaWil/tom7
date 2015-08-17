@@ -22,44 +22,51 @@
 
 #include "ines.h"
 
-static uint8 latche;
+namespace {
+struct Mapper188 : public CartInterface {
+  uint8 latch = 0;
 
-static void Sync() {
-  if (latche) {
-    if (latche & 0x10)
-      fceulib__.cart->setprg16(0x8000, (latche & 7));
-    else
-      fceulib__.cart->setprg16(0x8000, (latche & 7) | 8);
-  } else {
-    fceulib__.cart->setprg16(0x8000, 7 + (fceulib__.ines->ROM_size >> 4));
+  void Sync() {
+    if (latch) {
+      if (latch & 0x10)
+	fc->cart->setprg16(0x8000, (latch & 7));
+      else
+	fc->cart->setprg16(0x8000, (latch & 7) | 8);
+    } else {
+      fc->cart->setprg16(0x8000, 7 + (fc->ines->ROM_size >> 4));
+    }
   }
+
+  void M188Write(DECLFW_ARGS) {
+    latch = V;
+    Sync();
+  }
+
+  void Power() override {
+    latch = 0;
+    Sync();
+    fc->cart->setchr8(0);
+    fc->cart->setprg16(0xc000, 0x7);
+    fc->fceu->SetReadHandler(0x6000, 0x7FFF, [](DECLFR_ARGS) -> DECLFR_RET {
+      return 3;
+    });
+    fc->fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
+    fc->fceu->SetWriteHandler(0x8000, 0xFFFF, [](DECLFW_ARGS) {
+      ((Mapper188*)fc->fceu->cartiface)->M188Write(DECLFW_FORWARD);
+    });
+  }
+
+  static void StateRestore(FC *fc, int version) {
+    ((Mapper188*)fc->fceu->cartiface)->Sync();
+  }
+
+  Mapper188(FC *fc, CartInfo *info) : CartInterface(fc) {
+    fc->fceu->GameStateRestore = StateRestore;
+    fc->state->AddExState(&latch, 1, 0, "LATC");
+  }
+};
 }
 
-static DECLFW(M188Write) {
-  latche = V;
-  Sync();
-}
-
-static DECLFR(ExtDev) {
-  return 3;
-}
-
-static void Power(FC *fc) {
-  latche = 0;
-  Sync();
-  fceulib__.cart->setchr8(0);
-  fceulib__.cart->setprg16(0xc000, 0x7);
-  fceulib__.fceu->SetReadHandler(0x6000, 0x7FFF, ExtDev);
-  fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
-  fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, M188Write);
-}
-
-static void StateRestore(FC *fc, int version) {
-  Sync();
-}
-
-void Mapper188_Init(CartInfo *info) {
-  info->Power = Power;
-  fceulib__.fceu->GameStateRestore = StateRestore;
-  fceulib__.state->AddExState(&latche, 1, 0, "LATC");
+CartInterface *Mapper188_Init(FC *fc, CartInfo *info) {
+  return new Mapper188(fc, info);
 }
