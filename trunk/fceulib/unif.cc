@@ -374,7 +374,9 @@ static constexpr BMAPPING bmap[] = {
 #if 0
     {"SC-127", UNLSC127_Init, 0},
     {"SHERO", UNLSHeroes_Init, 0},
+#endif
     {"SL12", UNLSL12_Init, 0},
+#if 0
     {"SL1632", UNLSL1632_Init, 0},
     {"SMB2J", UNLSMB2J_Init, 0},
     {"SSS-NROM-256", SSSNROM_Init, 0},

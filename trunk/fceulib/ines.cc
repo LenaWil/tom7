@@ -582,8 +582,8 @@ static constexpr BoardMapping const board_map[] = {
   // {"", 40, Mapper40_Init},
   // {"", 41, Mapper41_Init},
   // {"", 42, Mapper42_Init},
-  {"", 43, Mapper43_Init},
 #endif
+  {"", 43, Mapper43_Init},
   {"", 44, Mapper44_Init},
   {"", 45, Mapper45_Init},
   // {"", 46, Mapper46_Init},
@@ -671,8 +671,9 @@ static constexpr BoardMapping const board_map[] = {
 #endif
   {"", 114, Mapper114_Init},
   {"", 115, Mapper115_Init},
+  // Gave this one a name. -tom7
+  {"SL12", 116, Mapper116_Init},
 #if 0
-  {"", 116, UNLSL12_Init},
   {"", 117, Mapper117_Init},
   {"TSKROM", 118, TKSROM_Init},
 #endif
@@ -1537,19 +1538,19 @@ int INes::NewiNES_Init(int num) {
       // need here for compatibility with UNIF mapper code
       fc->unif->UNIFchrrama = 0;
       if (!VROM_size) {
-	if (num==13) {
-	  CHRRAMSize=16384;
+	if (num == 13) {
+	  CHRRAMSize = 16384;
 	} else {
-	  CHRRAMSize=8192;
+	  CHRRAMSize = 8192;
 	}
 	if ((VROM = (uint8 *)malloc(CHRRAMSize)) == nullptr) return 0;
-	FCEU_InitMemory(VROM,CHRRAMSize);
+	FCEU_InitMemory(VROM, CHRRAMSize);
 
 	fc->unif->UNIFchrrama = VROM;
 	fc->cart->SetupCartCHRMapping(0,VROM,CHRRAMSize,1);
 	fc->state->AddExState(VROM,CHRRAMSize, 0, "CHRR");
       }
-      if (head.ROM_type&8)
+      if (head.ROM_type & 8)
 	fc->state->AddExState(ExtraNTARAM, 2048, 0, "EXNR");
       fc->fceu->cartiface = tmp->init(fc, &iNESCart);
       TRACEF("NewiNES init done.");
