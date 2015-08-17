@@ -21,33 +21,29 @@
 
 #include "mapinc.h"
 
-static uint8 reg[8];
-static uint8 mirror, cmd, bank;
-static uint8 *WRAM = nullptr;
+namespace {
+struct Mapper112 : public CartInterface {
+  uint8 reg[8] = {};
+  uint8 mirror = 0, cmd = 0, bank = 0;
+  uint8 *WRAM = nullptr;
 
-static vector<SFORMAT> StateRegs = {{&cmd, 1, "CMD0"},
-                              {&mirror, 1, "MIRR"},
-                              {&bank, 1, "BANK"},
-                              {reg, 8, "REGS"}};
+  void Sync() {
+    fc->cart->setmirror(mirror ^ 1);
+    fc->cart->setprg8(0x8000, reg[0]);
+    fc->cart->setprg8(0xA000, reg[1]);
+    fc->cart->setchr2(0x0000, (reg[2] >> 1));
+    fc->cart->setchr2(0x0800, (reg[3] >> 1));
+    fc->cart->setchr1(0x1000, ((bank & 0x10) << 4) | reg[4]);
+    fc->cart->setchr1(0x1400, ((bank & 0x20) << 3) | reg[5]);
+    fc->cart->setchr1(0x1800, ((bank & 0x40) << 2) | reg[6]);
+    fc->cart->setchr1(0x1C00, ((bank & 0x80) << 1) | reg[7]);
+  }
 
-static void Sync() {
-  fceulib__.cart->setmirror(mirror ^ 1);
-  fceulib__.cart->setprg8(0x8000, reg[0]);
-  fceulib__.cart->setprg8(0xA000, reg[1]);
-  fceulib__.cart->setchr2(0x0000, (reg[2] >> 1));
-  fceulib__.cart->setchr2(0x0800, (reg[3] >> 1));
-  fceulib__.cart->setchr1(0x1000, ((bank & 0x10) << 4) | reg[4]);
-  fceulib__.cart->setchr1(0x1400, ((bank & 0x20) << 3) | reg[5]);
-  fceulib__.cart->setchr1(0x1800, ((bank & 0x40) << 2) | reg[6]);
-  fceulib__.cart->setchr1(0x1C00, ((bank & 0x80) << 1) | reg[7]);
-}
-
-static DECLFW(M112Write) {
-  switch (A) {
+  void M112Write(DECLFW_ARGS) {
+    switch (A) {
     case 0xe000:
       mirror = V & 1;
       Sync();
-      ;
       break;
     case 0x8000: cmd = V & 7; break;
     case 0xa000:
@@ -58,35 +54,46 @@ static DECLFW(M112Write) {
       bank = V;
       Sync();
       break;
+    }
   }
+
+  void Close() override {
+    free(WRAM);
+    WRAM = nullptr;
+  }
+
+  void Power() override {
+    bank = 0;
+    fc->cart->setprg16(0xC000, ~0);
+    fc->cart->setprg8r(0x10, 0x6000, 0);
+    fc->fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
+    fc->fceu->SetWriteHandler(0x8000, 0xFFFF, [](DECLFW_ARGS) {
+      ((Mapper112*)fc->fceu->cartiface)->M112Write(DECLFW_FORWARD);
+    });
+    fc->fceu->SetWriteHandler(0x4020, 0x5FFF, [](DECLFW_ARGS) {
+      ((Mapper112*)fc->fceu->cartiface)->M112Write(DECLFW_FORWARD);
+    });
+    fc->fceu->SetReadHandler(0x6000, 0x7FFF, Cart::CartBR);
+    fc->fceu->SetWriteHandler(0x6000, 0x7FFF, Cart::CartBW);
+  }
+
+  static void StateRestore(FC *fc, int version) {
+    ((Mapper112*)fc->fceu->cartiface)->Sync();
+  }
+
+  Mapper112(FC *fc, CartInfo *info) : CartInterface(fc) {
+    fc->fceu->GameStateRestore = StateRestore;
+    WRAM = (uint8 *)FCEU_gmalloc(8192);
+    fc->cart->SetupCartPRGMapping(0x10, WRAM, 8192, 1);
+    fc->state->AddExState(WRAM, 8192, 0, "WRAM");
+    fc->state->AddExVec({
+	{&cmd, 1, "CMD0"}, {&mirror, 1, "MIRR"},
+        {&bank, 1, "BANK"}, {reg, 8, "REGS"}});
+  }
+};
 }
 
-static void M112Close(FC *fc) {
-  free(WRAM);
-  WRAM = nullptr;
-}
-
-static void M112Power(FC *fc) {
-  bank = 0;
-  fceulib__.cart->setprg16(0xC000, ~0);
-  fceulib__.cart->setprg8r(0x10, 0x6000, 0);
-  fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
-  fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, M112Write);
-  fceulib__.fceu->SetWriteHandler(0x4020, 0x5FFF, M112Write);
-  fceulib__.fceu->SetReadHandler(0x6000, 0x7FFF, Cart::CartBR);
-  fceulib__.fceu->SetWriteHandler(0x6000, 0x7FFF, Cart::CartBW);
-}
-
-static void StateRestore(FC *fc, int version) {
-  Sync();
-}
-
-void Mapper112_Init(CartInfo *info) {
-  info->Power = M112Power;
-  info->Close = M112Close;
-  fceulib__.fceu->GameStateRestore = StateRestore;
-  WRAM = (uint8 *)FCEU_gmalloc(8192);
-  fceulib__.cart->SetupCartPRGMapping(0x10, WRAM, 8192, 1);
-  fceulib__.state->AddExState(WRAM, 8192, 0, "WRAM");
-  fceulib__.state->AddExVec(StateRegs);
+  
+CartInterface *Mapper112_Init(FC *fc, CartInfo *info) {
+  return new Mapper112(fc, info);
 }
