@@ -275,8 +275,8 @@ static constexpr BMAPPING bmap[] = {
     {"190in1", BMC190in1_Init, 0},
 #endif
     {"22211", UNL22211_Init, 0},
-#if 0
     {"3D-BLOCK", UNL3DBlock_Init, 0},
+#if 0
     {"411120-C", BMC411120C_Init, 0},
     {"42in1ResetSwitch", Mapper226_Init, 0},
     {"43272", UNL43272_Init, 0},
@@ -318,8 +318,8 @@ static constexpr BMAPPING bmap[] = {
     {"GS-2013", BMCGS2013_Init, 0},
 #if 0
     {"Ghostbusters63in1", BMCGhostbusters63in1_Init, 0},
-    {"H2288", UNLH2288_Init, 0},
 #endif
+    {"H2288", UNLH2288_Init, 0},
     {"HKROM", HKROM_Init, 0},
 #if 0
     {"KOF97", UNLKOF97_Init, 0},

@@ -20,36 +20,49 @@
 
 #include "mapinc.h"
 
-static uint8 reg;
+namespace {
 
-static vector<SFORMAT> StateRegs = {{&reg, 1, "REGS"}};
+struct Mapper108 : public CartInterface {
+ uint8 reg = 0;
 
-static void Sync() {
-  fceulib__.cart->setprg8(0x6000, reg);
-  fceulib__.cart->setprg32(0x8000, ~0);
-  fceulib__.cart->setchr8(0);
+  void Sync() {
+    fc->cart->setprg8(0x6000, reg);
+    fc->cart->setprg32(0x8000, ~0);
+    fc->cart->setchr8(0);
+  }
+
+  void M108Write(DECLFW_ARGS) {
+    reg = V;
+    Sync();
+  }
+
+  void Power() override {
+    Sync();
+    fc->fceu->SetReadHandler(0x6000, 0x7FFF, Cart::CartBR);
+    fc->fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
+    // regular 108
+    fc->fceu->SetWriteHandler(0x8000, 0x8FFF, [](DECLFW_ARGS) {
+      ((Mapper108*)fc->fceu->cartiface)->M108Write(DECLFW_FORWARD);
+    });
+    // simplified Kaiser BB Hack
+    fc->fceu->SetWriteHandler(0xF000, 0xFFFF, [](DECLFW_ARGS) {
+      ((Mapper108*)fc->fceu->cartiface)->M108Write(DECLFW_FORWARD);
+    });
+  }
+
+  static void StateRestore(FC *fc, int version) {
+    ((Mapper108*)fc->fceu->cartiface)->Sync();
+  }
+
+  Mapper108(FC *fc, CartInfo *info) : CartInterface(fc) {
+    fc->fceu->GameStateRestore = StateRestore;
+    fc->state->AddExVec({{&reg, 1, "REGS"}});
+  }  
+};
+
 }
 
-static DECLFW(M108Write) {
-  reg = V;
-  Sync();
+CartInterface *Mapper108_Init(FC *fc, CartInfo *info) {
+  return new Mapper108(fc, info);
 }
 
-static void M108Power(FC *fc) {
-  Sync();
-  fceulib__.fceu->SetReadHandler(0x6000, 0x7FFF, Cart::CartBR);
-  fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
-  fceulib__.fceu->SetWriteHandler(0x8000, 0x8FFF, M108Write);  // regular 108
-  fceulib__.fceu->SetWriteHandler(0xF000, 0xFFFF,
-                                  M108Write);  // simplified Kaiser BB Hack
-}
-
-static void StateRestore(FC *fc, int version) {
-  Sync();
-}
-
-void Mapper108_Init(CartInfo *info) {
-  info->Power = M108Power;
-  fceulib__.fceu->GameStateRestore = StateRestore;
-  fceulib__.state->AddExVec(StateRegs);
-}

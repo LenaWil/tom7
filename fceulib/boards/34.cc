@@ -29,59 +29,66 @@
 
 #include "mapinc.h"
 
-static uint8 regs[3];
-static uint8 *WRAM = nullptr;
-static uint32 WRAMSIZE;
+static constexpr int WRAMSIZE = 8192;
 
-static vector<SFORMAT> StateRegs = {{regs, 3, "REGS"}};
+namespace {
+struct Mapper34 : public CartInterface {
+  uint8 regs[3] = {};
+  uint8 *WRAM = nullptr;
 
-static void Sync() {
-  fceulib__.cart->setprg8r(0x10, 0x6000, 0);
-  fceulib__.cart->setprg32(0x8000, regs[0]);
-  fceulib__.cart->setchr4(0x0000, regs[1]);
-  fceulib__.cart->setchr4(0x1000, regs[2]);
-}
+  void Sync() {
+    fc->cart->setprg8r(0x10, 0x6000, 0);
+    fc->cart->setprg32(0x8000, regs[0]);
+    fc->cart->setchr4(0x0000, regs[1]);
+    fc->cart->setchr4(0x1000, regs[2]);
+  }
 
-static DECLFW(M34Write) {
-  if (A >= 0x8000)
-    regs[0] = V;
-  else
-    switch (A) {
-      case 0x7ffd: regs[0] = V; break;
-      case 0x7ffe: regs[1] = V; break;
-      case 0x7fff: regs[2] = V; break;
+  void M34Write(DECLFW_ARGS) {
+    if (A >= 0x8000) {
+      regs[0] = V;
+    } else {
+      switch (A) {
+	case 0x7ffd: regs[0] = V; break;
+	case 0x7ffe: regs[1] = V; break;
+	case 0x7fff: regs[2] = V; break;
+      }
     }
-  Sync();
+    Sync();
+  }
+
+  void Power() override {
+    regs[0] = regs[1] = 0;
+    regs[2] = 1;
+    Sync();
+    fc->fceu->SetReadHandler(0x6000, 0x7ffc, Cart::CartBR);
+    fc->fceu->SetWriteHandler(0x6000, 0x7ffc, Cart::CartBW);
+    fc->fceu->SetReadHandler(0x8000, 0xffff, Cart::CartBR);
+    fc->fceu->SetWriteHandler(0x7ffd, 0xffff, [](DECLFW_ARGS) {
+      ((Mapper34*)fc->fceu->cartiface)->M34Write(DECLFW_FORWARD);
+    });
+  }
+
+  void Close() override {
+    free(WRAM);
+    WRAM = nullptr;
+  }
+
+  static void StateRestore(FC *fc, int version) {
+    ((Mapper34*)fc->fceu->cartiface)->Sync();
+  }
+
+  Mapper34(FC *fc, CartInfo *info) : CartInterface(fc) {
+    fc->fceu->GameStateRestore = StateRestore;
+
+    WRAM = (uint8 *)FCEU_gmalloc(WRAMSIZE);
+    fc->cart->SetupCartPRGMapping(0x10, WRAM, WRAMSIZE, 1);
+    fc->state->AddExState(WRAM, WRAMSIZE, 0, "WRAM");
+
+    fc->state->AddExVec({{regs, 3, "REGS"}});
+  }
+};
 }
-
-static void M34Power(FC *fc) {
-  regs[0] = regs[1] = 0;
-  regs[2] = 1;
-  Sync();
-  fceulib__.fceu->SetReadHandler(0x6000, 0x7ffc, Cart::CartBR);
-  fceulib__.fceu->SetWriteHandler(0x6000, 0x7ffc, Cart::CartBW);
-  fceulib__.fceu->SetReadHandler(0x8000, 0xffff, Cart::CartBR);
-  fceulib__.fceu->SetWriteHandler(0x7ffd, 0xffff, M34Write);
-}
-
-static void M34Close(FC *fc) {
-  free(WRAM);
-  WRAM = nullptr;
-}
-
-static void StateRestore(FC *fc, int version) {
-  Sync();
-}
-
-void Mapper34_Init(CartInfo *info) {
-  info->Power = M34Power;
-  info->Close = M34Close;
-  fceulib__.fceu->GameStateRestore = StateRestore;
-
-  WRAMSIZE = 8192;
-  WRAM = (uint8 *)FCEU_gmalloc(WRAMSIZE);
-  fceulib__.cart->SetupCartPRGMapping(0x10, WRAM, WRAMSIZE, 1);
-  fceulib__.state->AddExState(WRAM, WRAMSIZE, 0, "WRAM");
-
-  fceulib__.state->AddExVec(StateRegs);
+  
+CartInterface *Mapper34_Init(FC *fc, CartInfo *info) {
+  return new Mapper34(fc, info);
 }

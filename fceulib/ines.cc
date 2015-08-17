@@ -570,8 +570,8 @@ static constexpr BoardMapping const board_map[] = {
 #endif
   {"IREM G-101", 32, Mapper32_Init},
   {"TC0190FMC/TC0350FMR", 33, Mapper33_Init},
-#if 0
   {"", 34, Mapper34_Init},
+#if 0
   {"Wario Land 2", 35, UNLSC127_Init},
   {"TXC Policeman", 36, Mapper36_Init},
 #endif
@@ -656,12 +656,16 @@ static constexpr BoardMapping const board_map[] = {
 #if 0
   // {"", 104, Mapper104_Init},
   {"", 105, Mapper105_Init},
+#endif
   {"", 106, Mapper106_Init},
+#if 0
   {"", 107, Mapper107_Init},
+#endif
   {"", 108, Mapper108_Init},
   // {"", 109, Mapper109_Init},
   // {"", 110, Mapper110_Init},
   // {"", 111, Mapper111_Init},
+#if 0
   {"", 112, Mapper112_Init},
   {"", 113, Mapper113_Init},
 #endif
@@ -748,7 +752,9 @@ static constexpr BoardMapping const board_map[] = {
   {"", 185, Mapper185_Init},
   {"", 186, Mapper186_Init},
   {"", 187, Mapper187_Init},
+#endif
   {"", 188, Mapper188_Init},
+#if 0
   {"", 189, Mapper189_Init},
   // {"", 190, Mapper190_Init},
 #endif
