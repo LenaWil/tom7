@@ -116,6 +116,18 @@ CartInterface *UNLKOF97_Init(FC *fc, CartInfo *info);
 // 116
 CartInterface *UNLSL12_Init(FC *fc, CartInfo *info);
 
+// ks7012
+CartInterface *UNLKS7012_Init(FC *fc, CartInfo *info);
+
+// ks7013
+CartInterface *UNLKS7013B_Init(FC *fc, CartInfo *info);
+
+// ks7017
+CartInterface *UNLKS7017_Init(FC *fc, CartInfo *info);
+
+// 603-5052
+CartInterface *UNL6035052_Init(FC *fc, CartInfo *info);
+
 #if 0
 CartInterface *SSSNROM_Init(FC *fc, CartInfo *info);
 CartInterface *Super24_Init(FC *fc, CartInfo *info);
@@ -125,7 +137,6 @@ CartInterface *TCU01_Init(FC *fc, CartInfo *info);
 CartInterface *TCU02_Init(FC *fc, CartInfo *info);
 CartInterface *Transformer_Init(FC *fc, CartInfo *info);
 CartInterface *UNL43272_Init(FC *fc, CartInfo *info);
-CartInterface *UNL6035052_Init(FC *fc, CartInfo *info);
 CartInterface *UNL8157_Init(FC *fc, CartInfo *info);
 CartInterface *UNL8237A_Init(FC *fc, CartInfo *info);
 CartInterface *UNL8237_Init(FC *fc, CartInfo *info);
@@ -137,9 +148,6 @@ CartInterface *UNLCITYFIGHT_Init(FC *fc, CartInfo *info);
 CartInterface *UNLD2000_Init(FC *fc, CartInfo *info);
 CartInterface *UNLEDU2000_Init(FC *fc, CartInfo *info);
 CartInterface *UNLFS304_Init(FC *fc, CartInfo *info);
-CartInterface *UNLKS7012_Init(FC *fc, CartInfo *info);
-CartInterface *UNLKS7013B_Init(FC *fc, CartInfo *info);
-CartInterface *UNLKS7017_Init(FC *fc, CartInfo *info);
 CartInterface *UNLKS7030_Init(FC *fc, CartInfo *info);
 CartInterface *UNLKS7031_Init(FC *fc, CartInfo *info);
 CartInterface *UNLKS7032_Init(FC *fc, CartInfo *info);

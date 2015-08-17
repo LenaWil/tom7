@@ -20,36 +20,43 @@
 
 #include "mapinc.h"
 
-static uint8 reg;
+namespace {
+struct Mapper120 : public CartInterface {
+  uint8 reg = 0;
 
-static vector<SFORMAT> StateRegs = {{&reg, 1, "REGS"}};
-
-static void Sync() {
-  fceulib__.cart->setprg8(0x6000, reg);
-  fceulib__.cart->setprg32(0x8000, 2);
-  fceulib__.cart->setchr8(0);
-}
-
-static DECLFW(M120Write) {
-  if (A == 0x41FF) {
-    reg = V & 7;
-    Sync();
+  void Sync() {
+    fc->cart->setprg8(0x6000, reg);
+    fc->cart->setprg32(0x8000, 2);
+    fc->cart->setchr8(0);
   }
+
+  void M120Write(DECLFW_ARGS) {
+    if (A == 0x41FF) {
+      reg = V & 7;
+      Sync();
+    }
+  }
+
+  void Power() override {
+    reg = 0;
+    Sync();
+    fc->fceu->SetReadHandler(0x6000, 0xFFFF, Cart::CartBR);
+    fc->fceu->SetWriteHandler(0x4100, 0x5FFF, [](DECLFW_ARGS) {
+      ((Mapper120*)fc->fceu->cartiface)->M120Write(DECLFW_FORWARD);
+    });
+  }
+
+  static void StateRestore(FC *fc, int version) {
+    ((Mapper120*)fc->fceu->cartiface)->Sync();
+  }
+
+  Mapper120(FC *fc, CartInfo *info) : CartInterface(fc) {
+    fc->fceu->GameStateRestore = StateRestore;
+    fc->state->AddExVec({{&reg, 1, "REGS"}});
+  }
+};
 }
 
-static void M120Power(FC *fc) {
-  reg = 0;
-  Sync();
-  fceulib__.fceu->SetReadHandler(0x6000, 0xFFFF, Cart::CartBR);
-  fceulib__.fceu->SetWriteHandler(0x4100, 0x5FFF, M120Write);
-}
-
-static void StateRestore(FC *fc, int version) {
-  Sync();
-}
-
-void Mapper120_Init(CartInfo *info) {
-  info->Power = M120Power;
-  fceulib__.fceu->GameStateRestore = StateRestore;
-  fceulib__.state->AddExVec(StateRegs);
+CartInterface *Mapper120_Init(FC *fc, CartInfo *info) {
+  return new Mapper120(fc, info);
 }

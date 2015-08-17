@@ -280,7 +280,9 @@ static constexpr BMAPPING bmap[] = {
 #if 0
     {"42in1ResetSwitch", Mapper226_Init, 0},
     {"43272", UNL43272_Init, 0},
+#endif
     {"603-5052", UNL6035052_Init, 0},
+#if 0
     {"64in1NoRepeat", BMC64in1nr_Init, 0},
     {"70in1", BMC70in1_Init, 0},
     {"70in1B", BMC70in1B_Init, 0},
@@ -323,10 +325,10 @@ static constexpr BMAPPING bmap[] = {
     {"HKROM", HKROM_Init, 0},
     {"KOF97", UNLKOF97_Init, 0},
     {"KONAMI-QTAI", Mapper190_Init, 0},
-#if 0
     {"KS7012", UNLKS7012_Init, 0},
     {"KS7013B", UNLKS7013B_Init, 0},
     {"KS7017", UNLKS7017_Init, 0},
+#if 0
     {"KS7030", UNLKS7030_Init, 0},
     {"KS7031", UNLKS7031_Init, 0},
     {"KS7032", UNLKS7032_Init, 0},

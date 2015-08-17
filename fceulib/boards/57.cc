@@ -21,60 +21,68 @@
 
 #include "mapinc.h"
 
-static uint8 prg_reg;
-static uint8 chr_reg;
-static uint8 hrd_flag;
+namespace {
+struct Mapper57 : public CartInterface {
+  uint8 prg_reg = 0;
+  uint8 chr_reg = 0;
+  uint8 hrd_flag = 0;
 
-static vector<SFORMAT> StateRegs = {
-    {&hrd_flag, 1, "DPSW"}, {&prg_reg, 1, "PRG0"}, {&chr_reg, 1, "CHR0"}};
-
-static void Sync() {
-  if (prg_reg & 0x80)
-    fceulib__.cart->setprg32(0x8000, prg_reg >> 6);
-  else {
-    fceulib__.cart->setprg16(0x8000, (prg_reg >> 5) & 3);
-    fceulib__.cart->setprg16(0xC000, (prg_reg >> 5) & 3);
+  void Sync() {
+    if (prg_reg & 0x80)
+      fc->cart->setprg32(0x8000, prg_reg >> 6);
+    else {
+      fc->cart->setprg16(0x8000, (prg_reg >> 5) & 3);
+      fc->cart->setprg16(0xC000, (prg_reg >> 5) & 3);
+    }
+    fc->cart->setmirror((prg_reg & 8) >> 3);
+    fc->cart->setchr8((chr_reg & 3) | (prg_reg & 7) |
+		      ((prg_reg & 0x10) >> 1));
   }
-  fceulib__.cart->setmirror((prg_reg & 8) >> 3);
-  fceulib__.cart->setchr8((chr_reg & 3) | (prg_reg & 7) |
-                          ((prg_reg & 0x10) >> 1));
-}
 
-static DECLFR(M57Read) {
-  return hrd_flag;
-}
+  DECLFR_RET M57Read(DECLFR_ARGS) {
+    return hrd_flag;
+  }
 
-static DECLFW(M57Write) {
-  if ((A & 0x8800) == 0x8800)
-    prg_reg = V;
-  else
-    chr_reg = V;
-  Sync();
-}
+  void M57Write(DECLFW_ARGS) {
+    if ((A & 0x8800) == 0x8800)
+      prg_reg = V;
+    else
+      chr_reg = V;
+    Sync();
+  }
 
-static void M57Power(FC *fc) {
-  prg_reg = 0;
-  chr_reg = 0;
-  hrd_flag = 0;
-  fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
-  fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, M57Write);
-  fceulib__.fceu->SetReadHandler(0x6000, 0x6000, M57Read);
-  Sync();
-}
+  void Power() override {
+    prg_reg = 0;
+    chr_reg = 0;
+    hrd_flag = 0;
+    fc->fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
+    fc->fceu->SetWriteHandler(0x8000, 0xFFFF, [](DECLFW_ARGS) {
+      ((Mapper57*)fc->fceu->cartiface)->M57Write(DECLFW_FORWARD);
+    });
+    fc->fceu->SetReadHandler(0x6000, 0x6000, [](DECLFR_ARGS) {
+      return ((Mapper57*)fc->fceu->cartiface)->M57Read(DECLFR_FORWARD);
+    });
+    Sync();
+  }
 
-static void M57Reset(FC *fc) {
-  hrd_flag++;
-  hrd_flag &= 3;
-  FCEU_printf("Select Register = %02x\n", hrd_flag);
-}
+  void Reset() override {
+    hrd_flag++;
+    hrd_flag &= 3;
+    FCEU_printf("Select Register = %02x\n", hrd_flag);
+  }
 
-static void StateRestore(FC *fc, int version) {
-  Sync();
-}
+  static void StateRestore(FC *fc, int version) {
+    ((Mapper57*)fc->fceu->cartiface)->Sync();
+  }
 
-void Mapper57_Init(CartInfo *info) {
-  info->Power = M57Power;
-  info->Reset = M57Reset;
-  fceulib__.fceu->GameStateRestore = StateRestore;
-  fceulib__.state->AddExVec(StateRegs);
+  Mapper57(FC *fc, CartInfo *info) : CartInterface(fc) {
+    fc->fceu->GameStateRestore = StateRestore;
+    fc->state->AddExVec({
+	{&hrd_flag, 1, "DPSW"}, {&prg_reg, 1, "PRG0"}, {&chr_reg, 1, "CHR0"}});
+  }
+};
+}
+  
+CartInterface *Mapper57_Init(FC *fc, CartInfo *info) {
+  return new Mapper57(fc, info);
 }

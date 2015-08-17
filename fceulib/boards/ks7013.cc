@@ -20,49 +20,56 @@
 
 #include "mapinc.h"
 
-static uint8 reg, mirr;
+namespace {
+struct KS7013 : public CartInterface {
+  uint8 reg = 0, mirr = 0;
 
-static vector<SFORMAT> StateRegs = {{&reg, 1, "REGS"}, {&mirr, 1, "MIRR"}};
+  void Sync() {
+    fc->cart->setprg16(0x8000, reg);
+    fc->cart->setprg16(0xc000, ~0);
+    fc->cart->setmirror(mirr);
+    fc->cart->setchr8(0);
+  }
 
-static void Sync() {
-  fceulib__.cart->setprg16(0x8000, reg);
-  fceulib__.cart->setprg16(0xc000, ~0);
-  fceulib__.cart->setmirror(mirr);
-  fceulib__.cart->setchr8(0);
+  void UNLKS7013BLoWrite(DECLFW_ARGS) {
+    reg = V;
+    Sync();
+  }
+
+  void UNLKS7013BHiWrite(DECLFW_ARGS) {
+    mirr = (V & 1) ^ 1;
+    Sync();
+  }
+
+  void Power() override {
+    reg = 0;
+    mirr = 0;
+    Sync();
+    fc->fceu->SetWriteHandler(0x6000, 0x7FFF, [](DECLFW_ARGS) {
+      ((KS7013*)fc->fceu->cartiface)->UNLKS7013BLoWrite(DECLFW_FORWARD);
+    });
+    fc->fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
+    fc->fceu->SetWriteHandler(0x8000, 0xFFFF, [](DECLFW_ARGS) {
+      ((KS7013*)fc->fceu->cartiface)->UNLKS7013BHiWrite(DECLFW_FORWARD);
+    });
+  }
+
+  void Reset() override {
+    reg = 0;
+    Sync();
+  }
+
+  static void StateRestore(FC *fc, int version) {
+    ((KS7013*)fc->fceu->cartiface)->Sync();
+  }
+
+  KS7013(FC *fc, CartInfo *info) : CartInterface(fc) {
+    fc->fceu->GameStateRestore = StateRestore;
+    fc->state->AddExVec({{&reg, 1, "REGS"}, {&mirr, 1, "MIRR"}});
+  }
+};
 }
-
-static DECLFW(UNLKS7013BLoWrite) {
-  reg = V;
-  Sync();
-}
-
-static DECLFW(UNLKS7013BHiWrite) {
-  mirr = (V & 1) ^ 1;
-  Sync();
-}
-
-static void UNLKS7013BPower(FC *fc) {
-  reg = 0;
-  mirr = 0;
-  Sync();
-  fceulib__.fceu->SetWriteHandler(0x6000, 0x7FFF, UNLKS7013BLoWrite);
-  fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
-  fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, UNLKS7013BHiWrite);
-}
-
-static void UNLKS7013BReset(FC *fc) {
-  reg = 0;
-  Sync();
-}
-
-static void StateRestore(FC *fc, int version) {
-  Sync();
-}
-
-void UNLKS7013B_Init(CartInfo *info) {
-  info->Power = UNLKS7013BPower;
-  info->Reset = UNLKS7013BReset;
-
-  fceulib__.fceu->GameStateRestore = StateRestore;
-  fceulib__.state->AddExVec(StateRegs);
+  
+CartInterface *UNLKS7013B_Init(FC *fc, CartInfo *info) {
+  return new KS7013(fc, info);
 }

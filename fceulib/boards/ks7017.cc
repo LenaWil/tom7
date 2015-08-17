@@ -23,89 +23,97 @@
 
 #include "mapinc.h"
 
-#include "tracing.h"
+static constexpr int WRAMSIZE = 8192;
 
-static uint8 reg, mirr;
-static int32 IRQa, IRQCount, IRQLatch;
-static uint8 *WRAM = nullptr;
-static uint32 WRAMSIZE;
+namespace {
+struct UNLKS7017 : public CartInterface {
+  uint8 reg = 0, mirr = 0;
+  int32 IRQa = 0, IRQCount = 0, IRQLatch = 0;
+  uint8 *WRAM = nullptr;
 
-static vector<SFORMAT> StateRegs = {{&mirr, 1, "MIRR"},     {&reg, 1, "REGS"},
-                              {&IRQa, 4, "IRQA"},     {&IRQCount, 4, "IRQC"},
-                              {&IRQLatch, 4, "IRQL"}};
-
-static void Sync() {
-  fceulib__.cart->setprg16(0x8000, reg);
-  fceulib__.cart->setprg16(0xC000, 2);
-  fceulib__.cart->setmirror(mirr);
-}
-
-static DECLFW(UNLKS7017Write) {
-  //  FCEU_printf("bs %04x %02x\n",A,V);
-  if ((A & 0xFF00) == 0x4A00) {
-    reg = ((A >> 2) & 3) | ((A >> 4) & 4);
-  } else if ((A & 0xFF00) == 0x5100) {
-    Sync();
-  } else if (A == 0x4020) {
-    fceulib__.X->IRQEnd(FCEU_IQEXT);
-    IRQCount &= 0xFF00;
-    IRQCount |= V;
-  } else if (A == 0x4021) {
-    fceulib__.X->IRQEnd(FCEU_IQEXT);
-    IRQCount &= 0xFF;
-    IRQCount |= V << 8;
-    IRQa = 1;
-  } else if (A == 0x4025) {
-    mirr = ((V & 8) >> 3) ^ 1;
+  void Sync() {
+    fc->cart->setprg16(0x8000, reg);
+    fc->cart->setprg16(0xC000, 2);
+    fc->cart->setmirror(mirr);
   }
-}
 
-static DECLFR(FDSRead4030) {
-  fceulib__.X->IRQEnd(FCEU_IQEXT);
-  TRACEF("ks7017 irqlow %02x", fceulib__.X->IRQlow);
-  return fceulib__.X->IRQlow & FCEU_IQEXT ? 1 : 0;
-}
-
-static void UNL7017IRQ(FC *fc, int a) {
-  if (IRQa) {
-    IRQCount -= a;
-    if (IRQCount <= 0) {
-      IRQa = 0;
-      fceulib__.X->IRQBegin(FCEU_IQEXT);
+  void UNLKS7017Write(DECLFW_ARGS) {
+    //  FCEU_printf("bs %04x %02x\n",A,V);
+    if ((A & 0xFF00) == 0x4A00) {
+      reg = ((A >> 2) & 3) | ((A >> 4) & 4);
+    } else if ((A & 0xFF00) == 0x5100) {
+      Sync();
+    } else if (A == 0x4020) {
+      fc->X->IRQEnd(FCEU_IQEXT);
+      IRQCount &= 0xFF00;
+      IRQCount |= V;
+    } else if (A == 0x4021) {
+      fc->X->IRQEnd(FCEU_IQEXT);
+      IRQCount &= 0xFF;
+      IRQCount |= V << 8;
+      IRQa = 1;
+    } else if (A == 0x4025) {
+      mirr = ((V & 8) >> 3) ^ 1;
     }
   }
+
+  DECLFR_RET FDSRead4030(DECLFR_ARGS) {
+    fc->X->IRQEnd(FCEU_IQEXT);
+    return fc->X->IRQlow & FCEU_IQEXT ? 1 : 0;
+  }
+
+  void UNL7017IRQ(int a) {
+    if (IRQa) {
+      IRQCount -= a;
+      if (IRQCount <= 0) {
+	IRQa = 0;
+	fc->X->IRQBegin(FCEU_IQEXT);
+      }
+    }
+  }
+
+  void Power() override {
+    Sync();
+    fc->cart->setchr8(0);
+    fc->cart->setprg8r(0x10, 0x6000, 0);
+    fc->fceu->SetReadHandler(0x6000, 0x7FFF, Cart::CartBR);
+    fc->fceu->SetWriteHandler(0x6000, 0x7FFF, Cart::CartBW);
+    fc->fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
+    fc->fceu->SetReadHandler(0x4030, 0x4030, [](DECLFR_ARGS) {
+      return ((UNLKS7017*)fc->fceu->cartiface)->FDSRead4030(DECLFR_FORWARD);
+    });
+    fc->fceu->SetWriteHandler(0x4020, 0x5FFF, [](DECLFW_ARGS) {
+      ((UNLKS7017*)fc->fceu->cartiface)->UNLKS7017Write(DECLFW_FORWARD);
+    });
+  }
+
+  void Close() override {
+    free(WRAM);
+    WRAM = nullptr;
+  }
+
+  static void StateRestore(FC *fc, int version) {
+    ((UNLKS7017*)fc->fceu->cartiface)->Sync();
+  }
+
+  UNLKS7017(FC *fc, CartInfo *info) : CartInterface(fc) {
+    fc->X->MapIRQHook = [](FC *fc, int a) {
+      ((UNLKS7017*)fc->fceu->cartiface)->UNL7017IRQ(a);
+    };
+
+    WRAM = (uint8 *)FCEU_gmalloc(WRAMSIZE);
+    fc->cart->SetupCartPRGMapping(0x10, WRAM, WRAMSIZE, 1);
+    fc->state->AddExState(WRAM, WRAMSIZE, 0, "WRAM");
+
+    fc->fceu->GameStateRestore = StateRestore;
+    fc->state->AddExVec({{&mirr, 1, "MIRR"}, {&reg, 1, "REGS"},
+			 {&IRQa, 4, "IRQA"}, {&IRQCount, 4, "IRQC"},
+			 {&IRQLatch, 4, "IRQL"}});
+  }
+
+};
 }
 
-static void UNLKS7017Power(FC *fc) {
-  Sync();
-  fceulib__.cart->setchr8(0);
-  fceulib__.cart->setprg8r(0x10, 0x6000, 0);
-  fceulib__.fceu->SetReadHandler(0x6000, 0x7FFF, Cart::CartBR);
-  fceulib__.fceu->SetWriteHandler(0x6000, 0x7FFF, Cart::CartBW);
-  fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
-  fceulib__.fceu->SetReadHandler(0x4030, 0x4030, FDSRead4030);
-  fceulib__.fceu->SetWriteHandler(0x4020, 0x5FFF, UNLKS7017Write);
-}
-
-static void UNLKS7017Close(FC *fc) {
-  free(WRAM);
-  WRAM = nullptr;
-}
-
-static void StateRestore(FC *fc, int version) {
-  Sync();
-}
-
-void UNLKS7017_Init(CartInfo *info) {
-  info->Power = UNLKS7017Power;
-  info->Close = UNLKS7017Close;
-  fceulib__.X->MapIRQHook = UNL7017IRQ;
-
-  WRAMSIZE = 8192;
-  WRAM = (uint8 *)FCEU_gmalloc(WRAMSIZE);
-  fceulib__.cart->SetupCartPRGMapping(0x10, WRAM, WRAMSIZE, 1);
-  fceulib__.state->AddExState(WRAM, WRAMSIZE, 0, "WRAM");
-
-  fceulib__.fceu->GameStateRestore = StateRestore;
-  fceulib__.state->AddExVec(StateRegs);
+CartInterface *UNLKS7017_Init(FC *fc, CartInfo *info) {
+  return new UNLKS7017(fc, info);
 }
