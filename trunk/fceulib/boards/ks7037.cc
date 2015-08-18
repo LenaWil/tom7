@@ -23,100 +23,109 @@
 
 #include "mapinc.h"
 
-static uint8 reg[8], cmd;
-static uint8 *WRAM = nullptr;
-static uint32 WRAMSIZE;
+static constexpr int WRAMSIZE = 8192;
 
-static void (*WSync)();
+namespace {
+struct KS7037Base : public CartInterface {
+  uint8 reg[8] = {}, cmd = 0;
+  uint8 *WRAM = nullptr;
 
-static vector<SFORMAT> StateRegs = {{&cmd, 1, "CMD0"}, {reg, 8, "REGS"}};
-
-static void SyncKS7037() {
-  fceulib__.cart->setprg4r(0x10, 0x6000, 0);
-  fceulib__.cart->setprg4(0x7000, 15);
-  fceulib__.cart->setprg8(0x8000, reg[6]);
-  fceulib__.cart->setprg4(0xA000, ~3);
-  fceulib__.cart->setprg4r(0x10, 0xB000, 1);
-  fceulib__.cart->setprg8(0xC000, reg[7]);
-  fceulib__.cart->setprg8(0xE000, ~0);
-  fceulib__.cart->setchr8(0);
-  fceulib__.cart->setmirrorw(reg[2] & 1, reg[4] & 1, reg[3] & 1, reg[5] & 1);
-}
-
-static void SyncLH10() {
-  fceulib__.cart->setprg8(0x6000, ~1);
-  fceulib__.cart->setprg8(0x8000, reg[6]);
-  fceulib__.cart->setprg8(0xA000, reg[7]);
-  fceulib__.cart->setprg8r(0x10, 0xC000, 0);
-  fceulib__.cart->setprg8(0xE000, ~0);
-  fceulib__.cart->setchr8(0);
-  fceulib__.cart->setmirror(0);
-}
-
-static DECLFW(UNLKS7037Write) {
-  switch (A & 0xE001) {
-    case 0x8000: cmd = V & 7; break;
-    case 0x8001:
-      reg[cmd] = V;
-      WSync();
-      break;
+  void UNLKS7037Write(DECLFW_ARGS) {
+    switch (A & 0xE001) {
+      case 0x8000: cmd = V & 7; break;
+      case 0x8001:
+	reg[cmd] = V;
+	WSync();
+	break;
+    }
   }
+
+  void Close() override {
+    free(WRAM);
+    WRAM = nullptr;
+  }
+
+  virtual void WSync() {}
+  
+  static void StateRestore(FC *fc, int version) {
+    ((KS7037Base*)fc->fceu->cartiface)->WSync();
+  }
+
+  KS7037Base(FC *fc, CartInfo *info) : CartInterface(fc) {
+    WRAM = (uint8 *)FCEU_gmalloc(WRAMSIZE);
+    fc->cart->SetupCartPRGMapping(0x10, WRAM, WRAMSIZE, 1);
+    fc->state->AddExState(WRAM, WRAMSIZE, 0, "WRAM");
+
+    // Maybe wasn't present for LH10, but why not?
+    fc->fceu->GameStateRestore = StateRestore;
+    fc->state->AddExVec({{&cmd, 1, "CMD0"}, {reg, 8, "REGS"}});
+  }
+};
+
+struct UNLKS7037 : public KS7037Base {
+  using KS7037Base::KS7037Base;
+
+  void WSync() override {
+    fc->cart->setprg4r(0x10, 0x6000, 0);
+    fc->cart->setprg4(0x7000, 15);
+    fc->cart->setprg8(0x8000, reg[6]);
+    fc->cart->setprg4(0xA000, ~3);
+    fc->cart->setprg4r(0x10, 0xB000, 1);
+    fc->cart->setprg8(0xC000, reg[7]);
+    fc->cart->setprg8(0xE000, ~0);
+    fc->cart->setchr8(0);
+    fc->cart->setmirrorw(reg[2] & 1, reg[4] & 1, reg[3] & 1, reg[5] & 1);
+  }
+  
+  void Power() override {
+    reg[0] = reg[1] = reg[2] = reg[3] = reg[4] = reg[5] = reg[6] = reg[7] = 0;
+    WSync();
+    fc->fceu->SetReadHandler(0x6000, 0xFFFF, Cart::CartBR);
+    fc->fceu->SetWriteHandler(0x6000, 0x7FFF, Cart::CartBW);
+    fc->fceu->SetWriteHandler(0x8000, 0x9FFF, [](DECLFW_ARGS) {
+      ((UNLKS7037*)fc->fceu->cartiface)->UNLKS7037Write(DECLFW_FORWARD);
+    });
+    fc->fceu->SetWriteHandler(0xA000, 0xBFFF, Cart::CartBW);
+    fc->fceu->SetWriteHandler(0xC000, 0xFFFF, [](DECLFW_ARGS) {
+      ((UNLKS7037*)fc->fceu->cartiface)->UNLKS7037Write(DECLFW_FORWARD);
+    });
+  }
+
+};
+
+struct LH10 : public KS7037Base {
+  using KS7037Base::KS7037Base;
+
+  void WSync() override {
+    fc->cart->setprg8(0x6000, ~1);
+    fc->cart->setprg8(0x8000, reg[6]);
+    fc->cart->setprg8(0xA000, reg[7]);
+    fc->cart->setprg8r(0x10, 0xC000, 0);
+    fc->cart->setprg8(0xE000, ~0);
+    fc->cart->setchr8(0);
+    fc->cart->setmirror(0);
+  }
+  
+  void Power() override {
+    reg[0] = reg[1] = reg[2] = reg[3] = reg[4] = reg[5] = reg[6] = reg[7] = 0;
+    WSync();
+    fc->fceu->SetReadHandler(0x6000, 0xFFFF, Cart::CartBR);
+    fc->fceu->SetWriteHandler(0x8000, 0xBFFF, [](DECLFW_ARGS) {
+      ((LH10*)fc->fceu->cartiface)->UNLKS7037Write(DECLFW_FORWARD);
+    });
+    fc->fceu->SetWriteHandler(0xC000, 0xDFFF, Cart::CartBW);
+    fc->fceu->SetWriteHandler(0xE000, 0xFFFF, [](DECLFW_ARGS) {
+      ((LH10*)fc->fceu->cartiface)->UNLKS7037Write(DECLFW_FORWARD);
+    });
+  }
+
+};
 }
 
-static void UNLKS7037Power(FC *fc) {
-  reg[0] = reg[1] = reg[2] = reg[3] = reg[4] = reg[5] = reg[6] = reg[7] = 0;
-  WSync();
-  fceulib__.fceu->SetReadHandler(0x6000, 0xFFFF, Cart::CartBR);
-  fceulib__.fceu->SetWriteHandler(0x6000, 0x7FFF, Cart::CartBW);
-  fceulib__.fceu->SetWriteHandler(0x8000, 0x9FFF, UNLKS7037Write);
-  fceulib__.fceu->SetWriteHandler(0xA000, 0xBFFF, Cart::CartBW);
-  fceulib__.fceu->SetWriteHandler(0xC000, 0xFFFF, UNLKS7037Write);
+CartInterface *UNLKS7037_Init(FC *fc, CartInfo *info) {
+  return new UNLKS7037(fc, info);
 }
 
-static void LH10Power(FC *fc) {
-  reg[0] = reg[1] = reg[2] = reg[3] = reg[4] = reg[5] = reg[6] = reg[7] = 0;
-  WSync();
-  fceulib__.fceu->SetReadHandler(0x6000, 0xFFFF, Cart::CartBR);
-  fceulib__.fceu->SetWriteHandler(0x8000, 0xBFFF, UNLKS7037Write);
-  fceulib__.fceu->SetWriteHandler(0xC000, 0xDFFF, Cart::CartBW);
-  fceulib__.fceu->SetWriteHandler(0xE000, 0xFFFF, UNLKS7037Write);
-}
-
-static void Close(FC *fc) {
-  free(WRAM);
-  WRAM = nullptr;
-}
-
-static void StateRestore(FC *fc, int version) {
-  WSync();
-}
-
-void UNLKS7037_Init(CartInfo *info) {
-  info->Power = UNLKS7037Power;
-  info->Close = Close;
-
-  WSync = SyncKS7037;
-
-  WRAMSIZE = 8192;
-  WRAM = (uint8 *)FCEU_gmalloc(WRAMSIZE);
-  fceulib__.cart->SetupCartPRGMapping(0x10, WRAM, WRAMSIZE, 1);
-  fceulib__.state->AddExState(WRAM, WRAMSIZE, 0, "WRAM");
-
-  fceulib__.fceu->GameStateRestore = StateRestore;
-  fceulib__.state->AddExVec(StateRegs);
-}
-
-void LH10_Init(CartInfo *info) {
-  info->Power = LH10Power;
-  info->Close = Close;
-
-  WSync = SyncLH10;
-
-  WRAMSIZE = 8192;
-  WRAM = (uint8 *)FCEU_gmalloc(WRAMSIZE);
-  fceulib__.cart->SetupCartPRGMapping(0x10, WRAM, WRAMSIZE, 1);
-  fceulib__.state->AddExState(WRAM, WRAMSIZE, 0, "WRAM");
-
-  fceulib__.fceu->GameStateRestore = StateRestore;
-  fceulib__.state->AddExVec(StateRegs);
+CartInterface *LH10_Init(FC *fc, CartInfo *info) {
+  return new LH10(fc, info);
 }

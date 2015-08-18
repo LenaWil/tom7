@@ -293,8 +293,8 @@ static constexpr BMAPPING bmap[] = {
     {"8157", UNL8157_Init, 0},
     {"8237", UNL8237_Init, 0},
     {"8237A", UNL8237A_Init, 0},
-#if 0
     {"830118C", BMC830118C_Init, 0},
+#if 0
     {"A65AS", BMCA65AS_Init, 0},
     {"AC08", AC08_Init, 0},
     {"ANROM", ANROM_Init, 0},
@@ -335,11 +335,13 @@ static constexpr BMAPPING bmap[] = {
     {"KS7030", UNLKS7030_Init, 0},
     {"KS7031", UNLKS7031_Init, 0},
     {"KS7032", UNLKS7032_Init, 0},
-#if 0
     {"KS7037", UNLKS7037_Init, 0},
     {"KS7057", UNLKS7057_Init, 0},
+#if 0
     {"LE05", LE05_Init, 0},
+#endif
     {"LH10", LH10_Init, 0},
+#if 0
     {"LH32", LH32_Init, 0},
     {"LH53", LH53_Init, 0},
     {"MARIO1-MALEE2", MALEE_Init, 0},

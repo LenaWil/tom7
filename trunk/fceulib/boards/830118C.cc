@@ -23,46 +23,53 @@
 #include "mapinc.h"
 #include "mmc3.h"
 
-static void BMC830118CCW(uint32 A, uint8 V) {
-  fceulib__.cart->setchr1(A, (V & 0x7F) | ((EXPREGS[0] & 0x0c) << 5));
-}
+namespace {
+struct BMC830118C : public MMC3 {
+  uint8 EXPREGS[8] = {};
 
-static void BMC830118CPW(uint32 A, uint8 V) {
-  if ((EXPREGS[0] & 0x0C) == 0x0C) {
-    if (A == 0x8000) {
-      fceulib__.cart->setprg8(A, (V & 0x0F) | ((EXPREGS[0] & 0x0c) << 2));
-      fceulib__.cart->setprg8(0xC000, (V & 0x0F) | 0x32);
-    } else if (A == 0xA000) {
-      fceulib__.cart->setprg8(A, (V & 0x0F) | ((EXPREGS[0] & 0x0c) << 2));
-      fceulib__.cart->setprg8(0xE000, (V & 0x0F) | 0x32);
-    }
-  } else {
-    fceulib__.cart->setprg8(A, (V & 0x0F) | ((EXPREGS[0] & 0x0c) << 2));
+  void CWrap(uint32 A, uint8 V) override {
+    fc->cart->setchr1(A, (V & 0x7F) | ((EXPREGS[0] & 0x0c) << 5));
   }
+
+  void PWrap(uint32 A, uint8 V) override {
+    if ((EXPREGS[0] & 0x0C) == 0x0C) {
+      if (A == 0x8000) {
+	fc->cart->setprg8(A, (V & 0x0F) | ((EXPREGS[0] & 0x0c) << 2));
+	fc->cart->setprg8(0xC000, (V & 0x0F) | 0x32);
+      } else if (A == 0xA000) {
+	fc->cart->setprg8(A, (V & 0x0F) | ((EXPREGS[0] & 0x0c) << 2));
+	fc->cart->setprg8(0xE000, (V & 0x0F) | 0x32);
+      }
+    } else {
+      fc->cart->setprg8(A, (V & 0x0F) | ((EXPREGS[0] & 0x0c) << 2));
+    }
+  }
+
+  void BMC830118CLoWrite(DECLFW_ARGS) {
+    EXPREGS[0] = V;
+    FixMMC3PRG(MMC3_cmd);
+    FixMMC3CHR(MMC3_cmd);
+  }
+
+  void Reset() override {
+    EXPREGS[0] = 0;
+    MMC3::Reset();
+  }
+
+  void Power() override {
+    EXPREGS[0] = 0;
+    MMC3::Power();
+    fc->fceu->SetWriteHandler(0x6800, 0x68FF, [](DECLFW_ARGS) {
+      ((BMC830118C*)fc->fceu->cartiface)->BMC830118CLoWrite(DECLFW_FORWARD);
+    });
+  }
+
+  BMC830118C(FC *fc, CartInfo *info) : MMC3(fc, info, 128, 128, 8, 0) {
+    fc->state->AddExState(EXPREGS, 1, 0, "EXPR");
+  }
+};
 }
 
-static DECLFW(BMC830118CLoWrite) {
-  EXPREGS[0] = V;
-  FixMMC3PRG(MMC3_cmd);
-  FixMMC3CHR(MMC3_cmd);
-}
-
-static void BMC830118CReset(FC *fc) {
-  EXPREGS[0] = 0;
-  MMC3RegReset(fc);
-}
-
-static void BMC830118CPower(FC *fc) {
-  EXPREGS[0] = 0;
-  GenMMC3Power(fc);
-  fceulib__.fceu->SetWriteHandler(0x6800, 0x68FF, BMC830118CLoWrite);
-}
-
-void BMC830118C_Init(CartInfo *info) {
-  GenMMC3_Init(info, 128, 128, 8, 0);
-  pwrap = BMC830118CPW;
-  cwrap = BMC830118CCW;
-  info->Power = BMC830118CPower;
-  info->Reset = BMC830118CReset;
-  fceulib__.state->AddExState(EXPREGS, 1, 0, "EXPR");
+CartInterface *BMC830118C_Init(FC *fc, CartInfo *info) {
+  return new BMC830118C(fc, info);
 }

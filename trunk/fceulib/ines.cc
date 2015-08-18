@@ -723,7 +723,9 @@ static constexpr BoardMapping const board_map[] = {
   {"", 153, Mapper153_Init},
   {"", 154, Mapper154_Init},
   {"", 155, Mapper155_Init},
+#endif
   {"", 156, Mapper156_Init},
+#if 0
   {"", 157, Mapper157_Init},
   // {"", 158, Mapper158_Init},
   // {"", 159, Mapper159_Init},
@@ -798,12 +800,17 @@ static constexpr BoardMapping const board_map[] = {
   {"", 212, Mapper212_Init},
   {"", 213, Mapper213_Init},
   {"", 214, Mapper214_Init},
+#endif
   {"", 215, UNL8237_Init},
+#if 0
   {"", 216, Mapper216_Init},
   {"", 217, Mapper217_Init}, // Redefined to a new Discrete BMC mapper
   // {"", 218, Mapper218_Init},
   {"UNLA9746", 219, UNLA9746_Init},
+#endif
+  // in unif it is called just KS7057? - tom7
   {"Debug Mapper", 220, UNLKS7057_Init},
+#if 0
   {"UNLN625092", 221, UNLN625092_Init},
   {"", 222, Mapper222_Init},
   // {"", 223, Mapper223_Init},
