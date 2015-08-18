@@ -142,6 +142,9 @@ CartInterface *UNL6035052_Init(FC *fc, CartInfo *info);
 // 8157
 CartInterface *UNL8157_Init(FC *fc, CartInfo *info);
 
+// 8237
+CartInterface *UNL8237A_Init(FC *fc, CartInfo *info);
+CartInterface *UNL8237_Init(FC *fc, CartInfo *info);
 
 #if 0
 CartInterface *SSSNROM_Init(FC *fc, CartInfo *info);
@@ -152,8 +155,6 @@ CartInterface *TCU01_Init(FC *fc, CartInfo *info);
 CartInterface *TCU02_Init(FC *fc, CartInfo *info);
 CartInterface *Transformer_Init(FC *fc, CartInfo *info);
 CartInterface *UNL43272_Init(FC *fc, CartInfo *info);
-CartInterface *UNL8237A_Init(FC *fc, CartInfo *info);
-CartInterface *UNL8237_Init(FC *fc, CartInfo *info);
 CartInterface *UNLA9746_Init(FC *fc, CartInfo *info);
 CartInterface *UNLAX5705_Init(FC *fc, CartInfo *info);
 CartInterface *UNLBB_Init(FC *fc, CartInfo *info);

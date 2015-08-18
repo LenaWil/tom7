@@ -291,9 +291,9 @@ static constexpr BMAPPING bmap[] = {
     {"810544-C-A1", BMC810544CA1_Init, 0},
 #endif
     {"8157", UNL8157_Init, 0},
-#if 0
     {"8237", UNL8237_Init, 0},
     {"8237A", UNL8237A_Init, 0},
+#if 0
     {"830118C", BMC830118C_Init, 0},
     {"A65AS", BMCA65AS_Init, 0},
     {"AC08", AC08_Init, 0},

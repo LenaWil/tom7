@@ -716,7 +716,9 @@ static constexpr BoardMapping const board_map[] = {
   {"SA0037", 148, SA0037_Init},
   {"SA0036", 149, SA0036_Init},
   {"S74LS374N", 150, S74LS374N_Init},
+#endif
   {"", 151, Mapper151_Init},
+#if 0
   {"", 152, Mapper152_Init},
   {"", 153, Mapper153_Init},
   {"", 154, Mapper154_Init},
