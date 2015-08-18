@@ -20,106 +20,111 @@
 
 #include "mapinc.h"
 
-static uint8 chrlo[8], chrhi[8], prg, mirr, mirrisused = 0;
-static uint8 *WRAM = nullptr;
-static uint32 WRAMSIZE;
+static constexpr int WRAMSIZE = 8192;
 
-static vector<SFORMAT> StateRegs = {{&prg, 1, "PREG"},
-                              {chrlo, 8, "CRGL"},
-                              {chrhi, 8, "CRGH"},
-                              {&mirr, 1, "MIRR"}};
+namespace {
+struct Mapper156 : public CartInterface {
+  uint8 chrlo[8] = {}, chrhi[8] = {}, prg = 0, mirr = 0, mirrisused = 0;
+  uint8 *WRAM = nullptr;
 
-static void Sync() {
-  for (uint32 i = 0; i < 8; i++)
-    fceulib__.cart->setchr1(i << 10, chrlo[i] | (chrhi[i] << 8));
-  fceulib__.cart->setprg8r(0x10, 0x6000, 0);
-  fceulib__.cart->setprg16(0x8000, prg);
-  fceulib__.cart->setprg16(0xC000, ~0);
-  if (mirrisused)
-    fceulib__.cart->setmirror(mirr ^ 1);
-  else
-    fceulib__.cart->setmirror(MI_0);
-}
-
-static DECLFW(M156Write) {
-  switch (A) {
-    case 0xC000:
-    case 0xC001:
-    case 0xC002:
-    case 0xC003:
-      chrlo[A & 3] = V;
-      Sync();
-      break;
-    case 0xC004:
-    case 0xC005:
-    case 0xC006:
-    case 0xC007:
-      chrhi[A & 3] = V;
-      Sync();
-      break;
-    case 0xC008:
-    case 0xC009:
-    case 0xC00A:
-    case 0xC00B:
-      chrlo[4 + (A & 3)] = V;
-      Sync();
-      break;
-    case 0xC00C:
-    case 0xC00D:
-    case 0xC00E:
-    case 0xC00F:
-      chrhi[4 + (A & 3)] = V;
-      Sync();
-      break;
-    case 0xC010:
-      prg = V;
-      Sync();
-      break;
-    case 0xC014:
-      mirr = V;
-      mirrisused = 1;
-      Sync();
-      break;
+  void Sync() {
+    for (uint32 i = 0; i < 8; i++)
+      fc->cart->setchr1(i << 10, chrlo[i] | (chrhi[i] << 8));
+    fc->cart->setprg8r(0x10, 0x6000, 0);
+    fc->cart->setprg16(0x8000, prg);
+    fc->cart->setprg16(0xC000, ~0);
+    if (mirrisused)
+      fc->cart->setmirror(mirr ^ 1);
+    else
+      fc->cart->setmirror(MI_0);
   }
-}
 
-static void M156Reset(FC *fc) {
-  for (uint32 i = 0; i < 8; i++) {
-    chrlo[i] = 0;
-    chrhi[i] = 0;
+  void M156Write(DECLFW_ARGS) {
+    switch (A) {
+      case 0xC000:
+      case 0xC001:
+      case 0xC002:
+      case 0xC003:
+	chrlo[A & 3] = V;
+	Sync();
+	break;
+      case 0xC004:
+      case 0xC005:
+      case 0xC006:
+      case 0xC007:
+	chrhi[A & 3] = V;
+	Sync();
+	break;
+      case 0xC008:
+      case 0xC009:
+      case 0xC00A:
+      case 0xC00B:
+	chrlo[4 + (A & 3)] = V;
+	Sync();
+	break;
+      case 0xC00C:
+      case 0xC00D:
+      case 0xC00E:
+      case 0xC00F:
+	chrhi[4 + (A & 3)] = V;
+	Sync();
+	break;
+      case 0xC010:
+	prg = V;
+	Sync();
+	break;
+      case 0xC014:
+	mirr = V;
+	mirrisused = 1;
+	Sync();
+	break;
+    }
   }
-  prg = 0;
-  mirr = 0;
-  mirrisused = 0;
+
+  void Reset() override {
+    for (uint32 i = 0; i < 8; i++) {
+      chrlo[i] = 0;
+      chrhi[i] = 0;
+    }
+    prg = 0;
+    mirr = 0;
+    mirrisused = 0;
+  }
+
+  void Power() override {
+    Reset();
+    Sync();
+    fc->fceu->SetReadHandler(0x6000, 0xFFFF, Cart::CartBR);
+    fc->fceu->SetWriteHandler(0x6000, 0x7FFF, Cart::CartBW);
+    fc->fceu->SetWriteHandler(0xC000, 0xCFFF, [](DECLFW_ARGS) {
+      ((Mapper156*)fc->fceu->cartiface)->M156Write(DECLFW_FORWARD);
+    });
+  }
+
+  void Close() override {
+    free(WRAM);
+    WRAM = nullptr;
+  }
+
+  static void StateRestore(FC *fc, int version) {
+    ((Mapper156*)fc->fceu->cartiface)->Sync();
+  }
+
+  Mapper156(FC *fc, CartInfo *info) : CartInterface(fc) {
+    WRAM = (uint8 *)FCEU_gmalloc(WRAMSIZE);
+    fc->cart->SetupCartPRGMapping(0x10, WRAM, WRAMSIZE, 1);
+    fc->state->AddExState(WRAM, WRAMSIZE, 0, "WRAM");
+
+    fc->fceu->GameStateRestore = StateRestore;
+    fc->state->AddExVec({{&prg, 1, "PREG"},
+			 {chrlo, 8, "CRGL"},
+			 {chrhi, 8, "CRGH"},
+			 {&mirr, 1, "MIRR"}});
+  }
+
+};
 }
 
-static void M156Power(FC *fc) {
-  M156Reset(fc);
-  Sync();
-  fceulib__.fceu->SetReadHandler(0x6000, 0xFFFF, Cart::CartBR);
-  fceulib__.fceu->SetWriteHandler(0x6000, 0x7FFF, Cart::CartBW);
-  fceulib__.fceu->SetWriteHandler(0xC000, 0xCFFF, M156Write);
-}
-
-static void M156Close(FC *fc) {
-  free(WRAM);
-  WRAM = nullptr;
-}
-
-static void StateRestore(FC *fc, int version) {
-  Sync();
-}
-
-void Mapper156_Init(CartInfo *info) {
-  info->Power = M156Reset;
-  info->Power = M156Power;
-  info->Close = M156Close;
-
-  WRAMSIZE = 8192;
-  WRAM = (uint8 *)FCEU_gmalloc(WRAMSIZE);
-  fceulib__.cart->SetupCartPRGMapping(0x10, WRAM, WRAMSIZE, 1);
-  fceulib__.state->AddExState(WRAM, WRAMSIZE, 0, "WRAM");
-
-  fceulib__.fceu->GameStateRestore = StateRestore;
-  fceulib__.state->AddExVec(StateRegs);
+CartInterface *Mapper156_Init(FC *fc, CartInfo *info) {
+  return new Mapper156(fc, info);
 }

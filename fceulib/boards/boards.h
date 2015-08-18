@@ -14,7 +14,6 @@ CartInterface *BMC64in1nr_Init(FC *fc, CartInfo *info);
 CartInterface *BMC70in1B_Init(FC *fc, CartInfo *info);
 CartInterface *BMC70in1_Init(FC *fc, CartInfo *info);
 CartInterface *BMC810544CA1_Init(FC *fc, CartInfo *info);
-CartInterface *BMC830118C_Init(FC *fc, CartInfo *info);
 CartInterface *BMCBS5_Init(FC *fc, CartInfo *info);
 CartInterface *BMCD1038_Init(FC *fc, CartInfo *info);
 CartInterface *BMCFK23CA_Init(FC *fc, CartInfo *info);
@@ -34,7 +33,6 @@ CartInterface *ETROM_Init(FC *fc, CartInfo *info);
 CartInterface *EWROM_Init(FC *fc, CartInfo *info);
 CartInterface *GNROM_Init(FC *fc, CartInfo *info);
 CartInterface *LE05_Init(FC *fc, CartInfo *info);
-CartInterface *LH10_Init(FC *fc, CartInfo *info);
 CartInterface *LH32_Init(FC *fc, CartInfo *info);
 CartInterface *LH53_Init(FC *fc, CartInfo *info);
 CartInterface *MALEE_Init(FC *fc, CartInfo *info);
@@ -53,6 +51,9 @@ CartInterface *SA72007_Init(FC *fc, CartInfo *info);
 CartInterface *SA72008_Init(FC *fc, CartInfo *info);
 CartInterface *SA9602B_Init(FC *fc, CartInfo *info);
 #endif
+
+// 830118C
+CartInterface *BMC830118C_Init(FC *fc, CartInfo *info);
 
 // 12in1
 CartInterface *BMC12IN1_Init(FC *fc, CartInfo *info);
@@ -136,6 +137,13 @@ CartInterface *UNLKS7031_Init(FC *fc, CartInfo *info);
 // ks7032
 CartInterface *UNLKS7032_Init(FC *fc, CartInfo *info);
 
+// ks7037
+CartInterface *UNLKS7037_Init(FC *fc, CartInfo *info);
+CartInterface *LH10_Init(FC *fc, CartInfo *info);
+
+// ks7057
+CartInterface *UNLKS7057_Init(FC *fc, CartInfo *info);
+
 // 603-5052
 CartInterface *UNL6035052_Init(FC *fc, CartInfo *info);
 
@@ -163,8 +171,6 @@ CartInterface *UNLCITYFIGHT_Init(FC *fc, CartInfo *info);
 CartInterface *UNLD2000_Init(FC *fc, CartInfo *info);
 CartInterface *UNLEDU2000_Init(FC *fc, CartInfo *info);
 CartInterface *UNLFS304_Init(FC *fc, CartInfo *info);
-CartInterface *UNLKS7037_Init(FC *fc, CartInfo *info);
-CartInterface *UNLKS7057_Init(FC *fc, CartInfo *info);
 CartInterface *UNLN625092_Init(FC *fc, CartInfo *info);
 CartInterface *UNLOneBus_Init(FC *fc, CartInfo *info);
 CartInterface *UNLPEC586Init(FC *fc, CartInfo *info);
