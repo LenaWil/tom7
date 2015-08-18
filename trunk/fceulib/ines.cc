@@ -548,9 +548,9 @@ static constexpr BoardMapping const board_map[] = {
 #endif
   {"", 12, Mapper12_Init},
   {"CPROM", 13, CPROM_Init},
-#if 0
   // {"", 14, Mapper14_Init},
   {"100-in-1", 15, Mapper15_Init},
+#if 0
   {"Bandai", 16, Mapper16_Init},
   {"", 17, Mapper17_Init},
   {"", 18, Mapper18_Init},
@@ -610,25 +610,27 @@ static constexpr BoardMapping const board_map[] = {
   // {"", 65, Mapper65_Init},
 #endif
   {"MHOM", 66, MHROM_Init},
-#if 0
   // {"", 67, Mapper67_Init},
   {"Sunsoft Mapper #4", 68, Mapper68_Init},
   // {"", 69, Mapper69_Init},
+#if 0
   {"", 70, Mapper70_Init},
+#endif
   // {"", 71, Mapper71_Init},
   // {"", 72, Mapper72_Init},
   // {"", 73, Mapper73_Init},
-#endif
   {"", 74, Mapper74_Init},
 #if 0
   // {"", 75, Mapper75_Init},
   // {"", 76, Mapper76_Init},
   // {"", 77, Mapper77_Init},
   {"Irem 74HC161/32", 78, Mapper78_Init},
+#endif
   // {"", 79, Mapper79_Init},
   // {"", 80, Mapper80_Init},
   // {"", 81, Mapper81_Init},
   {"", 82, Mapper82_Init},
+#if 0
   {"", 83, Mapper83_Init},
   // {"", 84, Mapper84_Init},
   // {"", 85, Mapper85_Init},
@@ -703,7 +705,9 @@ static constexpr BoardMapping const board_map[] = {
   {"S8259C", 139, S8259C_Init},
   {"", 140, Mapper140_Init},
   {"S8259A", 141, S8259A_Init},
+#endif
   {"UNLKS7032", 142, UNLKS7032_Init},
+#if 0
   {"TCA01", 143, TCA01_Init},
   {"", 144, Mapper144_Init},
   {"SA72007", 145, SA72007_Init},

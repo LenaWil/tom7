@@ -20,53 +20,63 @@
 
 #include "mapinc.h"
 
-static uint16 cmdreg;
-static uint8 invalid_data;
-static vector<SFORMAT> StateRegs = {
-    {&invalid_data, 1, "INVD"}, {&cmdreg, 2, "CREG"}};
+namespace {
+struct UNL8157 : public CartInterface {
+  uint16 cmdreg = 0;
+  uint8 invalid_data = 0;
 
-static void Sync() {
-  fceulib__.cart->setprg16r((cmdreg & 0x060) >> 5, 0x8000,
-                            (cmdreg & 0x01C) >> 2);
-  fceulib__.cart->setprg16r((cmdreg & 0x060) >> 5, 0xC000,
-                            (cmdreg & 0x200) ? (~0) : 0);
-  fceulib__.cart->setmirror(((cmdreg & 2) >> 1) ^ 1);
+  void Sync() {
+    fc->cart->setprg16r((cmdreg & 0x060) >> 5, 0x8000,
+			(cmdreg & 0x01C) >> 2);
+    fc->cart->setprg16r((cmdreg & 0x060) >> 5, 0xC000,
+			(cmdreg & 0x200) ? (~0) : 0);
+    fc->cart->setmirror(((cmdreg & 2) >> 1) ^ 1);
+  }
+
+  DECLFR_RET UNL8157Read(DECLFR_ARGS) {
+    if (invalid_data && cmdreg & 0x100)
+      return 0xFF;
+    else
+      return Cart::CartBR(DECLFR_FORWARD);
+  }
+
+  void UNL8157Write(DECLFW_ARGS) {
+    cmdreg = A;
+    Sync();
+  }
+
+  void Power() override {
+    fc->cart->setchr8(0);
+    fc->fceu->SetWriteHandler(0x8000, 0xFFFF, [](DECLFW_ARGS) {
+      ((UNL8157*)fc->fceu->cartiface)->UNL8157Write(DECLFW_FORWARD);
+    });
+    fc->fceu->SetReadHandler(0x8000, 0xFFFF, [](DECLFR_ARGS) {
+      return ((UNL8157*)fc->fceu->cartiface)->UNL8157Read(DECLFR_FORWARD);
+    });
+    cmdreg = 0x200;
+    invalid_data = 1;
+    Sync();
+  }
+
+  void Reset() override {
+    cmdreg = 0;
+    invalid_data ^= 1;
+    Sync();
+  }
+
+  static void UNL8157Restore(FC *fc, int version) {
+    ((UNL8157*)fc->fceu->cartiface)->Sync();
+  }
+
+  UNL8157(FC *fc, CartInfo *info) : CartInterface(fc) {
+    fc->fceu->GameStateRestore = UNL8157Restore;
+    fc->state->AddExVec({{&invalid_data, 1, "INVD"},
+	                 {&cmdreg, 2, "CREG"}});
+  }
+
+};
 }
 
-static DECLFR(UNL8157Read) {
-  if (invalid_data && cmdreg & 0x100)
-    return 0xFF;
-  else
-    return Cart::CartBR(DECLFR_FORWARD);
-}
-
-static DECLFW(UNL8157Write) {
-  cmdreg = A;
-  Sync();
-}
-
-static void UNL8157Power(FC *fc) {
-  fceulib__.cart->setchr8(0);
-  fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, UNL8157Write);
-  fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, UNL8157Read);
-  cmdreg = 0x200;
-  invalid_data = 1;
-  Sync();
-}
-
-static void UNL8157Reset(FC *fc) {
-  cmdreg = 0;
-  invalid_data ^= 1;
-  Sync();
-}
-
-static void UNL8157Restore(FC *fc, int version) {
-  Sync();
-}
-
-void UNL8157_Init(CartInfo *info) {
-  info->Power = UNL8157Power;
-  info->Reset = UNL8157Reset;
-  fceulib__.fceu->GameStateRestore = UNL8157Restore;
-  fceulib__.state->AddExVec(StateRegs);
+CartInterface *UNL8157_Init(FC *fc, CartInfo *info) {
+  return new UNL8157(fc, info);
 }

@@ -21,86 +21,90 @@
 
 #include "mapinc.h"
 
-static uint16 latchea;
-static uint8 latched;
-static uint8 *WRAM = nullptr;
-static uint32 WRAMSIZE;
-static vector<SFORMAT> StateRegs = {
-    {&latchea, 2, "AREG"}, {&latched, 1, "DREG"}};
+static constexpr int WRAMSIZE = 8192;
 
-static void Sync() {
-  int i;
-  fceulib__.cart->setmirror(((latched >> 6) & 1) ^ 1);
-  switch (latchea) {
-    case 0x8000:
-      for (i = 0; i < 4; i++)
-        fceulib__.cart->setprg8(0x8000 + (i << 13),
-                                (((latched & 0x7F) << 1) + i) ^ (latched >> 7));
-      break;
-    case 0x8002:
-      for (i = 0; i < 4; i++)
-        fceulib__.cart->setprg8(0x8000 + (i << 13),
-                                ((latched & 0x7F) << 1) + (latched >> 7));
-      break;
-    case 0x8001:
-    case 0x8003:
-      for (i = 0; i < 4; i++) {
-        unsigned int b;
-        b = latched & 0x7F;
-        if (i >= 2 && !(latchea & 0x2)) i = 0x7F;
-        fceulib__.cart->setprg8(0x8000 + (i << 13),
-                                (i & 1) + ((b << 1) ^ (latched >> 7)));
-      }
-      break;
+namespace {
+struct Mapper15 : public CartInterface {
+  uint16 latcha = 0;
+  uint8 latchd = 0;
+  uint8 *WRAM = nullptr;
+
+  void Sync() {
+    fc->cart->setmirror(((latchd >> 6) & 1) ^ 1);
+    switch (latcha) {
+      case 0x8000:
+	for (int i = 0; i < 4; i++)
+	  fc->cart->setprg8(0x8000 + (i << 13),
+			    (((latchd & 0x7F) << 1) + i) ^ (latchd >> 7));
+	break;
+      case 0x8002:
+	for (int i = 0; i < 4; i++)
+	  fc->cart->setprg8(0x8000 + (i << 13),
+			    ((latchd & 0x7F) << 1) + (latchd >> 7));
+	break;
+      case 0x8001:
+      case 0x8003:
+	for (int i = 0; i < 4; i++) {
+	  unsigned int b = latchd & 0x7F;
+	  if (i >= 2 && !(latcha & 0x2)) i = 0x7F;
+	  fc->cart->setprg8(0x8000 + (i << 13),
+			    (i & 1) + ((b << 1) ^ (latchd >> 7)));
+	}
+	break;
+    }
   }
-}
 
-static DECLFW(M15Write) {
-  latchea = A;
-  latched = V;
-  //  printf("%04X = %02X\n",A,V);
-  Sync();
-}
-
-static void StateRestore(FC *fc, int version) {
-  Sync();
-}
-
-static void M15Power(FC *fc) {
-  latchea = 0x8000;
-  latched = 0;
-  fceulib__.cart->setchr8(0);
-  fceulib__.cart->setprg8r(0x10, 0x6000, 0);
-  fceulib__.fceu->SetReadHandler(0x6000, 0x7FFF, Cart::CartBR);
-  fceulib__.fceu->SetWriteHandler(0x6000, 0x7FFF, Cart::CartBW);
-  fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, M15Write);
-  fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
-  Sync();
-}
-
-static void M15Reset(FC *fc) {
-  latchea = 0x8000;
-  latched = 0;
-  Sync();
-}
-
-static void M15Close(FC *fc) {
-  free(WRAM);
-  WRAM = nullptr;
-}
-
-void Mapper15_Init(CartInfo *info) {
-  info->Power = M15Power;
-  info->Reset = M15Reset;
-  info->Close = M15Close;
-  fceulib__.fceu->GameStateRestore = StateRestore;
-  WRAMSIZE = 8192;
-  WRAM = (uint8 *)FCEU_gmalloc(WRAMSIZE);
-  fceulib__.cart->SetupCartPRGMapping(0x10, WRAM, WRAMSIZE, 1);
-  if (info->battery) {
-    info->SaveGame[0] = WRAM;
-    info->SaveGameLen[0] = WRAMSIZE;
+  void M15Write(DECLFW_ARGS) {
+    latcha = A;
+    latchd = V;
+    //  printf("%04X = %02X\n",A,V);
+    Sync();
   }
-  fceulib__.state->AddExState(WRAM, WRAMSIZE, 0, "WRAM");
-  fceulib__.state->AddExVec(StateRegs);
+
+  static void StateRestore(FC *fc, int version) {
+    ((Mapper15*)fc->fceu->cartiface)->Sync();
+  }
+
+  void Power() override {
+    latcha = 0x8000;
+    latchd = 0;
+    fc->cart->setchr8(0);
+    fc->cart->setprg8r(0x10, 0x6000, 0);
+    fc->fceu->SetReadHandler(0x6000, 0x7FFF, Cart::CartBR);
+    fc->fceu->SetWriteHandler(0x6000, 0x7FFF, Cart::CartBW);
+    fc->fceu->SetWriteHandler(0x8000, 0xFFFF, [](DECLFW_ARGS) {
+      ((Mapper15*)fc->fceu->cartiface)->M15Write(DECLFW_FORWARD);
+    });
+    fc->fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
+    Sync();
+  }
+
+  void Reset() override {
+    latcha = 0x8000;
+    latchd = 0;
+    Sync();
+  }
+
+  void Close() override {
+    free(WRAM);
+    WRAM = nullptr;
+  }
+
+  Mapper15(FC *fc, CartInfo *info) : CartInterface(fc) {
+    fc->fceu->GameStateRestore = StateRestore;
+    WRAM = (uint8 *)FCEU_gmalloc(WRAMSIZE);
+    fc->cart->SetupCartPRGMapping(0x10, WRAM, WRAMSIZE, 1);
+    if (info->battery) {
+      info->SaveGame[0] = WRAM;
+      info->SaveGameLen[0] = WRAMSIZE;
+    }
+    fc->state->AddExState(WRAM, WRAMSIZE, 0, "WRAM");
+    fc->state->AddExVec({{&latcha, 2, "AREG"}, {&latchd, 1, "DREG"}});
+  }
+
+};
+}
+
+CartInterface *Mapper15_Init(FC *fc, CartInfo *info) {
+  return new Mapper15(fc, info);
 }
