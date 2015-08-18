@@ -20,36 +20,44 @@
 
 #include "mapinc.h"
 
-static uint8 regs[8];
+namespace {
+struct Mapper151 : public CartInterface {
+  uint8 regs[8] = {};
 
-static vector<SFORMAT> StateRegs = {{regs, 8, "REGS"}};
+  void Sync() {
+    fc->cart->setprg8(0x8000, regs[0]);
+    fc->cart->setprg8(0xA000, regs[2]);
+    fc->cart->setprg8(0xC000, regs[4]);
+    fc->cart->setprg8(0xE000, ~0);
+    fc->cart->setchr4(0x0000, regs[6]);
+    fc->cart->setchr4(0x1000, regs[7]);
+  }
 
-static void Sync() {
-  fceulib__.cart->setprg8(0x8000, regs[0]);
-  fceulib__.cart->setprg8(0xA000, regs[2]);
-  fceulib__.cart->setprg8(0xC000, regs[4]);
-  fceulib__.cart->setprg8(0xE000, ~0);
-  fceulib__.cart->setchr4(0x0000, regs[6]);
-  fceulib__.cart->setchr4(0x1000, regs[7]);
+  void M151Write(DECLFW_ARGS) {
+    regs[(A >> 12) & 7] = V;
+    Sync();
+  }
+
+  void Power() override {
+    Sync();
+    fc->fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
+    fc->fceu->SetWriteHandler(0x8000, 0xFFFF, [](DECLFW_ARGS) {
+      ((Mapper151*)fc->fceu->cartiface)->M151Write(DECLFW_FORWARD);
+    });
+  }
+
+  static void StateRestore(FC *fc, int version) {
+    ((Mapper151*)fc->fceu->cartiface)->Sync();
+  }
+
+  Mapper151(FC *fc, CartInfo *info) : CartInterface(fc) {
+    fc->fceu->GameStateRestore = StateRestore;
+    fc->state->AddExVec({{regs, 8, "REGS"}});
+  }
+
+};
 }
 
-static DECLFW(M151Write) {
-  regs[(A >> 12) & 7] = V;
-  Sync();
-}
-
-static void M151Power(FC *fc) {
-  Sync();
-  fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
-  fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, M151Write);
-}
-
-static void StateRestore(FC *fc, int version) {
-  Sync();
-}
-
-void Mapper151_Init(CartInfo *info) {
-  info->Power = M151Power;
-  fceulib__.fceu->GameStateRestore = StateRestore;
-  fceulib__.state->AddExVec(StateRegs);
+CartInterface *Mapper151_Init(FC *fc, CartInfo *info) {
+  return new Mapper151(fc, info);
 }
