@@ -8,7 +8,6 @@ struct CartInterface;
 #if 0
 CartInterface *AC08_Init(FC *fc, CartInfo *info);
 CartInterface *ANROM_Init(FC *fc, CartInfo *info);
-CartInterface *BMC12IN1_Init(FC *fc, CartInfo *info);
 CartInterface *BMC13in1JY110_Init(FC *fc, CartInfo *info);
 CartInterface *BMC190in1_Init(FC *fc, CartInfo *info);
 CartInterface *BMC64in1nr_Init(FC *fc, CartInfo *info);
@@ -54,6 +53,9 @@ CartInterface *SA72007_Init(FC *fc, CartInfo *info);
 CartInterface *SA72008_Init(FC *fc, CartInfo *info);
 CartInterface *SA9602B_Init(FC *fc, CartInfo *info);
 #endif
+
+// 12in1
+CartInterface *BMC12IN1_Init(FC *fc, CartInfo *info);
 
 // konami-qtai
 CartInterface *Mapper190_Init(FC *fc, CartInfo *info);
@@ -125,8 +127,21 @@ CartInterface *UNLKS7013B_Init(FC *fc, CartInfo *info);
 // ks7017
 CartInterface *UNLKS7017_Init(FC *fc, CartInfo *info);
 
+// ks7030
+CartInterface *UNLKS7030_Init(FC *fc, CartInfo *info);
+
+// ks7031
+CartInterface *UNLKS7031_Init(FC *fc, CartInfo *info);
+
+// ks7032
+CartInterface *UNLKS7032_Init(FC *fc, CartInfo *info);
+
 // 603-5052
 CartInterface *UNL6035052_Init(FC *fc, CartInfo *info);
+
+// 8157
+CartInterface *UNL8157_Init(FC *fc, CartInfo *info);
+
 
 #if 0
 CartInterface *SSSNROM_Init(FC *fc, CartInfo *info);
@@ -137,7 +152,6 @@ CartInterface *TCU01_Init(FC *fc, CartInfo *info);
 CartInterface *TCU02_Init(FC *fc, CartInfo *info);
 CartInterface *Transformer_Init(FC *fc, CartInfo *info);
 CartInterface *UNL43272_Init(FC *fc, CartInfo *info);
-CartInterface *UNL8157_Init(FC *fc, CartInfo *info);
 CartInterface *UNL8237A_Init(FC *fc, CartInfo *info);
 CartInterface *UNL8237_Init(FC *fc, CartInfo *info);
 CartInterface *UNLA9746_Init(FC *fc, CartInfo *info);
@@ -148,9 +162,6 @@ CartInterface *UNLCITYFIGHT_Init(FC *fc, CartInfo *info);
 CartInterface *UNLD2000_Init(FC *fc, CartInfo *info);
 CartInterface *UNLEDU2000_Init(FC *fc, CartInfo *info);
 CartInterface *UNLFS304_Init(FC *fc, CartInfo *info);
-CartInterface *UNLKS7030_Init(FC *fc, CartInfo *info);
-CartInterface *UNLKS7031_Init(FC *fc, CartInfo *info);
-CartInterface *UNLKS7032_Init(FC *fc, CartInfo *info);
 CartInterface *UNLKS7037_Init(FC *fc, CartInfo *info);
 CartInterface *UNLKS7057_Init(FC *fc, CartInfo *info);
 CartInterface *UNLN625092_Init(FC *fc, CartInfo *info);

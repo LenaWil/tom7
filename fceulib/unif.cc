@@ -270,7 +270,9 @@ int Unif::LoadCHR(FceuFile *fp) {
 static constexpr BMAPPING bmap[] = {
 #if 0
     {"11160", BMC11160_Init, 0},
+#endif
     {"12-IN-1", BMC12IN1_Init, 0},
+#if 0
     {"13in1JY110", BMC13in1JY110_Init, 0},
     {"190in1", BMC190in1_Init, 0},
 #endif
@@ -287,7 +289,9 @@ static constexpr BMAPPING bmap[] = {
     {"70in1", BMC70in1_Init, 0},
     {"70in1B", BMC70in1B_Init, 0},
     {"810544-C-A1", BMC810544CA1_Init, 0},
+#endif
     {"8157", UNL8157_Init, 0},
+#if 0
     {"8237", UNL8237_Init, 0},
     {"8237A", UNL8237A_Init, 0},
     {"830118C", BMC830118C_Init, 0},
@@ -328,10 +332,10 @@ static constexpr BMAPPING bmap[] = {
     {"KS7012", UNLKS7012_Init, 0},
     {"KS7013B", UNLKS7013B_Init, 0},
     {"KS7017", UNLKS7017_Init, 0},
-#if 0
     {"KS7030", UNLKS7030_Init, 0},
     {"KS7031", UNLKS7031_Init, 0},
     {"KS7032", UNLKS7032_Init, 0},
+#if 0
     {"KS7037", UNLKS7037_Init, 0},
     {"KS7057", UNLKS7057_Init, 0},
     {"LE05", LE05_Init, 0},
@@ -344,7 +348,9 @@ static constexpr BMAPPING bmap[] = {
     {"NROM", NROM_Init, 0},
     {"NROM-128", NROM_Init, 0},
     {"NROM-256", NROM_Init, 0},
+#endif
     {"NTBROM", Mapper68_Init, 0},
+#if 0
     {"NTD-03", BMCNTD03_Init, 0},
     {"NovelDiamond9999999in1", Novel_Init, 0},
     {"OneBus", UNLOneBus_Init, 0},

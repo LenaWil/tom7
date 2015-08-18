@@ -23,54 +23,62 @@
 
 #include "mapinc.h"
 
-static uint8 reg[4];
+namespace {
+struct UNLKS7031 : public CartInterface {
+  uint8 reg[4] = {};
 
-static vector<SFORMAT> StateRegs = {{reg, 4, "REGS"}};
+  void Sync() {
+    fc->cart->setprg2(0x6000, reg[0]);
+    fc->cart->setprg2(0x6800, reg[1]);
+    fc->cart->setprg2(0x7000, reg[2]);
+    fc->cart->setprg2(0x7800, reg[3]);
 
-static void Sync() {
-  fceulib__.cart->setprg2(0x6000, reg[0]);
-  fceulib__.cart->setprg2(0x6800, reg[1]);
-  fceulib__.cart->setprg2(0x7000, reg[2]);
-  fceulib__.cart->setprg2(0x7800, reg[3]);
+    fc->cart->setprg2(0x8000, 15);
+    fc->cart->setprg2(0x8800, 14);
+    fc->cart->setprg2(0x9000, 13);
+    fc->cart->setprg2(0x9800, 12);
+    fc->cart->setprg2(0xa000, 11);
+    fc->cart->setprg2(0xa800, 10);
+    fc->cart->setprg2(0xb000, 9);
+    fc->cart->setprg2(0xb800, 8);
 
-  fceulib__.cart->setprg2(0x8000, 15);
-  fceulib__.cart->setprg2(0x8800, 14);
-  fceulib__.cart->setprg2(0x9000, 13);
-  fceulib__.cart->setprg2(0x9800, 12);
-  fceulib__.cart->setprg2(0xa000, 11);
-  fceulib__.cart->setprg2(0xa800, 10);
-  fceulib__.cart->setprg2(0xb000, 9);
-  fceulib__.cart->setprg2(0xb800, 8);
+    fc->cart->setprg2(0xc000, 7);
+    fc->cart->setprg2(0xc800, 6);
+    fc->cart->setprg2(0xd000, 5);
+    fc->cart->setprg2(0xd800, 4);
+    fc->cart->setprg2(0xe000, 3);
+    fc->cart->setprg2(0xe800, 2);
+    fc->cart->setprg2(0xf000, 1);
+    fc->cart->setprg2(0xf800, 0);
 
-  fceulib__.cart->setprg2(0xc000, 7);
-  fceulib__.cart->setprg2(0xc800, 6);
-  fceulib__.cart->setprg2(0xd000, 5);
-  fceulib__.cart->setprg2(0xd800, 4);
-  fceulib__.cart->setprg2(0xe000, 3);
-  fceulib__.cart->setprg2(0xe800, 2);
-  fceulib__.cart->setprg2(0xf000, 1);
-  fceulib__.cart->setprg2(0xf800, 0);
+    fc->cart->setchr8(0);
+  }
 
-  fceulib__.cart->setchr8(0);
+  void UNLKS7031Write(DECLFW_ARGS) {
+    reg[(A >> 11) & 3] = V;
+    Sync();
+  }
+
+  void Power() override {
+    Sync();
+    fc->fceu->SetReadHandler(0x6000, 0xFFFF, Cart::CartBR);
+    fc->fceu->SetWriteHandler(0x8000, 0xffff, [](DECLFW_ARGS) {
+      ((UNLKS7031*)fc->fceu->cartiface)->UNLKS7031Write(DECLFW_FORWARD);
+    });
+  }
+
+  static void StateRestore(FC *fc, int version) {
+    ((UNLKS7031*)fc->fceu->cartiface)->Sync();
+  }
+
+  UNLKS7031(FC *fc, CartInfo *info) : CartInterface(fc) {
+    fc->fceu->GameStateRestore = StateRestore;
+    fc->state->AddExVec({{reg, 4, "REGS"}});
+  }
+
+};
 }
 
-static DECLFW(UNLKS7031Write) {
-  reg[(A >> 11) & 3] = V;
-  Sync();
-}
-
-static void UNLKS7031Power(FC *fc) {
-  Sync();
-  fceulib__.fceu->SetReadHandler(0x6000, 0xFFFF, Cart::CartBR);
-  fceulib__.fceu->SetWriteHandler(0x8000, 0xffff, UNLKS7031Write);
-}
-
-static void StateRestore(FC *fc, int version) {
-  Sync();
-}
-
-void UNLKS7031_Init(CartInfo *info) {
-  info->Power = UNLKS7031Power;
-  fceulib__.fceu->GameStateRestore = StateRestore;
-  fceulib__.state->AddExVec(StateRegs);
+CartInterface *UNLKS7031_Init(FC *fc, CartInfo *info) {
+  return new UNLKS7031(fc, info);
 }

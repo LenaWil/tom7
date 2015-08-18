@@ -20,45 +20,54 @@
 
 #include "mapinc.h"
 
-static uint8 reg[4];
-static vector<SFORMAT> StateRegs = {{reg, 4, "REGS"}};
+namespace {
+struct BMC12IN1 : public CartInterface {
+  uint8 reg[4] = {};
 
-static void Sync() {
-  uint8 bank = (reg[3] & 3) << 3;
-  fceulib__.cart->setchr4(0x0000, (reg[1] >> 3) | (bank << 2));
-  fceulib__.cart->setchr4(0x1000, (reg[2] >> 3) | (bank << 2));
-  if (reg[3] & 8) {
-    fceulib__.cart->setprg32(0x8000, ((reg[2] & 7) >> 1) | bank);
-  } else {
-    fceulib__.cart->setprg16(0x8000, (reg[1] & 7) | bank);
-    fceulib__.cart->setprg16(0xc000, 7 | bank);
+  void Sync() {
+    uint8 bank = (reg[3] & 3) << 3;
+    fc->cart->setchr4(0x0000, (reg[1] >> 3) | (bank << 2));
+    fc->cart->setchr4(0x1000, (reg[2] >> 3) | (bank << 2));
+    if (reg[3] & 8) {
+      fc->cart->setprg32(0x8000, ((reg[2] & 7) >> 1) | bank);
+    } else {
+      fc->cart->setprg16(0x8000, (reg[1] & 7) | bank);
+      fc->cart->setprg16(0xc000, 7 | bank);
+    }
+    fc->cart->setmirror(((reg[3] & 4) >> 2) ^ 1);
   }
-  fceulib__.cart->setmirror(((reg[3] & 4) >> 2) ^ 1);
-}
 
-static DECLFW(BMC12IN1Write) {
-  switch (A) {
-    case 0xafff: reg[0] = V; break;
-    case 0xbfff: reg[1] = V; break;
-    case 0xdfff: reg[2] = V; break;
-    case 0xefff: reg[3] = V; break;
+  void BMC12IN1Write(DECLFW_ARGS) {
+    switch (A) {
+      case 0xafff: reg[0] = V; break;
+      case 0xbfff: reg[1] = V; break;
+      case 0xdfff: reg[2] = V; break;
+      case 0xefff: reg[3] = V; break;
+    }
+    Sync();
   }
-  Sync();
+
+  void Power() override {
+    reg[0] = reg[1] = reg[2] = reg[3] = 0;
+    Sync();
+    fc->fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
+    fc->fceu->SetWriteHandler(0x8000, 0xFFFF, [](DECLFW_ARGS) {
+      ((BMC12IN1*)fc->fceu->cartiface)->BMC12IN1Write(DECLFW_FORWARD);
+    });
+  }
+
+  static void StateRestore(FC *fc, int version) {
+    ((BMC12IN1*)fc->fceu->cartiface)->Sync();
+  }
+
+  BMC12IN1(FC *fc, CartInfo *info) : CartInterface(fc) {
+    fc->fceu->GameStateRestore = StateRestore;
+    fc->state->AddExVec({{reg, 4, "REGS"}});
+  }
+
+};
 }
 
-static void BMC12IN1Power(FC *fc) {
-  reg[0] = reg[1] = reg[2] = reg[3] = 0;
-  Sync();
-  fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
-  fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, BMC12IN1Write);
-}
-
-static void StateRestore(FC *fc, int version) {
-  Sync();
-}
-
-void BMC12IN1_Init(CartInfo *info) {
-  info->Power = BMC12IN1Power;
-  fceulib__.fceu->GameStateRestore = StateRestore;
-  fceulib__.state->AddExVec(StateRegs);
+CartInterface *BMC12IN1_Init(FC *fc, CartInfo *info) {
+  return new BMC12IN1(fc, info);
 }
