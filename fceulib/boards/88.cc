@@ -20,62 +20,67 @@
 
 #include "mapinc.h"
 
-static uint8 reg[8];
-static uint8 mirror, cmd, is154;
+namespace {
+struct Mapper88 : public CartInterface {
+  uint8 reg[8] = {};
+  uint8 mirror = 0, cmd = 0, is154 = false;
 
-static vector<SFORMAT> StateRegs = {
-    {&cmd, 1, "CMD0"}, {&mirror, 1, "MIRR"}, {reg, 8, "REGS"}};
-
-static void Sync() {
-  fceulib__.cart->setchr2(0x0000, reg[0] >> 1);
-  fceulib__.cart->setchr2(0x0800, reg[1] >> 1);
-  fceulib__.cart->setchr1(0x1000, reg[2] | 0x40);
-  fceulib__.cart->setchr1(0x1400, reg[3] | 0x40);
-  fceulib__.cart->setchr1(0x1800, reg[4] | 0x40);
-  fceulib__.cart->setchr1(0x1C00, reg[5] | 0x40);
-  fceulib__.cart->setprg8(0x8000, reg[6]);
-  fceulib__.cart->setprg8(0xA000, reg[7]);
-}
-
-static void MSync() {
-  if (is154) fceulib__.cart->setmirror(MI_0 + (mirror & 1));
-}
-
-static DECLFW(M88Write) {
-  switch (A & 0x8001) {
-    case 0x8000:
-      cmd = V & 7;
-      mirror = V >> 6;
-      MSync();
-      break;
-    case 0x8001:
-      reg[cmd] = V;
-      Sync();
-      break;
+  void Sync() {
+    fc->cart->setchr2(0x0000, reg[0] >> 1);
+    fc->cart->setchr2(0x0800, reg[1] >> 1);
+    fc->cart->setchr1(0x1000, reg[2] | 0x40);
+    fc->cart->setchr1(0x1400, reg[3] | 0x40);
+    fc->cart->setchr1(0x1800, reg[4] | 0x40);
+    fc->cart->setchr1(0x1C00, reg[5] | 0x40);
+    fc->cart->setprg8(0x8000, reg[6]);
+    fc->cart->setprg8(0xA000, reg[7]);
   }
+
+  void MSync() {
+    if (is154) fc->cart->setmirror(MI_0 + (mirror & 1));
+  }
+
+  void M88Write(DECLFW_ARGS) {
+    switch (A & 0x8001) {
+      case 0x8000:
+	cmd = V & 7;
+	mirror = V >> 6;
+	MSync();
+	break;
+      case 0x8001:
+	reg[cmd] = V;
+	Sync();
+	break;
+    }
+  }
+
+  void Power() {
+    fc->cart->setprg16(0xC000, ~0);
+    fc->fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
+    fc->fceu->SetWriteHandler(0x8000, 0xFFFF, [](DECLFW_ARGS) {
+      ((Mapper88*)fc->fceu->cartiface)->M88Write(DECLFW_FORWARD);
+    });
+  }
+
+  static void StateRestore(FC *fc, int version) {
+    Mapper88 *me = ((Mapper88*)fc->fceu->cartiface);
+    me->Sync();
+    me->MSync();
+  }
+
+  Mapper88(FC *fc, CartInfo *info, bool is154) : CartInterface(fc),
+						 is154(is154) {
+    fc->fceu->GameStateRestore = StateRestore;
+    fc->state->AddExVec({
+	{&cmd, 1, "CMD0"}, {&mirror, 1, "MIRR"}, {reg, 8, "REGS"}});
+  }
+};
 }
 
-static void M88Power(FC *fc) {
-  fceulib__.cart->setprg16(0xC000, ~0);
-  fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
-  fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, M88Write);
+CartInterface *Mapper88_Init(FC *fc, CartInfo *info) {
+  return new Mapper88(fc, info, false);
 }
 
-static void StateRestore(FC *fc, int version) {
-  Sync();
-  MSync();
-}
-
-void Mapper88_Init(CartInfo *info) {
-  is154 = 0;
-  info->Power = M88Power;
-  fceulib__.fceu->GameStateRestore = StateRestore;
-  fceulib__.state->AddExVec(StateRegs);
-}
-
-void Mapper154_Init(CartInfo *info) {
-  is154 = 1;
-  info->Power = M88Power;
-  fceulib__.fceu->GameStateRestore = StateRestore;
-  fceulib__.state->AddExVec(StateRegs);
+CartInterface *Mapper154_Init(FC *fc, CartInfo *info) {
+  return new Mapper88(fc, info, true);
 }

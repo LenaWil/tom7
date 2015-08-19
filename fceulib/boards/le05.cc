@@ -23,36 +23,44 @@
 
 #include "mapinc.h"
 
-static uint8 chr;
-static vector<SFORMAT> StateRegs = {{&chr, 1, "CHR0"}};
+namespace {
+struct LE05 : public CartInterface {
+  uint8 chr = 0;
 
-static void Sync() {
-  fceulib__.cart->setprg2r(0, 0xE000, 0);
-  fceulib__.cart->setprg2r(0, 0xE800, 0);
-  fceulib__.cart->setprg2r(0, 0xF000, 0);
-  fceulib__.cart->setprg2r(0, 0xF800, 0);
+  void Sync() {
+    fc->cart->setprg2r(0, 0xE000, 0);
+    fc->cart->setprg2r(0, 0xE800, 0);
+    fc->cart->setprg2r(0, 0xF000, 0);
+    fc->cart->setprg2r(0, 0xF800, 0);
 
-  fceulib__.cart->setprg8r(1, 0x6000, 3);
-  fceulib__.cart->setprg8r(1, 0x8000, 0);
-  fceulib__.cart->setprg8r(1, 0xA000, 1);
-  fceulib__.cart->setprg8r(1, 0xC000, 2);
+    fc->cart->setprg8r(1, 0x6000, 3);
+    fc->cart->setprg8r(1, 0x8000, 0);
+    fc->cart->setprg8r(1, 0xA000, 1);
+    fc->cart->setprg8r(1, 0xC000, 2);
 
-  fceulib__.cart->setchr8(chr & 1);
-  fceulib__.cart->setmirror(MI_V);
+    fc->cart->setchr8(chr & 1);
+    fc->cart->setmirror(MI_V);
+  }
+
+  void LE05Write(DECLFW_ARGS) {
+    chr = V;
+    Sync();
+  }
+
+  void Power() override {
+    Sync();
+    fc->fceu->SetReadHandler(0x6000, 0xFFFF, Cart::CartBR);
+    fc->fceu->SetWriteHandler(0x8000, 0xFFFF, [](DECLFW_ARGS) {
+      ((LE05*)fc->fceu->cartiface)->LE05Write(DECLFW_FORWARD);
+    });
+  }
+
+  LE05(FC *fc, CartInfo *info) : CartInterface(fc) {
+    fc->state->AddExVec({{&chr, 1, "CHR0"}});
+  }
+};
 }
 
-static DECLFW(LE05Write) {
-  chr = V;
-  Sync();
-}
-
-static void LE05Power(FC *fc) {
-  Sync();
-  fceulib__.fceu->SetReadHandler(0x6000, 0xFFFF, Cart::CartBR);
-  fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, LE05Write);
-}
-
-void LE05_Init(CartInfo *info) {
-  info->Power = LE05Power;
-  fceulib__.state->AddExVec(StateRegs);
+CartInterface *LE05_Init(FC *fc, CartInfo *info) {
+  return new LE05(fc, info);
 }
