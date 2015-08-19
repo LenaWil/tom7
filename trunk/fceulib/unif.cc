@@ -342,9 +342,9 @@ static constexpr BMAPPING bmap[] = {
     {"LE05", LE05_Init, 0},
     {"LH10", LH10_Init, 0},
     {"LH32", LH32_Init, 0},
-#if 0
     {"LH53", LH53_Init, 0},
     {"MARIO1-MALEE2", MALEE_Init, 0},
+#if 0
     {"MHROM", MHROM_Init, 0},
     {"N625092", UNLN625092_Init, 0},
     {"NROM", NROM_Init, 0},

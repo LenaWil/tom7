@@ -644,15 +644,17 @@ static constexpr BoardMapping const board_map[] = {
   {"", 89, Mapper89_Init},
 #endif
   {"", 90, Mapper90_Init},
-#if 0
   {"", 91, Mapper91_Init},
+#if 0
   {"", 92, Mapper92_Init},
 #endif
   {"Sunsoft UNROM", 93, SUNSOFT_UNROM_Init},
 #if 0
   {"", 94, Mapper94_Init},
   {"", 95, Mapper95_Init},
+#endif
   {"", 96, Mapper96_Init},
+#if 0
   {"", 97, Mapper97_Init},
   // {"", 98, Mapper98_Init},
   {"", 99, Mapper99_Init},
@@ -746,15 +748,16 @@ static constexpr BoardMapping const board_map[] = {
   // {"", 167, Mapper167_Init},
   {"", 168, Mapper168_Init},
   // {"", 169, Mapper169_Init},
-#if 0
   {"", 170, Mapper170_Init},
+#if 0
   {"", 171, Mapper171_Init},
 #endif
   {"", 172, Mapper172_Init},
   {"", 173, Mapper173_Init},
-#if 0
+
   // {"", 174, Mapper174_Init},
   {"", 175, Mapper175_Init},
+#if 0
   // zero 26-may-2012 - well, i have some WXN junk games that use 176
   // for instance ????. i dont know what game uses this BMCFK23C as
   // mapper 176. we'll have to make a note when we find it.

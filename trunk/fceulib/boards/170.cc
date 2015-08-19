@@ -20,39 +20,53 @@
 
 #include "mapinc.h"
 
-static uint8 reg;
+namespace {
+struct Mapper170 : public CartInterface {
+  uint8 reg = 0;
 
-static vector<SFORMAT> StateRegs = {{&reg, 1, "REGS"}};
+  void Sync() {
+    fc->cart->setprg16(0x8000, 0);
+    fc->cart->setprg16(0xc000, ~0);
+    fc->cart->setchr8(0);
+  }
 
-static void Sync() {
-  fceulib__.cart->setprg16(0x8000, 0);
-  fceulib__.cart->setprg16(0xc000, ~0);
-  fceulib__.cart->setchr8(0);
+  void M170ProtW(DECLFW_ARGS) {
+    reg = V << 1 & 0x80;
+  }
+
+  DECLFR_RET M170ProtR(DECLFR_ARGS) {
+    return reg | (fc->X->DB & 0x7F);
+  }
+
+  void Power() override {
+    Sync();
+    fc->fceu->SetWriteHandler(0x6502, 0x6502, [](DECLFW_ARGS) {
+      ((Mapper170*)fc->fceu->cartiface)->M170ProtW(DECLFW_FORWARD);
+    });
+    fc->fceu->SetWriteHandler(0x7000, 0x7000, [](DECLFW_ARGS) {
+      ((Mapper170*)fc->fceu->cartiface)->M170ProtW(DECLFW_FORWARD);
+    });
+    fc->fceu->SetReadHandler(0x7001, 0x7001, [](DECLFR_ARGS) {
+      return ((Mapper170*)fc->fceu->cartiface)->M170ProtR(DECLFR_FORWARD);
+    });
+    fc->fceu->SetReadHandler(0x7777, 0x7777, [](DECLFR_ARGS) {
+      return ((Mapper170*)fc->fceu->cartiface)->M170ProtR(DECLFR_FORWARD);
+    });
+    fc->fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
+  }
+
+  static void StateRestore(FC *fc, int version) {
+    ((Mapper170*)fc->fceu->cartiface)->Sync();
+  }
+
+  Mapper170(FC *fc, CartInfo *info) : CartInterface(fc) {
+    fc->fceu->GameStateRestore = StateRestore;
+    fc->state->AddExVec({{&reg, 1, "REGS"}});
+  }
+
+};
 }
 
-static DECLFW(M170ProtW) {
-  reg = V << 1 & 0x80;
-}
-
-static DECLFR(M170ProtR) {
-  return reg | (fceulib__.X->DB & 0x7F);
-}
-
-static void M170Power(FC *fc) {
-  Sync();
-  fceulib__.fceu->SetWriteHandler(0x6502, 0x6502, M170ProtW);
-  fceulib__.fceu->SetWriteHandler(0x7000, 0x7000, M170ProtW);
-  fceulib__.fceu->SetReadHandler(0x7001, 0x7001, M170ProtR);
-  fceulib__.fceu->SetReadHandler(0x7777, 0x7777, M170ProtR);
-  fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
-}
-
-static void StateRestore(FC *fc, int version) {
-  Sync();
-}
-
-void Mapper170_Init(CartInfo *info) {
-  info->Power = M170Power;
-  fceulib__.fceu->GameStateRestore = StateRestore;
-  fceulib__.state->AddExVec(StateRegs);
+CartInterface *Mapper170_Init(FC *fc, CartInfo *info) {
+  return new Mapper170(fc, info);
 }

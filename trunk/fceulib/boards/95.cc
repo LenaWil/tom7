@@ -21,87 +21,97 @@
 #include "mapinc.h"
 #include "../ines.h"
 
-static uint8 lastA;
-static uint8 DRegs[8];
-static uint8 cmd;
-static uint8 MirCache[8];
+namespace {
+struct Mapper95 : public CartInterface {
 
-static vector<SFORMAT> DB_StateRegs = {
-    {DRegs, 8, "DREG"}, {&cmd, 1, "CMD0"}, {&lastA, 1, "LAST"}};
+  uint8 lastA = 0;
+  uint8 DRegs[8] = {};
+  uint8 cmd = 0;
+  uint8 MirCache[8] = {};
 
-static void toot() {
-  MirCache[0] = MirCache[1] = (DRegs[0] >> 4) & 1;
-  MirCache[2] = MirCache[3] = (DRegs[1] >> 4) & 1;
+  void toot() {
+    MirCache[0] = MirCache[1] = (DRegs[0] >> 4) & 1;
+    MirCache[2] = MirCache[3] = (DRegs[1] >> 4) & 1;
 
-  for (int x = 0; x < 4; x++) MirCache[4 + x] = (DRegs[2 + x] >> 5) & 1;
-  fceulib__.ines->onemir(MirCache[lastA]);
-}
-
-static void Sync() {
-  fceulib__.cart->setchr2(0x0000, DRegs[0] & 0x1F);
-  fceulib__.cart->setchr2(0x0800, DRegs[1] & 0x1F);
-  fceulib__.cart->setchr1(0x1000, DRegs[2] & 0x1F);
-  fceulib__.cart->setchr1(0x1400, DRegs[3] & 0x1F);
-  fceulib__.cart->setchr1(0x1800, DRegs[4] & 0x1F);
-  fceulib__.cart->setchr1(0x1C00, DRegs[5] & 0x1F);
-  fceulib__.cart->setprg8(0x8000, DRegs[6] & 0x1F);
-  fceulib__.cart->setprg8(0xa000, DRegs[7] & 0x1F);
-  toot();
-}
-
-static DECLFW(Mapper95_write) {
-  switch (A & 0xF001) {
-    case 0x8000: cmd = V; break;
-    case 0x8001:
-      switch (cmd & 0x07) {
-        case 0: DRegs[0] = (V & 0x3F) >> 1; break;
-        case 1: DRegs[1] = (V & 0x3F) >> 1; break;
-        case 2: DRegs[2] = V & 0x3F; break;
-        case 3: DRegs[3] = V & 0x3F; break;
-        case 4: DRegs[4] = V & 0x3F; break;
-        case 5: DRegs[5] = V & 0x3F; break;
-        case 6: DRegs[6] = V & 0x3F; break;
-        case 7: DRegs[7] = V & 0x3F; break;
-      }
-      Sync();
+    for (int x = 0; x < 4; x++) MirCache[4 + x] = (DRegs[2 + x] >> 5) & 1;
+    fc->ines->onemir(MirCache[lastA]);
   }
-}
 
-static void DragonBust_PPU(uint32 A) {
-  static int last = -1;
-  static uint8 z;
-
-  if (A >= 0x2000) return;
-
-  A >>= 10;
-  lastA = A;
-  z = MirCache[A];
-  if (z != last) {
-    fceulib__.ines->onemir(z);
-    last = z;
+  void Sync() {
+    fc->cart->setchr2(0x0000, DRegs[0] & 0x1F);
+    fc->cart->setchr2(0x0800, DRegs[1] & 0x1F);
+    fc->cart->setchr1(0x1000, DRegs[2] & 0x1F);
+    fc->cart->setchr1(0x1400, DRegs[3] & 0x1F);
+    fc->cart->setchr1(0x1800, DRegs[4] & 0x1F);
+    fc->cart->setchr1(0x1C00, DRegs[5] & 0x1F);
+    fc->cart->setprg8(0x8000, DRegs[6] & 0x1F);
+    fc->cart->setprg8(0xa000, DRegs[7] & 0x1F);
+    toot();
   }
+
+  void Mapper95_write(DECLFW_ARGS) {
+    switch (A & 0xF001) {
+      case 0x8000: cmd = V; break;
+      case 0x8001:
+	switch (cmd & 0x07) {
+	  case 0: DRegs[0] = (V & 0x3F) >> 1; break;
+	  case 1: DRegs[1] = (V & 0x3F) >> 1; break;
+	  case 2: DRegs[2] = V & 0x3F; break;
+	  case 3: DRegs[3] = V & 0x3F; break;
+	  case 4: DRegs[4] = V & 0x3F; break;
+	  case 5: DRegs[5] = V & 0x3F; break;
+	  case 6: DRegs[6] = V & 0x3F; break;
+	  case 7: DRegs[7] = V & 0x3F; break;
+	}
+	Sync();
+    }
+  }
+
+  int ppu_last = -1;
+  void DragonBust_PPU(uint32 A) {
+    if (A >= 0x2000) return;
+
+    A >>= 10;
+    lastA = A;
+    // 'z' used to be static, but there seems to
+    // be no reason for that. -tom7
+    uint8 ppu_z = MirCache[A];
+    if (ppu_z != ppu_last) {
+      fc->ines->onemir(ppu_z);
+      ppu_last = ppu_z;
+    }
+  }
+
+  void Power() override {
+    memset(DRegs, 0x3F, 8);
+    DRegs[0] = DRegs[1] = 0x1F;
+
+    Sync();
+
+    fc->cart->setprg8(0xc000, 0x3E);
+    fc->cart->setprg8(0xe000, 0x3F);
+
+    fc->fceu->SetReadHandler(0x8000, 0xffff, Cart::CartBR);
+    fc->fceu->SetWriteHandler(0x8000, 0xffff, [](DECLFW_ARGS) {
+      ((Mapper95*)fc->fceu->cartiface)->Mapper95_write(DECLFW_FORWARD);
+    });
+  }
+
+  static void StateRestore(FC *fc, int version) {
+    ((Mapper95*)fc->fceu->cartiface)->Sync();
+  }
+
+  Mapper95(FC *fc, CartInfo *info) : CartInterface(fc) {
+    fc->ppu->PPU_hook = [](FC *fc, uint32 a) {
+      ((Mapper95*)fc->fceu->cartiface)->DragonBust_PPU(a);
+    };
+    fc->fceu->GameStateRestore = StateRestore;
+    fc->state->AddExVec({
+      {DRegs, 8, "DREG"}, {&cmd, 1, "CMD0"}, {&lastA, 1, "LAST"}});
+  }
+};
 }
 
-static void DBPower(FC *fc) {
-  memset(DRegs, 0x3F, 8);
-  DRegs[0] = DRegs[1] = 0x1F;
-
-  Sync();
-
-  fceulib__.cart->setprg8(0xc000, 0x3E);
-  fceulib__.cart->setprg8(0xe000, 0x3F);
-
-  fceulib__.fceu->SetReadHandler(0x8000, 0xffff, Cart::CartBR);
-  fceulib__.fceu->SetWriteHandler(0x8000, 0xffff, Mapper95_write);
-}
-
-static void StateRestore(FC *fc, int version) {
-  Sync();
-}
-
-void Mapper95_Init(CartInfo *info) {
-  info->Power = DBPower;
-  fceulib__.state->AddExVec(DB_StateRegs);
-  fceulib__.ppu->PPU_hook = DragonBust_PPU;
-  fceulib__.fceu->GameStateRestore = StateRestore;
+CartInterface *Mapper95_Init(FC *fc, CartInfo *info) {
+  return new Mapper95(fc, info);
 }

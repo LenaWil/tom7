@@ -22,43 +22,53 @@
 
 #include "mapinc.h"
 
-static uint8 reg, ppulatch;
+namespace {
+struct Mapper96 : public CartInterface {
+  uint8 reg = 0, ppulatch = 0;
 
-static vector<SFORMAT> StateRegs = {{&reg, 1, "REGS"}, {&ppulatch, 1, "PPUL"}};
+  void Sync() {
+    fc->cart->setmirror(MI_0);
+    fc->cart->setprg32(0x8000, reg & 3);
+    fc->cart->setchr4(0x0000, (reg & 4) | ppulatch);
+    fc->cart->setchr4(0x1000, (reg & 4) | 3);
+  }
 
-static void Sync() {
-  fceulib__.cart->setmirror(MI_0);
-  fceulib__.cart->setprg32(0x8000, reg & 3);
-  fceulib__.cart->setchr4(0x0000, (reg & 4) | ppulatch);
-  fceulib__.cart->setchr4(0x1000, (reg & 4) | 3);
-}
-
-static DECLFW(M96Write) {
-  reg = V;
-  Sync();
-}
-
-static void M96Hook(uint32 A) {
-  if ((A & 0x3000) == 0x2000) {
-    ppulatch = (A >> 8) & 3;
+  M96Write(DECLFW_ARGS) {
+    reg = V;
     Sync();
   }
+
+  void M96Hook(uint32 A) {
+    if ((A & 0x3000) == 0x2000) {
+      ppulatch = (A >> 8) & 3;
+      Sync();
+    }
+  }
+
+  void Power() override {
+    reg = ppulatch = 0;
+    Sync();
+    fc->fceu->SetReadHandler(0x8000, 0xffff, Cart::CartBR);
+    fc->fceu->SetWriteHandler(0x8000, 0xffff, [](DECLFW_ARGS) {
+      ((Mapper96*)fc->fceu->cartiface)->M96Write(DECLFW_FORWARD);
+    });
+  }
+
+  static void StateRestore(FC *fc, int version) {
+    ((Mapper96*)fc->fceu->cartiface)->Sync();
+  }
+
+  Mapper96(FC *fc, CartInfo *info) : CartInterface(fc) {
+    fc->ppu->PPU_hook = [](FC *fc, uint32 a) {
+      ((Mapper96*)fc->fceu->cartiface)->M96Hook(a);
+    };
+    fc->fceu->GameStateRestore = StateRestore;
+    fc->state->AddExVec({{&reg, 1, "REGS"}, {&ppulatch, 1, "PPUL"}});
+  }
+
+};
 }
 
-static void M96Power(FC *fc) {
-  reg = ppulatch = 0;
-  Sync();
-  fceulib__.fceu->SetReadHandler(0x8000, 0xffff, Cart::CartBR);
-  fceulib__.fceu->SetWriteHandler(0x8000, 0xffff, M96Write);
-}
-
-static void StateRestore(FC *fc, int version) {
-  Sync();
-}
-
-void Mapper96_Init(CartInfo *info) {
-  info->Power = M96Power;
-  fceulib__.ppu->PPU_hook = M96Hook;
-  fceulib__.fceu->GameStateRestore = StateRestore;
-  fceulib__.state->AddExVec(StateRegs);
+CartInterface *Mapper96_Init(FC *fc, CartInfo *info) {
+  return new Mapper96(fc, info);
 }
