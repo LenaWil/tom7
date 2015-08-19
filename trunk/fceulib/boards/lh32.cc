@@ -23,51 +23,57 @@
 
 #include "mapinc.h"
 
-static uint8 reg;
-static uint8 *WRAM = nullptr;
-static uint32 WRAMSIZE;
+static constexpr int WRAMSIZE = 8192;
 
-static vector<SFORMAT> StateRegs = {{&reg, 1, "REGS"}};
+namespace {
+struct LH32 : public CartInterface {
+  uint8 reg = 0;
+  uint8 *WRAM = nullptr;
 
-static void Sync() {
-  fceulib__.cart->setprg8(0x6000, reg);
-  fceulib__.cart->setprg8(0x8000, ~3);
-  fceulib__.cart->setprg8(0xa000, ~2);
-  fceulib__.cart->setprg8r(0x10, 0xc000, 0);
-  fceulib__.cart->setprg8(0xe000, ~0);
-  fceulib__.cart->setchr8(0);
+  void Sync() {
+    fc->cart->setprg8(0x6000, reg);
+    fc->cart->setprg8(0x8000, ~3);
+    fc->cart->setprg8(0xa000, ~2);
+    fc->cart->setprg8r(0x10, 0xc000, 0);
+    fc->cart->setprg8(0xe000, ~0);
+    fc->cart->setchr8(0);
+  }
+
+  void LH32Write(DECLFW_ARGS) {
+    reg = V;
+    Sync();
+  }
+
+  void Power() override {
+    Sync();
+    fc->fceu->SetReadHandler(0x6000, 0xFFFF, Cart::CartBR);
+    fc->fceu->SetWriteHandler(0xC000, 0xDFFF, Cart::CartBW);
+    fc->fceu->SetWriteHandler(0x6000, 0x6000, [](DECLFW_ARGS) {
+      ((LH32*)fc->fceu->cartiface)->LH32Write(DECLFW_FORWARD);
+    });
+  }
+
+  void Close() override {
+    free(WRAM);
+    WRAM = nullptr;
+  }
+
+  static void StateRestore(FC *fc, int version) {
+    ((LH32*)fc->fceu->cartiface)->Sync();
+  }
+
+  LH32(FC *fc, CartInfo *info) : CartInterface(fc) {
+    WRAM = (uint8 *)FCEU_gmalloc(WRAMSIZE);
+    fc->cart->SetupCartPRGMapping(0x10, WRAM, WRAMSIZE, 1);
+    fc->state->AddExState(WRAM, WRAMSIZE, 0, "WRAM");
+
+    fc->fceu->GameStateRestore = StateRestore;
+    fc->state->AddExVec({{&reg, 1, "REGS"}});
+  }
+
+};
 }
 
-static DECLFW(LH32Write) {
-  reg = V;
-  Sync();
-}
-
-static void LH32Power(FC *fc) {
-  Sync();
-  fceulib__.fceu->SetReadHandler(0x6000, 0xFFFF, Cart::CartBR);
-  fceulib__.fceu->SetWriteHandler(0xC000, 0xDFFF, Cart::CartBW);
-  fceulib__.fceu->SetWriteHandler(0x6000, 0x6000, LH32Write);
-}
-
-static void LH32Close(FC *fc) {
-  free(WRAM);
-  WRAM = nullptr;
-}
-
-static void StateRestore(FC *fc, int version) {
-  Sync();
-}
-
-void LH32_Init(CartInfo *info) {
-  info->Power = LH32Power;
-  info->Close = LH32Close;
-
-  WRAMSIZE = 8192;
-  WRAM = (uint8 *)FCEU_gmalloc(WRAMSIZE);
-  fceulib__.cart->SetupCartPRGMapping(0x10, WRAM, WRAMSIZE, 1);
-  fceulib__.state->AddExState(WRAM, WRAMSIZE, 0, "WRAM");
-
-  fceulib__.fceu->GameStateRestore = StateRestore;
-  fceulib__.state->AddExVec(StateRegs);
+CartInterface *LH32_Init(FC *fc, CartInfo *info) {
+  return new LH32(fc, info);
 }

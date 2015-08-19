@@ -20,93 +20,109 @@
 
 #include "mapinc.h"
 
-static uint8 preg[4], creg[8];
-static uint8 IRQa, mirr;
-static int32 IRQCount, IRQLatch;
+namespace {
+struct Mapper17 : public CartInterface {
+  uint8 preg[4] = {}, creg[8] = {};
+  uint8 IRQa = 0, mirr = 0;
+  int32 IRQCount = 0, IRQLatch = 0;
 
-static vector<SFORMAT> StateRegs = {{preg, 4, "PREG"},
-                              {creg, 8, "CREG"},
-                              {&mirr, 1, "MIRR"},
-                              {&IRQa, 1, "IRQA"},
-                              {&IRQCount, 4, "IRQC"},
-                              {&IRQLatch, 4, "IRQL"}};
-
-static void Sync() {
-  for (int i = 0; i < 8; i++) fceulib__.cart->setchr1(i << 10, creg[i]);
-  fceulib__.cart->setprg8(0x8000, preg[0]);
-  fceulib__.cart->setprg8(0xA000, preg[1]);
-  fceulib__.cart->setprg8(0xC000, preg[2]);
-  fceulib__.cart->setprg8(0xE000, preg[3]);
-  switch (mirr) {
-    case 0: fceulib__.cart->setmirror(MI_0); break;
-    case 1: fceulib__.cart->setmirror(MI_1); break;
-    case 2: fceulib__.cart->setmirror(MI_H); break;
-    case 3: fceulib__.cart->setmirror(MI_V); break;
-  }
-}
-
-static DECLFW(M17WriteMirr) {
-  mirr = ((A << 1) & 2) | ((V >> 4) & 1);
-  Sync();
-}
-
-static DECLFW(M17WriteIRQ) {
-  switch (A) {
-    case 0x4501:
-      IRQa = 0;
-      fceulib__.X->IRQEnd(FCEU_IQEXT);
-      break;
-    case 0x4502:
-      IRQCount &= 0xFF00;
-      IRQCount |= V;
-      break;
-    case 0x4503:
-      IRQCount &= 0x00FF;
-      IRQCount |= V << 8;
-      IRQa = 1;
-      break;
-  }
-}
-
-static DECLFW(M17WritePrg) {
-  preg[A & 3] = V;
-  Sync();
-}
-
-static DECLFW(M17WriteChr) {
-  creg[A & 7] = V;
-  Sync();
-}
-
-static void M17Power(FC *fc) {
-  preg[3] = ~0;
-  Sync();
-  fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
-  fceulib__.fceu->SetWriteHandler(0x42FE, 0x42FF, M17WriteMirr);
-  fceulib__.fceu->SetWriteHandler(0x4500, 0x4503, M17WriteIRQ);
-  fceulib__.fceu->SetWriteHandler(0x4504, 0x4507, M17WritePrg);
-  fceulib__.fceu->SetWriteHandler(0x4510, 0x4517, M17WriteChr);
-}
-
-static void M17IRQHook(FC *fc, int a) {
-  if (IRQa) {
-    IRQCount += a;
-    if (IRQCount >= 0x10000) {
-      fceulib__.X->IRQBegin(FCEU_IQEXT);
-      IRQa = 0;
-      IRQCount = 0;
+  void Sync() {
+    for (int i = 0; i < 8; i++) fc->cart->setchr1(i << 10, creg[i]);
+    fc->cart->setprg8(0x8000, preg[0]);
+    fc->cart->setprg8(0xA000, preg[1]);
+    fc->cart->setprg8(0xC000, preg[2]);
+    fc->cart->setprg8(0xE000, preg[3]);
+    switch (mirr) {
+      case 0: fc->cart->setmirror(MI_0); break;
+      case 1: fc->cart->setmirror(MI_1); break;
+      case 2: fc->cart->setmirror(MI_H); break;
+      case 3: fc->cart->setmirror(MI_V); break;
     }
   }
+
+  void M17WriteMirr(DECLFW_ARGS) {
+    mirr = ((A << 1) & 2) | ((V >> 4) & 1);
+    Sync();
+  }
+
+  void M17WriteIRQ(DECLFW_ARGS) {
+    switch (A) {
+      case 0x4501:
+	IRQa = 0;
+	fc->X->IRQEnd(FCEU_IQEXT);
+	break;
+      case 0x4502:
+	IRQCount &= 0xFF00;
+	IRQCount |= V;
+	break;
+      case 0x4503:
+	IRQCount &= 0x00FF;
+	IRQCount |= V << 8;
+	IRQa = 1;
+	break;
+    }
+  }
+
+  void M17WritePrg(DECLFW_ARGS) {
+    preg[A & 3] = V;
+    Sync();
+  }
+
+  void M17WriteChr(DECLFW_ARGS) {
+    creg[A & 7] = V;
+    Sync();
+  }
+
+  void Power() override {
+    preg[3] = ~0;
+    Sync();
+    fc->fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
+    fc->fceu->SetWriteHandler(0x42FE, 0x42FF, [](DECLFW_ARGS) {
+      ((Mapper17*)fc->fceu->cartiface)->M17WriteMirr(DECLFW_FORWARD);
+    });
+    fc->fceu->SetWriteHandler(0x4500, 0x4503, [](DECLFW_ARGS) {
+      ((Mapper17*)fc->fceu->cartiface)->M17WriteIRQ(DECLFW_FORWARD);
+    });
+    fc->fceu->SetWriteHandler(0x4504, 0x4507, [](DECLFW_ARGS) {
+      ((Mapper17*)fc->fceu->cartiface)->M17WritePrg(DECLFW_FORWARD);
+    });
+    fc->fceu->SetWriteHandler(0x4510, 0x4517, [](DECLFW_ARGS) {
+      ((Mapper17*)fc->fceu->cartiface)->M17WriteChr(DECLFW_FORWARD);
+    });
+  }
+
+  void M17IRQHook(int a) {
+    if (IRQa) {
+      IRQCount += a;
+      if (IRQCount >= 0x10000) {
+	fc->X->IRQBegin(FCEU_IQEXT);
+	IRQa = 0;
+	IRQCount = 0;
+      }
+    }
+  }
+
+  static void StateRestore(FC *fc, int version) {
+    ((Mapper17*)fc->fceu->cartiface)->Sync();
+  }
+
+  Mapper17(FC *fc, CartInfo *info) : CartInterface(fc) {
+    fc->X->MapIRQHook = [](FC *fc, int a) {
+      ((Mapper17*)fc->fceu->cartiface)->M17IRQHook(a);
+    };
+    fc->fceu->GameStateRestore = StateRestore;
+
+    fc->state->AddExVec({{preg, 4, "PREG"},
+			 {creg, 8, "CREG"},
+			 {&mirr, 1, "MIRR"},
+			 {&IRQa, 1, "IRQA"},
+			 {&IRQCount, 4, "IRQC"},
+			 {&IRQLatch, 4, "IRQL"}});
+  }
+
+};
 }
 
-static void StateRestore(FC *fc, int version) {
-  Sync();
-}
-
-void Mapper17_Init(CartInfo *info) {
-  info->Power = M17Power;
-  fceulib__.X->MapIRQHook = M17IRQHook;
-  fceulib__.fceu->GameStateRestore = StateRestore;
-
-  fceulib__.state->AddExVec(StateRegs);
+CartInterface *Mapper17_Init(FC *fc, CartInfo *info) {
+  return new Mapper17(fc, info);
 }
