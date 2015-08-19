@@ -32,8 +32,6 @@ CartInterface *ELROM_Init(FC *fc, CartInfo *info);
 CartInterface *ETROM_Init(FC *fc, CartInfo *info);
 CartInterface *EWROM_Init(FC *fc, CartInfo *info);
 CartInterface *GNROM_Init(FC *fc, CartInfo *info);
-CartInterface *LH53_Init(FC *fc, CartInfo *info);
-CartInterface *MALEE_Init(FC *fc, CartInfo *info);
 CartInterface *Novel_Init(FC *fc, CartInfo *info);
 CartInterface *S74LS374NA_Init(FC *fc, CartInfo *info);
 CartInterface *S74LS374N_Init(FC *fc, CartInfo *info);
@@ -49,6 +47,12 @@ CartInterface *SA72007_Init(FC *fc, CartInfo *info);
 CartInterface *SA72008_Init(FC *fc, CartInfo *info);
 CartInterface *SA9602B_Init(FC *fc, CartInfo *info);
 #endif
+
+// malee
+CartInterface *MALEE_Init(FC *fc, CartInfo *info);
+
+// lh53
+CartInterface *LH53_Init(FC *fc, CartInfo *info);
 
 // lh32
 CartInterface *LH32_Init(FC *fc, CartInfo *info);

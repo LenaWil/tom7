@@ -20,55 +20,67 @@
 
 #include "mapinc.h"
 
-static uint8 reg, delay, mirr;
+namespace {
+struct Mapper175 : public CartInterface {
 
-static vector<SFORMAT> StateRegs = {{&reg, 1, "REGS"}, {&mirr, 1, "MIRR"}};
+  uint8 reg = 0, delay = 0, mirr = 0;
 
-static void Sync() {
-  fceulib__.cart->setchr8(reg);
-  if (!delay) {
-    fceulib__.cart->setprg16(0x8000, reg);
-    fceulib__.cart->setprg8(0xC000, reg << 1);
+  void Sync() {
+    fc->cart->setchr8(reg);
+    if (!delay) {
+      fc->cart->setprg16(0x8000, reg);
+      fc->cart->setprg8(0xC000, reg << 1);
+    }
+    fc->cart->setprg8(0xE000, (reg << 1) + 1);
+    fc->cart->setmirror(((mirr & 4) >> 2) ^ 1);
   }
-  fceulib__.cart->setprg8(0xE000, (reg << 1) + 1);
-  fceulib__.cart->setmirror(((mirr & 4) >> 2) ^ 1);
-}
 
-static DECLFW(M175Write1) {
-  mirr = V;
-  delay = 1;
-  Sync();
-}
-
-static DECLFW(M175Write2) {
-  reg = V & 0x0F;
-  delay = 1;
-  Sync();
-}
-
-static DECLFR(M175Read) {
-  if (A == 0xFFFC) {
-    delay = 0;
+  void M175Write1(DECLFW_ARGS) {
+    mirr = V;
+    delay = 1;
     Sync();
   }
-  return Cart::CartBR(DECLFR_FORWARD);
+
+  void M175Write2(DECLFW_ARGS) {
+    reg = V & 0x0F;
+    delay = 1;
+    Sync();
+  }
+
+  DECLFR_RET M175Read(DECLFR_ARGS) {
+    if (A == 0xFFFC) {
+      delay = 0;
+      Sync();
+    }
+    return Cart::CartBR(DECLFR_FORWARD);
+  }
+
+  void Power() override {
+    reg = mirr = delay = 0;
+    fc->fceu->SetReadHandler(0x8000, 0xFFFF, [](DECLFR_ARGS) {
+      return ((Mapper175*)fc->fceu->cartiface)->M175Read(DECLFR_FORWARD);
+    });
+    fc->fceu->SetWriteHandler(0x8000, 0x8000, [](DECLFW_ARGS) {
+      ((Mapper175*)fc->fceu->cartiface)->M175Write1(DECLFW_FORWARD);
+    });
+    fc->fceu->SetWriteHandler(0xA000, 0xA000, [](DECLFW_ARGS) {
+      ((Mapper175*)fc->fceu->cartiface)->M175Write2(DECLFW_FORWARD);
+    });
+    Sync();
+  }
+
+  static void StateRestore(FC *fc, int version) {
+    ((Mapper175*)fc->fceu->cartiface)->Sync();
+  }
+
+  Mapper175(FC *fc, CartInfo *info) : CartInterface(fc) {
+    fc->fceu->GameStateRestore = StateRestore;
+    fc->state->AddExVec({{&reg, 1, "REGS"}, {&mirr, 1, "MIRR"}});
+  }
+
+};
 }
 
-static void M175Power(FC *fc) {
-  reg = mirr = delay = 0;
-  fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, M175Read);
-  fceulib__.fceu->SetWriteHandler(0x8000, 0x8000, M175Write1);
-  fceulib__.fceu->SetWriteHandler(0xA000, 0xA000, M175Write2);
-  Sync();
-}
-
-static void StateRestore(FC *fc, int version) {
-  Sync();
-}
-
-void Mapper175_Init(CartInfo *info) {
-  info->Power = M175Power;
-  fceulib__.fceu->GameStateRestore = StateRestore;
-
-  fceulib__.state->AddExVec(StateRegs);
+CartInterface *Mapper175_Init(FC *fc, CartInfo *info) {
+  return new Mapper175(fc, info);
 }
