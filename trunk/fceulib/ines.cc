@@ -552,7 +552,9 @@ static constexpr BoardMapping const board_map[] = {
   {"100-in-1", 15, Mapper15_Init},
 #if 0
   {"Bandai", 16, Mapper16_Init},
+#endif 
   {"", 17, Mapper17_Init},
+#if 0
   {"", 18, Mapper18_Init},
   {"Namcot 106", 19, Mapper19_Init},
   // {"", 20, Mapper20_Init},
@@ -636,9 +638,13 @@ static constexpr BoardMapping const board_map[] = {
   // {"", 85, Mapper85_Init},
   {"", 86, Mapper86_Init},
   {"", 87, Mapper87_Init},
+#endif
   {"", 88, Mapper88_Init},
+#if 0
   {"", 89, Mapper89_Init},
+#endif
   {"", 90, Mapper90_Init},
+#if 0
   {"", 91, Mapper91_Init},
   {"", 92, Mapper92_Init},
 #endif
@@ -681,7 +687,6 @@ static constexpr BoardMapping const board_map[] = {
   {"", 120, Mapper120_Init},
   {"", 121, Mapper121_Init},
   // {"", 122, Mapper122_Init},
-#if 0
   {"UNLH2288", 123, UNLH2288_Init},
   // {"", 124, Mapper124_Init},
   {"", 125, LH32_Init},
@@ -691,7 +696,6 @@ static constexpr BoardMapping const board_map[] = {
   // {"", 129, Mapper129_Init},
   // {"", 130, Mapper130_Init},
   // {"", 131, Mapper131_Init},
-#endif
   {"UNL22211", 132, UNL22211_Init},
 #if 0
   {"SA72008", 133, SA72008_Init},
@@ -721,7 +725,9 @@ static constexpr BoardMapping const board_map[] = {
 #if 0
   {"", 152, Mapper152_Init},
   {"", 153, Mapper153_Init},
+#endif
   {"", 154, Mapper154_Init},
+#if 0
   {"", 155, Mapper155_Init},
 #endif
   {"", 156, Mapper156_Init},
@@ -732,15 +738,15 @@ static constexpr BoardMapping const board_map[] = {
   {"SA009", 160, SA009_Init},
   // {"", 161, Mapper161_Init},
   {"", 162, UNLFS304_Init},
+#endif
   {"", 163, Mapper163_Init},
   {"", 164, Mapper164_Init},
-#endif
   {"", 165, Mapper165_Init},
-#if 0
   // {"", 166, Mapper166_Init},
   // {"", 167, Mapper167_Init},
   {"", 168, Mapper168_Init},
   // {"", 169, Mapper169_Init},
+#if 0
   {"", 170, Mapper170_Init},
   {"", 171, Mapper171_Init},
 #endif
@@ -794,9 +800,13 @@ static constexpr BoardMapping const board_map[] = {
   {"DEIROM", 206, DEIROM_Init},
   // {"", 207, Mapper207_Init},
   {"", 208, Mapper208_Init},
+#endif
   {"", 209, Mapper209_Init},
+#if 0
   {"", 210, Mapper210_Init},
+#endif
   {"", 211, Mapper211_Init},
+#if 0
   {"", 212, Mapper212_Init},
   {"", 213, Mapper213_Init},
   {"", 214, Mapper214_Init},
