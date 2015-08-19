@@ -316,7 +316,9 @@ static constexpr BMAPPING bmap[] = {
     {"EWROM", EWROM_Init, 0},
     {"FK23C", BMCFK23C_Init, BMCFLAG_EXPCHRR},
     {"FK23CA", BMCFK23CA_Init, BMCFLAG_EXPCHRR},
+#endif
     {"FS304", UNLFS304_Init, 0},
+#if 0
     {"G-146", BMCG146_Init, 0},
     {"GK-192", BMCGK192_Init, 0},
     {"GS-2004", BMCGS2004_Init, 0},
@@ -337,12 +339,10 @@ static constexpr BMAPPING bmap[] = {
     {"KS7032", UNLKS7032_Init, 0},
     {"KS7037", UNLKS7037_Init, 0},
     {"KS7057", UNLKS7057_Init, 0},
-#if 0
     {"LE05", LE05_Init, 0},
-#endif
     {"LH10", LH10_Init, 0},
-#if 0
     {"LH32", LH32_Init, 0},
+#if 0
     {"LH53", LH53_Init, 0},
     {"MARIO1-MALEE2", MALEE_Init, 0},
     {"MHROM", MHROM_Init, 0},
