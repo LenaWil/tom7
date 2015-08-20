@@ -20,37 +20,44 @@
 
 #include "mapinc.h"
 
-static uint8 latch;
-static writefunc old4016;
+namespace {
+struct Mapper99 : public CartInterface {
+  uint8 latch = 0;
+  writefunc old4016 = nullptr;
 
-static vector<SFORMAT> StateRegs = {{&latch, 1, "LATC"}};
+  void Sync() {
+    fc->cart->setchr8((latch >> 2) & 1);
+    fc->cart->setprg32(0x8000, 0);
+    fc->cart->setprg8(0x8000, latch & 4); /* Special for VS Gumshoe */
+  }
 
-static void Sync() {
-  fceulib__.cart->setchr8((latch >> 2) & 1);
-  fceulib__.cart->setprg32(0x8000, 0);
-  fceulib__.cart->setprg8(0x8000, latch & 4); /* Special for VS Gumshoe */
+  void M99Write(DECLFW_ARGS) {
+    latch = V;
+    Sync();
+    old4016(DECLFW_FORWARD);
+  }
+
+  void Power() override {
+    latch = 0;
+    Sync();
+    old4016 = fc->fceu->GetWriteHandler(0x4016);
+    fc->fceu->SetWriteHandler(0x4016, 0x4016, [](DECLFW_ARGS) {
+      ((Mapper99*)fc->fceu->cartiface)->M99Write(DECLFW_FORWARD);
+    });
+    fc->fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
+  }
+
+  static void StateRestore(FC *fc, int version) {
+    ((Mapper99*)fc->fceu->cartiface)->Sync();
+  }
+
+  Mapper99(FC *fc, CartInfo *info) : CartInterface(fc) {
+    fc->fceu->GameStateRestore = StateRestore;
+    fc->state->AddExVec({{&latch, 1, "LATC"}});
+  }
+};
 }
 
-static DECLFW(M99Write) {
-  latch = V;
-  Sync();
-  old4016(DECLFW_FORWARD);
-}
-
-static void M99Power(FC *fc) {
-  latch = 0;
-  Sync();
-  old4016 = fceulib__.fceu->GetWriteHandler(0x4016);
-  fceulib__.fceu->SetWriteHandler(0x4016, 0x4016, M99Write);
-  fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
-}
-
-static void StateRestore(FC *fc, int version) {
-  Sync();
-}
-
-void Mapper99_Init(CartInfo *info) {
-  info->Power = M99Power;
-  fceulib__.fceu->GameStateRestore = StateRestore;
-  fceulib__.state->AddExVec(StateRegs);
+CartInterface *Mapper99_Init(FC *fc, CartInfo *info) {
+  return new Mapper99(fc, info);
 }

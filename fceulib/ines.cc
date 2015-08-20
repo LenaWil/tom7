@@ -657,8 +657,10 @@ static constexpr BoardMapping const board_map[] = {
 #if 0
   {"", 97, Mapper97_Init},
   // {"", 98, Mapper98_Init},
+#endif
   {"", 99, Mapper99_Init},
   // {"", 100, Mapper100_Init},
+#if 0
   {"", 101, Mapper101_Init},
   // {"", 102, Mapper102_Init},
 #endif
@@ -762,7 +764,9 @@ static constexpr BoardMapping const board_map[] = {
   // for instance ????. i dont know what game uses this BMCFK23C as
   // mapper 176. we'll have to make a note when we find it.
   {"BMCFK23C", 176, BMCFK23C_Init},
+#endif
   {"", 177, Mapper177_Init},
+#if 0
   {"", 178, Mapper178_Init},
   // {"", 179, Mapper179_Init},
   {"", 180, Mapper180_Init},
