@@ -577,6 +577,7 @@ int main(int argc, char **argv) {
     11782439179331509265ULL,
     };
 
+  // MMC5 test
   Game castlevania3{
     "castlevania3.nes",
     RLE::Decompress({ 101, 0, 4, 2, 3, 3, 2, 1, 50, 0, }),

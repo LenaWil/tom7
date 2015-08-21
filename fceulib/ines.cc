@@ -535,10 +535,8 @@ static constexpr BoardMapping const board_map[] = {
   {"UNROM", 2, UNROM_Init},
   {"CNROM", 3, CNROM_Init},
   {"MMC3", 4, Mapper4_Init},
-#if 0
   {"MMC5", 5, Mapper5_Init},
  // {"", 6, Mapper6_Init},
-#endif
   {"ANROM", 7, ANROM_Init},
 #if 0
   {"", 8, Mapper8_Init}, // Nogaems, it's worthless
@@ -766,9 +764,9 @@ static constexpr BoardMapping const board_map[] = {
   {"BMCFK23C", 176, BMCFK23C_Init},
 #endif
   {"", 177, Mapper177_Init},
-#if 0
   {"", 178, Mapper178_Init},
   // {"", 179, Mapper179_Init},
+#if 0
   {"", 180, Mapper180_Init},
   {"", 181, Mapper181_Init},
   // {"", 182, Mapper182_Init}, // Deprecated, dupe

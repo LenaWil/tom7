@@ -14,6 +14,15 @@ struct CartInterface {
   virtual void Reset() {}
   virtual void Close() {}
 
+  // This is a codification of an awful hack whereby the PPU calls
+  // MMC5 code (if that is the active mapper) for each scanline.
+  // Not my fault! -tom7
+  virtual void MMC5HackHB(int scanline) {
+    fprintf(stderr, "MMC5Hack should not be called on "
+	    "anything but MMC5.\n");
+    abort();
+  }
+  
 protected:
   FC *fc = nullptr;
 };

@@ -310,10 +310,12 @@ static constexpr BMAPPING bmap[] = {
     {"DANCE2000", UNLD2000_Init, 0},
     {"DREAMTECH01", DreamTech01_Init, 0},
     {"EDU2000", UNLEDU2000_Init, 0},
+#endif
     {"EKROM", EKROM_Init, 0},
     {"ELROM", ELROM_Init, 0},
     {"ETROM", ETROM_Init, 0},
     {"EWROM", EWROM_Init, 0},
+#if 0
     {"FK23C", BMCFK23C_Init, BMCFLAG_EXPCHRR},
     {"FK23CA", BMCFK23CA_Init, BMCFLAG_EXPCHRR},
 #endif

@@ -31,14 +31,16 @@ class PPU {
   void (*GameHBIRQHook2)(FC *) = nullptr;
 
 
-  uint8 NTARAM[0x800], PALRAM[0x20], SPRAM[0x100], SPRBUF[0x100];
-  //for 0x4/0x8/0xC addresses in palette, the ones in
-  //0x20 are 0 to not break fceu rendering.
-  uint8 UPALRAM[0x03]; 
+  uint8 NTARAM[0x800] = {}, PALRAM[0x20] = {};
+  uint8 SPRAM[0x100] = {}, SPRBUF[0x100] = {};
+  // for 0x4/0x8/0xC addresses in palette, the ones in
+  // 0x20 are 0 to not break fceu rendering.
+  uint8 UPALRAM[0x03] = {};
 
   uint8 PPU_values[4] = {};
 
   int MMC5Hack = 0;
+  uint8 mmc5ABMode = 0; /* A=0, B=1 */
   uint32 MMC5HackVROMMask = 0;
   uint8 *MMC5HackExNTARAMPtr = nullptr;
   uint8 *MMC5HackVROMPTR = nullptr;

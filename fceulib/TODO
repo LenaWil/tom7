@@ -53,6 +53,8 @@ Cleanup to do:
  - DECLFW_ARGS (etc.) have an FC parameter, but we don't need this
    when they're argument signatures for member functions.
 
+UNLA9711
+
 Surprisingly necessary:
  - crc32 since ines.cc has a table of games and their CRCs.
  - cart md5ing
