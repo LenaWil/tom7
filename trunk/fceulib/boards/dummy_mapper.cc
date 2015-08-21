@@ -20,74 +20,84 @@
 
 #include "mapinc.h"
 
-static uint8 reg[8];
-static uint8 IRQa;
-static int16 IRQCount, IRQLatch;
+// More like "example mapper" than "dummy" -- this one isn't even
+// referenced from anywhere.
+
 /*
-static uint8 *WRAM=nullptr;
-static uint32 WRAMSIZE;
-static uint8 *CHRRAM=nullptr;
-static uint32 CHRRAMSIZE;
+  static constexpr int WRAMSIZE = 8192;
+  static constexpr int CHRRAMSIZE = 8192;
 */
 
-static vector<SFORMAT> StateRegs = {{reg, 8, "REGS"},
-                              {&IRQa, 1, "IRQA"},
-                              {&IRQCount, 2, "IRQC"},
-                              {&IRQLatch, 2, "IRQL"}};
+namespace {
+struct MapperNNN : public CartInterface {
+  static uint8 reg[8] = {};
+  static uint8 IRQa = 0;
+  static int16 IRQCount = 0, IRQLatch = 0;
+  /*
+  static uint8 *WRAM=nullptr;
+  static uint8 *CHRRAM=nullptr;
+  */
 
-static void Sync() {}
+  void Sync() {}
 
-static DECLFW(MNNNWrite) {}
+  void MNNNWrite(DECLFW_ARGS) {}
 
-static void MNNNPower(FC *fc) {
-  //	fceulib__.fceu->SetReadHandler(0x6000,0x7fff,CartBR);
-  //	fceulib__.fceu->SetWriteHandler(0x6000,0x7fff,CartBW);
-  fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
-  fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, MNNNWrite);
-}
+  void Power() override {
+    //	fc->fceu->SetReadHandler(0x6000,0x7fff,CartBR);
+    //	fc->fceu->SetWriteHandler(0x6000,0x7fff,CartBW);
+    fc->fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
+    fc->fceu->SetWriteHandler(0x8000, 0xFFFF, [](DECLFW_ARGS) {
+      ((MapperNNN*)fc->fceu->cartiface)->MNNNWrite(DECLFW_FORWARD);
+    });
+  }
 
-static void MNNNReset(FC *) {}
+  void Reset() override {}
 
-/*
-static void MNNNClose()
-{
-    if (WRAM)
-        free(WRAM);
-    if (CHRRAM)
-        free(CHRRAM);
+  /*
+  static void Close() override {
+    free(WRAM);
+    free(CHRRAM);
     WRAM = CHRRAM = nullptr;
-}
-*/
-
-static void MNNNIRQHook() {
-  fceulib__.X->IRQBegin(FCEU_IQEXT);
-}
-
-static void StateRestore(FC *fc, int version) {
-  Sync();
-}
-
-void MapperNNN_Init(CartInfo *info) {
-  info->Reset = MNNNReset;
-  info->Power = MNNNPower;
-  //	info->Close = MNNNClose;
-  fceulib__.ppu->GameHBIRQHook = MNNNIRQHook;
-  fceulib__.fceu->GameStateRestore = StateRestore;
-  /*
-    CHRRAMSIZE = 8192;
-    CHRRAM = (uint8*)FCEU_gmalloc(CHRRAMSIZE);
-    SetupCartCHRMapping(0x10, CHRRAM, CHRRAMSIZE, 1);
-    fceulib__.state->AddExState(CHRRAM, CHRRAMSIZE, 0, "CRAM");
+  }
   */
-  /*
-    WRAMSIZE = 8192;
-    WRAM = (uint8*)FCEU_gmalloc(WRAMSIZE);
-    SetupCartPRGMapping(0x10, WRAM, WRAMSIZE, 1);
-    fceulib__.state->AddExState(WRAM, WRAMSIZE, 0, "WRAM");
-    if (info->battery) {
-    info->SaveGame[0] = WRAM;
-    info->SaveGameLen[0] = WRAMSIZE;
+
+  void MNNNIRQHook() {
+    fc->X->IRQBegin(FCEU_IQEXT);
+  }
+
+  static void StateRestore(FC *fc, int version) {
+    ((MapperNNN*)fc->fceu->cartiface)->Sync();
+  }
+
+  MapperNNN(FC *fc, CartInfo *info) : CartInterface(fc) {
+    fc->ppu->GameHBIRQHook = [](FC *fc) {
+      ((MapperNNN*)fc->fceu->cartiface)->MNNNIRQHook();
     }
-  */
-  fceulib__.state->AddExVec(StateRegs);
+    fc->fceu->GameStateRestore = StateRestore;
+    /*
+      CHRRAMSIZE = 8192;
+      CHRRAM = (uint8*)FCEU_gmalloc(CHRRAMSIZE);
+      SetupCartCHRMapping(0x10, CHRRAM, CHRRAMSIZE, 1);
+      fc->state->AddExState(CHRRAM, CHRRAMSIZE, 0, "CRAM");
+    */
+    /*
+      WRAM = (uint8*)FCEU_gmalloc(WRAMSIZE);
+      SetupCartPRGMapping(0x10, WRAM, WRAMSIZE, 1);
+      fc->state->AddExState(WRAM, WRAMSIZE, 0, "WRAM");
+      if (info->battery) {
+	info->SaveGame[0] = WRAM;
+	info->SaveGameLen[0] = WRAMSIZE;
+      }
+    */
+    fc->state->AddExVec({{reg, 8, "REGS"},
+			 {&IRQa, 1, "IRQA"},
+			 {&IRQCount, 2, "IRQC"},
+			 {&IRQLatch, 2, "IRQL"}});
+  }
+
+};
+}
+
+CartInterface *MapperNNN_Init(FC *fc, CartInfo *info) {
+  return new MapperNNN(fc, info);
 }

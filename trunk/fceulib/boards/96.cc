@@ -33,7 +33,7 @@ struct Mapper96 : public CartInterface {
     fc->cart->setchr4(0x1000, (reg & 4) | 3);
   }
 
-  M96Write(DECLFW_ARGS) {
+  void M96Write(DECLFW_ARGS) {
     reg = V;
     Sync();
   }

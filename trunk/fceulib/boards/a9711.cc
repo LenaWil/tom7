@@ -23,51 +23,61 @@
 
 // static uint8 m_perm[8] = {0, 1, 0, 3, 0, 5, 6, 7};
 
-static void UNLA9711PW(uint32 A, uint8 V) {
-  if ((EXPREGS[0] & 0xFF) == 0x37) {
-    fceulib__.cart->setprg8(0x8000, 0x13);
-    fceulib__.cart->setprg8(0xA000, 0x13);
-    fceulib__.cart->setprg8(0xC000, 0x13);
-    fceulib__.cart->setprg8(0xE000, 0x0);
-    //	  uint8 bank=EXPREGS[0]&0x1F;
-    //	 if(EXPREGS[0]&0x20)
-    //	    setprg32(0x8000,bank>>2);
-    //	  else
-    //	  {
-    //	    setprg16(0x8000,bank);
-    //	    setprg16(0xC000,bank);
-    //	  }
-  } else {
-    fceulib__.cart->setprg8(A, V & 0x3F);
+namespace {
+struct UNLA9711 : public MMC3 {
+  uint8 EXPREGS[8] = {};
+  
+  void PWrap(uint32 A, uint8 V) override {
+    if ((EXPREGS[0] & 0xFF) == 0x37) {
+      fc->cart->setprg8(0x8000, 0x13);
+      fc->cart->setprg8(0xA000, 0x13);
+      fc->cart->setprg8(0xC000, 0x13);
+      fc->cart->setprg8(0xE000, 0x0);
+      //	  uint8 bank=EXPREGS[0]&0x1F;
+      //	 if(EXPREGS[0]&0x20)
+      //	    setprg32(0x8000,bank>>2);
+      //	  else
+      //	  {
+      //	    setprg16(0x8000,bank);
+      //	    setprg16(0xC000,bank);
+      //	  }
+    } else {
+      fc->cart->setprg8(A, V & 0x3F);
+    }
   }
+
+  // static DECLFW(UNLA9711Write8000)
+  //{
+  //	FCEU_printf("bs %04x %02x\n",A,V);
+  //	if(V&0x80)
+  //	  MMC3_CMDWrite(A,V);
+  //	else
+  //	  MMC3_CMDWrite(A,m_perm[V&7]);
+  //	if(V!=0x86) MMC3_CMDWrite(A,V);
+  //}
+
+  void UNLA9711WriteLo(DECLFW_ARGS) {
+    // FCEU_printf("bs %04x %02x\n", A, V);
+    EXPREGS[0] = V;
+    FixMMC3PRG(MMC3_cmd);
+  }
+
+  void Power() override {
+    EXPREGS[0] = EXPREGS[1] = EXPREGS[2] = 0;
+    MMC3::Power();
+    fc->fceu->SetWriteHandler(0x5000, 0x5FFF, [](DECLFW_ARGS) {
+      ((UNLA9711*)fc->fceu->cartiface)->UNLA9711WriteLo(DECLFW_FORWARD);
+    });
+    //	fc->fceu->SetWriteHandler(0x8000,0xbfff,UNLA9711Write8000);
+  }
+
+  UNLA9711(FC *fc, CartInfo *info) : MMC3(fc, info, 256, 256, 0, 0) {
+    fc->state->AddExState(EXPREGS, 3, 0, "EXPR");
+  }
+
+};
 }
 
-// static DECLFW(UNLA9711Write8000)
-//{
-//	FCEU_printf("bs %04x %02x\n",A,V);
-//	if(V&0x80)
-//	  MMC3_CMDWrite(A,V);
-//	else
-//	  MMC3_CMDWrite(A,m_perm[V&7]);
-//	if(V!=0x86) MMC3_CMDWrite(A,V);
-//}
-
-static DECLFW(UNLA9711WriteLo) {
-  FCEU_printf("bs %04x %02x\n", A, V);
-  EXPREGS[0] = V;
-  FixMMC3PRG(MMC3_cmd);
-}
-
-static void UNLA9711Power(FC *fc) {
-  EXPREGS[0] = EXPREGS[1] = EXPREGS[2] = 0;
-  GenMMC3Power(fc);
-  fceulib__.fceu->SetWriteHandler(0x5000, 0x5FFF, UNLA9711WriteLo);
-  //	fceulib__.fceu->SetWriteHandler(0x8000,0xbfff,UNLA9711Write8000);
-}
-
-void UNLA9711_Init(CartInfo *info) {
-  GenMMC3_Init(info, 256, 256, 0, 0);
-  pwrap = UNLA9711PW;
-  info->Power = UNLA9711Power;
-  fceulib__.state->AddExState(EXPREGS, 3, 0, "EXPR");
+CartInterface *UNLA9711_Init(FC *fc, CartInfo *info) {
+  return new UNLA9711(fc, info);
 }

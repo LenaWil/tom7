@@ -214,8 +214,7 @@ static inline uint8 *VRAMADR(FC *fc, uint32 v) {
 // in mmc5 docs
 uint8 *PPU::MMC5BGVRAMADR(uint32 V) {
   if (!Sprite16) {
-    extern uint8 mmc5ABMode;                /* A=0, B=1 */
-    if (mmc5ABMode==0)
+    if (mmc5ABMode == 0)
       return MMC5SPRVRAMADR(fc, V);
     else
       return &fc->cart->MMC5BGVPage[(V)>>10][(V)];
@@ -532,7 +531,7 @@ inline std::pair<uint32, uint8 *> PPU::PPUTile(const int X1, uint8 *P,
   uint8 xs, ys;
   if (PPUT_MMC5SP) {
     xs = X1;
-    ys = ((scanline>>3)+MMC5HackSPScroll) & 0x1F;
+    ys = ((scanline>>3) + MMC5HackSPScroll) & 0x1F;
     if (ys >= 0x1E) ys -= 0x1E;
   }
         
@@ -851,7 +850,9 @@ void MMC5_hb(int);     //Ugh ugh ugh.
 void PPU::DoLine() {
   uint8 *target = fc->fceu->XBuf + (scanline << 8);
 
-  if (MMC5Hack && (ScreenON || SpriteON)) MMC5_hb(scanline);
+  if (MMC5Hack && (ScreenON || SpriteON)) {
+    fc->fceu->cartiface->MMC5HackHB(scanline);
+  }
 
   fc->X->Run(256);
   EndRL();
@@ -1475,20 +1476,22 @@ int PPU::FCEUPPU_Loop(int skip) {
     }
 #endif
     else {
-      deemp=PPU_values[1]>>5;
-      for (scanline=0;scanline<240;) {
-        //scanline is incremented in  DoLine.  Evil. :/
+      deemp = PPU_values[1]>>5;
+      for (scanline = 0; scanline < 240; ) {
+        // scanline is incremented in DoLine.  Evil. :/
         deempcnt[deemp]++;
         DoLine();
       }
 
-      if (MMC5Hack && (ScreenON || SpriteON)) MMC5_hb(scanline);
+      if (MMC5Hack && (ScreenON || SpriteON)) {
+	fc->fceu->cartiface->MMC5HackHB(scanline);
+      }
       int max = 0, maxref = 0;
       for (int x = 0; x < 7; x++) {
 
         if (deempcnt[x]>max) {
-          max=deempcnt[x];
-          maxref=x;
+          max = deempcnt[x];
+          maxref = x;
         }
         deempcnt[x]=0;
       }
