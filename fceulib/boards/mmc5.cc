@@ -744,11 +744,11 @@ struct MMC5 : public CartInterface {
     };
     if (FCEUS_SNDRATE) {
       if (FCEUS_SOUNDQ >= 1) {
-	sfun = Do5SQHQ;
-	psfun = Do5PCMHQ;
+	sfun = &MMC5::Do5SQHQ;
+	psfun = &MMC5::Do5PCMHQ;
       } else {
-	sfun = Do5SQ;
-	psfun = Do5PCM;
+	sfun = &MMC5::Do5SQ;
+	psfun = &MMC5::Do5PCM;
       }
     } else {
       sfun = 0;

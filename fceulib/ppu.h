@@ -8,7 +8,7 @@
 #include "fceu.h"
 #include "fc.h"
 
-class PPU {
+struct PPU {
  public:
   PPU(FC *fc);
 

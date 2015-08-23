@@ -20,46 +20,56 @@
 
 #include "mapinc.h"
 
-static uint8 reg, mirr;
+namespace {
+struct AC08 : public CartInterface {
+  uint8 reg = 0, mirr = 0;
 
-static vector<SFORMAT> StateRegs = {{&reg, 1, "REGS"}, {&mirr, 1, "MIRR"}};
+  void Sync() {
+    fc->cart->setprg8(0x6000, reg);
+    fc->cart->setprg32r(1, 0x8000, 0);
+    fc->cart->setchr8(0);
+    fc->cart->setmirror(mirr);
+  }
 
-static void Sync() {
-  fceulib__.cart->setprg8(0x6000, reg);
-  fceulib__.cart->setprg32r(1, 0x8000, 0);
-  fceulib__.cart->setchr8(0);
-  fceulib__.cart->setmirror(mirr);
+  void AC08Mirr(DECLFW_ARGS) {
+    mirr = ((V & 8) >> 3) ^ 1;
+    Sync();
+  }
+
+  void AC08Write(DECLFW_ARGS) {
+    if (A == 0x8001) {
+      // Green Berret bank switching is only 100x xxxx xxxx xxx1 mask
+      reg = (V >> 1) & 0xf;
+    } else {
+      // Sad But True, 2-in-1 mapper, Green Berret need value
+      // shifted left one byte, Castlevania doesn't
+      reg = V & 0xf;
+    }
+    Sync();
+  }
+
+  void Power() override {
+    reg = 0;
+    Sync();
+    fc->fceu->SetReadHandler(0x6000, 0xFFFF, Cart::CartBR);
+    fc->fceu->SetWriteHandler(0x4025, 0x4025, [](DECLFW_ARGS) {
+	((AC08*)fc->fceu->cartiface)->AC08Mirr(DECLFW_FORWARD);
+      });
+    fc->fceu->SetWriteHandler(0x8000, 0xFFFF, [](DECLFW_ARGS) {
+	((AC08*)fc->fceu->cartiface)->AC08Write(DECLFW_FORWARD);
+      });
+  }
+
+  static void StateRestore(FC *fc, int version) {
+    ((AC08*)fc->fceu->cartiface)->Sync();
+  }
+
+  AC08(FC *fc, CartInfo *info) : CartInterface(fc) {
+    fc->fceu->GameStateRestore = StateRestore;
+    fc->state->AddExVec({{&reg, 1, "REGS"}, {&mirr, 1, "MIRR"}});
+  }
+};
 }
 
-static DECLFW(AC08Mirr) {
-  mirr = ((V & 8) >> 3) ^ 1;
-  Sync();
-}
-
-static DECLFW(AC08Write) {
-  if (A ==
-      0x8001)  // Green Berret bank switching is only 100x xxxx xxxx xxx1 mask
-    reg = (V >> 1) & 0xf;
-  else
-    reg = V & 0xf;  // Sad But True, 2-in-1 mapper, Green Berret need value
-                    // shifted left one byte, Castlevania doesn't
-  Sync();
-}
-
-static void AC08Power(FC *fc) {
-  reg = 0;
-  Sync();
-  fceulib__.fceu->SetReadHandler(0x6000, 0xFFFF, Cart::CartBR);
-  fceulib__.fceu->SetWriteHandler(0x4025, 0x4025, AC08Mirr);
-  fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, AC08Write);
-}
-
-static void StateRestore(FC *fc, int version) {
-  Sync();
-}
-
-void AC08_Init(CartInfo *info) {
-  info->Power = AC08Power;
-  fceulib__.fceu->GameStateRestore = StateRestore;
-  fceulib__.state->AddExVec(StateRegs);
+CartInterface *AC08_Init(FC *fc, CartInfo *info) {
 }

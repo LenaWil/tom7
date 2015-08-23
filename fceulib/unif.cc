@@ -281,8 +281,8 @@ static constexpr BMAPPING bmap[] = {
     {"411120-C", BMC411120C_Init, 0},
 #if 0
     {"42in1ResetSwitch", Mapper226_Init, 0},
-    {"43272", UNL43272_Init, 0},
 #endif
+    {"43272", UNL43272_Init, 0},
     {"603-5052", UNL6035052_Init, 0},
 #if 0
     {"64in1NoRepeat", BMC64in1nr_Init, 0},
@@ -296,16 +296,22 @@ static constexpr BMAPPING bmap[] = {
     {"830118C", BMC830118C_Init, 0},
 #if 0
     {"A65AS", BMCA65AS_Init, 0},
+#endif
     {"AC08", AC08_Init, 0},
+#if 0
     {"ANROM", ANROM_Init, 0},
     {"AX5705", UNLAX5705_Init, 0},
     {"BB", UNLBB_Init, 0},
     {"BS-5", BMCBS5_Init, 0},
+#endif
     {"CC-21", UNLCC21_Init, 0},
+#if 0
     {"CITYFIGHT", UNLCITYFIGHT_Init, 0},
     {"CNROM", CNROM_Init, 0},
     {"CPROM", CPROM_Init, BMCFLAG_16KCHRR},
+#endif
     {"D1038", BMCD1038_Init, 0},
+#if 0
     {"DANCE", UNLOneBus_Init, 0},  // redundant
     {"DANCE2000", UNLD2000_Init, 0},
     {"DREAMTECH01", DreamTech01_Init, 0},
@@ -322,7 +328,9 @@ static constexpr BMAPPING bmap[] = {
     {"FS304", UNLFS304_Init, 0},
 #if 0
     {"G-146", BMCG146_Init, 0},
+#endif
     {"GK-192", BMCGK192_Init, 0},
+#if 0
     {"GS-2004", BMCGS2004_Init, 0},
 #endif
     {"GS-2013", BMCGS2013_Init, 0},
@@ -348,7 +356,9 @@ static constexpr BMAPPING bmap[] = {
     {"MARIO1-MALEE2", MALEE_Init, 0},
 #if 0
     {"MHROM", MHROM_Init, 0},
+#endif
     {"N625092", UNLN625092_Init, 0},
+#if 0
     {"NROM", NROM_Init, 0},
     {"NROM-128", NROM_Init, 0},
     {"NROM-256", NROM_Init, 0},

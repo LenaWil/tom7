@@ -22,9 +22,12 @@
 #include "mapinc.h"
 #include "mmc3.h"
 
-static DECLFW(UNLA9746Write) {
-  //   FCEU_printf("write raw %04x:%02x\n",A,V);
-  switch (A & 0xE003) {
+namespace {
+struct UNLA9746 : public MMC3 {
+  uint8 EXPREGS[8] = {};
+  void UNLA9746Write(DECLFW_ARGS) {
+    //   FCEU_printf("write raw %04x:%02x\n",A,V);
+    switch (A & 0xE003) {
     case 0x8000:
       EXPREGS[1] = V;
       EXPREGS[0] = 0;
@@ -35,62 +38,80 @@ static DECLFW(UNLA9746Write) {
       break;
     case 0x8001: {
       uint8 bits_rev = ((V & 0x20) >> 5) | ((V & 0x10) >> 3) |
-                       ((V & 0x08) >> 1) | ((V & 0x04) << 1);
+	((V & 0x08) >> 1) | ((V & 0x04) << 1);
       switch (EXPREGS[0]) {
-        case 0x26: fceulib__.cart->setprg8(0x8000, bits_rev); break;
-        case 0x25: fceulib__.cart->setprg8(0xA000, bits_rev); break;
-        case 0x24: fceulib__.cart->setprg8(0xC000, bits_rev); break;
-        case 0x23: fceulib__.cart->setprg8(0xE000, bits_rev); break;
+      case 0x26: fc->cart->setprg8(0x8000, bits_rev); break;
+      case 0x25: fc->cart->setprg8(0xA000, bits_rev); break;
+      case 0x24: fc->cart->setprg8(0xC000, bits_rev); break;
+      case 0x23: fc->cart->setprg8(0xE000, bits_rev); break;
       }
       switch (EXPREGS[1]) {
-        case 0x0a:
-        case 0x08: EXPREGS[2] = (V << 4); break;
-        case 0x09:
-          fceulib__.cart->setchr1(0x0000, EXPREGS[2] | (V >> 1));
-          break;
-        case 0x0b:
-          fceulib__.cart->setchr1(0x0400, EXPREGS[2] | (V >> 1) | 1);
-          break;
-        case 0x0c:
-        case 0x0e: EXPREGS[2] = (V << 4); break;
-        case 0x0d:
-          fceulib__.cart->setchr1(0x0800, EXPREGS[2] | (V >> 1));
-          break;
-        case 0x0f:
-          fceulib__.cart->setchr1(0x0c00, EXPREGS[2] | (V >> 1) | 1);
-          break;
-        case 0x10:
-        case 0x12: EXPREGS[2] = (V << 4); break;
-        case 0x11:
-          fceulib__.cart->setchr1(0x1000, EXPREGS[2] | (V >> 1));
-          break;
-        case 0x14:
-        case 0x16: EXPREGS[2] = (V << 4); break;
-        case 0x15:
-          fceulib__.cart->setchr1(0x1400, EXPREGS[2] | (V >> 1));
-          break;
-        case 0x18:
-        case 0x1a: EXPREGS[2] = (V << 4); break;
-        case 0x19:
-          fceulib__.cart->setchr1(0x1800, EXPREGS[2] | (V >> 1));
-          break;
-        case 0x1c:
-        case 0x1e: EXPREGS[2] = (V << 4); break;
-        case 0x1d:
-          fceulib__.cart->setchr1(0x1c00, EXPREGS[2] | (V >> 1));
-          break;
+      case 0x0a:
+      case 0x08:
+	EXPREGS[2] = (V << 4);
+	break;
+      case 0x09:
+	fc->cart->setchr1(0x0000, EXPREGS[2] | (V >> 1));
+	break;
+      case 0x0b:
+	fc->cart->setchr1(0x0400, EXPREGS[2] | (V >> 1) | 1);
+	break;
+      case 0x0c:
+      case 0x0e:
+	EXPREGS[2] = (V << 4);
+	break;
+      case 0x0d:
+	fc->cart->setchr1(0x0800, EXPREGS[2] | (V >> 1));
+	break;
+      case 0x0f:
+	fc->cart->setchr1(0x0c00, EXPREGS[2] | (V >> 1) | 1);
+	break;
+      case 0x10:
+      case 0x12:
+	EXPREGS[2] = (V << 4);
+	break;
+      case 0x11:
+	fc->cart->setchr1(0x1000, EXPREGS[2] | (V >> 1));
+	break;
+      case 0x14:
+      case 0x16:
+	EXPREGS[2] = (V << 4); 
+	break;
+      case 0x15:
+	fc->cart->setchr1(0x1400, EXPREGS[2] | (V >> 1));
+	break;
+      case 0x18:
+      case 0x1a:
+	EXPREGS[2] = (V << 4); 
+	break;
+      case 0x19:
+	fc->cart->setchr1(0x1800, EXPREGS[2] | (V >> 1));
+	break;
+      case 0x1c:
+      case 0x1e:
+	EXPREGS[2] = (V << 4); 
+	break;
+      case 0x1d:
+	fc->cart->setchr1(0x1c00, EXPREGS[2] | (V >> 1));
+	break;
       }
     } break;
+    }
   }
+
+  void Power() override {
+    MMC3::Power();
+    fc->fceu->SetWriteHandler(0x8000, 0xbfff, [](DECLFW_ARGS) {
+	((UNLA9746*)fc->fceu->cartiface)->UNLA9746Write(DECLFW_FORWARD);
+      });
+  }
+
+  UNLA9746(FC *fc, CartInfo *info) : MMC3(fc, info, 128, 256, 0, 0) {
+    fc->state->AddExState(EXPREGS, 6, 0, "EXPR");
+  }
+};
 }
 
-static void UNLA9746Power(FC *fc) {
-  GenMMC3Power(fc);
-  fceulib__.fceu->SetWriteHandler(0x8000, 0xbfff, UNLA9746Write);
-}
-
-void UNLA9746_Init(CartInfo *info) {
-  GenMMC3_Init(info, 128, 256, 0, 0);
-  info->Power = UNLA9746Power;
-  fceulib__.state->AddExState(EXPREGS, 6, 0, "EXPR");
+CartInterface *UNLA9746_Init(FC *fc, CartInfo *info) {
+  return new UNLA9746(fc, info);
 }

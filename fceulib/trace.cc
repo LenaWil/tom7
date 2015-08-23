@@ -44,13 +44,13 @@ constexpr uint8 RLE::DEFAULT_CUTOFF;
 
 // static
 vector<uint8> RLE::Compress(const vector<uint8> &in) {
-  return CompressEx(in, 128);
+  return CompressEx(in, DEFAULT_CUTOFF);
 }
 
 // static
 vector<uint8> RLE::Decompress(const vector<uint8> &in) {
   vector<uint8> out;
-  if (!DecompressEx(in, 128, &out)) abort();
+  if (!DecompressEx(in, DEFAULT_CUTOFF, &out)) abort();
   return out;
 }
 

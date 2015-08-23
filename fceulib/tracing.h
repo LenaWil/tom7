@@ -9,7 +9,7 @@
 
 // Should normally be 0, unless debugging something. Traces are huge
 // and slow everything down a lot!
-#define TRACING 1
+#define TRACING 0
 
 #if TRACING
 

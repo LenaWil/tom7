@@ -20,178 +20,212 @@
 
 #include "mapinc.h"
 
-static uint16 latche, latcheinit;
-static uint16 addrreg0, addrreg1;
-static uint8 dipswitch;
-static void (*WSync)();
-static readfunc defread;
-static uint8 *WRAM = nullptr;
-static uint32 WRAMSIZE;
+static constexpr int WRAMSIZE = 8192;
 
-static DECLFW(LatchWrite) {
-  latche = A;
-  WSync();
-}
+namespace {
+struct AddrLatch : public CartInterface {
+  uint16 latch = 0, latchinit = 0;
+  uint16 addrreg0 = 0, addrreg1 = 0;
+  uint8 dipswitch = 0;
+  uint8 *WRAM = nullptr;
 
-static void LatchReset(FC *fc) {
-  latche = latcheinit;
-  WSync();
-}
-
-static void LatchPower(FC *fc) {
-  latche = latcheinit;
-  WSync();
-  if (WRAM) {
-    fceulib__.fceu->SetReadHandler(0x6000, 0x7FFF, Cart::CartBR);
-    fceulib__.fceu->SetWriteHandler(0x6000, 0x7FFF, Cart::CartBW);
-  } else {
-    fceulib__.fceu->SetReadHandler(0x6000, 0xFFFF, defread);
+  virtual DECLFR_RET DefRead(DECLFR_ARGS) {
+    return Cart::CartBROB(DECLFR_FORWARD);
   }
-  fceulib__.fceu->SetWriteHandler(addrreg0, addrreg1, LatchWrite);
-}
+  virtual void WSync() {}
 
-static void LatchClose(FC *fc) {
-  free(WRAM);
-  WRAM = nullptr;
-}
+  void LatchWrite(DECLFW_ARGS) {
+    latch = A;
+    WSync();
+  }
 
-static void StateRestore(FC *fc, int version) {
-  WSync();
-}
+  void Reset() override {
+    latch = latchinit;
+    WSync();
+  }
 
-static void Latch_Init(CartInfo *info, void (*proc)(), readfunc func,
-                       uint16 linit, uint16 adr0, uint16 adr1, uint8 wram) {
-  latcheinit = linit;
-  addrreg0 = adr0;
-  addrreg1 = adr1;
-  WSync = proc;
-  if (func != nullptr)
-    defread = func;
-  else
-    defread = Cart::CartBROB;
-  info->Power = LatchPower;
-  info->Reset = LatchReset;
-  info->Close = LatchClose;
-  if (wram) {
-    WRAMSIZE = 8192;
-    WRAM = (uint8 *)FCEU_gmalloc(WRAMSIZE);
-    fceulib__.cart->SetupCartPRGMapping(0x10, WRAM, WRAMSIZE, 1);
-    if (info->battery) {
-      info->SaveGame[0] = WRAM;
-      info->SaveGameLen[0] = WRAMSIZE;
+  void Power() override {
+    latch = latchinit;
+    WSync();
+    if (WRAM) {
+      fc->fceu->SetReadHandler(0x6000, 0x7FFF, Cart::CartBR);
+      fc->fceu->SetWriteHandler(0x6000, 0x7FFF, Cart::CartBW);
+    } else {
+      fc->fceu->SetReadHandler(0x6000, 0xFFFF, [](DECLFR_ARGS) {
+	  return ((AddrLatch*)fc->fceu->cartiface)->DefRead(DECLFR_FORWARD);
+	});
     }
-    fceulib__.state->AddExState(WRAM, WRAMSIZE, 0, "WRAM");
+    fc->fceu->SetWriteHandler(addrreg0, addrreg1, [](DECLFW_ARGS) {
+	((AddrLatch*)fc->fceu->cartiface)->LatchWrite(DECLFW_FORWARD);
+      });
   }
-  fceulib__.fceu->GameStateRestore = StateRestore;
-  fceulib__.state->AddExState(&latche, 2, 0, "LATC");
+
+  void Close() override {
+    free(WRAM);
+    WRAM = nullptr;
+  }
+
+  static void StateRestore(FC *fc, int version) {
+    ((AddrLatch*)fc->fceu->cartiface)->WSync();
+  }
+
+  // proc -> WSync, func -> DefRead
+  AddrLatch(FC *fc, CartInfo *info, 
+	    uint16 linit, uint16 adr0, uint16 adr1, uint8 wram) :
+    CartInterface(fc) {
+    latchinit = linit;
+    addrreg0 = adr0;
+    addrreg1 = adr1;
+
+    if (wram) {
+      WRAM = (uint8 *)FCEU_gmalloc(WRAMSIZE);
+      fc->cart->SetupCartPRGMapping(0x10, WRAM, WRAMSIZE, 1);
+      if (info->battery) {
+	info->SaveGame[0] = WRAM;
+	info->SaveGameLen[0] = WRAMSIZE;
+      }
+      fc->state->AddExState(WRAM, WRAMSIZE, 0, "WRAM");
+    }
+    fc->fceu->GameStateRestore = StateRestore;
+    fc->state->AddExState(&latch, 2, 0, "LATC");
+  }
+};
 }
 
 //------------------ UNLCC21 ---------------------------
-
-static void UNLCC21Sync() {
-  fceulib__.cart->setprg32(0x8000, 0);
-  fceulib__.cart->setchr8(latche & 1);
-  fceulib__.cart->setmirror(MI_0 + ((latche & 2) >> 1));
+namespace {
+struct UNLCC21 : public AddrLatch {
+  using AddrLatch::AddrLatch;
+  void WSync() override {
+    fc->cart->setprg32(0x8000, 0);
+    fc->cart->setchr8(latch & 1);
+    fc->cart->setmirror(MI_0 + ((latch & 2) >> 1));
+  }
+};
 }
 
-void UNLCC21_Init(CartInfo *info) {
-  Latch_Init(info, UNLCC21Sync, nullptr, 0x0000, 0x8000, 0xFFFF, 0);
+CartInterface *UNLCC21_Init(FC *fc, CartInfo *info) {
+  return new UNLCC21(fc, info, 0x0000, 0x8000, 0xFFFF, 0);
 }
 
 //------------------ BMCD1038 ---------------------------
-
-static void BMCD1038Sync() {
-  if (latche & 0x80) {
-    fceulib__.cart->setprg16(0x8000, (latche & 0x70) >> 4);
-    fceulib__.cart->setprg16(0xC000, (latche & 0x70) >> 4);
-  } else {
-    fceulib__.cart->setprg32(0x8000, (latche & 0x60) >> 5);
+namespace {
+struct BMCD1038 : public AddrLatch {
+  void WSync() override {
+    if (latch & 0x80) {
+      fc->cart->setprg16(0x8000, (latch & 0x70) >> 4);
+      fc->cart->setprg16(0xC000, (latch & 0x70) >> 4);
+    } else {
+      fc->cart->setprg32(0x8000, (latch & 0x60) >> 5);
+    }
+    fc->cart->setchr8(latch & 7);
+    fc->cart->setmirror(((latch & 8) >> 3) ^ 1);
   }
-  fceulib__.cart->setchr8(latche & 7);
-  fceulib__.cart->setmirror(((latche & 8) >> 3) ^ 1);
+
+  DECLFR_RET DefRead(DECLFR_ARGS) override {
+    if (latch & 0x100)
+      return dipswitch;
+    else
+      return Cart::CartBR(DECLFR_FORWARD);
+  }
+
+  void Reset() override {
+    dipswitch++;
+    dipswitch &= 3;
+  }
+
+  BMCD1038(FC *fc, CartInfo *info, 
+	   uint16 linit, uint16 adr0, uint16 adr1, uint8 wram) :
+    AddrLatch(fc, info, linit, adr0, adr1, wram) {
+    fc->state->AddExState(&dipswitch, 1, 0, "DIPs");
+  }
+};
 }
 
-static DECLFR(BMCD1038Read) {
-  if (latche & 0x100)
-    return dipswitch;
-  else
-    return Cart::CartBR(DECLFR_FORWARD);
-}
-
-static void BMCD1038Reset(FC *fc) {
-  dipswitch++;
-  dipswitch &= 3;
-}
-
-void BMCD1038_Init(CartInfo *info) {
-  Latch_Init(info, BMCD1038Sync, BMCD1038Read, 0x0000, 0x8000, 0xFFFF, 0);
-  info->Reset = BMCD1038Reset;
-  fceulib__.state->AddExState(&dipswitch, 1, 0, "DIPs");
+CartInterface *BMCD1038_Init(FC *fc, CartInfo *info) {
+  return new BMCD1038(fc, info, 0x0000, 0x8000, 0xFFFF, 0);
 }
 
 //------------------ UNL43272 ---------------------------
 // mapper much complex, including 16K bankswitching
-static void UNL43272Sync() {
-  if ((latche & 0x81) == 0x81) {
-    fceulib__.cart->setprg32(0x8000, (latche & 0x38) >> 3);
-  } else
-    FCEU_printf("unrecognized command %04!\n", latche);
-  fceulib__.cart->setchr8(0);
-  fceulib__.cart->setmirror(0);
+namespace {
+struct UNL43272 : public AddrLatch {
+  void WSync() override {
+    if ((latch & 0x81) == 0x81) {
+      fc->cart->setprg32(0x8000, (latch & 0x38) >> 3);
+    } else
+      FCEU_printf("unrecognized command %04!\n", latch);
+    fc->cart->setchr8(0);
+    fc->cart->setmirror(0);
+  }
+
+  DECLFR_RET DefRead(DECLFR_ARGS) override {
+    if (latch & 0x400)
+      return Cart::CartBR(fc, A & 0xFE);
+    else
+      return Cart::CartBR(DECLFR_FORWARD);
+  }
+
+  void Reset() override {
+    latch = 0;
+    WSync();
+  }
+
+  UNL43272(FC *fc, CartInfo *info, 
+	   uint16 linit, uint16 adr0, uint16 adr1, uint8 wram) :
+    AddrLatch(fc, info, linit, adr0, adr1, wram) {
+    fc->state->AddExState(&dipswitch, 1, 0, "DIPs");
+  }
+};
 }
 
-static DECLFR(UNL43272Read) {
-  if (latche & 0x400)
-    return Cart::CartBR(fc, A & 0xFE);
-  else
-    return Cart::CartBR(DECLFR_FORWARD);
-}
-
-static void UNL43272Reset(FC *fc) {
-  latche = 0;
-  UNL43272Sync();
-}
-
-void UNL43272_Init(CartInfo *info) {
-  Latch_Init(info, UNL43272Sync, UNL43272Read, 0x0081, 0x8000, 0xFFFF, 0);
-  info->Reset = UNL43272Reset;
-  fceulib__.state->AddExState(&dipswitch, 1, 0, "DIPs");
+CartInterface *UNL43272_Init(FC *fc, CartInfo *info) {
+  return new UNL43272(fc, info, 0x0081, 0x8000, 0xFFFF, 0);
 }
 
 //------------------ Map 058 ---------------------------
-
-static void BMCGK192Sync() {
-  if (latche & 0x40) {
-    fceulib__.cart->setprg16(0x8000, latche & 7);
-    fceulib__.cart->setprg16(0xC000, latche & 7);
-  } else {
-    fceulib__.cart->setprg32(0x8000, (latche >> 1) & 3);
+namespace {
+struct BMCGK192 : public AddrLatch {
+  using AddrLatch::AddrLatch;
+  void WSync() override {
+    if (latch & 0x40) {
+      fc->cart->setprg16(0x8000, latch & 7);
+      fc->cart->setprg16(0xC000, latch & 7);
+    } else {
+      fc->cart->setprg32(0x8000, (latch >> 1) & 3);
+    }
+    fc->cart->setchr8((latch >> 3) & 7);
+    fc->cart->setmirror(((latch & 0x80) >> 7) ^ 1);
   }
-  fceulib__.cart->setchr8((latche >> 3) & 7);
-  fceulib__.cart->setmirror(((latche & 0x80) >> 7) ^ 1);
+};
 }
 
-void BMCGK192_Init(CartInfo *info) {
-  Latch_Init(info, BMCGK192Sync, nullptr, 0x0000, 0x8000, 0xFFFF, 0);
+CartInterface *BMCGK192_Init(FC *fc, CartInfo *info) {
+  return new BMCGK192(fc, info, 0x0000, 0x8000, 0xFFFF, 0);
 }
 
 //------------------ Map 059 ---------------------------
 // One more forbidden mapper
-static void M59Sync() {
-  fceulib__.cart->setprg32(0x8000, (latche >> 4) & 7);
-  fceulib__.cart->setchr8(latche & 0x7);
-  fceulib__.cart->setmirror((latche >> 3) & 1);
+namespace {
+struct M59 : public AddrLatch {
+  using AddrLatch::AddrLatch;
+  void WSync() override {
+    fc->cart->setprg32(0x8000, (latch >> 4) & 7);
+    fc->cart->setchr8(latch & 0x7);
+    fc->cart->setmirror((latch >> 3) & 1);
+  }
+
+  DECLFR_RET DefRead(DECLFR_ARGS) override {
+    if (latch & 0x100)
+      return 0;
+    else
+      return Cart::CartBR(DECLFR_FORWARD);
+  }
+};
 }
 
-static DECLFR(M59Read) {
-  if (latche & 0x100)
-    return 0;
-  else
-    return Cart::CartBR(DECLFR_FORWARD);
-}
-
-void Mapper59_Init(CartInfo *info) {
-  Latch_Init(info, M59Sync, M59Read, 0x0000, 0x8000, 0xFFFF, 0);
+CartInterface *Mapper59_Init(FC *fc, CartInfo *info) {
+  return new M59(fc, info, 0x0000, 0x8000, 0xFFFF, 0);
 }
 
 //------------------ Map 092 ---------------------------
@@ -200,67 +234,81 @@ void Mapper59_Init(CartInfo *info) {
 // Original code provided by LULU
 // Additionally, PCB contains DSP extra sound chip, used for voice samples
 // (unemulated)
-
-static void M92Sync() {
-  uint8 reg = latche & 0xF0;
-  fceulib__.cart->setprg16(0x8000, 0);
-  if (latche >= 0x9000) {
-    switch (reg) {
-      case 0xD0: fceulib__.cart->setprg16(0xc000, latche & 15); break;
-      case 0xE0: fceulib__.cart->setchr8(latche & 15); break;
-    }
-  } else {
-    switch (reg) {
-      case 0xB0: fceulib__.cart->setprg16(0xc000, latche & 15); break;
-      case 0x70: fceulib__.cart->setchr8(latche & 15); break;
+namespace {
+struct M92 : public AddrLatch {
+  using AddrLatch::AddrLatch;
+  void WSync() override {
+    uint8 reg = latch & 0xF0;
+    fc->cart->setprg16(0x8000, 0);
+    if (latch >= 0x9000) {
+      switch (reg) {
+      case 0xD0: fc->cart->setprg16(0xc000, latch & 15); break;
+      case 0xE0: fc->cart->setchr8(latch & 15); break;
+      }
+    } else {
+      switch (reg) {
+      case 0xB0: fc->cart->setprg16(0xc000, latch & 15); break;
+      case 0x70: fc->cart->setchr8(latch & 15); break;
+      }
     }
   }
+};
 }
 
-void Mapper92_Init(CartInfo *info) {
-  Latch_Init(info, M92Sync, nullptr, 0x80B0, 0x8000, 0xFFFF, 0);
+CartInterface *Mapper92_Init(FC* fc, CartInfo *info) {
+  return new M92(fc, info, 0x80B0, 0x8000, 0xFFFF, 0);
 }
 
 //------------------ Map 200 ---------------------------
-
-static void M200Sync() {
-  fceulib__.cart->setprg16(0x8000, latche & 7);
-  fceulib__.cart->setprg16(0xC000, latche & 7);
-  fceulib__.cart->setchr8(latche & 7);
-  fceulib__.cart->setmirror((latche & 8) >> 3);
+namespace {
+struct M200 : public AddrLatch {
+  using AddrLatch::AddrLatch;
+  void WSync() override {
+    fc->cart->setprg16(0x8000, latch & 7);
+    fc->cart->setprg16(0xC000, latch & 7);
+    fc->cart->setchr8(latch & 7);
+    fc->cart->setmirror((latch & 8) >> 3);
+  }
+};
 }
 
-void Mapper200_Init(CartInfo *info) {
-  Latch_Init(info, M200Sync, nullptr, 0xFFFF, 0x8000, 0xFFFF, 0);
+CartInterface *Mapper200_Init(FC *fc, CartInfo *info) {
+  return new M200(fc, info, 0xFFFF, 0x8000, 0xFFFF, 0);
 }
 
 //------------------ Map 201 ---------------------------
-
-static void M201Sync() {
-  if (latche & 8) {
-    fceulib__.cart->setprg32(0x8000, latche & 3);
-    fceulib__.cart->setchr8(latche & 3);
-  } else {
-    fceulib__.cart->setprg32(0x8000, 0);
-    fceulib__.cart->setchr8(0);
+namespace {
+struct M201 : public AddrLatch {
+  using AddrLatch::AddrLatch;
+  void WSync() override {
+    if (latch & 8) {
+      fc->cart->setprg32(0x8000, latch & 3);
+      fc->cart->setchr8(latch & 3);
+    } else {
+      fc->cart->setprg32(0x8000, 0);
+      fc->cart->setchr8(0);
+    }
   }
+};
 }
 
-void Mapper201_Init(CartInfo *info) {
-  Latch_Init(info, M201Sync, nullptr, 0xFFFF, 0x8000, 0xFFFF, 0);
+CartInterface *Mapper201_Init(FC *fc, CartInfo *info) {
+  return new M201(fc, info, 0xFFFF, 0x8000, 0xFFFF, 0);
 }
+
+#if 0
 
 //------------------ Map 202 ---------------------------
 
 static void M202Sync() {
   // According to more carefull hardware tests and PCB study
-  int32 mirror = latche & 1;
-  int32 bank = (latche >> 1) & 0x7;
+  int32 mirror = latch & 1;
+  int32 bank = (latch >> 1) & 0x7;
   int32 select = (mirror & (bank >> 2));
-  fceulib__.cart->setprg16(0x8000, select ? (bank & 6) | 0 : bank);
-  fceulib__.cart->setprg16(0xc000, select ? (bank & 6) | 1 : bank);
-  fceulib__.cart->setmirror(mirror ^ 1);
-  fceulib__.cart->setchr8(bank);
+  fc->cart->setprg16(0x8000, select ? (bank & 6) | 0 : bank);
+  fc->cart->setprg16(0xc000, select ? (bank & 6) | 1 : bank);
+  fc->cart->setmirror(mirror ^ 1);
+  fc->cart->setchr8(bank);
 }
 
 void Mapper202_Init(CartInfo *info) {
@@ -270,12 +318,12 @@ void Mapper202_Init(CartInfo *info) {
 //------------------ Map 204 ---------------------------
 
 static void M204Sync() {
-  int32 tmp2 = latche & 0x6;
-  int32 tmp1 = tmp2 + ((tmp2 == 0x6) ? 0 : (latche & 1));
-  fceulib__.cart->setprg16(0x8000, tmp1);
-  fceulib__.cart->setprg16(0xc000, tmp2 + ((tmp2 == 0x6) ? 1 : (latche & 1)));
-  fceulib__.cart->setchr8(tmp1);
-  fceulib__.cart->setmirror(((latche >> 4) & 1) ^ 1);
+  int32 tmp2 = latch & 0x6;
+  int32 tmp1 = tmp2 + ((tmp2 == 0x6) ? 0 : (latch & 1));
+  fc->cart->setprg16(0x8000, tmp1);
+  fc->cart->setprg16(0xc000, tmp2 + ((tmp2 == 0x6) ? 1 : (latch & 1)));
+  fc->cart->setchr8(tmp1);
+  fc->cart->setmirror(((latch >> 4) & 1) ^ 1);
 }
 
 void Mapper204_Init(CartInfo *info) {
@@ -291,14 +339,14 @@ static DECLFR(M212Read) {
 }
 
 static void M212Sync() {
-  if (latche & 0x4000) {
-    fceulib__.cart->setprg32(0x8000, (latche >> 1) & 3);
+  if (latch & 0x4000) {
+    fc->cart->setprg32(0x8000, (latch >> 1) & 3);
   } else {
-    fceulib__.cart->setprg16(0x8000, latche & 7);
-    fceulib__.cart->setprg16(0xC000, latche & 7);
+    fc->cart->setprg16(0x8000, latch & 7);
+    fc->cart->setprg16(0xC000, latch & 7);
   }
-  fceulib__.cart->setchr8(latche & 7);
-  fceulib__.cart->setmirror(((latche >> 3) & 1) ^ 1);
+  fc->cart->setchr8(latch & 7);
+  fc->cart->setmirror(((latch >> 3) & 1) ^ 1);
 }
 
 void Mapper212_Init(CartInfo *info) {
@@ -308,8 +356,8 @@ void Mapper212_Init(CartInfo *info) {
 //------------------ Map 213 ---------------------------
 
 static void M213Sync() {
-  fceulib__.cart->setprg32(0x8000, (latche >> 1) & 3);
-  fceulib__.cart->setchr8((latche >> 3) & 7);
+  fc->cart->setprg32(0x8000, (latch >> 1) & 3);
+  fc->cart->setchr8((latch >> 3) & 7);
 }
 
 void Mapper213_Init(CartInfo *info) {
@@ -319,9 +367,9 @@ void Mapper213_Init(CartInfo *info) {
 //------------------ Map 214 ---------------------------
 
 static void M214Sync() {
-  fceulib__.cart->setprg16(0x8000, (latche >> 2) & 3);
-  fceulib__.cart->setprg16(0xC000, (latche >> 2) & 3);
-  fceulib__.cart->setchr8(latche & 3);
+  fc->cart->setprg16(0x8000, (latch >> 2) & 3);
+  fc->cart->setprg16(0xC000, (latch >> 2) & 3);
+  fc->cart->setchr8(latch & 3);
 }
 
 void Mapper214_Init(CartInfo *info) {
@@ -331,8 +379,8 @@ void Mapper214_Init(CartInfo *info) {
 //------------------ Map 217 ---------------------------
 
 static void M217Sync() {
-  fceulib__.cart->setprg32(0x8000, (latche >> 2) & 3);
-  fceulib__.cart->setchr8(latche & 7);
+  fc->cart->setprg32(0x8000, (latch >> 2) & 3);
+  fc->cart->setchr8(latch & 7);
 }
 
 void Mapper217_Init(CartInfo *info) {
@@ -342,40 +390,40 @@ void Mapper217_Init(CartInfo *info) {
 //------------------ Map 227 ---------------------------
 
 static void M227Sync() {
-  uint32 S = latche & 1;
-  uint32 p = ((latche >> 2) & 0x1F) + ((latche & 0x100) >> 3);
-  uint32 L = (latche >> 9) & 1;
+  uint32 S = latch & 1;
+  uint32 p = ((latch >> 2) & 0x1F) + ((latch & 0x100) >> 3);
+  uint32 L = (latch >> 9) & 1;
 
-  if ((latche >> 7) & 1) {
+  if ((latch >> 7) & 1) {
     if (S) {
-      fceulib__.cart->setprg32(0x8000, p >> 1);
+      fc->cart->setprg32(0x8000, p >> 1);
     } else {
-      fceulib__.cart->setprg16(0x8000, p);
-      fceulib__.cart->setprg16(0xC000, p);
+      fc->cart->setprg16(0x8000, p);
+      fc->cart->setprg16(0xC000, p);
     }
   } else {
     if (S) {
       if (L) {
-        fceulib__.cart->setprg16(0x8000, p & 0x3E);
-        fceulib__.cart->setprg16(0xC000, p | 7);
+        fc->cart->setprg16(0x8000, p & 0x3E);
+        fc->cart->setprg16(0xC000, p | 7);
       } else {
-        fceulib__.cart->setprg16(0x8000, p & 0x3E);
-        fceulib__.cart->setprg16(0xC000, p & 0x38);
+        fc->cart->setprg16(0x8000, p & 0x3E);
+        fc->cart->setprg16(0xC000, p & 0x38);
       }
     } else {
       if (L) {
-        fceulib__.cart->setprg16(0x8000, p);
-        fceulib__.cart->setprg16(0xC000, p | 7);
+        fc->cart->setprg16(0x8000, p);
+        fc->cart->setprg16(0xC000, p | 7);
       } else {
-        fceulib__.cart->setprg16(0x8000, p);
-        fceulib__.cart->setprg16(0xC000, p & 0x38);
+        fc->cart->setprg16(0x8000, p);
+        fc->cart->setprg16(0xC000, p & 0x38);
       }
     }
   }
 
-  fceulib__.cart->setmirror(((latche >> 1) & 1) ^ 1);
-  fceulib__.cart->setchr8(0);
-  fceulib__.cart->setprg8r(0x10, 0x6000, 0);
+  fc->cart->setmirror(((latch >> 1) & 1) ^ 1);
+  fc->cart->setchr8(0);
+  fc->cart->setprg8r(0x10, 0x6000, 0);
 }
 
 void Mapper227_Init(CartInfo *info) {
@@ -385,14 +433,14 @@ void Mapper227_Init(CartInfo *info) {
 //------------------ Map 229 ---------------------------
 
 static void M229Sync() {
-  fceulib__.cart->setchr8(latche);
-  if (!(latche & 0x1e)) {
-    fceulib__.cart->setprg32(0x8000, 0);
+  fc->cart->setchr8(latch);
+  if (!(latch & 0x1e)) {
+    fc->cart->setprg32(0x8000, 0);
   } else {
-    fceulib__.cart->setprg16(0x8000, latche & 0x1F);
-    fceulib__.cart->setprg16(0xC000, latche & 0x1F);
+    fc->cart->setprg16(0x8000, latch & 0x1F);
+    fc->cart->setprg16(0xC000, latch & 0x1F);
   }
-  fceulib__.cart->setmirror(((latche >> 5) & 1) ^ 1);
+  fc->cart->setmirror(((latch >> 5) & 1) ^ 1);
 }
 
 void Mapper229_Init(CartInfo *info) {
@@ -402,14 +450,14 @@ void Mapper229_Init(CartInfo *info) {
 //------------------ Map 231 ---------------------------
 
 static void M231Sync() {
-  fceulib__.cart->setchr8(0);
-  if (latche & 0x20) {
-    fceulib__.cart->setprg32(0x8000, (latche >> 1) & 0x0F);
+  fc->cart->setchr8(0);
+  if (latch & 0x20) {
+    fc->cart->setprg32(0x8000, (latch >> 1) & 0x0F);
   } else {
-    fceulib__.cart->setprg16(0x8000, latche & 0x1E);
-    fceulib__.cart->setprg16(0xC000, latche & 0x1E);
+    fc->cart->setprg16(0x8000, latch & 0x1E);
+    fc->cart->setprg16(0xC000, latch & 0x1E);
   }
-  fceulib__.cart->setmirror(((latche >> 7) & 1) ^ 1);
+  fc->cart->setmirror(((latch >> 7) & 1) ^ 1);
 }
 
 void Mapper231_Init(CartInfo *info) {
@@ -419,10 +467,10 @@ void Mapper231_Init(CartInfo *info) {
 //------------------ Map 242 ---------------------------
 
 static void M242Sync() {
-  fceulib__.cart->setchr8(0);
-  fceulib__.cart->setprg8r(0x10, 0x6000, 0);
-  fceulib__.cart->setprg32(0x8000, (latche >> 3) & 0xf);
-  fceulib__.cart->setmirror(((latche >> 1) & 1) ^ 1);
+  fc->cart->setchr8(0);
+  fc->cart->setprg8r(0x10, 0x6000, 0);
+  fc->cart->setprg32(0x8000, (latch >> 3) & 0xf);
+  fc->cart->setmirror(((latch >> 1) & 1) ^ 1);
 }
 
 void Mapper242_Init(CartInfo *info) {
@@ -432,10 +480,10 @@ void Mapper242_Init(CartInfo *info) {
 //------------------ 190in1 ---------------------------
 
 static void BMC190in1Sync() {
-  fceulib__.cart->setprg16(0x8000, (latche >> 2) & 7);
-  fceulib__.cart->setprg16(0xC000, (latche >> 2) & 7);
-  fceulib__.cart->setchr8((latche >> 2) & 7);
-  fceulib__.cart->setmirror((latche & 1) ^ 1);
+  fc->cart->setprg16(0x8000, (latch >> 2) & 7);
+  fc->cart->setprg16(0xC000, (latch >> 2) & 7);
+  fc->cart->setchr8((latch >> 2) & 7);
+  fc->cart->setmirror((latch & 1) ^ 1);
 }
 
 void BMC190in1_Init(CartInfo *info) {
@@ -445,15 +493,15 @@ void BMC190in1_Init(CartInfo *info) {
 //-------------- BMC810544-C-A1 ------------------------
 
 static void BMC810544CA1Sync() {
-  uint32 bank = latche >> 7;
-  if (latche & 0x40) {
-    fceulib__.cart->setprg32(0x8000, bank);
+  uint32 bank = latch >> 7;
+  if (latch & 0x40) {
+    fc->cart->setprg32(0x8000, bank);
   } else {
-    fceulib__.cart->setprg16(0x8000, (bank << 1) | ((latche >> 5) & 1));
-    fceulib__.cart->setprg16(0xC000, (bank << 1) | ((latche >> 5) & 1));
+    fc->cart->setprg16(0x8000, (bank << 1) | ((latch >> 5) & 1));
+    fc->cart->setprg16(0xC000, (bank << 1) | ((latch >> 5) & 1));
   }
-  fceulib__.cart->setchr8(latche & 0x0f);
-  fceulib__.cart->setmirror(((latche >> 4) & 1) ^ 1);
+  fc->cart->setchr8(latch & 0x0f);
+  fc->cart->setmirror(((latch >> 4) & 1) ^ 1);
 }
 
 void BMC810544CA1_Init(CartInfo *info) {
@@ -467,16 +515,16 @@ static void BMCNTD03Sync() {
   // 1000 0000 0000 0000 v
   // 1001 1100 0000 0100 h
   // 1011 1010 1100 0100
-  uint32 prg = ((latche >> 10) & 0x1e);
-  uint32 chr = ((latche & 0x0300) >> 5) | (latche & 7);
-  if (latche & 0x80) {
-    fceulib__.cart->setprg16(0x8000, prg | ((latche >> 6) & 1));
-    fceulib__.cart->setprg16(0xC000, prg | ((latche >> 6) & 1));
+  uint32 prg = ((latch >> 10) & 0x1e);
+  uint32 chr = ((latch & 0x0300) >> 5) | (latch & 7);
+  if (latch & 0x80) {
+    fc->cart->setprg16(0x8000, prg | ((latch >> 6) & 1));
+    fc->cart->setprg16(0xC000, prg | ((latch >> 6) & 1));
   } else {
-    fceulib__.cart->setprg32(0x8000, prg >> 1);
+    fc->cart->setprg32(0x8000, prg >> 1);
   }
-  fceulib__.cart->setchr8(chr);
-  fceulib__.cart->setmirror(((latche >> 10) & 1) ^ 1);
+  fc->cart->setchr8(chr);
+  fc->cart->setmirror(((latch >> 10) & 1) ^ 1);
 }
 
 void BMCNTD03_Init(CartInfo *info) {
@@ -486,22 +534,23 @@ void BMCNTD03_Init(CartInfo *info) {
 //-------------- BMCG-146 ------------------------
 
 static void BMCG146Sync() {
-  fceulib__.cart->setchr8(0);
-  if (latche & 0x800) {  // UNROM mode
-    fceulib__.cart->setprg16(
-        0x8000, (latche & 0x1F) | (latche & ((latche & 0x40) >> 6)));
-    fceulib__.cart->setprg16(0xC000, (latche & 0x18) | 7);
+  fc->cart->setchr8(0);
+  if (latch & 0x800) {  // UNROM mode
+    fc->cart->setprg16(
+        0x8000, (latch & 0x1F) | (latch & ((latch & 0x40) >> 6)));
+    fc->cart->setprg16(0xC000, (latch & 0x18) | 7);
   } else {
-    if (latche & 0x40) {  // 16K mode
-      fceulib__.cart->setprg16(0x8000, latche & 0x1F);
-      fceulib__.cart->setprg16(0xC000, latche & 0x1F);
+    if (latch & 0x40) {  // 16K mode
+      fc->cart->setprg16(0x8000, latch & 0x1F);
+      fc->cart->setprg16(0xC000, latch & 0x1F);
     } else {
-      fceulib__.cart->setprg32(0x8000, (latche >> 1) & 0x0F);
+      fc->cart->setprg32(0x8000, (latch >> 1) & 0x0F);
     }
   }
-  fceulib__.cart->setmirror(((latche & 0x80) >> 7) ^ 1);
+  fc->cart->setmirror(((latch & 0x80) >> 7) ^ 1);
 }
 
 void BMCG146_Init(CartInfo *info) {
   Latch_Init(info, BMCG146Sync, nullptr, 0x0000, 0x8000, 0xFFFF, 0);
 }
+#endif
