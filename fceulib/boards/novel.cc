@@ -20,31 +20,42 @@
 
 #include "mapinc.h"
 
-static uint8 latch;
+namespace {
+struct Novel : public CartInterface {
 
-static void DoNovel() {
-  fceulib__.cart->setprg32(0x8000, latch & 3);
-  fceulib__.cart->setchr8(latch & 7);
+  uint8 latch = 0;
+
+  void DoNovel() {
+    fc->cart->setprg32(0x8000, latch & 3);
+    fc->cart->setchr8(latch & 7);
+  }
+
+  void NovelWrite(DECLFW_ARGS) {
+    latch = A & 0xFF;
+    DoNovel();
+  }
+
+  // Used to be NovelReset, but assigned to Power.
+  void Power() override {
+    fc->fceu->SetWriteHandler(0x8000, 0xFFFF, [](DECLFW_ARGS) {
+	((Novel*)fc->fceu->cartiface)->NovelWrite(DECLFW_FORWARD);
+      });
+    fc->fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
+    fc->cart->setprg32(0x8000, 0);
+    fc->cart->setchr8(0);
+  }
+
+  static void NovelRestore(FC *fc, int version) {
+    ((Novel*)fc->fceu->cartiface)->DoNovel();
+  }
+
+  Novel(FC *fc, CartInfo *info) : CartInterface(fc) {
+    fc->state->AddExState(&latch, 1, 0, "L100");
+    fc->fceu->GameStateRestore = NovelRestore;
+  }
+};
 }
 
-static DECLFW(NovelWrite) {
-  latch = A & 0xFF;
-  DoNovel();
-}
-
-static void NovelReset(FC *fc) {
-  fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, NovelWrite);
-  fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
-  fceulib__.cart->setprg32(0x8000, 0);
-  fceulib__.cart->setchr8(0);
-}
-
-static void NovelRestore(FC *fc, int version) {
-  DoNovel();
-}
-
-void Novel_Init(CartInfo *info) {
-  fceulib__.state->AddExState(&latch, 1, 0, "L100");
-  info->Power = NovelReset;
-  fceulib__.fceu->GameStateRestore = NovelRestore;
+CartInterface *Novel_Init(FC *fc, CartInfo *info) {
+  return new Novel(fc, info);
 }

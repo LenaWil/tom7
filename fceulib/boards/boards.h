@@ -8,24 +8,19 @@ struct CartInterface;
 #if 0
 CartInterface *ANROM_Init(FC *fc, CartInfo *info);
 CartInterface *BMC13in1JY110_Init(FC *fc, CartInfo *info);
-CartInterface *BMC190in1_Init(FC *fc, CartInfo *info);
 CartInterface *BMC64in1nr_Init(FC *fc, CartInfo *info);
 CartInterface *BMC70in1B_Init(FC *fc, CartInfo *info);
 CartInterface *BMC70in1_Init(FC *fc, CartInfo *info);
-CartInterface *BMC810544CA1_Init(FC *fc, CartInfo *info);
 CartInterface *BMCBS5_Init(FC *fc, CartInfo *info);
 CartInterface *BMCFK23CA_Init(FC *fc, CartInfo *info);
 CartInterface *BMCFK23C_Init(FC *fc, CartInfo *info);
-CartInterface *BMCG146_Init(FC *fc, CartInfo *info);
 CartInterface *BMCGS2004_Init(FC *fc, CartInfo *info);
 CartInterface *BMCGhostbusters63in1_Init(FC *fc, CartInfo *info);
-CartInterface *BMCNTD03_Init(FC *fc, CartInfo *info);
 CartInterface *BMCT2271_Init(FC *fc, CartInfo *info);
 CartInterface *BMCT262_Init(FC *fc, CartInfo *info);
 CartInterface *DEIROM_Init(FC *fc, CartInfo *info);
 CartInterface *DreamTech01_Init(FC *fc, CartInfo *info);
 CartInterface *GNROM_Init(FC *fc, CartInfo *info);
-CartInterface *Novel_Init(FC *fc, CartInfo *info);
 CartInterface *S74LS374NA_Init(FC *fc, CartInfo *info);
 CartInterface *S74LS374N_Init(FC *fc, CartInfo *info);
 CartInterface *S8259A_Init(FC *fc, CartInfo *info);
@@ -40,6 +35,9 @@ CartInterface *SA72007_Init(FC *fc, CartInfo *info);
 CartInterface *SA72008_Init(FC *fc, CartInfo *info);
 CartInterface *SA9602B_Init(FC *fc, CartInfo *info);
 #endif
+
+// novel
+CartInterface *Novel_Init(FC *fc, CartInfo *info);
 
 // ac-08
 CartInterface *AC08_Init(FC *fc, CartInfo *info);
@@ -175,6 +173,10 @@ CartInterface *UNLCC21_Init(FC *fc, CartInfo *info);
 CartInterface *BMCD1038_Init(FC *fc, CartInfo *info);
 CartInterface *UNL43272_Init(FC *fc, CartInfo *info);
 CartInterface *BMCGK192_Init(FC *fc, CartInfo *info);
+CartInterface *BMC190in1_Init(FC *fc, CartInfo *info);
+CartInterface *BMC810544CA1_Init(FC *fc, CartInfo *info);
+CartInterface *BMCNTD03_Init(FC *fc, CartInfo *info);
+CartInterface *BMCG146_Init(FC *fc, CartInfo *info);
 
 #if 0
 CartInterface *SSSNROM_Init(FC *fc, CartInfo *info);

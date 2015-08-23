@@ -274,8 +274,8 @@ static constexpr BMAPPING bmap[] = {
     {"12-IN-1", BMC12IN1_Init, 0},
 #if 0
     {"13in1JY110", BMC13in1JY110_Init, 0},
-    {"190in1", BMC190in1_Init, 0},
 #endif
+    {"190in1", BMC190in1_Init, 0},
     {"22211", UNL22211_Init, 0},
     {"3D-BLOCK", UNL3DBlock_Init, 0},
     {"411120-C", BMC411120C_Init, 0},
@@ -288,8 +288,8 @@ static constexpr BMAPPING bmap[] = {
     {"64in1NoRepeat", BMC64in1nr_Init, 0},
     {"70in1", BMC70in1_Init, 0},
     {"70in1B", BMC70in1B_Init, 0},
-    {"810544-C-A1", BMC810544CA1_Init, 0},
 #endif
+    {"810544-C-A1", BMC810544CA1_Init, 0},
     {"8157", UNL8157_Init, 0},
     {"8237", UNL8237_Init, 0},
     {"8237A", UNL8237A_Init, 0},
@@ -326,9 +326,7 @@ static constexpr BMAPPING bmap[] = {
     {"FK23CA", BMCFK23CA_Init, BMCFLAG_EXPCHRR},
 #endif
     {"FS304", UNLFS304_Init, 0},
-#if 0
     {"G-146", BMCG146_Init, 0},
-#endif
     {"GK-192", BMCGK192_Init, 0},
 #if 0
     {"GS-2004", BMCGS2004_Init, 0},
@@ -364,9 +362,9 @@ static constexpr BMAPPING bmap[] = {
     {"NROM-256", NROM_Init, 0},
 #endif
     {"NTBROM", Mapper68_Init, 0},
-#if 0
     {"NTD-03", BMCNTD03_Init, 0},
     {"NovelDiamond9999999in1", Novel_Init, 0},
+#if 0
     {"OneBus", UNLOneBus_Init, 0},
     {"PEC-586", UNLPEC586Init, 0},
     {"RROM", NROM_Init, 0},
