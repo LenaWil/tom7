@@ -128,7 +128,7 @@ struct Input {
   const std::vector<SFORMAT> &FCEUINPUT_STATEINFO() { return stateinfo; }
 
  private:
-  friend class InputC;
+  friend struct InputC;
 
   struct GPC;
   struct GPCVS;

@@ -21,67 +21,76 @@
 
 #include "mapinc.h"
 
-static uint16 cmd, bank;
+namespace {
+struct UNLN625092 : public CartInterface {
+  uint16 cmd = 0, bank = 0;
+  uint16 ass = 0;
 
-static vector<SFORMAT> StateRegs = {{&cmd, 2, "CMD0"}, {&bank, 2, "BANK"}};
-
-static void Sync() {
-  fceulib__.cart->setmirror((cmd & 1) ^ 1);
-  fceulib__.cart->setchr8(0);
-  if (cmd & 2) {
-    if (cmd & 0x100) {
-      fceulib__.cart->setprg16(0x8000, ((cmd & 0xfc) >> 2) | bank);
-      fceulib__.cart->setprg16(0xC000, ((cmd & 0xfc) >> 2) | 7);
+  void Sync() {
+    fc->cart->setmirror((cmd & 1) ^ 1);
+    fc->cart->setchr8(0);
+    if (cmd & 2) {
+      if (cmd & 0x100) {
+	fc->cart->setprg16(0x8000, ((cmd & 0xfc) >> 2) | bank);
+	fc->cart->setprg16(0xC000, ((cmd & 0xfc) >> 2) | 7);
+      } else {
+	fc->cart->setprg16(0x8000, ((cmd & 0xfc) >> 2) | (bank & 6));
+	fc->cart->setprg16(0xC000, ((cmd & 0xfc) >> 2) | ((bank & 6) | 1));
+      }
     } else {
-      fceulib__.cart->setprg16(0x8000, ((cmd & 0xfc) >> 2) | (bank & 6));
-      fceulib__.cart->setprg16(0xC000, ((cmd & 0xfc) >> 2) | ((bank & 6) | 1));
+      fc->cart->setprg16(0x8000, ((cmd & 0xfc) >> 2) | bank);
+      fc->cart->setprg16(0xC000, ((cmd & 0xfc) >> 2) | bank);
     }
-  } else {
-    fceulib__.cart->setprg16(0x8000, ((cmd & 0xfc) >> 2) | bank);
-    fceulib__.cart->setprg16(0xC000, ((cmd & 0xfc) >> 2) | bank);
   }
-}
 
-static uint16 ass = 0;
+  void UNLN625092WriteCommand(DECLFW_ARGS) {
+    cmd = A;
+    if (A == 0x80F8) {
+      fc->cart->setprg16(0x8000, ass);
+      fc->cart->setprg16(0xC000, ass);
+    } else {
+      Sync();
+    }
+  }
 
-static DECLFW(UNLN625092WriteCommand) {
-  cmd = A;
-  if (A == 0x80F8) {
-    fceulib__.cart->setprg16(0x8000, ass);
-    fceulib__.cart->setprg16(0xC000, ass);
-  } else {
+  void UNLN625092WriteBank(DECLFW_ARGS) {
+    bank = A & 7;
     Sync();
   }
+
+  void Power() override {
+    cmd = 0;
+    bank = 0;
+    Sync();
+    fc->fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
+    fc->fceu->SetWriteHandler(0x8000, 0xBFFF, [](DECLFW_ARGS) {
+	((UNLN625092*)fc->fceu->cartiface)->
+	  UNLN625092WriteCommand(DECLFW_FORWARD);
+      });
+    fc->fceu->SetWriteHandler(0xC000, 0xFFFF, [](DECLFW_ARGS) {
+	((UNLN625092*)fc->fceu->cartiface)->
+	  UNLN625092WriteBank(DECLFW_FORWARD);
+      });
+  }
+
+  void Reset() override {
+    cmd = 0;
+    bank = 0;
+    ass++;
+    // FCEU_printf("%04x\n", ass);
+  }
+
+  static void StateRestore(FC *fc, int version) {
+    ((UNLN625092*)fc->fceu->cartiface)->Sync();
+  }
+
+  UNLN625092(FC *fc, CartInfo *info) : CartInterface(fc) {
+    fc->fceu->GameStateRestore = StateRestore;
+    fc->state->AddExVec({{&cmd, 2, "CMD0"}, {&bank, 2, "BANK"}});
+  }
+};
 }
 
-static DECLFW(UNLN625092WriteBank) {
-  bank = A & 7;
-  Sync();
-}
-
-static void UNLN625092Power(FC *fc) {
-  cmd = 0;
-  bank = 0;
-  Sync();
-  fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
-  fceulib__.fceu->SetWriteHandler(0x8000, 0xBFFF, UNLN625092WriteCommand);
-  fceulib__.fceu->SetWriteHandler(0xC000, 0xFFFF, UNLN625092WriteBank);
-}
-
-static void UNLN625092Reset(FC *fc) {
-  cmd = 0;
-  bank = 0;
-  ass++;
-  FCEU_printf("%04x\n", ass);
-}
-
-static void StateRestore(FC *fc, int version) {
-  Sync();
-}
-
-void UNLN625092_Init(CartInfo *info) {
-  info->Reset = UNLN625092Reset;
-  info->Power = UNLN625092Power;
-  fceulib__.fceu->GameStateRestore = StateRestore;
-  fceulib__.state->AddExVec(StateRegs);
+CartInterface *UNLN625092_Init(FC *fc, CartInfo *info) {
+  return new UNLN625092(fc, info);
 }

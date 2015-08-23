@@ -552,8 +552,8 @@ static constexpr BoardMapping const board_map[] = {
   {"Bandai", 16, Mapper16_Init},
 #endif 
   {"", 17, Mapper17_Init},
-#if 0
   {"", 18, Mapper18_Init},
+#if 0
   {"Namcot 106", 19, Mapper19_Init},
   // {"", 20, Mapper20_Init},
   {"Konami VRC2/VRC4", 21, Mapper21_Init},
@@ -599,7 +599,6 @@ static constexpr BoardMapping const board_map[] = {
   // {"", 55, Mapper55_Init},
   // {"", 56, Mapper56_Init},
   {"", 57, Mapper57_Init},
-#if 0
   {"", 58, BMCGK192_Init},
   {"", 59, Mapper59_Init}, // Check this out
   {"", 60, BMCD1038_Init},
@@ -608,7 +607,6 @@ static constexpr BoardMapping const board_map[] = {
   // {"", 63, Mapper63_Init},
   // {"", 64, Mapper64_Init},
   // {"", 65, Mapper65_Init},
-#endif
   {"MHOM", 66, MHROM_Init},
   // {"", 67, Mapper67_Init},
   {"Sunsoft Mapper #4", 68, Mapper68_Init},
@@ -643,9 +641,7 @@ static constexpr BoardMapping const board_map[] = {
 #endif
   {"", 90, Mapper90_Init},
   {"", 91, Mapper91_Init},
-#if 0
   {"", 92, Mapper92_Init},
-#endif
   {"Sunsoft UNROM", 93, SUNSOFT_UNROM_Init},
 #if 0
   {"", 94, Mapper94_Init},
@@ -769,8 +765,10 @@ static constexpr BoardMapping const board_map[] = {
 #if 0
   {"", 180, Mapper180_Init},
   {"", 181, Mapper181_Init},
+#endif
   // {"", 182, Mapper182_Init}, // Deprecated, dupe
   {"", 183, Mapper183_Init},
+#if 0
   {"", 184, Mapper184_Init},
   {"", 185, Mapper185_Init},
   {"", 186, Mapper186_Init},
@@ -794,8 +792,10 @@ static constexpr BoardMapping const board_map[] = {
   {"", 198, Mapper198_Init},
 #if 0
   {"", 199, Mapper199_Init},
+#endif
   {"", 200, Mapper200_Init},
   {"", 201, Mapper201_Init},
+#if 0
   {"", 202, Mapper202_Init},
   {"", 203, Mapper203_Init},
   {"", 204, Mapper204_Init},
@@ -825,8 +825,8 @@ static constexpr BoardMapping const board_map[] = {
 #endif
   // in unif it is called just KS7057? - tom7
   {"Debug Mapper", 220, UNLKS7057_Init},
-#if 0
   {"UNLN625092", 221, UNLN625092_Init},
+#if 0
   {"", 222, Mapper222_Init},
   // {"", 223, Mapper223_Init},
   // {"", 224, Mapper224_Init},

@@ -20,62 +20,69 @@
 
 #include "mapinc.h"
 
-static uint8 reg[2];
+static constexpr int WRAMSIZE = 8192;
 
-static uint8 *WRAM = nullptr;
-static uint32 WRAMSIZE;
+namespace {
+struct Mapper179 : public CartInterface {
+  uint8 reg[2] = {};
+  uint8 *WRAM = nullptr;
 
-static vector<SFORMAT> StateRegs = {{reg, 2, "REGS"}};
-
-static void Sync() {
-  fceulib__.cart->setchr8(0);
-  fceulib__.cart->setprg8r(0x10, 0x6000, 0);
-  fceulib__.cart->setprg32(0x8000, reg[1] >> 1);
-  fceulib__.cart->setmirror((reg[0] & 1) ^ 1);
-}
-
-static DECLFW(M179Write) {
-  if (A == 0xa000) reg[0] = V;
-  Sync();
-}
-
-static DECLFW(M179WriteLo) {
-  if (A == 0x5ff1) reg[1] = V;
-  Sync();
-}
-
-static void M179Power(FC *fc) {
-  reg[0] = reg[1] = 0;
-  Sync();
-  fceulib__.fceu->SetWriteHandler(0x4020, 0x5fff, M179WriteLo);
-  fceulib__.fceu->SetReadHandler(0x6000, 0x7fff, Cart::CartBR);
-  fceulib__.fceu->SetWriteHandler(0x6000, 0x7fff, Cart::CartBW);
-  fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
-  fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, M179Write);
-}
-
-static void M179Close(FC *fc) {
-  free(WRAM);
-  WRAM = nullptr;
-}
-
-static void StateRestore(FC *fc, int version) {
-  Sync();
-}
-
-void Mapper179_Init(CartInfo *info) {
-  info->Power = M179Power;
-  info->Close = M179Close;
-  fceulib__.fceu->GameStateRestore = StateRestore;
-
-  WRAMSIZE = 8192;
-  WRAM = (uint8 *)FCEU_gmalloc(WRAMSIZE);
-  fceulib__.cart->SetupCartPRGMapping(0x10, WRAM, WRAMSIZE, 1);
-  fceulib__.state->AddExState(WRAM, WRAMSIZE, 0, "WRAM");
-  if (info->battery) {
-    info->SaveGame[0] = WRAM;
-    info->SaveGameLen[0] = WRAMSIZE;
+  void Sync() {
+    fc->cart->setchr8(0);
+    fc->cart->setprg8r(0x10, 0x6000, 0);
+    fc->cart->setprg32(0x8000, reg[1] >> 1);
+    fc->cart->setmirror((reg[0] & 1) ^ 1);
   }
 
-  fceulib__.state->AddExVec(StateRegs);
+  void M179Write(DECLFW_ARGS) {
+    if (A == 0xa000) reg[0] = V;
+    Sync();
+  }
+
+  void M179WriteLo(DECLFW_ARGS) {
+    if (A == 0x5ff1) reg[1] = V;
+    Sync();
+  }
+
+  void Power() override {
+    reg[0] = reg[1] = 0;
+    Sync();
+    fc->fceu->SetWriteHandler(0x4020, 0x5fff, [](DECLFW_ARGS) {
+	((Mapper179*)fc->fceu->cartiface)->M179WriteLo(DECLFW_FORWARD);
+      });
+    fc->fceu->SetReadHandler(0x6000, 0x7fff, Cart::CartBR);
+    fc->fceu->SetWriteHandler(0x6000, 0x7fff, Cart::CartBW);
+    fc->fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
+    fc->fceu->SetWriteHandler(0x8000, 0xFFFF, [](DECLFW_ARGS) {
+	((Mapper179*)fc->fceu->cartiface)->M179Write(DECLFW_FORWARD);
+      });
+  }
+
+  void Close() override {
+    free(WRAM);
+    WRAM = nullptr;
+  }
+
+  static void StateRestore(FC *fc, int version) {
+    ((Mapper179*)fc->fceu->cartiface)->Sync();
+  }
+
+  Mapper179(FC *fc, CartInfo *info) : CartInterface(fc) {
+    fc->fceu->GameStateRestore = StateRestore;
+
+    WRAM = (uint8 *)FCEU_gmalloc(WRAMSIZE);
+    fc->cart->SetupCartPRGMapping(0x10, WRAM, WRAMSIZE, 1);
+    fc->state->AddExState(WRAM, WRAMSIZE, 0, "WRAM");
+    if (info->battery) {
+      info->SaveGame[0] = WRAM;
+      info->SaveGameLen[0] = WRAMSIZE;
+    }
+
+    fc->state->AddExVec({{reg, 2, "REGS"}});
+  }
+};
+}
+
+CartInterface *Mapper179_Init(FC *fc, CartInfo *info) {
+  return new Mapper179(fc, info);
 }
