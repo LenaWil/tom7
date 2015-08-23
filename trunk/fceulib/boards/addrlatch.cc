@@ -296,261 +296,323 @@ CartInterface *Mapper201_Init(FC *fc, CartInfo *info) {
   return new M201(fc, info, 0xFFFF, 0x8000, 0xFFFF, 0);
 }
 
-#if 0
-
 //------------------ Map 202 ---------------------------
 
-static void M202Sync() {
-  // According to more carefull hardware tests and PCB study
-  int32 mirror = latch & 1;
-  int32 bank = (latch >> 1) & 0x7;
-  int32 select = (mirror & (bank >> 2));
-  fc->cart->setprg16(0x8000, select ? (bank & 6) | 0 : bank);
-  fc->cart->setprg16(0xc000, select ? (bank & 6) | 1 : bank);
-  fc->cart->setmirror(mirror ^ 1);
-  fc->cart->setchr8(bank);
+namespace {
+struct M202 : public AddrLatch {
+  using AddrLatch::AddrLatch;
+  void WSync() override {
+    // According to more careful hardware tests and PCB study
+    int32 mirror = latch & 1;
+    int32 bank = (latch >> 1) & 0x7;
+    int32 select = (mirror & (bank >> 2));
+    fc->cart->setprg16(0x8000, select ? (bank & 6) | 0 : bank);
+    fc->cart->setprg16(0xc000, select ? (bank & 6) | 1 : bank);
+    fc->cart->setmirror(mirror ^ 1);
+    fc->cart->setchr8(bank);
+  }
+};
 }
 
-void Mapper202_Init(CartInfo *info) {
-  Latch_Init(info, M202Sync, nullptr, 0x0000, 0x8000, 0xFFFF, 0);
+CartInterface *Mapper202_Init(FC *fc, CartInfo *info) {
+  return new M202(fc, info, 0x0000, 0x8000, 0xFFFF, 0);
 }
 
 //------------------ Map 204 ---------------------------
-
-static void M204Sync() {
-  int32 tmp2 = latch & 0x6;
-  int32 tmp1 = tmp2 + ((tmp2 == 0x6) ? 0 : (latch & 1));
-  fc->cart->setprg16(0x8000, tmp1);
-  fc->cart->setprg16(0xc000, tmp2 + ((tmp2 == 0x6) ? 1 : (latch & 1)));
-  fc->cart->setchr8(tmp1);
-  fc->cart->setmirror(((latch >> 4) & 1) ^ 1);
+namespace {
+struct M204 : public AddrLatch {
+  using AddrLatch::AddrLatch;
+  void WSync() override {
+    int32 tmp2 = latch & 0x6;
+    int32 tmp1 = tmp2 + ((tmp2 == 0x6) ? 0 : (latch & 1));
+    fc->cart->setprg16(0x8000, tmp1);
+    fc->cart->setprg16(0xc000, tmp2 + ((tmp2 == 0x6) ? 1 : (latch & 1)));
+    fc->cart->setchr8(tmp1);
+    fc->cart->setmirror(((latch >> 4) & 1) ^ 1);
+  }
+};
 }
 
-void Mapper204_Init(CartInfo *info) {
-  Latch_Init(info, M204Sync, nullptr, 0xFFFF, 0x8000, 0xFFFF, 0);
+CartInterface *Mapper204_Init(FC *fc, CartInfo *info) {
+  return new M204(fc, info, 0xFFFF, 0x8000, 0xFFFF, 0);
 }
 
 //------------------ Map 212 ---------------------------
-
-static DECLFR(M212Read) {
-  uint8 ret = Cart::CartBROB(DECLFR_FORWARD);
-  if ((A & 0xE010) == 0x6000) ret |= 0x80;
-  return ret;
-}
-
-static void M212Sync() {
-  if (latch & 0x4000) {
-    fc->cart->setprg32(0x8000, (latch >> 1) & 3);
-  } else {
-    fc->cart->setprg16(0x8000, latch & 7);
-    fc->cart->setprg16(0xC000, latch & 7);
+namespace {
+struct M212 : public AddrLatch {
+  using AddrLatch::AddrLatch;
+  DECLFR_RET DefRead(DECLFR_ARGS) override {
+    uint8 ret = Cart::CartBROB(DECLFR_FORWARD);
+    if ((A & 0xE010) == 0x6000) ret |= 0x80;
+    return ret;
   }
-  fc->cart->setchr8(latch & 7);
-  fc->cart->setmirror(((latch >> 3) & 1) ^ 1);
+
+  void WSync() override {
+    if (latch & 0x4000) {
+      fc->cart->setprg32(0x8000, (latch >> 1) & 3);
+    } else {
+      fc->cart->setprg16(0x8000, latch & 7);
+      fc->cart->setprg16(0xC000, latch & 7);
+    }
+    fc->cart->setchr8(latch & 7);
+    fc->cart->setmirror(((latch >> 3) & 1) ^ 1);
+  }
+};
 }
 
-void Mapper212_Init(CartInfo *info) {
-  Latch_Init(info, M212Sync, M212Read, 0xFFFF, 0x8000, 0xFFFF, 0);
+CartInterface *Mapper212_Init(FC *fc, CartInfo *info) {
+  return new M212(fc, info, 0xFFFF, 0x8000, 0xFFFF, 0);
 }
 
 //------------------ Map 213 ---------------------------
-
-static void M213Sync() {
-  fc->cart->setprg32(0x8000, (latch >> 1) & 3);
-  fc->cart->setchr8((latch >> 3) & 7);
+namespace {
+struct M213 : public AddrLatch {
+  using AddrLatch::AddrLatch;
+  void WSync() override {
+    fc->cart->setprg32(0x8000, (latch >> 1) & 3);
+    fc->cart->setchr8((latch >> 3) & 7);
+  }
+};
 }
 
-void Mapper213_Init(CartInfo *info) {
-  Latch_Init(info, M213Sync, nullptr, 0x0000, 0x8000, 0xFFFF, 0);
+CartInterface *Mapper213_Init(FC *fc, CartInfo *info) {
+  return new M213(fc, info, 0x0000, 0x8000, 0xFFFF, 0);
 }
 
 //------------------ Map 214 ---------------------------
-
-static void M214Sync() {
-  fc->cart->setprg16(0x8000, (latch >> 2) & 3);
-  fc->cart->setprg16(0xC000, (latch >> 2) & 3);
-  fc->cart->setchr8(latch & 3);
+namespace {
+struct M214 : public AddrLatch {
+  using AddrLatch::AddrLatch;
+  void WSync() override {
+    fc->cart->setprg16(0x8000, (latch >> 2) & 3);
+    fc->cart->setprg16(0xC000, (latch >> 2) & 3);
+    fc->cart->setchr8(latch & 3);
+  }
+};
 }
 
-void Mapper214_Init(CartInfo *info) {
-  Latch_Init(info, M214Sync, nullptr, 0x0000, 0x8000, 0xFFFF, 0);
+CartInterface *Mapper214_Init(FC *fc, CartInfo *info) {
+  return new M214(fc, info, 0x0000, 0x8000, 0xFFFF, 0);
 }
 
 //------------------ Map 217 ---------------------------
-
-static void M217Sync() {
-  fc->cart->setprg32(0x8000, (latch >> 2) & 3);
-  fc->cart->setchr8(latch & 7);
+namespace {
+struct M217 : public AddrLatch {
+  using AddrLatch::AddrLatch;
+  void WSync() override {
+    fc->cart->setprg32(0x8000, (latch >> 2) & 3);
+    fc->cart->setchr8(latch & 7);
+  }
+};
 }
 
-void Mapper217_Init(CartInfo *info) {
-  Latch_Init(info, M217Sync, nullptr, 0x0000, 0x8000, 0xFFFF, 0);
+CartInterface *Mapper217_Init(FC *fc, CartInfo *info) {
+  return new M217(fc, info, 0x0000, 0x8000, 0xFFFF, 0);
 }
 
 //------------------ Map 227 ---------------------------
 
-static void M227Sync() {
-  uint32 S = latch & 1;
-  uint32 p = ((latch >> 2) & 0x1F) + ((latch & 0x100) >> 3);
-  uint32 L = (latch >> 9) & 1;
+namespace {
+struct M227 : public AddrLatch {
+  using AddrLatch::AddrLatch;
+  void WSync() override {
+    uint32 S = latch & 1;
+    uint32 p = ((latch >> 2) & 0x1F) + ((latch & 0x100) >> 3);
+    uint32 L = (latch >> 9) & 1;
 
-  if ((latch >> 7) & 1) {
-    if (S) {
-      fc->cart->setprg32(0x8000, p >> 1);
-    } else {
-      fc->cart->setprg16(0x8000, p);
-      fc->cart->setprg16(0xC000, p);
-    }
-  } else {
-    if (S) {
-      if (L) {
-        fc->cart->setprg16(0x8000, p & 0x3E);
-        fc->cart->setprg16(0xC000, p | 7);
+    if ((latch >> 7) & 1) {
+      if (S) {
+	fc->cart->setprg32(0x8000, p >> 1);
       } else {
-        fc->cart->setprg16(0x8000, p & 0x3E);
-        fc->cart->setprg16(0xC000, p & 0x38);
+	fc->cart->setprg16(0x8000, p);
+	fc->cart->setprg16(0xC000, p);
       }
     } else {
-      if (L) {
-        fc->cart->setprg16(0x8000, p);
-        fc->cart->setprg16(0xC000, p | 7);
+      if (S) {
+	if (L) {
+	  fc->cart->setprg16(0x8000, p & 0x3E);
+	  fc->cart->setprg16(0xC000, p | 7);
+	} else {
+	  fc->cart->setprg16(0x8000, p & 0x3E);
+	  fc->cart->setprg16(0xC000, p & 0x38);
+	}
       } else {
-        fc->cart->setprg16(0x8000, p);
-        fc->cart->setprg16(0xC000, p & 0x38);
+	if (L) {
+	  fc->cart->setprg16(0x8000, p);
+	  fc->cart->setprg16(0xC000, p | 7);
+	} else {
+	  fc->cart->setprg16(0x8000, p);
+	  fc->cart->setprg16(0xC000, p & 0x38);
+	}
       }
     }
+
+    fc->cart->setmirror(((latch >> 1) & 1) ^ 1);
+    fc->cart->setchr8(0);
+    fc->cart->setprg8r(0x10, 0x6000, 0);
   }
-
-  fc->cart->setmirror(((latch >> 1) & 1) ^ 1);
-  fc->cart->setchr8(0);
-  fc->cart->setprg8r(0x10, 0x6000, 0);
+};
 }
 
-void Mapper227_Init(CartInfo *info) {
-  Latch_Init(info, M227Sync, nullptr, 0x0000, 0x8000, 0xFFFF, 1);
+CartInterface *Mapper227_Init(FC *fc, CartInfo *info) {
+  return new M227(fc, info, 0x0000, 0x8000, 0xFFFF, 1);
 }
 
 //------------------ Map 229 ---------------------------
-
-static void M229Sync() {
-  fc->cart->setchr8(latch);
-  if (!(latch & 0x1e)) {
-    fc->cart->setprg32(0x8000, 0);
-  } else {
-    fc->cart->setprg16(0x8000, latch & 0x1F);
-    fc->cart->setprg16(0xC000, latch & 0x1F);
+namespace {
+struct M229 : public AddrLatch {
+  using AddrLatch::AddrLatch;
+  void WSync() override {
+    fc->cart->setchr8(latch);
+    if (!(latch & 0x1e)) {
+      fc->cart->setprg32(0x8000, 0);
+    } else {
+      fc->cart->setprg16(0x8000, latch & 0x1F);
+      fc->cart->setprg16(0xC000, latch & 0x1F);
+    }
+    fc->cart->setmirror(((latch >> 5) & 1) ^ 1);
   }
-  fc->cart->setmirror(((latch >> 5) & 1) ^ 1);
+};
 }
 
-void Mapper229_Init(CartInfo *info) {
-  Latch_Init(info, M229Sync, nullptr, 0x0000, 0x8000, 0xFFFF, 0);
+CartInterface *Mapper229_Init(FC *fc, CartInfo *info) {
+  return new M229(fc, info, 0x0000, 0x8000, 0xFFFF, 0);
 }
 
 //------------------ Map 231 ---------------------------
-
-static void M231Sync() {
-  fc->cart->setchr8(0);
-  if (latch & 0x20) {
-    fc->cart->setprg32(0x8000, (latch >> 1) & 0x0F);
-  } else {
-    fc->cart->setprg16(0x8000, latch & 0x1E);
-    fc->cart->setprg16(0xC000, latch & 0x1E);
+namespace {
+struct M231 : public AddrLatch {
+  using AddrLatch::AddrLatch;
+  void WSync() override {
+    fc->cart->setchr8(0);
+    if (latch & 0x20) {
+      fc->cart->setprg32(0x8000, (latch >> 1) & 0x0F);
+    } else {
+      fc->cart->setprg16(0x8000, latch & 0x1E);
+      fc->cart->setprg16(0xC000, latch & 0x1E);
+    }
+    fc->cart->setmirror(((latch >> 7) & 1) ^ 1);
   }
-  fc->cart->setmirror(((latch >> 7) & 1) ^ 1);
+};
 }
 
-void Mapper231_Init(CartInfo *info) {
-  Latch_Init(info, M231Sync, nullptr, 0x0000, 0x8000, 0xFFFF, 0);
+CartInterface *Mapper231_Init(FC *fc, CartInfo *info) {
+  return new M231(fc, info, 0x0000, 0x8000, 0xFFFF, 0);
 }
 
 //------------------ Map 242 ---------------------------
+namespace {
+struct M242 : public AddrLatch {
+  using AddrLatch::AddrLatch;
 
-static void M242Sync() {
-  fc->cart->setchr8(0);
-  fc->cart->setprg8r(0x10, 0x6000, 0);
-  fc->cart->setprg32(0x8000, (latch >> 3) & 0xf);
-  fc->cart->setmirror(((latch >> 1) & 1) ^ 1);
+  void WSync() override {
+    fc->cart->setchr8(0);
+    fc->cart->setprg8r(0x10, 0x6000, 0);
+    fc->cart->setprg32(0x8000, (latch >> 3) & 0xf);
+    fc->cart->setmirror(((latch >> 1) & 1) ^ 1);
+  }
+};
 }
 
-void Mapper242_Init(CartInfo *info) {
-  Latch_Init(info, M242Sync, nullptr, 0x0000, 0x8000, 0xFFFF, 1);
+CartInterface *Mapper242_Init(FC *fc, CartInfo *info) {
+  return new M242(fc, info, 0x0000, 0x8000, 0xFFFF, 1);
 }
 
 //------------------ 190in1 ---------------------------
 
-static void BMC190in1Sync() {
-  fc->cart->setprg16(0x8000, (latch >> 2) & 7);
-  fc->cart->setprg16(0xC000, (latch >> 2) & 7);
-  fc->cart->setchr8((latch >> 2) & 7);
-  fc->cart->setmirror((latch & 1) ^ 1);
+namespace {
+struct BMC190 : public AddrLatch {
+  using AddrLatch::AddrLatch;
+  void WSync() override {
+    fc->cart->setprg16(0x8000, (latch >> 2) & 7);
+    fc->cart->setprg16(0xC000, (latch >> 2) & 7);
+    fc->cart->setchr8((latch >> 2) & 7);
+    fc->cart->setmirror((latch & 1) ^ 1);
+  }
+};
 }
 
-void BMC190in1_Init(CartInfo *info) {
-  Latch_Init(info, BMC190in1Sync, nullptr, 0x0000, 0x8000, 0xFFFF, 0);
+CartInterface *BMC190in1_Init(FC *fc, CartInfo *info) {
+  return new BMC190(fc, info, 0x0000, 0x8000, 0xFFFF, 0);
 }
 
 //-------------- BMC810544-C-A1 ------------------------
 
-static void BMC810544CA1Sync() {
-  uint32 bank = latch >> 7;
-  if (latch & 0x40) {
-    fc->cart->setprg32(0x8000, bank);
-  } else {
-    fc->cart->setprg16(0x8000, (bank << 1) | ((latch >> 5) & 1));
-    fc->cart->setprg16(0xC000, (bank << 1) | ((latch >> 5) & 1));
+namespace {
+struct BMC810544 : public AddrLatch {
+  using AddrLatch::AddrLatch;
+  void WSync() override {
+    uint32 bank = latch >> 7;
+    if (latch & 0x40) {
+      fc->cart->setprg32(0x8000, bank);
+    } else {
+      fc->cart->setprg16(0x8000, (bank << 1) | ((latch >> 5) & 1));
+      fc->cart->setprg16(0xC000, (bank << 1) | ((latch >> 5) & 1));
+    }
+    fc->cart->setchr8(latch & 0x0f);
+    fc->cart->setmirror(((latch >> 4) & 1) ^ 1);
   }
-  fc->cart->setchr8(latch & 0x0f);
-  fc->cart->setmirror(((latch >> 4) & 1) ^ 1);
+};
 }
 
-void BMC810544CA1_Init(CartInfo *info) {
-  Latch_Init(info, BMC810544CA1Sync, nullptr, 0x0000, 0x8000, 0xFFFF, 0);
+CartInterface *BMC810544CA1_Init(FC *fc, CartInfo *info) {
+  return new BMC810544(fc, info, 0x0000, 0x8000, 0xFFFF, 0);
 }
 
 //-------------- BMCNTD-03 ------------------------
+namespace {
+struct BMCNTD : public AddrLatch {
+  using AddrLatch::AddrLatch;
 
-static void BMCNTD03Sync() {
-  // 1PPP Pmcc spxx xccc
-  // 1000 0000 0000 0000 v
-  // 1001 1100 0000 0100 h
-  // 1011 1010 1100 0100
-  uint32 prg = ((latch >> 10) & 0x1e);
-  uint32 chr = ((latch & 0x0300) >> 5) | (latch & 7);
-  if (latch & 0x80) {
-    fc->cart->setprg16(0x8000, prg | ((latch >> 6) & 1));
-    fc->cart->setprg16(0xC000, prg | ((latch >> 6) & 1));
-  } else {
-    fc->cart->setprg32(0x8000, prg >> 1);
+  void WSync() override {
+    // 1PPP Pmcc spxx xccc
+    // 1000 0000 0000 0000 v
+    // 1001 1100 0000 0100 h
+    // 1011 1010 1100 0100
+    uint32 prg = ((latch >> 10) & 0x1e);
+    uint32 chr = ((latch & 0x0300) >> 5) | (latch & 7);
+    if (latch & 0x80) {
+      fc->cart->setprg16(0x8000, prg | ((latch >> 6) & 1));
+      fc->cart->setprg16(0xC000, prg | ((latch >> 6) & 1));
+    } else {
+      fc->cart->setprg32(0x8000, prg >> 1);
+    }
+    fc->cart->setchr8(chr);
+    fc->cart->setmirror(((latch >> 10) & 1) ^ 1);
   }
-  fc->cart->setchr8(chr);
-  fc->cart->setmirror(((latch >> 10) & 1) ^ 1);
+};
 }
 
-void BMCNTD03_Init(CartInfo *info) {
-  Latch_Init(info, BMCNTD03Sync, nullptr, 0x0000, 0x8000, 0xFFFF, 0);
+CartInterface *BMCNTD03_Init(FC *fc, CartInfo *info) {
+  return new BMCNTD(fc, info, 0x0000, 0x8000, 0xFFFF, 0);
 }
 
 //-------------- BMCG-146 ------------------------
 
-static void BMCG146Sync() {
-  fc->cart->setchr8(0);
-  if (latch & 0x800) {  // UNROM mode
-    fc->cart->setprg16(
-        0x8000, (latch & 0x1F) | (latch & ((latch & 0x40) >> 6)));
-    fc->cart->setprg16(0xC000, (latch & 0x18) | 7);
-  } else {
-    if (latch & 0x40) {  // 16K mode
-      fc->cart->setprg16(0x8000, latch & 0x1F);
-      fc->cart->setprg16(0xC000, latch & 0x1F);
+namespace {
+struct BMCG146 : public AddrLatch {
+  using AddrLatch::AddrLatch;
+
+  void WSync() override {
+    fc->cart->setchr8(0);
+    if (latch & 0x800) {  // UNROM mode
+      fc->cart->setprg16(0x8000,
+			 (latch & 0x1F) | (latch & ((latch & 0x40) >> 6)));
+      fc->cart->setprg16(0xC000, (latch & 0x18) | 7);
     } else {
-      fc->cart->setprg32(0x8000, (latch >> 1) & 0x0F);
+      if (latch & 0x40) {  // 16K mode
+	fc->cart->setprg16(0x8000, latch & 0x1F);
+	fc->cart->setprg16(0xC000, latch & 0x1F);
+      } else {
+	fc->cart->setprg32(0x8000, (latch >> 1) & 0x0F);
+      }
     }
+    fc->cart->setmirror(((latch & 0x80) >> 7) ^ 1);
   }
-  fc->cart->setmirror(((latch & 0x80) >> 7) ^ 1);
+};
 }
 
-void BMCG146_Init(CartInfo *info) {
-  Latch_Init(info, BMCG146Sync, nullptr, 0x0000, 0x8000, 0xFFFF, 0);
+CartInterface *BMCG146_Init(FC *fc, CartInfo *info) {
+  return new BMCG146(fc, info, 0x0000, 0x8000, 0xFFFF, 0);
 }
-#endif
+

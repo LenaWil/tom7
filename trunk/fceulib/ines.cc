@@ -795,11 +795,11 @@ static constexpr BoardMapping const board_map[] = {
 #endif
   {"", 200, Mapper200_Init},
   {"", 201, Mapper201_Init},
-#if 0
   {"", 202, Mapper202_Init},
+#if 0
   {"", 203, Mapper203_Init},
-  {"", 204, Mapper204_Init},
 #endif
+  {"", 204, Mapper204_Init},
   {"", 205, Mapper205_Init},
 #if 0
   {"DEIROM", 206, DEIROM_Init},
@@ -811,16 +811,16 @@ static constexpr BoardMapping const board_map[] = {
   {"", 210, Mapper210_Init},
 #endif
   {"", 211, Mapper211_Init},
-#if 0
   {"", 212, Mapper212_Init},
   {"", 213, Mapper213_Init},
   {"", 214, Mapper214_Init},
-#endif
   {"", 215, UNL8237_Init},
 #if 0
   {"", 216, Mapper216_Init},
+#endif
   {"", 217, Mapper217_Init}, // Redefined to a new Discrete BMC mapper
   // {"", 218, Mapper218_Init},
+#if 0
   {"UNLA9746", 219, UNLA9746_Init},
 #endif
   // in unif it is called just KS7057? - tom7
@@ -832,11 +832,17 @@ static constexpr BoardMapping const board_map[] = {
   // {"", 224, Mapper224_Init},
   {"", 225, Mapper225_Init},
   {"BMC 22+20-in-1", 226, Mapper226_Init},
+#endif
   {"", 227, Mapper227_Init},
+#if 0
   {"", 228, Mapper228_Init},
+#endif
   {"", 229, Mapper229_Init},
+#if 0
   {"BMC 22-in-1+Contra", 230, Mapper230_Init},
+#endif
   {"", 231, Mapper231_Init},
+#if 0
   {"BMC QUATTRO", 232, Mapper232_Init},
   {"BMC 22+20-in-1 RST", 233, Mapper233_Init},
   {"BMC MAXI", 234, Mapper234_Init},
@@ -845,22 +851,24 @@ static constexpr BoardMapping const board_map[] = {
   // {"", 237, Mapper237_Init},
 #endif
   {"UNL6035052", 238, UNL6035052_Init},
-#if 0
   // {"", 239, Mapper239_Init},
+#if 0
   {"", 240, Mapper240_Init},
   {"", 241, Mapper241_Init},
+#endif
   {"", 242, Mapper242_Init},
+#if 0
   {"S74LS374NA", 243, S74LS374NA_Init},
   {"DECATHLON", 244, Mapper244_Init},
   {"", 245, Mapper245_Init},
   {"FONG SHEN BANG", 246, Mapper246_Init},
+#endif
   // {"", 247, Mapper247_Init},
   // {"", 248, Mapper248_Init},
-#endif
   {"", 249, Mapper249_Init},
   {"", 250, Mapper250_Init},
-#if 0
   // {"", 251, Mapper251_Init}, // No good dumps for this mapper, use UNIF version
+#if 0
   {"SAN GUO ZHI PIRATE", 252, Mapper252_Init},
   {"DRAGON BALL PIRATE", 253, Mapper253_Init},
 #endif
