@@ -20,40 +20,48 @@
 
 #include "mapinc.h"
 
-static uint8 reg, chr;
+namespace {
+struct UNLBB : public CartInterface {
+  uint8 reg = 0, chr = 0;
 
-static vector<SFORMAT> StateRegs = {{&reg, 1, "REGS"}, {&chr, 1, "CHR0"}};
+  void Sync() {
+    fc->cart->setprg8(0x6000, reg & 3);
+    fc->cart->setprg32(0x8000, ~0);
+    fc->cart->setchr8(chr & 3);
+  }
 
-static void Sync() {
-  fceulib__.cart->setprg8(0x6000, reg & 3);
-  fceulib__.cart->setprg32(0x8000, ~0);
-  fceulib__.cart->setchr8(chr & 3);
+  void UNLBBWrite(DECLFW_ARGS) {
+    if ((A & 0x9000) == 0x8000) {
+      reg = chr = V;
+    } else {
+      // hacky hacky, ProWres simplified FDS conversion 2-in-1 mapper
+      chr = V & 1;
+    }
+    Sync();
+  }
+
+  void Power() override {
+    chr = 0;
+    reg = ~0;
+    Sync();
+    fc->fceu->SetReadHandler(0x6000, 0x7FFF, Cart::CartBR);
+    fc->fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
+    fc->fceu->SetWriteHandler(0x8000, 0xFFFF, [](DECLFW_ARGS) {
+	((UNLBB*)fc->fceu->cartiface)->UNLBBWrite(DECLFW_FORWARD);
+      });
+  }
+
+  static void StateRestore(FC *fc, int version) {
+    ((UNLBB *)fc->fceu->cartiface)->Sync();
+  }
+  
+  UNLBB(FC *fc, CartInfo *info) : CartInterface(fc) {
+    fc->fceu->GameStateRestore = StateRestore;
+    fc->state->AddExVec({{&reg, 1, "REGS"}, {&chr, 1, "CHR0"}});
+  }
+};
 }
 
-static DECLFW(UNLBBWrite) {
-  if ((A & 0x9000) == 0x8000)
-    reg = chr = V;
-  else
-    chr =
-        V & 1;  // hacky hacky, ProWres simplified FDS conversion 2-in-1 mapper
-  Sync();
-}
-
-static void UNLBBPower(FC *fc) {
-  chr = 0;
-  reg = ~0;
-  Sync();
-  fceulib__.fceu->SetReadHandler(0x6000, 0x7FFF, Cart::CartBR);
-  fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
-  fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, UNLBBWrite);
-}
-
-static void StateRestore(FC *fc, int version) {
-  Sync();
-}
-
-void UNLBB_Init(CartInfo *info) {
-  info->Power = UNLBBPower;
-  fceulib__.fceu->GameStateRestore = StateRestore;
-  fceulib__.state->AddExVec(StateRegs);
+CartInterface *UNLBB_Init(FC *fc, CartInfo *info) {
+  return new UNLBB(fc, info);
 }

@@ -21,25 +21,35 @@
 #include "mapinc.h"
 #include "mmc3.h"
 
-static void M189PW(uint32 A, uint8 V) {
-  fceulib__.cart->setprg32(0x8000, EXPREGS[0] & 7);
+namespace {
+struct Mapper189 : public MMC3 {
+  uint8 EXPREGS[8] = {};
+
+  void PWrap(uint32 A, uint8 V) override {
+    fc->cart->setprg32(0x8000, EXPREGS[0] & 7);
+  }
+
+  void M189Write(DECLFW_ARGS) {
+    // actually, there are two versions of 189 mapper
+    // with hi or lo bits bankswitching.
+    EXPREGS[0] = V | (V >> 4);
+    FixMMC3PRG(MMC3_cmd);
+  }
+
+  void Power() override {
+    EXPREGS[0] = EXPREGS[1] = 0;
+    MMC3::Power();
+    fc->fceu->SetWriteHandler(0x4120, 0x7FFF, [](DECLFW_ARGS) {
+	((Mapper189*)fc->fceu->cartiface)->M189Write(DECLFW_FORWARD);
+      });
+  }
+
+  Mapper189(FC *fc, CartInfo *info) : MMC3(fc, info, 256, 256, 0, 0) {
+    fc->state->AddExState(EXPREGS, 2, 0, "EXPR");
+  }
+};
 }
 
-static DECLFW(M189Write) {
-  EXPREGS[0] = V | (V >> 4);  // actually, there is a two versions of 189 mapper
-                              // with hi or lo bits bankswitching.
-  FixMMC3PRG(MMC3_cmd);
-}
-
-static void M189Power(FC *fc) {
-  EXPREGS[0] = EXPREGS[1] = 0;
-  GenMMC3Power(fc);
-  fceulib__.fceu->SetWriteHandler(0x4120, 0x7FFF, M189Write);
-}
-
-void Mapper189_Init(CartInfo *info) {
-  GenMMC3_Init(info, 256, 256, 0, 0);
-  pwrap = M189PW;
-  info->Power = M189Power;
-  fceulib__.state->AddExState(EXPREGS, 2, 0, "EXPR");
+CartInterface *Mapper189_Init(FC *fc, CartInfo *info) {
+  return new Mapper189(fc, info);
 }

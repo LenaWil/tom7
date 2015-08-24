@@ -23,8 +23,10 @@ struct CartInterface {
     abort();
   }
   
-protected:
+ protected:
   FC *fc = nullptr;
+ private:
+  CartInterface() = delete;
 };
 
 struct CartInfo {

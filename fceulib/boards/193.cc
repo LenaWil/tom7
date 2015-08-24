@@ -20,47 +20,53 @@
 
 #include "mapinc.h"
 
-static uint8 reg[8];
-static uint8 mirror, cmd, bank;
+namespace {
+struct Mapper193 : public CartInterface {
+  uint8 reg[8] = {};
+  uint8 mirror = 0, cmd = 0, bank = 0;
 
-static vector<SFORMAT> StateRegs = {{&cmd, 1, "CMD0"},
-                              {&mirror, 1, "MIRR"},
-                              {&bank, 1, "BANK"},
-                              {reg, 8, "REGS"}};
+  void Sync() {
+    fc->cart->setmirror(mirror ^ 1);
+    fc->cart->setprg8(0x8000, reg[3]);
+    fc->cart->setprg8(0xA000, 0xD);
+    fc->cart->setprg8(0xC000, 0xE);
+    fc->cart->setprg8(0xE000, 0xF);
+    fc->cart->setchr4(0x0000, reg[0] >> 2);
+    fc->cart->setchr2(0x1000, reg[1] >> 1);
+    fc->cart->setchr2(0x1800, reg[2] >> 1);
+  }
 
-static void Sync() {
-  fceulib__.cart->setmirror(mirror ^ 1);
-  fceulib__.cart->setprg8(0x8000, reg[3]);
-  fceulib__.cart->setprg8(0xA000, 0xD);
-  fceulib__.cart->setprg8(0xC000, 0xE);
-  fceulib__.cart->setprg8(0xE000, 0xF);
-  fceulib__.cart->setchr4(0x0000, reg[0] >> 2);
-  fceulib__.cart->setchr2(0x1000, reg[1] >> 1);
-  fceulib__.cart->setchr2(0x1800, reg[2] >> 1);
+  void M193Write(DECLFW_ARGS) {
+    reg[A & 3] = V;
+    Sync();
+  }
+
+  void Power() override {
+    bank = 0;
+    Sync();
+    fc->fceu->SetWriteHandler(0x6000, 0x6003, [](DECLFW_ARGS) {
+	((Mapper193*)fc->fceu->cartiface)->M193Write(DECLFW_FORWARD);
+      });
+    fc->fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
+    fc->fceu->SetWriteHandler(0x8000, 0xFFFF, Cart::CartBW);
+  }
+
+  void Reset() override {}
+
+  static void StateRestore(FC *fc, int version) {
+    ((Mapper193 *)fc->fceu->cartiface)->Sync();
+  }
+
+  Mapper193(FC *fc, CartInfo *info) : CartInterface(fc) {
+    fc->fceu->GameStateRestore = StateRestore;
+    fc->state->AddExVec({{&cmd, 1, "CMD0"},
+	                 {&mirror, 1, "MIRR"},
+			 {&bank, 1, "BANK"},
+			 {reg, 8, "REGS"}});
+  }
+};
 }
 
-static DECLFW(M193Write) {
-  reg[A & 3] = V;
-  Sync();
-}
-
-static void M193Power(FC *fc) {
-  bank = 0;
-  Sync();
-  fceulib__.fceu->SetWriteHandler(0x6000, 0x6003, M193Write);
-  fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
-  fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, Cart::CartBW);
-}
-
-static void M193Reset(FC *fc) {}
-
-static void StateRestore(FC *fc, int version) {
-  Sync();
-}
-
-void Mapper193_Init(CartInfo *info) {
-  info->Reset = M193Reset;
-  info->Power = M193Power;
-  fceulib__.fceu->GameStateRestore = StateRestore;
-  fceulib__.state->AddExVec(StateRegs);
+CartInterface *Mapper193_Init(FC *fc, CartInfo *info) {
+  return new Mapper193(fc, info);
 }

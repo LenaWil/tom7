@@ -26,72 +26,75 @@
 #include "mapinc.h"
 #include "mmc3.h"
 
-static uint8 *CHRRAM = nullptr;
-static uint32 CHRRAMSIZE;
+static constexpr uint32 CHRRAMSIZE = 8192;
+namespace {
+struct Mapper199 : public MMC3 {
+  uint8 EXPREGS[8] = {};
+  uint8 *CHRRAM = nullptr;
 
-static void M199PW(uint32 A, uint8 V) {
-  fceulib__.cart->setprg8(A, V);
-  fceulib__.cart->setprg8(0xC000, EXPREGS[0]);
-  fceulib__.cart->setprg8(0xE000, EXPREGS[1]);
-}
-
-static void M199CW(uint32 A, uint8 V) {
-  fceulib__.cart->setchr1r((V < 8) ? 0x10 : 0x00, A, V);
-  fceulib__.cart->setchr1r((DRegBuf[0] < 8) ? 0x10 : 0x00, 0x0000, DRegBuf[0]);
-  fceulib__.cart->setchr1r((EXPREGS[2] < 8) ? 0x10 : 0x00, 0x0400, EXPREGS[2]);
-  fceulib__.cart->setchr1r((DRegBuf[1] < 8) ? 0x10 : 0x00, 0x0800, DRegBuf[1]);
-  fceulib__.cart->setchr1r((EXPREGS[3] < 8) ? 0x10 : 0x00, 0x0c00, EXPREGS[3]);
-}
-
-static void M199MW(uint8 V) {
-  //    FCEU_printf("%02x\n",V);
-  switch (V & 3) {
-    case 0: fceulib__.cart->setmirror(MI_V); break;
-    case 1: fceulib__.cart->setmirror(MI_H); break;
-    case 2: fceulib__.cart->setmirror(MI_0); break;
-    case 3: fceulib__.cart->setmirror(MI_1); break;
+  void PWrap(uint32 A, uint8 V) override {
+    fc->cart->setprg8(A, V);
+    fc->cart->setprg8(0xC000, EXPREGS[0]);
+    fc->cart->setprg8(0xE000, EXPREGS[1]);
   }
-}
 
-static DECLFW(M199Write) {
-  if ((A == 0x8001) && (MMC3_cmd & 8)) {
-    EXPREGS[MMC3_cmd & 3] = V;
-    FixMMC3PRG(MMC3_cmd);
-    FixMMC3CHR(MMC3_cmd);
-  } else {
-    if (A < 0xC000)
-      MMC3_CMDWrite(DECLFW_FORWARD);
-    else
-      MMC3_IRQWrite(DECLFW_FORWARD);
+  void CWrap(uint32 A, uint8 V) override {
+    fc->cart->setchr1r((V < 8) ? 0x10 : 0x00, A, V);
+    fc->cart->setchr1r((DRegBuf[0] < 8) ? 0x10 : 0x00, 0x0000, DRegBuf[0]);
+    fc->cart->setchr1r((EXPREGS[2] < 8) ? 0x10 : 0x00, 0x0400, EXPREGS[2]);
+    fc->cart->setchr1r((DRegBuf[1] < 8) ? 0x10 : 0x00, 0x0800, DRegBuf[1]);
+    fc->cart->setchr1r((EXPREGS[3] < 8) ? 0x10 : 0x00, 0x0c00, EXPREGS[3]);
   }
+
+  void MWrap(uint8 V) override {
+    //    FCEU_printf("%02x\n",V);
+    switch (V & 3) {
+      case 0: fc->cart->setmirror(MI_V); break;
+      case 1: fc->cart->setmirror(MI_H); break;
+      case 2: fc->cart->setmirror(MI_0); break;
+      case 3: fc->cart->setmirror(MI_1); break;
+    }
+  }
+
+  void M199Write(DECLFW_ARGS) {
+    if ((A == 0x8001) && (MMC3_cmd & 8)) {
+      EXPREGS[MMC3_cmd & 3] = V;
+      FixMMC3PRG(MMC3_cmd);
+      FixMMC3CHR(MMC3_cmd);
+    } else {
+      if (A < 0xC000)
+	MMC3_CMDWrite(DECLFW_FORWARD);
+      else
+	MMC3_IRQWrite(DECLFW_FORWARD);
+    }
+  }
+
+  void Power() override {
+    EXPREGS[0] = ~1;
+    EXPREGS[1] = ~0;
+    EXPREGS[2] = 1;
+    EXPREGS[3] = 3;
+    MMC3::Power();
+    fc->fceu->SetWriteHandler(0x8000, 0xFFFF, [](DECLFW_ARGS) {
+	((Mapper199*)fc->fceu->cartiface)->M199Write(DECLFW_FORWARD);
+      });
+  }
+
+  void Close() override {
+    free(CHRRAM);
+    CHRRAM = nullptr;
+  }
+
+  Mapper199(FC *fc, CartInfo *info) :
+    MMC3(fc, info, 512, 256, 8, info->battery) {
+    CHRRAM = (uint8 *)FCEU_gmalloc(CHRRAMSIZE);
+    fc->cart->SetupCartCHRMapping(0x10, CHRRAM, CHRRAMSIZE, 1);
+    fc->state->AddExState(CHRRAM, CHRRAMSIZE, 0, "CHRR");
+    fc->state->AddExState(EXPREGS, 4, 0, "EXPR");
+  }
+};
 }
 
-static void M199Power(FC *fc) {
-  EXPREGS[0] = ~1;
-  EXPREGS[1] = ~0;
-  EXPREGS[2] = 1;
-  EXPREGS[3] = 3;
-  GenMMC3Power(fc);
-  fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, M199Write);
-}
-
-static void M199Close(FC *fc) {
-  free(CHRRAM);
-  CHRRAM = nullptr;
-}
-
-void Mapper199_Init(CartInfo *info) {
-  GenMMC3_Init(info, 512, 256, 8, info->battery);
-  cwrap = M199CW;
-  pwrap = M199PW;
-  mwrap = M199MW;
-  info->Power = M199Power;
-  info->Close = M199Close;
-
-  CHRRAMSIZE = 8192;
-  CHRRAM = (uint8 *)FCEU_gmalloc(CHRRAMSIZE);
-  fceulib__.cart->SetupCartCHRMapping(0x10, CHRRAM, CHRRAMSIZE, 1);
-  fceulib__.state->AddExState(CHRRAM, CHRRAMSIZE, 0, "CHRR");
-
-  fceulib__.state->AddExState(EXPREGS, 4, 0, "EXPR");
+CartInterface *Mapper199_Init(FC *fc, CartInfo *info) {
+  return new Mapper199(fc, info);
 }

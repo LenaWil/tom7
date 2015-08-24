@@ -21,41 +21,50 @@
 #include "mapinc.h"
 #include "mmc3.h"
 
-static void SA9602BPW(uint32 A, uint8 V) {
-  fceulib__.cart->setprg8r(EXPREGS[1], A, V & 0x3F);
-  if (MMC3_cmd & 0x40)
-    fceulib__.cart->setprg8r(0, 0x8000, ~(1));
-  else
-    fceulib__.cart->setprg8r(0, 0xc000, ~(1));
-  fceulib__.cart->setprg8r(0, 0xe000, ~(0));
-}
+namespace {
+struct SA9602B : public MMC3 {
+  uint8 EXPREGS[8] = {};
 
-static DECLFW(SA9602BWrite) {
-  switch (A & 0xe001) {
-    case 0x8000: EXPREGS[0] = V; break;
-    case 0x8001:
-      if ((EXPREGS[0] & 7) < 6) {
-        EXPREGS[1] = V >> 6;
-        FixMMC3PRG(MMC3_cmd);
-      }
-      break;
+  void PWrap(uint32 A, uint8 V) override {
+    fc->cart->setprg8r(EXPREGS[1], A, V & 0x3F);
+    if (MMC3_cmd & 0x40)
+      fc->cart->setprg8r(0, 0x8000, ~1);
+    else
+      fc->cart->setprg8r(0, 0xc000, ~1);
+    fc->cart->setprg8r(0, 0xe000, ~0);
   }
-  MMC3_CMDWrite(DECLFW_FORWARD);
+
+  void SA9602BWrite(DECLFW_ARGS) {
+    switch (A & 0xe001) {
+      case 0x8000: EXPREGS[0] = V; break;
+      case 0x8001:
+	if ((EXPREGS[0] & 7) < 6) {
+	  EXPREGS[1] = V >> 6;
+	  FixMMC3PRG(MMC3_cmd);
+	}
+	break;
+    }
+    MMC3_CMDWrite(DECLFW_FORWARD);
+  }
+
+  void Power() override {
+    EXPREGS[0] = EXPREGS[1] = 0;
+    MMC3::Power();
+    fc->fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
+    fc->fceu->SetWriteHandler(0x8000, 0xBFFF, [](DECLFW_ARGS) {
+	((SA9602B*)fc->fceu->cartiface)->SA9602BWrite(DECLFW_FORWARD);
+      });
+  }
+
+  SA9602B(FC *fc, CartInfo *info) : MMC3(fc, info, 512, 0, 0, 0) {
+    mmc3opts |= 2;
+    info->SaveGame[0] = fc->unif->UNIFchrrama;
+    info->SaveGameLen[0] = 32 * 1024;
+    fc->state->AddExState(EXPREGS, 2, 0, "EXPR");
+  }
+};
 }
 
-static void SA9602BPower(FC *fc) {
-  EXPREGS[0] = EXPREGS[1] = 0;
-  GenMMC3Power(fc);
-  fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
-  fceulib__.fceu->SetWriteHandler(0x8000, 0xBFFF, SA9602BWrite);
-}
-
-void SA9602B_Init(CartInfo *info) {
-  GenMMC3_Init(info, 512, 0, 0, 0);
-  pwrap = SA9602BPW;
-  mmc3opts |= 2;
-  info->SaveGame[0] = fceulib__.unif->UNIFchrrama;
-  info->SaveGameLen[0] = 32 * 1024;
-  info->Power = SA9602BPower;
-  fceulib__.state->AddExState(EXPREGS, 2, 0, "EXPR");
+CartInterface *SA9602B_Init(FC *fc, CartInfo *info) {
+  return new SA9602B(fc, info);
 }

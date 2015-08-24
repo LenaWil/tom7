@@ -20,97 +20,103 @@
 
 #include "mapinc.h"
 
-static uint8 is_large_banks, hw_switch;
-static uint8 large_bank;
-static uint8 prg_bank;
-static uint8 chr_bank;
-static uint8 bank_mode;
-static uint8 mirroring;
-static vector<SFORMAT> StateRegs = {{&large_bank, 1, "LB00"},
-                              {&hw_switch, 1, "DPSW"},
-                              {&prg_bank, 1, "PRG0"},
-                              {&chr_bank, 1, "CHR0"},
-                              {&bank_mode, 1, "BM00"},
-                              {&mirroring, 1, "MIRR"}};
+namespace {
+struct BMC70 : public CartInterface {
+  const bool is_large_banks = false;
+  uint8 hw_switch = 0;
+  uint8 large_bank = 0;
+  uint8 prg_bank = 0;
+  uint8 chr_bank = 0;
+  uint8 bank_mode = 0;
+  uint8 mirroring = 0;
 
-static void Sync() {
-  switch (bank_mode) {
-    case 0x00:
-    case 0x10:
-      fceulib__.cart->setprg16(0x8000, large_bank | prg_bank);
-      fceulib__.cart->setprg16(0xC000, large_bank | 7);
-      break;
-    case 0x20:
-      fceulib__.cart->setprg32(0x8000, (large_bank | prg_bank) >> 1);
-      break;
-    case 0x30:
-      fceulib__.cart->setprg16(0x8000, large_bank | prg_bank);
-      fceulib__.cart->setprg16(0xC000, large_bank | prg_bank);
-      break;
+  void Sync() {
+    switch (bank_mode) {
+      case 0x00:
+      case 0x10:
+	fc->cart->setprg16(0x8000, large_bank | prg_bank);
+	fc->cart->setprg16(0xC000, large_bank | 7);
+	break;
+      case 0x20:
+	fc->cart->setprg32(0x8000, (large_bank | prg_bank) >> 1);
+	break;
+      case 0x30:
+	fc->cart->setprg16(0x8000, large_bank | prg_bank);
+	fc->cart->setprg16(0xC000, large_bank | prg_bank);
+	break;
+    }
+    fc->cart->setmirror(mirroring);
+    if (!is_large_banks) fc->cart->setchr8(chr_bank);
   }
-  fceulib__.cart->setmirror(mirroring);
-  if (!is_large_banks) fceulib__.cart->setchr8(chr_bank);
-}
 
-static DECLFR(BMC70in1Read) {
-  if (bank_mode == 0x10)
-    //    if(is_large_banks)
-    return Cart::CartBR(fc, (A & 0xFFF0) | hw_switch);
-  //    else
-  //      return CartBR((A&0xFFF0)|hw_switch);
-  else
-    return Cart::CartBR(DECLFR_FORWARD);
-}
-
-static DECLFW(BMC70in1Write) {
-  if (A & 0x4000) {
-    bank_mode = A & 0x30;
-    prg_bank = A & 7;
-  } else {
-    mirroring = ((A & 0x20) >> 5) ^ 1;
-    if (is_large_banks)
-      large_bank = (A & 3) << 3;
+  DECLFR_RET BMC70in1Read(DECLFR_ARGS) {
+    if (bank_mode == 0x10)
+      //    if(is_large_banks)
+      return Cart::CartBR(fc, (A & 0xFFF0) | hw_switch);
+    //    else
+    //      return CartBR((A&0xFFF0)|hw_switch);
     else
-      chr_bank = A & 7;
+      return Cart::CartBR(DECLFR_FORWARD);
   }
-  Sync();
+
+  void BMC70in1Write(DECLFW_ARGS) {
+    if (A & 0x4000) {
+      bank_mode = A & 0x30;
+      prg_bank = A & 7;
+    } else {
+      mirroring = ((A & 0x20) >> 5) ^ 1;
+      if (is_large_banks)
+	large_bank = (A & 3) << 3;
+      else
+	chr_bank = A & 7;
+    }
+    Sync();
+  }
+
+  void Reset() override {
+    bank_mode = 0;
+    large_bank = 0;
+    Sync();
+    hw_switch++;
+    hw_switch &= 0xf;
+  }
+
+  void Power() override {
+    fc->cart->setchr8(0);
+    bank_mode = 0;
+    large_bank = 0;
+    Sync();
+    fc->fceu->SetReadHandler(0x8000, 0xFFFF, [](DECLFR_ARGS) {
+	return ((BMC70*)fc->fceu->cartiface)->
+	  BMC70in1Read(DECLFR_FORWARD);
+      });
+    fc->fceu->SetWriteHandler(0x8000, 0xffff, [](DECLFW_ARGS) {
+	((BMC70*)fc->fceu->cartiface)->
+	  BMC70in1Write(DECLFW_FORWARD);
+      });
+  }
+
+  static void StateRestore(FC *fc, int version) {
+    ((BMC70 *)fc->fceu->cartiface)->Sync();
+  }
+
+  BMC70(FC *fc, CartInfo *info, bool ilb, uint8 hw) :
+    CartInterface(fc), is_large_banks(ilb), hw_switch(hw) {
+    fc->fceu->GameStateRestore = StateRestore;
+    fc->state->AddExVec({{&large_bank, 1, "LB00"},
+			 {&hw_switch, 1, "DPSW"},
+			 {&prg_bank, 1, "PRG0"},
+			 {&chr_bank, 1, "CHR0"},
+			 {&bank_mode, 1, "BM00"},
+			 {&mirroring, 1, "MIRR"}});
+  }
+};
 }
 
-static void BMC70in1Reset(FC *fc) {
-  bank_mode = 0;
-  large_bank = 0;
-  Sync();
-  hw_switch++;
-  hw_switch &= 0xf;
+CartInterface *BMC70in1_Init(FC *fc, CartInfo *info) {
+  return new BMC70(fc, info, false, 0xd);
 }
 
-static void BMC70in1Power(FC *fc) {
-  fceulib__.cart->setchr8(0);
-  bank_mode = 0;
-  large_bank = 0;
-  Sync();
-  fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, BMC70in1Read);
-  fceulib__.fceu->SetWriteHandler(0x8000, 0xffff, BMC70in1Write);
-}
-
-static void StateRestore(FC *fc, int version) {
-  Sync();
-}
-
-void BMC70in1_Init(CartInfo *info) {
-  is_large_banks = 0;
-  hw_switch = 0xd;
-  info->Power = BMC70in1Power;
-  info->Reset = BMC70in1Reset;
-  fceulib__.fceu->GameStateRestore = StateRestore;
-  fceulib__.state->AddExVec(StateRegs);
-}
-
-void BMC70in1B_Init(CartInfo *info) {
-  is_large_banks = 1;
-  hw_switch = 0x6;
-  info->Power = BMC70in1Power;
-  info->Reset = BMC70in1Reset;
-  fceulib__.fceu->GameStateRestore = StateRestore;
-  fceulib__.state->AddExVec(StateRegs);
+CartInterface *BMC70in1B_Init(FC *fc, CartInfo *info) {
+  return new BMC70(fc, info, true, 0x6);
 }

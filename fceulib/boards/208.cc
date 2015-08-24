@@ -46,38 +46,52 @@ static constexpr uint8 lut[256] = {
     0x00, 0x00, 0x00, 0x00,
 };
 
-static void M208PW(uint32 A, uint8 V) {
-  fceulib__.cart->setprg32(0x8000, EXPREGS[5]);
+namespace {
+struct Mapper208 : public MMC3 {
+  uint8 EXPREGS[8] = {};
+
+  void PWrap(uint32 A, uint8 V) override {
+    fc->cart->setprg32(0x8000, EXPREGS[5]);
+  }
+
+  void M208Write(DECLFW_ARGS) {
+    EXPREGS[5] = (V & 0x1) | ((V >> 3) & 0x2);
+    FixMMC3PRG(MMC3_cmd);
+  }
+
+  void M208ProtWrite(DECLFW_ARGS) {
+    if (A <= 0x57FF)
+      EXPREGS[4] = V;
+    else
+      EXPREGS[(A & 0x03)] = V ^ lut[EXPREGS[4]];
+  }
+
+  DECLFR_RET M208ProtRead(DECLFR_ARGS) {
+    return EXPREGS[(A & 0x3)];
+  }
+
+  void Power() override {
+    EXPREGS[5] = 3;
+    MMC3::Power();
+    fc->fceu->SetWriteHandler(0x4800, 0x4FFF, [](DECLFW_ARGS) {
+	((Mapper208*)fc->fceu->cartiface)->M208Write(DECLFW_FORWARD);
+      });
+    fc->fceu->SetWriteHandler(0x5000, 0x5fff, [](DECLFW_ARGS) {
+	((Mapper208*)fc->fceu->cartiface)->M208ProtWrite(DECLFW_FORWARD);
+      });
+    fc->fceu->SetReadHandler(0x5800, 0x5FFF, [](DECLFR_ARGS) {
+	return ((Mapper208*)fc->fceu->cartiface)->
+	  M208ProtRead(DECLFR_FORWARD);
+      });
+    fc->fceu->SetReadHandler(0x8000, 0xffff, Cart::CartBR);
+  }
+
+  Mapper208(FC *fc, CartInfo *info) : MMC3(fc, info, 128, 256, 0, 0) {
+    fc->state->AddExState(EXPREGS, 6, 0, "EXPR");
+  }
+};
 }
 
-static DECLFW(M208Write) {
-  EXPREGS[5] = (V & 0x1) | ((V >> 3) & 0x2);
-  FixMMC3PRG(MMC3_cmd);
-}
-
-static DECLFW(M208ProtWrite) {
-  if (A <= 0x57FF)
-    EXPREGS[4] = V;
-  else
-    EXPREGS[(A & 0x03)] = V ^ lut[EXPREGS[4]];
-}
-
-static DECLFR(M208ProtRead) {
-  return EXPREGS[(A & 0x3)];
-}
-
-static void M208Power(FC *fc) {
-  EXPREGS[5] = 3;
-  GenMMC3Power(fc);
-  fceulib__.fceu->SetWriteHandler(0x4800, 0x4FFF, M208Write);
-  fceulib__.fceu->SetWriteHandler(0x5000, 0x5fff, M208ProtWrite);
-  fceulib__.fceu->SetReadHandler(0x5800, 0x5FFF, M208ProtRead);
-  fceulib__.fceu->SetReadHandler(0x8000, 0xffff, Cart::CartBR);
-}
-
-void Mapper208_Init(CartInfo *info) {
-  GenMMC3_Init(info, 128, 256, 0, 0);
-  pwrap = M208PW;
-  info->Power = M208Power;
-  fceulib__.state->AddExState(EXPREGS, 6, 0, "EXPR");
+CartInterface *Mapper208_Init(FC *fc, CartInfo *info) {
+  return new Mapper208(fc, info);
 }

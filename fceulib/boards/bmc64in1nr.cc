@@ -22,56 +22,65 @@
 
 #include "mapinc.h"
 
-static uint8 regs[4];
+namespace {
+struct BMC64in1nr : public CartInterface {
+  uint8 regs[4] = {};
 
-static vector<SFORMAT> StateRegs = {{regs, 4, "REGS"}};
-
-static void Sync() {
-  if (regs[0] & 0x80) {
-    if (regs[1] & 0x80) {
-      fceulib__.cart->setprg32(0x8000, regs[1] & 0x1F);
+  void Sync() {
+    if (regs[0] & 0x80) {
+      if (regs[1] & 0x80) {
+	fc->cart->setprg32(0x8000, regs[1] & 0x1F);
+      } else {
+	int bank = ((regs[1] & 0x1f) << 1) | ((regs[1] >> 6) & 1);
+	fc->cart->setprg16(0x8000, bank);
+	fc->cart->setprg16(0xC000, bank);
+      }
     } else {
       int bank = ((regs[1] & 0x1f) << 1) | ((regs[1] >> 6) & 1);
-      fceulib__.cart->setprg16(0x8000, bank);
-      fceulib__.cart->setprg16(0xC000, bank);
+      fc->cart->setprg16(0xC000, bank);
     }
-  } else {
-    int bank = ((regs[1] & 0x1f) << 1) | ((regs[1] >> 6) & 1);
-    fceulib__.cart->setprg16(0xC000, bank);
+    if (regs[0] & 0x20)
+      fc->cart->setmirror(MI_H);
+    else
+      fc->cart->setmirror(MI_V);
+    fc->cart->setchr8((regs[2] << 2) | ((regs[0] >> 1) & 3));
   }
-  if (regs[0] & 0x20)
-    fceulib__.cart->setmirror(MI_H);
-  else
-    fceulib__.cart->setmirror(MI_V);
-  fceulib__.cart->setchr8((regs[2] << 2) | ((regs[0] >> 1) & 3));
+
+  void BMC64in1nrWriteLo(DECLFW_ARGS) {
+    regs[A & 3] = V;
+    Sync();
+  }
+
+  void BMC64in1nrWriteHi(DECLFW_ARGS) {
+    regs[3] = V;
+    Sync();
+  }
+
+  void Power() override {
+    regs[0] = 0x80;
+    regs[1] = 0x43;
+    regs[2] = regs[3] = 0;
+    Sync();
+    fc->fceu->SetWriteHandler(0x5000, 0x5003, [](DECLFW_ARGS) {
+	((BMC64in1nr*)fc->fceu->cartiface)->BMC64in1nrWriteLo(DECLFW_FORWARD);
+      });
+    fc->fceu->SetWriteHandler(0x8000, 0xFFFF, [](DECLFW_ARGS) {
+	((BMC64in1nr*)fc->fceu->cartiface)->BMC64in1nrWriteHi(DECLFW_FORWARD);
+      });
+    fc->fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
+  }
+
+  static void StateRestore(FC *fc, int version) {
+    ((BMC64in1nr *)fc->fceu->cartiface)->Sync();
+  }
+
+  BMC64in1nr(FC *fc, CartInfo *info) : CartInterface(fc) {
+    fc->state->AddExVec({{regs, 4, "REGS"}});
+    fc->fceu->GameStateRestore = StateRestore;
+  }
+};
 }
 
-static DECLFW(BMC64in1nrWriteLo) {
-  regs[A & 3] = V;
-  Sync();
-}
-
-static DECLFW(BMC64in1nrWriteHi) {
-  regs[3] = V;
-  Sync();
-}
-
-static void BMC64in1nrPower(FC *fc) {
-  regs[0] = 0x80;
-  regs[1] = 0x43;
-  regs[2] = regs[3] = 0;
-  Sync();
-  fceulib__.fceu->SetWriteHandler(0x5000, 0x5003, BMC64in1nrWriteLo);
-  fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, BMC64in1nrWriteHi);
-  fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
-}
-
-static void StateRestore(FC *fc, int version) {
-  Sync();
-}
-
-void BMC64in1nr_Init(CartInfo *info) {
-  info->Power = BMC64in1nrPower;
-  fceulib__.state->AddExVec(StateRegs);
-  fceulib__.fceu->GameStateRestore = StateRestore;
+CartInterface *BMC64in1nr_Init(FC *fc, CartInfo *info) {
+  return new BMC64in1nr(fc, info);
 }
