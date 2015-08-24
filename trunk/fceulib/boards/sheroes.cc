@@ -21,59 +21,68 @@
 #include "mapinc.h"
 #include "mmc3.h"
 
-static uint8 *CHRRAM;  // there is no more extern CHRRAM in mmc3.h
-// I need chrram here and local   static == local
-static uint8 tekker;
+namespace {
+struct UNLSHeroes : public MMC3 {
+  uint8 EXPREGS[8] = {};
+  uint8 tekker = 0;
 
-static void MSHCW(uint32 A, uint8 V) {
-  if (EXPREGS[0] & 0x40) {
-    fceulib__.cart->setchr8r(0x10, 0);
-  } else {
-    if (A < 0x800)
-      fceulib__.cart->setchr1(A, V | ((EXPREGS[0] & 8) << 5));
-    else if (A < 0x1000)
-      fceulib__.cart->setchr1(A, V | ((EXPREGS[0] & 4) << 6));
-    else if (A < 0x1800)
-      fceulib__.cart->setchr1(A, V | ((EXPREGS[0] & 1) << 8));
-    else
-      fceulib__.cart->setchr1(A, V | ((EXPREGS[0] & 2) << 7));
+  void CWrap(uint32 A, uint8 V) override {
+    if (EXPREGS[0] & 0x40) {
+      fc->cart->setchr8r(0x10, 0);
+    } else {
+      if (A < 0x800)
+	fc->cart->setchr1(A, V | ((EXPREGS[0] & 8) << 5));
+      else if (A < 0x1000)
+	fc->cart->setchr1(A, V | ((EXPREGS[0] & 4) << 6));
+      else if (A < 0x1800)
+	fc->cart->setchr1(A, V | ((EXPREGS[0] & 1) << 8));
+      else
+	fc->cart->setchr1(A, V | ((EXPREGS[0] & 2) << 7));
+    }
   }
+
+  void MSHWrite(DECLFW_ARGS) {
+    EXPREGS[0] = V;
+    FixMMC3CHR(MMC3_cmd);
+  }
+
+  DECLFR_RET MSHRead(DECLFR_ARGS) {
+    return tekker;
+  }
+
+  void Reset() override {
+    MMC3::Reset();
+    tekker ^= 0xFF;
+  }
+
+  void Power() override {
+    tekker = 0x00;
+    MMC3::Power();
+    fc->fceu->SetWriteHandler(0x4100, 0x4100, [](DECLFW_ARGS) {
+	((UNLSHeroes*)fc->fceu->cartiface)->MSHWrite(DECLFW_FORWARD);
+      });
+    fc->fceu->SetReadHandler(0x4100, 0x4100, [](DECLFR_ARGS) {
+	return ((UNLSHeroes*)fc->fceu->cartiface)->MSHRead(DECLFR_FORWARD);
+      });
+  }
+
+  void Close() override {
+    free(CHRRAM);
+    CHRRAM = nullptr;
+  }
+
+  UNLSHeroes(FC *fc, CartInfo *info) : MMC3(fc, info, 256, 512, 0, 0) {
+    // original code didn't set size -tom7
+    CHRRAMSize = 8192;
+    CHRRAM = (uint8 *)FCEU_gmalloc(8192);
+    fc->cart->SetupCartCHRMapping(0x10, CHRRAM, 8192, 1);
+    fc->state->AddExState(EXPREGS, 4, 0, "EXPR");
+    fc->state->AddExState(&tekker, 1, 0, "DIPs");
+  }
+};
 }
 
-static DECLFW(MSHWrite) {
-  EXPREGS[0] = V;
-  FixMMC3CHR(MMC3_cmd);
+CartInterface *UNLSHeroes_Init(FC *fc, CartInfo *info) {
+  return new UNLSHeroes(fc, info);
 }
 
-static DECLFR(MSHRead) {
-  return tekker;
-}
-
-static void MSHReset(FC *fc) {
-  MMC3RegReset(fc);
-  tekker ^= 0xFF;
-}
-
-static void MSHPower(FC *fc) {
-  tekker = 0x00;
-  GenMMC3Power(fc);
-  fceulib__.fceu->SetWriteHandler(0x4100, 0x4100, MSHWrite);
-  fceulib__.fceu->SetReadHandler(0x4100, 0x4100, MSHRead);
-}
-
-static void MSHClose(FC *fc) {
-  free(CHRRAM);
-  CHRRAM = nullptr;
-}
-
-void UNLSHeroes_Init(CartInfo *info) {
-  GenMMC3_Init(info, 256, 512, 0, 0);
-  cwrap = MSHCW;
-  info->Power = MSHPower;
-  info->Reset = MSHReset;
-  info->Close = MSHClose;
-  CHRRAM = (uint8 *)FCEU_gmalloc(8192);
-  fceulib__.cart->SetupCartCHRMapping(0x10, CHRRAM, 8192, 1);
-  fceulib__.state->AddExState(EXPREGS, 4, 0, "EXPR");
-  fceulib__.state->AddExState(&tekker, 1, 0, "DIPs");
-}

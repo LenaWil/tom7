@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  * Super Mario Bros 2 J alt version
- * as well as "Voleyball" FDS conversion, bank layot is similar but no
+ * as well as "Voleyball" FDS conversion, bank layout is similar but no
  * bankswitching and CHR ROM present
  *
  * mapper seems wrongly researched by me ;( it should be mapper 43 modification
@@ -25,59 +25,67 @@
 
 #include "mapinc.h"
 
-static uint8 prg, IRQa;
-static uint16 IRQCount;
+namespace {
+struct UNLSMB2J : public CartInterface {
+  uint8 prg = 0, IRQa = 0;
+  uint16 IRQCount = 0;
 
-static vector<SFORMAT> StateRegs = {
-    {&prg, 1, "PRG0"}, {&IRQa, 1, "IRQA"}, {&IRQCount, 2, "IRQC"}};
+  void Sync() {
+    fc->cart->setprg4r(1, 0x5000, 1);
+    fc->cart->setprg8r(1, 0x6000, 1);
+    fc->cart->setprg32(0x8000, prg);
+    fc->cart->setchr8(0);
+  }
 
-static void Sync() {
-  fceulib__.cart->setprg4r(1, 0x5000, 1);
-  fceulib__.cart->setprg8r(1, 0x6000, 1);
-  fceulib__.cart->setprg32(0x8000, prg);
-  fceulib__.cart->setchr8(0);
-}
+  void UNLSMB2JWrite(DECLFW_ARGS) {
+    if (A == 0x4022) {
+      prg = V & 1;
+      Sync();
+    }
+    if (A == 0x4122) {
+      IRQa = V;
+      IRQCount = 0;
+      fc->X->IRQEnd(FCEU_IQEXT);
+    }
+  }
 
-static DECLFW(UNLSMB2JWrite) {
-  if (A == 0x4022) {
-    prg = V & 1;
+  void Power() override {
+    prg = ~0;
+    Sync();
+    fc->fceu->SetReadHandler(0x5000, 0x7FFF, Cart::CartBR);
+    fc->fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
+    fc->fceu->SetWriteHandler(0x4020, 0xffff, [](DECLFW_ARGS) {
+	((UNLSMB2J*)fc->fceu->cartiface)->UNLSMB2JWrite(DECLFW_FORWARD);
+      });
+  }
+
+  void Reset() override {
+    prg = ~0;
     Sync();
   }
-  if (A == 0x4122) {
-    IRQa = V;
-    IRQCount = 0;
-    fceulib__.X->IRQEnd(FCEU_IQEXT);
+
+  void UNLSMB2JIRQHook(int a) {
+    if (IRQa) {
+      IRQCount += a * 3;
+      if ((IRQCount >> 12) == IRQa) fc->X->IRQBegin(FCEU_IQEXT);
+    }
   }
-}
 
-static void UNLSMB2JPower(FC *fc) {
-  prg = ~0;
-  Sync();
-  fceulib__.fceu->SetReadHandler(0x5000, 0x7FFF, Cart::CartBR);
-  fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
-  fceulib__.fceu->SetWriteHandler(0x4020, 0xffff, UNLSMB2JWrite);
-}
-
-static void UNLSMB2JReset(FC *fc) {
-  prg = ~0;
-  Sync();
-}
-
-static void UNLSMB2JIRQHook(FC *fc, int a) {
-  if (IRQa) {
-    IRQCount += a * 3;
-    if ((IRQCount >> 12) == IRQa) fceulib__.X->IRQBegin(FCEU_IQEXT);
+  static void StateRestore(FC *fc, int version) {
+    ((UNLSMB2J *)fc->fceu->cartiface)->Sync();
   }
+
+  UNLSMB2J(FC *fc, CartInfo *info) : CartInterface(fc) {
+    fc->X->MapIRQHook = [](FC *fc, int a) {
+      ((UNLSMB2J *)fc->fceu->cartiface)->UNLSMB2JIRQHook(a);
+    };
+    fc->fceu->GameStateRestore = StateRestore;
+    fc->state->AddExVec({
+	{&prg, 1, "PRG0"}, {&IRQa, 1, "IRQA"}, {&IRQCount, 2, "IRQC"}});
+  }
+};
 }
 
-static void StateRestore(FC *fc, int version) {
-  Sync();
-}
-
-void UNLSMB2J_Init(CartInfo *info) {
-  info->Reset = UNLSMB2JReset;
-  info->Power = UNLSMB2JPower;
-  fceulib__.X->MapIRQHook = UNLSMB2JIRQHook;
-  fceulib__.fceu->GameStateRestore = StateRestore;
-  fceulib__.state->AddExVec(StateRegs);
+CartInterface *UNLSMB2J_Init(FC *fc, CartInfo *info) {
+  return new UNLSMB2J(fc, info);
 }

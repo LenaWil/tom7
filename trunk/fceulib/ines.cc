@@ -571,8 +571,8 @@ static constexpr BoardMapping const board_map[] = {
   {"IREM G-101", 32, Mapper32_Init},
   {"TC0190FMC/TC0350FMR", 33, Mapper33_Init},
   {"", 34, Mapper34_Init},
-#if 0
   {"Wario Land 2", 35, UNLSC127_Init},
+#if 0
   {"TXC Policeman", 36, Mapper36_Init},
 #endif
   {"", 37, Mapper37_Init},
@@ -764,35 +764,29 @@ static constexpr BoardMapping const board_map[] = {
   // {"", 179, Mapper179_Init},
 #if 0
   {"", 180, Mapper180_Init},
-  {"", 181, Mapper181_Init},
 #endif
+  {"", 181, Mapper181_Init},
   // {"", 182, Mapper182_Init}, // Deprecated, dupe
   {"", 183, Mapper183_Init},
 #if 0
   {"", 184, Mapper184_Init},
+#endif
   {"", 185, Mapper185_Init},
   {"", 186, Mapper186_Init},
   {"", 187, Mapper187_Init},
-#endif
   {"", 188, Mapper188_Init},
-#if 0
   {"", 189, Mapper189_Init},
-#endif
   // Mapper190_Init is only enabled in unif? -tom7
   // {"", 190, Mapper190_Init},
   {"", 191, Mapper191_Init},
   {"", 192, Mapper192_Init},
-#if 0
   {"", 193, Mapper193_Init},
-#endif
   {"", 194, Mapper194_Init},
   {"", 195, Mapper195_Init},
   {"", 196, Mapper196_Init},
   {"", 197, Mapper197_Init},
   {"", 198, Mapper198_Init},
-#if 0
   {"", 199, Mapper199_Init},
-#endif
   {"", 200, Mapper200_Init},
   {"", 201, Mapper201_Init},
   {"", 202, Mapper202_Init},
@@ -803,9 +797,9 @@ static constexpr BoardMapping const board_map[] = {
   {"", 205, Mapper205_Init},
 #if 0
   {"DEIROM", 206, DEIROM_Init},
+#endif
   // {"", 207, Mapper207_Init},
   {"", 208, Mapper208_Init},
-#endif
   {"", 209, Mapper209_Init},
 #if 0
   {"", 210, Mapper210_Init},
@@ -815,9 +809,7 @@ static constexpr BoardMapping const board_map[] = {
   {"", 213, Mapper213_Init},
   {"", 214, Mapper214_Init},
   {"", 215, UNL8237_Init},
-#if 0
   {"", 216, Mapper216_Init},
-#endif
   {"", 217, Mapper217_Init}, // Redefined to a new Discrete BMC mapper
   // {"", 218, Mapper218_Init},
 #if 0
@@ -826,13 +818,13 @@ static constexpr BoardMapping const board_map[] = {
   // in unif it is called just KS7057? - tom7
   {"Debug Mapper", 220, UNLKS7057_Init},
   {"UNLN625092", 221, UNLN625092_Init},
-#if 0
   {"", 222, Mapper222_Init},
   // {"", 223, Mapper223_Init},
   // {"", 224, Mapper224_Init},
+#if 0
   {"", 225, Mapper225_Init},
-  {"BMC 22+20-in-1", 226, Mapper226_Init},
 #endif
+  {"BMC 22+20-in-1", 226, Mapper226_Init},
   {"", 227, Mapper227_Init},
 #if 0
   {"", 228, Mapper228_Init},
@@ -844,7 +836,9 @@ static constexpr BoardMapping const board_map[] = {
   {"", 231, Mapper231_Init},
 #if 0
   {"BMC QUATTRO", 232, Mapper232_Init},
+#endif
   {"BMC 22+20-in-1 RST", 233, Mapper233_Init},
+#if 0
   {"BMC MAXI", 234, Mapper234_Init},
   {"", 235, Mapper235_Init},
   // {"", 236, Mapper236_Init},

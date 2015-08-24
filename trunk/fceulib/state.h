@@ -53,7 +53,11 @@ struct SFORMAT {
     CHECK(strlen(key) == 4) << "\nMust be exactly 4 bytes: " << key;
     // Discrepancy between C++11 and C++14 prevents using
     // brace initialization in initializer.
-    desc = {key[0], key[1], key[2], key[3]};
+    // desc = {key[0], key[1], key[2], key[3]};
+    desc[0] = key[0];
+    desc[1] = key[1];
+    desc[2] = key[2];
+    desc[3] = key[3];
   }
   SFORMAT(void *v, uint32 s, SKEY desc) :
     v(v), s(s), desc(desc) {}

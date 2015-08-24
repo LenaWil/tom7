@@ -272,23 +272,17 @@ static constexpr BMAPPING bmap[] = {
     {"11160", BMC11160_Init, 0},
 #endif
     {"12-IN-1", BMC12IN1_Init, 0},
-#if 0
     {"13in1JY110", BMC13in1JY110_Init, 0},
-#endif
     {"190in1", BMC190in1_Init, 0},
     {"22211", UNL22211_Init, 0},
     {"3D-BLOCK", UNL3DBlock_Init, 0},
     {"411120-C", BMC411120C_Init, 0},
-#if 0
     {"42in1ResetSwitch", Mapper226_Init, 0},
-#endif
     {"43272", UNL43272_Init, 0},
     {"603-5052", UNL6035052_Init, 0},
-#if 0
     {"64in1NoRepeat", BMC64in1nr_Init, 0},
     {"70in1", BMC70in1_Init, 0},
     {"70in1B", BMC70in1B_Init, 0},
-#endif
     {"810544-C-A1", BMC810544CA1_Init, 0},
     {"8157", UNL8157_Init, 0},
     {"8237", UNL8237_Init, 0},
@@ -300,8 +294,10 @@ static constexpr BMAPPING bmap[] = {
     {"AC08", AC08_Init, 0},
 #if 0
     {"ANROM", ANROM_Init, 0},
+#endif
     {"AX5705", UNLAX5705_Init, 0},
     {"BB", UNLBB_Init, 0},
+#if 0
     {"BS-5", BMCBS5_Init, 0},
 #endif
     {"CC-21", UNLCC21_Init, 0},
@@ -311,8 +307,8 @@ static constexpr BMAPPING bmap[] = {
     {"CPROM", CPROM_Init, BMCFLAG_16KCHRR},
 #endif
     {"D1038", BMCD1038_Init, 0},
-#if 0
     {"DANCE", UNLOneBus_Init, 0},  // redundant
+#if 0
     {"DANCE2000", UNLD2000_Init, 0},
     {"DREAMTECH01", DreamTech01_Init, 0},
     {"EDU2000", UNLEDU2000_Init, 0},
@@ -364,9 +360,9 @@ static constexpr BMAPPING bmap[] = {
     {"NTBROM", Mapper68_Init, 0},
     {"NTD-03", BMCNTD03_Init, 0},
     {"NovelDiamond9999999in1", Novel_Init, 0},
-#if 0
     {"OneBus", UNLOneBus_Init, 0},
-    {"PEC-586", UNLPEC586Init, 0},
+    {"PEC-586", UNLPEC586_Init, 0},
+#if 0
     {"RROM", NROM_Init, 0},
     {"RROM-128", NROM_Init, 0},
     {"SA-002", TCU02_Init, 0},
@@ -376,7 +372,9 @@ static constexpr BMAPPING bmap[] = {
     {"SA-016-1M", SA0161M_Init, 0},
     {"SA-72007", SA72007_Init, 0},
     {"SA-72008", SA72008_Init, 0},
+#endif
     {"SA-9602B", SA9602B_Init, BMCFLAG_32KCHRR},
+#if 0
     {"SA-NROM", TCA01_Init, 0},
 #endif
     // MMC1
@@ -390,15 +388,12 @@ static constexpr BMAPPING bmap[] = {
     {"SOROM", SOROM_Init, 0},
     {"SL1ROM", SL1ROM_Init, 0},
     {"SLROM", SLROM_Init, 0},
-
-#if 0
     {"SC-127", UNLSC127_Init, 0},
     {"SHERO", UNLSHeroes_Init, 0},
-#endif
     {"SL12", UNLSL12_Init, 0},
-#if 0
     {"SL1632", UNLSL1632_Init, 0},
     {"SMB2J", UNLSMB2J_Init, 0},
+#if 0
     {"SSS-NROM-256", SSSNROM_Init, 0},
     {"SUNSOFT_UNROM", SUNSOFT_UNROM_Init, 0},
     {"Sachen-74LS374N", S74LS374N_Init, 0},

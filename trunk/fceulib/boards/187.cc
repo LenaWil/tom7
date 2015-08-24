@@ -21,66 +21,82 @@
 #include "mapinc.h"
 #include "mmc3.h"
 
-static void M187CW(uint32 A, uint8 V) {
-  if ((A & 0x1000) == ((MMC3_cmd & 0x80) << 5))
-    fceulib__.cart->setchr1(A, V | 0x100);
-  else
-    fceulib__.cart->setchr1(A, V);
-}
+namespace {
+struct Mapper187 : public MMC3 {
+  uint8 EXPREGS[8] = {};
 
-static void M187PW(uint32 A, uint8 V) {
-  if (EXPREGS[0] & 0x80) {
-    uint8 bank = EXPREGS[0] & 0x1F;
-    if (EXPREGS[0] & 0x20) {
-      if (EXPREGS[0] & 0x40)
-        fceulib__.cart->setprg32(0x8000, bank >> 2);
-      else
-        fceulib__.cart->setprg32(0x8000, bank >> 1);  // hacky hacky! two
-                                                      // mappers in one! need
-                                                      // real hw carts to test
+  void CWrap(uint32 A, uint8 V) override {
+    if ((A & 0x1000) == ((MMC3_cmd & 0x80) << 5))
+      fc->cart->setchr1(A, V | 0x100);
+    else
+      fc->cart->setchr1(A, V);
+  }
+
+  void PWrap(uint32 A, uint8 V) override {
+    if (EXPREGS[0] & 0x80) {
+      uint8 bank = EXPREGS[0] & 0x1F;
+      if (EXPREGS[0] & 0x20) {
+	if (EXPREGS[0] & 0x40) {
+	  fc->cart->setprg32(0x8000, bank >> 2);
+	} else {
+	  // hacky hacky! two
+	  // mappers in one! need
+	  // real hw carts to test
+	  fc->cart->setprg32(0x8000, bank >> 1);
+	}
+      } else {
+	fc->cart->setprg16(0x8000, bank);
+	fc->cart->setprg16(0xC000, bank);
+      }
     } else {
-      fceulib__.cart->setprg16(0x8000, bank);
-      fceulib__.cart->setprg16(0xC000, bank);
+      fc->cart->setprg8(A, V & 0x3F);
     }
-  } else {
-    fceulib__.cart->setprg8(A, V & 0x3F);
   }
-}
 
-static DECLFW(M187Write8000) {
-  EXPREGS[1] = 1;
-  MMC3_CMDWrite(DECLFW_FORWARD);
-}
-
-static DECLFW(M187Write8001) {
-  if (EXPREGS[1]) MMC3_CMDWrite(DECLFW_FORWARD);
-}
-
-static DECLFW(M187WriteLo) {
-  if ((A == 0x5000) || (A == 0x6000)) {
-    EXPREGS[0] = V;
-    FixMMC3PRG(MMC3_cmd);
+  void M187Write8000(DECLFW_ARGS) {
+    EXPREGS[1] = 1;
+    MMC3_CMDWrite(DECLFW_FORWARD);
   }
+
+  void M187Write8001(DECLFW_ARGS) {
+    if (EXPREGS[1]) MMC3_CMDWrite(DECLFW_FORWARD);
+  }
+
+  void M187WriteLo(DECLFW_ARGS) {
+    if ((A == 0x5000) || (A == 0x6000)) {
+      EXPREGS[0] = V;
+      FixMMC3PRG(MMC3_cmd);
+    }
+  }
+
+  uint8 prot_data[4] = {0x83, 0x83, 0x42, 0x00};
+  DECLFR_RET M187Read(DECLFR_ARGS) {
+    return prot_data[EXPREGS[1] & 3];
+  }
+
+  void Power() override {
+    EXPREGS[0] = EXPREGS[1] = 0;
+    MMC3::Power();
+    fc->fceu->SetReadHandler(0x5000, 0x5FFF, [](DECLFR_ARGS) {
+	return ((Mapper187*)fc->fceu->cartiface)->M187Read(DECLFR_FORWARD);
+      });
+    fc->fceu->SetWriteHandler(0x5000, 0x6FFF, [](DECLFW_ARGS) {
+	((Mapper187*)fc->fceu->cartiface)->M187WriteLo(DECLFW_FORWARD);
+      });
+    fc->fceu->SetWriteHandler(0x8000, 0x8000, [](DECLFW_ARGS) {
+	((Mapper187*)fc->fceu->cartiface)->M187Write8000(DECLFW_FORWARD);
+      });
+    fc->fceu->SetWriteHandler(0x8001, 0x8001, [](DECLFW_ARGS) {
+	((Mapper187*)fc->fceu->cartiface)->M187Write8001(DECLFW_FORWARD);
+      });
+  }
+
+  Mapper187(FC *fc, CartInfo *info) : MMC3(fc, info, 256, 256, 0, 0) {
+    fc->state->AddExState(EXPREGS, 3, 0, "EXPR");
+  }
+};
 }
 
-static uint8 prot_data[4] = {0x83, 0x83, 0x42, 0x00};
-static DECLFR(M187Read) {
-  return prot_data[EXPREGS[1] & 3];
-}
-
-static void M187Power(FC *fc) {
-  EXPREGS[0] = EXPREGS[1] = 0;
-  GenMMC3Power(fc);
-  fceulib__.fceu->SetReadHandler(0x5000, 0x5FFF, M187Read);
-  fceulib__.fceu->SetWriteHandler(0x5000, 0x6FFF, M187WriteLo);
-  fceulib__.fceu->SetWriteHandler(0x8000, 0x8000, M187Write8000);
-  fceulib__.fceu->SetWriteHandler(0x8001, 0x8001, M187Write8001);
-}
-
-void Mapper187_Init(CartInfo *info) {
-  GenMMC3_Init(info, 256, 256, 0, 0);
-  pwrap = M187PW;
-  cwrap = M187CW;
-  info->Power = M187Power;
-  fceulib__.state->AddExState(EXPREGS, 3, 0, "EXPR");
+CartInterface *Mapper187_Init(FC *fc, CartInfo *info) {
+  return new Mapper187(fc, info);
 }

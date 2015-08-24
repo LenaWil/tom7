@@ -21,11 +21,45 @@
 
 #include "mapinc.h"
 
-static uint8 *DummyCHR = nullptr;
-static uint8 datareg;
-static void (*Sync)();
+namespace {
+struct Mapper185Base : public CartInterface {
+  uint8 *DummyCHR = nullptr;
+  uint8 datareg = 0;
 
-static vector<SFORMAT> StateRegs = {{&datareg, 1, "DREG"}};
+  virtual void WSync() {};
+
+  void MWrite(DECLFW_ARGS) {
+    datareg = V;
+    WSync();
+  }
+
+  void Power() override {
+    datareg = 0;
+    WSync();
+    fc->cart->setprg16(0x8000, 0);
+    fc->cart->setprg16(0xC000, ~0);
+    fc->fceu->SetWriteHandler(0x8000, 0xFFFF, [](DECLFW_ARGS) {
+	((Mapper185Base*)fc->fceu->cartiface)->MWrite(DECLFW_FORWARD);
+      });
+    fc->fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
+  }
+
+  void Close() override {
+    free(DummyCHR);
+    DummyCHR = nullptr;
+  }
+
+  static void MRestore(FC *fc, int version) {
+    ((Mapper185Base *)fc->fceu->cartiface)->WSync();
+  }
+
+  Mapper185Base(FC *fc, CartInfo *info) : CartInterface(fc) {
+    DummyCHR = (uint8 *)FCEU_gmalloc(8192);
+    for (int x = 0; x < 8192; x++) DummyCHR[x] = 0xff;
+    fc->cart->SetupCartCHRMapping(0x10, DummyCHR, 8192, 0);
+    fc->state->AddExVec({{&datareg, 1, "DREG"}});
+  }
+};
 
 //   on    off
 // 1  0x0F, 0xF0 - Bird Week
@@ -36,62 +70,32 @@ static vector<SFORMAT> StateRegs = {{&datareg, 1, "DREG"}};
 // 6  0x21, 0x13 - Spy vs Spy
 // 7  0x20, 0x21 - Seicross
 
-static void Sync185() {
-  // little dirty eh? ;_)
-  if ((datareg & 3) && (datareg != 0x13))  // 1, 2, 3, 4, 5, 6
-    fceulib__.cart->setchr8(0);
-  else
-    fceulib__.cart->setchr8r(0x10, 0);
+struct Mapper185 : public Mapper185Base {
+  using Mapper185Base::Mapper185Base;
+  void WSync() override {
+    // little dirty eh? ;_)
+    if ((datareg & 3) && (datareg != 0x13))  // 1, 2, 3, 4, 5, 6
+      fc->cart->setchr8(0);
+    else
+      fc->cart->setchr8r(0x10, 0);
+  }
+};
+
+struct Mapper181 : public Mapper185Base {
+  using Mapper185Base::Mapper185Base;
+  void WSync() override {
+    if (!(datareg & 1))  // 7
+      fc->cart->setchr8(0);
+    else
+      fc->cart->setchr8r(0x10, 0);
+  }
+};
 }
 
-static void Sync181() {
-  if (!(datareg & 1))  // 7
-    fceulib__.cart->setchr8(0);
-  else
-    fceulib__.cart->setchr8r(0x10, 0);
+CartInterface *Mapper185_Init(FC *fc, CartInfo *info) {
+  return new Mapper185(fc, info);
 }
 
-static DECLFW(MWrite) {
-  datareg = V;
-  Sync();
-}
-
-static void MPower(FC *fc) {
-  datareg = 0;
-  Sync();
-  fceulib__.cart->setprg16(0x8000, 0);
-  fceulib__.cart->setprg16(0xC000, ~0);
-  fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, MWrite);
-  fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
-}
-
-static void MClose(FC *fc) {
-  free(DummyCHR);
-  DummyCHR = nullptr;
-}
-
-static void MRestore(FC *fc, int version) {
-  Sync();
-}
-
-void Mapper185_Init(CartInfo *info) {
-  Sync = Sync185;
-  info->Power = MPower;
-  info->Close = MClose;
-  fceulib__.fceu->GameStateRestore = MRestore;
-  DummyCHR = (uint8 *)FCEU_gmalloc(8192);
-  for (int x = 0; x < 8192; x++) DummyCHR[x] = 0xff;
-  fceulib__.cart->SetupCartCHRMapping(0x10, DummyCHR, 8192, 0);
-  fceulib__.state->AddExVec(StateRegs);
-}
-
-void Mapper181_Init(CartInfo *info) {
-  Sync = Sync181;
-  info->Power = MPower;
-  info->Close = MClose;
-  fceulib__.fceu->GameStateRestore = MRestore;
-  DummyCHR = (uint8 *)FCEU_gmalloc(8192);
-  for (int x = 0; x < 8192; x++) DummyCHR[x] = 0xff;
-  fceulib__.cart->SetupCartCHRMapping(0x10, DummyCHR, 8192, 0);
-  fceulib__.state->AddExVec(StateRegs);
+CartInterface *Mapper181_Init(FC *fc, CartInfo *info) {
+  return new Mapper181(fc, info);
 }

@@ -7,10 +7,6 @@ struct CartInterface;
 
 #if 0
 CartInterface *ANROM_Init(FC *fc, CartInfo *info);
-CartInterface *BMC13in1JY110_Init(FC *fc, CartInfo *info);
-CartInterface *BMC64in1nr_Init(FC *fc, CartInfo *info);
-CartInterface *BMC70in1B_Init(FC *fc, CartInfo *info);
-CartInterface *BMC70in1_Init(FC *fc, CartInfo *info);
 CartInterface *BMCBS5_Init(FC *fc, CartInfo *info);
 CartInterface *BMCFK23CA_Init(FC *fc, CartInfo *info);
 CartInterface *BMCFK23C_Init(FC *fc, CartInfo *info);
@@ -33,8 +29,20 @@ CartInterface *SA009_Init(FC *fc, CartInfo *info);
 CartInterface *SA0161M_Init(FC *fc, CartInfo *info);
 CartInterface *SA72007_Init(FC *fc, CartInfo *info);
 CartInterface *SA72008_Init(FC *fc, CartInfo *info);
-CartInterface *SA9602B_Init(FC *fc, CartInfo *info);
 #endif
+
+// bmc70in1
+CartInterface *BMC70in1B_Init(FC *fc, CartInfo *info);
+CartInterface *BMC70in1_Init(FC *fc, CartInfo *info);
+
+// bmc64in1nr
+CartInterface *BMC64in1nr_Init(FC *fc, CartInfo *info);
+
+// bmc13in1jy110
+CartInterface *BMC13in1JY110_Init(FC *fc, CartInfo *info);
+
+// sa-9602b
+CartInterface *SA9602B_Init(FC *fc, CartInfo *info);
 
 // novel
 CartInterface *Novel_Init(FC *fc, CartInfo *info);
@@ -178,6 +186,30 @@ CartInterface *BMC810544CA1_Init(FC *fc, CartInfo *info);
 CartInterface *BMCNTD03_Init(FC *fc, CartInfo *info);
 CartInterface *BMCG146_Init(FC *fc, CartInfo *info);
 
+// ax5705
+CartInterface *UNLAX5705_Init(FC *fc, CartInfo *info);
+
+// onebus
+CartInterface *UNLOneBus_Init(FC *fc, CartInfo *info);
+
+// pec-586
+CartInterface *UNLPEC586_Init(FC *fc, CartInfo *info);
+
+// bb
+CartInterface *UNLBB_Init(FC *fc, CartInfo *info);
+
+// sc-127
+CartInterface *UNLSC127_Init(FC *fc, CartInfo *info);
+
+// sheroes
+CartInterface *UNLSHeroes_Init(FC *fc, CartInfo *info);
+
+// sl1632
+CartInterface *UNLSL1632_Init(FC *fc, CartInfo *info);
+
+// smb2j
+CartInterface *UNLSMB2J_Init(FC *fc, CartInfo *info);
+
 #if 0
 CartInterface *SSSNROM_Init(FC *fc, CartInfo *info);
 CartInterface *Super24_Init(FC *fc, CartInfo *info);
@@ -187,17 +219,9 @@ CartInterface *TCU01_Init(FC *fc, CartInfo *info);
 CartInterface *TCU02_Init(FC *fc, CartInfo *info);
 CartInterface *Transformer_Init(FC *fc, CartInfo *info);
 CartInterface *UNLA9746_Init(FC *fc, CartInfo *info);
-CartInterface *UNLAX5705_Init(FC *fc, CartInfo *info);
-CartInterface *UNLBB_Init(FC *fc, CartInfo *info);
 CartInterface *UNLCITYFIGHT_Init(FC *fc, CartInfo *info);
 CartInterface *UNLD2000_Init(FC *fc, CartInfo *info);
 CartInterface *UNLEDU2000_Init(FC *fc, CartInfo *info);
-CartInterface *UNLOneBus_Init(FC *fc, CartInfo *info);
-CartInterface *UNLPEC586Init(FC *fc, CartInfo *info);
-CartInterface *UNLSC127_Init(FC *fc, CartInfo *info);
-CartInterface *UNLSHeroes_Init(FC *fc, CartInfo *info);
-CartInterface *UNLSL1632_Init(FC *fc, CartInfo *info);
-CartInterface *UNLSMB2J_Init(FC *fc, CartInfo *info);
 CartInterface *UNLT230_Init(FC *fc, CartInfo *info);
 CartInterface *UNLTF1201_Init(FC *fc, CartInfo *info);
 CartInterface *UNLVRC7_Init(FC *fc, CartInfo *info);

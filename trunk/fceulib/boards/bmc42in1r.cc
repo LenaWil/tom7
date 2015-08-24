@@ -24,60 +24,67 @@
 
 #include "mapinc.h"
 
-static uint8 isresetbased = 0;
-static uint8 latche[2], reset;
-static vector<SFORMAT> StateRegs = {{&reset, 1, "RST0"}, {latche, 2, "LATC"}};
+namespace {
+struct Mapper226Base : public CartInterface {
+  const bool isresetbased = false;
+  uint8 latch[2] = {}, reset = {};
 
-static void Sync() {
-  uint8 bank;
-  if (isresetbased) {
-    bank = (latche[0] & 0x1f) | (reset << 5) | ((latche[1] & 1) << 6);
-  } else {
-    bank =
-        (latche[0] & 0x1f) | ((latche[0] & 0x80) >> 2) | ((latche[1] & 1) << 6);
+  void Sync() {
+    uint8 bank;
+    if (isresetbased) {
+      bank = (latch[0] & 0x1f) | (reset << 5) | ((latch[1] & 1) << 6);
+    } else {
+      bank = (latch[0] & 0x1f) | 
+	((latch[0] & 0x80) >> 2) | 
+	((latch[1] & 1) << 6);
+    }
+    if (!(latch[0] & 0x20)) {
+      fc->cart->setprg32(0x8000, bank >> 1);
+    } else {
+      fc->cart->setprg16(0x8000, bank);
+      fc->cart->setprg16(0xC000, bank);
+    }
+    fc->cart->setmirror((latch[0] >> 6) & 1);
+    fc->cart->setchr8(0);
   }
-  if (!(latche[0] & 0x20)) {
-    fceulib__.cart->setprg32(0x8000, bank >> 1);
-  } else {
-    fceulib__.cart->setprg16(0x8000, bank);
-    fceulib__.cart->setprg16(0xC000, bank);
+
+  void M226Write(DECLFW_ARGS) {
+    latch[A & 1] = V;
+    Sync();
   }
-  fceulib__.cart->setmirror((latche[0] >> 6) & 1);
-  fceulib__.cart->setchr8(0);
+
+  void Power() override {
+    latch[0] = latch[1] = reset = 0;
+    Sync();
+    fc->fceu->SetWriteHandler(0x8000, 0xFFFF, [](DECLFW_ARGS) {
+	((Mapper226Base*)fc->fceu->cartiface)->M226Write(DECLFW_FORWARD);
+      });
+    fc->fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
+  }
+
+  static void StateRestore(FC *fc, int version) {
+    ((Mapper226Base *)fc->fceu->cartiface)->Sync();
+  }
+
+  Mapper226Base(FC *fc, CartInfo *info, bool resetbased)
+    : CartInterface(fc), isresetbased(resetbased) {
+    fc->state->AddExVec({{&reset, 1, "RST0"}, {latch, 2, "LATC"}});
+    fc->fceu->GameStateRestore = StateRestore;
+  }
+};
+
+struct Mapper233 : public Mapper226Base {
+  using Mapper226Base::Mapper226Base;
+  void Reset() override {
+    reset ^= 1;
+    Sync();
+  }
+};
 }
 
-static DECLFW(M226Write) {
-  latche[A & 1] = V;
-  Sync();
+CartInterface *Mapper226_Init(FC *fc, CartInfo *info) {
+  return new Mapper226Base(fc, info, false);
 }
-
-static void M226Power(FC *fc) {
-  latche[0] = latche[1] = reset = 0;
-  Sync();
-  fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, M226Write);
-  fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
-}
-
-static void StateRestore(FC *fc, int version) {
-  Sync();
-}
-
-void Mapper226_Init(CartInfo *info) {
-  isresetbased = 0;
-  info->Power = M226Power;
-  fceulib__.state->AddExVec(StateRegs);
-  fceulib__.fceu->GameStateRestore = StateRestore;
-}
-
-static void M233Reset(FC *fc) {
-  reset ^= 1;
-  Sync();
-}
-
-void Mapper233_Init(CartInfo *info) {
-  isresetbased = 1;
-  info->Power = M226Power;
-  info->Reset = M233Reset;
-  fceulib__.state->AddExVec(StateRegs);
-  fceulib__.fceu->GameStateRestore = StateRestore;
+CartInterface *Mapper233_Init(FC *fc, CartInfo *info) {
+  return new Mapper233(fc, info, true);
 }
