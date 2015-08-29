@@ -7,13 +7,17 @@ struct CartInterface;
 
 #if 0
 CartInterface *ANROM_Init(FC *fc, CartInfo *info);
-CartInterface *BMCFK23CA_Init(FC *fc, CartInfo *info);
-CartInterface *BMCFK23C_Init(FC *fc, CartInfo *info);
 CartInterface *BMCGS2004_Init(FC *fc, CartInfo *info);
 CartInterface *BMCGhostbusters63in1_Init(FC *fc, CartInfo *info);
-CartInterface *DreamTech01_Init(FC *fc, CartInfo *info);
 CartInterface *GNROM_Init(FC *fc, CartInfo *info);
 #endif
+
+// fk23c
+CartInterface *BMCFK23CA_Init(FC *fc, CartInfo *info);
+CartInterface *BMCFK23C_Init(FC *fc, CartInfo *info);
+
+// dream
+CartInterface *DreamTech01_Init(FC *fc, CartInfo *info);
 
 // sachen
 CartInterface *S74LS374NA_Init(FC *fc, CartInfo *info);
@@ -235,13 +239,21 @@ CartInterface *UNLD2000_Init(FC *fc, CartInfo *info);
 // supervision
 CartInterface *Supervision16_Init(FC *fc, CartInfo *info);
 
-#if 0
-CartInterface *SSSNROM_Init(FC *fc, CartInfo *info);
-CartInterface *Transformer_Init(FC *fc, CartInfo *info);
-CartInterface *UNLA9746_Init(FC *fc, CartInfo *info);
+// edu2000
 CartInterface *UNLEDU2000_Init(FC *fc, CartInfo *info);
-CartInterface *UNLT230_Init(FC *fc, CartInfo *info);
+
+// tf-1201
 CartInterface *UNLTF1201_Init(FC *fc, CartInfo *info);
+
+// famicombox
+CartInterface *SSSNROM_Init(FC *fc, CartInfo *info);
+
+// transformer
+CartInterface *Transformer_Init(FC *fc, CartInfo *info);
+
+#if 0
+CartInterface *UNLA9746_Init(FC *fc, CartInfo *info);
+CartInterface *UNLT230_Init(FC *fc, CartInfo *info);
 CartInterface *UNLVRC7_Init(FC *fc, CartInfo *info);
 CartInterface *UNLYOKO_Init(FC *fc, CartInfo *info);
 #endif

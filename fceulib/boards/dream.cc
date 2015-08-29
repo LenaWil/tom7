@@ -20,32 +20,41 @@
 
 #include "mapinc.h"
 
-static uint8 latch;
+namespace {
+struct DreamTech01 : public CartInterface {
+  uint8 latch = 0;
 
-static void Sync() {
-  fceulib__.cart->setprg16(0x8000, latch);
-  fceulib__.cart->setprg16(0xC000, 8);
+  void Sync() {
+    fc->cart->setprg16(0x8000, latch);
+    fc->cart->setprg16(0xC000, 8);
+  }
+
+  void DREAMWrite(DECLFW_ARGS) {
+    latch = V & 7;
+    Sync();
+  }
+
+  void Power() override {
+    latch = 0;
+    Sync();
+    fc->cart->setchr8(0);
+    fc->fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
+    fc->fceu->SetWriteHandler(0x5020, 0x5020, [](DECLFW_ARGS) {
+      ((DreamTech01*)fc->fceu->cartiface)->DREAMWrite(DECLFW_FORWARD);
+    });
+  }
+
+  static void Restore(FC *fc, int version) {
+    ((DreamTech01 *)fc->fceu->cartiface)->Sync();
+  }
+
+  DreamTech01(FC *fc, CartInfo *info) : CartInterface(fc) {
+    fc->fceu->GameStateRestore = Restore;
+    fc->state->AddExState(&latch, 1, 0, "LATC");
+  }
+};
 }
 
-static DECLFW(DREAMWrite) {
-  latch = V & 7;
-  Sync();
-}
-
-static void DREAMPower(FC *fc) {
-  latch = 0;
-  Sync();
-  fceulib__.cart->setchr8(0);
-  fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
-  fceulib__.fceu->SetWriteHandler(0x5020, 0x5020, DREAMWrite);
-}
-
-static void Restore(FC *fc, int version) {
-  Sync();
-}
-
-void DreamTech01_Init(CartInfo *info) {
-  fceulib__.fceu->GameStateRestore = Restore;
-  info->Power = DREAMPower;
-  fceulib__.state->AddExState(&latch, 1, 0, "LATC");
+CartInterface *DreamTech01_Init(FC *fc, CartInfo *info) {
+  return new DreamTech01(fc, info);
 }

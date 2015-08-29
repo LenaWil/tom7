@@ -22,96 +22,107 @@
 
 #include "mapinc.h"
 
-static uint8 prg0, prg1, mirr, tfswap;
-static uint8 chr[8];
-static uint8 IRQCount;
-static uint8 IRQPre;
-static uint8 IRQa;
+namespace {
+struct UNLTF1201 : public CartInterface {
+  uint8 prg0 = 0, prg1 = 0, mirr = 0, tfswap = 0;
+  uint8 chr[8] = {};
+  uint8 IRQCount = 0;
+  uint8 IRQPre = 0;
+  uint8 IRQa = 0;
 
-static vector<SFORMAT> StateRegs = {
-    {&prg0, 1, "PRG0"},   {&prg0, 1, "PRG1"}, {&mirr, 1, "MIRR"},
-    {&tfswap, 1, "SWAP"},   {chr, 8, "CHR0"},    {&IRQCount, 1, "IRQC"},
-    {&IRQPre, 1, "IRQP"}, {&IRQa, 1, "IRQA"}};
-
-static void SyncPrg() {
-  if (tfswap & 3) {
-    fceulib__.cart->setprg8(0x8000, ~1);
-    fceulib__.cart->setprg8(0xC000, prg0);
-  } else {
-    fceulib__.cart->setprg8(0x8000, prg0);
-    fceulib__.cart->setprg8(0xC000, ~1);
+  void SyncPrg() {
+    if (tfswap & 3) {
+      fc->cart->setprg8(0x8000, ~1);
+      fc->cart->setprg8(0xC000, prg0);
+    } else {
+      fc->cart->setprg8(0x8000, prg0);
+      fc->cart->setprg8(0xC000, ~1);
+    }
+    fc->cart->setprg8(0xA000, prg1);
+    fc->cart->setprg8(0xE000, ~0);
   }
-  fceulib__.cart->setprg8(0xA000, prg1);
-  fceulib__.cart->setprg8(0xE000, ~0);
-}
 
-static void SyncChr() {
-  for (int i = 0; i < 8; i++) fceulib__.cart->setchr1(i << 10, chr[i]);
-  fceulib__.cart->setmirror(mirr ^ 1);
-}
+  void SyncChr() {
+    for (int i = 0; i < 8; i++) fc->cart->setchr1(i << 10, chr[i]);
+    fc->cart->setmirror(mirr ^ 1);
+  }
 
-static void StateRestore(FC *fc, int version) {
-  SyncPrg();
-  SyncChr();
-}
-
-static DECLFW(UNLTF1201Write) {
-  A = (A & 0xF003) | ((A & 0xC) >> 2);
-  if ((A >= 0xB000) && (A <= 0xE003)) {
-    int ind = (((A >> 11) - 6) | (A & 1)) & 7;
-    int sar = ((A & 2) << 1);
-    chr[ind] = (chr[ind] & (0xF0 >> sar)) | ((V & 0x0F) << sar);
+  void StateRestore() {
+    SyncPrg();
     SyncChr();
-  } else {
-    switch (A & 0xF003) {
-      case 0x8000:
-        prg0 = V;
-        SyncPrg();
-        break;
-      case 0xA000:
-        prg1 = V;
-        SyncPrg();
-        break;
-      case 0x9000:
-        mirr = V & 1;
-        SyncChr();
-        break;
-      case 0x9001:
-        tfswap = V & 3;
-        SyncPrg();
-        break;
-      case 0xF000: IRQCount = ((IRQCount & 0xF0) | (V & 0xF)); break;
-      case 0xF002: IRQCount = ((IRQCount & 0x0F) | ((V & 0xF) << 4)); break;
-      case 0xF001:
-      case 0xF003:
-        IRQa = V & 2;
-        fceulib__.X->IRQEnd(FCEU_IQEXT);
-        if (fceulib__.ppu->scanline < 240) IRQCount -= 8;
-        break;
+  }
+
+  void UNLTF1201Write(DECLFW_ARGS) {
+    A = (A & 0xF003) | ((A & 0xC) >> 2);
+    if ((A >= 0xB000) && (A <= 0xE003)) {
+      int ind = (((A >> 11) - 6) | (A & 1)) & 7;
+      int sar = ((A & 2) << 1);
+      chr[ind] = (chr[ind] & (0xF0 >> sar)) | ((V & 0x0F) << sar);
+      SyncChr();
+    } else {
+      switch (A & 0xF003) {
+	case 0x8000:
+	  prg0 = V;
+	  SyncPrg();
+	  break;
+	case 0xA000:
+	  prg1 = V;
+	  SyncPrg();
+	  break;
+	case 0x9000:
+	  mirr = V & 1;
+	  SyncChr();
+	  break;
+	case 0x9001:
+	  tfswap = V & 3;
+	  SyncPrg();
+	  break;
+	case 0xF000: IRQCount = ((IRQCount & 0xF0) | (V & 0xF)); break;
+	case 0xF002: IRQCount = ((IRQCount & 0x0F) | ((V & 0xF) << 4)); break;
+	case 0xF001:
+	case 0xF003:
+	  IRQa = V & 2;
+	  fc->X->IRQEnd(FCEU_IQEXT);
+	  if (fc->ppu->scanline < 240) IRQCount -= 8;
+	  break;
+      }
     }
   }
-}
 
-static void UNLTF1201IRQCounter() {
-  if (IRQa) {
-    IRQCount++;
-    if (IRQCount == 237) {
-      fceulib__.X->IRQBegin(FCEU_IQEXT);
+  void UNLTF1201IRQCounter() {
+    if (IRQa) {
+      IRQCount++;
+      if (IRQCount == 237) {
+	fc->X->IRQBegin(FCEU_IQEXT);
+      }
     }
   }
+
+  void Power() override {
+    IRQPre = IRQCount = IRQa = 0;
+    fc->fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
+    fc->fceu->SetWriteHandler(0x8000, 0xFFFF, [](DECLFW_ARGS) {
+      ((UNLTF1201*)fc->fceu->cartiface)->UNLTF1201Write(DECLFW_FORWARD);
+    });
+    SyncPrg();
+    SyncChr();
+  }
+
+  UNLTF1201(FC *fc, CartInfo *info) : CartInterface(fc) {
+    fc->ppu->GameHBIRQHook = [](FC *fc) {
+      ((UNLTF1201 *)fc->fceu->cartiface)->UNLTF1201IRQCounter();
+    };
+    fc->fceu->GameStateRestore = [](FC *fc, int version) {
+      ((UNLTF1201 *)fc->fceu->cartiface)->StateRestore();
+    };
+    fc->state->AddExVec({
+      {&prg0, 1, "PRG0"}, {&prg0, 1, "PRG1"}, {&mirr, 1, "MIRR"},
+      {&tfswap, 1, "SWAP"}, {chr, 8, "CHR0"}, {&IRQCount, 1, "IRQC"},
+      {&IRQPre, 1, "IRQP"}, {&IRQa, 1, "IRQA"}});
+  }
+};
 }
 
-static void UNLTF1201Power(FC *fc) {
-  IRQPre = IRQCount = IRQa = 0;
-  fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
-  fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, UNLTF1201Write);
-  SyncPrg();
-  SyncChr();
-}
-
-void UNLTF1201_Init(CartInfo *info) {
-  info->Power = UNLTF1201Power;
-  fceulib__.ppu->GameHBIRQHook = UNLTF1201IRQCounter;
-  fceulib__.fceu->GameStateRestore = StateRestore;
-  fceulib__.state->AddExVec(StateRegs);
+CartInterface *UNLTF1201_Init(FC *fc, CartInfo *info) {
+  return new UNLTF1201(fc, info);
 }

@@ -548,9 +548,7 @@ static constexpr BoardMapping const board_map[] = {
   {"CPROM", 13, CPROM_Init},
   // {"", 14, Mapper14_Init},
   {"100-in-1", 15, Mapper15_Init},
-#if 0
   {"Bandai", 16, Mapper16_Init},
-#endif 
   {"", 17, Mapper17_Init},
   {"", 18, Mapper18_Init},
   {"Namcot 106", 19, Mapper19_Init},
@@ -722,16 +720,14 @@ static constexpr BoardMapping const board_map[] = {
   {"", 151, Mapper151_Init},
 #if 0
   {"", 152, Mapper152_Init},
-  {"", 153, Mapper153_Init},
 #endif
+  {"", 153, Mapper153_Init},
   {"", 154, Mapper154_Init},
 #if 0
   {"", 155, Mapper155_Init},
 #endif
   {"", 156, Mapper156_Init},
-#if 0
   {"", 157, Mapper157_Init},
-#endif
   // {"", 158, Mapper158_Init},
   // {"", 159, Mapper159_Init},
   {"SA009", 160, SA009_Init},
@@ -755,12 +751,10 @@ static constexpr BoardMapping const board_map[] = {
 
   // {"", 174, Mapper174_Init},
   {"", 175, Mapper175_Init},
-#if 0
   // zero 26-may-2012 - well, i have some WXN junk games that use 176
   // for instance ????. i dont know what game uses this BMCFK23C as
   // mapper 176. we'll have to make a note when we find it.
   {"BMCFK23C", 176, BMCFK23C_Init},
-#endif
   {"", 177, Mapper177_Init},
   {"", 178, Mapper178_Init},
   // {"", 179, Mapper179_Init},
@@ -829,11 +823,9 @@ static constexpr BoardMapping const board_map[] = {
   {"BMC QUATTRO", 232, Mapper232_Init},
   {"BMC 22+20-in-1 RST", 233, Mapper233_Init},
   {"BMC MAXI", 234, Mapper234_Init},
-#if 0
   {"", 235, Mapper235_Init},
   // {"", 236, Mapper236_Init},
   // {"", 237, Mapper237_Init},
-#endif
   {"UNL6035052", 238, UNL6035052_Init},
   // {"", 239, Mapper239_Init},
 #if 0
@@ -843,17 +835,19 @@ static constexpr BoardMapping const board_map[] = {
   {"", 242, Mapper242_Init},
 #if 0
   {"S74LS374NA", 243, S74LS374NA_Init},
-  {"DECATHLON", 244, Mapper244_Init},
-  {"", 245, Mapper245_Init},
-  {"FONG SHEN BANG", 246, Mapper246_Init},
 #endif
+  {"DECATHLON", 244, Mapper244_Init},
+#if 0
+  {"", 245, Mapper245_Init},
+#endif
+  {"FONG SHEN BANG", 246, Mapper246_Init},
   // {"", 247, Mapper247_Init},
   // {"", 248, Mapper248_Init},
   {"", 249, Mapper249_Init},
   {"", 250, Mapper250_Init},
   // {"", 251, Mapper251_Init}, // No good dumps for this mapper, use UNIF version
-#if 0
   {"SAN GUO ZHI PIRATE", 252, Mapper252_Init},
+#if 0
   {"DRAGON BALL PIRATE", 253, Mapper253_Init},
 #endif
   {"", 254, Mapper254_Init},
