@@ -322,9 +322,7 @@ static constexpr BMAPPING bmap[] = {
     {"GS-2004", BMCGS2004_Init, 0},
 #endif
     {"GS-2013", BMCGS2013_Init, 0},
-#if 0
     {"Ghostbusters63in1", BMCGhostbusters63in1_Init, 0},
-#endif
     {"H2288", UNLH2288_Init, 0},
     {"HKROM", HKROM_Init, 0},
     {"KOF97", UNLKOF97_Init, 0},

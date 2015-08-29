@@ -552,7 +552,7 @@ static constexpr BoardMapping const board_map[] = {
   {"", 17, Mapper17_Init},
   {"", 18, Mapper18_Init},
   {"Namcot 106", 19, Mapper19_Init},
-#if 0
+
   // {"", 20, Mapper20_Init},
   {"Konami VRC2/VRC4", 21, Mapper21_Init},
   {"Konami VRC2/VRC4", 22, Mapper22_Init},
@@ -561,11 +561,12 @@ static constexpr BoardMapping const board_map[] = {
   {"Konami VRC2/VRC4", 25, Mapper25_Init},
   // {"", 26, Mapper26_Init},
   // {"", 27, Mapper27_Init}, // Deprecated, dupe for VRC2/VRC4 mapper
+#if 0
   {"INL-ROM", 28, Mapper28_Init},
+#endif
   // {"", 29, Mapper29_Init},
   // {"", 30, Mapper30_Init},
   // {"", 31, Mapper31_Init},
-#endif
   {"IREM G-101", 32, Mapper32_Init},
   {"TC0190FMC/TC0350FMR", 33, Mapper33_Init},
   {"", 34, Mapper34_Init},
@@ -847,9 +848,7 @@ static constexpr BoardMapping const board_map[] = {
   {"", 250, Mapper250_Init},
   // {"", 251, Mapper251_Init}, // No good dumps for this mapper, use UNIF version
   {"SAN GUO ZHI PIRATE", 252, Mapper252_Init},
-#if 0
   {"DRAGON BALL PIRATE", 253, Mapper253_Init},
-#endif
   {"", 254, Mapper254_Init},
   // {"", 255, Mapper255_Init}, // No good dumps for this mapper
   {"", 0, nullptr},
