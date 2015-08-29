@@ -20,51 +20,58 @@
 
 #include "mapinc.h"
 
-static uint8 cmd;
-static uint8 DRegs[8];
+namespace {
+struct DEIROM : public CartInterface {
+  uint8 cmd = 0;
+  uint8 DRegs[8] = {};
 
-static vector<SFORMAT> DEI_StateRegs = {{&cmd, 1, "CMD0"}, {DRegs, 8, "DREG"}};
-
-static void Sync() {
-  fceulib__.cart->setchr2(0x0000, DRegs[0]);
-  fceulib__.cart->setchr2(0x0800, DRegs[1]);
-  for (int x = 0; x < 4; x++)
-    fceulib__.cart->setchr1(0x1000 + (x << 10), DRegs[2 + x]);
-  fceulib__.cart->setprg8(0x8000, DRegs[6]);
-  fceulib__.cart->setprg8(0xa000, DRegs[7]);
-}
-
-static void StateRestore(FC *fc, int version) {
-  Sync();
-}
-
-static DECLFW(DEIWrite) {
-  switch (A & 0x8001) {
-    case 0x8000: cmd = V & 0x07; break;
-    case 0x8001:
-      if (cmd <= 0x05)
-        V &= 0x3F;
-      else
-        V &= 0x0F;
-      if (cmd <= 0x01) V >>= 1;
-      DRegs[cmd & 0x07] = V;
-      Sync();
-      break;
+  void Sync() {
+    fc->cart->setchr2(0x0000, DRegs[0]);
+    fc->cart->setchr2(0x0800, DRegs[1]);
+    for (int x = 0; x < 4; x++)
+      fc->cart->setchr1(0x1000 + (x << 10), DRegs[2 + x]);
+    fc->cart->setprg8(0x8000, DRegs[6]);
+    fc->cart->setprg8(0xa000, DRegs[7]);
   }
+
+  void DEIWrite(DECLFW_ARGS) {
+    switch (A & 0x8001) {
+      case 0x8000: cmd = V & 0x07; break;
+      case 0x8001:
+	if (cmd <= 0x05)
+	  V &= 0x3F;
+	else
+	  V &= 0x0F;
+	if (cmd <= 0x01) V >>= 1;
+	DRegs[cmd & 0x07] = V;
+	Sync();
+	break;
+    }
+  }
+
+  static void StateRestore(FC *fc, int version) {
+    ((DEIROM *)fc->fceu->cartiface)->Sync();
+  }
+
+  void Power() override {
+    fc->cart->setprg8(0xc000, 0xE);
+    fc->cart->setprg8(0xe000, 0xF);
+    cmd = 0;
+    memset(DRegs, 0, 8);
+    Sync();
+    fc->fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
+    fc->fceu->SetWriteHandler(0x8000, 0xFFFF, [](DECLFW_ARGS) {
+      ((DEIROM*)fc->fceu->cartiface)->DEIWrite(DECLFW_FORWARD);
+    });
+  }
+
+  DEIROM(FC *fc, CartInfo *info) : CartInterface(fc) {
+    fc->fceu->GameStateRestore = StateRestore;
+    fc->state->AddExVec({{&cmd, 1, "CMD0"}, {DRegs, 8, "DREG"}});
+  }
+};
 }
 
-static void DEIPower(FC *fc) {
-  fceulib__.cart->setprg8(0xc000, 0xE);
-  fceulib__.cart->setprg8(0xe000, 0xF);
-  cmd = 0;
-  memset(DRegs, 0, 8);
-  Sync();
-  fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
-  fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, DEIWrite);
-}
-
-void DEIROM_Init(CartInfo *info) {
-  info->Power = DEIPower;
-  fceulib__.fceu->GameStateRestore = StateRestore;
-  fceulib__.state->AddExVec(DEI_StateRegs);
+CartInterface *DEIROM_Init(FC *fc, CartInfo *info) {
+  return new DEIROM(fc, info);
 }

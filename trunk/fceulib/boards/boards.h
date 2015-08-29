@@ -11,11 +11,11 @@ CartInterface *BMCFK23CA_Init(FC *fc, CartInfo *info);
 CartInterface *BMCFK23C_Init(FC *fc, CartInfo *info);
 CartInterface *BMCGS2004_Init(FC *fc, CartInfo *info);
 CartInterface *BMCGhostbusters63in1_Init(FC *fc, CartInfo *info);
-CartInterface *BMCT2271_Init(FC *fc, CartInfo *info);
-CartInterface *BMCT262_Init(FC *fc, CartInfo *info);
-CartInterface *DEIROM_Init(FC *fc, CartInfo *info);
 CartInterface *DreamTech01_Init(FC *fc, CartInfo *info);
 CartInterface *GNROM_Init(FC *fc, CartInfo *info);
+#endif
+
+// sachen
 CartInterface *S74LS374NA_Init(FC *fc, CartInfo *info);
 CartInterface *S74LS374N_Init(FC *fc, CartInfo *info);
 CartInterface *S8259A_Init(FC *fc, CartInfo *info);
@@ -28,7 +28,18 @@ CartInterface *SA009_Init(FC *fc, CartInfo *info);
 CartInterface *SA0161M_Init(FC *fc, CartInfo *info);
 CartInterface *SA72007_Init(FC *fc, CartInfo *info);
 CartInterface *SA72008_Init(FC *fc, CartInfo *info);
-#endif
+CartInterface *TCA01_Init(FC *fc, CartInfo *info);
+CartInterface *TCU01_Init(FC *fc, CartInfo *info);
+CartInterface *TCU02_Init(FC *fc, CartInfo *info);
+
+// t-262
+CartInterface *BMCT262_Init(FC *fc, CartInfo *info);
+
+// deirom
+CartInterface *DEIROM_Init(FC *fc, CartInfo *info);
+
+// t-227-1
+CartInterface *BMCT2271_Init(FC *fc, CartInfo *info);
 
 // bs-5
 CartInterface *BMCBS5_Init(FC *fc, CartInfo *info);
@@ -221,12 +232,11 @@ CartInterface *Super24_Init(FC *fc, CartInfo *info);
 // dance2000
 CartInterface *UNLD2000_Init(FC *fc, CartInfo *info);
 
+// supervision
+CartInterface *Supervision16_Init(FC *fc, CartInfo *info);
+
 #if 0
 CartInterface *SSSNROM_Init(FC *fc, CartInfo *info);
-CartInterface *Supervision16_Init(FC *fc, CartInfo *info);
-CartInterface *TCA01_Init(FC *fc, CartInfo *info);
-CartInterface *TCU01_Init(FC *fc, CartInfo *info);
-CartInterface *TCU02_Init(FC *fc, CartInfo *info);
 CartInterface *Transformer_Init(FC *fc, CartInfo *info);
 CartInterface *UNLA9746_Init(FC *fc, CartInfo *info);
 CartInterface *UNLEDU2000_Init(FC *fc, CartInfo *info);

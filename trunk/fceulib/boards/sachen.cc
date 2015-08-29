@@ -20,407 +20,463 @@
 
 #include "mapinc.h"
 
-static uint8 cmd, dip;
-static uint8 latch[8];
+namespace {
+struct Sachen : public CartInterface {
+  uint8 cmd = 0, dip = 0;
+  uint8 latch[8] = {};
 
-static void S74LS374MSync(uint8 mirr) {
-  switch (mirr & 3) {
-    case 0: fceulib__.cart->setmirror(MI_V); break;
-    case 1: fceulib__.cart->setmirror(MI_H); break;
-    case 2: fceulib__.cart->setmirrorw(0, 1, 1, 1); break;
-    case 3: fceulib__.cart->setmirror(MI_0); break;
+  void S74LS374NSynco() {
+    fc->cart->setprg32(0x8000, latch[0]);
+    fc->cart->setchr8(latch[1] | latch[3] | latch[4]);
+    S74LS374MSync(latch[2]);
   }
-}
 
-static void S74LS374NSynco() {
-  fceulib__.cart->setprg32(0x8000, latch[0]);
-  fceulib__.cart->setchr8(latch[1] | latch[3] | latch[4]);
-  S74LS374MSync(latch[2]);
-}
-
-static DECLFW(S74LS374NWrite) {
-  A &= 0x4101;
-  if (A == 0x4100)
-    cmd = V & 7;
-  else {
-    switch (cmd) {
-      case 2:
-        latch[0] = V & 1;
-        latch[3] = (V & 1) << 3;
-        break;
-      case 4: latch[4] = (V & 1) << 2; break;
-      case 5: latch[0] = V & 7; break;
-      case 6: latch[1] = V & 3; break;
-      case 7: latch[2] = V >> 1; break;
+  static void S74LS374NRestore(FC *fc, int version) {
+    ((Sachen *)fc->fceu->cartiface)->S74LS374NSynco();
+  }
+  
+  void S74LS374MSync(uint8 mirr) {
+    switch (mirr & 3) {
+      case 0: fc->cart->setmirror(MI_V); break;
+      case 1: fc->cart->setmirror(MI_H); break;
+      case 2: fc->cart->setmirrorw(0, 1, 1, 1); break;
+      case 3: fc->cart->setmirror(MI_0); break;
     }
+  }
+
+  Sachen(FC *fc, CartInfo *info) : CartInterface(fc) {
+    
+  }
+};
+
+struct S74LS374N : public Sachen {
+  DECLFR_RET S74LS374NRead(DECLFR_ARGS) {
+    uint8 ret;
+    if ((A & 0x4100) == 0x4100)
+      //	  ret=(fc->X->DB&0xC0)|((~cmd)&0x3F);
+      ret = ((~cmd) & 0x3F) ^ dip;
+    else
+      ret = fc->X->DB;
+    return ret;
+  }
+
+  void S74LS374NWrite(DECLFW_ARGS) {
+    A &= 0x4101;
+    if (A == 0x4100)
+      cmd = V & 7;
+    else {
+      switch (cmd) {
+	case 2:
+	  latch[0] = V & 1;
+	  latch[3] = (V & 1) << 3;
+	  break;
+	case 4: latch[4] = (V & 1) << 2; break;
+	case 5: latch[0] = V & 7; break;
+	case 6: latch[1] = V & 3; break;
+	case 7: latch[2] = V >> 1; break;
+      }
+      S74LS374NSynco();
+    }
+  }
+  
+  void Reset() override {
+    dip ^= 1;
+    latch[0] = latch[1] = latch[2] = latch[3] = latch[4] = 0;
     S74LS374NSynco();
   }
-}
 
-static DECLFR(S74LS374NRead) {
-  uint8 ret;
-  if ((A & 0x4100) == 0x4100)
-    //	  ret=(fceulib__.X->DB&0xC0)|((~cmd)&0x3F);
-    ret = ((~cmd) & 0x3F) ^ dip;
-  else
-    ret = fceulib__.X->DB;
-  return ret;
-}
-
-static void S74LS374NPower(FC *fc) {
-  dip = 0;
-  latch[0] = latch[1] = latch[2] = latch[3] = latch[4] = 0;
-  S74LS374NSynco();
-  fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
-  fceulib__.fceu->SetWriteHandler(0x4100, 0x7FFF, S74LS374NWrite);
-  fceulib__.fceu->SetReadHandler(0x4100, 0x5fff, S74LS374NRead);
-}
-
-static void S74LS374NReset(FC *fc) {
-  dip ^= 1;
-  latch[0] = latch[1] = latch[2] = latch[3] = latch[4] = 0;
-  S74LS374NSynco();
-}
-
-static void S74LS374NRestore(FC *fc, int version) {
-  S74LS374NSynco();
-}
-
-void S74LS374N_Init(CartInfo *info) {
-  info->Power = S74LS374NPower;
-  info->Reset = S74LS374NReset;
-  fceulib__.fceu->GameStateRestore = S74LS374NRestore;
-  fceulib__.state->AddExState(latch, 5, 0, "LATC");
-  fceulib__.state->AddExState(&cmd, 1, 0, "CMD0");
-  fceulib__.state->AddExState(&dip, 1, 0, "DIP0");
-}
-
-static void S74LS374NASynco() {
-  fceulib__.cart->setprg32(0x8000, latch[0]);
-  fceulib__.cart->setchr8(latch[1]);
-  S74LS374MSync(latch[2]);
-}
-
-static DECLFW(S74LS374NAWrite) {
-  A &= 0x4101;
-  if (A == 0x4100)
-    cmd = V & 7;
-  else {
-    switch (cmd) {
-      case 0:
-        latch[0] = 0;
-        latch[1] = 3;
-        break;
-      case 2: latch[3] = (V & 1) << 3; break;
-      case 4: latch[1] = (latch[1] & 6) | (V & 3); break;
-      case 5: latch[0] = V & 1; break;
-      case 6: latch[1] = (latch[1] & 1) | latch[3] | ((V & 3) << 1); break;
-      case 7: latch[2] = V & 1; break;
-    }
-    S74LS374NASynco();
+  void Power() override {
+    dip = 0;
+    latch[0] = latch[1] = latch[2] = latch[3] = latch[4] = 0;
+    S74LS374NSynco();
+    fc->fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
+    fc->fceu->SetWriteHandler(0x4100, 0x7FFF, [](DECLFW_ARGS) {
+      ((S74LS374N*)fc->fceu->cartiface)->S74LS374NWrite(DECLFW_FORWARD);
+    });
+    fc->fceu->SetReadHandler(0x4100, 0x5fff, [](DECLFR_ARGS) {
+      return ((S74LS374N*)fc->fceu->cartiface)->
+	S74LS374NRead(DECLFR_FORWARD);
+    });
   }
-}
+  
+  S74LS374N(FC *fc, CartInfo *info) : Sachen(fc, info) {
+    fc->fceu->GameStateRestore = S74LS374NRestore;
+    fc->state->AddExState(latch, 5, 0, "LATC");
+    fc->state->AddExState(&cmd, 1, 0, "CMD0");
+    fc->state->AddExState(&dip, 1, 0, "DIP0");
+  }
+};
+  
+struct S74LS374NA : public Sachen {
+  void S74LS374NASynco() {
+    fc->cart->setprg32(0x8000, latch[0]);
+    fc->cart->setchr8(latch[1]);
+    S74LS374MSync(latch[2]);
+  }
 
-static void S74LS374NAPower(FC *fc) {
-  latch[0] = latch[2] = latch[3] = latch[4] = 0;
-  latch[1] = 3;
-  S74LS374NASynco();
-  fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
-  fceulib__.fceu->SetWriteHandler(0x4100, 0x7FFF, S74LS374NAWrite);
-}
+  void S74LS374NAWrite(DECLFW_ARGS) {
+    A &= 0x4101;
+    if (A == 0x4100)
+      cmd = V & 7;
+    else {
+      switch (cmd) {
+	case 0:
+	  latch[0] = 0;
+	  latch[1] = 3;
+	  break;
+	case 2: latch[3] = (V & 1) << 3; break;
+	case 4: latch[1] = (latch[1] & 6) | (V & 3); break;
+	case 5: latch[0] = V & 1; break;
+	case 6: latch[1] = (latch[1] & 1) | latch[3] | ((V & 3) << 1); break;
+	case 7: latch[2] = V & 1; break;
+      }
+      S74LS374NASynco();
+    }
+  }
 
-void S74LS374NA_Init(CartInfo *info) {
-  info->Power = S74LS374NAPower;
-  fceulib__.fceu->GameStateRestore = S74LS374NRestore;
-  fceulib__.state->AddExState(latch, 5, 0, "LATC");
-  fceulib__.state->AddExState(&cmd, 1, 0, "CMD0");
-}
+  void Power() override {
+    latch[0] = latch[2] = latch[3] = latch[4] = 0;
+    latch[1] = 3;
+    S74LS374NASynco();
+    fc->fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
+    fc->fceu->SetWriteHandler(0x4100, 0x7FFF, [](DECLFW_ARGS) {
+      ((S74LS374NA*)fc->fceu->cartiface)->S74LS374NAWrite(DECLFW_FORWARD);
+    });
+  }
 
-static int type;
-static void S8259Synco() {
-  fceulib__.cart->setprg32(0x8000, latch[5] & 7);
+  S74LS374NA(FC *fc, CartInfo *info) : Sachen(fc, info) {
+    // Note: This calls the "374N" version of restore, despite
+    // having its own "374NA" Synco. Bug? -tom7
+    fc->fceu->GameStateRestore = S74LS374NRestore;
+    fc->state->AddExState(latch, 5, 0, "LATC");
+    fc->state->AddExState(&cmd, 1, 0, "CMD0");
+  }
+};
+  
 
-  if (!fceulib__.unif->UNIFchrrama) {
-    // No CHR RAM?  Then BS'ing is ok.
-    for (int x = 0; x < 4; x++) {
-      int bank;
-      if (latch[7] & 1)
-        bank = (latch[0] & 0x7) | ((latch[4] & 7) << 3);
-      else
-        bank = (latch[x] & 0x7) | ((latch[4] & 7) << 3);
-      switch (type) {
-        case 00:
-          bank = (bank << 1) | (x & 1);
-          fceulib__.cart->setchr2(0x800 * x, bank);
-          break;
-        case 01: fceulib__.cart->setchr2(0x800 * x, bank); break;
-        case 02:
-          bank = (bank << 2) | (x & 3);
-          fceulib__.cart->setchr2(0x800 * x, bank);
-          break;
-        case 03:
-          bank = latch[x] & 7;
-          switch (x & 3) {
-            case 01: bank |= (latch[4] & 1) << 4; break;
-            case 02: bank |= (latch[4] & 2) << 3; break;
-            case 03:
-              bank |= ((latch[4] & 4) << 2) | ((latch[6] & 1) << 3);
-              break;
-          }
-          fceulib__.cart->setchr1(0x400 * x, bank);
-          fceulib__.cart->setchr4(0x1000, ~0);
-          break;
+struct S8259 : public Sachen {
+  const int type = 0;
+  void S8259Synco() {
+    fc->cart->setprg32(0x8000, latch[5] & 7);
+
+    if (!fc->unif->UNIFchrrama) {
+      // No CHR RAM?  Then BS'ing is ok.
+      for (int x = 0; x < 4; x++) {
+	int bank;
+	if (latch[7] & 1)
+	  bank = (latch[0] & 0x7) | ((latch[4] & 7) << 3);
+	else
+	  bank = (latch[x] & 0x7) | ((latch[4] & 7) << 3);
+	switch (type) {
+	  case 00:
+	    bank = (bank << 1) | (x & 1);
+	    fc->cart->setchr2(0x800 * x, bank);
+	    break;
+	  case 01: fc->cart->setchr2(0x800 * x, bank); break;
+	  case 02:
+	    bank = (bank << 2) | (x & 3);
+	    fc->cart->setchr2(0x800 * x, bank);
+	    break;
+	  case 03:
+	    bank = latch[x] & 7;
+	    switch (x & 3) {
+	      case 01: bank |= (latch[4] & 1) << 4; break;
+	      case 02: bank |= (latch[4] & 2) << 3; break;
+	      case 03:
+		bank |= ((latch[4] & 4) << 2) | ((latch[6] & 1) << 3);
+		break;
+	    }
+	    fc->cart->setchr1(0x400 * x, bank);
+	    fc->cart->setchr4(0x1000, ~0);
+	    break;
+	}
       }
     }
+    if (!(latch[7] & 1))
+      S74LS374MSync(latch[7] >> 1);
+    else
+      fc->cart->setmirror(MI_V);
   }
-  if (!(latch[7] & 1))
-    S74LS374MSync(latch[7] >> 1);
-  else
-    fceulib__.cart->setmirror(MI_V);
-}
 
-static DECLFW(S8259Write) {
-  A &= 0x4101;
-  if (A == 0x4100)
-    cmd = V;
-  else {
-    latch[cmd & 7] = V;
+  void S8259Write(DECLFW_ARGS) {
+    A &= 0x4101;
+    if (A == 0x4100)
+      cmd = V;
+    else {
+      latch[cmd & 7] = V;
+      S8259Synco();
+    }
+  }
+
+  // was 8259Reset, but assigned to Power
+  void Power() override {
+    cmd = 0;
+
+    for (int x = 0; x < 8; x++) latch[x] = 0;
+    fc->cart->setchr8(0);
+
     S8259Synco();
+    fc->fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
+    fc->fceu->SetWriteHandler(0x4100, 0x7FFF, [](DECLFW_ARGS) {
+      ((S8259*)fc->fceu->cartiface)->S8259Write(DECLFW_FORWARD);
+    });
   }
-}
 
-static void S8259Reset(FC *fc) {
-  cmd = 0;
+  static void S8259Restore(FC *fc, int version) {
+    ((S8259 *)fc->fceu->cartiface)->S8259Synco();
+  }
+  
+  S8259(FC *fc, CartInfo *info, int type) : Sachen(fc, info), type(type) {
+    fc->fceu->GameStateRestore = S8259Restore;
+    fc->state->AddExState(latch, 8, 0, "LATC");
+    fc->state->AddExState(&cmd, 1, 0, "CMD0");
+  }
+};
 
-  for (int x = 0; x < 8; x++) latch[x] = 0;
-  fceulib__.cart->setchr8(0);
+struct SA : public Sachen {
+  const bool is_sad = false;
+  
+  virtual void WSync() {}
 
-  S8259Synco();
-  fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
-  fceulib__.fceu->SetWriteHandler(0x4100, 0x7FFF, S8259Write);
-}
-
-static void S8259Restore(FC *, int version) {
-  S8259Synco();
-}
-
-void S8259A_Init(CartInfo *info)  // Kevin's Horton 141 mapper
-{
-  info->Power = S8259Reset;
-  fceulib__.fceu->GameStateRestore = S8259Restore;
-  fceulib__.state->AddExState(latch, 8, 0, "LATC");
-  fceulib__.state->AddExState(&cmd, 1, 0, "CMD0");
-  type = 0;
-}
-
-void S8259B_Init(CartInfo *info)  // Kevin's Horton 138 mapper
-{
-  info->Power = S8259Reset;
-  fceulib__.fceu->GameStateRestore = S8259Restore;
-  fceulib__.state->AddExState(latch, 8, 0, "LATC");
-  fceulib__.state->AddExState(&cmd, 1, 0, "CMD0");
-  type = 1;
-}
-
-void S8259C_Init(CartInfo *info)  // Kevin's Horton 139 mapper
-{
-  info->Power = S8259Reset;
-  fceulib__.fceu->GameStateRestore = S8259Restore;
-  fceulib__.state->AddExState(latch, 8, 0, "LATC");
-  fceulib__.state->AddExState(&cmd, 1, 0, "CMD0");
-  type = 2;
-}
-
-void S8259D_Init(CartInfo *info)  // Kevin's Horton 137 mapper
-{
-  info->Power = S8259Reset;
-  fceulib__.fceu->GameStateRestore = S8259Restore;
-  fceulib__.state->AddExState(latch, 8, 0, "LATC");
-  fceulib__.state->AddExState(&cmd, 1, 0, "CMD0");
-  type = 3;
-}
-
-static void (*WSync)();
-
-static DECLFW(SAWrite) {
-  if (A & 0x100) {
+  void SAWrite(DECLFW_ARGS) {
+    if (A & 0x100) {
+      latch[0] = V;
+      WSync();
+    }
+  }
+  
+  void SADWrite(DECLFW_ARGS) {
     latch[0] = V;
     WSync();
   }
-}
 
-static void SAPower(FC *fc) {
-  latch[0] = 0;
-  WSync();
-  fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
-  fceulib__.fceu->SetWriteHandler(0x4100, 0x5FFF, SAWrite);
-}
+  void Power() override {
+    if (is_sad) {
+      latch[0] = 0;
+      WSync();
+      fc->fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
+      fc->fceu->SetWriteHandler(0x8000, 0xFFFF, [](DECLFW_ARGS) {
+	((SA*)fc->fceu->cartiface)->SADWrite(DECLFW_FORWARD);
+      });
+    } else {
+      latch[0] = 0;
+      WSync();
+      fc->fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
+      fc->fceu->SetWriteHandler(0x4100, 0x5FFF, [](DECLFW_ARGS) {
+	((SA*)fc->fceu->cartiface)->SAWrite(DECLFW_FORWARD);
+      });
+    }
+  }
 
-static void SARestore(FC *fc, int version) {
-  WSync();
-}
+  static void SARestore(FC *fc, int version) {
+    ((SA *)fc->fceu->cartiface)->WSync();
+  }
 
-static DECLFW(SADWrite) {
-  latch[0] = V;
-  WSync();
-}
+  SA(FC *fc, CartInfo *info, bool is_sad) : Sachen(fc, info), is_sad(is_sad) {
+    fc->fceu->GameStateRestore = SARestore;
+    fc->state->AddExState(&latch[0], 1, 0, "LATC");
+  }
+};
+  
+struct SA0161M : public SA {
+  using SA::SA;
+  void WSync() override {
+    fc->cart->setprg32(0x8000, (latch[0] >> 3) & 1);
+    fc->cart->setchr8(latch[0] & 7);
+  }
+};
 
-static void SADPower(FC *fc) {
-  latch[0] = 0;
-  WSync();
-  fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
-  fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, SADWrite);
-}
+struct SA72007 : public SA {
+  using SA::SA;
+  void WSync() override {
+    fc->cart->setprg32(0x8000, 0);
+    fc->cart->setchr8(latch[0] >> 7);
+  }
+};
 
-static void SA0161MSynco() {
-  fceulib__.cart->setprg32(0x8000, (latch[0] >> 3) & 1);
-  fceulib__.cart->setchr8(latch[0] & 7);
-}
+struct SA009 : public SA {
+  using SA::SA;
+  void WSync() override {
+    fc->cart->setprg32(0x8000, 0);
+    fc->cart->setchr8(latch[0] & 1);
+  }
+};
 
-static void SA72007Synco() {
-  fceulib__.cart->setprg32(0x8000, 0);
-  fceulib__.cart->setchr8(latch[0] >> 7);
-}
-
-static void SA009Synco() {
-  fceulib__.cart->setprg32(0x8000, 0);
-  fceulib__.cart->setchr8(latch[0] & 1);
-}
-
-static void SA72008Synco() {
-  fceulib__.cart->setprg32(0x8000, (latch[0] >> 2) & 1);
-  fceulib__.cart->setchr8(latch[0] & 3);
-}
-
-void SA0161M_Init(CartInfo *info) {
-  WSync = SA0161MSynco;
-  fceulib__.fceu->GameStateRestore = SARestore;
-  info->Power = SAPower;
-  fceulib__.state->AddExState(&latch[0], 1, 0, "LATC");
-}
-
-void SA72007_Init(CartInfo *info) {
-  WSync = SA72007Synco;
-  fceulib__.fceu->GameStateRestore = SARestore;
-  info->Power = SAPower;
-  fceulib__.state->AddExState(&latch[0], 1, 0, "LATC");
-}
-
-void SA72008_Init(CartInfo *info) {
-  WSync = SA72008Synco;
-  fceulib__.fceu->GameStateRestore = SARestore;
-  info->Power = SAPower;
-  fceulib__.state->AddExState(&latch[0], 1, 0, "LATC");
-}
-
-void SA009_Init(CartInfo *info) {
-  WSync = SA009Synco;
-  fceulib__.fceu->GameStateRestore = SARestore;
-  info->Power = SAPower;
-  fceulib__.state->AddExState(&latch[0], 1, 0, "LATC");
-}
-
-void SA0036_Init(CartInfo *info) {
-  WSync = SA72007Synco;
-  fceulib__.fceu->GameStateRestore = SARestore;
-  info->Power = SADPower;
-  fceulib__.state->AddExState(&latch[0], 1, 0, "LATC");
-}
-
-void SA0037_Init(CartInfo *info) {
-  WSync = SA0161MSynco;
-  fceulib__.fceu->GameStateRestore = SARestore;
-  info->Power = SADPower;
-  fceulib__.state->AddExState(&latch[0], 1, 0, "LATC");
-}
+struct SA72008 : public SA {
+  using SA::SA;
+  void WSync() override {
+    fc->cart->setprg32(0x8000, (latch[0] >> 2) & 1);
+    fc->cart->setchr8(latch[0] & 3);
+  }
+};
 
 // -----------------------------------------------
 
-static void TCU01Synco() {
-  fceulib__.cart->setprg32(0x8000,
-                           ((latch[0] & 0x80) >> 6) | ((latch[0] >> 2) & 1));
-  fceulib__.cart->setchr8((latch[0] >> 3) & 0xF);
-}
+struct TCU01 : public Sachen {
+  void TCU01Synco() {
+    fc->cart->setprg32(0x8000,
+		       ((latch[0] & 0x80) >> 6) | ((latch[0] >> 2) & 1));
+    fc->cart->setchr8((latch[0] >> 3) & 0xF);
+  }
 
-static DECLFW(TCU01Write) {
-  if ((A & 0x103) == 0x102) {
-    latch[0] = V;
+  void TCU01Write(DECLFW_ARGS) {
+    if ((A & 0x103) == 0x102) {
+      latch[0] = V;
+      TCU01Synco();
+    }
+  }
+
+  void Power() override {
+    latch[0] = 0;
+    fc->fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
+    fc->fceu->SetWriteHandler(0x4100, 0xFFFF, [](DECLFW_ARGS) {
+      ((TCU01*)fc->fceu->cartiface)->TCU01Write(DECLFW_FORWARD);
+    });
     TCU01Synco();
   }
-}
 
-static void TCU01Power(FC *fc) {
-  latch[0] = 0;
-  fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
-  fceulib__.fceu->SetWriteHandler(0x4100, 0xFFFF, TCU01Write);
-  TCU01Synco();
-}
+  static void TCU01Restore(FC *fc, int version) {
+    ((TCU01 *)fc->fceu->cartiface)->TCU01Synco();
+  }
 
-static void TCU01Restore(FC *fc, int version) {
-  TCU01Synco();
-}
-
-void TCU01_Init(CartInfo *info) {
-  fceulib__.fceu->GameStateRestore = TCU01Restore;
-  info->Power = TCU01Power;
-  fceulib__.state->AddExState(&latch[0], 1, 0, "LATC");
-}
+  TCU01(FC *fc, CartInfo *info) : Sachen(fc, info) {
+    fc->fceu->GameStateRestore = TCU01Restore;
+    fc->state->AddExState(&latch[0], 1, 0, "LATC");
+  }
+};
 
 //-----------------------------------------------
 
-static void TCU02Synco() {
-  fceulib__.cart->setprg32(0x8000, 0);
-  fceulib__.cart->setchr8(latch[0] & 3);
-}
+struct TCU02 : public Sachen {
+  void TCU02Synco() {
+    fc->cart->setprg32(0x8000, 0);
+    fc->cart->setchr8(latch[0] & 3);
+  }
 
-static DECLFW(TCU02Write) {
-  if ((A & 0x103) == 0x102) {
-    latch[0] = V + 3;
+  void TCU02Write(DECLFW_ARGS) {
+    if ((A & 0x103) == 0x102) {
+      latch[0] = V + 3;
+      TCU02Synco();
+    }
+  }
+
+  DECLFR_RET TCU02Read(DECLFR_ARGS) {
+    return (latch[0] & 0x3F) | (fc->X->DB & 0xC0);
+  }
+
+  void Power() override {
+    latch[0] = 0;
+    fc->fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
+    fc->fceu->SetReadHandler(0x4100, 0x4100, [](DECLFR_ARGS) {
+      return ((TCU02*)fc->fceu->cartiface)->TCU02Read(DECLFR_FORWARD);
+    });
+    fc->fceu->SetWriteHandler(0x4100, 0xFFFF, [](DECLFW_ARGS) {
+      ((TCU02*)fc->fceu->cartiface)->TCU02Write(DECLFW_FORWARD);
+    });
     TCU02Synco();
   }
-}
 
-static DECLFR(TCU02Read) {
-  return (latch[0] & 0x3F) | (fceulib__.X->DB & 0xC0);
-}
+  static void TCU02Restore(FC *fc, int version) {
+    ((TCU02 *)fc->fceu->cartiface)->TCU02Synco();
+  }
 
-static void TCU02Power(FC *fc) {
-  latch[0] = 0;
-  fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
-  fceulib__.fceu->SetReadHandler(0x4100, 0x4100, TCU02Read);
-  fceulib__.fceu->SetWriteHandler(0x4100, 0xFFFF, TCU02Write);
-  TCU02Synco();
-}
-
-static void TCU02Restore(FC *fc, int version) {
-  TCU02Synco();
-}
-
-void TCU02_Init(CartInfo *info) {
-  fceulib__.fceu->GameStateRestore = TCU02Restore;
-  info->Power = TCU02Power;
-  fceulib__.state->AddExState(&latch[0], 1, 0, "LATC");
-}
+  TCU02(FC *fc, CartInfo *info) : Sachen(fc, info) {
+    fc->fceu->GameStateRestore = TCU02Restore;
+    fc->state->AddExState(&latch[0], 1, 0, "LATC");
+  }
+};
 
 // ---------------------------------------------
 
-static DECLFR(TCA01Read) {
-  uint8 ret;
-  if ((A & 0x4100) == 0x4100)
-    ret = (fceulib__.X->DB & 0xC0) | ((~A) & 0x3F);
-  else
-    ret = fceulib__.X->DB;
-  return ret;
+struct TCA01 : public Sachen {
+  DECLFR_RET TCA01Read(DECLFR_ARGS) {
+    uint8 ret;
+    if ((A & 0x4100) == 0x4100)
+      ret = (fc->X->DB & 0xC0) | ((~A) & 0x3F);
+    else
+      ret = fc->X->DB;
+    return ret;
+  }
+
+  void Power() override {
+    fc->cart->setprg16(0x8000, 0);
+    fc->cart->setprg16(0xC000, 1);
+    fc->cart->setchr8(0);
+    fc->fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
+    fc->fceu->SetReadHandler(0x4100, 0x5FFF, [](DECLFR_ARGS) {
+      return ((TCA01*)fc->fceu->cartiface)->
+	TCA01Read(DECLFR_FORWARD);
+    });
+  }
+
+  using Sachen::Sachen;
+};
+
 }
 
-static void TCA01Power(FC *fc) {
-  fceulib__.cart->setprg16(0x8000, 0);
-  fceulib__.cart->setprg16(0xC000, 1);
-  fceulib__.cart->setchr8(0);
-  fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
-  fceulib__.fceu->SetReadHandler(0x4100, 0x5FFF, TCA01Read);
+CartInterface *S74LS374N_Init(FC *fc, CartInfo *info) {
+  return new S74LS374N(fc, info);
 }
 
-void TCA01_Init(CartInfo *info) {
-  info->Power = TCA01Power;
+CartInterface *S74LS374NA_Init(FC *fc, CartInfo *info) {
+  return new S74LS374NA(fc, info);
+}
+
+
+// Kevin's Horton 141 mapper
+CartInterface *S8259A_Init(FC *fc, CartInfo *info) {
+  return new S8259(fc, info, 0);
+}
+
+// Kevin's Horton 138 mapper
+CartInterface *S8259B_Init(FC *fc, CartInfo *info) {
+  return new S8259(fc, info, 1);
+}
+
+// Kevin's Horton 139 mapper
+CartInterface *S8259C_Init(FC *fc, CartInfo *info) {
+  return new S8259(fc, info, 2);
+}
+
+// Kevin's Horton 137 mapper
+CartInterface *S8259D_Init(FC *fc, CartInfo *info) {
+  return new S8259(fc, info, 3);
+}
+
+
+CartInterface *SA0161M_Init(FC *fc, CartInfo *info) {
+  return new SA0161M(fc, info, false);
+}
+
+CartInterface *SA72007_Init(FC *fc, CartInfo *info) {
+  return new SA72007(fc, info, false);
+}
+
+CartInterface *SA72008_Init(FC *fc, CartInfo *info) {
+  return new SA72008(fc, info, false);
+}
+
+CartInterface *SA009_Init(FC *fc, CartInfo *info) {
+  return new SA009(fc, info, false);
+}
+
+CartInterface *SA0036_Init(FC *fc, CartInfo *info) {
+  return new SA72007(fc, info, true);
+}
+
+CartInterface *SA0037_Init(FC *fc, CartInfo *info) {
+  return new SA0161M(fc, info, true);
+}
+
+
+CartInterface *TCU01_Init(FC *fc, CartInfo *info) {
+  return new TCU01(fc, info);
+}
+
+CartInterface *TCU02_Init(FC *fc, CartInfo *info) {
+  return new TCU02(fc, info);
+}
+
+CartInterface *TCA01_Init(FC *fc, CartInfo *info) {
+  return new TCA01(fc, info);
 }

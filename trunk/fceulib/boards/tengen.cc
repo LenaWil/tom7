@@ -149,6 +149,7 @@ void Mapper64_init() {
   //  nomirror=0;
   RAMBO1_init();
 }
+
 /*
 static int MirCache[8];
 static unsigned int PPUCHRBus;

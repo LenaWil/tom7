@@ -20,50 +20,63 @@
 
 #include "mapinc.h"
 
-static uint8 cmd0, cmd1;
+namespace {
+struct Supervision16 : public CartInterface {
 
-static void DoSuper() {
-  fceulib__.cart->setprg8r((cmd0 & 0xC) >> 2, 0x6000,
-                           ((cmd0 & 0x3) << 4) | 0xF);
-  if (cmd0 & 0x10) {
-    fceulib__.cart->setprg16r((cmd0 & 0xC) >> 2, 0x8000,
-                              ((cmd0 & 0x3) << 3) | (cmd1 & 7));
-    fceulib__.cart->setprg16r((cmd0 & 0xC) >> 2, 0xc000,
-                              ((cmd0 & 0x3) << 3) | 7);
-  } else {
-    fceulib__.cart->setprg32r(4, 0x8000, 0);
+  uint8 cmd0 = 0, cmd1 = 0;
+
+  void DoSuper() {
+    fc->cart->setprg8r((cmd0 & 0xC) >> 2, 0x6000,
+		       ((cmd0 & 0x3) << 4) | 0xF);
+    if (cmd0 & 0x10) {
+      fc->cart->setprg16r((cmd0 & 0xC) >> 2, 0x8000,
+			  ((cmd0 & 0x3) << 3) | (cmd1 & 7));
+      fc->cart->setprg16r((cmd0 & 0xC) >> 2, 0xc000,
+			  ((cmd0 & 0x3) << 3) | 7);
+    } else {
+      fc->cart->setprg32r(4, 0x8000, 0);
+    }
+    fc->cart->setmirror(((cmd0 & 0x20) >> 5) ^ 1);
   }
-  fceulib__.cart->setmirror(((cmd0 & 0x20) >> 5) ^ 1);
-}
 
-static DECLFW(SuperWrite) {
-  if (!(cmd0 & 0x10)) {
-    cmd0 = V;
+  void SuperWrite(DECLFW_ARGS) {
+    if (!(cmd0 & 0x10)) {
+      cmd0 = V;
+      DoSuper();
+    }
+  }
+
+  void SuperHi(DECLFW_ARGS) {
+    cmd1 = V;
     DoSuper();
   }
+
+  // was "SuperReset", but went in Power slot -tom7
+  void Power() override {
+    fc->fceu->SetWriteHandler(0x6000, 0x7FFF, [](DECLFW_ARGS) {
+      ((Supervision16*)fc->fceu->cartiface)->SuperWrite(DECLFW_FORWARD);
+    });
+    fc->fceu->SetWriteHandler(0x8000, 0xFFFF, [](DECLFW_ARGS) {
+      ((Supervision16*)fc->fceu->cartiface)->SuperHi(DECLFW_FORWARD);
+    });
+    fc->fceu->SetReadHandler(0x6000, 0xFFFF, Cart::CartBR);
+    cmd0 = cmd1 = 0;
+    fc->cart->setprg32r(4, 0x8000, 0);
+    fc->cart->setchr8(0);
+  }
+
+  static void SuperRestore(FC *fc, int version) {
+    ((Supervision16 *)fc->fceu->cartiface)->DoSuper();
+  }
+
+  Supervision16(FC *fc, CartInfo *info) : CartInterface(fc) {
+    fc->state->AddExState(&cmd0, 1, 0, "L100");
+    fc->state->AddExState(&cmd1, 1, 0, "L200");
+    fc->fceu->GameStateRestore = SuperRestore;
+  }
+};
 }
 
-static DECLFW(SuperHi) {
-  cmd1 = V;
-  DoSuper();
-}
-
-static void SuperReset(FC *fc) {
-  fceulib__.fceu->SetWriteHandler(0x6000, 0x7FFF, SuperWrite);
-  fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, SuperHi);
-  fceulib__.fceu->SetReadHandler(0x6000, 0xFFFF, Cart::CartBR);
-  cmd0 = cmd1 = 0;
-  fceulib__.cart->setprg32r(4, 0x8000, 0);
-  fceulib__.cart->setchr8(0);
-}
-
-static void SuperRestore(FC *fc, int version) {
-  DoSuper();
-}
-
-void Supervision16_Init(CartInfo *info) {
-  fceulib__.state->AddExState(&cmd0, 1, 0, "L100");
-  fceulib__.state->AddExState(&cmd1, 1, 0, "L200");
-  info->Power = SuperReset;
-  fceulib__.fceu->GameStateRestore = SuperRestore;
+CartInterface *Supervision16_Init(FC *fc, CartInfo *info) {
+  return new Supervision16(fc, info);
 }
