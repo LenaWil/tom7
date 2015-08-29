@@ -553,8 +553,8 @@ static constexpr BoardMapping const board_map[] = {
 #endif 
   {"", 17, Mapper17_Init},
   {"", 18, Mapper18_Init},
-#if 0
   {"Namcot 106", 19, Mapper19_Init},
+#if 0
   // {"", 20, Mapper20_Init},
   {"Konami VRC2/VRC4", 21, Mapper21_Init},
   {"Konami VRC2/VRC4", 22, Mapper22_Init},
@@ -801,9 +801,7 @@ static constexpr BoardMapping const board_map[] = {
   // {"", 207, Mapper207_Init},
   {"", 208, Mapper208_Init},
   {"", 209, Mapper209_Init},
-#if 0
   {"", 210, Mapper210_Init},
-#endif
   {"", 211, Mapper211_Init},
   {"", 212, Mapper212_Init},
   {"", 213, Mapper213_Init},
@@ -821,18 +819,12 @@ static constexpr BoardMapping const board_map[] = {
   {"", 222, Mapper222_Init},
   // {"", 223, Mapper223_Init},
   // {"", 224, Mapper224_Init},
-#if 0
   {"", 225, Mapper225_Init},
-#endif
   {"BMC 22+20-in-1", 226, Mapper226_Init},
   {"", 227, Mapper227_Init},
-#if 0
   {"", 228, Mapper228_Init},
-#endif
   {"", 229, Mapper229_Init},
-#if 0
   {"BMC 22-in-1+Contra", 230, Mapper230_Init},
-#endif
   {"", 231, Mapper231_Init},
 #if 0
   {"BMC QUATTRO", 232, Mapper232_Init},
@@ -1503,11 +1495,11 @@ void INes::iNESPower() {
 
   /* This statement represents atrocious code.  I need to rewrite
      all of the iNES mapper code... */
-  iNESIRQCount=iNESIRQLatch=iNESIRQa=0;
-  if (head.ROM_type&2)
-    memset(fc->fceu->GameMemBlock+8192,0,GAME_MEM_BLOCK_SIZE-8192);
+  iNESIRQCount = iNESIRQLatch = iNESIRQa = 0;
+  if (head.ROM_type & 2)
+    memset(fc->fceu->GameMemBlock + 8192, 0, GAME_MEM_BLOCK_SIZE - 8192);
   else
-    memset(fc->fceu->GameMemBlock,0,GAME_MEM_BLOCK_SIZE);
+    memset(fc->fceu->GameMemBlock, 0, GAME_MEM_BLOCK_SIZE);
 
   NONE_init();
   fc->state->ResetExState(nullptr, nullptr);
@@ -1521,9 +1513,9 @@ void INes::iNESPower() {
   // memory that was read during destruction. Gave it a unique name.
   // -tom7
   fc->state->AddExState(WRAM, 8192, 0, "iNWR");
-  if (type==19 || type==6 || type==69 || type==85 || type==96)
+  if (type == 19 || type == 6 || type == 69 || type == 85 || type == 96)
     fc->state->AddExState(MapperExRAM, 32768, 0, "MEXR");
-  if ((!VROM_size || type==6 || type==19) && (type!=13 && type!=96))
+  if ((!VROM_size || type == 6 || type == 19) && (type != 13 && type != 96))
     fc->state->AddExState(CHRRAM, 8192, 0, "CHRR");
   if (head.ROM_type&8)
     fc->state->AddExState(ExtraNTARAM, 2048, 0, "EXNR");

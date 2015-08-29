@@ -20,83 +20,93 @@
 
 #include "mapinc.h"
 
-static uint8 prg, mirr, prgmode;
-static uint8 *WRAM = nullptr;
-static uint32 WRAMSIZE;
+static constexpr int WRAMSIZE = 8192;
 
-static vector<SFORMAT> StateRegs = {
-    {&prg, 1, "REGS"}, {&mirr, 1, "MIRR"}, {&prgmode, 1, "MIRR"}};
+namespace {
+struct UNLD2000 : public CartInterface {
+  uint8 prg = 0, mirr = 0, prgmode = 0;
+  uint8 *WRAM = nullptr;
 
-static void Sync() {
-  fceulib__.cart->setmirror(mirr);
-  fceulib__.cart->setprg8r(0x10, 0x6000, 0);
-  fceulib__.cart->setchr8(0);
-  if (prgmode) {
-    fceulib__.cart->setprg32(0x8000, prg & 7);
-  } else {
-    fceulib__.cart->setprg16(0x8000, prg & 0x0f);
-    fceulib__.cart->setprg16(0xC000, 0);
+  void Sync() {
+    fc->cart->setmirror(mirr);
+    fc->cart->setprg8r(0x10, 0x6000, 0);
+    fc->cart->setchr8(0);
+    if (prgmode) {
+      fc->cart->setprg32(0x8000, prg & 7);
+    } else {
+      fc->cart->setprg16(0x8000, prg & 0x0f);
+      fc->cart->setprg16(0xC000, 0);
+    }
   }
-}
 
-static DECLFW(UNLD2000Write) {
-  //  FCEU_printf("write %04x:%04x\n",A,V);
-  switch (A) {
-    case 0x5000:
-      prg = V;
-      Sync();
-      break;
-    case 0x5200:
-      mirr = (V & 1) ^ 1;
-      prgmode = V & 4;
-      Sync();
-      break;
-      //    default: FCEU_printf("write %04x:%04x\n",A,V);
+  void UNLD2000Write(DECLFW_ARGS) {
+    //  FCEU_printf("write %04x:%04x\n",A,V);
+    switch (A) {
+      case 0x5000:
+	prg = V;
+	Sync();
+	break;
+      case 0x5200:
+	mirr = (V & 1) ^ 1;
+	prgmode = V & 4;
+	Sync();
+	break;
+	//    default: FCEU_printf("write %04x:%04x\n",A,V);
+    }
   }
+
+  DECLFR_RET UNLD2000Read(DECLFR_ARGS) {
+    if (prg & 0x40)
+      return fc->X->DB;
+    else
+      return Cart::CartBR(DECLFR_FORWARD);
+  }
+
+  void Power() override {
+    prg = prgmode = 0;
+    Sync();
+    fc->fceu->SetReadHandler(0x6000, 0x7FFF, Cart::CartBR);
+    fc->fceu->SetWriteHandler(0x6000, 0x7FFF, Cart::CartBW);
+    fc->fceu->SetReadHandler(0x8000, 0xFFFF, [](DECLFR_ARGS) {
+      return ((UNLD2000*)fc->fceu->cartiface)->UNLD2000Read(DECLFR_FORWARD);
+    });
+    fc->fceu->SetWriteHandler(0x4020, 0x5FFF, [](DECLFW_ARGS) {
+      ((UNLD2000*)fc->fceu->cartiface)->UNLD2000Write(DECLFW_FORWARD);
+    });
+  }
+
+  void UNLAX5705IRQ() {
+    if (fc->ppu->scanline > 174)
+      fc->cart->setchr4(0x0000, 1);
+    else
+      fc->cart->setchr4(0x0000, 0);
+  }
+
+  void Close() override {
+    free(WRAM);
+    WRAM = nullptr;
+  }
+
+  static void StateRestore(FC *fc, int version) {
+    ((UNLD2000 *)fc->fceu->cartiface)->Sync();
+  }
+
+  UNLD2000(FC *fc, CartInfo *info) : CartInterface(fc) {
+    fc->ppu->GameHBIRQHook = [](FC *fc) {
+      ((UNLD2000 *)fc->fceu->cartiface)->UNLAX5705IRQ();
+    };
+    fc->fceu->GameStateRestore = StateRestore;
+
+    WRAM = (uint8 *)FCEU_gmalloc(WRAMSIZE);
+    fc->cart->SetupCartPRGMapping(0x10, WRAM, WRAMSIZE, 1);
+    fc->state->AddExState(WRAM, WRAMSIZE, 0, "WRAM");
+
+    fc->state->AddExVec({
+      {&prg, 1, "REGS"}, {&mirr, 1, "MIRR"}, {&prgmode, 1, "MIRR"}});
+  }
+};
 }
 
-static DECLFR(UNLD2000Read) {
-  if (prg & 0x40)
-    return fceulib__.X->DB;
-  else
-    return Cart::CartBR(DECLFR_FORWARD);
-}
-
-static void UNLD2000Power(FC *fc) {
-  prg = prgmode = 0;
-  Sync();
-  fceulib__.fceu->SetReadHandler(0x6000, 0x7FFF, Cart::CartBR);
-  fceulib__.fceu->SetWriteHandler(0x6000, 0x7FFF, Cart::CartBW);
-  fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, UNLD2000Read);
-  fceulib__.fceu->SetWriteHandler(0x4020, 0x5FFF, UNLD2000Write);
-}
-
-static void UNLAX5705IRQ() {
-  if (fceulib__.ppu->scanline > 174)
-    fceulib__.cart->setchr4(0x0000, 1);
-  else
-    fceulib__.cart->setchr4(0x0000, 0);
-}
-
-static void UNLD2000Close(FC *fc) {
-  if (WRAM) free(WRAM);
-  WRAM = nullptr;
-}
-
-static void StateRestore(FC *fc, int version) {
-  Sync();
-}
-
-void UNLD2000_Init(CartInfo *info) {
-  info->Power = UNLD2000Power;
-  info->Close = UNLD2000Close;
-  fceulib__.ppu->GameHBIRQHook = UNLAX5705IRQ;
-  fceulib__.fceu->GameStateRestore = StateRestore;
-
-  WRAMSIZE = 8192;
-  WRAM = (uint8 *)FCEU_gmalloc(WRAMSIZE);
-  fceulib__.cart->SetupCartPRGMapping(0x10, WRAM, WRAMSIZE, 1);
-  fceulib__.state->AddExState(WRAM, WRAMSIZE, 0, "WRAM");
-
-  fceulib__.state->AddExVec(StateRegs);
+CartInterface *UNLD2000_Init(FC *fc, CartInfo *info) {
+  return new UNLD2000(fc, info);
 }

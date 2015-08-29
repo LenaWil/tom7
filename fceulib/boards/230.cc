@@ -24,51 +24,58 @@
 
 #include "mapinc.h"
 
-static uint8 latche, reset;
-static vector<SFORMAT> StateRegs = {{&reset, 1, "RST0"}, {&latche, 1, "LATC"}};
+namespace {
+struct Mapper230 : public CartInterface {
+  uint8 latch = 0, reset = 0;
 
-static void Sync() {
-  if (reset) {
-    fceulib__.cart->setprg16(0x8000, latche & 7);
-    fceulib__.cart->setprg16(0xC000, 7);
-    fceulib__.cart->setmirror(MI_V);
-  } else {
-    uint32 bank = (latche & 0x1F) + 8;
-    if (latche & 0x20) {
-      fceulib__.cart->setprg16(0x8000, bank);
-      fceulib__.cart->setprg16(0xC000, bank);
+  void Sync() {
+    if (reset) {
+      fc->cart->setprg16(0x8000, latch & 7);
+      fc->cart->setprg16(0xC000, 7);
+      fc->cart->setmirror(MI_V);
     } else {
-      fceulib__.cart->setprg32(0x8000, bank >> 1);
+      uint32 bank = (latch & 0x1F) + 8;
+      if (latch & 0x20) {
+	fc->cart->setprg16(0x8000, bank);
+	fc->cart->setprg16(0xC000, bank);
+      } else {
+	fc->cart->setprg32(0x8000, bank >> 1);
+      }
+      fc->cart->setmirror((latch >> 6) & 1);
     }
-    fceulib__.cart->setmirror((latche >> 6) & 1);
+    fc->cart->setchr8(0);
   }
-  fceulib__.cart->setchr8(0);
+
+  void M230Write(DECLFW_ARGS) {
+    latch = V;
+    Sync();
+  }
+
+  void Reset() override {
+    reset ^= 1;
+    Sync();
+  }
+
+  void Power() override {
+    latch = reset = 0;
+    Sync();
+    fc->fceu->SetWriteHandler(0x8000, 0xFFFF, [](DECLFW_ARGS) {
+      ((Mapper230*)fc->fceu->cartiface)->M230Write(DECLFW_FORWARD);
+    });
+    fc->fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
+  }
+
+  static void StateRestore(FC *fc, int version) {
+    ((Mapper230 *)fc->fceu->cartiface)->Sync();
+  }
+
+  Mapper230(FC *fc, CartInfo *info) : CartInterface(fc) {
+    fc->state->AddExVec({{&reset, 1, "RST0"}, {&latch, 1, "LATC"}});
+    fc->fceu->GameStateRestore = StateRestore;
+  }
+};
 }
 
-static DECLFW(M230Write) {
-  latche = V;
-  Sync();
-}
-
-static void M230Reset(FC *fc) {
-  reset ^= 1;
-  Sync();
-}
-
-static void M230Power(FC *fc) {
-  latche = reset = 0;
-  Sync();
-  fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, M230Write);
-  fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
-}
-
-static void StateRestore(FC *fc, int version) {
-  Sync();
-}
-
-void Mapper230_Init(CartInfo *info) {
-  info->Power = M230Power;
-  info->Reset = M230Reset;
-  fceulib__.state->AddExVec(StateRegs);
-  fceulib__.fceu->GameStateRestore = StateRestore;
+CartInterface *Mapper230_Init(FC *fc, CartInfo *info) {
+  return new Mapper230(fc, info);
 }

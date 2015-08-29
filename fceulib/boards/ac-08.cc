@@ -72,4 +72,5 @@ struct AC08 : public CartInterface {
 }
 
 CartInterface *AC08_Init(FC *fc, CartInfo *info) {
+  return new AC08(fc, info);
 }

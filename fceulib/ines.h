@@ -303,6 +303,7 @@ void Mapper154_init();
 void Mapper160_init();
 void Mapper161_init();
 void Mapper162_init();
+// subor.cc
 void Mapper166_init();
 void Mapper167_init();
 void Mapper168_init();
@@ -376,13 +377,15 @@ void Mapper251_init();
 //void Mapper255_init();
 
 // Probably can kill NSF code? -tom7
-void NSFVRC6_Init();
-void NSFMMC5_Init();
-void NSFAY_Init();
-void NSFN106_Init();
-void NSFVRC7_Init();
+// void NSFVRC6_Init();
+// void NSFMMC5_Init();
+// void NSFAY_Init();
+// // n106
+// void NSFN106_Init(FC *fc, CartInfo *info);
+// void Mapper19_ESI(); // (now private -tom7)
 
-void Mapper19_ESI();
+// void NSFVRC7_Init();
+
 #endif
 
 // The new mappers.
@@ -586,10 +589,22 @@ CartInterface *Mapper222_Init(FC *fc, CartInfo *);
 // bonza
 CartInterface *Mapper216_Init(FC *fc, CartInfo *);
 
+// 225
+CartInterface *Mapper225_Init(FC *fc, CartInfo *);
+
+// 228
+CartInterface *Mapper228_Init(FC *fc, CartInfo *);
+
+// 230
+CartInterface *Mapper230_Init(FC *fc, CartInfo *);
+
+// n106
+CartInterface *Mapper19_Init(FC *fc, CartInfo *);
+CartInterface *Mapper210_Init(FC *fc, CartInfo *);
+
 // ?
 CartInterface *Mapper1_Init(FC *fc, CartInfo *);
 CartInterface *Mapper16_Init(FC *fc, CartInfo *);
-CartInterface *Mapper19_Init(FC *fc, CartInfo *);
 CartInterface *Mapper21_Init(FC *fc, CartInfo *);
 CartInterface *Mapper22_Init(FC *fc, CartInfo *);
 CartInterface *Mapper23_Init(FC *fc, CartInfo *);
@@ -608,12 +623,8 @@ CartInterface *Mapper171_Init(FC *fc, CartInfo *);
 CartInterface *Mapper183_Init(FC *fc, CartInfo *);
 CartInterface *Mapper189_Init(FC *fc, CartInfo *);
 CartInterface *Mapper199_Init(FC *fc, CartInfo *);
-CartInterface *Mapper210_Init(FC *fc, CartInfo *);
 CartInterface *Mapper217_Init(FC *fc, CartInfo *);
 CartInterface *Mapper220_Init(FC *fc, CartInfo *);
-CartInterface *Mapper225_Init(FC *fc, CartInfo *);
-CartInterface *Mapper228_Init(FC *fc, CartInfo *);
-CartInterface *Mapper230_Init(FC *fc, CartInfo *);
 CartInterface *Mapper232_Init(FC *fc, CartInfo *);
 CartInterface *Mapper234_Init(FC *fc, CartInfo *);
 CartInterface *Mapper235_Init(FC *fc, CartInfo *);

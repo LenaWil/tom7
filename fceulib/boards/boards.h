@@ -7,7 +7,6 @@ struct CartInterface;
 
 #if 0
 CartInterface *ANROM_Init(FC *fc, CartInfo *info);
-CartInterface *BMCBS5_Init(FC *fc, CartInfo *info);
 CartInterface *BMCFK23CA_Init(FC *fc, CartInfo *info);
 CartInterface *BMCFK23C_Init(FC *fc, CartInfo *info);
 CartInterface *BMCGS2004_Init(FC *fc, CartInfo *info);
@@ -30,6 +29,9 @@ CartInterface *SA0161M_Init(FC *fc, CartInfo *info);
 CartInterface *SA72007_Init(FC *fc, CartInfo *info);
 CartInterface *SA72008_Init(FC *fc, CartInfo *info);
 #endif
+
+// bs-5
+CartInterface *BMCBS5_Init(FC *fc, CartInfo *info);
 
 // bmc70in1
 CartInterface *BMC70in1B_Init(FC *fc, CartInfo *info);
@@ -210,17 +212,23 @@ CartInterface *UNLSL1632_Init(FC *fc, CartInfo *info);
 // smb2j
 CartInterface *UNLSMB2J_Init(FC *fc, CartInfo *info);
 
+// cityfighter
+CartInterface *UNLCITYFIGHT_Init(FC *fc, CartInfo *info);
+
+// super24
+CartInterface *Super24_Init(FC *fc, CartInfo *info);
+
+// dance2000
+CartInterface *UNLD2000_Init(FC *fc, CartInfo *info);
+
 #if 0
 CartInterface *SSSNROM_Init(FC *fc, CartInfo *info);
-CartInterface *Super24_Init(FC *fc, CartInfo *info);
 CartInterface *Supervision16_Init(FC *fc, CartInfo *info);
 CartInterface *TCA01_Init(FC *fc, CartInfo *info);
 CartInterface *TCU01_Init(FC *fc, CartInfo *info);
 CartInterface *TCU02_Init(FC *fc, CartInfo *info);
 CartInterface *Transformer_Init(FC *fc, CartInfo *info);
 CartInterface *UNLA9746_Init(FC *fc, CartInfo *info);
-CartInterface *UNLCITYFIGHT_Init(FC *fc, CartInfo *info);
-CartInterface *UNLD2000_Init(FC *fc, CartInfo *info);
 CartInterface *UNLEDU2000_Init(FC *fc, CartInfo *info);
 CartInterface *UNLT230_Init(FC *fc, CartInfo *info);
 CartInterface *UNLTF1201_Init(FC *fc, CartInfo *info);
