@@ -561,9 +561,7 @@ static constexpr BoardMapping const board_map[] = {
   {"Konami VRC2/VRC4", 25, Mapper25_Init},
   // {"", 26, Mapper26_Init},
   // {"", 27, Mapper27_Init}, // Deprecated, dupe for VRC2/VRC4 mapper
-#if 0
   {"INL-ROM", 28, Mapper28_Init},
-#endif
   // {"", 29, Mapper29_Init},
   // {"", 30, Mapper30_Init},
   // {"", 31, Mapper31_Init},
@@ -627,10 +625,10 @@ static constexpr BoardMapping const board_map[] = {
   // {"", 80, Mapper80_Init},
   // {"", 81, Mapper81_Init},
   {"", 82, Mapper82_Init},
-#if 0
   {"", 83, Mapper83_Init},
   // {"", 84, Mapper84_Init},
   // {"", 85, Mapper85_Init},
+#if 0
   {"", 86, Mapper86_Init},
   {"", 87, Mapper87_Init},
 #endif
@@ -925,25 +923,24 @@ bool INes::iNESLoad(const char *name, FceuFile *fp, int OverwriteVidMode) {
   if (VROM_size)
     VROM_size=uppow2(VROM_size);
 
+  if (head.ROM_type&8) iNESMirroring = 2;
 
-  if (head.ROM_type&8) iNESMirroring=2;
-
-  if ((ROM = (uint8 *)FCEU_malloc(ROM_size<<14)) == nullptr) return 0;
+  if ((ROM = (uint8 *)FCEU_malloc(ROM_size << 14)) == nullptr) return 0;
   memset(ROM,0xFF,ROM_size<<14);
 
   if (VROM_size) {
-    if ((VROM = (uint8 *)FCEU_malloc(VROM_size<<13)) == nullptr) {
+    if ((VROM = (uint8 *)FCEU_malloc(VROM_size << 13)) == nullptr) {
       free(ROM);
       ROM = nullptr;
       return false;
     }
-    memset(VROM,0xFF,VROM_size<<13);
+    memset(VROM, 0xFF, VROM_size << 13);
   }
 
   /* Trainer */
   if (head.ROM_type & 4) {
     trainerdata = (uint8 *)FCEU_gmalloc(512);
-    FCEU_fread(trainerdata,512,1,fp);
+    FCEU_fread(trainerdata, 512, 1, fp);
   }
 
   fc->cart->ResetCartMapping();
