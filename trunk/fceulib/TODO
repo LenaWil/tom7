@@ -54,6 +54,7 @@ Cleanup to do:
    when they're argument signatures for member functions.
  - Somehow look through boards for member variables that are not
    initlized to 0 or {}.
+ - Can ines::MasterRomInfoParams move to fk23? Are there other uses?
 
 UNLA9711
 

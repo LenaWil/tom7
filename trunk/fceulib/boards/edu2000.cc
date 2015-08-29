@@ -21,52 +21,59 @@
 
 #include "mapinc.h"
 
-static uint8 *WRAM = nullptr;
-static uint8 reg;
+namespace {
+struct UNLEDU2000 : public CartInterface {
+  uint8 *WRAM = nullptr;
+  uint8 reg = 0;
 
-static vector<SFORMAT> StateRegs = {{&reg, 1, "REGS"}};
-
-static void Sync() {
-  fceulib__.cart->setchr8(0);
-  fceulib__.cart->setprg8r(0x10, 0x6000, (reg & 0xC0) >> 6);
-  fceulib__.cart->setprg32(0x8000, reg & 0x1F);
-  //  fceulib__.cart->setmirror(((reg&0x20)>>5));
-}
-
-static DECLFW(UNLEDU2000HiWrite) {
-  //  FCEU_printf("%04x:%02x\n",A,V);
-  reg = V;
-  Sync();
-}
-
-static void UNLEDU2000Power(FC *fc) {
-  fceulib__.cart->setmirror(MI_0);
-  fceulib__.fceu->SetReadHandler(0x6000, 0xFFFF, Cart::CartBR);
-  fceulib__.fceu->SetWriteHandler(0x6000, 0xFFFF, Cart::CartBW);
-  fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, UNLEDU2000HiWrite);
-  reg = 0;
-  Sync();
-}
-
-static void UNLEDU2000Close(FC *fc) {
-  free(WRAM);
-  WRAM = nullptr;
-}
-
-static void UNLEDU2000Restore(FC *fc, int version) {
-  Sync();
-}
-
-void UNLEDU2000_Init(CartInfo *info) {
-  info->Power = UNLEDU2000Power;
-  info->Close = UNLEDU2000Close;
-  fceulib__.fceu->GameStateRestore = UNLEDU2000Restore;
-  WRAM = (uint8 *)FCEU_gmalloc(32768);
-  fceulib__.cart->SetupCartPRGMapping(0x10, WRAM, 32768, 1);
-  if (info->battery) {
-    info->SaveGame[0] = WRAM;
-    info->SaveGameLen[0] = 32768;
+  void Sync() {
+    fc->cart->setchr8(0);
+    fc->cart->setprg8r(0x10, 0x6000, (reg & 0xC0) >> 6);
+    fc->cart->setprg32(0x8000, reg & 0x1F);
+    //  fc->cart->setmirror(((reg&0x20)>>5));
   }
-  fceulib__.state->AddExState(WRAM, 32768, 0, "WRAM");
-  fceulib__.state->AddExVec(StateRegs);
+
+  void UNLEDU2000HiWrite(DECLFW_ARGS) {
+    //  FCEU_printf("%04x:%02x\n",A,V);
+    reg = V;
+    Sync();
+  }
+
+  void Power() override {
+    fc->cart->setmirror(MI_0);
+    fc->fceu->SetReadHandler(0x6000, 0xFFFF, Cart::CartBR);
+    fc->fceu->SetWriteHandler(0x6000, 0xFFFF, Cart::CartBW);
+    fc->fceu->SetWriteHandler(0x8000, 0xFFFF, [](DECLFW_ARGS) {
+      ((UNLEDU2000*)fc->fceu->cartiface)->UNLEDU2000HiWrite(DECLFW_FORWARD);
+    });
+    reg = 0;
+    Sync();
+  }
+
+  void Close() override {
+    free(WRAM);
+    WRAM = nullptr;
+  }
+
+  static void UNLEDU2000Restore(FC *fc, int version) {
+    ((UNLEDU2000 *)fc->fceu->cartiface)->Sync();
+  }
+
+  UNLEDU2000(FC *fc, CartInfo *info) : CartInterface(fc) {
+    fc->fceu->GameStateRestore = UNLEDU2000Restore;
+    WRAM = (uint8 *)FCEU_gmalloc(32768);
+    fc->cart->SetupCartPRGMapping(0x10, WRAM, 32768, 1);
+    if (info->battery) {
+      info->SaveGame[0] = WRAM;
+      info->SaveGameLen[0] = 32768;
+    }
+    fc->state->AddExState(WRAM, 32768, 0, "WRAM");
+    fc->state->AddExVec({{&reg, 1, "REGS"}});
+    
+  }
+};
+}
+
+CartInterface *UNLEDU2000_Init(FC *fc, CartInfo *info) {
+  return new UNLEDU2000(fc, info);
 }

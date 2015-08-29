@@ -307,18 +307,14 @@ static constexpr BMAPPING bmap[] = {
     {"D1038", BMCD1038_Init, 0},
     {"DANCE", UNLOneBus_Init, 0},  // redundant
     {"DANCE2000", UNLD2000_Init, 0},
-#if 0
     {"DREAMTECH01", DreamTech01_Init, 0},
     {"EDU2000", UNLEDU2000_Init, 0},
-#endif
     {"EKROM", EKROM_Init, 0},
     {"ELROM", ELROM_Init, 0},
     {"ETROM", ETROM_Init, 0},
     {"EWROM", EWROM_Init, 0},
-#if 0
     {"FK23C", BMCFK23C_Init, BMCFLAG_EXPCHRR},
     {"FK23CA", BMCFK23CA_Init, BMCFLAG_EXPCHRR},
-#endif
     {"FS304", UNLFS304_Init, 0},
     {"G-146", BMCG146_Init, 0},
     {"GK-192", BMCGK192_Init, 0},
@@ -389,8 +385,8 @@ static constexpr BMAPPING bmap[] = {
     {"SL12", UNLSL12_Init, 0},
     {"SL1632", UNLSL1632_Init, 0},
     {"SMB2J", UNLSMB2J_Init, 0},
-#if 0
     {"SSS-NROM-256", SSSNROM_Init, 0},
+#if 0
     {"SUNSOFT_UNROM", SUNSOFT_UNROM_Init, 0},
 #endif
     {"Sachen-74LS374N", S74LS374N_Init, 0},
@@ -414,8 +410,8 @@ static constexpr BMAPPING bmap[] = {
 #if 0
     {"TEK90", Mapper90_Init, 0},
     {"TEROM", TEROM_Init, 0},
-    {"TF1201", UNLTF1201_Init, 0},
 #endif
+    {"TF1201", UNLTF1201_Init, 0},
     {"TFROM", TFROM_Init, 0},
     {"TGROM", TGROM_Init, 0},
     {"TKROM", TKROM_Init, 0},
@@ -429,7 +425,9 @@ static constexpr BMAPPING bmap[] = {
     {"TSROM", TSROM_Init, 0},
 #if 0
     {"TVROM", TLROM_Init, BMCFLAG_FORCE4},
+#endif
     {"Transformer", Transformer_Init, 0},
+#if 0
     {"UNROM", UNROM_Init, 0},
     {"UOROM", UNROM_Init, 0},
     {"VRC7", UNLVRC7_Init, 0},
