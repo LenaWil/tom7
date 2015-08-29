@@ -538,12 +538,10 @@ static constexpr BoardMapping const board_map[] = {
   {"MMC5", 5, Mapper5_Init},
  // {"", 6, Mapper6_Init},
   {"ANROM", 7, ANROM_Init},
-#if 0
   {"", 8, Mapper8_Init}, // Nogaems, it's worthless
   // {"", 9, Mapper9_Init},
   // {"", 10, Mapper10_Init},
   {"Color Dreams", 11, Mapper11_Init},
-#endif
   {"", 12, Mapper12_Init},
   {"CPROM", 13, CPROM_Init},
   // {"", 14, Mapper14_Init},
@@ -552,7 +550,6 @@ static constexpr BoardMapping const board_map[] = {
   {"", 17, Mapper17_Init},
   {"", 18, Mapper18_Init},
   {"Namcot 106", 19, Mapper19_Init},
-
   // {"", 20, Mapper20_Init},
   {"Konami VRC2/VRC4", 21, Mapper21_Init},
   {"Konami VRC2/VRC4", 22, Mapper22_Init},
@@ -569,17 +566,13 @@ static constexpr BoardMapping const board_map[] = {
   {"TC0190FMC/TC0350FMR", 33, Mapper33_Init},
   {"", 34, Mapper34_Init},
   {"Wario Land 2", 35, UNLSC127_Init},
-#if 0
   {"TXC Policeman", 36, Mapper36_Init},
-#endif
   {"", 37, Mapper37_Init},
-#if 0
   {"Bit Corp.", 38, Mapper38_Init}, // Crime Busters
   // {"", 39, Mapper39_Init},
   // {"", 40, Mapper40_Init},
   // {"", 41, Mapper41_Init},
   // {"", 42, Mapper42_Init},
-#endif
   {"", 43, Mapper43_Init},
   {"", 44, Mapper44_Init},
   {"", 45, Mapper45_Init},
@@ -587,7 +580,6 @@ static constexpr BoardMapping const board_map[] = {
   {"", 47, Mapper47_Init},
   {"TAITO TCxxx", 48, Mapper48_Init},
   {"", 49, Mapper49_Init},
-
   // {"", 50, Mapper50_Init},
   // {"", 51, Mapper51_Init},
   {"", 52, Mapper52_Init},
@@ -608,19 +600,15 @@ static constexpr BoardMapping const board_map[] = {
   // {"", 67, Mapper67_Init},
   {"Sunsoft Mapper #4", 68, Mapper68_Init},
   // {"", 69, Mapper69_Init},
-#if 0
   {"", 70, Mapper70_Init},
-#endif
   // {"", 71, Mapper71_Init},
   // {"", 72, Mapper72_Init},
   // {"", 73, Mapper73_Init},
   {"", 74, Mapper74_Init},
-#if 0
   // {"", 75, Mapper75_Init},
   // {"", 76, Mapper76_Init},
   // {"", 77, Mapper77_Init},
   {"Irem 74HC161/32", 78, Mapper78_Init},
-#endif
   // {"", 79, Mapper79_Init},
   // {"", 80, Mapper80_Init},
   // {"", 81, Mapper81_Init},
@@ -628,50 +616,34 @@ static constexpr BoardMapping const board_map[] = {
   {"", 83, Mapper83_Init},
   // {"", 84, Mapper84_Init},
   // {"", 85, Mapper85_Init},
-#if 0
   {"", 86, Mapper86_Init},
   {"", 87, Mapper87_Init},
-#endif
   {"", 88, Mapper88_Init},
-#if 0
   {"", 89, Mapper89_Init},
-#endif
   {"", 90, Mapper90_Init},
   {"", 91, Mapper91_Init},
   {"", 92, Mapper92_Init},
   {"Sunsoft UNROM", 93, SUNSOFT_UNROM_Init},
-#if 0
   {"", 94, Mapper94_Init},
   {"", 95, Mapper95_Init},
-#endif
   {"", 96, Mapper96_Init},
-#if 0
   {"", 97, Mapper97_Init},
   // {"", 98, Mapper98_Init},
-#endif
   {"", 99, Mapper99_Init},
   // {"", 100, Mapper100_Init},
-#if 0
   {"", 101, Mapper101_Init},
   // {"", 102, Mapper102_Init},
-#endif
   {"", 103, Mapper103_Init},
-#if 0
   // {"", 104, Mapper104_Init},
   {"", 105, Mapper105_Init},
-#endif
   {"", 106, Mapper106_Init},
-#if 0
   {"", 107, Mapper107_Init},
-#endif
   {"", 108, Mapper108_Init},
   // {"", 109, Mapper109_Init},
   // {"", 110, Mapper110_Init},
   // {"", 111, Mapper111_Init},
   {"", 112, Mapper112_Init},
-#if 0
   {"", 113, Mapper113_Init},
-#endif
   {"", 114, Mapper114_Init},
   {"", 115, Mapper115_Init},
   // Gave this one a name. -tom7
@@ -699,41 +671,29 @@ static constexpr BoardMapping const board_map[] = {
   {"S8259D", 137, S8259D_Init},
   {"S8259B", 138, S8259B_Init},
   {"S8259C", 139, S8259C_Init},
-#if 0
   {"", 140, Mapper140_Init},
-#endif
   {"S8259A", 141, S8259A_Init},
   {"UNLKS7032", 142, UNLKS7032_Init},
   {"TCA01", 143, TCA01_Init},
-#if 0
   {"", 144, Mapper144_Init},
-#endif
   {"SA72007", 145, SA72007_Init},
-#if 0
   {"SA0161M", 146, SA0161M_Init},
-#endif
   {"TCU01", 147, TCU01_Init},
   {"SA0037", 148, SA0037_Init},
   {"SA0036", 149, SA0036_Init},
   {"S74LS374N", 150, S74LS374N_Init},
   {"", 151, Mapper151_Init},
-#if 0
   {"", 152, Mapper152_Init},
-#endif
   {"", 153, Mapper153_Init},
   {"", 154, Mapper154_Init},
-#if 0
   {"", 155, Mapper155_Init},
-#endif
   {"", 156, Mapper156_Init},
   {"", 157, Mapper157_Init},
   // {"", 158, Mapper158_Init},
   // {"", 159, Mapper159_Init},
   {"SA009", 160, SA009_Init},
   // {"", 161, Mapper161_Init},
-#if 0
   {"", 162, UNLFS304_Init},
-#endif
   {"", 163, Mapper163_Init},
   {"", 164, Mapper164_Init},
   {"", 165, Mapper165_Init},
@@ -742,9 +702,7 @@ static constexpr BoardMapping const board_map[] = {
   {"", 168, Mapper168_Init},
   // {"", 169, Mapper169_Init},
   {"", 170, Mapper170_Init},
-#if 0
   {"", 171, Mapper171_Init},
-#endif
   {"", 172, Mapper172_Init},
   {"", 173, Mapper173_Init},
 
@@ -757,15 +715,11 @@ static constexpr BoardMapping const board_map[] = {
   {"", 177, Mapper177_Init},
   {"", 178, Mapper178_Init},
   // {"", 179, Mapper179_Init},
-#if 0
   {"", 180, Mapper180_Init},
-#endif
   {"", 181, Mapper181_Init},
   // {"", 182, Mapper182_Init}, // Deprecated, dupe
   {"", 183, Mapper183_Init},
-#if 0
   {"", 184, Mapper184_Init},
-#endif
   {"", 185, Mapper185_Init},
   {"", 186, Mapper186_Init},
   {"", 187, Mapper187_Init},
@@ -785,9 +739,7 @@ static constexpr BoardMapping const board_map[] = {
   {"", 200, Mapper200_Init},
   {"", 201, Mapper201_Init},
   {"", 202, Mapper202_Init},
-#if 0
   {"", 203, Mapper203_Init},
-#endif
   {"", 204, Mapper204_Init},
   {"", 205, Mapper205_Init},
   {"DEIROM", 206, DEIROM_Init},
@@ -803,9 +755,7 @@ static constexpr BoardMapping const board_map[] = {
   {"", 216, Mapper216_Init},
   {"", 217, Mapper217_Init}, // Redefined to a new Discrete BMC mapper
   // {"", 218, Mapper218_Init},
-#if 0
   {"UNLA9746", 219, UNLA9746_Init},
-#endif
   // in unif it is called just KS7057? - tom7
   {"Debug Mapper", 220, UNLKS7057_Init},
   {"UNLN625092", 221, UNLN625092_Init},
@@ -827,18 +777,12 @@ static constexpr BoardMapping const board_map[] = {
   // {"", 237, Mapper237_Init},
   {"UNL6035052", 238, UNL6035052_Init},
   // {"", 239, Mapper239_Init},
-#if 0
   {"", 240, Mapper240_Init},
   {"", 241, Mapper241_Init},
-#endif
   {"", 242, Mapper242_Init},
-#if 0
   {"S74LS374NA", 243, S74LS374NA_Init},
-#endif
   {"DECATHLON", 244, Mapper244_Init},
-#if 0
   {"", 245, Mapper245_Init},
-#endif
   {"FONG SHEN BANG", 246, Mapper246_Init},
   // {"", 247, Mapper247_Init},
   // {"", 248, Mapper248_Init},

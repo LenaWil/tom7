@@ -268,9 +268,7 @@ int Unif::LoadCHR(FceuFile *fp) {
 #define BMCFLAG_EXPCHRR 8
 
 static constexpr BMAPPING bmap[] = {
-#if 0
     {"11160", BMC11160_Init, 0},
-#endif
     {"12-IN-1", BMC12IN1_Init, 0},
     {"13in1JY110", BMC13in1JY110_Init, 0},
     {"190in1", BMC190in1_Init, 0},
@@ -288,22 +286,16 @@ static constexpr BMAPPING bmap[] = {
     {"8237", UNL8237_Init, 0},
     {"8237A", UNL8237A_Init, 0},
     {"830118C", BMC830118C_Init, 0},
-#if 0
     {"A65AS", BMCA65AS_Init, 0},
-#endif
     {"AC08", AC08_Init, 0},
-#if 0
     {"ANROM", ANROM_Init, 0},
-#endif
     {"AX5705", UNLAX5705_Init, 0},
     {"BB", UNLBB_Init, 0},
     {"BS-5", BMCBS5_Init, 0},
     {"CC-21", UNLCC21_Init, 0},
     {"CITYFIGHT", UNLCITYFIGHT_Init, 0},
-#if 0
     {"CNROM", CNROM_Init, 0},
     {"CPROM", CPROM_Init, BMCFLAG_16KCHRR},
-#endif
     {"D1038", BMCD1038_Init, 0},
     {"DANCE", UNLOneBus_Init, 0},  // redundant
     {"DANCE2000", UNLD2000_Init, 0},
@@ -338,24 +330,18 @@ static constexpr BMAPPING bmap[] = {
     {"LH32", LH32_Init, 0},
     {"LH53", LH53_Init, 0},
     {"MARIO1-MALEE2", MALEE_Init, 0},
-#if 0
     {"MHROM", MHROM_Init, 0},
-#endif
     {"N625092", UNLN625092_Init, 0},
-#if 0
     {"NROM", NROM_Init, 0},
     {"NROM-128", NROM_Init, 0},
     {"NROM-256", NROM_Init, 0},
-#endif
     {"NTBROM", Mapper68_Init, 0},
     {"NTD-03", BMCNTD03_Init, 0},
     {"NovelDiamond9999999in1", Novel_Init, 0},
     {"OneBus", UNLOneBus_Init, 0},
     {"PEC-586", UNLPEC586_Init, 0},
-#if 0
     {"RROM", NROM_Init, 0},
     {"RROM-128", NROM_Init, 0},
-#endif
     {"SA-002", TCU02_Init, 0},
     {"SA-0036", SA0036_Init, 0},
     {"SA-0037", SA0037_Init, 0},
@@ -365,7 +351,6 @@ static constexpr BMAPPING bmap[] = {
     {"SA-72008", SA72008_Init, 0},
     {"SA-9602B", SA9602B_Init, BMCFLAG_32KCHRR},
     {"SA-NROM", TCA01_Init, 0},
-    // MMC1
     {"SAROM", SAROM_Init, 0},
     {"SBROM", SBROM_Init, 0},
     {"SCROM", SCROM_Init, 0},
@@ -382,9 +367,7 @@ static constexpr BMAPPING bmap[] = {
     {"SL1632", UNLSL1632_Init, 0},
     {"SMB2J", UNLSMB2J_Init, 0},
     {"SSS-NROM-256", SSSNROM_Init, 0},
-#if 0
     {"SUNSOFT_UNROM", SUNSOFT_UNROM_Init, 0},
-#endif
     {"Sachen-74LS374N", S74LS374N_Init, 0},
     {"Sachen-74LS374NA", S74LS374NA_Init, 0},  // seems to be custom mapper
     {"Sachen-8259A", S8259A_Init, 0},
@@ -392,21 +375,15 @@ static constexpr BMAPPING bmap[] = {
     {"Sachen-8259C", S8259C_Init, 0},
     {"Sachen-8259D", S8259D_Init, 0},
     {"Super24in1SC03", Super24_Init, 0},
-#if 0
     {"SuperHIK8in1", Mapper45_Init, 0},
-#endif
     {"Supervision16in1", Supervision16_Init, 0},
     {"T-227-1", BMCT2271_Init, 0},
-#if 0
     {"T-230", UNLT230_Init, 0},
-#endif
     {"T-262", BMCT262_Init, 0},
     {"TBROM", TBROM_Init, 0},
     {"TC-U01-1.5M", TCU01_Init, 0},
-#if 0
     {"TEK90", Mapper90_Init, 0},
     {"TEROM", TEROM_Init, 0},
-#endif
     {"TF1201", UNLTF1201_Init, 0},
     {"TFROM", TFROM_Init, 0},
     {"TGROM", TGROM_Init, 0},
@@ -415,22 +392,14 @@ static constexpr BMAPPING bmap[] = {
     {"TLROM", TLROM_Init, 0},
     {"TLSROM", TLSROM_Init, 0},
     {"TQROM", TQROM_Init, 0},
-#if 0
     {"TR1ROM", TFROM_Init, BMCFLAG_FORCE4},
-#endif
     {"TSROM", TSROM_Init, 0},
-#if 0
     {"TVROM", TLROM_Init, BMCFLAG_FORCE4},
-#endif
     {"Transformer", Transformer_Init, 0},
-#if 0
     {"UNROM", UNROM_Init, 0},
     {"UOROM", UNROM_Init, 0},
-#endif
     {"VRC7", UNLVRC7_Init, 0},
-#if 0
     {"YOKO", UNLYOKO_Init, 0},
-#endif
     {0, 0, 0}};
 
 int Unif::LoadUNIFChunks(FceuFile *fp) {

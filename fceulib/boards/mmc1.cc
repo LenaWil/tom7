@@ -21,6 +21,7 @@
 
 #include "mapinc.h"
 
+namespace {
 static int DetectMMC1WRAMSize(uint32 crc32) {
   switch (crc32) {
   case 0xc6182024: /* Romance of the 3 Kingdoms */
@@ -333,7 +334,8 @@ struct MMC1 : public CartInterface {
     fc->state->AddExState(&BufferShift, 1, 1, "BFRS");
   }
 };
-  
+}
+
 CartInterface *Mapper105_Init(FC *fc, CartInfo *info) {
   MMC1 *mmc = new MMC1(fc, info, 256, 256, 8, 0);
   mmc->is_105 = true;

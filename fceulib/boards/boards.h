@@ -5,11 +5,6 @@ struct CartInfo;
 struct FC;
 struct CartInterface;
 
-#if 0
-CartInterface *ANROM_Init(FC *fc, CartInfo *info);
-CartInterface *GNROM_Init(FC *fc, CartInfo *info);
-#endif
-
 // gs-2004
 CartInterface *BMCGS2004_Init(FC *fc, CartInfo *info);
 
@@ -264,8 +259,10 @@ CartInterface *UNLVRC7_Init(FC *fc, CartInfo *info);
 // yoko
 CartInterface *UNLYOKO_Init(FC *fc, CartInfo *info);
 
-#if 0
+// a9746
 CartInterface *UNLA9746_Init(FC *fc, CartInfo *info);
-#endif
+
+// dead?
+// CartInterface *GNROM_Init(FC *fc, CartInfo *info);
 
 #endif
