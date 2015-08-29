@@ -7,9 +7,11 @@ struct CartInterface;
 
 #if 0
 CartInterface *ANROM_Init(FC *fc, CartInfo *info);
-CartInterface *BMCGS2004_Init(FC *fc, CartInfo *info);
 CartInterface *GNROM_Init(FC *fc, CartInfo *info);
 #endif
+
+// gs-2004
+CartInterface *BMCGS2004_Init(FC *fc, CartInfo *info);
 
 // ghostbusters63in1
 CartInterface *BMCGhostbusters63in1_Init(FC *fc, CartInfo *info);
@@ -256,10 +258,14 @@ CartInterface *Transformer_Init(FC *fc, CartInfo *info);
 // vrc2and4
 CartInterface *UNLT230_Init(FC *fc, CartInfo *info);
 
+// vrc7
+CartInterface *UNLVRC7_Init(FC *fc, CartInfo *info);
+
+// yoko
+CartInterface *UNLYOKO_Init(FC *fc, CartInfo *info);
+
 #if 0
 CartInterface *UNLA9746_Init(FC *fc, CartInfo *info);
-CartInterface *UNLVRC7_Init(FC *fc, CartInfo *info);
-CartInterface *UNLYOKO_Init(FC *fc, CartInfo *info);
 #endif
 
 #endif

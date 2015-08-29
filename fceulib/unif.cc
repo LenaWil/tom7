@@ -318,9 +318,7 @@ static constexpr BMAPPING bmap[] = {
     {"FS304", UNLFS304_Init, 0},
     {"G-146", BMCG146_Init, 0},
     {"GK-192", BMCGK192_Init, 0},
-#if 0
     {"GS-2004", BMCGS2004_Init, 0},
-#endif
     {"GS-2013", BMCGS2013_Init, 0},
     {"Ghostbusters63in1", BMCGhostbusters63in1_Init, 0},
     {"H2288", UNLH2288_Init, 0},
@@ -428,7 +426,9 @@ static constexpr BMAPPING bmap[] = {
 #if 0
     {"UNROM", UNROM_Init, 0},
     {"UOROM", UNROM_Init, 0},
+#endif
     {"VRC7", UNLVRC7_Init, 0},
+#if 0
     {"YOKO", UNLYOKO_Init, 0},
 #endif
     {0, 0, 0}};

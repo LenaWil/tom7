@@ -634,10 +634,14 @@ CartInterface *Mapper25_Init(FC *fc, CartInfo *);
 // 253
 CartInterface *Mapper253_Init(FC *fc, CartInfo *);
 
+// 28
+CartInterface *Mapper28_Init(FC *fc, CartInfo *);
+
+// yoko
+CartInterface *Mapper83_Init(FC *fc, CartInfo *);
+
 // ?
 CartInterface *Mapper1_Init(FC *fc, CartInfo *);
-CartInterface *Mapper28_Init(FC *fc, CartInfo *);
-CartInterface *Mapper83_Init(FC *fc, CartInfo *);
 CartInterface *Mapper91_Init(FC *fc, CartInfo *);
 CartInterface *Mapper93_Init(FC *fc, CartInfo *);
 CartInterface *Mapper95_Init(FC *fc, CartInfo *);
