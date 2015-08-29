@@ -363,6 +363,7 @@ static constexpr BMAPPING bmap[] = {
 #if 0
     {"RROM", NROM_Init, 0},
     {"RROM-128", NROM_Init, 0},
+#endif
     {"SA-002", TCU02_Init, 0},
     {"SA-0036", SA0036_Init, 0},
     {"SA-0037", SA0037_Init, 0},
@@ -370,11 +371,8 @@ static constexpr BMAPPING bmap[] = {
     {"SA-016-1M", SA0161M_Init, 0},
     {"SA-72007", SA72007_Init, 0},
     {"SA-72008", SA72008_Init, 0},
-#endif
     {"SA-9602B", SA9602B_Init, BMCFLAG_32KCHRR},
-#if 0
     {"SA-NROM", TCA01_Init, 0},
-#endif
     // MMC1
     {"SAROM", SAROM_Init, 0},
     {"SBROM", SBROM_Init, 0},
@@ -394,24 +392,26 @@ static constexpr BMAPPING bmap[] = {
 #if 0
     {"SSS-NROM-256", SSSNROM_Init, 0},
     {"SUNSOFT_UNROM", SUNSOFT_UNROM_Init, 0},
+#endif
     {"Sachen-74LS374N", S74LS374N_Init, 0},
     {"Sachen-74LS374NA", S74LS374NA_Init, 0},  // seems to be custom mapper
     {"Sachen-8259A", S8259A_Init, 0},
     {"Sachen-8259B", S8259B_Init, 0},
     {"Sachen-8259C", S8259C_Init, 0},
     {"Sachen-8259D", S8259D_Init, 0},
-#endif
     {"Super24in1SC03", Super24_Init, 0},
 #if 0
     {"SuperHIK8in1", Mapper45_Init, 0},
+#endif
     {"Supervision16in1", Supervision16_Init, 0},
     {"T-227-1", BMCT2271_Init, 0},
-    {"T-230", UNLT230_Init, 0},
-    {"T-262", BMCT262_Init, 0},
-#endif
-    {"TBROM", TBROM_Init, 0},
 #if 0
+    {"T-230", UNLT230_Init, 0},
+#endif
+    {"T-262", BMCT262_Init, 0},
+    {"TBROM", TBROM_Init, 0},
     {"TC-U01-1.5M", TCU01_Init, 0},
+#if 0
     {"TEK90", Mapper90_Init, 0},
     {"TEROM", TEROM_Init, 0},
     {"TF1201", UNLTF1201_Init, 0},

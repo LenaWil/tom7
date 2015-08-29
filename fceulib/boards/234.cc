@@ -20,55 +20,66 @@
 
 #include "mapinc.h"
 
-static uint8 bank, preg;
-static vector<SFORMAT> StateRegs = {{&bank, 1, "BANK"}, {&preg, 1, "PREG"}};
+namespace {
+struct Mapper234 : public CartInterface {
+  uint8 bank = 0, preg = 0;
 
-static void Sync() {
-  if (bank & 0x40) {
-    fceulib__.cart->setprg32(0x8000, (bank & 0xE) | (preg & 1));
-    fceulib__.cart->setchr8(((bank & 0xE) << 2) | ((preg >> 4) & 7));
-  } else {
-    fceulib__.cart->setprg32(0x8000, bank & 0xF);
-    fceulib__.cart->setchr8(((bank & 0xF) << 2) | ((preg >> 4) & 3));
+  void Sync() {
+    if (bank & 0x40) {
+      fc->cart->setprg32(0x8000, (bank & 0xE) | (preg & 1));
+      fc->cart->setchr8(((bank & 0xE) << 2) | ((preg >> 4) & 7));
+    } else {
+      fc->cart->setprg32(0x8000, bank & 0xF);
+      fc->cart->setchr8(((bank & 0xF) << 2) | ((preg >> 4) & 3));
+    }
+    fc->cart->setmirror((bank >> 7) ^ 1);
   }
-  fceulib__.cart->setmirror((bank >> 7) ^ 1);
-}
 
-DECLFR(M234ReadBank) {
-  uint8 r = Cart::CartBR(DECLFR_FORWARD);
-  if (!bank) {
-    bank = r;
+  DECLFR_RET M234ReadBank(DECLFR_ARGS) {
+    uint8 r = Cart::CartBR(DECLFR_FORWARD);
+    if (!bank) {
+      bank = r;
+      Sync();
+    }
+    return r;
+  }
+
+  DECLFR_RET M234ReadPreg(DECLFR_ARGS) {
+    uint8 r = Cart::CartBR(DECLFR_FORWARD);
+    preg = r;
+    Sync();
+    return r;
+  }
+
+  void Reset() override {
+    bank = preg = 0;
     Sync();
   }
-  return r;
+
+  void Power() override {
+    Reset();
+    fc->fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
+    fc->fceu->SetReadHandler(0xFF80, 0xFF9F, [](DECLFR_ARGS) {
+      return ((Mapper234*)fc->fceu->cartiface)->
+	M234ReadBank(DECLFR_FORWARD);
+    });
+    fc->fceu->SetReadHandler(0xFFE8, 0xFFF7, [](DECLFR_ARGS) {
+      return ((Mapper234*)fc->fceu->cartiface)->
+	M234ReadPreg(DECLFR_FORWARD);
+    });
+  }
+
+  static void StateRestore(FC *fc, int version) {
+    ((Mapper234 *)fc->fceu->cartiface)->Sync();
+  }
+
+  Mapper234(FC *fc, CartInfo *info) : CartInterface(fc) {
+    fc->state->AddExVec({{&bank, 1, "BANK"}, {&preg, 1, "PREG"}});
+    fc->fceu->GameStateRestore = StateRestore;
+  }
+};
 }
 
-DECLFR(M234ReadPreg) {
-  uint8 r = Cart::CartBR(DECLFR_FORWARD);
-  preg = r;
-  Sync();
-  return r;
-}
-
-static void M234Reset(FC *fc) {
-  bank = preg = 0;
-  Sync();
-}
-
-static void M234Power(FC *fc) {
-  M234Reset(fc);
-  fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
-  fceulib__.fceu->SetReadHandler(0xFF80, 0xFF9F, M234ReadBank);
-  fceulib__.fceu->SetReadHandler(0xFFE8, 0xFFF7, M234ReadPreg);
-}
-
-static void StateRestore(FC *fc, int version) {
-  Sync();
-}
-
-void Mapper234_Init(CartInfo *info) {
-  info->Power = M234Power;
-  info->Reset = M234Reset;
-  fceulib__.state->AddExVec(StateRegs);
-  fceulib__.fceu->GameStateRestore = StateRestore;
+CartInterface *Mapper234_Init(FC *fc, CartInfo *info) {
+  return new Mapper234(fc, info);
 }

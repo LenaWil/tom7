@@ -20,53 +20,60 @@
 
 #include "mapinc.h"
 
-static uint16 addrreg;
-static uint8 datareg;
-static uint8 busy;
-static vector<SFORMAT> StateRegs = {
-    {&addrreg, 2, "AREG"}, {&datareg, 1, "DREG"}, {&busy, 1, "BUSY"}};
+namespace {
+struct BMCT262 : public CartInterface {
+  uint16 addrreg = 0;
+  uint8 datareg = 0;
+  uint8 busy = 0;
 
-static void Sync() {
-  uint16 base = ((addrreg & 0x60) >> 2) | ((addrreg & 0x100) >> 3);
-  fceulib__.cart->setprg16(0x8000, (datareg & 7) | base);
-  fceulib__.cart->setprg16(0xC000, 7 | base);
-  fceulib__.cart->setmirror(((addrreg & 2) >> 1) ^ 1);
-}
-
-static DECLFW(BMCT262Write) {
-  if (busy || (A == 0x8000))
-    datareg = V;
-  else {
-    addrreg = A;
-    busy = 1;
+  void Sync() {
+    uint16 base = ((addrreg & 0x60) >> 2) | ((addrreg & 0x100) >> 3);
+    fc->cart->setprg16(0x8000, (datareg & 7) | base);
+    fc->cart->setprg16(0xC000, 7 | base);
+    fc->cart->setmirror(((addrreg & 2) >> 1) ^ 1);
   }
-  Sync();
+
+  void BMCT262Write(DECLFW_ARGS) {
+    if (busy || (A == 0x8000))
+      datareg = V;
+    else {
+      addrreg = A;
+      busy = 1;
+    }
+    Sync();
+  }
+
+  void Power() override {
+    fc->cart->setchr8(0);
+    fc->fceu->SetWriteHandler(0x8000, 0xFFFF, [](DECLFW_ARGS) {
+      ((BMCT262*)fc->fceu->cartiface)->BMCT262Write(DECLFW_FORWARD);
+    });
+    fc->fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
+    busy = 0;
+    addrreg = 0;
+    datareg = 0xff;
+    Sync();
+  }
+
+  void Reset() override {
+    busy = 0;
+    addrreg = 0;
+    datareg = 0;
+    Sync();
+  }
+
+  static void BMCT262Restore(FC *fc, int version) {
+    ((BMCT262 *)fc->fceu->cartiface)->Sync();
+  }
+  
+  BMCT262(FC *fc, CartInfo *info) : CartInterface(fc) {
+    fc->fceu->GameStateRestore = BMCT262Restore;
+    fc->state->AddExVec({
+	{&addrreg, 2, "AREG"}, {&datareg, 1, "DREG"}, {&busy, 1, "BUSY"}});
+  }
+};
 }
 
-static void BMCT262Power(FC *fc) {
-  fceulib__.cart->setchr8(0);
-  fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, BMCT262Write);
-  fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
-  busy = 0;
-  addrreg = 0;
-  datareg = 0xff;
-  Sync();
-}
-
-static void BMCT262Reset(FC *fc) {
-  busy = 0;
-  addrreg = 0;
-  datareg = 0;
-  Sync();
-}
-
-static void BMCT262Restore(FC *fc, int version) {
-  Sync();
-}
-
-void BMCT262_Init(CartInfo *info) {
-  info->Power = BMCT262Power;
-  info->Reset = BMCT262Reset;
-  fceulib__.fceu->GameStateRestore = BMCT262Restore;
-  fceulib__.state->AddExVec(StateRegs);
+CartInterface *BMCT262_Init(FC *fc, CartInfo *info) {
+  return new BMCT262(fc, info);
 }

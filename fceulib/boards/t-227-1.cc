@@ -23,78 +23,87 @@
 #include "mapinc.h"
 #include "mmc3.h"
 
-static uint8 reset_flag = 0x07;
+namespace {
+struct BMCT2271 : public MMC3 {
+  uint8 EXPREGS[8] = {};
+  uint8 reset_flag = 0x07;
 
-static void BMCT2271CW(uint32 A, uint8 V) {
-  uint32 va = V;
-  if (EXPREGS[0] & 0x20) {
-    va |= 0x200;
-    va |= (EXPREGS[0] & 0x10) << 4;
-  } else {
-    va &= 0x7F;
-    va |= (EXPREGS[0] & 0x18) << 4;
-  }
-  fceulib__.cart->setchr1(A, va);
-}
-
-static void BMCT2271PW(uint32 A, uint8 V) {
-  uint32 va = V & 0x3F;
-  if (EXPREGS[0] & 0x20) {
-    va &= 0x1F;
-    va |= 0x40;
-    va |= (EXPREGS[0] & 0x10) << 1;
-  } else {
-    va &= 0x0F;
-    va |= (EXPREGS[0] & 0x18) << 1;
-  }
-  switch (EXPREGS[0] & 3) {
-    case 0x00: fceulib__.cart->setprg8(A, va); break;
-    case 0x02: {
-      va = (va & 0xFD) | ((EXPREGS[0] & 4) >> 1);
-      if (A < 0xC000) {
-        fceulib__.cart->setprg16(0x8000, va >> 1);
-        fceulib__.cart->setprg16(0xC000, va >> 1);
-      }
-      break;
+  void CWrap(uint32 A, uint8 V) override {
+    uint32 va = V;
+    if (EXPREGS[0] & 0x20) {
+      va |= 0x200;
+      va |= (EXPREGS[0] & 0x10) << 4;
+    } else {
+      va &= 0x7F;
+      va |= (EXPREGS[0] & 0x18) << 4;
     }
-    case 0x01:
-    case 0x03:
-      if (A < 0xC000) fceulib__.cart->setprg32(0x8000, va >> 2);
-      break;
+    fc->cart->setchr1(A, va);
   }
+
+  void PWrap(uint32 A, uint8 V) override {
+    uint32 va = V & 0x3F;
+    if (EXPREGS[0] & 0x20) {
+      va &= 0x1F;
+      va |= 0x40;
+      va |= (EXPREGS[0] & 0x10) << 1;
+    } else {
+      va &= 0x0F;
+      va |= (EXPREGS[0] & 0x18) << 1;
+    }
+    switch (EXPREGS[0] & 3) {
+      case 0x00: fc->cart->setprg8(A, va); break;
+      case 0x02: {
+	va = (va & 0xFD) | ((EXPREGS[0] & 4) >> 1);
+	if (A < 0xC000) {
+	  fc->cart->setprg16(0x8000, va >> 1);
+	  fc->cart->setprg16(0xC000, va >> 1);
+	}
+	break;
+      }
+      case 0x01:
+      case 0x03:
+	if (A < 0xC000) fc->cart->setprg32(0x8000, va >> 2);
+	break;
+    }
+  }
+
+  void BMCT2271LoWrite(DECLFW_ARGS) {
+    if (!(EXPREGS[0] & 0x80)) EXPREGS[0] = A & 0xFF;
+    FixMMC3PRG(MMC3_cmd);
+    FixMMC3CHR(MMC3_cmd);
+  }
+
+  DECLFR_RET BMCT2271HiRead(DECLFR_ARGS) {
+    uint32 av = A;
+    if (EXPREGS[0] & 0x40) av = (av & 0xFFF0) | reset_flag;
+    return Cart::CartBR(fc, av);
+  }
+
+  void Reset() override {
+    EXPREGS[0] = 0x00;
+    reset_flag++;
+    reset_flag &= 0x0F;
+    MMC3::Reset();
+  }
+
+  void Power() override {
+    EXPREGS[0] = 0x00;
+    MMC3::Power();
+    fc->fceu->SetWriteHandler(0x6000, 0x7FFF, [](DECLFW_ARGS) {
+      ((BMCT2271*)fc->fceu->cartiface)->BMCT2271LoWrite(DECLFW_FORWARD);
+    });
+    fc->fceu->SetReadHandler(0x8000, 0xFFFF, [](DECLFR_ARGS) {
+      return ((BMCT2271*)fc->fceu->cartiface)->
+	BMCT2271HiRead(DECLFR_FORWARD);
+    });
+  }
+
+  BMCT2271(FC *fc, CartInfo *info) : MMC3(fc, info, 128, 128, 8, 0) {
+    fc->state->AddExState(EXPREGS, 1, 0, "EXPR");
+  }
+};
 }
 
-static DECLFW(BMCT2271LoWrite) {
-  if (!(EXPREGS[0] & 0x80)) EXPREGS[0] = A & 0xFF;
-  FixMMC3PRG(MMC3_cmd);
-  FixMMC3CHR(MMC3_cmd);
-}
-
-static DECLFR(BMCT2271HiRead) {
-  uint32 av = A;
-  if (EXPREGS[0] & 0x40) av = (av & 0xFFF0) | reset_flag;
-  return Cart::CartBR(fc, av);
-}
-
-static void BMCT2271Reset(FC *fc) {
-  EXPREGS[0] = 0x00;
-  reset_flag++;
-  reset_flag &= 0x0F;
-  MMC3RegReset(fc);
-}
-
-static void BMCT2271Power(FC *fc) {
-  EXPREGS[0] = 0x00;
-  GenMMC3Power(fc);
-  fceulib__.fceu->SetWriteHandler(0x6000, 0x7FFF, BMCT2271LoWrite);
-  fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, BMCT2271HiRead);
-}
-
-void BMCT2271_Init(CartInfo *info) {
-  GenMMC3_Init(info, 128, 128, 8, 0);
-  pwrap = BMCT2271PW;
-  cwrap = BMCT2271CW;
-  info->Power = BMCT2271Power;
-  info->Reset = BMCT2271Reset;
-  fceulib__.state->AddExState(EXPREGS, 1, 0, "EXPR");
+CartInterface *BMCT2271_Init(FC *fc, CartInfo *info) {
+  return new BMCT2271(fc, info);
 }

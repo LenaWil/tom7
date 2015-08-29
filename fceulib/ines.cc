@@ -695,30 +695,30 @@ static constexpr BoardMapping const board_map[] = {
   // {"", 130, Mapper130_Init},
   // {"", 131, Mapper131_Init},
   {"UNL22211", 132, UNL22211_Init},
-#if 0
   {"SA72008", 133, SA72008_Init},
-#endif
   {"", 134, Mapper134_Init},
-#if 0
   // {"", 135, Mapper135_Init},
   {"TCU02", 136, TCU02_Init},
   {"S8259D", 137, S8259D_Init},
   {"S8259B", 138, S8259B_Init},
   {"S8259C", 139, S8259C_Init},
-  {"", 140, Mapper140_Init},
-  {"S8259A", 141, S8259A_Init},
-#endif
-  {"UNLKS7032", 142, UNLKS7032_Init},
 #if 0
+  {"", 140, Mapper140_Init},
+#endif
+  {"S8259A", 141, S8259A_Init},
+  {"UNLKS7032", 142, UNLKS7032_Init},
   {"TCA01", 143, TCA01_Init},
+#if 0
   {"", 144, Mapper144_Init},
+#endif
   {"SA72007", 145, SA72007_Init},
+#if 0
   {"SA0161M", 146, SA0161M_Init},
+#endif
   {"TCU01", 147, TCU01_Init},
   {"SA0037", 148, SA0037_Init},
   {"SA0036", 149, SA0036_Init},
   {"S74LS374N", 150, S74LS374N_Init},
-#endif
   {"", 151, Mapper151_Init},
 #if 0
   {"", 152, Mapper152_Init},
@@ -731,10 +731,12 @@ static constexpr BoardMapping const board_map[] = {
   {"", 156, Mapper156_Init},
 #if 0
   {"", 157, Mapper157_Init},
+#endif
   // {"", 158, Mapper158_Init},
   // {"", 159, Mapper159_Init},
   {"SA009", 160, SA009_Init},
   // {"", 161, Mapper161_Init},
+#if 0
   {"", 162, UNLFS304_Init},
 #endif
   {"", 163, Mapper163_Init},
@@ -795,9 +797,7 @@ static constexpr BoardMapping const board_map[] = {
 #endif
   {"", 204, Mapper204_Init},
   {"", 205, Mapper205_Init},
-#if 0
   {"DEIROM", 206, DEIROM_Init},
-#endif
   // {"", 207, Mapper207_Init},
   {"", 208, Mapper208_Init},
   {"", 209, Mapper209_Init},
@@ -826,12 +826,10 @@ static constexpr BoardMapping const board_map[] = {
   {"", 229, Mapper229_Init},
   {"BMC 22-in-1+Contra", 230, Mapper230_Init},
   {"", 231, Mapper231_Init},
-#if 0
   {"BMC QUATTRO", 232, Mapper232_Init},
-#endif
   {"BMC 22+20-in-1 RST", 233, Mapper233_Init},
-#if 0
   {"BMC MAXI", 234, Mapper234_Init},
+#if 0
   {"", 235, Mapper235_Init},
   // {"", 236, Mapper236_Init},
   // {"", 237, Mapper237_Init},
