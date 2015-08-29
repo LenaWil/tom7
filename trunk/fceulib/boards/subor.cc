@@ -19,63 +19,65 @@
  */
 
 #include "mapinc.h"
+namespace {
+struct Mapper16X : public CartInterface {
+  const uint8 mode = 0;
+  uint8 DRegs[4] = {};
 
-static uint8 mode;
-static uint8 DRegs[4];
+  void Sync() {
+    int base, bank;
+    base = ((DRegs[0] ^ DRegs[1]) & 0x10) << 1;
+    bank = (DRegs[2] ^ DRegs[3]) & 0x1f;
 
-static vector<SFORMAT> StateRegs = {{DRegs, 4, "DREG"}};
-
-static void Sync() {
-  int base, bank;
-  base = ((DRegs[0] ^ DRegs[1]) & 0x10) << 1;
-  bank = (DRegs[2] ^ DRegs[3]) & 0x1f;
-
-  if (DRegs[1] & 0x08) {
-    bank &= 0xfe;
-    if (mode == 0) {
-      fceulib__.cart->setprg16(0x8000, base + bank + 1);
-      fceulib__.cart->setprg16(0xC000, base + bank + 0);
+    if (DRegs[1] & 0x08) {
+      bank &= 0xfe;
+      if (mode == 0) {
+	fc->cart->setprg16(0x8000, base + bank + 1);
+	fc->cart->setprg16(0xC000, base + bank + 0);
+      } else {
+	fc->cart->setprg16(0x8000, base + bank + 0);
+	fc->cart->setprg16(0xC000, base + bank + 1);
+      }
     } else {
-      fceulib__.cart->setprg16(0x8000, base + bank + 0);
-      fceulib__.cart->setprg16(0xC000, base + bank + 1);
-    }
-  } else {
-    if (DRegs[1] & 0x04) {
-      fceulib__.cart->setprg16(0x8000, 0x1f);
-      fceulib__.cart->setprg16(0xC000, base + bank);
-    } else {
-      fceulib__.cart->setprg16(0x8000, base + bank);
-      if (mode == 0)
-        fceulib__.cart->setprg16(0xC000, 0x20);
-      else
-        fceulib__.cart->setprg16(0xC000, 0x07);
+      if (DRegs[1] & 0x04) {
+	fc->cart->setprg16(0x8000, 0x1f);
+	fc->cart->setprg16(0xC000, base + bank);
+      } else {
+	fc->cart->setprg16(0x8000, base + bank);
+	if (mode == 0)
+	  fc->cart->setprg16(0xC000, 0x20);
+	else
+	  fc->cart->setprg16(0xC000, 0x07);
+      }
     }
   }
+
+  void Mapper167_write(DECLFW_ARGS) {
+    DRegs[(A >> 13) & 0x03] = V;
+    Sync();
+  }
+
+  static void StateRestore(FC *fc, int version) {
+    ((Mapper16X *)fc->fceu->cartiface)->Sync();
+  }
+
+  Mapper16X(FC *fc, CartInfo *info, int mode) : CartInterface(fc),
+						mode(mode) {
+    DRegs[0] = DRegs[1] = DRegs[2] = DRegs[3] = 0;
+    Sync();
+    fc->fceu->SetWriteHandler(0x8000, 0xFFFF, [](DECLFW_ARGS) {
+      ((Mapper16X*)fc->fceu->cartiface)->Mapper167_write(DECLFW_FORWARD);
+    });
+    fc->fceu->GameStateRestore = StateRestore;
+    fc->state->AddExVec({{DRegs, 4, "DREG"}});
+  }
+};
 }
 
-static DECLFW(Mapper167_write) {
-  DRegs[(A >> 13) & 0x03] = V;
-  Sync();
+CartInterface *Mapper166_Init(FC *fc, CartInfo *info) {
+  return new Mapper16X(fc, info, 1);
 }
 
-static void StateRestore(FC *fc, int version) {
-  Sync();
-}
-
-void Mapper166_init() {
-  mode = 1;
-  DRegs[0] = DRegs[1] = DRegs[2] = DRegs[3] = 0;
-  Sync();
-  fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, Mapper167_write);
-  fceulib__.fceu->GameStateRestore = StateRestore;
-  fceulib__.state->AddExVec(StateRegs);
-}
-
-void Mapper167_init() {
-  mode = 0;
-  DRegs[0] = DRegs[1] = DRegs[2] = DRegs[3] = 0;
-  Sync();
-  fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, Mapper167_write);
-  fceulib__.fceu->GameStateRestore = StateRestore;
-  fceulib__.state->AddExVec(StateRegs);
+CartInterface *Mapper167_Init(FC *fc, CartInfo *info) {
+  return new Mapper16X(fc, info, 0);
 }

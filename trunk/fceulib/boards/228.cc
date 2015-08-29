@@ -20,59 +20,69 @@
 
 #include "mapinc.h"
 
-static uint8 mram[4], vreg;
-static uint16 areg;
+namespace {
+struct Mapper228 : public CartInterface {
+  uint8 mram[4] = {}, vreg = 0;
+  uint16 areg = 0;
 
-static vector<SFORMAT> StateRegs = {
-    {mram, 4, "MRAM"}, {&areg, 2, "AREG"}, {&vreg, 1, "VREG"}};
+  void Sync() {
+    uint32 prgl, prgh, page = (areg >> 7) & 0x3F;
+    if ((page & 0x30) == 0x30) page -= 0x10;
+    prgl = prgh = (page << 1) + (((areg >> 6) & 1) & ((areg >> 5) & 1));
+    prgh += ((areg >> 5) & 1) ^ 1;
 
-static void Sync() {
-  uint32 prgl, prgh, page = (areg >> 7) & 0x3F;
-  if ((page & 0x30) == 0x30) page -= 0x10;
-  prgl = prgh = (page << 1) + (((areg >> 6) & 1) & ((areg >> 5) & 1));
-  prgh += ((areg >> 5) & 1) ^ 1;
+    fc->cart->setmirror(((areg >> 13) & 1) ^ 1);
+    fc->cart->setprg16(0x8000, prgl);
+    fc->cart->setprg16(0xc000, prgh);
+    fc->cart->setchr8(((vreg & 0x3) | ((areg & 0xF) << 2)));
+  }
 
-  fceulib__.cart->setmirror(((areg >> 13) & 1) ^ 1);
-  fceulib__.cart->setprg16(0x8000, prgl);
-  fceulib__.cart->setprg16(0xc000, prgh);
-  fceulib__.cart->setchr8(((vreg & 0x3) | ((areg & 0xF) << 2)));
+  void M228RamWrite(DECLFW_ARGS) {
+    mram[A & 3] = V & 0x0F;
+  }
+
+  DECLFR_RET M228RamRead(DECLFR_ARGS) {
+    return mram[A & 3];
+  }
+
+  void M228Write(DECLFW_ARGS) {
+    areg = A;
+    vreg = V;
+    Sync();
+  }
+
+  void Reset() override {
+    areg = 0x8000;
+    vreg = 0;
+    Sync();
+  }
+
+  void Power() override {
+    Reset();
+    fc->fceu->SetReadHandler(0x5000, 0x5FFF, [](DECLFR_ARGS) {
+      return ((Mapper228*)fc->fceu->cartiface)->M228RamRead(DECLFR_FORWARD);
+    });
+    fc->fceu->SetWriteHandler(0x5000, 0x5FFF, [](DECLFW_ARGS) {
+      ((Mapper228*)fc->fceu->cartiface)->M228RamWrite(DECLFW_FORWARD);
+    });
+    fc->fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
+    fc->fceu->SetWriteHandler(0x8000, 0xFFFF, [](DECLFW_ARGS) {
+      ((Mapper228*)fc->fceu->cartiface)->M228Write(DECLFW_FORWARD);
+    });
+  }
+
+  static void StateRestore(FC *fc, int version) {
+    ((Mapper228 *)fc->fceu->cartiface)->Sync();
+  }
+
+  Mapper228(FC *fc, CartInfo *info) : CartInterface(fc) {
+    fc->fceu->GameStateRestore = StateRestore;
+    fc->state->AddExVec({
+      {mram, 4, "MRAM"}, {&areg, 2, "AREG"}, {&vreg, 1, "VREG"}});
+  }
+};
 }
 
-static DECLFW(M228RamWrite) {
-  mram[A & 3] = V & 0x0F;
-}
-
-static DECLFR(M228RamRead) {
-  return mram[A & 3];
-}
-
-static DECLFW(M228Write) {
-  areg = A;
-  vreg = V;
-  Sync();
-}
-
-static void M228Reset(FC *fc) {
-  areg = 0x8000;
-  vreg = 0;
-  Sync();
-}
-
-static void M228Power(FC *fc) {
-  M228Reset(fc);
-  fceulib__.fceu->SetReadHandler(0x5000, 0x5FFF, M228RamRead);
-  fceulib__.fceu->SetWriteHandler(0x5000, 0x5FFF, M228RamWrite);
-  fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
-  fceulib__.fceu->SetWriteHandler(0x8000, 0xFFFF, M228Write);
-}
-
-static void StateRestore(FC *fc, int version) {
-  Sync();
-}
-
-void Mapper228_Init(CartInfo *info) {
-  info->Reset = M228Reset;
-  info->Power = M228Power;
-  fceulib__.fceu->GameStateRestore = StateRestore;
-  fceulib__.state->AddExVec(StateRegs);
+CartInterface *Mapper228_Init(FC *fc, CartInfo *info) {
+  return new Mapper228(fc, info);
 }

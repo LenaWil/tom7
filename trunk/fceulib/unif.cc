@@ -297,19 +297,17 @@ static constexpr BMAPPING bmap[] = {
 #endif
     {"AX5705", UNLAX5705_Init, 0},
     {"BB", UNLBB_Init, 0},
-#if 0
     {"BS-5", BMCBS5_Init, 0},
-#endif
     {"CC-21", UNLCC21_Init, 0},
-#if 0
     {"CITYFIGHT", UNLCITYFIGHT_Init, 0},
+#if 0
     {"CNROM", CNROM_Init, 0},
     {"CPROM", CPROM_Init, BMCFLAG_16KCHRR},
 #endif
     {"D1038", BMCD1038_Init, 0},
     {"DANCE", UNLOneBus_Init, 0},  // redundant
-#if 0
     {"DANCE2000", UNLD2000_Init, 0},
+#if 0
     {"DREAMTECH01", DreamTech01_Init, 0},
     {"EDU2000", UNLEDU2000_Init, 0},
 #endif
@@ -402,7 +400,9 @@ static constexpr BMAPPING bmap[] = {
     {"Sachen-8259B", S8259B_Init, 0},
     {"Sachen-8259C", S8259C_Init, 0},
     {"Sachen-8259D", S8259D_Init, 0},
+#endif
     {"Super24in1SC03", Super24_Init, 0},
+#if 0
     {"SuperHIK8in1", Mapper45_Init, 0},
     {"Supervision16in1", Supervision16_Init, 0},
     {"T-227-1", BMCT2271_Init, 0},
