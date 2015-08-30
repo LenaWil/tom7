@@ -318,8 +318,8 @@ struct INes::OldCartiface : public CartInterface {
 // Returns true on success.
 bool INes::MapperInit() {
   if (!NewiNES_Init(mapper_number)) {
-    printf("Ugh! I disabled old cartiface interface -tom7.\n");
-    return false;
+    // printf("Ugh! I disabled old cartiface interface -tom7.\n");
+    // return false;
     
     fc->fceu->cartiface = new OldCartiface(fc);
     if (head.ROM_type & 2) {
