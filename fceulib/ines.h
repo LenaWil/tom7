@@ -167,7 +167,7 @@ void ROM_BANK32(FC *fc, uint32 V);
 // defined anywhere. If there's a space after // then I was
 // the one who commented it out -tom7.
 
-#if 0
+
 // void Mapper0_init();
 // void Mapper1_init();
 //void Mapper2_init();
@@ -391,8 +391,6 @@ void Mapper251_init();
 // void Mapper19_ESI(); // (now private -tom7)
 
 // void NSFVRC7_Init();
-
-#endif
 
 // The new mappers.
 
