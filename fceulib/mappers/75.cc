@@ -20,8 +20,8 @@
 
 #include "mapinc.h"
 
-#define map75sel mapbyte1[0]
-#define map75ar mapbyte2
+#define map75sel GMB_mapbyte1(fc)[0]
+#define map75ar GMB_mapbyte2(fc)
 
 DECLFW(Mapper75_write) {
   switch (A & 0xF000) {

@@ -22,9 +22,9 @@
 
 static void (*sfun[3])();
 
-#define vrctemp mapbyte1[0]
-#define VPSG2 mapbyte3
-#define VPSG mapbyte2
+#define vrctemp(fc) GMB_mapbyte1(fc)[0]
+#define VPSG2(fc) GMB_mapbyte3(fc)
+#define VPSG(fc) GMB_mapbyte2(fc)
 
 static void DoSQV1();
 static void DoSQV2();
@@ -37,14 +37,14 @@ static int acount = 0;
 static void KonamiIRQHook(FC *fc, int a) {
   static constexpr int LCYCS = 341;
   //  #define LCYCS ((227*2)+1)
-  if (fceulib__.ines->iNESIRQa) {
+  if (fc->ines->iNESIRQa) {
     acount += a * 3;
     while (acount >= LCYCS) {
       acount -= LCYCS;
-      fceulib__.ines->iNESIRQCount++;
-      if (fceulib__.ines->iNESIRQCount == 0x100) {
-        fceulib__.X->IRQBegin(FCEU_IQEXT);
-        fceulib__.ines->iNESIRQCount = fceulib__.ines->iNESIRQLatch;
+      fc->ines->iNESIRQCount++;
+      if (fc->ines->iNESIRQCount == 0x100) {
+        fc->X->IRQBegin(FCEU_IQEXT);
+        fc->ines->iNESIRQCount = fc->ines->iNESIRQLatch;
       }
     }
   }
@@ -53,13 +53,13 @@ static void KonamiIRQHook(FC *fc, int a) {
 static DECLFW(VRC6SW) {
   A &= 0xF003;
   if (A >= 0x9000 && A <= 0x9002) {
-    VPSG[A & 3] = V;
+    VPSG(fc)[A & 3] = V;
     if (sfun[0]) sfun[0]();
   } else if (A >= 0xa000 && A <= 0xa002) {
-    VPSG[4 | (A & 3)] = V;
+    VPSG(fc)[4 | (A & 3)] = V;
     if (sfun[1]) sfun[1]();
   } else if (A >= 0xb000 && A <= 0xb002) {
-    VPSG2[A & 3] = V;
+    VPSG2(fc)[A & 3] = V;
     if (sfun[2]) sfun[2]();
   }
 }
@@ -98,7 +98,7 @@ static DECLFW(Mapper24_write) {
     break;
   case 0xF001:
     fceulib__.ines->iNESIRQa = V & 2;
-    vrctemp = V & 1;
+    vrctemp(fc) = V & 1;
     if (V & 2) {
       fceulib__.ines->iNESIRQCount = fceulib__.ines->iNESIRQLatch;
       acount = 0;
@@ -106,7 +106,7 @@ static DECLFW(Mapper24_write) {
     fceulib__.X->IRQEnd(FCEU_IQEXT);
     break;
   case 0xf002:
-    fceulib__.ines->iNESIRQa = vrctemp;
+    fceulib__.ines->iNESIRQa = vrctemp(fc);
     fceulib__.X->IRQEnd(FCEU_IQEXT);
     break;
   case 0xF003: break;
@@ -118,8 +118,9 @@ static int32 vcount[3];
 static int32 dcount[2];
 
 static inline void DoSQV(int x) {
+  FC *fc = &fceulib__;
   int32 V;
-  int32 amp = (((VPSG[x << 2] & 15) << 8) * 6 / 8) >> 4;
+  int32 amp = (((VPSG(fc)[x << 2] & 15) << 8) * 6 / 8) >> 4;
   int32 start, end;
 
   start = CVBC[x];
@@ -127,13 +128,13 @@ static inline void DoSQV(int x) {
   if (end <= start) return;
   CVBC[x] = end;
 
-  if (VPSG[(x << 2) | 0x2] & 0x80) {
-    if (VPSG[x << 2] & 0x80) {
+  if (VPSG(fc)[(x << 2) | 0x2] & 0x80) {
+    if (VPSG(fc)[x << 2] & 0x80) {
       for (V = start; V < end; V++) fceulib__.sound->Wave[V >> 4] += amp;
     } else {
-      int32 thresh = (VPSG[x << 2] >> 4) & 7;
+      int32 thresh = (VPSG(fc)[x << 2] >> 4) & 7;
       int32 freq =
-          ((VPSG[(x << 2) | 0x1] | ((VPSG[(x << 2) | 0x2] & 15) << 8)) + 1)
+          ((VPSG(fc)[(x << 2) | 0x1] | ((VPSG(fc)[(x << 2) | 0x2] & 15) << 8)) + 1)
           << 17;
       for (V = start; V < end; V++) {
         /* Greater than, not >=.  Important. */
@@ -158,19 +159,20 @@ static void DoSQV2() {
 }
 
 static void DoSawV() {
+  FC *fc = &fceulib__;
   int32 start = CVBC[2];
   int32 end = (fceulib__.sound->SoundTS() << 16) / fceulib__.sound->soundtsinc;
   if (end <= start) return;
   CVBC[2] = end;
 
-  if (VPSG2[2] & 0x80) {
+  if (VPSG2(fc)[2] & 0x80) {
     static int32 saw1phaseacc = 0;
     uint32 freq3;
     static uint8 b3 = 0;
     static int32 phaseacc = 0;
     static uint32 duff = 0;
 
-    freq3 = (VPSG2[1] + ((VPSG2[2] & 15) << 8) + 1);
+    freq3 = (VPSG2(fc)[1] + ((VPSG2(fc)[2] & 15) << 8) + 1);
 
     for (int V = start; V < end; V++) {
       saw1phaseacc -= fceulib__.sound->nesincsize;
@@ -180,7 +182,7 @@ static void DoSawV() {
           t = freq3;
           t <<= 18;
           saw1phaseacc += t;
-          phaseacc += VPSG2[0] & 0x3f;
+          phaseacc += VPSG2(fc)[0] & 0x3f;
           b3++;
           if (b3 == 7) {
             b3 = 0;
@@ -196,14 +198,15 @@ static void DoSawV() {
 }
 
 static inline void DoSQVHQ(int x) {
-  const int32 amp = ((VPSG[x << 2] & 15) << 8) * 6 / 8;
+  FC *fc = &fceulib__;
+  const int32 amp = ((VPSG(fc)[x << 2] & 15) << 8) * 6 / 8;
 
-  if (VPSG[(x << 2) | 0x2] & 0x80) {
-    if (VPSG[x << 2] & 0x80) {
+  if (VPSG(fc)[(x << 2) | 0x2] & 0x80) {
+    if (VPSG(fc)[x << 2] & 0x80) {
       for (uint32 V = CVBC[x]; V < fceulib__.sound->SoundTS(); V++)
         fceulib__.sound->WaveHi[V] += amp;
     } else {
-      const int32 thresh = (VPSG[x << 2] >> 4) & 7;
+      const int32 thresh = (VPSG(fc)[x << 2] >> 4) & 7;
       for (uint32 V = CVBC[x]; V < fceulib__.sound->SoundTS(); V++) {
         if (dcount[x] > thresh) /* Greater than, not >=.  Important. */
           fceulib__.sound->WaveHi[V] += amp;
@@ -211,7 +214,7 @@ static inline void DoSQVHQ(int x) {
         /* Should only be <0 in a few circumstances. */
         if (vcount[x] <= 0) {
           vcount[x] =
-              (VPSG[(x << 2) | 0x1] | ((VPSG[(x << 2) | 0x2] & 15) << 8)) + 1;
+              (VPSG(fc)[(x << 2) | 0x1] | ((VPSG(fc)[(x << 2) | 0x2] & 15) << 8)) + 1;
           dcount[x] = (dcount[x] + 1) & 15;
         }
       }
@@ -228,18 +231,19 @@ static void DoSQV2HQ() {
   DoSQVHQ(1);
 }
 
+static uint8 b3 = 0;
+static int32 phaseacc = 0;
 static void DoSawVHQ() {
-  static uint8 b3 = 0;
-  static int32 phaseacc = 0;
+  FC *fc = &fceulib__;
   uint32 V;  // mbg merge 7/17/06 made uint32
 
-  if (VPSG2[2] & 0x80) {
+  if (VPSG2(fc)[2] & 0x80) {
     for (V = CVBC[2]; V < fceulib__.sound->SoundTS(); V++) {
       fceulib__.sound->WaveHi[V] += (((phaseacc >> 3) & 0x1f) << 8) * 6 / 8;
       vcount[2]--;
       if (vcount[2] <= 0) {
-        vcount[2] = (VPSG2[1] + ((VPSG2[2] & 15) << 8) + 1) << 1;
-        phaseacc += VPSG2[0] & 0x3f;
+        vcount[2] = (VPSG2(fc)[1] + ((VPSG2(fc)[2] & 15) << 8) + 1) << 1;
+        phaseacc += VPSG2(fc)[0] & 0x3f;
         b3++;
         if (b3 == 7) {
           b3 = 0;

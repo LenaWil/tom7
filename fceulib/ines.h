@@ -121,35 +121,41 @@ struct INes {
 // These are allowed to be accessed by mappers. -tom7
 #ifdef INESPRIV
 
+// I think that this gross stuff is because the old style mappers
+// (_init in mappers/*) get some flat data block to work with,
+// which is saved and copied for them, and they work by indexing
+// into its parts with macros. I made them take an FC object and
+// prefixed them all with GMB_.
+
 /* This order is necessary */
-#define WRAM    (fceulib__.fceu->GameMemBlock)
+#define GMB_WRAM(fc)    ((fc)->fceu->GameMemBlock)
 #define sizeofWRAM    8192
 
-#define MapperExRAM   (fceulib__.fceu->GameMemBlock+sizeofWRAM)
+#define GMB_MapperExRAM(fc)   ((fc)->fceu->GameMemBlock + sizeofWRAM)
 #define sizeofMapperExRAM  32768
 /* for the MMC5 code to work properly.  It might be fixed later... */
 
-#define CHRRAM  (fceulib__.fceu->GameMemBlock+sizeofWRAM+sizeofMapperExRAM)
+#define GMB_CHRRAM(fc)  ((fc)->fceu->GameMemBlock+sizeofWRAM+sizeofMapperExRAM)
 #define sizeofCHRRAM 8192
 
-#define ExtraNTARAM   (fceulib__.fceu->GameMemBlock+sizeofWRAM+sizeofMapperExRAM+sizeofCHRRAM)
+#define GMB_ExtraNTARAM(fc)   ((fc)->fceu->GameMemBlock+sizeofWRAM+sizeofMapperExRAM+sizeofCHRRAM)
 #define sizeofExtraNTARAM 2048
 
-#define PRGBankList    (ExtraNTARAM+sizeofExtraNTARAM)
+#define GMB_PRGBankList(fc)    (GMB_ExtraNTARAM(fc) + sizeofExtraNTARAM)
 
-#define mapbyte1       (PRGBankList+4)
-#define mapbyte2       (mapbyte1+8)
-#define mapbyte3       (mapbyte2+8)
-#define mapbyte4       (mapbyte3+8)
+#define GMB_mapbyte1(fc)       (GMB_PRGBankList(fc) + 4)
+#define GMB_mapbyte2(fc)       (GMB_mapbyte1(fc) + 8)
+#define GMB_mapbyte3(fc)       (GMB_mapbyte2(fc) + 8)
+#define GMB_mapbyte4(fc)       (GMB_mapbyte3(fc) + 8)
 
 #endif  // INESPRIV
 
 // TODO: Maybe should be members of INes.
 void VRAM_BANK1(FC *fc, uint32 A, uint8 V);
-void VRAM_BANK4(FC *fc, uint32 A,uint32 V);
+void VRAM_BANK4(FC *fc, uint32 A, uint32 V);
 
-void VROM_BANK1(FC *fc, uint32 A,uint32 V);
-void VROM_BANK2(FC *fc, uint32 A,uint32 V);
+void VROM_BANK1(FC *fc, uint32 A, uint32 V);
+void VROM_BANK2(FC *fc, uint32 A, uint32 V);
 void VROM_BANK4(FC *fc, uint32 A, uint32 V);
 void VROM_BANK8(FC *fc, uint32 V);
 void ROM_BANK8(FC *fc, uint32 A, uint32 V);

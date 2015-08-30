@@ -23,15 +23,16 @@
 /* Original code provided by LULU */
 
 static DECLFW(Mapper77_write) {
-  mapbyte1[0] = V;
+  GMB_mapbyte1(fc)[0] = V;
   ROM_BANK32(fc, V & 0x7);
   VROM_BANK2(fc, 0x0000, (V & 0xf0) >> 4);
 }
 
 static void Mapper77_StateRestore(int version) {
+  FC *fc = &fceulib__;
   if (version >= 7200) {
-    ROM_BANK32(&fceulib__, mapbyte1[0] & 0x7);
-    VROM_BANK2(&fceulib__, 0x0000, (mapbyte1[0] & 0xf0) >> 4);
+    ROM_BANK32(&fceulib__, GMB_mapbyte1(fc)[0] & 0x7);
+    VROM_BANK2(&fceulib__, 0x0000, (GMB_mapbyte1(fc)[0] & 0xf0) >> 4);
   }
   for (int x = 2; x < 8; x++) VRAM_BANK1(&fceulib__, x * 0x400, x);
 }

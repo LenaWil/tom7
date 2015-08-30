@@ -20,7 +20,7 @@
 
 #include "mapinc.h"
 
-#define suntoggle mapbyte1[0]
+#define suntoggle GMB_mapbyte1(fc)[0]
 
 static DECLFW(Mapper67_write) {
   A &= 0xF800;

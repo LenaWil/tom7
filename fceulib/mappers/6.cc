@@ -22,23 +22,23 @@
 
 static uint8 FFEmode;
 
-#define FVRAM_BANK8(A, V)                                             \
+#define FVRAM_BANK8(fc, A, V)					      \
   {                                                                   \
-    fceulib__.cart->VPage[0] = fceulib__.cart->VPage[1] =             \
-        fceulib__.cart->VPage[2] = fceulib__.cart->VPage[3] =         \
-            fceulib__.cart->VPage[4] = fceulib__.cart->VPage[5] =     \
-                fceulib__.cart->VPage[6] = fceulib__.cart->VPage[7] = \
-                    V ? &MapperExRAM[(V) << 13] - (A) :               \
-                        &CHRRAM[(V) << 13] - (A);                     \
-    fceulib__.ines->iNESCHRBankList[0] = ((V) << 3);                  \
-    fceulib__.ines->iNESCHRBankList[1] = ((V) << 3) + 1;              \
-    fceulib__.ines->iNESCHRBankList[2] = ((V) << 3) + 2;              \
-    fceulib__.ines->iNESCHRBankList[3] = ((V) << 3) + 3;              \
-    fceulib__.ines->iNESCHRBankList[4] = ((V) << 3) + 4;              \
-    fceulib__.ines->iNESCHRBankList[5] = ((V) << 3) + 5;              \
-    fceulib__.ines->iNESCHRBankList[6] = ((V) << 3) + 6;              \
-    fceulib__.ines->iNESCHRBankList[7] = ((V) << 3) + 7;              \
-    fceulib__.ppu->PPUCHRRAM = 0xFF;                                  \
+    fc->cart->VPage[0] = fc->cart->VPage[1] =			      \
+      fc->cart->VPage[2] = fc->cart->VPage[3] =			      \
+      fc->cart->VPage[4] = fc->cart->VPage[5] =			      \
+      fc->cart->VPage[6] = fc->cart->VPage[7] =			      \
+      V ? &GMB_MapperExRAM(fc)[(V) << 13] - (A) :		      \
+      &GMB_CHRRAM(fc)[(V) << 13] - (A);				      \
+    fc->ines->iNESCHRBankList[0] = ((V) << 3);			      \
+    fc->ines->iNESCHRBankList[1] = ((V) << 3) + 1;		      \
+    fc->ines->iNESCHRBankList[2] = ((V) << 3) + 2;		      \
+    fc->ines->iNESCHRBankList[3] = ((V) << 3) + 3;		      \
+    fc->ines->iNESCHRBankList[4] = ((V) << 3) + 4;		      \
+    fc->ines->iNESCHRBankList[5] = ((V) << 3) + 5;		      \
+    fc->ines->iNESCHRBankList[6] = ((V) << 3) + 6;		      \
+    fc->ines->iNESCHRBankList[7] = ((V) << 3) + 7;		      \
+    fc->ppu->PPUCHRRAM = 0xFF;					      \
   }
 
 static void FFEIRQHook(FC *fc, int a) {
@@ -77,21 +77,22 @@ DECLFW(Mapper6_write) {
   } else {
     switch (FFEmode) {
     case 0x80: fceulib__.cart->setchr8(V); break;
-    default: ROM_BANK16(fc, 0x8000, V >> 2); FVRAM_BANK8(0x0000, V & 3);
+    default: ROM_BANK16(fc, 0x8000, V >> 2); FVRAM_BANK8(fc, 0x0000, V & 3);
     }
   }
 }
 
 void Mapper6_StateRestore(int version) {
+  FC *fc = &fceulib__;
   for (int x = 0; x < 8; x++)
-    if (fceulib__.ppu->PPUCHRRAM & (1 << x)) {
-      if (fceulib__.ines->iNESCHRBankList[x] > 7) {
-        fceulib__.cart->VPage[x] =
-            &MapperExRAM[(fceulib__.ines->iNESCHRBankList[x] & 31) * 0x400] -
+    if (fc->ppu->PPUCHRRAM & (1 << x)) {
+      if (fc->ines->iNESCHRBankList[x] > 7) {
+        fc->cart->VPage[x] =
+	  &GMB_MapperExRAM(fc)[(fc->ines->iNESCHRBankList[x] & 31) * 0x400] -
             (x * 0x400);
       } else {
-        fceulib__.cart->VPage[x] =
-            &CHRRAM[(fceulib__.ines->iNESCHRBankList[x] & 7) * 0x400] -
+        fc->cart->VPage[x] =
+	  &GMB_CHRRAM(fc)[(fc->ines->iNESCHRBankList[x] & 7) * 0x400] -
             (x * 0x400);
       }
     }

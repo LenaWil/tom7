@@ -20,9 +20,9 @@
 
 #include "mapinc.h"
 
-#define MMC4reg mapbyte1
-#define latcha1 mapbyte2[0]
-#define latcha2 mapbyte2[1]
+#define MMC4reg GMB_mapbyte1(fc)
+#define latcha1 GMB_mapbyte2(fc)[0]
+#define latcha2 GMB_mapbyte2(fc)[1]
 
 static void latchcheck(FC *fc, uint32 VAddr) {
   uint8 h = VAddr >> 8;
@@ -85,11 +85,14 @@ DECLFW(Mapper9and10_write) {
     }
     MMC4reg[3] = V;
     break;
-  case 0xF000: fceulib__.ines->MIRROR_SET(V & 1); break;
+  case 0xF000:
+    fceulib__.ines->MIRROR_SET(V & 1);
+    break;
   }
 }
 
 void Mapper9_init() {
+  FC *fc = &fceulib__;
   latcha1 = 0xFE;
   latcha2 = 0xFE;
   ROM_BANK8(&fceulib__, 0xA000, ~2);
@@ -100,6 +103,7 @@ void Mapper9_init() {
 }
 
 void Mapper10_init() {
+  FC *fc = &fceulib__;
   latcha1 = latcha2 = 0xFE;
   fceulib__.fceu->SetWriteHandler(0xA000, 0xAFFF, Mapper10_write);
   fceulib__.fceu->SetWriteHandler(0xB000, 0xFFFF, Mapper9and10_write);

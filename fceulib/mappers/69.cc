@@ -25,12 +25,13 @@ static void AYSoundHQ(FC *fc);
 static void DoAYSQ(int x);
 static void DoAYSQHQ(int x);
 
-#define sunselect mapbyte1[0]
-#define sungah mapbyte1[1]
 static uint8 sunindex;
 
+#define sunselect GMB_mapbyte1(fc)[0]
+#define sungah GMB_mapbyte1(fc)[1]
+
 static DECLFW(SUN5BWRAM) {
-  if ((sungah & 0xC0) == 0xC0) (WRAM - 0x6000)[A] = V;
+  if ((sungah & 0xC0) == 0xC0) (GMB_WRAM(fc) - 0x6000)[A] = V;
 }
 
 static DECLFR(SUN5AWRAM) {
@@ -78,7 +79,7 @@ static DECLFW(Mapper69_SWH) {
             DoAYSQ(x);
         break;
     }
-  MapperExRAM[sunindex] = V;
+  GMB_MapperExRAM(fc)[sunindex] = V;
 }
 
 static DECLFW(Mapper69_write) {
@@ -136,10 +137,12 @@ static int32 dcount[3];
 static int CAYBC[3];
 
 static void DoAYSQ(int x) {
+  FC *fc = &fceulib__;
   int32 freq =
-      ((MapperExRAM[x << 1] | ((MapperExRAM[(x << 1) + 1] & 15) << 8)) + 1)
-      << (4 + 17);
-  int32 amp = (MapperExRAM[0x8 + x] & 15) << 2;
+    ((GMB_MapperExRAM(fc)[x << 1] |
+      ((GMB_MapperExRAM(fc)[(x << 1) + 1] & 15) << 8)) + 1)
+    << (4 + 17);
+  int32 amp = (GMB_MapperExRAM(fc)[0x8 + x] & 15) << 2;
   int32 start, end;
 
   amp += amp >> 1;
@@ -162,14 +165,16 @@ static void DoAYSQ(int x) {
 }
 
 static void DoAYSQHQ(int x) {
+  FC *fc = &fceulib__;
   int32 freq =
-      ((MapperExRAM[x << 1] | ((MapperExRAM[(x << 1) + 1] & 15) << 8)) + 1)
+    ((GMB_MapperExRAM(fc)[x << 1] |
+      ((GMB_MapperExRAM(fc)[(x << 1) + 1] & 15) << 8)) + 1)
       << 4;
-  int32 amp = (MapperExRAM[0x8 + x] & 15) << 6;
+  int32 amp = (GMB_MapperExRAM(fc)[0x8 + x] & 15) << 6;
 
   amp += amp >> 1;
 
-  if (!(MapperExRAM[0x7] & (1 << x))) {
+  if (!(GMB_MapperExRAM(fc)[0x7] & (1 << x))) {
     for (uint32 V = CAYBC[x]; V < fceulib__.sound->SoundTS(); V++) {
       if (dcount[x]) fceulib__.sound->WaveHi[V] += amp;
       vcount[x]--;
@@ -213,13 +218,14 @@ static void SunIRQHook(FC *fc, int a) {
 }
 
 void Mapper69_StateRestore(int version) {
-  if (mapbyte1[1] & 0x40) {
-    if (mapbyte1[1] & 0x80) {
+  FC *fc = &fceulib__;
+  if (GMB_mapbyte1(fc)[1] & 0x40) {
+    if (GMB_mapbyte1(fc)[1] & 0x80) {
       // Select WRAM
       fceulib__.cart->setprg8r(0x10, 0x6000, 0);
     }
   } else {
-    fceulib__.cart->setprg8(0x6000, mapbyte1[1]);
+    fceulib__.cart->setprg8(0x6000, GMB_mapbyte1(fc)[1]);
   }
 }
 
@@ -239,9 +245,10 @@ void NSFAY_Init() {
 }
 
 void Mapper69_init() {
+  FC *fc = &fceulib__;
   sunindex = 0;
 
-  fceulib__.cart->SetupCartPRGMapping(0x10, WRAM, 8192, 1);
+  fceulib__.cart->SetupCartPRGMapping(0x10, GMB_WRAM(fc), 8192, 1);
 
   fceulib__.fceu->SetWriteHandler(0x8000, 0xbfff, Mapper69_write);
   fceulib__.fceu->SetWriteHandler(0xc000, 0xdfff, Mapper69_SWL);

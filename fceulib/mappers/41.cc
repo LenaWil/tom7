@@ -20,8 +20,8 @@
 
 #include "mapinc.h"
 
-#define calreg mapbyte1[0]
-#define calchr mapbyte1[1]
+#define calreg GMB_mapbyte1(fc)[0]
+#define calchr GMB_mapbyte1(fc)[1]
 
 DECLFW(Mapper41_write) {
   if (A < 0x8000) {
@@ -39,6 +39,7 @@ DECLFW(Mapper41_write) {
 }
 
 static void M41Reset() {
+  FC *fc = &fceulib__;
   calreg = calchr = 0;
 }
 

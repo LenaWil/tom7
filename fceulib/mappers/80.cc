@@ -41,53 +41,55 @@ static void Fudou_PPU(FC *fc, uint32 A) {
 }
 
 static void mira() {
+  FC *fc = &fceulib__;
   if (isfu) {
-    CCache[0] = CCache[1] = mapbyte2[0] >> 7;
-    CCache[2] = CCache[3] = mapbyte2[1] >> 7;
+    CCache[0] = CCache[1] = GMB_mapbyte2(fc)[0] >> 7;
+    CCache[2] = CCache[3] = GMB_mapbyte2(fc)[1] >> 7;
 
-    for (int x = 0; x < 4; x++) CCache[4 + x] = mapbyte2[2 + x] >> 7;
+    for (int x = 0; x < 4; x++)
+      CCache[4 + x] = GMB_mapbyte2(fc)[2 + x] >> 7;
 
     fceulib__.ines->onemir(CCache[lastA]);
   } else {
-    fceulib__.ines->MIRROR_SET2(mapbyte1[0] & 1);
+    fceulib__.ines->MIRROR_SET2(GMB_mapbyte1(fc)[0] & 1);
   }
 }
 
 static DECLFW(Mapper80_write) {
   switch (A) {
   case 0x7ef0:
-    mapbyte2[0] = V;
+    GMB_mapbyte2(fc)[0] = V;
     VROM_BANK2(fc, 0x0000, (V >> 1) & 0x3F);
     mira();
     break;
   case 0x7ef1:
-    mapbyte2[1] = V;
+    GMB_mapbyte2(fc)[1] = V;
     VROM_BANK2(fc, 0x0800, (V >> 1) & 0x3f);
     mira();
     break;
 
   case 0x7ef2:
-    mapbyte2[2] = V;
+    GMB_mapbyte2(fc)[2] = V;
     VROM_BANK1(fc, 0x1000, V);
     mira();
     break;
   case 0x7ef3:
-    mapbyte2[3] = V;
+    GMB_mapbyte2(fc)[3] = V;
     VROM_BANK1(fc, 0x1400, V);
     mira();
     break;
   case 0x7ef4:
-    mapbyte2[4] = V;
+    GMB_mapbyte2(fc)[4] = V;
     VROM_BANK1(fc, 0x1800, V);
     mira();
     break;
   case 0x7ef5:
-    mapbyte2[5] = V;
+    GMB_mapbyte2(fc)[5] = V;
     VROM_BANK1(fc, 0x1c00, V);
     mira();
     break;
   case 0x7ef6:
-    mapbyte1[0] = V;
+    GMB_mapbyte1(fc)[0] = V;
     mira();
     break;
   case 0x7efa:
