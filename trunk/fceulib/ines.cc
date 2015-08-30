@@ -324,7 +324,7 @@ bool INes::MapperInit() {
     fc->fceu->cartiface = new OldCartiface(fc);
     if (head.ROM_type & 2) {
       TRACEF("Set savegame %d", head.ROM_type);
-      iNESCart.SaveGame[0] = WRAM;
+      iNESCart.SaveGame[0] = GMB_WRAM(fc);
       iNESCart.SaveGameLen[0] = 8192;
     }
   }
@@ -960,7 +960,7 @@ bool INes::iNESLoad(const char *name, FceuFile *fp, int OverwriteVidMode) {
     fc->cart->SetupCartCHRMapping(0,VROM,VROM_size*0x2000,0);
 
   if (iNESMirroring == 2)
-    fc->cart->SetupCartMirroring(4,1,ExtraNTARAM);
+    fc->cart->SetupCartMirroring(4,1,GMB_ExtraNTARAM(fc));
   else if (iNESMirroring >= 0x10)
     fc->cart->SetupCartMirroring(2+(iNESMirroring&1),1,0);
   else
@@ -978,7 +978,7 @@ bool INes::iNESLoad(const char *name, FceuFile *fp, int OverwriteVidMode) {
   }
   
   fc->cart->FCEU_LoadGameSave(&iNESCart);
-  TRACEA(WRAM, 8192);
+  TRACEA(GMB_WRAM(fc), 8192);
 
   // Extract Filename only. Should account for Windows/Unix this way.
   if (strrchr(name, '/')) {
@@ -1015,7 +1015,7 @@ void VRAM_BANK1(FC *fc, uint32 A, uint8 V) {
   V&=7;
   fc->ppu->PPUCHRRAM|=(1<<(A>>10));
   fc->ines->iNESCHRBankList[(A)>>10]=V;
-  fc->cart->VPage[(A)>>10]=&CHRRAM[V<<10]-(A);
+  fc->cart->VPage[(A)>>10]=&GMB_CHRRAM(fc)[V<<10]-(A);
 }
 
 void VRAM_BANK4(FC *fc, uint32 A, uint32 V) {
@@ -1025,7 +1025,7 @@ void VRAM_BANK4(FC *fc, uint32 A, uint32 V) {
   fc->ines->iNESCHRBankList[((A)>>10)+1]=(V<<2)+1;
   fc->ines->iNESCHRBankList[((A)>>10)+2]=(V<<2)+2;
   fc->ines->iNESCHRBankList[((A)>>10)+3]=(V<<2)+3;
-  fc->cart->VPage[(A)>>10]=&CHRRAM[V<<10]-(A);
+  fc->cart->VPage[(A)>>10]=&GMB_CHRRAM(fc)[V<<10]-(A);
 }
 
 void VROM_BANK1(FC *fc, uint32 A,uint32 V) {
@@ -1062,23 +1062,23 @@ void VROM_BANK8(FC *fc, uint32 V) {
 void ROM_BANK8(FC *fc, uint32 A, uint32 V) {
   fc->cart->setprg8(A,V);
   if (A>=0x8000)
-    PRGBankList[((A-0x8000)>>13)]=V;
+    GMB_PRGBankList(fc)[((A-0x8000)>>13)]=V;
 }
 
 void ROM_BANK16(FC *fc, uint32 A, uint32 V) {
   fc->cart->setprg16(A,V);
   if (A>=0x8000) {
-    PRGBankList[((A-0x8000)>>13)]=V<<1;
-    PRGBankList[((A-0x8000)>>13)+1]=(V<<1)+1;
+    GMB_PRGBankList(fc)[((A-0x8000)>>13)]=V<<1;
+    GMB_PRGBankList(fc)[((A-0x8000)>>13)+1]=(V<<1)+1;
   }
 }
 
 void ROM_BANK32(FC *fc, uint32 V) {
   fc->cart->setprg32(0x8000,V);
-  PRGBankList[0]=V<<2;
-  PRGBankList[1]=(V<<2)+1;
-  PRGBankList[2]=(V<<2)+2;
-  PRGBankList[3]=(V<<2)+3;
+  GMB_PRGBankList(fc)[0]=V<<2;
+  GMB_PRGBankList(fc)[1]=(V<<2)+1;
+  GMB_PRGBankList(fc)[2]=(V<<2)+2;
+  GMB_PRGBankList(fc)[3]=(V<<2)+3;
 }
 
 void INes::onemir(uint8 V) {
@@ -1109,7 +1109,7 @@ void INes::NONE_init() {
   if (VROM_size)
     VROM_BANK8(fc, 0);
   else
-    fc->cart->setvram8(CHRRAM);
+    fc->cart->setvram8(GMB_CHRRAM(fc));
 }
 
 static constexpr void (* const MapInitTab[256])() = {
@@ -1374,23 +1374,25 @@ static constexpr void (* const MapInitTab[256])() = {
 };
 
 static DECLFW(BWRAM) {
-  WRAM[A-0x6000]=V;
+  GMB_WRAM(fc)[A-0x6000]=V;
 }
 
 static DECLFR(AWRAM) {
-  return WRAM[A-0x6000];
+  return GMB_WRAM(fc)[A-0x6000];
 }
 
 void INes::iNESStateRestore(int version) {
   if (!mapper_number) return;
 
   for (int x = 0; x < 4; x++)
-    fc->cart->setprg8(0x8000+x*8192,PRGBankList[x]);
+    fc->cart->setprg8(0x8000 + x * 8192, GMB_PRGBankList(fc)[x]);
 
   if (VROM_size)
     for (int x = 0; x < 8; x++)
-      fc->cart->setchr1(0x400*x,iNESCHRBankList[x]);
+      fc->cart->setchr1(0x400 * x, iNESCHRBankList[x]);
 
+  // This is commented out with if (0) as early as the
+  // tasbot sources -tom7.
 #if 0
   switch(iNESMirroring) {
   case 0:fc->cart->setmirror(MI_H);break;
@@ -1405,8 +1407,12 @@ void INes::iNESStateRestore(int version) {
 }
 
 void INes::iNESPower() {
-  // This is the old loading code. It's only called if NewiNES_Init
-  // fails. Can we do without it? -tom7
+  // This is the old loading code, which calls the lowercase
+  // _init functions in mappers/*. It looks like most of these
+  // could be straightforwardly ported to the new Init style.
+  // Here, we should either create a CartInterface object
+  // in the mappers (some have local state) or some other thing.
+  
   printf("Ugh! Old iNESPower mapper code!\n");
   
   TRACEF("iNESPower %d", mapper_number);
@@ -1416,8 +1422,11 @@ void INes::iNESPower() {
   fc->fceu->GameStateRestore = [](FC *fc, int v) {
     return fc->ines->iNESStateRestore(v);
   };
-  MapClose=0;
-  MapperReset=0;
+
+  // None of these mappers have special close/reset/restore
+  // code.
+  MapClose = nullptr;
+  MapperReset = nullptr;
   MapStateRestore = nullptr;
 
   fc->cart->setprg8r(1,0x6000,0);
@@ -1444,18 +1453,18 @@ void INes::iNESPower() {
   // the two could get confused, and e.g. Mapper 82 would some
   // memory that was read during destruction. Gave it a unique name.
   // -tom7
-  fc->state->AddExState(WRAM, 8192, 0, "iNWR");
+  fc->state->AddExState(GMB_WRAM(fc), 8192, 0, "iNWR");
   if (type == 19 || type == 6 || type == 69 || type == 85 || type == 96)
-    fc->state->AddExState(MapperExRAM, 32768, 0, "MEXR");
+    fc->state->AddExState(GMB_MapperExRAM(fc), 32768, 0, "MEXR");
   if ((!VROM_size || type == 6 || type == 19) && (type != 13 && type != 96))
-    fc->state->AddExState(CHRRAM, 8192, 0, "CHRR");
+    fc->state->AddExState(GMB_CHRRAM(fc), 8192, 0, "CHRR");
   if (head.ROM_type&8)
-    fc->state->AddExState(ExtraNTARAM, 2048, 0, "EXNR");
+    fc->state->AddExState(GMB_ExtraNTARAM(fc), 2048, 0, "EXNR");
 
   /* Exclude some mappers whose emulation code handle save state stuff
      themselves. */
   if (type && type != 13 && type != 96) {
-    fc->state->AddExState(mapbyte1, 32, 0, "MPBY");
+    fc->state->AddExState(GMB_mapbyte1(fc), 32, 0, "MPBY");
     fc->state->AddExState(&iNESMirroring, 1, 0, "MIRR");
     // Note that ines.cc also has its own IRQCount; these once had the
     // same key "IRQC" but I renamed them to use different keys. They
@@ -1465,7 +1474,7 @@ void INes::iNESPower() {
     fc->state->AddExState(&iNESIRQLatch, 4, 1, "IQL1");
     // Similarly with iRQA.
     fc->state->AddExState(&iNESIRQa, 1, 0, "iRQA");
-    fc->state->AddExState(PRGBankList, 4, 0, "PBL0");
+    fc->state->AddExState(GMB_PRGBankList(fc), 4, 0, "PBL0");
     for (int x = 0; x < 8; x++) {
       char tak[8];
       sprintf(tak,"CBL%d",x);
@@ -1503,11 +1512,11 @@ int INes::NewiNES_Init(int num) {
 	FCEU_InitMemory(VROM, CHRRAMSize);
 
 	fc->unif->UNIFchrrama = VROM;
-	fc->cart->SetupCartCHRMapping(0,VROM,CHRRAMSize,1);
-	fc->state->AddExState(VROM,CHRRAMSize, 0, "CHRR");
+	fc->cart->SetupCartCHRMapping(0, VROM, CHRRAMSize, 1);
+	fc->state->AddExState(VROM, CHRRAMSize, 0, "CHRR");
       }
       if (head.ROM_type & 8)
-	fc->state->AddExState(ExtraNTARAM, 2048, 0, "EXNR");
+	fc->state->AddExState(GMB_ExtraNTARAM(fc), 2048, 0, "EXNR");
       fc->fceu->cartiface = tmp->init(fc, &iNESCart);
       TRACEF("NewiNES init done.");
       return 1;

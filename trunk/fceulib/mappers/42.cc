@@ -25,7 +25,7 @@ static DECLFW(Mapper42_write) {
   switch (A & 0xe003) {
   case 0x8000: VROM_BANK8(fc, V); break;
   case 0xe000:
-    mapbyte1[0] = V;
+    GMB_mapbyte1(fc)[0] = V;
     ROM_BANK8(fc, 0x6000, V & 0xF);
     break;
   case 0xe001: fceulib__.ines->MIRROR_SET((V >> 3) & 1); break;
@@ -50,7 +50,8 @@ static void Mapper42IRQ(FC *fc, int a) {
 }
 
 static void Mapper42_StateRestore(int version) {
-  ROM_BANK8(&fceulib__, 0x6000, mapbyte1[0] & 0xF);
+  FC *fc = &fceulib__;
+  ROM_BANK8(fc, 0x6000, GMB_mapbyte1(fc)[0] & 0xF);
 }
 
 void Mapper42_init() {

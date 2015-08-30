@@ -20,8 +20,8 @@
 
 #include "mapinc.h"
 
-#define A64reg mapbyte1[0]
-#define A64wr mapbyte1[1]
+#define A64reg GMB_mapbyte1(fc)[0]
+#define A64wr GMB_mapbyte1(fc)[1]
 
 DECLFW(Mapper46_writel) {
   A64reg = V;

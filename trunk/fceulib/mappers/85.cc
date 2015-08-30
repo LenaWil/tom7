@@ -20,7 +20,7 @@
 
 #include "mapinc.h"
 
-#define vrctemp mapbyte1[0]
+#define vrctemp GMB_mapbyte1(fc)[0]
 static uint8 indox;
 
 #include "emu2413.h"
@@ -71,7 +71,7 @@ DECLFW(Mapper85_write) {
     A &= 0xF010;
     {
       int x = ((A >> 4) & 1) | ((A - 0xA000) >> 11);
-      mapbyte3[x] = V;
+      GMB_mapbyte3(fc)[x] = V;
       fceulib__.cart->setchr1(x << 10, V);
     }
   } else if (A == 0x9030) {
@@ -83,20 +83,20 @@ DECLFW(Mapper85_write) {
   } else {
     switch (A & 0xF010) {
       case 0x8000:
-        mapbyte2[0] = V;
+        GMB_mapbyte2(fc)[0] = V;
         fceulib__.cart->setprg8(0x8000, V);
         break;
       case 0x8010:
-        mapbyte2[1] = V;
+        GMB_mapbyte2(fc)[1] = V;
         fceulib__.cart->setprg8(0xa000, V);
         break;
       case 0x9000:
-        mapbyte2[2] = V;
+        GMB_mapbyte2(fc)[2] = V;
         fceulib__.cart->setprg8(0xc000, V);
         break;
       case 0x9010: indox = V; break;
       case 0xe000:
-        mapbyte2[3] = V;
+        GMB_mapbyte2(fc)[3] = V;
         DaMirror(V);
         break;
       case 0xE010:
@@ -146,17 +146,17 @@ void Mapper85_StateRestore(FC *fc, int version) {
 
   if (version < 7200) {
     for (int x = 0; x < 8; x++)
-      mapbyte3[x] = fc->ines->iNESCHRBankList[x];
-    for (int x = 0; x < 3; x++) mapbyte2[x] = PRGBankList[x];
-    mapbyte2[3] = (fc->ines->iNESMirroring < 0x10) ?
+      GMB_mapbyte3(fc)[x] = fc->ines->iNESCHRBankList[x];
+    for (int x = 0; x < 3; x++) GMB_mapbyte2(fc)[x] = GMB_PRGBankList(fc)[x];
+    GMB_mapbyte2(fc)[3] = (fc->ines->iNESMirroring < 0x10) ?
                       fc->ines->iNESMirroring :
                       fc->ines->iNESMirroring - 0xE;
   }
 
-  for (int x = 0; x < 8; x++) fc->cart->setchr1(x * 0x400, mapbyte3[x]);
+  for (int x = 0; x < 8; x++) fc->cart->setchr1(x * 0x400, GMB_mapbyte3(fc)[x]);
   for (int x = 0; x < 3; x++)
-    fc->cart->setprg8(0x8000 + x * 8192, mapbyte2[x]);
-  DaMirror(mapbyte2[3]);
+    fc->cart->setprg8(0x8000 + x * 8192, GMB_mapbyte2(fc)[x]);
+  DaMirror(GMB_mapbyte2(fc)[3]);
   // LoadOPL();
 }
 
@@ -185,11 +185,12 @@ void NSFVRC7_Init() {
 }
 
 void Mapper85_init() {
-  fceulib__.X->MapIRQHook = KonamiIRQHook;
-  fceulib__.fceu->SetWriteHandler(0x8000, 0xffff, Mapper85_write);
-  fceulib__.fceu->GameStateRestore = Mapper85_StateRestore;
-  if (!fceulib__.ines->VROM_size)
-    fceulib__.cart->SetupCartCHRMapping(0, CHRRAM, 8192, 1);
+  FC *fc = &fceulib__;
+  fc->X->MapIRQHook = KonamiIRQHook;
+  fc->fceu->SetWriteHandler(0x8000, 0xffff, Mapper85_write);
+  fc->fceu->GameStateRestore = Mapper85_StateRestore;
+  if (!fc->ines->VROM_size)
+    fc->cart->SetupCartCHRMapping(0, GMB_CHRRAM(fc), 8192, 1);
   // AddExState(VRC7Instrument, 16, 0, "VC7I");
   // AddExState(VRC7Chan, sizeof(VRC7Chan), 0, "V7CH");
   VRC7SI();

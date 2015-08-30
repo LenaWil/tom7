@@ -316,9 +316,9 @@ static void makeTllTable() {
       dB2(18.000), dB2(18.750), dB2(19.125), dB2(19.500),
       dB2(19.875), dB2(20.250), dB2(20.625), dB2(21.000)};
 
-  for (int32 fnum = 0; fnum < 16; fnum++)
-    for (int32 block = 0; block < 8; block++)
-      for (int32 TL = 0; TL < 64; TL++)
+  for (int32 fnum = 0; fnum < 16; fnum++) {
+    for (int32 block = 0; block < 8; block++) {
+      for (int32 TL = 0; TL < 64; TL++) {
         for (int32 KL = 0; KL < 4; KL++) {
           if (KL == 0) {
             tllTable[fnum][block][TL][KL] = TL2EG(TL);
@@ -331,6 +331,9 @@ static void makeTllTable() {
                   (uint32)((tmp >> (3 - KL)) / EG_STEP) + TL2EG(TL);
           }
         }
+      }
+    }
+  }
 }
 
 /* Rate Table for Attack */
@@ -487,9 +490,7 @@ inline static void setBlock(OPLL *opll, int32 c, int32 block) {
 }
 
 inline static void update_key_status(OPLL *opll) {
-  int ch;
-
-  for (ch = 0; ch < 6; ch++)
+  for (int ch = 0; ch < 6; ch++)
     opll->slot_on_flag[ch * 2] = opll->slot_on_flag[ch * 2 + 1] =
         (opll->HiFreq[ch]) & 0x10;
 }
@@ -569,8 +570,6 @@ void OPLL_delete(OPLL *opll) {
 
 /* Reset whole of OPLL except patch datas. */
 void OPLL_reset(OPLL *opll) {
-  int32 i;
-
   if (!opll) return;
 
   opll->adr = 0;
@@ -581,14 +580,16 @@ void OPLL_reset(OPLL *opll) {
 
   opll->mask = 0;
 
-  for (i = 0; i < 12; i++) OPLL_SLOT_reset(&opll->slot[i], i % 2);
+  for (int32 i = 0; i < 12; i++)
+    OPLL_SLOT_reset(&opll->slot[i], i % 2);
 
-  for (i = 0; i < 6; i++) {
+  for (int32 i = 0; i < 6; i++) {
     opll->key_status[i] = 0;
     // setPatch (opll, i, 0);
   }
 
-  for (i = 0; i < 0x40; i++) OPLL_writeReg(opll, i, 0);
+  for (int32 i = 0; i < 0x40; i++)
+    OPLL_writeReg(opll, i, 0);
 
   opll->realstep = (uint32)((1 << 31) / rate);
   opll->opllstep = (uint32)((1 << 31) / (clk / 72));
@@ -597,11 +598,9 @@ void OPLL_reset(OPLL *opll) {
 
 /* Force Refresh (When external program changes some parameters). */
 void OPLL_forceRefresh(OPLL *opll) {
-  int32 i;
-
   if (opll == nullptr) return;
 
-  for (i = 0; i < 12; i++) {
+  for (int32 i = 0; i < 12; i++) {
     UPDATE_PG(&opll->slot[i]);
     UPDATE_RKS(&opll->slot[i]);
     UPDATE_TLL(&opll->slot[i]);

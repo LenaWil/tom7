@@ -20,15 +20,15 @@
 
 #include "mapinc.h"
 
-#define mode mapbyte1[0]
-#define page mapbyte1[1]
+#define mode(fc) GMB_mapbyte1(fc)[0]
+#define page(fc) GMB_mapbyte1(fc)[1]
 
-static uint32 Get8K(uint32 A) {
-  uint32 bank = (page << 2) | ((A >> 13) & 1);
+static uint32 Get8K(FC *fc, uint32 A) {
+  uint32 bank = (page(fc) << 2) | ((A >> 13) & 1);
 
-  if (A & 0x4000 && !(mode & 1)) bank |= 0xC;
+  if (A & 0x4000 && !(mode(fc) & 1)) bank |= 0xC;
   if (!(A & 0x8000)) bank |= 0x20;
-  if (mode == 2)
+  if (mode(fc) == 2)
     bank |= 2;
   else
     bank |= (A >> 13) & 2;
@@ -36,27 +36,29 @@ static uint32 Get8K(uint32 A) {
 }
 
 static void Synco(FC *fc) {
-  if (mapbyte1[0] <= 2)
+  if (GMB_mapbyte1(fc)[0] <= 2)
     fceulib__.ines->MIRROR_SET2(1);
   else
     fceulib__.ines->MIRROR_SET2(0);
-  for (uint32 x = 0x6000; x < 0x10000; x += 8192) ROM_BANK8(fc, x, Get8K(x));
+  for (uint32 x = 0x6000; x < 0x10000; x += 8192) ROM_BANK8(fc, x, Get8K(fc, x));
 }
 
 static DECLFW(Write) {
   if (A & 0x8000)
-    mapbyte1[1] = V & 0xF;
+    GMB_mapbyte1(fc)[1] = V & 0xF;
   else
-    mapbyte1[0] = (mapbyte1[0] & 2) | ((V >> 1) & 1);
+    GMB_mapbyte1(fc)[0] = (GMB_mapbyte1(fc)[0] & 2) | ((V >> 1) & 1);
 
-  if (A & 0x4000) mapbyte1[0] = (mapbyte1[0] & 1) | ((V >> 3) & 2);
+  if (A & 0x4000)
+    GMB_mapbyte1(fc)[0] = (GMB_mapbyte1(fc)[0] & 1) | ((V >> 3) & 2);
   Synco(fc);
 }
 
 void Mapper51_init() {
+  FC *fc = &fceulib__;
   fceulib__.fceu->SetWriteHandler(0x6000, 0xFFFF, Write);
   fceulib__.fceu->SetReadHandler(0x6000, 0xFFFF, Cart::CartBR);
-  mapbyte1[0] = 1;
-  mapbyte1[1] = 0;
+  GMB_mapbyte1(fc)[0] = 1;
+  GMB_mapbyte1(fc)[1] = 0;
   Synco(&fceulib__);
 }

@@ -21,7 +21,7 @@
 #include "mapinc.h"
 
 DECLFW(Mapper72_write) {
-  mapbyte1[0] = V;
+  GMB_mapbyte1(fc)[0] = V;
   if (V & 0x80) ROM_BANK16(fc, 0x8000, V & 0xF);
   if (V & 0x40) VROM_BANK8(fc, V & 0xF);
 }
