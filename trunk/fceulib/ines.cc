@@ -1113,7 +1113,6 @@ void INes::NONE_init() {
 }
 
 static constexpr void (* const MapInitTab[256])() = {
-#if 0
   0,
   0,
   0, //Mapper2_init,
@@ -1178,7 +1177,7 @@ static constexpr void (* const MapInitTab[256])() = {
   Mapper61_init,
   Mapper62_init,
   0,
-  Mapper64_init,
+  // Mapper64_init, // XXX boards/tengen TODO tom7
   Mapper65_init,
   0, //Mapper66_init,
   Mapper67_init,
@@ -1280,8 +1279,8 @@ static constexpr void (* const MapInitTab[256])() = {
   0,
   0,
   0,
-  Mapper166_init,
-  Mapper167_init,
+  // Mapper166_init,   // XXX boards/SUBOR TODO tom7
+  // Mapper167_init,   // XXX boards/SUBOR TODO tom7
   0,
   0,
   0,
@@ -1370,7 +1369,6 @@ static constexpr void (* const MapInitTab[256])() = {
   0,
   0,
   0, //Mapper255_init
-#endif
 };
 
 static DECLFW(BWRAM) {
