@@ -19,6 +19,9 @@
  */
 
 #include "mapinc.h"
+#include <vector>
+
+using namespace std;
 
 static uint8 cmd, mir, rmode, IRQmode;
 static uint8 DRegs[11];
@@ -49,7 +52,7 @@ static void RAMBO1_IRQHook(FC *fc, int a) {
   }
 }
 
-static void RAMBO1_hb() {
+static void RAMBO1_hb(FC *fc) {
   if (IRQmode) return;
   if (fceulib__.ppu->scanline == 240)
     return; /* hmm.  Maybe that should be an mmc3-only call in fce.c. */

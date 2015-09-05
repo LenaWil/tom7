@@ -1177,7 +1177,7 @@ static constexpr void (* const MapInitTab[256])() = {
   Mapper61_init,
   Mapper62_init,
   0,
-  0, // Mapper64_init, // XXX boards/tengen TODO tom7
+  Mapper64_init,
   Mapper65_init,
   0, //Mapper66_init,
   Mapper67_init,
