@@ -121,6 +121,31 @@ alias files="/bin/find . -type f | grep -v roms/ | grep -v roms_crash/ | grep -v
 
 (global-set-key "\C-xw" 'set-cart-rectangle)
 
+(defun before-or-after ()
+  (interactive)
+  (let* ((curbuffer (current-buffer))
+	 (oldfile (buffer-file-name))
+	 (isbefore (string-match "-before" oldfile))
+	 (isafter  (string-match "-after" oldfile))
+	 (tobefore (replace-regexp-in-string "-after" "-before" oldfile))
+	 (toafter  (replace-regexp-in-string "-before" "-after" oldfile)))
+    (message "%s" (concat oldfile ", " tobefore ", " toafter))
+    (cond (isbefore
+           (progn
+	    (message "AFTER: %s" toafter)
+            (find-file toafter)))
+	  (isafter
+	   (progn
+	    (message "BEFORE: %s" tobefore)
+	    (find-file tobefore)))
+	  (t (message "Path must contain -before or -after.")))))
+
+; (define-key map (kbd "C0") nil)
+
+;; n.b. this way works much better than (kbd "C-0") etc.
+(global-set-key [(control ?0)]  'before-or-after)
+
+
 (fset 'structname
    [?H ?E ?R ?E ?X ?X ?X ?| ?\C-r ?s ?t ?r ?u ?c ?t ?  right right right right right right right ?\C-  ?\C-s ?: left left escape ?w ?\C-s ?H ?E ?R ?E ?X ?X ?X right left right backspace backspace backspace backspace backspace backspace backspace backspace ?\C-y])
 (fset 'fceu
@@ -138,3 +163,5 @@ alias files="/bin/find . -type f | grep -v roms/ | grep -v roms_crash/ | grep -v
 
 (fset 'init
    [escape ?d ?C ?a ?r ?t ?I ?n ?t ?e ?r ?f ?a ?c ?e ?  ?* escape ?\\ ?\C-  ?\C-s ?_ left escape ?w ?\C-s ?\( right left ?F ?C ?\S-  ?* ?f ?c ?, ?  ?\C-e return tab ?r ?e ?t ?u ?r ?n ?  ?n ?e ?w ?  ?\C-y ?\( ?F backspace ?f ?c ?, ?  ?i ?n ?f ?o ?\) ?\;])
+
+
