@@ -271,17 +271,25 @@ string Traces::Difference(const Trace &l, const Trace &r) {
 		   r.data_memory.size()) :
       "Memories (same size): ";
 
+    int num_differences = 0;
+    int first_difference = -1;
     // Long version.
     for (int i = 0; i < min(l.data_memory.size(),
 			    r.data_memory.size()); i++) {
       if (!(i % 16)) how += "\n";
       uint8 ll = l.data_memory[i], rr = r.data_memory[i];
       if (ll != rr) {
+	num_differences++;
+	if (first_difference == -1)
+	  first_difference = i;
 	how += StringPrintf("%02x|%02x ", ll, rr);
       } else {
 	how += StringPrintf("%02x ", ll);
       }
     }
+
+    how += StringPrintf("\n%d difference(s), first at offset %d.\n",
+			num_differences, first_difference);
     return how;
 
     // Short version.
@@ -315,10 +323,18 @@ string Traces::LineString(const Trace &t) {
      return StringPrintf("\"%s\"", t.data_string.c_str());
    }
  case MEMORY: {
-   bool any_zero = false;
-   for (uint8 b : t.data_memory) any_zero = any_zero || b;
-   return StringPrintf("[MEMORY %d bytes (%s)]", t.data_memory.size(),
-		       any_zero ? "nonzero" : "all zero");
+   bool any_nonzero = false;
+   for (uint8 b : t.data_memory) any_nonzero = any_nonzero || b;
+   if (any_nonzero && t.data_memory.size() <= 16) {
+     string out = "[MEMORY ";
+     for (uint8 b : t.data_memory) {
+       out += StringPrintf("%2x ", b);
+     }
+     return out + "]";
+   } else {
+     return StringPrintf("[MEMORY %d bytes (%s)]", t.data_memory.size(),
+			 any_nonzero ? "nonzero" : "all zero");
+   }
  }
  case NUMBER:
    return StringPrintf("%llu", t.data_number);
