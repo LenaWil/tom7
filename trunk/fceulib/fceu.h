@@ -41,6 +41,7 @@ enum EFCEUI {
 };
 
 struct CartInterface;
+struct MapInterface;
 
 struct FCEU {
   explicit FCEU(FC *fc);
@@ -121,6 +122,11 @@ struct FCEU {
   //
   // If this is deleted, make sure it is set to nullptr.
   CartInterface *cartiface = nullptr;
+  // Same idea, for old-style _init mappers. Maybe could just use
+  // CartInterface here too, but the code is a maze of twisty
+  // passages, so it's safer to just separate them. (The right cleanup
+  // is to port all old-style mappers to new-style, anyway.)
+  MapInterface *mapiface = nullptr;
   
 private:
   readfunc *AReadG = nullptr;

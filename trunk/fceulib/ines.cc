@@ -1112,7 +1112,7 @@ void INes::NONE_init() {
     fc->cart->setvram8(GMB_CHRRAM(fc));
 }
 
-static constexpr void (* const MapInitTab[256])() = {
+static constexpr MapInterface *(* const MapInitTab[256])(FC *fc) = {
   0,
   0,
   0, //Mapper2_init,
@@ -1122,8 +1122,8 @@ static constexpr void (* const MapInitTab[256])() = {
   Mapper6_init,
   0, //Mapper7_init,
   0, //Mapper8_init,
-  Mapper9_init,
-  Mapper10_init,
+  nullptr, //  Mapper9_init,
+  nullptr, //  Mapper10_init,
   0, //Mapper11_init,
   0,
   0, //Mapper13_init,
@@ -1153,17 +1153,17 @@ static constexpr void (* const MapInitTab[256])() = {
   0,
   0,
   0,
-  Mapper40_init,
-  Mapper41_init,
-  Mapper42_init,
+  nullptr, //  Mapper40_init,
+  nullptr, //  Mapper41_init,
+  nullptr, //  Mapper42_init,
   0, //Mapper43_init,
   0,
   0,
-  Mapper46_init,
+  nullptr, //  Mapper46_init,
   0,
   0, //Mapper48_init,
   0,
-  Mapper50_init,
+  nullptr, //  Mapper50_init,
   Mapper51_init,
   0,
   0,
@@ -1174,31 +1174,31 @@ static constexpr void (* const MapInitTab[256])() = {
   0, //Mapper58_init,
   0, //Mapper59_init,
   0, //Mapper60_init,
-  Mapper61_init,
-  Mapper62_init,
+  nullptr, //  Mapper61_init,
+  nullptr, //  Mapper62_init,
   0,
-  Mapper64_init,
-  Mapper65_init,
+  nullptr, //  Mapper64_init,
+  nullptr, //  Mapper65_init,
   0, //Mapper66_init,
-  Mapper67_init,
+  nullptr, //  Mapper67_init,
   0, //Mapper68_init,
   Mapper69_init,
   0, //Mapper70_init,
-  Mapper71_init,
-  Mapper72_init,
-  Mapper73_init,
+  nullptr, //  Mapper71_init,
+  nullptr, //  Mapper72_init,
+  nullptr, //  Mapper73_init,
   0,
-  Mapper75_init,
-  Mapper76_init,
+  nullptr, //  Mapper75_init,
+  nullptr, //  Mapper76_init,
   Mapper77_init,
   0, //Mapper78_init,
-  Mapper79_init,
-  Mapper80_init,
+  nullptr, //  Mapper79_init,
+  nullptr, //  Mapper80_init,
   0,
   0, //Mapper82_init,
   0, //Mapper83_init,
   0,
-  Mapper85_init,
+  nullptr, //  Mapper85_init,
   0, //Mapper86_init,
   0, //Mapper87_init,
   0, //Mapper88_init,
@@ -1279,8 +1279,8 @@ static constexpr void (* const MapInitTab[256])() = {
   0,
   0,
   0,
-  // Mapper166_init,   // XXX boards/SUBOR TODO tom7
-  // Mapper167_init,   // XXX boards/SUBOR TODO tom7
+  0, // Mapper166_init,   // XXX boards/SUBOR TODO tom7
+  0, // Mapper167_init,   // XXX boards/SUBOR TODO tom7
   0,
   0,
   0,
@@ -1320,7 +1320,7 @@ static constexpr void (* const MapInitTab[256])() = {
   0, //Mapper204_init,
   0,
   0,
-  Mapper207_init,
+  nullptr, //  Mapper207_init,
   0,
   0,
   0,
@@ -1379,9 +1379,11 @@ static DECLFR(AWRAM) {
   return GMB_WRAM(fc)[A-0x6000];
 }
 
+// Wrapper for old-style mappers; expect mapiface to be set.
 void INes::iNESStateRestore(int version) {
   if (!mapper_number) return;
-
+  CHECK(fc->fceu->mapiface != nullptr);
+  
   for (int x = 0; x < 4; x++)
     fc->cart->setprg8(0x8000 + x * 8192, GMB_PRGBankList(fc)[x]);
 
@@ -1401,15 +1403,20 @@ void INes::iNESStateRestore(int version) {
   case 0x11:fc->cart->setmirror(MI_1);break;
   }
 #endif
-  if (MapStateRestore) MapStateRestore(version);
+  if (fc->fceu->mapiface)
+    fc->fceu->mapiface->StateRestore(version);
 }
 
 void INes::iNESPower() {
   // This is the old loading code, which calls the lowercase
   // _init functions in mappers/*. It looks like most of these
-  // could be straightforwardly ported to the new Init style.
-  // Here, we should either create a CartInterface object
-  // in the mappers (some have local state) or some other thing.
+  // could be straightforwardly ported to the new Init style,
+  // but I was worried about subtleties and special cases (I
+  // don't even have example carts for all these).
+  //
+  // Instead, we create a CartInterface that dispatches to
+  // old-style code. State is encapsulated in MapInteface,
+  // which is basically the same idea.
   
   printf("Ugh! Old iNESPower mapper code!\n");
   
@@ -1421,11 +1428,10 @@ void INes::iNESPower() {
     return fc->ines->iNESStateRestore(v);
   };
 
-  // None of these mappers have special close/reset/restore
-  // code.
+  // Function-pointer based interface. TODO: Move these to
+  // MapInterface? Already did MapStateRestore -tom7
   MapClose = nullptr;
   MapperReset = nullptr;
-  MapStateRestore = nullptr;
 
   fc->cart->setprg8r(1,0x6000,0);
 
@@ -1481,7 +1487,9 @@ void INes::iNESPower() {
   }
 
   if (MapInitTab[type]) {
-    MapInitTab[type]();
+    CHECK(fc->fceu->mapiface == nullptr);
+    fc->fceu->mapiface = MapInitTab[type](fc);
+    
   } else if (type) {
     FCEU_PrintError("iNES mapper #%d is not supported at all.",type);
   }

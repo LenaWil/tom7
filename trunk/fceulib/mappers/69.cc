@@ -20,242 +20,265 @@
 
 #include "mapinc.h"
 
-static void AYSound(FC *fc, int Count);
-static void AYSoundHQ(FC *fc);
-static void DoAYSQ(int x);
-static void DoAYSQHQ(int x);
+namespace {
+struct Mapper69 : public MapInterface {
+  using MapInterface::MapInterface;
 
-static uint8 sunindex;
+  uint8 sunindex = 0;
 
-#define sunselect GMB_mapbyte1(fc)[0]
-#define sungah GMB_mapbyte1(fc)[1]
+  int32 vcount[3] = {};
+  int32 dcount[3] = {};
+  int CAYBC[3] = {};
+  
+  #define sunselect GMB_mapbyte1(fc)[0]
+  #define sungah GMB_mapbyte1(fc)[1]
 
-static DECLFW(SUN5BWRAM) {
-  if ((sungah & 0xC0) == 0xC0) (GMB_WRAM(fc) - 0x6000)[A] = V;
-}
+  void SUN5BWRAM(DECLFW_ARGS) {
+    if ((sungah & 0xC0) == 0xC0) (GMB_WRAM(fc) - 0x6000)[A] = V;
+  }
 
-static DECLFR(SUN5AWRAM) {
-  if ((sungah & 0xC0) == 0x40) return fceulib__.X->DB;
-  return Cart::CartBROB(DECLFR_FORWARD);
-}
+  DECLFR_RET SUN5AWRAM(DECLFR_ARGS) {
+    if ((sungah & 0xC0) == 0x40) return fc->X->DB;
+    return Cart::CartBROB(DECLFR_FORWARD);
+  }
 
-static DECLFW(Mapper69_SWL) {
-  sunindex = V % 14;
-}
+  void Mapper69_SWL(DECLFW_ARGS) {
+    sunindex = V % 14;
+  }
 
-static DECLFW(Mapper69_SWH) {
-  fceulib__.sound->GameExpSound.Fill = AYSound;
-  fceulib__.sound->GameExpSound.HiFill = AYSoundHQ;
-  if (FCEUS_SNDRATE) switch (sunindex) {
-      case 0:
-      case 1:
-      case 8:
-        if (FCEUS_SOUNDQ >= 1)
-          DoAYSQHQ(0);
-        else
-          DoAYSQ(0);
-        break;
-      case 2:
-      case 3:
-      case 9:
-        if (FCEUS_SOUNDQ >= 1)
-          DoAYSQHQ(1);
-        else
-          DoAYSQ(1);
-        break;
-      case 4:
-      case 5:
-      case 10:
-        if (FCEUS_SOUNDQ >= 1)
-          DoAYSQHQ(2);
-        else
-          DoAYSQ(2);
-        break;
-      case 7:
-        for (int x = 0; x < 2; x++)
-          if (FCEUS_SOUNDQ >= 1)
-            DoAYSQHQ(x);
-          else
-            DoAYSQ(x);
-        break;
-    }
-  GMB_MapperExRAM(fc)[sunindex] = V;
-}
+  void Mapper69_SWH(DECLFW_ARGS) {
+    fc->sound->GameExpSound.Fill = [](FC *fc, int count) {
+      ((Mapper69 *)fc->fceu->mapiface)->AYSound(count);
+    };
+    fc->sound->GameExpSound.HiFill = [](FC *fc) {
+      ((Mapper69 *)fc->fceu->mapiface)->AYSoundHQ();
+    };
+    if (FCEUS_SNDRATE) switch (sunindex) {
+	case 0:
+	case 1:
+	case 8:
+	  if (FCEUS_SOUNDQ >= 1)
+	    DoAYSQHQ(0);
+	  else
+	    DoAYSQ(0);
+	  break;
+	case 2:
+	case 3:
+	case 9:
+	  if (FCEUS_SOUNDQ >= 1)
+	    DoAYSQHQ(1);
+	  else
+	    DoAYSQ(1);
+	  break;
+	case 4:
+	case 5:
+	case 10:
+	  if (FCEUS_SOUNDQ >= 1)
+	    DoAYSQHQ(2);
+	  else
+	    DoAYSQ(2);
+	  break;
+	case 7:
+	  for (int x = 0; x < 2; x++)
+	    if (FCEUS_SOUNDQ >= 1)
+	      DoAYSQHQ(x);
+	    else
+	      DoAYSQ(x);
+	  break;
+      }
+    GMB_MapperExRAM(fc)[sunindex] = V;
+  }
 
-static DECLFW(Mapper69_write) {
-  switch (A & 0xE000) {
-  case 0x8000: sunselect = V; break;
-  case 0xa000:
-    sunselect &= 0xF;
-    if (sunselect <= 7)
-      VROM_BANK1(fc, sunselect << 10, V);
-    else
-      switch (sunselect & 0x0f) {
-      case 8:
-	sungah = V;
-	if (V & 0x40) {
-	  if (V & 0x80) {
-	    // Select WRAM
-	    fceulib__.cart->setprg8r(0x10, 0x6000, 0);
+  void Mapper69_write(DECLFW_ARGS) {
+    switch (A & 0xE000) {
+    case 0x8000: sunselect = V; break;
+    case 0xa000:
+      sunselect &= 0xF;
+      if (sunselect <= 7)
+	VROM_BANK1(fc, sunselect << 10, V);
+      else
+	switch (sunselect & 0x0f) {
+	case 8:
+	  sungah = V;
+	  if (V & 0x40) {
+	    if (V & 0x80) {
+	      // Select WRAM
+	      fc->cart->setprg8r(0x10, 0x6000, 0);
+	    }
+	  } else {
+	    fc->cart->setprg8(0x6000, V);
 	  }
-	} else {
-	  fceulib__.cart->setprg8(0x6000, V);
+	  break;
+	case 9: ROM_BANK8(fc, 0x8000, V); break;
+	case 0xa: ROM_BANK8(fc, 0xa000, V); break;
+	case 0xb: ROM_BANK8(fc, 0xc000, V); break;
+	case 0xc:
+	  switch (V & 3) {
+	  case 0: fc->ines->MIRROR_SET2(1); break;
+	  case 1: fc->ines->MIRROR_SET2(0); break;
+	  case 2: fc->ines->onemir(0); break;
+	  case 3: fc->ines->onemir(1); break;
+	  }
+	  break;
+	case 0xd:
+	  fc->ines->iNESIRQa = V;
+	  fc->X->IRQEnd(FCEU_IQEXT);
+	  break;
+	case 0xe:
+	  fc->ines->iNESIRQCount &= 0xFF00;
+	  fc->ines->iNESIRQCount |= V;
+	  fc->X->IRQEnd(FCEU_IQEXT);
+	  break;
+	case 0xf:
+	  fc->ines->iNESIRQCount &= 0x00FF;
+	  fc->ines->iNESIRQCount |= V << 8;
+	  fc->X->IRQEnd(FCEU_IQEXT);
+	  break;
 	}
-	break;
-      case 9: ROM_BANK8(fc, 0x8000, V); break;
-      case 0xa: ROM_BANK8(fc, 0xa000, V); break;
-      case 0xb: ROM_BANK8(fc, 0xc000, V); break;
-      case 0xc:
-	switch (V & 3) {
-	case 0: fceulib__.ines->MIRROR_SET2(1); break;
-	case 1: fceulib__.ines->MIRROR_SET2(0); break;
-	case 2: fceulib__.ines->onemir(0); break;
-	case 3: fceulib__.ines->onemir(1); break;
+      break;
+    }
+  }
+
+  void DoAYSQ(int x) {
+    int32 freq =
+      ((GMB_MapperExRAM(fc)[x << 1] |
+	((GMB_MapperExRAM(fc)[(x << 1) + 1] & 15) << 8)) + 1)
+      << (4 + 17);
+    int32 amp = (GMB_MapperExRAM(fc)[0x8 + x] & 15) << 2;
+    int32 start, end;
+
+    amp += amp >> 1;
+
+    start = CAYBC[x];
+    end = (fc->sound->SoundTS() << 16) / fc->sound->soundtsinc;
+    if (end <= start) return;
+    CAYBC[x] = end;
+
+    if (amp) {
+      for (int V = start; V < end; V++) {
+	if (dcount[x]) fc->sound->Wave[V >> 4] += amp;
+	vcount[x] -= fc->sound->nesincsize;
+	while (vcount[x] <= 0) {
+	  dcount[x] ^= 1;
+	  vcount[x] += freq;
 	}
-	break;
-      case 0xd:
-	fceulib__.ines->iNESIRQa = V;
-	fceulib__.X->IRQEnd(FCEU_IQEXT);
-	break;
-      case 0xe:
-	fceulib__.ines->iNESIRQCount &= 0xFF00;
-	fceulib__.ines->iNESIRQCount |= V;
-	fceulib__.X->IRQEnd(FCEU_IQEXT);
-	break;
-      case 0xf:
-	fceulib__.ines->iNESIRQCount &= 0x00FF;
-	fceulib__.ines->iNESIRQCount |= V << 8;
-	fceulib__.X->IRQEnd(FCEU_IQEXT);
-	break;
-      }
-    break;
-  }
-}
-
-static int32 vcount[3];
-static int32 dcount[3];
-static int CAYBC[3];
-
-static void DoAYSQ(int x) {
-  FC *fc = &fceulib__;
-  int32 freq =
-    ((GMB_MapperExRAM(fc)[x << 1] |
-      ((GMB_MapperExRAM(fc)[(x << 1) + 1] & 15) << 8)) + 1)
-    << (4 + 17);
-  int32 amp = (GMB_MapperExRAM(fc)[0x8 + x] & 15) << 2;
-  int32 start, end;
-
-  amp += amp >> 1;
-
-  start = CAYBC[x];
-  end = (fceulib__.sound->SoundTS() << 16) / fceulib__.sound->soundtsinc;
-  if (end <= start) return;
-  CAYBC[x] = end;
-
-  if (amp) {
-    for (int V = start; V < end; V++) {
-      if (dcount[x]) fceulib__.sound->Wave[V >> 4] += amp;
-      vcount[x] -= fceulib__.sound->nesincsize;
-      while (vcount[x] <= 0) {
-        dcount[x] ^= 1;
-        vcount[x] += freq;
       }
     }
   }
-}
 
-static void DoAYSQHQ(int x) {
-  FC *fc = &fceulib__;
-  int32 freq =
-    ((GMB_MapperExRAM(fc)[x << 1] |
-      ((GMB_MapperExRAM(fc)[(x << 1) + 1] & 15) << 8)) + 1)
-      << 4;
-  int32 amp = (GMB_MapperExRAM(fc)[0x8 + x] & 15) << 6;
+  void DoAYSQHQ(int x) {
+    FC *fc = &fceulib__;
+    int32 freq =
+      ((GMB_MapperExRAM(fc)[x << 1] |
+	((GMB_MapperExRAM(fc)[(x << 1) + 1] & 15) << 8)) + 1)
+	<< 4;
+    int32 amp = (GMB_MapperExRAM(fc)[0x8 + x] & 15) << 6;
 
-  amp += amp >> 1;
+    amp += amp >> 1;
 
-  if (!(GMB_MapperExRAM(fc)[0x7] & (1 << x))) {
-    for (uint32 V = CAYBC[x]; V < fceulib__.sound->SoundTS(); V++) {
-      if (dcount[x]) fceulib__.sound->WaveHi[V] += amp;
-      vcount[x]--;
-      if (vcount[x] <= 0) {
-        dcount[x] ^= 1;
-        vcount[x] = freq;
+    if (!(GMB_MapperExRAM(fc)[0x7] & (1 << x))) {
+      for (uint32 V = CAYBC[x]; V < fc->sound->SoundTS(); V++) {
+	if (dcount[x]) fc->sound->WaveHi[V] += amp;
+	vcount[x]--;
+	if (vcount[x] <= 0) {
+	  dcount[x] ^= 1;
+	  vcount[x] = freq;
+	}
+      }
+    }
+    CAYBC[x] = fc->sound->SoundTS();
+  }
+
+  void AYSound(int Count) {
+    DoAYSQ(0);
+    DoAYSQ(1);
+    DoAYSQ(2);
+    for (int x = 0; x < 3; x++) CAYBC[x] = Count;
+  }
+
+  void AYSoundHQ() {
+    DoAYSQHQ(0);
+    DoAYSQHQ(1);
+    DoAYSQHQ(2);
+  }
+
+  void AYHiSync(int32 ts) {
+    for (int x = 0; x < 3; x++) {
+      CAYBC[x] = ts;
+    }
+  }
+
+  void SunIRQHook(int a) {
+    if (fc->ines->iNESIRQa) {
+      fc->ines->iNESIRQCount -= a;
+      if (fc->ines->iNESIRQCount <= 0) {
+	fc->X->IRQBegin(FCEU_IQEXT);
+	fc->ines->iNESIRQa = 0;
+	fc->ines->iNESIRQCount = 0xFFFF;
       }
     }
   }
-  CAYBC[x] = fceulib__.sound->SoundTS();
-}
 
-static void AYSound(FC *fc, int Count) {
-  DoAYSQ(0);
-  DoAYSQ(1);
-  DoAYSQ(2);
-  for (int x = 0; x < 3; x++) CAYBC[x] = Count;
-}
-
-static void AYSoundHQ(FC *fc) {
-  DoAYSQHQ(0);
-  DoAYSQHQ(1);
-  DoAYSQHQ(2);
-}
-
-static void AYHiSync(FC *fc, int32 ts) {
-  for (int x = 0; x < 3; x++) {
-    CAYBC[x] = ts;
-  }
-}
-
-static void SunIRQHook(FC *fc, int a) {
-  if (fceulib__.ines->iNESIRQa) {
-    fceulib__.ines->iNESIRQCount -= a;
-    if (fceulib__.ines->iNESIRQCount <= 0) {
-      fceulib__.X->IRQBegin(FCEU_IQEXT);
-      fceulib__.ines->iNESIRQa = 0;
-      fceulib__.ines->iNESIRQCount = 0xFFFF;
+  void StateRestore(int version) override {
+    FC *fc = &fceulib__;
+    if (GMB_mapbyte1(fc)[1] & 0x40) {
+      if (GMB_mapbyte1(fc)[1] & 0x80) {
+	// Select WRAM
+	fc->cart->setprg8r(0x10, 0x6000, 0);
+      }
+    } else {
+      fc->cart->setprg8(0x6000, GMB_mapbyte1(fc)[1]);
     }
   }
-}
 
-void Mapper69_StateRestore(int version) {
-  FC *fc = &fceulib__;
-  if (GMB_mapbyte1(fc)[1] & 0x40) {
-    if (GMB_mapbyte1(fc)[1] & 0x80) {
-      // Select WRAM
-      fceulib__.cart->setprg8r(0x10, 0x6000, 0);
-    }
-  } else {
-    fceulib__.cart->setprg8(0x6000, GMB_mapbyte1(fc)[1]);
+  void Mapper69_ESI() {
+    fc->sound->GameExpSound.RChange = [](FC *fc) {
+      ((Mapper69 *)fc->fceu->mapiface)->Mapper69_ESI();
+    };
+    fc->sound->GameExpSound.HiSync = [](FC *fc, int32 ts) {
+      ((Mapper69 *)fc->fceu->mapiface)->AYHiSync(ts);
+    };
+    memset(dcount, 0, sizeof(dcount));
+    memset(vcount, 0, sizeof(vcount));
+    memset(CAYBC, 0, sizeof(CAYBC));
   }
+
+};
 }
 
-void Mapper69_ESI(FC *fc) {
-  fceulib__.sound->GameExpSound.RChange = Mapper69_ESI;
-  fceulib__.sound->GameExpSound.HiSync = AYHiSync;
-  memset(dcount, 0, sizeof(dcount));
-  memset(vcount, 0, sizeof(vcount));
-  memset(CAYBC, 0, sizeof(CAYBC));
+MapInterface *Mapper69_init(FC *fc) {
+  Mapper69 *m = new Mapper69(fc);
+  fc->cart->SetupCartPRGMapping(0x10, GMB_WRAM(fc), 8192, 1);
+
+  fc->fceu->SetWriteHandler(0x8000, 0xbfff, [](DECLFW_ARGS) {
+    ((Mapper69*)fc->fceu->mapiface)->Mapper69_write(DECLFW_FORWARD);
+  });
+  fc->fceu->SetWriteHandler(0xc000, 0xdfff, [](DECLFW_ARGS) {
+    ((Mapper69*)fc->fceu->mapiface)->Mapper69_SWL(DECLFW_FORWARD);
+  });
+  fc->fceu->SetWriteHandler(0xe000, 0xffff, [](DECLFW_ARGS) {
+    ((Mapper69*)fc->fceu->mapiface)->Mapper69_SWH(DECLFW_FORWARD);
+  });
+  fc->fceu->SetWriteHandler(0x6000, 0x7fff, [](DECLFW_ARGS) {
+    ((Mapper69*)fc->fceu->mapiface)->SUN5BWRAM(DECLFW_FORWARD);
+  });
+  fc->fceu->SetReadHandler(0x6000, 0x7fff, [](DECLFR_ARGS) {
+    return ((Mapper69 *)fc->fceu->mapiface)->SUN5AWRAM(DECLFR_FORWARD);
+  });
+  m->Mapper69_ESI();
+  fc->X->MapIRQHook = [](FC *fc, int a) {
+    ((Mapper69 *)fc->fceu->mapiface)->SunIRQHook(a);
+  };
+
+  return m;
 }
 
+#if 0
+// deleted nsf -tom7
 void NSFAY_Init() {
   sunindex = 0;
-  fceulib__.fceu->SetWriteHandler(0xc000, 0xdfff, Mapper69_SWL);
-  fceulib__.fceu->SetWriteHandler(0xe000, 0xffff, Mapper69_SWH);
+  fc->fceu->SetWriteHandler(0xc000, 0xdfff, Mapper69_SWL);
+  fc->fceu->SetWriteHandler(0xe000, 0xffff, Mapper69_SWH);
   Mapper69_ESI(&fceulib__);
 }
-
-void Mapper69_init() {
-  FC *fc = &fceulib__;
-  sunindex = 0;
-
-  fceulib__.cart->SetupCartPRGMapping(0x10, GMB_WRAM(fc), 8192, 1);
-
-  fceulib__.fceu->SetWriteHandler(0x8000, 0xbfff, Mapper69_write);
-  fceulib__.fceu->SetWriteHandler(0xc000, 0xdfff, Mapper69_SWL);
-  fceulib__.fceu->SetWriteHandler(0xe000, 0xffff, Mapper69_SWH);
-  fceulib__.fceu->SetWriteHandler(0x6000, 0x7fff, SUN5BWRAM);
-  fceulib__.fceu->SetReadHandler(0x6000, 0x7fff, SUN5AWRAM);
-  Mapper69_ESI(&fceulib__);
-  fceulib__.X->MapIRQHook = SunIRQHook;
-  fceulib__.ines->MapStateRestore = Mapper69_StateRestore;
-}
+#endif
