@@ -20,82 +20,92 @@
 
 #include "mapinc.h"
 
-static uint8 IRQx;  // autoenable
-static uint8 IRQm;  // mode
-static uint16 IRQr;  // reload
+namespace {
+struct Mapper73 : public MapInterface {
+  using MapInterface::MapInterface;
 
-static DECLFW(Mapper73_write) {
-  // printf("$%04x:$%02x\n",A,V);
+  uint8 IRQx = 0;  // autoenable
+  uint8 IRQm = 0;  // mode
+  uint16 IRQr = 0;  // reload
 
-  switch (A & 0xF000) {
-  case 0x8000:
-    IRQr &= 0xFFF0;
-    IRQr |= (V & 0xF);
-    break;
-  case 0x9000:
-    IRQr &= 0xFF0F;
-    IRQr |= (V & 0xF) << 4;
-    break;
-  case 0xa000:
-    IRQr &= 0xF0FF;
-    IRQr |= (V & 0xF) << 8;
-    break;
-  case 0xb000:
-    IRQr &= 0x0FFF;
-    IRQr |= (V & 0xF) << 12;
-    break;
-  case 0xc000:
-    IRQm = V & 4;
-    IRQx = V & 1;
-    fceulib__.ines->iNESIRQa = V & 2;
-    if (fceulib__.ines->iNESIRQa) {
+  void Mapper73_write(DECLFW_ARGS) {
+    // printf("$%04x:$%02x\n",A,V);
+
+    switch (A & 0xF000) {
+    case 0x8000:
+      IRQr &= 0xFFF0;
+      IRQr |= (V & 0xF);
+      break;
+    case 0x9000:
+      IRQr &= 0xFF0F;
+      IRQr |= (V & 0xF) << 4;
+      break;
+    case 0xa000:
+      IRQr &= 0xF0FF;
+      IRQr |= (V & 0xF) << 8;
+      break;
+    case 0xb000:
+      IRQr &= 0x0FFF;
+      IRQr |= (V & 0xF) << 12;
+      break;
+    case 0xc000:
+      IRQm = V & 4;
+      IRQx = V & 1;
+      fc->ines->iNESIRQa = V & 2;
+      if (fc->ines->iNESIRQa) {
+	if (IRQm) {
+	  fc->ines->iNESIRQCount &= 0xFFFF;
+	  fc->ines->iNESIRQCount |= (IRQr & 0xFF);
+	} else {
+	  fc->ines->iNESIRQCount = IRQr;
+	}
+      }
+      fc->X->IRQEnd(FCEU_IQEXT);
+      break;
+    case 0xd000:
+      fc->X->IRQEnd(FCEU_IQEXT);
+      fc->ines->iNESIRQa = IRQx;
+      break;
+
+    case 0xf000: ROM_BANK16(fc, 0x8000, V); break;
+    }
+  }
+
+  void Mapper73IRQHook(int a) {
+    for (int i = 0; i < a; i++) {
+      if (!fc->ines->iNESIRQa) return;
       if (IRQm) {
-	fceulib__.ines->iNESIRQCount &= 0xFFFF;
-	fceulib__.ines->iNESIRQCount |= (IRQr & 0xFF);
+	uint16 temp = fc->ines->iNESIRQCount;
+	temp &= 0xFF;
+	fc->ines->iNESIRQCount &= 0xFF00;
+	if (temp == 0xFF) {
+	  fc->ines->iNESIRQCount = IRQr;
+	  fc->ines->iNESIRQCount |= (uint16)(IRQr & 0xFF);
+	  fc->X->IRQBegin(FCEU_IQEXT);
+	} else {
+	  temp++;
+	  fc->ines->iNESIRQCount |= temp;
+	}
       } else {
-	fceulib__.ines->iNESIRQCount = IRQr;
-      }
-    }
-    fceulib__.X->IRQEnd(FCEU_IQEXT);
-    break;
-  case 0xd000:
-    fceulib__.X->IRQEnd(FCEU_IQEXT);
-    fceulib__.ines->iNESIRQa = IRQx;
-    break;
-
-  case 0xf000: ROM_BANK16(fc, 0x8000, V); break;
-  }
-}
-
-static void Mapper73IRQHook(FC *fc, int a) {
-  for (int i = 0; i < a; i++) {
-    if (!fceulib__.ines->iNESIRQa) return;
-    if (IRQm) {
-      uint16 temp = fceulib__.ines->iNESIRQCount;
-      temp &= 0xFF;
-      fceulib__.ines->iNESIRQCount &= 0xFF00;
-      if (temp == 0xFF) {
-        fceulib__.ines->iNESIRQCount = IRQr;
-        fceulib__.ines->iNESIRQCount |= (uint16)(IRQr & 0xFF);
-        fceulib__.X->IRQBegin(FCEU_IQEXT);
-      } else {
-        temp++;
-        fceulib__.ines->iNESIRQCount |= temp;
-      }
-    } else {
-      // 16 bit mode
-      if (fceulib__.ines->iNESIRQCount == 0xFFFF) {
-        fceulib__.ines->iNESIRQCount = IRQr;
-        fceulib__.X->IRQBegin(FCEU_IQEXT);
-      } else {
-        fceulib__.ines->iNESIRQCount++;
+	// 16 bit mode
+	if (fc->ines->iNESIRQCount == 0xFFFF) {
+	  fc->ines->iNESIRQCount = IRQr;
+	  fc->X->IRQBegin(FCEU_IQEXT);
+	} else {
+	  fc->ines->iNESIRQCount++;
+	}
       }
     }
   }
+};
 }
-
-void Mapper73_init() {
-  fceulib__.fceu->SetWriteHandler(0x8000, 0xffff, Mapper73_write);
-  fceulib__.X->MapIRQHook = Mapper73IRQHook;
-  IRQr = IRQm = IRQx = 0;
+  
+MapInterface *Mapper73_init(FC *fc) {
+  fc->fceu->SetWriteHandler(0x8000, 0xffff, [](DECLFW_ARGS) {
+    ((Mapper73 *)fc->fceu->mapiface)->Mapper73_write(DECLFW_FORWARD);
+  });
+  fc->X->MapIRQHook = [](FC *fc, int a) {
+    ((Mapper73 *)fc->fceu->mapiface)->Mapper73IRQHook(a);
+  };
+  return new Mapper73(fc);
 }

@@ -27,10 +27,11 @@ static DECLFW(Mapper62_write) {
     ROM_BANK16(fc, 0xc000, (A & 0x40) | ((A >> 8) & 0x3F));
   } else
     ROM_BANK32(fc, ((A & 0x40) | ((A >> 8) & 0x3F)) >> 1);
-  fceulib__.ines->MIRROR_SET((A & 0x80) >> 7);
+  fc->ines->MIRROR_SET((A & 0x80) >> 7);
 }
 
-void Mapper62_init() {
-  fceulib__.fceu->SetWriteHandler(0x8000, 0xffff, Mapper62_write);
-  ROM_BANK32(&fceulib__, 0);
+MapInterface *Mapper62_init(FC *fc) {
+  fc->fceu->SetWriteHandler(0x8000, 0xffff, Mapper62_write);
+  ROM_BANK32(fc, 0);
+  return new MapInterface(fc);
 }

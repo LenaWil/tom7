@@ -23,21 +23,22 @@
 #define A64reg GMB_mapbyte1(fc)[0]
 #define A64wr GMB_mapbyte1(fc)[1]
 
-DECLFW(Mapper46_writel) {
+static DECLFW(Mapper46_writel) {
   A64reg = V;
   ROM_BANK32(fc, (A64wr & 1) + ((A64reg & 0xF) << 1));
   VROM_BANK8(fc, ((A64wr >> 4) & 7) + ((A64reg & 0xF0) >> 1));
 }
 
-DECLFW(Mapper46_write) {
+static DECLFW(Mapper46_write) {
   A64wr = V;
   ROM_BANK32(fc, (V & 1) + ((A64reg & 0xF) << 1));
   VROM_BANK8(fc, ((V >> 4) & 7) + ((A64reg & 0xF0) >> 1));
 }
 
-void Mapper46_init() {
+MapInterface *Mapper46_init(FC *fc) {
   fceulib__.ines->MIRROR_SET(0);
-  ROM_BANK32(&fceulib__, 0);
+  ROM_BANK32(fc, 0);
   fceulib__.fceu->SetWriteHandler(0x8000, 0xffff, Mapper46_write);
   fceulib__.fceu->SetWriteHandler(0x6000, 0x7fff, Mapper46_writel);
+  return new MapInterface(fc);
 }
