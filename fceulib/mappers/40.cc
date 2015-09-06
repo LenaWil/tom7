@@ -20,34 +20,46 @@
 
 #include "mapinc.h"
 
-static DECLFW(Mapper40_write) {
-  switch (A & 0xe000) {
-  case 0x8000:
-    fceulib__.ines->iNESIRQa = 0;
-    fceulib__.ines->iNESIRQCount = 0;
-    fceulib__.X->IRQEnd(FCEU_IQEXT);
-    break;
-  case 0xa000: fceulib__.ines->iNESIRQa = 1; break;
-  case 0xe000: ROM_BANK8(fc, 0xc000, V & 7); break;
-  }
-}
+namespace {
+struct Mapper40 : public MapInterface {
+  using MapInterface::MapInterface;
 
-static void Mapper40IRQ(FC *fc, int a) {
-  if (fceulib__.ines->iNESIRQa) {
-    if (fceulib__.ines->iNESIRQCount < 4096) {
-      fceulib__.ines->iNESIRQCount += a;
-    } else {
-      fceulib__.ines->iNESIRQa = 0;
-      fceulib__.X->IRQBegin(FCEU_IQEXT);
+  void Mapper40_write(DECLFW_ARGS) {
+    switch (A & 0xe000) {
+    case 0x8000:
+      fc->ines->iNESIRQa = 0;
+      fc->ines->iNESIRQCount = 0;
+      fc->X->IRQEnd(FCEU_IQEXT);
+      break;
+    case 0xa000: fc->ines->iNESIRQa = 1; break;
+    case 0xe000: ROM_BANK8(fc, 0xc000, V & 7); break;
     }
   }
-}
 
-void Mapper40_init() {
-  ROM_BANK8(&fceulib__, 0x6000, (~0) - 1);
-  ROM_BANK8(&fceulib__, 0x8000, (~0) - 3);
-  ROM_BANK8(&fceulib__, 0xa000, (~0) - 2);
-  fceulib__.fceu->SetWriteHandler(0x8000, 0xffff, Mapper40_write);
-  fceulib__.fceu->SetReadHandler(0x6000, 0x7fff, Cart::CartBR);
-  fceulib__.X->MapIRQHook = Mapper40IRQ;
+  void Mapper40IRQ(int a) {
+    if (fc->ines->iNESIRQa) {
+      if (fc->ines->iNESIRQCount < 4096) {
+	fc->ines->iNESIRQCount += a;
+      } else {
+	fc->ines->iNESIRQa = 0;
+	fc->X->IRQBegin(FCEU_IQEXT);
+      }
+    }
+  }
+};
+}
+  
+MapInterface *Mapper40_init(FC *fc) {
+  Mapper40 *m = new Mapper40(fc);
+  ROM_BANK8(fc, 0x6000, (~0) - 1);
+  ROM_BANK8(fc, 0x8000, (~0) - 3);
+  ROM_BANK8(fc, 0xa000, (~0) - 2);
+  fc->fceu->SetWriteHandler(0x8000, 0xffff, [](DECLFW_ARGS) {
+    ((Mapper40*)fc->fceu->mapiface)->Mapper40_write(DECLFW_FORWARD);
+  });
+  fc->fceu->SetReadHandler(0x6000, 0x7fff, Cart::CartBR);
+  fc->X->MapIRQHook = [](FC *fc, int a) {
+    ((Mapper40 *)fc->fceu->mapiface)->Mapper40IRQ(a);
+  };
+  return m;
 }
