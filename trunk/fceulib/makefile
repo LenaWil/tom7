@@ -40,9 +40,9 @@ CPPFLAGS=-DPSS_STYLE=1 -DDUMMY_UI  -m64 $(OPT) $(WINCFLAGS) -DHAVE_ALLOCA -DNOWI
 # Should just be used for testing.
 CCLIBOBJECTS=../cc-lib/util.o ../cc-lib/arcfour.o ../cc-lib/base/logging.o ../cc-lib/base/stringprintf.o ../cc-lib/city/city.o ../cc-lib/rle.o ../cc-lib/stb_image_write.o
 
-MAPPEROBJECTS=mappers/6.o mappers/61.o mappers/24and26.o mappers/51.o mappers/69.o mappers/77.o
+MAPPEROBJECTS=mappers/6.o mappers/61.o mappers/24and26.o mappers/51.o mappers/69.o mappers/77.o mappers/40.o mappers/mmc2and4.o
 
-#  mappers/40.o mappers/71.o mappers/79.o mappers/41.o mappers/72.o mappers/80.o mappers/42.o mappers/62.o mappers/73.o mappers/85.o mappers/46.o mappers/65.o mappers/75.o mappers/emu2413.o mappers/50.o mappers/67.o mappers/76.o mappers/mmc2and4.o mappers/tengen.o
+#  mappers/71.o mappers/79.o mappers/41.o mappers/72.o mappers/80.o mappers/42.o mappers/62.o mappers/73.o mappers/85.o mappers/46.o mappers/65.o mappers/75.o mappers/emu2413.o mappers/50.o mappers/67.o mappers/76.o mappers/tengen.o
 
 # XXX: Probably a bunch of this can go?
 UTILSOBJECTS= utils/memory.o utils/crc32.o utils/endian.o utils/md5.o utils/xstring.o

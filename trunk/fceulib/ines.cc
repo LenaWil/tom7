@@ -1122,8 +1122,8 @@ static constexpr MapInterface *(* const MapInitTab[256])(FC *fc) = {
   Mapper6_init,
   0, //Mapper7_init,
   0, //Mapper8_init,
-  nullptr, //  Mapper9_init,
-  nullptr, //  Mapper10_init,
+  Mapper9_init,
+  Mapper10_init,
   0, //Mapper11_init,
   0,
   0, //Mapper13_init,
@@ -1153,7 +1153,7 @@ static constexpr MapInterface *(* const MapInitTab[256])(FC *fc) = {
   0,
   0,
   0,
-  nullptr, //  Mapper40_init,
+  Mapper40_init,
   nullptr, //  Mapper41_init,
   nullptr, //  Mapper42_init,
   0, //Mapper43_init,
@@ -1382,7 +1382,11 @@ static DECLFR(AWRAM) {
 // Wrapper for old-style mappers; expect mapiface to be set.
 void INes::iNESStateRestore(int version) {
   if (!mapper_number) return;
-  CHECK(fc->fceu->mapiface != nullptr);
+  if (fc->fceu->mapiface == nullptr) {
+    // XXX Should be fatal once failing to load is fatal.
+    // ("not supported at all!")
+    return;
+  }
   
   for (int x = 0; x < 4; x++)
     fc->cart->setprg8(0x8000 + x * 8192, GMB_PRGBankList(fc)[x]);
@@ -1489,7 +1493,6 @@ void INes::iNESPower() {
   if (MapInitTab[type]) {
     CHECK(fc->fceu->mapiface == nullptr);
     fc->fceu->mapiface = MapInitTab[type](fc);
-    
   } else if (type) {
     FCEU_PrintError("iNES mapper #%d is not supported at all.",type);
   }
