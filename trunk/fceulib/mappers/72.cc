@@ -20,12 +20,13 @@
 
 #include "mapinc.h"
 
-DECLFW(Mapper72_write) {
+static DECLFW(Mapper72_write) {
   GMB_mapbyte1(fc)[0] = V;
   if (V & 0x80) ROM_BANK16(fc, 0x8000, V & 0xF);
   if (V & 0x40) VROM_BANK8(fc, V & 0xF);
 }
 
-void Mapper72_init() {
-  fceulib__.fceu->SetWriteHandler(0x6000, 0xffff, Mapper72_write);
+MapInterface *Mapper72_init(FC *fc) {
+  fc->fceu->SetWriteHandler(0x6000, 0xffff, Mapper72_write);
+  return new MapInterface(fc);
 }

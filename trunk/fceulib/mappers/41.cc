@@ -23,29 +23,38 @@
 #define calreg GMB_mapbyte1(fc)[0]
 #define calchr GMB_mapbyte1(fc)[1]
 
-DECLFW(Mapper41_write) {
-  if (A < 0x8000) {
-    ROM_BANK32(fc, A & 7);
-    fceulib__.ines->MIRROR_SET((A >> 5) & 1);
-    calreg = A;
-    calchr &= 0x3;
-    calchr |= (A >> 1) & 0xC;
-    VROM_BANK8(fc, calchr);
-  } else if (calreg & 0x4) {
-    calchr &= 0xC;
-    calchr |= A & 3;
-    VROM_BANK8(fc, calchr);
+namespace {
+struct Mapper41 : public MapInterface {
+  using MapInterface::MapInterface;
+  
+  void Mapper41_write(DECLFW_ARGS) {
+    if (A < 0x8000) {
+      ROM_BANK32(fc, A & 7);
+      fc->ines->MIRROR_SET((A >> 5) & 1);
+      calreg = A;
+      calchr &= 0x3;
+      calchr |= (A >> 1) & 0xC;
+      VROM_BANK8(fc, calchr);
+    } else if (calreg & 0x4) {
+      calchr &= 0xC;
+      calchr |= A & 3;
+      VROM_BANK8(fc, calchr);
+    }
   }
+
+  void MapperReset() override {
+    calreg = calchr = 0;
+  }
+};
 }
 
-static void M41Reset() {
-  FC *fc = &fceulib__;
-  calreg = calchr = 0;
-}
-
-void Mapper41_init() {
-  fceulib__.ines->MapperReset = M41Reset;
+MapInterface *Mapper41_init(FC *fc) {
   ROM_BANK32(&fceulib__, 0);
-  fceulib__.fceu->SetWriteHandler(0x8000, 0xffff, Mapper41_write);
-  fceulib__.fceu->SetWriteHandler(0x6000, 0x67ff, Mapper41_write);
+  fc->fceu->SetWriteHandler(0x8000, 0xffff, [](DECLFW_ARGS) {
+    ((Mapper41*)fc->fceu->mapiface)->Mapper41_write(DECLFW_FORWARD);
+  });
+  fc->fceu->SetWriteHandler(0x6000, 0x67ff, [](DECLFW_ARGS) {
+    ((Mapper41*)fc->fceu->mapiface)->Mapper41_write(DECLFW_FORWARD);
+  });
+  return new Mapper41(fc);
 }

@@ -33,7 +33,10 @@ struct CartInterface {
 // do their work by modifying global variables.
 struct MapInterface {
   explicit MapInterface(FC *fc) : fc(fc) {}
+  virtual ~MapInterface() {}
   virtual void StateRestore(int version) {}
+  virtual void MapperReset() {}
+  virtual void MapperClose() {}
 protected:
   FC *fc = nullptr;
  private:

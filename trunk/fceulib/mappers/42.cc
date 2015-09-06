@@ -20,45 +20,54 @@
 
 #include "mapinc.h"
 
-static DECLFW(Mapper42_write) {
-  // FCEU_printf("%04x:%04x\n",A,V);
-  switch (A & 0xe003) {
-  case 0x8000: VROM_BANK8(fc, V); break;
-  case 0xe000:
-    GMB_mapbyte1(fc)[0] = V;
-    ROM_BANK8(fc, 0x6000, V & 0xF);
-    break;
-  case 0xe001: fceulib__.ines->MIRROR_SET((V >> 3) & 1); break;
-  case 0xe002:
-    fceulib__.ines->iNESIRQa = V & 2;
-    if (!fceulib__.ines->iNESIRQa) fceulib__.ines->iNESIRQCount = 0;
-    fceulib__.X->IRQEnd(FCEU_IQEXT);
-    break;
+namespace {
+struct Mapper42 : public MapInterface {
+  using MapInterface::MapInterface;
+  
+  void Mapper42_write(DECLFW_ARGS) {
+    // FCEU_printf("%04x:%04x\n",A,V);
+    switch (A & 0xe003) {
+    case 0x8000: VROM_BANK8(fc, V); break;
+    case 0xe000:
+      GMB_mapbyte1(fc)[0] = V;
+      ROM_BANK8(fc, 0x6000, V & 0xF);
+      break;
+    case 0xe001: fc->ines->MIRROR_SET((V >> 3) & 1); break;
+    case 0xe002:
+      fc->ines->iNESIRQa = V & 2;
+      if (!fc->ines->iNESIRQa) fc->ines->iNESIRQCount = 0;
+      fc->X->IRQEnd(FCEU_IQEXT);
+      break;
+    }
   }
-}
 
-static void Mapper42IRQ(FC *fc, int a) {
-  if (fceulib__.ines->iNESIRQa) {
-    fceulib__.ines->iNESIRQCount += a;
-    if (fceulib__.ines->iNESIRQCount >= 32768)
-      fceulib__.ines->iNESIRQCount -= 32768;
-    if (fceulib__.ines->iNESIRQCount >= 24576)
-      fceulib__.X->IRQBegin(FCEU_IQEXT);
-    else
-      fceulib__.X->IRQEnd(FCEU_IQEXT);
+  void Mapper42IRQ(int a) {
+    if (fc->ines->iNESIRQa) {
+      fc->ines->iNESIRQCount += a;
+      if (fc->ines->iNESIRQCount >= 32768)
+	fc->ines->iNESIRQCount -= 32768;
+      if (fc->ines->iNESIRQCount >= 24576)
+	fc->X->IRQBegin(FCEU_IQEXT);
+      else
+	fc->X->IRQEnd(FCEU_IQEXT);
+    }
   }
-}
 
-static void Mapper42_StateRestore(int version) {
-  FC *fc = &fceulib__;
-  ROM_BANK8(fc, 0x6000, GMB_mapbyte1(fc)[0] & 0xF);
+  void StateRestore(int version) override {
+    ROM_BANK8(fc, 0x6000, GMB_mapbyte1(fc)[0] & 0xF);
+  }
+};
 }
-
-void Mapper42_init() {
-  ROM_BANK8(&fceulib__, 0x6000, 0);
-  ROM_BANK32(&fceulib__, ~0);
-  fceulib__.fceu->SetWriteHandler(0x6000, 0xffff, Mapper42_write);
-  fceulib__.fceu->SetReadHandler(0x6000, 0x7fff, Cart::CartBR);
-  fceulib__.ines->MapStateRestore = Mapper42_StateRestore;
-  fceulib__.X->MapIRQHook = Mapper42IRQ;
+  
+MapInterface *Mapper42_init(FC *fc) {
+  ROM_BANK8(fc, 0x6000, 0);
+  ROM_BANK32(fc, ~0);
+  fc->fceu->SetWriteHandler(0x6000, 0xffff, [](DECLFW_ARGS) {
+    ((Mapper42*)fc->fceu->mapiface)->Mapper42_write(DECLFW_FORWARD);
+  });
+  fc->fceu->SetReadHandler(0x6000, 0x7fff, Cart::CartBR);
+  fc->X->MapIRQHook = [](FC *fc, int a) {
+    ((Mapper42 *)fc->fceu->mapiface)->Mapper42IRQ(a);
+  };
+  return new Mapper42(fc);
 }

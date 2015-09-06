@@ -105,8 +105,8 @@ void INes::iNESGI(GI h) {
     break;
 
   case GI_RESETM2:
-    if (MapperReset)
-      MapperReset();
+    if (fc->fceu->mapiface)
+      fc->fceu->mapiface->MapperReset();
     fc->fceu->cartiface->Reset();
     break;
 
@@ -124,7 +124,8 @@ void INes::iNESGI(GI h) {
     free(VROM);
     VROM = nullptr;
 
-    if (MapClose) MapClose();
+    if (fc->fceu->mapiface)
+      fc->fceu->mapiface->MapperClose();
     free(trainerdata);
     trainerdata = nullptr;
     break;
@@ -1157,12 +1158,12 @@ static constexpr MapInterface *(* const MapInitTab[256])(FC *fc) = {
   0,
   0,
   Mapper40_init,
-  nullptr, //  Mapper41_init,
-  nullptr, //  Mapper42_init,
+  Mapper41_init,
+  Mapper42_init,
   0, //Mapper43_init,
   0,
   0,
-  nullptr, //  Mapper46_init,
+  Mapper46_init,
   0,
   0, //Mapper48_init,
   0,
@@ -1178,7 +1179,7 @@ static constexpr MapInterface *(* const MapInitTab[256])(FC *fc) = {
   0, //Mapper59_init,
   0, //Mapper60_init,
   nullptr, //  Mapper61_init,
-  nullptr, //  Mapper62_init,
+  Mapper62_init,
   0,
   nullptr, //  Mapper64_init,
   nullptr, //  Mapper65_init,
@@ -1187,21 +1188,21 @@ static constexpr MapInterface *(* const MapInitTab[256])(FC *fc) = {
   0, //Mapper68_init,
   Mapper69_init,
   0, //Mapper70_init,
-  nullptr, //  Mapper71_init,
-  nullptr, //  Mapper72_init,
-  nullptr, //  Mapper73_init,
+  Mapper71_init,
+  Mapper72_init,
+  Mapper73_init,
   0,
   nullptr, //  Mapper75_init,
   nullptr, //  Mapper76_init,
   Mapper77_init,
   0, //Mapper78_init,
-  nullptr, //  Mapper79_init,
-  nullptr, //  Mapper80_init,
+  Mapper79_init,
+  Mapper80_init,
   0,
   0, //Mapper82_init,
   0, //Mapper83_init,
   0,
-  nullptr, //  Mapper85_init,
+  Mapper85_init,
   0, //Mapper86_init,
   0, //Mapper87_init,
   0, //Mapper88_init,
@@ -1323,7 +1324,7 @@ static constexpr MapInterface *(* const MapInitTab[256])(FC *fc) = {
   0, //Mapper204_init,
   0,
   0,
-  nullptr, //  Mapper207_init,
+  Mapper207_init,
   0,
   0,
   0,
@@ -1438,7 +1439,6 @@ void INes::iNESPower() {
   // Function-pointer based interface. TODO: Move these to
   // MapInterface? Already did MapStateRestore -tom7
   MapClose = nullptr;
-  MapperReset = nullptr;
 
   fc->cart->setprg8r(1,0x6000,0);
 
