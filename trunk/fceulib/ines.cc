@@ -833,6 +833,9 @@ bool INes::iNESLoad(const char *name, FceuFile *fp, int OverwriteVidMode) {
   memset(&iNESCart, 0, sizeof(iNESCart));
   delete fc->fceu->cartiface;
   fc->fceu->cartiface = nullptr;
+
+  delete fc->fceu->mapiface;
+  fc->fceu->mapiface = nullptr;
   
   mapper_number = head.ROM_type >> 4;
   mapper_number |= (head.ROM_type2 & 0xF0);
