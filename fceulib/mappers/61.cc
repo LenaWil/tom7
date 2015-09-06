@@ -20,28 +20,37 @@
 
 #include "mapinc.h"
 
-static DECLFW(Mapper61_write) {
-  // printf("$%04x:$%02x\n",A,V);
-  switch (A & 0x30) {
-  case 0x00:
-  case 0x30: ROM_BANK32(fc, A & 0xF); break;
-  case 0x20:
-  case 0x10:
-    ROM_BANK16(fc, 0x8000, ((A & 0xF) << 1) | (((A & 0x20) >> 4)));
-    ROM_BANK16(fc, 0xC000, ((A & 0xF) << 1) | (((A & 0x20) >> 4)));
-    break;
+namespace {
+struct Mapper61 : public MapInterface {
+  using MapInterface::MapInterface;
+  
+  void Mapper61_write(DECLFW_ARGS) {
+    // printf("$%04x:$%02x\n",A,V);
+    switch (A & 0x30) {
+    case 0x00:
+    case 0x30: ROM_BANK32(fc, A & 0xF); break;
+    case 0x20:
+    case 0x10:
+      ROM_BANK16(fc, 0x8000, ((A & 0xF) << 1) | (((A & 0x20) >> 4)));
+      ROM_BANK16(fc, 0xC000, ((A & 0xF) << 1) | (((A & 0x20) >> 4)));
+      break;
+    }
+  #ifdef moo
+    if (!(A & 0x10))
+      ROM_BANK32(fc, A & 0xF);
+    else {
+      ROM_BANK16(fc, 0x8000, ((A & 0xF) << 1) | (((A & 0x10) >> 4) ^ 1));
+      ROM_BANK16(fc, 0xC000, ((A & 0xF) << 1) | (((A & 0x10) >> 4) ^ 1));
+    }
+  #endif
+    fc->ines->MIRROR_SET((A & 0x80) >> 7);
   }
-#ifdef moo
-  if (!(A & 0x10))
-    ROM_BANK32(fc, A & 0xF);
-  else {
-    ROM_BANK16(fc, 0x8000, ((A & 0xF) << 1) | (((A & 0x10) >> 4) ^ 1));
-    ROM_BANK16(fc, 0xC000, ((A & 0xF) << 1) | (((A & 0x10) >> 4) ^ 1));
-  }
-#endif
-  fceulib__.ines->MIRROR_SET((A & 0x80) >> 7);
+};
 }
 
-void Mapper61_init() {
-  fceulib__.fceu->SetWriteHandler(0x8000, 0xffff, Mapper61_write);
+MapInterface *Mapper61_init(FC *fc) {
+  fc->fceu->SetWriteHandler(0x8000, 0xffff, [](DECLFW_ARGS) {
+    ((Mapper61 *)fc->fceu->mapiface)->Mapper61_write(DECLFW_FORWARD);
+  });
+  return new Mapper61(fc);
 }

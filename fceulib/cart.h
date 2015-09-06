@@ -29,6 +29,17 @@ struct CartInterface {
   CartInterface() = delete;
 };
 
+// Same idea, but for old _init style mappers that
+// do their work by modifying global variables.
+struct MapInterface {
+  explicit MapInterface(FC *fc) : fc(fc) {}
+  virtual void StateRestore(int version) {}
+protected:
+  FC *fc = nullptr;
+ private:
+  MapInterface() = delete; 
+};
+
 struct CartInfo {
   // Maybe some of this should go into CartInterface.
 

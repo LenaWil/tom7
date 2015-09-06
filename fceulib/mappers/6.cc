@@ -20,8 +20,13 @@
 
 #include "mapinc.h"
 
-static uint8 FFEmode;
+namespace {
+struct Mapper6 : public MapInterface {
+  using MapInterface::MapInterface;
+  uint8 FFEmode = 0;
 
+  // Careful: Caller passes in a non-trivial expression, and
+  // not all Vs are parenthesized. -tom7
 #define FVRAM_BANK8(fc, A, V)					      \
   {                                                                   \
     fc->cart->VPage[0] = fc->cart->VPage[1] =			      \
@@ -41,68 +46,83 @@ static uint8 FFEmode;
     fc->ppu->PPUCHRRAM = 0xFF;					      \
   }
 
-static void FFEIRQHook(FC *fc, int a) {
-  if (fceulib__.ines->iNESIRQa) {
-    fceulib__.ines->iNESIRQCount += a;
-    if (fceulib__.ines->iNESIRQCount >= 0x10000) {
-      fceulib__.X->IRQBegin(FCEU_IQEXT);
-      fceulib__.ines->iNESIRQa = 0;
-      fceulib__.ines->iNESIRQCount = 0;
-    }
-  }
-}
-
-DECLFW(Mapper6_write) {
-  if (A < 0x8000) {
-    switch (A) {
-    case 0x42FF: fceulib__.ines->MIRROR_SET((V >> 4) & 1); break;
-    case 0x42FE:
-      fceulib__.ines->onemir((V >> 3) & 2);
-      FFEmode = V & 0x80;
-      break;
-    case 0x4501:
-      fceulib__.ines->iNESIRQa = 0;
-      fceulib__.X->IRQEnd(FCEU_IQEXT);
-      break;
-    case 0x4502:
-      fceulib__.ines->iNESIRQCount &= 0xFF00;
-      fceulib__.ines->iNESIRQCount |= V;
-      break;
-    case 0x4503:
-      fceulib__.ines->iNESIRQCount &= 0xFF;
-      fceulib__.ines->iNESIRQCount |= V << 8;
-      fceulib__.ines->iNESIRQa = 1;
-      break;
-    }
-  } else {
-    switch (FFEmode) {
-    case 0x80: fceulib__.cart->setchr8(V); break;
-    default: ROM_BANK16(fc, 0x8000, V >> 2); FVRAM_BANK8(fc, 0x0000, V & 3);
-    }
-  }
-}
-
-void Mapper6_StateRestore(int version) {
-  FC *fc = &fceulib__;
-  for (int x = 0; x < 8; x++)
-    if (fc->ppu->PPUCHRRAM & (1 << x)) {
-      if (fc->ines->iNESCHRBankList[x] > 7) {
-        fc->cart->VPage[x] =
-	  &GMB_MapperExRAM(fc)[(fc->ines->iNESCHRBankList[x] & 31) * 0x400] -
-            (x * 0x400);
-      } else {
-        fc->cart->VPage[x] =
-	  &GMB_CHRRAM(fc)[(fc->ines->iNESCHRBankList[x] & 7) * 0x400] -
-            (x * 0x400);
+  void FFEIRQHook(int a) {
+    if (fc->ines->iNESIRQa) {
+      fc->ines->iNESIRQCount += a;
+      if (fc->ines->iNESIRQCount >= 0x10000) {
+	fc->X->IRQBegin(FCEU_IQEXT);
+	fc->ines->iNESIRQa = 0;
+	fc->ines->iNESIRQCount = 0;
       }
     }
+  }
+
+  void Mapper6_write(DECLFW_ARGS) {
+    if (A < 0x8000) {
+      switch (A) {
+      case 0x42FF: fc->ines->MIRROR_SET((V >> 4) & 1); break;
+      case 0x42FE:
+	fc->ines->onemir((V >> 3) & 2);
+	FFEmode = V & 0x80;
+	break;
+      case 0x4501:
+	fc->ines->iNESIRQa = 0;
+	fc->X->IRQEnd(FCEU_IQEXT);
+	break;
+      case 0x4502:
+	fc->ines->iNESIRQCount &= 0xFF00;
+	fc->ines->iNESIRQCount |= V;
+	break;
+      case 0x4503:
+	fc->ines->iNESIRQCount &= 0xFF;
+	fc->ines->iNESIRQCount |= V << 8;
+	fc->ines->iNESIRQa = 1;
+	break;
+      }
+    } else {
+      switch (FFEmode) {
+      case 0x80: fc->cart->setchr8(V); break;
+      default:
+	ROM_BANK16(fc, 0x8000, V >> 2);
+	FVRAM_BANK8(fc, 0x0000, V & 3);
+      }
+    }
+  }
+
+  void StateRestore(int version) override {
+    for (int x = 0; x < 8; x++) {
+      if (fc->ppu->PPUCHRRAM & (1 << x)) {
+	if (fc->ines->iNESCHRBankList[x] > 7) {
+	  fc->cart->VPage[x] =
+	    &GMB_MapperExRAM(fc)[(fc->ines->iNESCHRBankList[x] & 31) * 0x400] -
+            (x * 0x400);
+	} else {
+	  fc->cart->VPage[x] =
+	    &GMB_CHRRAM(fc)[(fc->ines->iNESCHRBankList[x] & 7) * 0x400] -
+            (x * 0x400);
+	}
+      }
+    }
+  }
+};
 }
+  
+MapInterface *Mapper6_init(FC *fc) {
+  MapInterface *m = new Mapper6(fc);
+  fc->X->MapIRQHook = [](FC *fc, int a) {
+    ((Mapper6*)fc->fceu->mapiface)->FFEIRQHook(a);
+  };
 
-void Mapper6_init() {
-  fceulib__.X->MapIRQHook = FFEIRQHook;
-  ROM_BANK16(&fceulib__, 0xc000, 7);
+  // XXX Note that mapiface has not yet been installed, so if
+  // calls like these try to make calls back into mapper code,
+  // they will fail. I don't think they do. -tom7
+  ROM_BANK16(fc, 0xc000, 7);
 
-  fceulib__.fceu->SetWriteHandler(0x4020, 0x5fff, Mapper6_write);
-  fceulib__.fceu->SetWriteHandler(0x8000, 0xffff, Mapper6_write);
-  fceulib__.ines->MapStateRestore = Mapper6_StateRestore;
+  fc->fceu->SetWriteHandler(0x4020, 0x5fff, [](DECLFW_ARGS) {
+    ((Mapper6*)fc->fceu->mapiface)->Mapper6_write(DECLFW_FORWARD);
+  });
+  fc->fceu->SetWriteHandler(0x8000, 0xffff, [](DECLFW_ARGS) {
+    ((Mapper6*)fc->fceu->mapiface)->Mapper6_write(DECLFW_FORWARD);
+  });
+  return m;
 }

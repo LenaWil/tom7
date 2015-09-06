@@ -20,297 +20,320 @@
 
 #include "mapinc.h"
 
-static void (*sfun[3])();
+namespace {
+struct Mapper24and26 : public MapInterface {
+  const bool swaparoo;
 
-#define vrctemp(fc) GMB_mapbyte1(fc)[0]
-#define VPSG2(fc) GMB_mapbyte3(fc)
-#define VPSG(fc) GMB_mapbyte2(fc)
+  void (Mapper24and26::*sfun[3])() = {nullptr, nullptr, nullptr};
 
-static void DoSQV1();
-static void DoSQV2();
-static void DoSawV();
+  #define vrctemp(fc) GMB_mapbyte1(fc)[0]
+  #define VPSG2(fc) GMB_mapbyte3(fc)
+  #define VPSG(fc) GMB_mapbyte2(fc)
 
-static int swaparoo;
+  int acount = 0;
 
-static int acount = 0;
-
-static void KonamiIRQHook(FC *fc, int a) {
-  static constexpr int LCYCS = 341;
-  //  #define LCYCS ((227*2)+1)
-  if (fc->ines->iNESIRQa) {
-    acount += a * 3;
-    while (acount >= LCYCS) {
-      acount -= LCYCS;
-      fc->ines->iNESIRQCount++;
-      if (fc->ines->iNESIRQCount == 0x100) {
-        fc->X->IRQBegin(FCEU_IQEXT);
-        fc->ines->iNESIRQCount = fc->ines->iNESIRQLatch;
+  int32 CVBC[3] = {};
+  int32 vcount[3] = {};
+  int32 dcount[2] = {};
+  
+  void KonamiIRQHook(int a) {
+    static constexpr int LCYCS = 341;
+    //  #define LCYCS ((227*2)+1)
+    if (fc->ines->iNESIRQa) {
+      acount += a * 3;
+      while (acount >= LCYCS) {
+	acount -= LCYCS;
+	fc->ines->iNESIRQCount++;
+	if (fc->ines->iNESIRQCount == 0x100) {
+	  fc->X->IRQBegin(FCEU_IQEXT);
+	  fc->ines->iNESIRQCount = fc->ines->iNESIRQLatch;
+	}
       }
     }
   }
-}
 
-static DECLFW(VRC6SW) {
-  A &= 0xF003;
-  if (A >= 0x9000 && A <= 0x9002) {
-    VPSG(fc)[A & 3] = V;
-    if (sfun[0]) sfun[0]();
-  } else if (A >= 0xa000 && A <= 0xa002) {
-    VPSG(fc)[4 | (A & 3)] = V;
-    if (sfun[1]) sfun[1]();
-  } else if (A >= 0xb000 && A <= 0xb002) {
-    VPSG2(fc)[A & 3] = V;
-    if (sfun[2]) sfun[2]();
-  }
-}
-
-static DECLFW(Mapper24_write) {
-  if (swaparoo) A = (A & 0xFFFC) | ((A >> 1) & 1) | ((A << 1) & 2);
-  if (A >= 0x9000 && A <= 0xb002) {
-    VRC6SW(DECLFW_FORWARD);
-    return;
-  }
-  A &= 0xF003;
-  //        if (A>=0xF000) printf("%d, %d,
-  //        $%04x:$%02x\n",scanline,timestamp,A,V);
-  switch (A & 0xF003) {
-  case 0x8000: ROM_BANK16(fc, 0x8000, V); break;
-  case 0xB003:
-    switch (V & 0xF) {
-    case 0x0: fceulib__.ines->MIRROR_SET2(1); break;
-    case 0x4: fceulib__.ines->MIRROR_SET2(0); break;
-    case 0x8: fceulib__.ines->onemir(0); break;
-    case 0xC: fceulib__.ines->onemir(1); break;
+  void VRC6SW(DECLFW_ARGS) {
+    A &= 0xF003;
+    if (A >= 0x9000 && A <= 0x9002) {
+      VPSG(fc)[A & 3] = V;
+      if (sfun[0]) (this->*sfun[0])();
+    } else if (A >= 0xa000 && A <= 0xa002) {
+      VPSG(fc)[4 | (A & 3)] = V;
+      if (sfun[1]) (this->*sfun[1])();
+    } else if (A >= 0xb000 && A <= 0xb002) {
+      VPSG2(fc)[A & 3] = V;
+      if (sfun[2]) (this->*sfun[2])();
     }
-    break;
-  case 0xC000: ROM_BANK8(fc, 0xC000, V); break;
-  case 0xD000: VROM_BANK1(fc, 0x0000, V); break;
-  case 0xD001: VROM_BANK1(fc, 0x0400, V); break;
-  case 0xD002: VROM_BANK1(fc, 0x0800, V); break;
-  case 0xD003: VROM_BANK1(fc, 0x0c00, V); break;
-  case 0xE000: VROM_BANK1(fc, 0x1000, V); break;
-  case 0xE001: VROM_BANK1(fc, 0x1400, V); break;
-  case 0xE002: VROM_BANK1(fc, 0x1800, V); break;
-  case 0xE003: VROM_BANK1(fc, 0x1c00, V); break;
-  case 0xF000:
-    fceulib__.ines->iNESIRQLatch = V;
-    // acount=0;
-    break;
-  case 0xF001:
-    fceulib__.ines->iNESIRQa = V & 2;
-    vrctemp(fc) = V & 1;
-    if (V & 2) {
-      fceulib__.ines->iNESIRQCount = fceulib__.ines->iNESIRQLatch;
-      acount = 0;
-    }
-    fceulib__.X->IRQEnd(FCEU_IQEXT);
-    break;
-  case 0xf002:
-    fceulib__.ines->iNESIRQa = vrctemp(fc);
-    fceulib__.X->IRQEnd(FCEU_IQEXT);
-    break;
-  case 0xF003: break;
   }
-}
 
-static int32 CVBC[3];
-static int32 vcount[3];
-static int32 dcount[2];
+  void Mapper24_write(DECLFW_ARGS) {
+    if (swaparoo) A = (A & 0xFFFC) | ((A >> 1) & 1) | ((A << 1) & 2);
+    if (A >= 0x9000 && A <= 0xb002) {
+      VRC6SW(DECLFW_FORWARD);
+      return;
+    }
+    A &= 0xF003;
+    //        if (A>=0xF000) printf("%d, %d,
+    //        $%04x:$%02x\n",scanline,timestamp,A,V);
+    switch (A & 0xF003) {
+    case 0x8000: ROM_BANK16(fc, 0x8000, V); break;
+    case 0xB003:
+      switch (V & 0xF) {
+      case 0x0: fc->ines->MIRROR_SET2(1); break;
+      case 0x4: fc->ines->MIRROR_SET2(0); break;
+      case 0x8: fc->ines->onemir(0); break;
+      case 0xC: fc->ines->onemir(1); break;
+      }
+      break;
+    case 0xC000: ROM_BANK8(fc, 0xC000, V); break;
+    case 0xD000: VROM_BANK1(fc, 0x0000, V); break;
+    case 0xD001: VROM_BANK1(fc, 0x0400, V); break;
+    case 0xD002: VROM_BANK1(fc, 0x0800, V); break;
+    case 0xD003: VROM_BANK1(fc, 0x0c00, V); break;
+    case 0xE000: VROM_BANK1(fc, 0x1000, V); break;
+    case 0xE001: VROM_BANK1(fc, 0x1400, V); break;
+    case 0xE002: VROM_BANK1(fc, 0x1800, V); break;
+    case 0xE003: VROM_BANK1(fc, 0x1c00, V); break;
+    case 0xF000:
+      fc->ines->iNESIRQLatch = V;
+      // acount=0;
+      break;
+    case 0xF001:
+      fc->ines->iNESIRQa = V & 2;
+      vrctemp(fc) = V & 1;
+      if (V & 2) {
+	fc->ines->iNESIRQCount = fc->ines->iNESIRQLatch;
+	acount = 0;
+      }
+      fc->X->IRQEnd(FCEU_IQEXT);
+      break;
+    case 0xf002:
+      fc->ines->iNESIRQa = vrctemp(fc);
+      fc->X->IRQEnd(FCEU_IQEXT);
+      break;
+    case 0xF003: break;
+    }
+  }
 
-static inline void DoSQV(int x) {
-  FC *fc = &fceulib__;
-  int32 V;
-  int32 amp = (((VPSG(fc)[x << 2] & 15) << 8) * 6 / 8) >> 4;
-  int32 start, end;
+  inline void DoSQV(int x) {
+    int32 V;
+    int32 amp = (((VPSG(fc)[x << 2] & 15) << 8) * 6 / 8) >> 4;
+    int32 start, end;
 
-  start = CVBC[x];
-  end = (fceulib__.sound->SoundTS() << 16) / fceulib__.sound->soundtsinc;
-  if (end <= start) return;
-  CVBC[x] = end;
+    start = CVBC[x];
+    end = (fc->sound->SoundTS() << 16) / fc->sound->soundtsinc;
+    if (end <= start) return;
+    CVBC[x] = end;
 
-  if (VPSG(fc)[(x << 2) | 0x2] & 0x80) {
-    if (VPSG(fc)[x << 2] & 0x80) {
-      for (V = start; V < end; V++) fceulib__.sound->Wave[V >> 4] += amp;
+    if (VPSG(fc)[(x << 2) | 0x2] & 0x80) {
+      if (VPSG(fc)[x << 2] & 0x80) {
+	for (V = start; V < end; V++) fc->sound->Wave[V >> 4] += amp;
+      } else {
+	int32 thresh = (VPSG(fc)[x << 2] >> 4) & 7;
+	int32 freq =
+	    ((VPSG(fc)[(x << 2) | 0x1] | ((VPSG(fc)[(x << 2) | 0x2] & 15) << 8)) + 1)
+	    << 17;
+	for (V = start; V < end; V++) {
+	  /* Greater than, not >=.  Important. */
+	  if (dcount[x] > thresh) fc->sound->Wave[V >> 4] += amp;
+	  vcount[x] -= fc->sound->nesincsize;
+	  /* Should only be <0 in a few circumstances. */
+	  while (vcount[x] <= 0) {
+	    vcount[x] += freq;
+	    dcount[x] = (dcount[x] + 1) & 15;
+	  }
+	}
+      }
+    }
+  }
+
+  void DoSQV1() {
+    DoSQV(0);
+  }
+
+  void DoSQV2() {
+    DoSQV(1);
+  }
+
+  int32 sawv_saw1phaseacc = 0;
+  uint8 sawv_b3 = 0;
+  int32 sawv_phaseacc = 0;
+  uint32 sawv_duff = 0;
+  void DoSawV() {
+    int32 start = CVBC[2];
+    int32 end = (fc->sound->SoundTS() << 16) / fc->sound->soundtsinc;
+    if (end <= start) return;
+    CVBC[2] = end;
+
+    if (VPSG2(fc)[2] & 0x80) {
+      uint32 freq3;
+
+      freq3 = (VPSG2(fc)[1] + ((VPSG2(fc)[2] & 15) << 8) + 1);
+
+      for (int V = start; V < end; V++) {
+	sawv_saw1phaseacc -= fc->sound->nesincsize;
+	if (sawv_saw1phaseacc <= 0) {
+	  int32 t;
+	  do {
+	    t = freq3;
+	    t <<= 18;
+	    sawv_saw1phaseacc += t;
+	    sawv_phaseacc += VPSG2(fc)[0] & 0x3f;
+	    sawv_b3++;
+	    if (sawv_b3 == 7) {
+	      sawv_b3 = 0;
+	      sawv_phaseacc = 0;
+	    }
+	  } while (sawv_saw1phaseacc <= 0);
+
+	  sawv_duff = (((sawv_phaseacc >> 3) & 0x1f) << 4) * 6 / 8;
+	}
+	fc->sound->Wave[V >> 4] += sawv_duff;
+      }
+    }
+  }
+
+  inline void DoSQVHQ(int x) {
+    const int32 amp = ((VPSG(fc)[x << 2] & 15) << 8) * 6 / 8;
+
+    if (VPSG(fc)[(x << 2) | 0x2] & 0x80) {
+      if (VPSG(fc)[x << 2] & 0x80) {
+	for (uint32 V = CVBC[x]; V < fc->sound->SoundTS(); V++)
+	  fc->sound->WaveHi[V] += amp;
+      } else {
+	const int32 thresh = (VPSG(fc)[x << 2] >> 4) & 7;
+	for (uint32 V = CVBC[x]; V < fc->sound->SoundTS(); V++) {
+	  if (dcount[x] > thresh) /* Greater than, not >=.  Important. */
+	    fc->sound->WaveHi[V] += amp;
+	  vcount[x]--;
+	  /* Should only be <0 in a few circumstances. */
+	  if (vcount[x] <= 0) {
+	    vcount[x] = (VPSG(fc)[(x << 2) | 0x1] |
+			 ((VPSG(fc)[(x << 2) | 0x2] & 15) << 8)) + 1;
+	    dcount[x] = (dcount[x] + 1) & 15;
+	  }
+	}
+      }
+    }
+    CVBC[x] = fc->sound->SoundTS();
+  }
+
+  void DoSQV1HQ() {
+    DoSQVHQ(0);
+  }
+
+  void DoSQV2HQ() {
+    DoSQVHQ(1);
+  }
+
+  uint8 sawvhq_b3 = 0;
+  int32 sawvhq_phaseacc = 0;
+  void DoSawVHQ() {
+    if (VPSG2(fc)[2] & 0x80) {
+      for (uint32 V = CVBC[2]; V < fc->sound->SoundTS(); V++) {
+	fc->sound->WaveHi[V] += (((sawvhq_phaseacc >> 3) & 0x1f) << 8) * 6 / 8;
+	vcount[2]--;
+	if (vcount[2] <= 0) {
+	  vcount[2] = (VPSG2(fc)[1] + ((VPSG2(fc)[2] & 15) << 8) + 1) << 1;
+	  sawvhq_phaseacc += VPSG2(fc)[0] & 0x3f;
+	  sawvhq_b3++;
+	  if (sawvhq_b3 == 7) {
+	    sawvhq_b3 = 0;
+	    sawvhq_phaseacc = 0;
+	  }
+	}
+      }
+    }
+    CVBC[2] = fc->sound->SoundTS();
+  }
+
+  void VRC6Sound(int Count) {
+    DoSQV1();
+    DoSQV2();
+    DoSawV();
+    for (int x = 0; x < 3; x++) CVBC[x] = Count;
+  }
+
+  void VRC6SoundHQ() {
+    DoSQV1HQ();
+    DoSQV2HQ();
+    DoSawVHQ();
+  }
+
+  void VRC6SyncHQ(int32 ts) {
+    for (int x = 0; x < 3; x++) CVBC[x] = ts;
+  }
+
+  void VRC6_ESI() {
+    fc->sound->GameExpSound.RChange = [](FC *fc) {
+      ((Mapper24and26 *)fc->fceu->mapiface)->VRC6_ESI();
+    };
+    fc->sound->GameExpSound.Fill = [](FC *fc, int Count) {
+      ((Mapper24and26 *)fc->fceu->mapiface)->VRC6Sound(Count);
+    };
+    fc->sound->GameExpSound.HiFill = [](FC *fc) {
+      ((Mapper24and26 *)fc->fceu->mapiface)->VRC6SoundHQ();
+    };
+    fc->sound->GameExpSound.HiSync = [](FC *fc, int32 ts) {
+      ((Mapper24and26 *)fc->fceu->mapiface)->VRC6SyncHQ(ts);
+    };
+
+    memset(CVBC, 0, sizeof(CVBC));
+    memset(vcount, 0, sizeof(vcount));
+    memset(dcount, 0, sizeof(dcount));
+    if (FCEUS_SNDRATE) {
+      if (FCEUS_SOUNDQ >= 1) {
+	sfun[0] = &Mapper24and26::DoSQV1HQ;
+	sfun[1] = &Mapper24and26::DoSQV2HQ;
+	sfun[2] = &Mapper24and26::DoSawVHQ;
+      } else {
+	sfun[0] = &Mapper24and26::DoSQV1;
+	sfun[1] = &Mapper24and26::DoSQV2;
+	sfun[2] = &Mapper24and26::DoSawV;
+      }
     } else {
-      int32 thresh = (VPSG(fc)[x << 2] >> 4) & 7;
-      int32 freq =
-          ((VPSG(fc)[(x << 2) | 0x1] | ((VPSG(fc)[(x << 2) | 0x2] & 15) << 8)) + 1)
-          << 17;
-      for (V = start; V < end; V++) {
-        /* Greater than, not >=.  Important. */
-        if (dcount[x] > thresh) fceulib__.sound->Wave[V >> 4] += amp;
-        vcount[x] -= fceulib__.sound->nesincsize;
-        /* Should only be <0 in a few circumstances. */
-        while (vcount[x] <= 0) {
-          vcount[x] += freq;
-          dcount[x] = (dcount[x] + 1) & 15;
-        }
-      }
+      sfun[0] = nullptr;
+      sfun[1] = nullptr;
+      sfun[2] = nullptr;
     }
   }
-}
 
-static void DoSQV1() {
-  DoSQV(0);
-}
-
-static void DoSQV2() {
-  DoSQV(1);
-}
-
-static void DoSawV() {
-  FC *fc = &fceulib__;
-  int32 start = CVBC[2];
-  int32 end = (fceulib__.sound->SoundTS() << 16) / fceulib__.sound->soundtsinc;
-  if (end <= start) return;
-  CVBC[2] = end;
-
-  if (VPSG2(fc)[2] & 0x80) {
-    static int32 saw1phaseacc = 0;
-    uint32 freq3;
-    static uint8 b3 = 0;
-    static int32 phaseacc = 0;
-    static uint32 duff = 0;
-
-    freq3 = (VPSG2(fc)[1] + ((VPSG2(fc)[2] & 15) << 8) + 1);
-
-    for (int V = start; V < end; V++) {
-      saw1phaseacc -= fceulib__.sound->nesincsize;
-      if (saw1phaseacc <= 0) {
-        int32 t;
-        do {
-          t = freq3;
-          t <<= 18;
-          saw1phaseacc += t;
-          phaseacc += VPSG2(fc)[0] & 0x3f;
-          b3++;
-          if (b3 == 7) {
-            b3 = 0;
-            phaseacc = 0;
-          }
-        } while (saw1phaseacc <= 0);
-
-        duff = (((phaseacc >> 3) & 0x1f) << 4) * 6 / 8;
-      }
-      fceulib__.sound->Wave[V >> 4] += duff;
-    }
+  Mapper24and26(FC *fc, bool swaparoo) : MapInterface(fc), swaparoo(swaparoo) {
   }
+};
 }
 
-static inline void DoSQVHQ(int x) {
-  FC *fc = &fceulib__;
-  const int32 amp = ((VPSG(fc)[x << 2] & 15) << 8) * 6 / 8;
-
-  if (VPSG(fc)[(x << 2) | 0x2] & 0x80) {
-    if (VPSG(fc)[x << 2] & 0x80) {
-      for (uint32 V = CVBC[x]; V < fceulib__.sound->SoundTS(); V++)
-        fceulib__.sound->WaveHi[V] += amp;
-    } else {
-      const int32 thresh = (VPSG(fc)[x << 2] >> 4) & 7;
-      for (uint32 V = CVBC[x]; V < fceulib__.sound->SoundTS(); V++) {
-        if (dcount[x] > thresh) /* Greater than, not >=.  Important. */
-          fceulib__.sound->WaveHi[V] += amp;
-        vcount[x]--;
-        /* Should only be <0 in a few circumstances. */
-        if (vcount[x] <= 0) {
-          vcount[x] =
-              (VPSG(fc)[(x << 2) | 0x1] | ((VPSG(fc)[(x << 2) | 0x2] & 15) << 8)) + 1;
-          dcount[x] = (dcount[x] + 1) & 15;
-        }
-      }
-    }
-  }
-  CVBC[x] = fceulib__.sound->SoundTS();
+MapInterface *Mapper24_init(FC *fc) {
+  Mapper24and26 *m = new Mapper24and26(fc, false);
+  fc->fceu->SetWriteHandler(0x8000, 0xffff, [](DECLFW_ARGS) {
+    ((Mapper24and26*)fc->fceu->mapiface)->Mapper24_write(DECLFW_FORWARD);
+  });
+  m->VRC6_ESI();
+  fc->X->MapIRQHook = [](FC *fc, int a) {
+    ((Mapper24and26 *)fc->fceu->mapiface)->KonamiIRQHook(a);
+  };
+  return m;
 }
 
-static void DoSQV1HQ() {
-  DoSQVHQ(0);
+MapInterface *Mapper26_init(FC *fc) {
+  Mapper24and26 *m = new Mapper24and26(fc, true);
+  fc->fceu->SetWriteHandler(0x8000, 0xffff, [](DECLFW_ARGS) {
+    ((Mapper24and26*)fc->fceu->mapiface)->Mapper24_write(DECLFW_FORWARD);
+  });
+  m->VRC6_ESI();
+  fc->X->MapIRQHook = [](FC *fc, int a) {
+    ((Mapper24and26 *)fc->fceu->mapiface)->KonamiIRQHook(a);
+  };
+  return m;
 }
 
-static void DoSQV2HQ() {
-  DoSQVHQ(1);
+#if 0
+// NSF disabled. -tom7
+MapInterface *NSFVRC6_Init(FC *fc) {
+  Mapper24and26 *m = new Mapper24and26(fc, false);
+  m->VRC6_ESI();
+  fc->fceu->SetWriteHandler(0x8000, 0xbfff, [](DECLFW_ARGS) {
+    ((Mapper24and26*)fc->fceu->mapinterface)->VRC6SW(DECLFW_FORWARD);
+  });
 }
-
-static uint8 b3 = 0;
-static int32 phaseacc = 0;
-static void DoSawVHQ() {
-  FC *fc = &fceulib__;
-  uint32 V;  // mbg merge 7/17/06 made uint32
-
-  if (VPSG2(fc)[2] & 0x80) {
-    for (V = CVBC[2]; V < fceulib__.sound->SoundTS(); V++) {
-      fceulib__.sound->WaveHi[V] += (((phaseacc >> 3) & 0x1f) << 8) * 6 / 8;
-      vcount[2]--;
-      if (vcount[2] <= 0) {
-        vcount[2] = (VPSG2(fc)[1] + ((VPSG2(fc)[2] & 15) << 8) + 1) << 1;
-        phaseacc += VPSG2(fc)[0] & 0x3f;
-        b3++;
-        if (b3 == 7) {
-          b3 = 0;
-          phaseacc = 0;
-        }
-      }
-    }
-  }
-  CVBC[2] = fceulib__.sound->SoundTS();
-}
-
-static void VRC6Sound(FC *fc, int Count) {
-  DoSQV1();
-  DoSQV2();
-  DoSawV();
-  for (int x = 0; x < 3; x++) CVBC[x] = Count;
-}
-
-static void VRC6SoundHQ(FC *fc) {
-  DoSQV1HQ();
-  DoSQV2HQ();
-  DoSawVHQ();
-}
-
-static void VRC6SyncHQ(FC *fc, int32 ts) {
-  for (int x = 0; x < 3; x++) CVBC[x] = ts;
-}
-
-static void VRC6_ESI(FC *fc) {
-  fceulib__.sound->GameExpSound.RChange = VRC6_ESI;
-  fceulib__.sound->GameExpSound.Fill = VRC6Sound;
-  fceulib__.sound->GameExpSound.HiFill = VRC6SoundHQ;
-  fceulib__.sound->GameExpSound.HiSync = VRC6SyncHQ;
-
-  memset(CVBC, 0, sizeof(CVBC));
-  memset(vcount, 0, sizeof(vcount));
-  memset(dcount, 0, sizeof(dcount));
-  if (FCEUS_SNDRATE) {
-    if (FCEUS_SOUNDQ >= 1) {
-      sfun[0] = DoSQV1HQ;
-      sfun[1] = DoSQV2HQ;
-      sfun[2] = DoSawVHQ;
-    } else {
-      sfun[0] = DoSQV1;
-      sfun[1] = DoSQV2;
-      sfun[2] = DoSawV;
-    }
-  } else {
-    memset(sfun, 0, sizeof(sfun));
-  }
-}
-
-void Mapper24_init() {
-  fceulib__.fceu->SetWriteHandler(0x8000, 0xffff, Mapper24_write);
-  VRC6_ESI(&fceulib__);
-  fceulib__.X->MapIRQHook = KonamiIRQHook;
-  swaparoo = 0;
-}
-
-void Mapper26_init() {
-  fceulib__.fceu->SetWriteHandler(0x8000, 0xffff, Mapper24_write);
-  VRC6_ESI(&fceulib__);
-  fceulib__.X->MapIRQHook = KonamiIRQHook;
-  swaparoo = 1;
-}
-
-void NSFVRC6_Init() {
-  VRC6_ESI(&fceulib__);
-  fceulib__.fceu->SetWriteHandler(0x8000, 0xbfff, VRC6SW);
-}
+#endif
