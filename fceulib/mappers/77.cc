@@ -45,8 +45,8 @@ struct Mapper77 : public MapInterface {
 MapInterface *Mapper77_init(FC *fc) {
   Mapper77 *m = new Mapper77(fc);
 
-  ROM_BANK32(&fceulib__, 0);
-  for (int x = 2; x < 8; x++) VRAM_BANK1(&fceulib__, x * 0x400, x);
+  ROM_BANK32(fc, 0);
+  for (int x = 2; x < 8; x++) VRAM_BANK1(fc, x * 0x400, x);
   fc->fceu->SetWriteHandler(0x6000, 0xffff, [](DECLFW_ARGS) {
     ((Mapper77*)fc->fceu->mapiface)->Mapper77_write(DECLFW_FORWARD);
   });

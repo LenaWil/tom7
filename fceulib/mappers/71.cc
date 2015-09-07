@@ -31,6 +31,6 @@ static DECLFW(Mapper71_write) {
 }
 
 MapInterface *Mapper71_init(FC *fc) {
-  fceulib__.fceu->SetWriteHandler(0x4020, 0xffff, Mapper71_write);
+  fc->fceu->SetWriteHandler(0x4020, 0xffff, Mapper71_write);
   return new MapInterface(fc);
 }

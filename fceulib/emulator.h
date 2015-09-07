@@ -92,7 +92,7 @@ struct Emulator {
   
  protected:
   // Use factory method.
-  Emulator(FC *);
+  Emulator(FC *fc);
 
  private:
   bool DriverInitialize(FCEUGI *gi);

@@ -167,7 +167,6 @@ struct Mapper69 : public MapInterface {
   }
 
   void DoAYSQHQ(int x) {
-    FC *fc = &fceulib__;
     int32 freq =
       ((GMB_MapperExRAM(fc)[x << 1] |
 	((GMB_MapperExRAM(fc)[(x << 1) + 1] & 15) << 8)) + 1)
@@ -220,7 +219,6 @@ struct Mapper69 : public MapInterface {
   }
 
   void StateRestore(int version) override {
-    FC *fc = &fceulib__;
     if (GMB_mapbyte1(fc)[1] & 0x40) {
       if (GMB_mapbyte1(fc)[1] & 0x80) {
 	// Select WRAM
@@ -279,6 +277,6 @@ void NSFAY_Init() {
   sunindex = 0;
   fc->fceu->SetWriteHandler(0xc000, 0xdfff, Mapper69_SWL);
   fc->fceu->SetWriteHandler(0xe000, 0xffff, Mapper69_SWH);
-  Mapper69_ESI(&fceulib__);
+  Mapper69_ESI(fc);
 }
 #endif

@@ -250,8 +250,8 @@ struct UNLOneBus : public CartInterface {
           fc->X->IRQBegin(FCEU_IQEXT);
         } else {
           uint8 raw_pcm =
-              fc->fceu->ARead[pcm_addr](&fceulib__, pcm_addr) >> 1;
-          defapuwrite[0x11](&fceulib__, 0x4011, raw_pcm);
+              fc->fceu->ARead[pcm_addr](fc, pcm_addr) >> 1;
+          defapuwrite[0x11](fc, 0x4011, raw_pcm);
           pcm_addr++;
           pcm_addr &= 0x7FFF;
         }

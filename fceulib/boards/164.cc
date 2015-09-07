@@ -181,7 +181,7 @@ struct Mapper163 : public Mapper164Base {
   }
   
   Mapper163(FC *fc, CartInfo *info) : Mapper164Base(fc, info) {
-    fceulib__.ppu->GameHBIRQHook = [](FC *fc) {
+    fc->ppu->GameHBIRQHook = [](FC *fc) {
       ((Mapper163*)fc->fceu->cartiface)->M163HB();
     };
   }

@@ -124,7 +124,7 @@ Emulator::~Emulator() {
   fc->fceu->FCEU_CloseGame();
   fc->fceu->GameInfo = nullptr;
 
-  // TODO: delete owned FC object...
+  delete fc;
 }
 
 Emulator::Emulator(FC *fc) : fc(fc) {}
@@ -133,15 +133,14 @@ Emulator *Emulator::Create(const string &romfile) {
   // XXX Need to get rid of IO too.
   fprintf(stderr, "Starting " FCEU_NAME_AND_VERSION "...\n");
 
-  // XXX Emulator should be the one creating an FC object,
-  // not referencing a global.
-  FC *fc = &fceulib__;
   // (Here's where SDL was initialized.)
-
+  FC *fc = new FC;
+  
   // initialize the infrastructure
   int error = fc->fceu->FCEUI_Initialize();
   if (error != 1) {
     fprintf(stderr, "Error initializing.\n");
+    delete fc;
     return nullptr;
   }
 
@@ -174,6 +173,7 @@ Emulator *Emulator::Create(const string &romfile) {
   // Load the game.
   if (1 != emu->LoadGame(romfile.c_str())) {
     fprintf(stderr, "Couldn't load [%s]\n", romfile.c_str());
+    delete emu;
     return nullptr;
   }
 
