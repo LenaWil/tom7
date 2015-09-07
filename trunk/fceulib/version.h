@@ -27,7 +27,7 @@
 #define FCEU_NAME "FCEUX"
 
 #define FCEU_VERSION_NUMERIC 21060
-#define FCEU_VERSION_STRING "2.1.6-fceulib" 
+#define FCEU_VERSION_STRING "2.1.6-fceulib"
 #define FCEU_NAME_AND_VERSION FCEU_NAME " " FCEU_VERSION_STRING
 
 std::string FCEUI_GetAboutString();

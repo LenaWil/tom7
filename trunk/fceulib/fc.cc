@@ -34,8 +34,6 @@ FC::FC() {
   X = nullptr;
   state = nullptr;
 
-  printf("Creating FC at %p\n", this);
-  
   cart = new Cart(this);
   fceu = new FCEU(this);
   fds = new FDS(this);
@@ -49,8 +47,6 @@ FC::FC() {
   vsuni = new VSUni(this);
   X = new X6502(this);
   state = new State(this);
-  
-  printf("Done creating FC at %p\n", this);
 }
 
 FC::~FC() {
@@ -68,5 +64,3 @@ FC::~FC() {
   delete X;
   delete state;
 }
-
-// FC fceulib__;

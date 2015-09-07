@@ -41,6 +41,4 @@ struct FC {
   ~FC();
 };
 
-// extern FC fceulib__;
-
 #endif

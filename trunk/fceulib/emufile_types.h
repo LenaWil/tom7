@@ -1,6 +1,0 @@
-#ifndef EMUFILE_TYPES_H
-#define EMUFILE_TYPES_H
-
-
-
-#endif //EMUFILE_TYPES_H

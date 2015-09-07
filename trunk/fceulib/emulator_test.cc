@@ -17,6 +17,8 @@
 #include "base/stringprintf.h"
 #include "stb_image_write.h"
 
+#include "threadutil.h"
+
 #include "tracing.h"
 
 static constexpr uint64 kEveryGameUponLoad =
@@ -55,8 +57,6 @@ struct Game {
 };
 
 static int64 TimeUsec() {
-  // XXX solution for win32.
-  // (Actually this currently compiles on mingw64!)
   timeval tv;
   gettimeofday(&tv, nullptr);
   return tv.tv_sec * 1000000LL + tv.tv_usec;
@@ -184,7 +184,6 @@ struct Collage {
   // Only writes an image if there are any.
   void Flush() {
     if (nextx > 0 || nexty > 0) {
-      // XXX write image.
       string filename = 
 	StringPrintf("%s-%d.png", filename_base.c_str(), file_number);
       stbi_write_png(filename.c_str(), WIDTH, HEIGHT, 4, cur.data(),
@@ -220,9 +219,6 @@ static SerialResult RunGameSerially(const Game &game) {
 
   TRACEF("Serially %s", game.cart.c_str());
   
-  // TRACE_SCOPED_ENABLE_IF(game.cart.find("Cobra Triangle.nes") !=
-  // string::npos);
-
   // Once we've collected the states, we have not just the checksums
   // but the actual RAMs (in full mode), so we can print better
   // diagnostic messages. The argument i is the index into checksums
@@ -383,10 +379,8 @@ static SerialResult RunGameSerially(const Game &game) {
     fprintf(stderr, "Running frames backwards:\n");
     // TRACE_SWITCH("backward-trace.bin");
     for (int i = saves.size() - 2; i >= 0; i--) {
-      // fprintf(stderr, "%d -> %d: ", i, i + 1);
       emu->LoadUncompressed(&saves[i]);
       CHECK_RAM_STEP(i);
-      // fprintf(stderr, "(ram starts %llu)\n", emu->RamChecksum());
       CHECK(i + 1 < saves.size());
       CHECK(i + 1 < inputs.size());
       StepMaybeTraced(inputs[i]);
@@ -404,7 +398,6 @@ static SerialResult RunGameSerially(const Game &game) {
       rc.Byte() << 16 |
       rc.Byte() << 8 |
       rc.Byte();
-    // printf("%lld", b);
     return b % max;
   };
 
@@ -422,17 +415,6 @@ static SerialResult RunGameSerially(const Game &game) {
       }
     }
   };
-
-  #if 0
-  // In basketball.nes.
-  fprintf(stderr, "Reproduce failure:\n");
-  TRACE_SWITCH("testcase-trace.bin");
-  for (const auto &p : {pair<int, int>{5941, 1}, {8437, 2}})
-    DoSeekSpan(p.first, p.second);
-
-  fprintf(stderr, "XXX failed to reproduce failure...\n");
-  abort();
-  #endif
 
   fprintf(stderr, "Random seeks:\n");
   for (int i = 0; i < 500; i++) {
@@ -458,7 +440,9 @@ static SerialResult RunGameSerially(const Game &game) {
     }
   }
 
-  fprintf(stderr, "OK.\n");
+  // Don't need this any more.
+  emu.release();
+
   // XXX probably don't need separate ret1, ret2 now?
   SerialResult sr;
   sr.after_inputs = ret1;
@@ -469,13 +453,10 @@ static SerialResult RunGameSerially(const Game &game) {
     sr.final_image = std::move(images[images.size() - 1]);
   }
 
-  fprintf(stderr, "Returning...\n");
   return sr;
 }
 
 int main(int argc, char **argv) {
-  int modulus = 1;
-  int my_index = 0;
   string output_file;
   string romdir = "roms/";
   bool write_collage = true;
@@ -496,14 +477,6 @@ int main(int argc, char **argv) {
       FULL = true;
       COMPREHENSIVE = true;
       MAKE_COMPREHENSIVE = false;
-    } else if (arg == "--modulus") {
-      CHECK(i + 1 < argc);
-      i++;
-      modulus = atoi(argv[i]);
-    } else if (arg == "--index") {
-      CHECK(i + 1 < argc);
-      i++;
-      my_index = atoi(argv[i]);
     } else if (arg == "--romdir") {
       CHECK(i + 1 < argc);
       i++;
@@ -525,16 +498,6 @@ int main(int argc, char **argv) {
     fprintf(stderr, "Running FULL tests.\n");
   } else {
     fprintf(stderr, "Running 'fast' tests.\n");
-  }
-
-  if (modulus != 1) {
-    CHECK(COMPREHENSIVE) << "modulus is only allowed in COMPREHENSIVE mode.";
-    CHECK(!MAKE_COMPREHENSIVE) << "this would have to make writes to the "
-      "same file from multiple processes, so it's not implemented yet.";
-    CHECK(modulus > 1);
-    CHECK(my_index >= 0);
-    CHECK(my_index < modulus);
-    fprintf(stderr, "This will be index %d mod %d.\n", my_index, modulus);
   }
 
   // First, ensure that we have preserved the single-threaded
@@ -759,7 +722,7 @@ int main(int argc, char **argv) {
 
   TRACE_DISABLE();
 
-  Collage collage(modulus == 1 ? "" : StringPrintf("%d.", my_index));
+  Collage collage("");
   auto RunGameToCollage = [&collage, write_collage](const Game &game) {
     SerialResult sr = RunGameSerially(game);
     if (write_collage) {
@@ -774,8 +737,7 @@ int main(int argc, char **argv) {
 
   // Only run the intro tests for the first index in
   // sharded comprehensive mode.
-  if (false) // XXXXX
-  if (!MAKE_COMPREHENSIVE && my_index == 0) { 
+  if (!MAKE_COMPREHENSIVE) { 
     RunGameToCollage(dw4);
 
     RunGameToCollage(karate);
@@ -797,20 +759,17 @@ int main(int argc, char **argv) {
   if (COMPREHENSIVE) {
     printf("Now COMPREHENSIVE tests.\n");
     vector<string> romlines = ReadFileToLines(romdir + "roms.txt");
-    const string id = 
-      (modulus == 1) ? "" : StringPrintf("(%d|%d) ", my_index, modulus);
-    // We write this each time we run the comprehensive test because
-    // it's so expensive anyway.
-    output_file = output_file.empty() ?
-      StringPrintf("comprehensive-%d-of-%d.txt",
-		   my_index, modulus) : output_file;
-    
-    FILE *out = fopen(output_file.c_str(), "wb");
-    CHECK(out != nullptr) << "Unable to open file " << output_file;
-    for (int line_num = 0; line_num < romlines.size(); line_num++) {
-      if (line_num % modulus != my_index) continue;
-      string line = LoseWhiteL(romlines[line_num]);
-      if (line.size() > 0 && line[0] == '#') continue;
+    vector<string> results;
+    results.resize(romlines.size());
+
+    std::mutex done_mutex;
+    int num_done = 0;
+
+    auto OneLine =
+      [&romdir, &romlines, &results,
+       &num_done, &done_mutex](int line_num, const string &orig_line) {
+      string line = LoseWhiteL(orig_line);
+      if (line.empty() || line[0] == '#') return;
       string a = Chop(line);
       string b = Chop(line);
       string c = Chop(line);
@@ -833,27 +792,51 @@ int main(int argc, char **argv) {
 	    image_after_inputs,
 	    image_after_random,
             };
-        const SerialResult sr = RunGameToCollage(game);
-        fprintf(out, "%llu %llu %llu %llu %s\n", 
-		sr.after_inputs, sr.after_random,
-		sr.image_after_inputs, sr.image_after_random,
-                filename.c_str());
-        fflush(out);
-        fprintf(stderr, "%sDid %d/%d = %.1f%%.\n",
-		id.c_str(),
-                line_num + 1, (int)romlines.size(),
-                (line_num + 1) * 100. / romlines.size());
-	// In this case we've already aborted (unless
-	// MAKE_COMPREHENSIVE is set).
-	if (sr.after_inputs != after_inputs ||
-	    sr.after_random != after_random ||
-	    sr.image_after_inputs != image_after_inputs ||
-	    sr.image_after_random != image_after_random) {
-	  fprintf(stderr, "(Note, didn't match last time: %s)\n",
-		  filename.c_str());
+        const SerialResult sr = RunGameSerially(game);
+	{
+	  MutexLock ml(&done_mutex);
+	  
+	  // Easy enough to arrange for save parallel access to this
+	  // vector, but we're trying to exercise the emu code, not
+	  // the test harness.
+	  results[line_num] =
+	    StringPrintf("%llu %llu %llu %llu %s", 
+			 sr.after_inputs, sr.after_random,
+			 sr.image_after_inputs, sr.image_after_random,
+			 filename.c_str());
+
+	  num_done++;
+	  fprintf(stderr, "Did %d/%d = %.1f%%.\n",
+		  num_done, (int)romlines.size(),
+		  num_done * 100. / romlines.size());
+	  // In this case we've already aborted (unless
+	  // MAKE_COMPREHENSIVE is set).
+	  if (sr.after_inputs != after_inputs ||
+	      sr.after_random != after_random ||
+	      sr.image_after_inputs != image_after_inputs ||
+	      sr.image_after_random != image_after_random) {
+	    fprintf(stderr, "(Note, didn't match last time: %s)\n",
+		    filename.c_str());
+	  }
 	}
       }
+    };
+
+    ParallelAppi(romlines, OneLine, 10);
+    
+    // We write this each time we run the comprehensive test because
+    // it's so expensive anyway.
+    if (output_file.empty())
+      output_file = "comprehensive.txt";
+
+    fprintf(stderr, "Writing %d results to %s...\n", (int)results.size(),
+	    output_file.c_str());
+    FILE *out = fopen(output_file.c_str(), "wb");
+    CHECK(out != nullptr) << "Unable to open file " << output_file;
+    for (const string &line : results) {
+      fprintf(out, "%s\n", line.c_str());
     }
+    
     fclose(out);
     if (write_collage) {
       collage.Flush();

@@ -35,7 +35,8 @@ LINKSDL= -mno-cygwin -lm -luser32 -lgdi32 -lwinmm -ldxguid
 # Emulator uses city, yeah? See if we can make this work with no deps.
 INCLUDES=-I "../cc-lib" -I "../cc-lib/city" -I "."
 
-CPPFLAGS=-DPSS_STYLE=1 -DDUMMY_UI  -m64 $(OPT) $(WINCFLAGS) -DHAVE_ALLOCA -DNOWINSTUFF $(INCLUDES) $(PROFILE) $(FLTO) --std=c++11
+# tom7 added -mthreads on 9/7!
+CPPFLAGS=-DPSS_STYLE=1 -DDUMMY_UI -mthreads -m64 $(OPT) $(WINCFLAGS) -DHAVE_ALLOCA -DNOWINSTUFF $(INCLUDES) $(PROFILE) $(FLTO) --std=c++11
 
 # Should just be used for testing.
 CCLIBOBJECTS=../cc-lib/util.o ../cc-lib/arcfour.o ../cc-lib/base/logging.o ../cc-lib/base/stringprintf.o ../cc-lib/city/city.o ../cc-lib/rle.o ../cc-lib/stb_image_write.o
