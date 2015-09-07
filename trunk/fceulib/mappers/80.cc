@@ -25,20 +25,19 @@ struct Mapper80Base : public MapInterface {
   const bool isfu = false;
   uint32 lastA = 0;
   uint8 CCache[8] = {};
-
+  int ppu_last = -1;
+  uint8 ppu_z = 0;
+  
   void Fudou_PPU(uint32 A) {
-    static int last = -1;
-    static uint8 z;
-
     if (A >= 0x2000) return;
 
     A >>= 10;
     lastA = A;
 
-    z = CCache[A];
-    if (z != last) {
-      fc->ines->onemir(z);
-      last = z;
+    ppu_z = CCache[A];
+    if (ppu_z != ppu_last) {
+      fc->ines->onemir(ppu_z);
+      ppu_last = ppu_z;
     }
   }
 

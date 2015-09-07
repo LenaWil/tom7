@@ -163,8 +163,8 @@ MapInterface *Mapper64_init(FC *fc) {
 }
 
 /*
-static int MirCache[8];
-static unsigned int PPUCHRBus;
+int MirCache[8];
+unsigned int PPUCHRBus;
 
 static void MirWrap(unsigned int A, unsigned int V)
 {
