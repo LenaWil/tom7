@@ -20,46 +20,53 @@
 
 #include "mapinc.h"
 
-static void Mapper50IRQ(FC *fc, int a) {
-  if (fceulib__.ines->iNESIRQa) {
-    if (fceulib__.ines->iNESIRQCount < 4096) {
-      fceulib__.ines->iNESIRQCount += a;
-    } else {
-      fceulib__.ines->iNESIRQa = 0;
-      fceulib__.X->IRQBegin(FCEU_IQEXT);
+namespace {
+struct Mapper50 : public MapInterface {
+  using MapInterface::MapInterface;
+  void Mapper50IRQ(int a) {
+    if (fc->ines->iNESIRQa) {
+      if (fc->ines->iNESIRQCount < 4096) {
+	fc->ines->iNESIRQCount += a;
+      } else {
+	fc->ines->iNESIRQa = 0;
+	fc->X->IRQBegin(FCEU_IQEXT);
+      }
     }
   }
-}
 
-static void M50Restore(int version) {
-  FC *fc = &fceulib__;
-  fc->cart->setprg8(0xc000, GMB_mapbyte1(fc)[0]);
-}
+  void StateRestore(int version) override {
+    fc->cart->setprg8(0xc000, GMB_mapbyte1(fc)[0]);
+  }
 
-static DECLFW(M50W) {
-  if ((A & 0xD060) == 0x4020) {
-    if (A & 0x100) {
-      fceulib__.ines->iNESIRQa = V & 1;
-      if (!fceulib__.ines->iNESIRQa) fceulib__.ines->iNESIRQCount = 0;
-      fceulib__.X->IRQEnd(FCEU_IQEXT);
-    } else {
-      V = ((V & 1) << 2) | ((V & 2) >> 1) | ((V & 4) >> 1) | (V & 8);
-      GMB_mapbyte1(fc)[0] = V;
-      fceulib__.cart->setprg8(0xc000, V);
+  void M50W(DECLFW_ARGS) {
+    if ((A & 0xD060) == 0x4020) {
+      if (A & 0x100) {
+	fc->ines->iNESIRQa = V & 1;
+	if (!fc->ines->iNESIRQa) fc->ines->iNESIRQCount = 0;
+	fc->X->IRQEnd(FCEU_IQEXT);
+      } else {
+	V = ((V & 1) << 2) | ((V & 2) >> 1) | ((V & 4) >> 1) | (V & 8);
+	GMB_mapbyte1(fc)[0] = V;
+	fc->cart->setprg8(0xc000, V);
+      }
     }
   }
+};
 }
-
-void Mapper50_init() {
-  FC *fc = &fceulib__;
-  fc->fceu->SetWriteHandler(0x4020, 0x5fff, M50W);
+  
+MapInterface *Mapper50_init(FC *fc) {
+  fc->fceu->SetWriteHandler(0x4020, 0x5fff, [](DECLFW_ARGS) {
+    ((Mapper50*)fc->fceu->mapiface)->M50W(DECLFW_FORWARD);
+  });
   fc->fceu->SetReadHandler(0x6000, 0xffff, Cart::CartBR);
-  fc->ines->MapStateRestore = M50Restore;
-  fc->X->MapIRQHook = Mapper50IRQ;
+  fc->X->MapIRQHook = [](FC *fc, int a) {
+    ((Mapper50 *)fc->fceu->mapiface)->Mapper50IRQ(a);
+  };
 
   fc->cart->setprg8(0x6000, 0xF);
   fc->cart->setprg8(0x8000, 0x8);
   fc->cart->setprg8(0xa000, 0x9);
   fc->cart->setprg8(0xc000, 0x0);
   fc->cart->setprg8(0xe000, 0xB);
+  return new Mapper50(fc);
 }

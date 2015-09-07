@@ -26,49 +26,51 @@ static DECLFW(Mapper67_write) {
   A &= 0xF800;
   if ((A & 0x800) && A <= 0xb800) {
     VROM_BANK2(fc, (A - 0x8800) >> 1, V);
-  } else
+  } else {
     switch (A) {
     case 0xc800:
     case 0xc000:
       if (!suntoggle) {
-	fceulib__.ines->iNESIRQCount &= 0xFF;
-	fceulib__.ines->iNESIRQCount |= V << 8;
+	fc->ines->iNESIRQCount &= 0xFF;
+	fc->ines->iNESIRQCount |= V << 8;
       } else {
-	fceulib__.ines->iNESIRQCount &= 0xFF00;
-	fceulib__.ines->iNESIRQCount |= V;
+	fc->ines->iNESIRQCount &= 0xFF00;
+	fc->ines->iNESIRQCount |= V;
       }
       suntoggle ^= 1;
       break;
     case 0xd800:
       suntoggle = 0;
-      fceulib__.ines->iNESIRQa = V & 0x10;
-      fceulib__.X->IRQEnd(FCEU_IQEXT);
+      fc->ines->iNESIRQa = V & 0x10;
+      fc->X->IRQEnd(FCEU_IQEXT);
       break;
 
     case 0xe800:
       switch (V & 3) {
-      case 0: fceulib__.ines->MIRROR_SET2(1); break;
-      case 1: fceulib__.ines->MIRROR_SET2(0); break;
-      case 2: fceulib__.ines->onemir(0); break;
-      case 3: fceulib__.ines->onemir(1); break;
+      case 0: fc->ines->MIRROR_SET2(1); break;
+      case 1: fc->ines->MIRROR_SET2(0); break;
+      case 2: fc->ines->onemir(0); break;
+      case 3: fc->ines->onemir(1); break;
       }
       break;
     case 0xf800: ROM_BANK16(fc, 0x8000, V); break;
     }
+  }
 }
 
 static void SunIRQHook(FC *fc, int a) {
-  if (fceulib__.ines->iNESIRQa) {
-    fceulib__.ines->iNESIRQCount -= a;
-    if (fceulib__.ines->iNESIRQCount <= 0) {
-      fceulib__.X->IRQBegin(FCEU_IQEXT);
-      fceulib__.ines->iNESIRQa = 0;
-      fceulib__.ines->iNESIRQCount = 0xFFFF;
+  if (fc->ines->iNESIRQa) {
+    fc->ines->iNESIRQCount -= a;
+    if (fc->ines->iNESIRQCount <= 0) {
+      fc->X->IRQBegin(FCEU_IQEXT);
+      fc->ines->iNESIRQa = 0;
+      fc->ines->iNESIRQCount = 0xFFFF;
     }
   }
 }
 
-void Mapper67_init() {
-  fceulib__.fceu->SetWriteHandler(0x8000, 0xffff, Mapper67_write);
-  fceulib__.X->MapIRQHook = SunIRQHook;
+MapInterface *Mapper67_init(FC *fc) {
+  fc->fceu->SetWriteHandler(0x8000, 0xffff, Mapper67_write);
+  fc->X->MapIRQHook = SunIRQHook;
+  return new MapInterface(fc);
 }

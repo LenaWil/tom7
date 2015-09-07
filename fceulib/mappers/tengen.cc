@@ -23,134 +23,143 @@
 
 using namespace std;
 
-static uint8 cmd, mir, rmode, IRQmode;
-static uint8 DRegs[11];
-static uint8 IRQCount, IRQa, IRQLatch;
-static int smallcount;
+namespace {
+struct Tengen : public MapInterface {
 
-static vector<SFORMAT> Rambo_StateRegs = {
-    {&cmd, 1, "CMD0"},         {&mir, 1, "MIR0"},
-    {&rmode, 1, "RMOD"},      {&IRQmode, 1, "IRQM"},
-    {&IRQCount, 1, "IRQC"},   {&IRQa, 1, "IRQA"},
-    {&IRQLatch, 1, "IRQL"},   {DRegs, 11, "DREG"},
-    {&smallcount, 4, "SMAC"}};
+  uint8 cmd = 0, mir = 0, rmode = 0, IRQmode = 0;
+  uint8 DRegs[11] = {};
+  uint8 IRQCount = 0, IRQa = 0, IRQLatch = 0;
+  int smallcount = 0;
 
-static void (*setchr1wrap)(unsigned int A, unsigned int V);
-// static int nomirror;
+  // static void (*setchr1wrap)(unsigned int A, unsigned int V);
+  // static int nomirror;
 
-static void RAMBO1_IRQHook(FC *fc, int a) {
-  if (!IRQmode) return;
+  void RAMBO1_IRQHook(int a) {
+    if (!IRQmode) return;
 
-  TRACEF("RAMBO1: %d %d %02x %02x", a, smallcount, IRQCount, IRQa);
+    TRACEF("RAMBO1: %d %d %02x %02x", a, smallcount, IRQCount, IRQa);
 
-  smallcount += a;
-  while (smallcount >= 4) {
-    smallcount -= 4;
-    IRQCount--;
-    if (IRQCount == 0xFF)
-      if (IRQa) fceulib__.X->IRQBegin(FCEU_IQEXT);
-  }
-}
-
-static void RAMBO1_hb(FC *fc) {
-  if (IRQmode) return;
-  if (fceulib__.ppu->scanline == 240)
-    return; /* hmm.  Maybe that should be an mmc3-only call in fce.c. */
-  rmode = 0;
-  IRQCount--;
-  if (IRQCount == 0xFF) {
-    if (IRQa) {
-      rmode = 1;
-      fceulib__.X->IRQBegin(FCEU_IQEXT);
+    smallcount += a;
+    while (smallcount >= 4) {
+      smallcount -= 4;
+      IRQCount--;
+      if (IRQCount == 0xFF)
+	if (IRQa) fc->X->IRQBegin(FCEU_IQEXT);
     }
   }
-}
 
-static void Synco() {
-
-  if (cmd & 0x20) {
-    setchr1wrap(0x0000, DRegs[0]);
-    setchr1wrap(0x0800, DRegs[1]);
-    setchr1wrap(0x0400, DRegs[8]);
-    setchr1wrap(0x0c00, DRegs[9]);
-  } else {
-    setchr1wrap(0x0000, (DRegs[0] & 0xFE));
-    setchr1wrap(0x0400, (DRegs[0] & 0xFE) | 1);
-    setchr1wrap(0x0800, (DRegs[1] & 0xFE));
-    setchr1wrap(0x0C00, (DRegs[1] & 0xFE) | 1);
+  void RAMBO1_hb() {
+    if (IRQmode) return;
+    if (fc->ppu->scanline == 240)
+      return; /* hmm.  Maybe that should be an mmc3-only call in fce.c. */
+    rmode = 0;
+    IRQCount--;
+    if (IRQCount == 0xFF) {
+      if (IRQa) {
+	rmode = 1;
+	fc->X->IRQBegin(FCEU_IQEXT);
+      }
+    }
   }
 
-  for (int x = 0; x < 4; x++) setchr1wrap(0x1000 + x * 0x400, DRegs[2 + x]);
+  void Synco() {
+    if (cmd & 0x20) {
+      CHRWrap(0x0000, DRegs[0]);
+      CHRWrap(0x0800, DRegs[1]);
+      CHRWrap(0x0400, DRegs[8]);
+      CHRWrap(0x0c00, DRegs[9]);
+    } else {
+      CHRWrap(0x0000, (DRegs[0] & 0xFE));
+      CHRWrap(0x0400, (DRegs[0] & 0xFE) | 1);
+      CHRWrap(0x0800, (DRegs[1] & 0xFE));
+      CHRWrap(0x0C00, (DRegs[1] & 0xFE) | 1);
+    }
 
-  fceulib__.cart->setprg8(0x8000, DRegs[6]);
-  fceulib__.cart->setprg8(0xA000, DRegs[7]);
+    for (int x = 0; x < 4; x++)
+      CHRWrap(0x1000 + x * 0x400, DRegs[2 + x]);
 
-  fceulib__.cart->setprg8(0xC000, DRegs[10]);
-}
+    fc->cart->setprg8(0x8000, DRegs[6]);
+    fc->cart->setprg8(0xA000, DRegs[7]);
 
-static DECLFW(RAMBO1_write) {
-  switch (A & 0xF001) {
-    case 0xa000:
-      mir = V & 1;
-      //                 if (!nomirror)
-      fceulib__.cart->setmirror(mir ^ 1);
-      break;
-    case 0x8000: cmd = V; break;
-    case 0x8001:
-      if ((cmd & 0xF) < 10)
-        DRegs[cmd & 0xF] = V;
-      else if ((cmd & 0xF) == 0xF)
-        DRegs[10] = V;
-      Synco();
-      break;
-    case 0xc000:
-      IRQLatch = V;
-      if (rmode == 1) IRQCount = IRQLatch;
-      break;
-    case 0xc001:
-      rmode = 1;
-      IRQCount = IRQLatch;
-      IRQmode = V & 1;
-      break;
-    case 0xE000:
-      IRQa = 0;
-      fceulib__.X->IRQEnd(FCEU_IQEXT);
-      if (rmode == 1) IRQCount = IRQLatch;
-      break;
-    case 0xE001:
-      IRQa = 1;
-      if (rmode == 1) IRQCount = IRQLatch;
-      break;
+    fc->cart->setprg8(0xC000, DRegs[10]);
   }
-}
 
-static void RAMBO1_Restore(FC *fc, int version) {
-  Synco();
-  //  if (!nomirror)
-  fceulib__.cart->setmirror(mir ^ 1);
-}
+  void RAMBO1_write(DECLFW_ARGS) {
+    switch (A & 0xF001) {
+      case 0xa000:
+	mir = V & 1;
+	//                 if (!nomirror)
+	fc->cart->setmirror(mir ^ 1);
+	break;
+      case 0x8000: cmd = V; break;
+      case 0x8001:
+	if ((cmd & 0xF) < 10) {
+	  DRegs[cmd & 0xF] = V;
+	} else if ((cmd & 0xF) == 0xF) {
+	  DRegs[10] = V;
+	}
+	Synco();
+	break;
+      case 0xc000:
+	IRQLatch = V;
+	if (rmode == 1) IRQCount = IRQLatch;
+	break;
+      case 0xc001:
+	rmode = 1;
+	IRQCount = IRQLatch;
+	IRQmode = V & 1;
+	break;
+      case 0xE000:
+	IRQa = 0;
+	fc->X->IRQEnd(FCEU_IQEXT);
+	if (rmode == 1) IRQCount = IRQLatch;
+	break;
+      case 0xE001:
+	IRQa = 1;
+	if (rmode == 1) IRQCount = IRQLatch;
+	break;
+    }
+  }
 
-static void RAMBO1_init() {
-  for (int x = 0; x < 11; x++) DRegs[x] = ~0;
-  cmd = mir = 0;
-  //  if (!nomirror)
-  fceulib__.cart->setmirror(1);
-  Synco();
-  fceulib__.ppu->GameHBIRQHook = RAMBO1_hb;
-  fceulib__.X->MapIRQHook = RAMBO1_IRQHook;
-  fceulib__.fceu->GameStateRestore = RAMBO1_Restore;
-  fceulib__.fceu->SetWriteHandler(0x8000, 0xffff, RAMBO1_write);
-  fceulib__.state->AddExVec(Rambo_StateRegs);
-}
+  void StateRestore(int version) override {
+    Synco();
+    //  if (!nomirror)
+    fc->cart->setmirror(mir ^ 1);
+  }
 
-static void CHRWrap(unsigned int A, unsigned int V) {
-  fceulib__.cart->setchr1(A, V);
-}
+  explicit Tengen(FC *fc) : MapInterface(fc) {
+    for (int x = 0; x < 11; x++) DRegs[x] = ~0;
+    //  if (!nomirror)
+    fc->cart->setmirror(1);
+    Synco();
+    fc->ppu->GameHBIRQHook = [](FC *fc) {
+      ((Tengen *)fc->fceu->mapiface)->RAMBO1_hb();
+    };
+    fc->X->MapIRQHook = [](FC *fc, int a) {
+      ((Tengen *)fc->fceu->mapiface)->RAMBO1_IRQHook(a);
+    };
+    fc->fceu->SetWriteHandler(0x8000, 0xffff, [](DECLFW_ARGS) {
+      ((Tengen*)fc->fceu->mapiface)->RAMBO1_write(DECLFW_FORWARD);
+    });
+    fc->state->AddExVec({
+      {&cmd, 1, "CMD0"}, {&mir, 1, "MIR0"},
+      {&rmode, 1, "RMOD"}, {&IRQmode, 1, "IRQM"},
+      {&IRQCount, 1, "IRQC"}, {&IRQa, 1, "IRQA"},
+      {&IRQLatch, 1, "IRQL"}, {DRegs, 11, "DREG"},
+      {&smallcount, 4, "SMAC"}});
+  }
 
-void Mapper64_init() {
-  setchr1wrap = CHRWrap;
+  // was fn pointer setchr1wrap, always set to this function -tom7
+  void CHRWrap(unsigned int A, unsigned int V) {
+    fc->cart->setchr1(A, V);
+  }
+};
+}
+  
+MapInterface *Mapper64_init(FC *fc) {
+  // setchr1wrap = CHRWrap;
   //  nomirror=0;
-  RAMBO1_init();
+  return new Tengen(fc);
 }
 
 /*

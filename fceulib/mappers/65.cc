@@ -21,12 +21,12 @@
 #include "mapinc.h"
 
 static void IREMIRQHook(FC *fc, int a) {
-  if (fceulib__.ines->iNESIRQa) {
-    fceulib__.ines->iNESIRQCount -= a;
-    if (fceulib__.ines->iNESIRQCount < -4) {
-      fceulib__.X->IRQBegin(FCEU_IQEXT);
-      fceulib__.ines->iNESIRQa = 0;
-      fceulib__.ines->iNESIRQCount = 0xFFFF;
+  if (fc->ines->iNESIRQa) {
+    fc->ines->iNESIRQCount -= a;
+    if (fc->ines->iNESIRQCount < -4) {
+      fc->X->IRQBegin(FCEU_IQEXT);
+      fc->ines->iNESIRQa = 0;
+      fc->ines->iNESIRQCount = 0xFFFF;
     }
   }
 }
@@ -41,22 +41,22 @@ static DECLFW(Mapper65_write) {
     ROM_BANK8(fc, 0x8000, V);
     break;
     // case
-    // 0x9000:printf("$%04x:$%02x\n",A,V);fceulib__.ines->MIRROR_SET2((V>>6)&1);break;
-  case 0x9001: fceulib__.ines->MIRROR_SET(V >> 7); break;
+    // 0x9000:printf("$%04x:$%02x\n",A,V);fc->ines->MIRROR_SET2((V>>6)&1);break;
+  case 0x9001: fc->ines->MIRROR_SET(V >> 7); break;
   case 0x9003:
-    fceulib__.ines->iNESIRQa = V & 0x80;
-    fceulib__.X->IRQEnd(FCEU_IQEXT);
+    fc->ines->iNESIRQa = V & 0x80;
+    fc->X->IRQEnd(FCEU_IQEXT);
     break;
   case 0x9004:
-    fceulib__.ines->iNESIRQCount = fceulib__.ines->iNESIRQLatch;
+    fc->ines->iNESIRQCount = fc->ines->iNESIRQLatch;
     break;
   case 0x9005:
-    fceulib__.ines->iNESIRQLatch &= 0x00FF;
-    fceulib__.ines->iNESIRQLatch |= V << 8;
+    fc->ines->iNESIRQLatch &= 0x00FF;
+    fc->ines->iNESIRQLatch |= V << 8;
     break;
   case 0x9006:
-    fceulib__.ines->iNESIRQLatch &= 0xFF00;
-    fceulib__.ines->iNESIRQLatch |= V;
+    fc->ines->iNESIRQLatch &= 0xFF00;
+    fc->ines->iNESIRQLatch |= V;
     break;
   case 0xB000: VROM_BANK1(fc, 0x0000, V); break;
   case 0xB001: VROM_BANK1(fc, 0x0400, V); break;
@@ -69,10 +69,11 @@ static DECLFW(Mapper65_write) {
   case 0xa000: ROM_BANK8(fc, 0xA000, V); break;
   case 0xC000: ROM_BANK8(fc, 0xC000, V); break;
   }
-  // fceulib__.ines->MIRROR_SET2(1);
+  // fc->ines->MIRROR_SET2(1);
 }
 
-void Mapper65_init() {
-  fceulib__.X->MapIRQHook = IREMIRQHook;
-  fceulib__.fceu->SetWriteHandler(0x8000, 0xffff, Mapper65_write);
+MapInterface *Mapper65_init(FC *fc) {
+  fc->X->MapIRQHook = IREMIRQHook;
+  fc->fceu->SetWriteHandler(0x8000, 0xffff, Mapper65_write);
+  return new MapInterface(fc);
 }
