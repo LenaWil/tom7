@@ -265,9 +265,9 @@ bool State::FCEUSS_SaveRAW(std::vector<uint8> *out) {
   fc->sound->FCEUSND_SaveState();
   totalsize = WriteStateChunk(&os, 1, sfcpu);
   totalsize += WriteStateChunk(&os, 2, sfcpuc);
-  TRACEF("PPU:");
+  //  TRACEF("PPU:");
   totalsize += WriteStateChunk(&os, 3, fc->ppu->FCEUPPU_STATEINFO());
-  TRACEV(*out);
+  // TRACEV(*out);
   totalsize += WriteStateChunk(&os, 4, fc->input->FCEUINPUT_STATEINFO());
   totalsize += WriteStateChunk(&os, 5, fc->sound->FCEUSND_STATEINFO());
 

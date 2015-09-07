@@ -218,6 +218,11 @@ static SerialResult RunGameSerially(const Game &game) {
       << (field) << "\nbut got " << cx;               \
   } while(0)
 
+  TRACEF("Serially %s", game.cart.c_str());
+  
+  // TRACE_SCOPED_ENABLE_IF(game.cart.find("Cobra Triangle.nes") !=
+  // string::npos);
+
   // Once we've collected the states, we have not just the checksums
   // but the actual RAMs (in full mode), so we can print better
   // diagnostic messages. The argument i is the index into checksums
@@ -331,7 +336,7 @@ static SerialResult RunGameSerially(const Game &game) {
     vector<uint8> save;
     emu->SaveUncompressed(&save);
     TRACEF("Saved.");
-    TRACEV(save);
+    // TRACEV(save);
 
     saves.push_back(std::move(save));
     if (FULL) {
@@ -769,6 +774,7 @@ int main(int argc, char **argv) {
 
   // Only run the intro tests for the first index in
   // sharded comprehensive mode.
+  if (false) // XXXXX
   if (!MAKE_COMPREHENSIVE && my_index == 0) { 
     RunGameToCollage(dw4);
 
@@ -803,7 +809,8 @@ int main(int argc, char **argv) {
     CHECK(out != nullptr) << "Unable to open file " << output_file;
     for (int line_num = 0; line_num < romlines.size(); line_num++) {
       if (line_num % modulus != my_index) continue;
-      string line = romlines[line_num];
+      string line = LoseWhiteL(romlines[line_num]);
+      if (line.size() > 0 && line[0] == '#') continue;
       string a = Chop(line);
       string b = Chop(line);
       string c = Chop(line);

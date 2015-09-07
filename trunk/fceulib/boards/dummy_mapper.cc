@@ -30,9 +30,9 @@
 
 namespace {
 struct MapperNNN : public CartInterface {
-  static uint8 reg[8] = {};
-  static uint8 IRQa = 0;
-  static int16 IRQCount = 0, IRQLatch = 0;
+  uint8 reg[8] = {};
+  uint8 IRQa = 0;
+  int16 IRQCount = 0, IRQLatch = 0;
   /*
   static uint8 *WRAM=nullptr;
   static uint8 *CHRRAM=nullptr;
