@@ -126,7 +126,7 @@ struct INes {
 // (_init in mappers/*) get some flat data block to work with,
 // which is saved and copied for them, and they work by indexing
 // into its parts with macros. I made them take an FC object and
-// prefixed them all with GMB_.
+// prefixed them all with GMB_. -tom7
 
 /* This order is necessary */
 #define GMB_WRAM(fc)    ((fc)->fceu->GameMemBlock)

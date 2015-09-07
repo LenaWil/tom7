@@ -4,10 +4,6 @@
 #include "types.h"
 #include "git.h"
 
-// XXX
-#include <string>
-#include "stringprintf.h"
-
 #include "git.h"
 
 #include "fc.h"
@@ -15,14 +11,22 @@
 typedef void (*writefunc)(FC *, uint32 A, uint8 V);
 typedef uint8 (*readfunc)(FC *, uint32 A);
 
+// The version of FCEUX I ported had an in-progress rewrite
+// of the PPU (good idea; it is an incredible mess), but it
+// doesn't seem to work well. Some of the code is around;
+// maybe I should just give up on it.
 static constexpr int newppu = 0;
 
-// TODO(tom7): Fix this junk. These have to take a Fceulib object.
+// Declares a "Read" function, which takes an address and
+// returns the byte there. These are used as callbacks all
+// over the place, so they take an FC object so we know
+// which instance this is.
 #define DECLFR(x) uint8 x (FC *fc, uint32 A)
 #define DECLFR_FORWARD fc, A
 #define DECLFR_RET uint8
 #define DECLFR_ARGS FC *fc, uint32 A
 
+// Same, for "Write" functions.
 #define DECLFW(x) void x (FC *fc, uint32 A, uint8 V)
 #define DECLFW_RET void
 #define DECLFW_FORWARD fc, A, V

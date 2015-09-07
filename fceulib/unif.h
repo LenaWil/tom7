@@ -72,10 +72,10 @@ struct Unif {
   UNIF_HEADER unhead = {};
   UNIF_HEADER uchead = {};
 
-  uint8 *malloced[32] = {0};
-  uint32 mallocedsizes[32] = {0};
+  uint8 *malloced[32] = {};
+  uint32 mallocedsizes[32] = {};
 
-  uint8 exntar[2048] = {0};
+  uint8 exntar[2048] = {};
 
   FC *fc = nullptr;
 };
