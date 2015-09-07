@@ -129,8 +129,8 @@ CartInterface *NROM_Init(FC *fc, CartInfo *info) {
 
 struct UNROM : public DataLatch {
   using DataLatch::DataLatch;
+  uint32 mirror_in_use = 0;
   void WSync() override {
-    static uint32 mirror_in_use = 0;
     if (fc->cart->PRGsize[0] <= 128 * 1024) {
       fc->cart->setprg16(0x8000, latch & 0x7);
       if (latch & 8) mirror_in_use = 1;

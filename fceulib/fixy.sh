@@ -2,7 +2,7 @@
 
 set +x
 
-# 2559 vs 2599
+# 2606 vs 2607
 REV1=before
 REV2=after
 
@@ -16,7 +16,7 @@ rm -f trace1.txt trace2.txt
 # emulator.h emulator.cc
 
 # x6502.cc state.cc
-FILES="emulator_test.cc trace.cc trace.h tracing.cc tracing.h"
+FILES="ppu.cc input.cc emulator_test.cc trace.cc trace.h tracing.cc tracing.h"
 echo "Copying " ${FILES}
 cp ${FILES} ${DIR1}/
 cp ${FILES} ${DIR2}/
@@ -47,6 +47,6 @@ cat ${DIR1}/results.txt ${DIR2}/results.txt
 make -j 20 difftrace.exe dumptrace.exe || exit -1
 ./difftrace.exe ${DIR1}/trace.bin ${DIR2}/trace.bin
 
-./dumptrace.exe ${DIR1}/trace.bin > trace-before.txt
-./dumptrace.exe ${DIR2}/trace.bin > trace-after.txt &
+./dumptrace.exe ${DIR1}/trace.bin > trace-before.txt &
+./dumptrace.exe ${DIR2}/trace.bin > trace-after.txt
 

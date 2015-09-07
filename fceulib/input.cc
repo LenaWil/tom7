@@ -144,7 +144,7 @@ Input::Input(FC *fc)
 	  {joy, 4, "JOYS"},
           {&LastStrobe, 1, "LSTS"},
       }, fc(fc) {
-  TRACEF("Constructing input object..");
+  // TRACEF("Constructing input object..");
   // Constructor body.
 }
 

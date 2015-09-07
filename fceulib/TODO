@@ -1,9 +1,4 @@
 
-
-Bugs:
- - Cobra Triangle chnaged between 2559 and 2567. (just its image
-   hash.) This is Mapper 7, ANROM.
-
 Misc:
  - I've been compiling with -g instead of -O3 for quite a while.
    Do a comprehensive test to make sure it's okay!
@@ -14,15 +9,9 @@ Misc:
       Still to objectify:
 
       emulator.cc
-      boards/*
-      mappers/*
 
       A little left over in:
-      ines.cc
-
- - boards/ should be classes, only one of which is actually present
-   in the FC object. Maybe they could derive from cartinfo (or equivalent).
-   Some boards are based off of others, especially MMC3 but also MMC1.
+      ines.cc  ..?
 
  - is "moo" defined? mappers/61.cc ifdefs it
 
@@ -38,6 +27,7 @@ Memory todo:
    methods called, or roll those into the destructors, etc.
 
 Cleanup to do:
+ - Search everywhere for static variables hiding
  - There are some symbols that are both #defined (e.g. ines.h) and
    declared, maybe with #undef before like in mmc3.cc. So confusing!
  - clang format on the worst offenders
@@ -55,8 +45,6 @@ Cleanup to do:
  - Somehow look through boards for member variables that are not
    initlized to 0 or {}.
  - Can ines::MasterRomInfoParams move to fk23? Are there other uses?
-
-UNLA9711
 
 Surprisingly necessary:
  - crc32 since ines.cc has a table of games and their CRCs.

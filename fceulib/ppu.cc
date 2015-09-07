@@ -1340,6 +1340,11 @@ void PPU::FCEUPPU_Reset() {
   RefreshAddrT = TempAddrT = 0;
   sphitx = 0;
   sphitdata = 0;
+  // Used to not be reset. Should be handled at initialization time now,
+  // but want to prevent divergence from the object version, which
+  // always initializes to 0 at creation time. -tom7
+  pshift[0] = pshift[1] = 0;
+  XOffset = 0;
 }
 
 void PPU::FCEUPPU_Power() {
@@ -1350,28 +1355,29 @@ void PPU::FCEUPPU_Power() {
   FCEUPPU_Reset();
 
   for (int x = 0x2000; x < 0x4000; x += 8) {
-    fc->fceu->ARead[x]=A200x;
-    fc->fceu->BWrite[x]=B2000;
-    fc->fceu->ARead[x+1]=A200x;
-    fc->fceu->BWrite[x+1]=B2001;
-    fc->fceu->ARead[x+2]=A2002;
-    fc->fceu->BWrite[x+2]=B2002;
-    fc->fceu->ARead[x+3]=A200x;
-    fc->fceu->BWrite[x+3]=B2003;
-    fc->fceu->ARead[x+4]=A2004; //A2004;
-    fc->fceu->BWrite[x+4]=B2004;
-    fc->fceu->ARead[x+5]=A200x;
-    fc->fceu->BWrite[x+5]=B2005;
-    fc->fceu->ARead[x+6]=A200x;
-    fc->fceu->BWrite[x+6]=B2006;
-    fc->fceu->ARead[x+7]=A2007;
-    fc->fceu->BWrite[x+7]=B2007;
+    fc->fceu->ARead[x] = A200x;
+    fc->fceu->BWrite[x] = B2000;
+    fc->fceu->ARead[x + 1] = A200x;
+    fc->fceu->BWrite[x + 1] = B2001;
+    fc->fceu->ARead[x + 2] = A2002;
+    fc->fceu->BWrite[x + 2] = B2002;
+    fc->fceu->ARead[x + 3] = A200x;
+    fc->fceu->BWrite[x + 3] = B2003;
+    fc->fceu->ARead[x + 4] = A2004;
+    fc->fceu->BWrite[x + 4] = B2004;
+    fc->fceu->ARead[x + 5] = A200x;
+    fc->fceu->BWrite[x + 5] = B2005;
+    fc->fceu->ARead[x + 6] = A200x;
+    fc->fceu->BWrite[x + 6] = B2006;
+    fc->fceu->ARead[x + 7] = A2007;
+    fc->fceu->BWrite[x + 7] = B2007;
   }
-  fc->fceu->BWrite[0x4014]=B4014;
+  fc->fceu->BWrite[0x4014] = B4014;
 }
 
 int PPU::FCEUPPU_Loop(int skip) {
-  { TRACE_SCOPED_ENABLE_IF(true);
+  if (true) {
+    TRACE_SCOPED_ENABLE_IF(true);
     TRACEFUN();
     TRACEF("%d %d %d | "
 	   "%d %d %d | "

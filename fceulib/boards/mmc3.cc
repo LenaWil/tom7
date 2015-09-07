@@ -755,7 +755,7 @@ CartInterface *Mapper74_Init(FC *fc, CartInfo *info) {
 }
 
 // ---------------------------- Mapper 114 ------------------------------
-static constexpr uint8 m114_perm[8] = {0, 3, 1, 5, 6, 7, 2, 4};
+static constexpr uint8 const m114_perm[8] = {0, 3, 1, 5, 6, 7, 2, 4};
 struct Mapper114 : public MMC3 {
   uint8 cmdin = 0;
   uint8 EXPREGS[8] = {};

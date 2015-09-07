@@ -396,6 +396,7 @@ void Traces::Write(const Trace &t) {
 // static
 vector<Traces::Trace> Traces::ReadFromFile(const string &filename) {
   vector<Trace> out;
+  out.reserve(100000);
   FILE *fp = fopen(filename.c_str(), "rb");
 
   auto Read8 = [&fp](uint8 *w) -> bool {
