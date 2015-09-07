@@ -25,21 +25,20 @@ struct MALEE : public CartInterface {
   uint8 WRAM[2048] = {};
 
   void Power() override {
-    fceulib__.cart->setprg2r(0x10, 0x7000, 0);
-    fceulib__.fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
-    fceulib__.fceu->SetReadHandler(0x6000, 0x67FF, Cart::CartBR);
-    fceulib__.fceu->SetReadHandler(0x7000, 0x77FF, Cart::CartBR);
-    fceulib__.fceu->SetWriteHandler(0x7000, 0x77FF, Cart::CartBW);
-    fceulib__.cart->setprg2r(1, 0x6000, 0);
-    fceulib__.cart->setprg32(0x8000, 0);
-    fceulib__.cart->setchr8(0);
+    fc->cart->setprg2r(0x10, 0x7000, 0);
+    fc->fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
+    fc->fceu->SetReadHandler(0x6000, 0x67FF, Cart::CartBR);
+    fc->fceu->SetReadHandler(0x7000, 0x77FF, Cart::CartBR);
+    fc->fceu->SetWriteHandler(0x7000, 0x77FF, Cart::CartBW);
+    fc->cart->setprg2r(1, 0x6000, 0);
+    fc->cart->setprg32(0x8000, 0);
+    fc->cart->setchr8(0);
   }
 
   MALEE(FC *fc, CartInfo *info) : CartInterface(fc) {
-    fceulib__.cart->SetupCartPRGMapping(0x10, WRAM, 2048, 1);
-    fceulib__.state->AddExState(WRAM, 2048, 0, "WRAM");
+    fc->cart->SetupCartPRGMapping(0x10, WRAM, 2048, 1);
+    fc->state->AddExState(WRAM, 2048, 0, "WRAM");
   }
-
 };
 }
 

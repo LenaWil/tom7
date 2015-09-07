@@ -69,4 +69,4 @@ FC::~FC() {
   delete state;
 }
 
-FC fceulib__;
+// FC fceulib__;

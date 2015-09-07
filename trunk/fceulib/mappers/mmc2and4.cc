@@ -37,18 +37,18 @@ struct MMC2and4 : public MapInterface {
 
     if (h < 0x10) {
       if (l == 0xD0) {
-	VROM_BANK4(&fceulib__, 0x0000, MMC4reg[0]);
+	VROM_BANK4(fc, 0x0000, MMC4reg[0]);
 	latcha1 = 0xFD;
       } else if (l == 0xE0) {
-	VROM_BANK4(&fceulib__, 0x0000, MMC4reg[1]);
+	VROM_BANK4(fc, 0x0000, MMC4reg[1]);
 	latcha1 = 0xFE;
       }
     } else {
       if (l == 0xD0) {
-	VROM_BANK4(&fceulib__, 0x1000, MMC4reg[2]);
+	VROM_BANK4(fc, 0x1000, MMC4reg[2]);
 	latcha2 = 0xFD;
       } else if (l == 0xE0) {
-	VROM_BANK4(&fceulib__, 0x1000, MMC4reg[3]);
+	VROM_BANK4(fc, 0x1000, MMC4reg[3]);
 	latcha2 = 0xFE;
       }
     }

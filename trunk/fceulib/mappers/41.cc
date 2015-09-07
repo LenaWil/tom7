@@ -49,7 +49,7 @@ struct Mapper41 : public MapInterface {
 }
 
 MapInterface *Mapper41_init(FC *fc) {
-  ROM_BANK32(&fceulib__, 0);
+  ROM_BANK32(fc, 0);
   fc->fceu->SetWriteHandler(0x8000, 0xffff, [](DECLFW_ARGS) {
     ((Mapper41*)fc->fceu->mapiface)->Mapper41_write(DECLFW_FORWARD);
   });

@@ -36,9 +36,9 @@ static DECLFW(Mapper46_write) {
 }
 
 MapInterface *Mapper46_init(FC *fc) {
-  fceulib__.ines->MIRROR_SET(0);
+  fc->ines->MIRROR_SET(0);
   ROM_BANK32(fc, 0);
-  fceulib__.fceu->SetWriteHandler(0x8000, 0xffff, Mapper46_write);
-  fceulib__.fceu->SetWriteHandler(0x6000, 0x7fff, Mapper46_writel);
+  fc->fceu->SetWriteHandler(0x8000, 0xffff, Mapper46_write);
+  fc->fceu->SetWriteHandler(0x6000, 0x7fff, Mapper46_writel);
   return new MapInterface(fc);
 }
