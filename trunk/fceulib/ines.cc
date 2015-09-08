@@ -916,6 +916,8 @@ bool INes::iNESLoad(const char *name, FceuFile *fp, int OverwriteVidMode) {
 
   iNESCart.CRC32 = iNESGameCRC32;
 
+  // TODO: Make this part of the interface, like RomInfo() etc.
+  #if 0
   FCEU_printf(" PRG ROM:  %3d x 16KiB\n"
 	      " CHR ROM:  %3d x  8KiB\n"
 	      " ROM CRC32:  0x%08lx\n",
@@ -945,7 +947,8 @@ bool INes::iNESLoad(const char *name, FceuFile *fp, int OverwriteVidMode) {
   FCEU_printf(" Battery-backed: %s\n", (head.ROM_type&2)?"Yes":"No");
   FCEU_printf(" Trained: %s\n", (head.ROM_type&4)?"Yes":"No");
   // (head.ROM_type&8) = iNESMirroring: None(Four-screen)
-
+  #endif
+  
   SetInput(iNESGameCRC32, fc->fceu->GameInfo);
   CheckHInfo();
   {
@@ -995,7 +998,8 @@ bool INes::iNESLoad(const char *name, FceuFile *fp, int OverwriteVidMode) {
     // fprintf(stderr, "ines GameInterface %d\n", (int)h);
     return fc->ines->iNESGI(h);
   };
-  FCEU_printf("\n");
+
+  // FCEU_printf("\n");
 
   // since apparently the iNES format doesn't store this information,
   // guess if the settings should be PAL or NTSC from the ROM name
