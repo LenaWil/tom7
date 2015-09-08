@@ -131,7 +131,7 @@ Emulator::Emulator(FC *fc) : fc(fc) {}
 
 Emulator *Emulator::Create(const string &romfile) {
   // XXX Need to get rid of IO too.
-  fprintf(stderr, "Starting " FCEU_NAME_AND_VERSION "...\n");
+  // fprintf(stderr, "Starting " FCEU_NAME_AND_VERSION "...\n");
 
   // (Here's where SDL was initialized.)
   FC *fc = new FC;

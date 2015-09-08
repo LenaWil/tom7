@@ -21,6 +21,19 @@
 
 #include "tracing.h"
 
+#define ANSI_RED "\x1B[1;31;40m"
+#define ANSI_GREY "\x1B[1;30;40m"
+#define ANSI_BLUE "\x1B[1;34;40m"
+#define ANSI_CYAN "\x1B[1;36;40m"
+#define ANSI_YELLOW "\x1B[1;33;40m"
+#define ANSI_GREEN "\x1B[1;32;40m"
+#define ANSI_WHITE "\x1B[1;37;40m"
+#define ANSI_PURPLE "\x1B[1;35;40m"
+#define ANSI_RESET "\x1B[m"
+// Clear screen and go to 0,0
+#define ANSI_CLS "\x1b[2J\x1b[;H"
+
+
 static constexpr uint64 kEveryGameUponLoad =
   204558985997460734ULL;
 
@@ -208,8 +221,10 @@ struct SerialResult {
   vector<uint8> final_image;
 };
 
-static SerialResult RunGameSerially(const Game &game) {
-  printf("Testing %s...\n" , game.cart.c_str());
+static SerialResult RunGameSerially(std::function<void(const string &)> Update,
+				    const Game &game) {
+  Update(StringPrintf("Running %s...", game.cart.c_str()));
+	 // printf("Testing %s...\n" , game.cart.c_str());
 # define CHECK_RAM(field) do {                       \
     const uint64 cx = emu->RamChecksum();            \
     CHECK_EQ(cx, (field))                            \
@@ -281,17 +296,29 @@ static SerialResult RunGameSerially(const Game &game) {
   CHECK(!ExistsFile(".sav")) << "\nJust tried to unlink this. "
     "Is another process using it?";
 
+  Update("Prep inputs/vectors.");
+  // Make inputs.
+  vector<uint8> inputs;
+  inputs.reserve(inputs.size() + 10000);
+  const size_t num_inputs = game.inputs.size() + 10000;
+
   // save[i] and checksum[i] represent the state right before
   // input[i] is issued. Note we don't have save/checksum for
   // the final state.
   vector<vector<uint8>> saves;
+  saves.reserve(num_inputs);
   vector<vector<uint8>> compressed_saves;
+  compressed_saves.reserve(num_inputs);
   vector<uint64> checksums;
+  checksums.reserve(num_inputs);
   // Only populated in FULL mode.
   vector<vector<uint8>> actual_rams;
+  actual_rams.reserve(num_inputs);
   // Only populated in FULL mode.
   vector<vector<uint8>> images;
-  vector<uint8> inputs;
+  images.reserve(num_inputs);
+
+  Update("Create emulator.");
   std::unique_ptr<Emulator> emu{Emulator::Create(game.cart)};
 
   if (emu.get() == nullptr) {
@@ -360,9 +387,13 @@ static SerialResult RunGameSerially(const Game &game) {
   }
   TRACEF("after_inputs %llu.", emu->RamChecksum());
 
-  fprintf(stderr, "Random inputs:\n");
+  // fprintf(stderr, "Random inputs:\n");
+  Update("Random inputs.");
   // TRACE_SWITCH("forward-trace.bin");
+
   for (uint8 b : InputStream("randoms", 10000)) SaveAndStep(b);
+
+	 
   // This is checked by the comprehensive driver, or should be.
   const uint64 ret2 = emu->RamChecksum();
   const uint64 iret2 = emu->ImageChecksum();
@@ -376,7 +407,7 @@ static SerialResult RunGameSerially(const Game &game) {
     // Go backwards to avoid just accidentally having the correct
     // internal state on account of just replaying all the frames in
     // order!
-    fprintf(stderr, "Running frames backwards:\n");
+    Update("Backwards.");
     // TRACE_SWITCH("backward-trace.bin");
     for (int i = saves.size() - 2; i >= 0; i--) {
       emu->LoadUncompressed(&saves[i]);
@@ -416,7 +447,8 @@ static SerialResult RunGameSerially(const Game &game) {
     }
   };
 
-  fprintf(stderr, "Random seeks:\n");
+  // fprintf(stderr, "Random seeks:\n");
+  Update("Random seeks.");
   for (int i = 0; i < 500; i++) {
     const int seekto = Rand(saves.size());
     const int dist = Rand(5) + 1;
@@ -424,7 +456,8 @@ static SerialResult RunGameSerially(const Game &game) {
   }
 
   if (FULL) {
-    fprintf(stderr, "Random seeks (compressed):\n");
+    // fprintf(stderr, "Random seeks (compressed):\n");
+    Update("Random seeks (compressed).");
     for (int i = 0; i < 500; i++) {
       const int seekto = Rand(saves.size());
       // fprintf(stderr, "iter %d seekto %d\n", i, seekto);
@@ -440,6 +473,7 @@ static SerialResult RunGameSerially(const Game &game) {
     }
   }
 
+  Update("Delete emu.");
   // Don't need this any more.
   emu.release();
 
@@ -449,10 +483,48 @@ static SerialResult RunGameSerially(const Game &game) {
   sr.after_random = ret2;
   sr.image_after_inputs = iret1;
   sr.image_after_random = iret2;
+
+  if (false)
   if (FULL && images.size() > 0) {
     sr.final_image = std::move(images[images.size() - 1]);
   }
 
+  auto VVSize = [](const vector<vector<uint8>> &v) {
+    uint64 sz = 0ULL;
+    for (int i = 0; i < v.size(); i++) {
+      sz += v[i].size();
+    }
+    return StringPrintf("%llu=%llu", v.size(), sz);
+  };
+  
+  /*
+  vector<vector<uint8>> saves;
+  vector<vector<uint8>> compressed_saves;
+  vector<uint64> checksums;
+  // Only populated in FULL mode.
+  vector<vector<uint8>> actual_rams;
+  // Only populated in FULL mode.
+  vector<vector<uint8>> images;
+  vector<uint8> inputs;
+  std::unique_ptr<Emulator> emu{Emulator::Create(game.cart)};
+  */
+
+  Update(StringPrintf("delete vecs: %s %s %llu %s %s %llu",
+		      VVSize(saves).c_str(),
+		      VVSize(compressed_saves).c_str(),
+		      8 * checksums.size(),
+		      VVSize(actual_rams).c_str(),
+		      VVSize(images).c_str(),
+		      inputs.size()));
+
+  saves.clear();
+  compressed_saves.clear();
+  checksums.clear();
+  actual_rams.clear();
+  images.clear();
+  inputs.clear();
+  
+  Update("Return from RunGameSerially.");
   return sr;
 }
 
@@ -724,7 +796,7 @@ int main(int argc, char **argv) {
 
   Collage collage("");
   auto RunGameToCollage = [&collage, write_collage](const Game &game) {
-    SerialResult sr = RunGameSerially(game);
+    SerialResult sr = RunGameSerially([](const string &s) {}, game);
     if (write_collage) {
       if (!sr.final_image.empty()) {
 	collage.Push(sr.final_image);
@@ -737,6 +809,7 @@ int main(int argc, char **argv) {
 
   // Only run the intro tests for the first index in
   // sharded comprehensive mode.
+  if (false) // XXX
   if (!MAKE_COMPREHENSIVE) { 
     RunGameToCollage(dw4);
 
@@ -767,7 +840,8 @@ int main(int argc, char **argv) {
 
     auto OneLine =
       [&romdir, &romlines, &results,
-       &num_done, &done_mutex](int line_num, const string &orig_line) {
+       &num_done, &done_mutex](std::function<void(const string &)> Update,
+			       int line_num, const string &orig_line) {
       string line = LoseWhiteL(orig_line);
       if (line.empty() || line[0] == '#') return;
       string a = Chop(line);
@@ -776,6 +850,8 @@ int main(int argc, char **argv) {
       string d = Chop(line);
       string filename = LoseWhiteL(line);
 
+      Update(StringPrintf("running %s", filename.c_str()));
+      
       if (!filename.empty()) {
         uint64 after_inputs, after_random,
 	  image_after_inputs, image_after_random;
@@ -792,7 +868,8 @@ int main(int argc, char **argv) {
 	    image_after_inputs,
 	    image_after_random,
             };
-        const SerialResult sr = RunGameSerially(game);
+        const SerialResult sr = RunGameSerially(Update, game);
+	Update("About to grab done lock.");
 	{
 	  MutexLock ml(&done_mutex);
 	  
@@ -822,7 +899,62 @@ int main(int argc, char **argv) {
       }
     };
 
-    ParallelAppi(romlines, OneLine, 10);
+
+    {
+      int max_concurrency = 10;
+      // TODO: XXX This cast may really be unsafe, since these vectors
+      // could exceed 32 bit ints in practice.
+      max_concurrency = std::min((int)romlines.size(), max_concurrency);
+      std::mutex index_m;
+      int next_index = 0;
+
+      std::mutex status_m;
+      vector<string> status(max_concurrency, " ** never updated ** ");
+      
+      // Thread applies f repeatedly until there are no more indices.
+      // PERF: Can just start each thread knowing its start index, and avoid
+      // the synchronization overhead at startup.
+      auto th = [&OneLine, &romlines, &index_m, &next_index,
+		 &status_m, &status](int thread_id) {
+	for (;;) {
+	  index_m.lock();
+	  if (next_index == romlines.size()) {
+	    // All done. Don't increment counter so that other threads can
+	    // notice this too.
+	    index_m.unlock();
+	    return;
+	  }
+	  int my_index = next_index++;
+	  index_m.unlock();
+
+	  std::function<void(const string &)> Update =
+	  [&status_m, &status, thread_id, my_index](const string &s) {
+	    MutexLock ml(&status_m);
+	    status[thread_id] = StringPrintf("%3d: %s", my_index, s.c_str());
+	    // If ANSI is available, clear screen.
+	    printf("\n" ANSI_CLS
+		   "--------------------------------------------------\n");
+	    for (int i = 0; i < status.size(); i++) {
+	      printf(ANSI_YELLOW "%2d. "
+		     ANSI_RESET " %s\n", i, status[i].c_str());
+	    }
+	  };
+	  
+	  // Do work, not holding mutex.
+	  OneLine(Update, my_index, romlines[my_index]);
+	}
+      };
+
+      std::vector<std::thread> threads;
+      threads.reserve(max_concurrency);
+      for (int i = 0; i < max_concurrency; i++) {
+	threads.emplace_back([i, th](){ th(i); });
+      }
+      // Now just wait for them all to finish.
+      for (std::thread &t : threads) t.join();
+    }
+    
+    // ParallelAppi(romlines, OneLine, 10);
     
     // We write this each time we run the comprehensive test because
     // it's so expensive anyway.

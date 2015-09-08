@@ -78,7 +78,7 @@ FCEULIB_OBJECTS=emulator.o headless-driver.o stringprintf.o trace.o tracing.o
 OBJECTS=$(BASEOBJECTS) $(EMUOBJECTS) $(FCEULIB_OBJECTS)
 
 # without static, can't find lz or lstdcxx maybe?
-LFLAGS= -m64 $(WINLINK) $(LINKNETWORKING) -lz $(OPT) $(FLTO) $(PROFILE)
+LFLAGS= -m64 -mthreads $(WINLINK) $(LINKNETWORKING) -lz $(OPT) $(FLTO) $(PROFILE)
 # -Wl,--subsystem,console
 # -static -fwhole-program
 # -static

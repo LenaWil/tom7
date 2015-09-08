@@ -174,7 +174,7 @@ void FCEU::ResetGameLoaded() {
 FCEUGI *FCEU::FCEUI_LoadGame(const char *name, int OverwriteVidMode) {
   //----------
   //attempt to open the files
-  FCEU_printf("Loading %s...\n\n",name);
+  // FCEU_printf("Loading %s...\n\n",name);
 
   FceuFile *fp = FCEU_fopen(name,"rb",0);
 
