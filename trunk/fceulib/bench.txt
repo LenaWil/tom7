@@ -1,3 +1,62 @@
+--------------------------------------------------
+threads
+--------------------------------------------------
+12 threads, win32 threading:
+
+Took 2197932.71 ms
+
+real    36m38.107s
+user    0m0.016s
+sys     0m0.015s
+
+
+12 threads, tdm-gcc-64, pthreads
+ 0.  676: About to grab done lock.
+ 1.  678: About to grab done lock.
+ 2.  679: About to grab done lock.
+ 3.  681: About to grab done lock.
+ 4.  687: About to grab done lock.
+ 5.  686: About to grab done lock.
+ 6.  688: About to grab done lock.
+ 7.  689: About to grab done lock.
+ 8.  683: About to grab done lock.
+ 9.  682: About to grab done lock.
+10.  685: About to grab done lock.
+11.  684: About to grab done lock.
+Did 690/690 = 100.0%.
+Writing 690 results to timing2.txt...
+Took 2066452.20 ms
+
+real    34m26.626s
+user    0m0.000s
+sys     0m0.015s
+
+--------------------------------------------------
+
+print before freeing each vector too
+
+Took 2091395.05 ms
+
+real    34m51.584s
+user    0m0.000s
+sys     0m0.031s
+
+
+--------------------------------------------------
+
+incremental free:
+
+Took 2143036.63 ms
+
+real    35m43.234s
+user    0m0.000s
+sys     0m0.015s
+
+
+--------------------------------------------------
+
+
+
 Cutting out various unused stuff
 (not expecting this to change anything except compile/link times!)
 

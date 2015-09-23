@@ -17,7 +17,16 @@
 #include "base/stringprintf.h"
 #include "stb_image_write.h"
 
-#include "threadutil.h"
+#include <mutex>
+#include <thread>
+
+struct MutexLock {
+  explicit MutexLock(std::mutex *m) : m(m) { m->lock(); }
+  ~MutexLock() { m->unlock(); }
+  std::mutex *m;
+};
+
+// #include "threadutil.h"
 
 #include "tracing.h"
 
@@ -32,7 +41,6 @@
 #define ANSI_RESET "\x1B[m"
 // Clear screen and go to 0,0
 #define ANSI_CLS "\x1b[2J\x1b[;H"
-
 
 static constexpr uint64 kEveryGameUponLoad =
   204558985997460734ULL;
@@ -221,8 +229,18 @@ struct SerialResult {
   vector<uint8> final_image;
 };
 
-static SerialResult RunGameSerially(std::function<void(const string &)> Update,
+
+#if 0
+template<class T> FreeInParallel(vector<T> *v) {
+  
+}
+#endif
+
+static SerialResult RunGameSerially(std::function<void(const string &)> Update_,
 				    const Game &game) {
+  // XXX
+  auto Update = [](const string &s) {};
+  
   Update(StringPrintf("Running %s...", game.cart.c_str()));
 	 // printf("Testing %s...\n" , game.cart.c_str());
 # define CHECK_RAM(field) do {                       \
@@ -496,32 +514,36 @@ static SerialResult RunGameSerially(std::function<void(const string &)> Update,
     }
     return StringPrintf("%llu=%llu", v.size(), sz);
   };
-  
-  /*
-  vector<vector<uint8>> saves;
-  vector<vector<uint8>> compressed_saves;
-  vector<uint64> checksums;
-  // Only populated in FULL mode.
-  vector<vector<uint8>> actual_rams;
-  // Only populated in FULL mode.
-  vector<vector<uint8>> images;
-  vector<uint8> inputs;
-  std::unique_ptr<Emulator> emu{Emulator::Create(game.cart)};
-  */
 
-  Update(StringPrintf("delete vecs: %s %s %llu %s %s %llu",
-		      VVSize(saves).c_str(),
-		      VVSize(compressed_saves).c_str(),
-		      8 * checksums.size(),
-		      VVSize(actual_rams).c_str(),
-		      VVSize(images).c_str(),
-		      inputs.size()));
+  auto VVClear = [](vector<vector<uint8>> &v) {
+    for (auto &vv : v) {
+      vv.clear();
+    }
+    v.clear();
+  };
 
-  saves.clear();
-  compressed_saves.clear();
+  auto Progress = [&](const char *what) {
+    Update(StringPrintf("delete vecs: %s %s %llu %s %s %llu %s",
+			VVSize(saves).c_str(),
+			VVSize(compressed_saves).c_str(),
+			8 * checksums.size(),
+			VVSize(actual_rams).c_str(),
+			VVSize(images).c_str(),
+			inputs.size(),
+			what));
+  };
+
+  Progress("saves:");
+  VVClear(saves);
+  Progress("csaves:");
+  VVClear(compressed_saves);
+  Progress("cxsums:");
   checksums.clear();
-  actual_rams.clear();
-  images.clear();
+  Progress("rams:");
+  VVClear(actual_rams);
+  Progress("images:");
+  VVClear(images);
+  Progress("inputs:");
   inputs.clear();
   
   Update("Return from RunGameSerially.");
@@ -901,7 +923,7 @@ int main(int argc, char **argv) {
 
 
     {
-      int max_concurrency = 10;
+      int max_concurrency = 12;
       // TODO: XXX This cast may really be unsafe, since these vectors
       // could exceed 32 bit ints in practice.
       max_concurrency = std::min((int)romlines.size(), max_concurrency);

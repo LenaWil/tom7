@@ -1,0 +1,94 @@
+
+# Makefile made by tom7.
+default: emulator_test.exe difftrace.exe
+
+all: emulator_test.exe fm2tocc.exe difftrace.exe dumptrace.exe make-comprehensive-history.exe
+
+# -fno-strict-aliasing
+# -Wstrict-overflow=3
+# -std=c++11
+CXXFLAGS=-Wall -Wno-deprecated -Wno-sign-compare -I/usr/local/include 
+# XXX -O2
+OPT=-O2  # -O3 -fno-strict-aliasing
+
+ARCH=-m64
+# ARCH=-m32
+
+CC=cl
+CXX=cl
+# /vms - signal inhertiance only
+OPT=/Gw /Gy /O2 /Og /Ot
+# /J = unsigned chars
+CPPFLAGS=/I..\cc-lib /I..\cc-lib\city /I. /J $(OPT) /D "WIN32"
+
+# WINLINK=-Wl,--subsystem,console
+
+# Suppress compilation commands, but show some indication of progress.
+# (Explicitly invoke bash to get shell builtin, since on OS X echo
+# otherwise treats -n literally.)
+%.obj : %.cc
+	cl /c $<
+	@$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $<
+	@bash -c "echo -n '.'"
+
+# If you don't have SDL, you can leave these out, and maybe it still works.
+LINKSDL= -mno-cygwin -lm -luser32 -lgdi32 -lwinmm -ldxguid
+
+# Emulator uses city, yeah? See if we can make this work with no deps.
+# INCLUDES=-I "../cc-lib" -I "../cc-lib/city" -I "."
+
+# tom7 added -mthreads on 9/7!
+# CPPFLAGS=-DPSS_STYLE=1 -DDUMMY_UI -mthreads $(ARCH) $(OPT) $(WINCFLAGS) -DHAVE_ALLOCA -DNOWINSTUFF $(INCLUDES) $(PROFILE) $(FLTO) --std=c++11
+
+# Should just be used for testing.
+CCLIBOBJECTS=../cc-lib/util.obj ../cc-lib/arcfour.obj ../cc-lib/base/logging.obj ../cc-lib/base/stringprintf.obj ../cc-lib/city/city.obj ../cc-lib/rle.obj ../cc-lib/stb_image_write.obj
+
+MAPPEROBJECTS=mappers/6.obj mappers/61.obj mappers/24and26.obj mappers/51.obj mappers/69.obj mappers/77.obj mappers/40.obj mappers/mmc2and4.obj mappers/71.obj mappers/79.obj mappers/41.obj mappers/72.obj mappers/80.obj mappers/42.obj mappers/62.obj mappers/73.obj mappers/85.obj mappers/emu2413.obj mappers/46.obj mappers/65.obj mappers/75.obj mappers/50.obj mappers/67.obj mappers/76.obj mappers/tengen.obj
+
+# XXX: Probably a bunch of this can go?
+UTILSOBJECTS= utils/memory.obj utils/crc32.obj utils/endian.obj utils/md5.obj utils/xstring.obj
+
+# This should be renamed to example_mapper; it's also not used.
+# boards/dummy_mapper.o
+# unused - 
+# boards/a9711.o
+# boards/n-c22m.o
+# boards/179.o
+# only used via old _init interface:
+# boards/subor.o
+
+BOARDSOBJECTS=boards/mmc1.obj boards/mmc5.obj boards/datalatch.obj boards/mmc3.obj boards/01-222.obj boards/32.obj boards/gs-2013.obj boards/103.obj boards/33.obj boards/h2288.obj boards/106.obj boards/34.obj boards/karaoke.obj boards/108.obj boards/3d-block.obj boards/kof97.obj boards/112.obj boards/411120-c.obj boards/konami-qtai.obj boards/116.obj boards/43.obj boards/ks7012.obj boards/117.obj boards/57.obj boards/ks7013.obj boards/120.obj boards/603-5052.obj boards/ks7017.obj boards/121.obj boards/68.obj boards/ks7030.obj boards/12in1.obj boards/8157.obj boards/ks7031.obj boards/15.obj boards/82.obj boards/ks7032.obj boards/151.obj boards/8237.obj boards/ks7037.obj boards/156.obj boards/830118c.obj boards/ks7057.obj boards/164.obj boards/88.obj boards/le05.obj boards/168.obj boards/90.obj boards/lh32.obj boards/17.obj boards/91.obj boards/lh53.obj boards/170.obj boards/95.obj boards/malee.obj boards/175.obj boards/96.obj boards/176.obj boards/99.obj boards/177.obj boards/178.obj boards/a9746.obj boards/18.obj boards/ac-08.obj boards/n625092.obj boards/183.obj boards/addrlatch.obj boards/novel.obj boards/185.obj boards/ax5705.obj boards/onebus.obj boards/186.obj boards/pec-586.obj boards/187.obj boards/bb.obj boards/sa-9602b.obj boards/189.obj boards/bmc13in1jy110.obj boards/193.obj boards/bmc42in1r.obj boards/sc-127.obj boards/199.obj boards/bmc64in1nr.obj boards/sheroes.obj boards/208.obj boards/bmc70in1.obj boards/sl1632.obj boards/222.obj boards/bonza.obj boards/smb2j.obj boards/225.obj boards/bs-5.obj boards/228.obj boards/cityfighter.obj boards/super24.obj boards/230.obj boards/dance2000.obj boards/n106.obj boards/supervision.obj boards/232.obj boards/t-227-1.obj boards/234.obj boards/deirom.obj boards/t-262.obj boards/sachen.obj boards/235.obj boards/dream.obj boards/244.obj boards/edu2000.obj boards/tf-1201.obj boards/bandai.obj boards/246.obj boards/famicombox.obj boards/transformer.obj boards/252.obj boards/fk23c.obj boards/vrc2and4.obj boards/253.obj boards/ghostbusters63in1.obj boards/vrc7.obj boards/28.obj boards/gs-2004.obj boards/yoko.obj
+
+# old-style, not converted
+# boards/tengen.obj
+
+INPUTOBJECTS=input/arkanoid.obj input/ftrainer.obj input/oekakids.obj input/suborkb.obj input/bworld.obj input/hypershot.obj input/powerpad.obj input/toprider.obj input/cursor.obj input/mahjong.obj input/quiz.obj input/zapper.obj input/fkb.obj input/shadow.obj
+
+FCEUOBJECTS=cart.obj version.obj emufile.obj fceu.obj fds.obj file.obj filter.obj ines.obj input.obj palette.obj ppu.obj sound.obj state.obj unif.obj vsuni.obj x6502.obj git.obj boards/boards.obj fc.obj
+
+# DRIVERS_COMMON_OBJECTS=drivers/common/nes_ntsc.o 
+
+#  $(DRIVERS_COMMON_OBJECTS)
+EMUOBJECTS=$(FCEUOBJECTS) $(MAPPEROBJECTS) $(UTILSOBJECTS) $(PALLETESOBJECTS) $(BOARDSOBJECTS) $(INPUTOBJECTS)
+
+# included in all tests, etc.
+BASEOBJECTS=$(CCLIBOBJECTS)
+
+FCEULIB_OBJECTS=emulator.obj headless-driver.obj stringprintf.obj trace.obj tracing.obj
+# simplefm2.o emulator.o util.o
+
+OBJECTS=$(BASEOBJECTS) $(EMUOBJECTS) $(FCEULIB_OBJECTS)
+
+LFLAGS= $(ARCH) -mthreads $(WINLINK) $(LINKNETWORKING) -lz $(OPT) $(FLTO) $(PROFILE)
+
+emulator_test.exe : $(OBJECTS) test-util.obj emulator_test.obj simplefm2.obj libhoard.dll uselibhoard.objbj
+	$(CXX) $^ -o $@ $(LFLAGS)
+
+test : emulator_test.exe
+	time ./emulator_test.exe
+
+clean :
+	rm -f *_test.exe difftrace.exe *.obj $(EMUOBJECTS) $(CCLIBOBJECTS) gmon.out
+
+veryclean : clean
+	rm -f trace.bin
