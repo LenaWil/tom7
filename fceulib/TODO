@@ -1,6 +1,9 @@
 
 Misc:
- - I've been compiling with -g instead of -O3 for quite a while.
+
+$ "/c/Program Files (x86)/Microsoft Concurrency Visualizer Collection Tools/CVCollectionCmd.exe" /Launch d:\\code\\fceulib\\emulator_test.exe /config cvconfig.xml /LaunchArgs "--output-file foo.txt"
+
+- I've been compiling with -g instead of -O3 for quite a while.
    Do a comprehensive test to make sure it's okay!
 
  - proper in-memory treatment of battery backed saves. lots of
@@ -49,7 +52,7 @@ Cleanup to do:
 Surprisingly necessary:
  - crc32 since ines.cc has a table of games and their CRCs.
  - cart md5ing
- - md5 in FECUGI; note I'm using md5 for RamChecksum though
+ - md5 in FCEUGI; note I'm using md5 for RamChecksum though
     - If this gets threaded to cartinfo, we also need it
       for example for hack checks in onebus.cc
 
