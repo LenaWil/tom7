@@ -9,7 +9,7 @@ all: emulator_test.exe fm2tocc.exe difftrace.exe dumptrace.exe make-comprehensiv
 # -std=c++11
 CXXFLAGS=-Wall -Wno-deprecated -Wno-sign-compare -I/usr/local/include 
 # XXX -O2
-OPT=-O2  # -O3 -fno-strict-aliasing
+OPT=-g -O2  # -O3 -fno-strict-aliasing
 # try -flto!
 FLTO=
 
@@ -20,6 +20,11 @@ ifdef OSX
 CXX=g++
 CC=gcc
 else
+ifdef LINUX
+CXX=g++
+CC=gcc
+PLATFORMLINK=-lpthread
+else
 # for 64 bits on windows
 # CXX=x86_64-w64-mingw32-g++
 # CC=x86_64-w64-mingw32-g++
@@ -29,9 +34,10 @@ else
 CXX=g++
 CC=g++
 
-WINCFLAGS= -D__MINGW32__ -D_GLIBCXX_HAS_GTHREADS
+PLATFORMCFLAGS= -D__MINGW32__ -D_GLIBCXX_HAS_GTHREADS -mthreads
 # without static, can't find lz or lstdcxx maybe?
-WINLINK=-Wl,--subsystem,console -lwinpthread -L.
+PLATFORMLINK=-mthreads -Wl,--subsystem,console -lwinpthread -L.
+endif
 endif
 
 # Suppress compilation commands, but show some indication of progress.
@@ -48,7 +54,7 @@ LINKSDL= -mno-cygwin -lm -luser32 -lgdi32 -lwinmm -ldxguid
 INCLUDES=-I "../cc-lib" -I "../cc-lib/city" -I "."
 
 # tom7 added -mthreads on 9/7!
-CPPFLAGS=-DPSS_STYLE=1 -DDUMMY_UI -mthreads $(ARCH) $(OPT) $(WINCFLAGS) -DHAVE_ALLOCA -DNOWINSTUFF $(INCLUDES) $(PROFILE) $(FLTO) --std=c++11
+CPPFLAGS=-DPSS_STYLE=1 -DDUMMY_UI $(ARCH) $(OPT) $(PLATFORMCFLAGS) -DHAVE_ALLOCA -DNOWINSTUFF $(INCLUDES) $(PROFILE) $(FLTO) --std=c++11
 
 # Should just be used for testing.
 CCLIBOBJECTS=../cc-lib/util.o ../cc-lib/arcfour.o ../cc-lib/base/logging.o ../cc-lib/base/stringprintf.o ../cc-lib/city/city.o ../cc-lib/rle.o ../cc-lib/stb_image_write.o
@@ -89,7 +95,7 @@ FCEULIB_OBJECTS=emulator.o headless-driver.o stringprintf.o trace.o tracing.o
 
 OBJECTS=$(BASEOBJECTS) $(EMUOBJECTS) $(FCEULIB_OBJECTS)
 
-LFLAGS= $(ARCH) -mthreads $(WINLINK) $(LINKNETWORKING) -lz $(OPT) $(FLTO) $(PROFILE) -static # -Wl,--subsystem,console
+LFLAGS= $(ARCH) $(PLATFORMLINK) $(LINKNETWORKING) -lz $(OPT) $(FLTO) $(PROFILE) -static # -Wl,--subsystem,console
 # -static -Wl,--subsystem,console
 # -Wl,--subsystem,console
 # -static -fwhole-program

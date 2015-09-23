@@ -25,6 +25,8 @@
 #include <unordered_set>
 #include <array>
 
+#include <string.h>
+
 #include "types.h"
 
 #include "fc.h"
