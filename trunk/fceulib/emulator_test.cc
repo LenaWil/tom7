@@ -380,7 +380,7 @@ static SerialResult RunGameSerially(std::function<void(const string &)> Update_,
     // TRACEV(save);
 
     saves.push_back(std::move(save));
-    if (FULL) {
+    if (false && FULL) {
       vector<uint8> compressed_save;
       emu->SaveEx(&compressed_save, &basis);
       compressed_saves.push_back(compressed_save);
@@ -473,7 +473,7 @@ static SerialResult RunGameSerially(std::function<void(const string &)> Update_,
     DoSeekSpan(seekto, dist);
   }
 
-  if (FULL) {
+  if (false && FULL) {
     // fprintf(stderr, "Random seeks (compressed):\n");
     Update("Random seeks (compressed).");
     for (int i = 0; i < 500; i++) {
@@ -597,6 +597,7 @@ int main(int argc, char **argv) {
   // First, ensure that we have preserved the single-threaded
   // behavior.
 
+  #if 0
   // Regression -- Tengen cart wasn't saving all its state.
   Game skull{
     "skull.nes",
@@ -811,7 +812,8 @@ int main(int argc, char **argv) {
       10437697934907677179ULL,
       15120013139071261080ULL,
       };
-
+  #endif
+  
   const int64 start_us = TimeUsec();
 
   TRACE_DISABLE();
@@ -829,6 +831,7 @@ int main(int argc, char **argv) {
 
   TRACE_ENABLE();
 
+  #if 0
   // Only run the intro tests for the first index in
   // sharded comprehensive mode.
   if (false) // XXX
@@ -847,7 +850,8 @@ int main(int argc, char **argv) {
     RunGameToCollage(banditkings);
     RunGameToCollage(kirby);
   }
- 
+  #endif
+  
   if (write_collage)
     collage.Flush();
 
