@@ -1,47 +1,34 @@
 
-# Makefile made by tom7.
-# XXXX
-# playfun.exe learnfun.exe scopefun.exe pinviz.exe
-default: sigbovik.exe 
-# tasbot.exe
-# emu_test.exe
+default: testui.exe
 
-all: playfun.exe tasbot.exe emu_test.exe objective_test.exe learnfun.exe weighted-objectives_test.exe pinviz.exe
+all: testui.exe
 
-# GPP=
+CXXFLAGS=-Wall -Wno-deprecated -Wno-sign-compare -I/usr/local/include -I SDL/include
+OPT=-O2
 
-# mlton executes this:
-# x86_64-w64-mingw32-gcc -std=gnu99 -c -Ic:\program files (x86)\mlton\lib\mlton\targets\x86_64-w64-mingw32\include -IC:/Program Files (x86)/MLton/lib/mlton/include -O1 -fno-common -fno-strict-aliasing -fomit-frame-pointer -w -m64 -o C:\Users\Tom\AppData\Local\Temp\file17jU3c.o x6502.c
+# Tom, you may need to do this:
+# export PATH=/c/TDM-GCC-64/bin:${PATH}
 
-# -fno-strict-aliasing
-CXXFLAGS=-Wall -Wno-deprecated -Wno-sign-compare -I/usr/local/include 
-OPT=-O
+CXX=g++
+CC=gcc
 
 # for 64 bits on windows
-CXX=x86_64-w64-mingw32-g++
-CC=x86_64-w64-mingw32-g++
-SDLARCH=x64
+# CXX=x86_64-w64-mingw32-g++
+# CC=x86_64-w64-mingw32-g++
+# SDLARCH=x64
 
-# not using the one in protobuf/src because it doesn't work?
-PROTOC=protoc
+# Suppress compilation commands, but show some indication of progress.
+# (Explicitly invoke bash to get shell builtin, since on OS X echo
+# otherwise treats -n literally.)
+%.o : %.cc
+	@$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $<
+	@bash -c "echo -n '.'"
 
-# -Wl,--subsystem,console
+# -mno-cygwin 
+LINKSDL=-lm -luser32 -lgdi32 -lwinmm -ldxguid
 
-PROTO_HEADERS=marionet.pb.h
-PROTO_OBJECTS=marionet.pb.o
-
-
-# If you don't have SDL, you can leave these out, and maybe it still works.
-CCNETWORKING= -DMARIONET=1 -I SDL/include -I SDL_net
-LINKSDL=  -mno-cygwin -lm -luser32 -lgdi32 -lwinmm -ldxguid
-LINKNETWORKING= $(LINKSDL) -lwsock32 -liphlpapi
 SDLOPATH=SDL/build
-SDLOBJECTS=$(SDLOPATH)/SDL.o $(SDLOPATH)/SDL_error.o $(SDLOPATH)/SDL_fatal.o $(SDLOPATH)/SDL_audio.o $(SDLOPATH)/SDL_audiocvt.o $(SDLOPATH)/SDL_audiodev.o $(SDLOPATH)/SDL_mixer.o $(SDLOPATH)/SDL_mixer_MMX.o $(SDLOPATH)/SDL_mixer_MMX_VC.o $(SDLOPATH)/SDL_mixer_m68k.o $(SDLOPATH)/SDL_wave.o $(SDLOPATH)/SDL_cdrom.o $(SDLOPATH)/SDL_cpuinfo.o $(SDLOPATH)/SDL_active.o $(SDLOPATH)/SDL_events.o $(SDLOPATH)/SDL_expose.o $(SDLOPATH)/SDL_keyboard.o $(SDLOPATH)/SDL_mouse.o $(SDLOPATH)/SDL_quit.o $(SDLOPATH)/SDL_resize.o $(SDLOPATH)/SDL_rwops.o $(SDLOPATH)/SDL_getenv.o $(SDLOPATH)/SDL_iconv.o $(SDLOPATH)/SDL_malloc.o $(SDLOPATH)/SDL_qsort.o $(SDLOPATH)/SDL_stdlib.o $(SDLOPATH)/SDL_string.o $(SDLOPATH)/SDL_thread.o $(SDLOPATH)/SDL_timer.o $(SDLOPATH)/SDL_RLEaccel.o $(SDLOPATH)/SDL_blit.o $(SDLOPATH)/SDL_blit_0.o $(SDLOPATH)/SDL_blit_1.o $(SDLOPATH)/SDL_blit_A.o $(SDLOPATH)/SDL_blit_N.o $(SDLOPATH)/SDL_bmp.o $(SDLOPATH)/SDL_cursor.o $(SDLOPATH)/SDL_gamma.o $(SDLOPATH)/SDL_pixels.o $(SDLOPATH)/SDL_stretch.o $(SDLOPATH)/SDL_surface.o $(SDLOPATH)/SDL_video.o $(SDLOPATH)/SDL_yuv.o $(SDLOPATH)/SDL_yuv_mmx.o $(SDLOPATH)/SDL_yuv_sw.o $(SDLOPATH)/SDL_joystick.o $(SDLOPATH)/SDL_nullevents.o $(SDLOPATH)/SDL_nullmouse.o $(SDLOPATH)/SDL_nullvideo.o $(SDLOPATH)/SDL_diskaudio.o $(SDLOPATH)/SDL_dummyaudio.o $(SDLOPATH)/SDL_sysevents.o $(SDLOPATH)/SDL_sysmouse.o $(SDLOPATH)/SDL_syswm.o $(SDLOPATH)/SDL_wingl.o $(SDLOPATH)/SDL_dibevents.o $(SDLOPATH)/SDL_dibvideo.o $(SDLOPATH)/SDL_dx5events.o $(SDLOPATH)/SDL_dx5video.o $(SDLOPATH)/SDL_dx5yuv.o $(SDLOPATH)/SDL_dibaudio.o $(SDLOPATH)/SDL_dx5audio.o $(SDLOPATH)/SDL_mmjoystick.o $(SDLOPATH)/SDL_syscdrom.o $(SDLOPATH)/SDL_sysmutex.o $(SDLOPATH)/SDL_syssem.o $(SDLOPATH)/SDL_systhread.o $(SDLOPATH)/SDL_syscond.o $(SDLOPATH)/SDL_systimer.o $(SDLOPATH)/SDL_sysloadso.o
-# For some reason this compiles as 32-bit? But it's unused.
-# $(SDLOPATH)/version.o
-NETWORKINGOBJECTS= $(SDLOBJECTS) SDL_net/SDLnet.o SDL_net/SDLnetTCP.o SDL_net/SDLnetUDP.o SDL_net/SDLnetselect.o sdl_win32_main.o netutil.o $(PROTO_OBJECTS)
-
-PROTOBUFOBJECTS=protobuf/src/code_generator.o protobuf/src/coded_stream.o protobuf/src/common.o protobuf/src/cpp_enum.o protobuf/src/cpp_enum_field.o protobuf/src/cpp_extension.o protobuf/src/cpp_field.o protobuf/src/cpp_file.o protobuf/src/cpp_generator.o protobuf/src/cpp_helpers.o protobuf/src/cpp_message.o protobuf/src/cpp_message_field.o protobuf/src/cpp_primitive_field.o protobuf/src/cpp_service.o protobuf/src/cpp_string_field.o protobuf/src/descriptor.o protobuf/src/descriptor.pb.o protobuf/src/descriptor_database.o protobuf/src/dynamic_message.o protobuf/src/extension_set.o protobuf/src/extension_set_heavy.o protobuf/src/generated_message_reflection.o protobuf/src/generated_message_util.o protobuf/src/gzip_stream.o protobuf/src/importer.o protobuf/src/java_enum.o protobuf/src/java_enum_field.o protobuf/src/java_extension.o protobuf/src/java_field.o protobuf/src/java_file.o protobuf/src/java_generator.o protobuf/src/java_helpers.o protobuf/src/java_message.o protobuf/src/java_message_field.o protobuf/src/java_primitive_field.o protobuf/src/java_service.o protobuf/src/java_string_field.o protobuf/src/message.o protobuf/src/message_lite.o protobuf/src/once.o protobuf/src/parser.o protobuf/src/plugin.o protobuf/src/plugin.pb.o protobuf/src/printer.o protobuf/src/python_generator.o protobuf/src/reflection_ops.o protobuf/src/repeated_field.o protobuf/src/service.o protobuf/src/structurally_valid.o protobuf/src/strutil.o protobuf/src/subprocess.o protobuf/src/substitute.o protobuf/src/text_format.o protobuf/src/tokenizer.o protobuf/src/unknown_field_set.o protobuf/src/wire_format.o protobuf/src/wire_format_lite.o protobuf/src/zero_copy_stream.o protobuf/src/zero_copy_stream_impl.o protobuf/src/zero_copy_stream_impl_lite.o protobuf/src/zip_writer.o
+SDL_OBJECTS=$(SDLOPATH)/SDL.o $(SDLOPATH)/SDL_error.o $(SDLOPATH)/SDL_fatal.o $(SDLOPATH)/SDL_audio.o $(SDLOPATH)/SDL_audiocvt.o $(SDLOPATH)/SDL_audiodev.o $(SDLOPATH)/SDL_mixer.o $(SDLOPATH)/SDL_mixer_MMX.o $(SDLOPATH)/SDL_mixer_MMX_VC.o $(SDLOPATH)/SDL_mixer_m68k.o $(SDLOPATH)/SDL_wave.o $(SDLOPATH)/SDL_cdrom.o $(SDLOPATH)/SDL_cpuinfo.o $(SDLOPATH)/SDL_active.o $(SDLOPATH)/SDL_events.o $(SDLOPATH)/SDL_expose.o $(SDLOPATH)/SDL_keyboard.o $(SDLOPATH)/SDL_mouse.o $(SDLOPATH)/SDL_quit.o $(SDLOPATH)/SDL_resize.o $(SDLOPATH)/SDL_rwops.o $(SDLOPATH)/SDL_getenv.o $(SDLOPATH)/SDL_iconv.o $(SDLOPATH)/SDL_malloc.o $(SDLOPATH)/SDL_qsort.o $(SDLOPATH)/SDL_stdlib.o $(SDLOPATH)/SDL_string.o $(SDLOPATH)/SDL_thread.o $(SDLOPATH)/SDL_timer.o $(SDLOPATH)/SDL_RLEaccel.o $(SDLOPATH)/SDL_blit.o $(SDLOPATH)/SDL_blit_0.o $(SDLOPATH)/SDL_blit_1.o $(SDLOPATH)/SDL_blit_A.o $(SDLOPATH)/SDL_blit_N.o $(SDLOPATH)/SDL_bmp.o $(SDLOPATH)/SDL_cursor.o $(SDLOPATH)/SDL_gamma.o $(SDLOPATH)/SDL_pixels.o $(SDLOPATH)/SDL_stretch.o $(SDLOPATH)/SDL_surface.o $(SDLOPATH)/SDL_video.o $(SDLOPATH)/SDL_yuv.o $(SDLOPATH)/SDL_yuv_mmx.o $(SDLOPATH)/SDL_yuv_sw.o $(SDLOPATH)/SDL_joystick.o $(SDLOPATH)/SDL_nullevents.o $(SDLOPATH)/SDL_nullmouse.o $(SDLOPATH)/SDL_nullvideo.o $(SDLOPATH)/SDL_diskaudio.o $(SDLOPATH)/SDL_dummyaudio.o $(SDLOPATH)/SDL_sysevents.o $(SDLOPATH)/SDL_sysmouse.o $(SDLOPATH)/SDL_syswm.o $(SDLOPATH)/SDL_wingl.o $(SDLOPATH)/SDL_dibevents.o $(SDLOPATH)/SDL_dibvideo.o $(SDLOPATH)/SDL_dx5events.o $(SDLOPATH)/SDL_dx5video.o $(SDLOPATH)/SDL_dx5yuv.o $(SDLOPATH)/SDL_dibaudio.o $(SDLOPATH)/SDL_dx5audio.o $(SDLOPATH)/SDL_mmjoystick.o $(SDLOPATH)/SDL_syscdrom.o $(SDLOPATH)/SDL_sysmutex.o $(SDLOPATH)/SDL_syssem.o $(SDLOPATH)/SDL_systhread.o $(SDLOPATH)/SDL_syscond.o $(SDLOPATH)/SDL_systimer.o $(SDLOPATH)/SDL_sysloadso.o
 
 # PROFILE=-pg
 PROFILE=
@@ -50,106 +37,33 @@ PROFILE=
 # FLTO=-flto
 # FLTO=
 
-INCLUDES=-I "../cc-lib" -I "../cc-lib/city"
+INCLUDES=-I "../cc-lib" -I "../cc-lib/city" -I ../fceulib
 
-#  -DNOUNZIP
-CPPFLAGS= $(CCNETWORKING) -DPSS_STYLE=1 -DDUMMY_UI -DHAVE_ASPRINTF -Wno-write-strings -m64 $(OPT) -D__MINGW32__ -DHAVE_ALLOCA -DNOWINSTUFF $(INCLUDES) $(PROFILE) $(FLTO) --std=c++0x
-#  CPPFLAGS=-DPSS_STYLE=1 -DDUMMY_UI -DHAVE_ASPRINTF -Wno-write-strings -m64 -O -DHAVE_ALLOCA -DNOWINSTUFF $(PROFILE) -g
+#  -DNOUNZIP -DDUMMY_UI -DHAVE_ASPRINTF  -DNOWINSTUFF -Wno-write-strings
+CPPFLAGS= -DPSS_STYLE=1 -m64 $(OPT) -D__MINGW32__ -DHAVE_ALLOCA $(INCLUDES) $(PROFILE) $(FLTO) --std=c++11
 
-CCLIBOBJECTS=../cc-lib/util.o ../cc-lib/arcfour.o ../cc-lib/base/stringprintf.o ../cc-lib/city/city.o ../cc-lib/textsvg.o ../cc-lib/stb_image.o
+CCLIBOBJECTS=../cc-lib/util.o ../cc-lib/arcfour.o ../cc-lib/base/stringprintf.o ../cc-lib/city/city.o ../cc-lib/textsvg.o ../cc-lib/stb_image.o ../cc-lib/sdl/sdlutil.o ../cc-lib/base/logging.o
 
-SDLUTILOBJECTS=sdlutil-lite.o
+FCEULIB=../fceulib
+MAPPEROBJECTS=$(FCEULIB)/mappers/6.o $(FCEULIB)/mappers/61.o $(FCEULIB)/mappers/24and26.o $(FCEULIB)/mappers/51.o $(FCEULIB)/mappers/69.o $(FCEULIB)/mappers/77.o $(FCEULIB)/mappers/40.o $(FCEULIB)/mappers/mmc2and4.o $(FCEULIB)/mappers/71.o $(FCEULIB)/mappers/79.o $(FCEULIB)/mappers/41.o $(FCEULIB)/mappers/72.o $(FCEULIB)/mappers/80.o $(FCEULIB)/mappers/42.o $(FCEULIB)/mappers/62.o $(FCEULIB)/mappers/73.o $(FCEULIB)/mappers/85.o $(FCEULIB)/mappers/emu2413.o $(FCEULIB)/mappers/46.o $(FCEULIB)/mappers/65.o $(FCEULIB)/mappers/75.o $(FCEULIB)/mappers/50.o $(FCEULIB)/mappers/67.o $(FCEULIB)/mappers/76.o $(FCEULIB)/mappers/tengen.o
 
-MAPPEROBJECTS=fceu/mappers/24and26.o fceu/mappers/51.o fceu/mappers/69.o fceu/mappers/77.o fceu/mappers/40.o fceu/mappers/6.o fceu/mappers/71.o fceu/mappers/79.o fceu/mappers/41.o fceu/mappers/61.o fceu/mappers/72.o fceu/mappers/80.o fceu/mappers/42.o fceu/mappers/62.o fceu/mappers/73.o fceu/mappers/85.o fceu/mappers/46.o fceu/mappers/65.o fceu/mappers/75.o fceu/mappers/emu2413.o fceu/mappers/50.o fceu/mappers/67.o fceu/mappers/76.o fceu/mappers/mmc2and4.o
+UTILSOBJECTS=$(FCEULIB)/utils/memory.o $(FCEULIB)/utils/crc32.o $(FCEULIB)/utils/endian.o $(FCEULIB)/utils/md5.o $(FCEULIB)/utils/xstring.o
 
-# utils/unzip.o removed -- needs lz
-UTILSOBJECTS=fceu/utils/ConvertUTF.o fceu/utils/general.o fceu/utils/memory.o fceu/utils/crc32.o fceu/utils/guid.o fceu/utils/endian.o fceu/utils/md5.o fceu/utils/xstring.o fceu/utils/unzip.o
+BOARDSOBJECTS=$(FCEULIB)/boards/mmc1.o $(FCEULIB)/boards/mmc5.o $(FCEULIB)/boards/datalatch.o $(FCEULIB)/boards/mmc3.o $(FCEULIB)/boards/01-222.o $(FCEULIB)/boards/32.o $(FCEULIB)/boards/gs-2013.o $(FCEULIB)/boards/103.o $(FCEULIB)/boards/33.o $(FCEULIB)/boards/h2288.o $(FCEULIB)/boards/106.o $(FCEULIB)/boards/34.o $(FCEULIB)/boards/karaoke.o $(FCEULIB)/boards/108.o $(FCEULIB)/boards/3d-block.o $(FCEULIB)/boards/kof97.o $(FCEULIB)/boards/112.o $(FCEULIB)/boards/411120-c.o $(FCEULIB)/boards/konami-qtai.o $(FCEULIB)/boards/116.o $(FCEULIB)/boards/43.o $(FCEULIB)/boards/ks7012.o $(FCEULIB)/boards/117.o $(FCEULIB)/boards/57.o $(FCEULIB)/boards/ks7013.o $(FCEULIB)/boards/120.o $(FCEULIB)/boards/603-5052.o $(FCEULIB)/boards/ks7017.o $(FCEULIB)/boards/121.o $(FCEULIB)/boards/68.o $(FCEULIB)/boards/ks7030.o $(FCEULIB)/boards/12in1.o $(FCEULIB)/boards/8157.o $(FCEULIB)/boards/ks7031.o $(FCEULIB)/boards/15.o $(FCEULIB)/boards/82.o $(FCEULIB)/boards/ks7032.o $(FCEULIB)/boards/151.o $(FCEULIB)/boards/8237.o $(FCEULIB)/boards/ks7037.o $(FCEULIB)/boards/156.o $(FCEULIB)/boards/830118c.o $(FCEULIB)/boards/ks7057.o $(FCEULIB)/boards/164.o $(FCEULIB)/boards/88.o $(FCEULIB)/boards/le05.o $(FCEULIB)/boards/168.o $(FCEULIB)/boards/90.o $(FCEULIB)/boards/lh32.o $(FCEULIB)/boards/17.o $(FCEULIB)/boards/91.o $(FCEULIB)/boards/lh53.o $(FCEULIB)/boards/170.o $(FCEULIB)/boards/95.o $(FCEULIB)/boards/malee.o $(FCEULIB)/boards/175.o $(FCEULIB)/boards/96.o $(FCEULIB)/boards/176.o $(FCEULIB)/boards/99.o $(FCEULIB)/boards/177.o $(FCEULIB)/boards/178.o $(FCEULIB)/boards/a9746.o $(FCEULIB)/boards/18.o $(FCEULIB)/boards/ac-08.o $(FCEULIB)/boards/n625092.o $(FCEULIB)/boards/183.o $(FCEULIB)/boards/addrlatch.o $(FCEULIB)/boards/novel.o $(FCEULIB)/boards/185.o $(FCEULIB)/boards/ax5705.o $(FCEULIB)/boards/onebus.o $(FCEULIB)/boards/186.o $(FCEULIB)/boards/pec-586.o $(FCEULIB)/boards/187.o $(FCEULIB)/boards/bb.o $(FCEULIB)/boards/sa-9602b.o $(FCEULIB)/boards/189.o $(FCEULIB)/boards/bmc13in1jy110.o $(FCEULIB)/boards/193.o $(FCEULIB)/boards/bmc42in1r.o $(FCEULIB)/boards/sc-127.o $(FCEULIB)/boards/199.o $(FCEULIB)/boards/bmc64in1nr.o $(FCEULIB)/boards/sheroes.o $(FCEULIB)/boards/208.o $(FCEULIB)/boards/bmc70in1.o $(FCEULIB)/boards/sl1632.o $(FCEULIB)/boards/222.o $(FCEULIB)/boards/bonza.o $(FCEULIB)/boards/smb2j.o $(FCEULIB)/boards/225.o $(FCEULIB)/boards/bs-5.o $(FCEULIB)/boards/228.o $(FCEULIB)/boards/cityfighter.o $(FCEULIB)/boards/super24.o $(FCEULIB)/boards/230.o $(FCEULIB)/boards/dance2000.o $(FCEULIB)/boards/n106.o $(FCEULIB)/boards/supervision.o $(FCEULIB)/boards/232.o $(FCEULIB)/boards/t-227-1.o $(FCEULIB)/boards/234.o $(FCEULIB)/boards/deirom.o $(FCEULIB)/boards/t-262.o $(FCEULIB)/boards/sachen.o $(FCEULIB)/boards/235.o $(FCEULIB)/boards/dream.o $(FCEULIB)/boards/244.o $(FCEULIB)/boards/edu2000.o $(FCEULIB)/boards/tf-1201.o $(FCEULIB)/boards/bandai.o $(FCEULIB)/boards/246.o $(FCEULIB)/boards/famicombox.o $(FCEULIB)/boards/transformer.o $(FCEULIB)/boards/252.o $(FCEULIB)/boards/fk23c.o $(FCEULIB)/boards/vrc2and4.o $(FCEULIB)/boards/253.o $(FCEULIB)/boards/ghostbusters63in1.o $(FCEULIB)/boards/vrc7.o $(FCEULIB)/boards/28.o $(FCEULIB)/boards/gs-2004.o $(FCEULIB)/boards/yoko.o
 
-# main binary
-# PALETTESOBJECTS=palettes/conv.o
+INPUTOBJECTS=$(FCEULIB)/input/arkanoid.o $(FCEULIB)/input/ftrainer.o $(FCEULIB)/input/oekakids.o $(FCEULIB)/input/suborkb.o $(FCEULIB)/input/bworld.o $(FCEULIB)/input/hypershot.o $(FCEULIB)/input/powerpad.o $(FCEULIB)/input/toprider.o $(FCEULIB)/input/cursor.o $(FCEULIB)/input/mahjong.o $(FCEULIB)/input/quiz.o $(FCEULIB)/input/zapper.o $(FCEULIB)/input/fkb.o $(FCEULIB)/input/shadow.o
 
-BOARDSOBJECTS=fceu/boards/01-222.o fceu/boards/32.o fceu/boards/gs-2013.o fceu/boards/103.o fceu/boards/33.o fceu/boards/h2288.o fceu/boards/106.o fceu/boards/34.o fceu/boards/karaoke.o fceu/boards/108.o fceu/boards/3d-block.o fceu/boards/kof97.o fceu/boards/112.o fceu/boards/411120-c.o fceu/boards/konami-qtai.o fceu/boards/116.o fceu/boards/43.o fceu/boards/ks7012.o fceu/boards/117.o fceu/boards/57.o fceu/boards/ks7013.o fceu/boards/120.o fceu/boards/603-5052.o fceu/boards/ks7017.o fceu/boards/121.o fceu/boards/68.o fceu/boards/ks7030.o fceu/boards/12in1.o fceu/boards/8157.o fceu/boards/ks7031.o fceu/boards/15.o fceu/boards/82.o fceu/boards/ks7032.o fceu/boards/151.o fceu/boards/8237.o fceu/boards/ks7037.o fceu/boards/156.o fceu/boards/830118C.o fceu/boards/ks7057.o fceu/boards/164.o fceu/boards/88.o fceu/boards/le05.o fceu/boards/168.o fceu/boards/90.o fceu/boards/lh32.o fceu/boards/17.o fceu/boards/91.o fceu/boards/lh53.o fceu/boards/170.o fceu/boards/95.o fceu/boards/malee.o fceu/boards/175.o fceu/boards/96.o fceu/boards/mmc1.o fceu/boards/176.o fceu/boards/99.o fceu/boards/mmc3.o fceu/boards/177.o fceu/boards/__dummy_mapper.o fceu/boards/mmc5.o fceu/boards/178.o fceu/boards/a9711.o fceu/boards/n-c22m.o fceu/boards/179.o fceu/boards/a9746.o fceu/boards/n106.o fceu/boards/18.o fceu/boards/ac-08.o fceu/boards/n625092.o fceu/boards/183.o fceu/boards/addrlatch.o fceu/boards/novel.o fceu/boards/185.o fceu/boards/ax5705.o fceu/boards/onebus.o fceu/boards/186.o fceu/boards/bandai.o fceu/boards/pec-586.o fceu/boards/187.o fceu/boards/bb.o fceu/boards/sa-9602b.o fceu/boards/189.o fceu/boards/bmc13in1jy110.o fceu/boards/sachen.o fceu/boards/193.o fceu/boards/bmc42in1r.o fceu/boards/sc-127.o fceu/boards/199.o fceu/boards/bmc64in1nr.o fceu/boards/sheroes.o fceu/boards/208.o fceu/boards/bmc70in1.o fceu/boards/sl1632.o fceu/boards/222.o fceu/boards/bonza.o fceu/boards/smb2j.o fceu/boards/225.o fceu/boards/bs-5.o fceu/boards/subor.o fceu/boards/228.o fceu/boards/cityfighter.o fceu/boards/super24.o fceu/boards/230.o fceu/boards/dance2000.o fceu/boards/supervision.o fceu/boards/232.o fceu/boards/datalatch.o fceu/boards/t-227-1.o fceu/boards/234.o fceu/boards/deirom.o fceu/boards/t-262.o fceu/boards/235.o fceu/boards/dream.o fceu/boards/tengen.o fceu/boards/244.o fceu/boards/edu2000.o fceu/boards/tf-1201.o fceu/boards/246.o fceu/boards/famicombox.o fceu/boards/transformer.o fceu/boards/252.o fceu/boards/fk23c.o fceu/boards/vrc2and4.o fceu/boards/253.o fceu/boards/ghostbusters63in1.o fceu/boards/vrc7.o fceu/boards/28.o fceu/boards/gs-2004.o fceu/boards/yoko.o
+FCEUOBJECTS=$(FCEULIB)/cart.o $(FCEULIB)/version.o $(FCEULIB)/emufile.o $(FCEULIB)/fceu.o $(FCEULIB)/fds.o $(FCEULIB)/file.o $(FCEULIB)/filter.o $(FCEULIB)/ines.o $(FCEULIB)/input.o $(FCEULIB)/palette.o $(FCEULIB)/ppu.o $(FCEULIB)/sound.o $(FCEULIB)/state.o $(FCEULIB)/unif.o $(FCEULIB)/vsuni.o $(FCEULIB)/x6502.o $(FCEULIB)/git.o $(FCEULIB)/fc.o
 
-INPUTOBJECTS=fceu/input/arkanoid.o fceu/input/ftrainer.o fceu/input/oekakids.o fceu/input/suborkb.o fceu/input/bworld.o fceu/input/hypershot.o fceu/input/powerpad.o fceu/input/toprider.o fceu/input/cursor.o fceu/input/mahjong.o fceu/input/quiz.o fceu/input/zapper.o fceu/input/fkb.o fceu/input/mouse.o fceu/input/shadow.o
-
-FCEUOBJECTS=fceu/asm.o fceu/cart.o fceu/cheat.o fceu/conddebug.o fceu/config.o fceu/debug.o fceu/drawing.o fceu/emufile.o fceu/fceu.o fceu/fds.o fceu/file.o fceu/filter.o fceu/ines.o fceu/input.o fceu/movie.o fceu/netplay.o fceu/nsf.o fceu/oldmovie.o fceu/palette.o fceu/ppu.o fceu/sound.o fceu/state.o fceu/unif.o fceu/video.o fceu/vsuni.o fceu/wave.o fceu/x6502.o
-
-# fceu/drivers/common/config.o fceu/drivers/common/configSys.o
-DRIVERS_COMMON_OBJECTS=fceu/drivers/common/args.o fceu/drivers/common/nes_ntsc.o fceu/drivers/common/cheat.o fceu/drivers/common/scale2x.o  fceu/drivers/common/scale3x.o fceu/drivers/common/scalebit.o fceu/drivers/common/hq2x.o fceu/drivers/common/vidblit.o fceu/drivers/common/hq3x.o
-
-EMUOBJECTS=$(FCEUOBJECTS) $(MAPPEROBJECTS) $(UTILSOBJECTS) $(PALLETESOBJECTS) $(BOARDSOBJECTS) $(INPUTOBJECTS) $(DRIVERS_COMMON_OBJECTS)
-
-#included in all tests, etc.
-BASEOBJECTS=$(CCLIBOBJECTS) $(NETWORKINGOBJECTS) $(PROTOBUFOBJECTS)
-
-TASBOT_OBJECTS=headless-driver.o simplefm2.o emulator.o basis-util.o objective.o weighted-objectives.o motifs.o util.o
-
-# note you need to build libpng first, in the subdirectory libpng.
-# This makefile does not build the .o files for you.
-PNG_OBJECTS=libpng/png.o libpng/pngerror.o libpng/pngget.o libpng/pngmem.o libpng/pngpread.o libpng/pngread.o libpng/pngrio.o libpng/pngrtran.o libpng/pngrutil.o libpng/pngset.o libpng/pngtrans.o libpng/pngwio.o libpng/pngwrite.o libpng/pngwtran.o libpng/pngwutil.o
-
-pngsave.o: pngsave.cc pngsave.h
-	$(CXX) $(CXXFLAGS) $(CPPFLAGS) $(INCLUDES) -Ilibpng -c pngsave.cc -o $@
-
-PNGSAVE_OBJECTS=pngsave.o $(PNG_OBJECTS)
-
-OBJECTS=$(BASEOBJECTS) $(EMUOBJECTS) $(TASBOT_OBJECTS)
-
-%.pb.cc: %.proto
-	$(PROTOC) $< --cpp_out=.
-
-%.pb.h: %.proto
-	$(PROTOC) $< --cpp_out=.
+FCEULIB_OBJECTS=$(FCEUOBJECTS) $(MAPPEROBJECTS) $(UTILSOBJECTS) $(PALLETESOBJECTS) $(BOARDSOBJECTS) $(INPUTOBJECTS) $(FCEULIB)/emulator.o $(FCEULIB)/headless-driver.o $(FCEULIB)/simplefm2.o $(FCEULIB)/stringprintf.o
 
 # without static, can't find lz or lstdcxx maybe?
-LFLAGS=  -m64 -Wl,--subsystem,console $(LINKNETWORKING) -lz $(OPT) $(FLTO) $(PROFILE) -static
+LFLAGS=-m64 -Wl,--subsystem,console libz.a $(OPT) $(FLTO) $(PROFILE) $(LINKSDL) -static
 # -Wl,--subsystem,console
-# -static -fwhole-program
-# -static
 
-# LPNGFLAGS = -Llibpng -m64 -Wl,--subsystem,console $(LINKNETWORKING) -lpng16 -lz $(OPT) $(FLTO) $(PROFILE) -static
-
-learnfun.exe : $(OBJECTS) learnfun.o
+testui.exe : $(FCEULIB_OBJECTS) $(SDL_OBJECTS) $(CCLIBOBJECTS) testui.o sdl-win32-main.o
 	$(CXX) $^ -o $@ $(LFLAGS)
-
-# XXX never implemented this.
-showfun.exe : $(OBJECTS) showfun.o
-	$(CXX) $^ -o $@ $(LFLAGS)
-
-tasbot.exe : $(OBJECTS) tasbot.o
-	$(CXX) $^ -o $@ $(LFLAGS)
-
-playfun.exe : $(OBJECTS) playfun.o
-	$(CXX) $^ -o $@ $(LFLAGS)
-
-scopefun.exe : $(OBJECTS) $(PNGSAVE_OBJECTS) scopefun.o wave.o
-	$(CXX) $^ -o $@ $(LFLAGS)
-
-pinviz.exe : $(OBJECTS) $(PNGSAVE_OBJECTS) pinviz.o wave.o
-	$(CXX) $^ -o $@ $(LFLAGS)
-
-emu_test.exe : $(OBJECTS) emu_test.o
-	$(CXX) $^ -o $@ $(LFLAGS)
-
-objective_test.exe : $(BASEOBJECTS) objective.o objective_test.o
-	$(CXX) $^ -o $@ $(LFLAGS)
-
-sigbovik.exe : $(OBJECTS) sigbovik.o $(SDLUTILOBJECTS)
-	$(CXX) $^ -o $@ $(LFLAGS)
-
-weighted-objectives_test.exe : $(BASEOBJECTS) weighted-objectives.o weighted-objectives_test.o util.o
-	$(CXX) $^ -o $@ $(LFLAGS)
-
-test : emu_test.exe objective_test.exe weighted-objectives_test.exe
-	time ./emu_test.exe
-	time ./objective_test.exe
-	time ./weighted-objectives_test.exe
 
 clean :
-	rm -f learnfun.exe playfun.exe showfun.exe *_test.exe *.o $(EMUOBJECTS) $(CCLIBOBJECTS) gmon.out
-
-veryclean : clean cleantas
-
-cleantas :
-	rm -f prog*.fm2 deepest.fm2 heuristicest.fm2
+	rm -f testui.exe *.o $(FCEULIB_OBJECTS) $(CCLIBOBJECTS) gmon.out
 
