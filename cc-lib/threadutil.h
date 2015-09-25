@@ -33,6 +33,8 @@ void ParallelAppi(const std::vector<T> &vec,
   // TODO: XXX This cast may really be unsafe, since these vectors
   // could exceed 32 bit ints in practice.
   max_concurrency = std::min((int)vec.size(), max_concurrency);
+  // Need at least one thread for correctness.
+  max_concurrency = std::max(max_concurrency, 1);
   std::mutex index_m;
   int next_index = 0;
   
@@ -66,9 +68,9 @@ void ParallelAppi(const std::vector<T> &vec,
 }
 
 // Same, but the typical case that the index is not needed.
-template<class T>
+template<class T, class F>
 void ParallelApp(const std::vector<T> &vec, 
-		 std::function<void(const T&)> &f,
+		 const F &f,
 		 int max_concurrency) {
   std::function<void(int, const T &)> ff =
     [&f](int i_unused, const T &arg) { return f(arg); };
@@ -83,6 +85,8 @@ void ParallelComp(int num,
 		  const F &f,
 		  int max_concurrency) {
   max_concurrency = std::min(num, max_concurrency);
+  // Need at least one thread for correctness.
+  max_concurrency = std::max(max_concurrency, 1);
   std::mutex index_m;
   int next_index = 0;
 
@@ -121,9 +125,9 @@ void UnParallelComp(int num, const F &f, int max_concurrency_ignored) {
   for (int i = 0; i < num; i++) (void)f(i);
 }
 
-// F needs to be callable (std::function or lambda) and thread safe. It returns R,
-// which must have a default constructor, and this will only be efficient if it
-// has move semantics as well.
+// F needs to be callable (std::function or lambda) and thread safe.
+// It returns R, which must have a default constructor, and this will
+// only be efficient if it has move semantics as well.
 template<class T, class F>
 auto ParallelMap(const std::vector<T> &vec,
 		 const F &f,
@@ -134,14 +138,31 @@ auto ParallelMap(const std::vector<T> &vec,
   std::vector<R> result;
   result.resize(vec.size());
 
-  // Not sure if C++11 makes thread safety guarantees about vector::operator[], but
-  // if we have a data pointer then we can be confident of having one writer to each
-  // slot.
+  // Not sure if C++11 makes thread safety guarantees about
+  // vector::operator[], but if we have a data pointer then we can be
+  // confident of having one writer to each slot.
   R *data = result.data();
-  std::function<void(int, const T &)> run_write = [data, &f](int idx, const T &arg) -> void {
+  std::function<void(int, const T &)> run_write =
+    [data, &f](int idx, const T &arg) -> void {
     data[idx] = f(arg);
   };
   ParallelAppi(vec, run_write, max_concurrency);
+  return result;
+}
+
+// Drop in replacement for testing, debugging, etc.
+template<class T, class F>
+auto UnParallelMap(const std::vector<T> &vec,
+		   const F &f, int max_concurrency_ignored) ->
+  std::vector<decltype(f(vec.front()))> {
+  using R = decltype(f(vec.front()));
+  std::vector<R> result;
+  result.resize(vec.size());
+
+  for (int i = 0; i < vec.size(); i++) {
+    result[i] = f(vec[i]);
+  }
+
   return result;
 }
 
