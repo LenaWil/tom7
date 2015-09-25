@@ -52,6 +52,32 @@ real    35m43.234s
 user    0m0.000s
 sys     0m0.015s
 
+--------------------------------------------------
+
+on linux virtualbox (6 core; host shows ~33% utilization):
+concurrency=12
+
+real 24m53.346s
+user 66m45.204
+sys  11m14.160s
+
+same, windows shows ~50% utilization, linux ~95%
+concurrency=6
+
+real 13m27.882s
+user 62m55.408s
+sys 2m33.328s
+
+T_T
+
+with virtualbox set to 12 cores, and concurrency=12, I get
+
+real 15m11.395
+user 105m56.060
+sys 7m18.156s
+
+though utilization shows higher.
+
 
 --------------------------------------------------
 

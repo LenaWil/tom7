@@ -20,18 +20,17 @@
 
 #include "fc.h"
 
-// The current contents of the screen; part of the "API".
-// extern uint8 *XBuf, *XBackBuf;
+static constexpr int RAM_BYTE_SIZE = 0x800;
+static constexpr int IMAGE_BYTE_SIZE = 256 * 256 * 4;
 
 void Emulator::GetMemory(vector<uint8> *mem) {
-  mem->resize(0x800);
-  memcpy(mem->data(), fc->fceu->RAM, 0x800);
+  mem->resize(RAM_BYTE_SIZE);
+  memcpy(mem->data(), fc->fceu->RAM, RAM_BYTE_SIZE);
 }
 
 vector<uint8> Emulator::GetMemory() {
-  vector<uint8> mem;
-  mem.resize(0x800);
-  memcpy(mem.data(), fc->fceu->RAM, 0x800);
+  vector<uint8> mem(RAM_BYTE_SIZE);
+  memcpy(mem.data(), fc->fceu->RAM, RAM_BYTE_SIZE);
   return mem;
 }
 
@@ -47,7 +46,7 @@ static inline uint64 MD5ToChecksum(const uint8 digest[16]) {
 uint64 Emulator::RamChecksum() {
   md5_context ctx;
   md5_starts(&ctx);
-  md5_update(&ctx, fc->fceu->RAM, 0x800);
+  md5_update(&ctx, fc->fceu->RAM, RAM_BYTE_SIZE);
   uint8 digest[16];
   md5_finish(&ctx, digest);
   return MD5ToChecksum(digest);
@@ -57,6 +56,7 @@ uint64 Emulator::ImageChecksum() {
   md5_context ctx;
   md5_starts(&ctx);
   vector<uint8> img = GetImage();
+  // n.b. why not use 256x256x4?
   md5_update(&ctx, img.data(), 256 * 240 * 4);
   uint8 digest[16];
   md5_finish(&ctx, digest);
@@ -130,9 +130,6 @@ Emulator::~Emulator() {
 Emulator::Emulator(FC *fc) : fc(fc) {}
 
 Emulator *Emulator::Create(const string &romfile) {
-  // XXX Need to get rid of IO too.
-  // fprintf(stderr, "Starting " FCEU_NAME_AND_VERSION "...\n");
-
   // (Here's where SDL was initialized.)
   FC *fc = new FC;
   
@@ -202,13 +199,14 @@ void Emulator::StepFull(uint8 inputs) {
   static constexpr int DO_VIDEO_AND_SOUND = 0;
 
   // Emulate a single frame.
-  // TODO: Remove these arguments, which we don't use.
   fc->fceu->FCEUI_Emulate(DO_VIDEO_AND_SOUND);
 }
 
 void Emulator::GetImage(vector<uint8> *rgba) {
-  rgba->clear();
-  rgba->resize(256 * 256 * 4);
+  if (rgba->size() != IMAGE_BYTE_SIZE) {
+    rgba->clear();
+    rgba->resize(IMAGE_BYTE_SIZE);
+  }
 
   for (int y = 0; y < 256; y++) {
     for (int x = 0; x < 256; x++) {
@@ -216,7 +214,7 @@ void Emulator::GetImage(vector<uint8> *rgba) {
 
       // XBackBuf? or XBuf?
       fc->palette->FCEUD_GetPalette(fc->fceu->XBuf[(y * 256) + x],
-					  &r, &g, &b);
+				    &r, &g, &b);
 
       (*rgba)[y * 256 * 4 + x * 4 + 0] = r;
       (*rgba)[y * 256 * 4 + x * 4 + 1] = g; // XBackBuf[(y * 256) + x] << 4;
@@ -227,13 +225,12 @@ void Emulator::GetImage(vector<uint8> *rgba) {
 }
 
 vector<uint8> Emulator::GetImage() {
-  vector<uint8> ret;
+  vector<uint8> ret(IMAGE_BYTE_SIZE);
   GetImage(&ret);
   return ret;
 }
 
 void Emulator::GetSound(vector<int16> *wav) {
-  wav->clear();
   int32 *buffer = nullptr;
   int samples = fc->sound->GetSoundBuffer(&buffer);
   if (buffer == nullptr) {
@@ -241,7 +238,11 @@ void Emulator::GetSound(vector<int16> *wav) {
     abort();
   }
 
-  wav->resize(samples);
+  if (wav->size() != samples) {
+    wav->clear();
+    wav->resize(samples);
+  }
+   
   for (int i = 0; i < samples; i++) {
     (*wav)[i] = (int16)buffer[i];
   }
