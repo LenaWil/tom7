@@ -10,6 +10,12 @@
 #ifndef BASE_INT_TYPES_H_
 #define BASE_INT_TYPES_H_
 
+#include <cstdint>
+
+// Note: I needed to clean this up to work with C++11 code
+// that uses cstdint instead of like "unsigned long long". I wasn't
+// aggressive; there's more that could still be done. -tom7
+
 // These typedefs are also defined in base/google.swig. In the
 // SWIG environment, we use those definitions and avoid duplicate
 // definitions here with an ifdef. The definitions should be the
@@ -25,7 +31,7 @@ typedef int                 int32;
 #ifdef COMPILER_MSVC
 typedef __int64             int64;
 #else
-typedef long long           int64;
+typedef int64_t           int64;
 #endif /* COMPILER_MSVC */
 
 // NOTE: unsigned types are DANGEROUS in loops and other arithmetical
@@ -40,7 +46,7 @@ typedef unsigned int       uint32;
 #ifdef COMPILER_MSVC
 typedef unsigned __int64   uint64;
 #else
-typedef unsigned long long uint64;
+typedef uint64_t uint64;
 #endif /* COMPILER_MSVC */
 
 // A type to represent a Unicode code-point value. As of Unicode 4.0,
@@ -88,7 +94,6 @@ typedef long sword_t;
 #define GG_LL_FORMAT_W L"ll"
 
 #endif  // COMPILER_MSVC
-
 
 static const uint8  kuint8max  = (( uint8) 0xFF);
 static const uint16 kuint16max = ((uint16) 0xFFFF);
