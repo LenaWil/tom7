@@ -4,10 +4,12 @@
 
 #include <vector>
 #include <map>
+#include <string>
 
-#include "tasbot.h"
+#include "pftwo.h"
 #include "../cc-lib/arcfour.h"
-#include "util.h"
+#include "../cc-lib/randutil.h"
+// #include "util.h"
 
 struct Motifs {
   // Create empty.
@@ -18,39 +20,39 @@ struct Motifs {
   // Does not save checkpoints.
   void SaveToFile(const std::string &filename) const;
 
-  void AddInputs(const vector<uint8> &inputs);
+  void AddInputs(const std::vector<uint8> &inputs);
 
   // Returns a motif uniformly at random.
   // Linear time.
-  const vector<uint8> &RandomMotif();
+  const std::vector<uint8> &RandomMotif();
 
   // Returns one according to current weights.
   // Linear time.
-  const vector<uint8> &RandomWeightedMotif();
+  const std::vector<uint8> &RandomWeightedMotif();
 
-  const vector<uint8> &RandomMotifWith(ArcFour *rc);
-  const vector<uint8> &RandomWeightedMotifWith(ArcFour *rc);
+  const std::vector<uint8> &RandomMotifWith(ArcFour *rc);
+  const std::vector<uint8> &RandomWeightedMotifWith(ArcFour *rc);
 
   // Returns NULL if none can be found.
   template<class Container>
-  const vector<uint8> *RandomWeightedMotifNotIn(const Container &c);
+  const std::vector<uint8> *RandomWeightedMotifNotIn(const Container &c);
 
   // Return the total weight, which allows a single weight to
   // be interpreted as a fraction of the total (for example
   // for capping weights.)
   double GetTotalWeight() const;
 
-  vector< vector<uint8> > AllMotifs() const;
+  std::vector< std::vector<uint8> > AllMotifs() const;
 
-  bool IsMotif(const vector<uint8> &inputs);
+  bool IsMotif(const std::vector<uint8> &inputs);
 
   // Increment a counter (just used for diagnostics) that says
   // how many times this motif was picked.
-  void Pick(const vector<uint8> &inputs);
+  void Pick(const std::vector<uint8> &inputs);
 
   // Returns a modifiable double for the input,
   // or NULL if it has been added with AddInputs (etc.).
-  double *GetWeightPtr(const vector<uint8> &inputs);
+  double *GetWeightPtr(const std::vector<uint8> &inputs);
 
   // Save the current weights at the frame number (assumed
   // to be monotonically increasing), so that they can be
@@ -66,14 +68,14 @@ private:
     double weight;
     int picked;
     // Optional, for diagnostics.
-    vector< pair<int, double> > history;
+    std::vector< pair<int, double> > history;
   };
 
   struct Resorted;
   static bool WeightDescending(const Resorted &a, const Resorted &b);
 
   // XXX accessors or something?
-  typedef map<vector<uint8>, Info> Weighted;
+  typedef std::map<std::vector<uint8>, Info> Weighted;
   Weighted motifs;
   ArcFour rc;
 
@@ -85,7 +87,7 @@ private:
 
 // See the related methods in the .cc file for commentary.
 template<class Container>
-const vector<uint8> *Motifs::RandomWeightedMotifNotIn(const Container &c) {
+const std::vector<uint8> *Motifs::RandomWeightedMotifNotIn(const Container &c) {
   double totalweight = 0.0;
   for (Weighted::const_iterator it = motifs.begin();
        it != motifs.end(); ++it) {
@@ -95,7 +97,7 @@ const vector<uint8> *Motifs::RandomWeightedMotifNotIn(const Container &c) {
   }
 
   // "index" into the continuous bins
-  double sample = RandomDouble(&rc) * totalweight;
+  double sample = RandDouble(&rc) * totalweight;
 
   for (Weighted::const_iterator it = motifs.begin();
        it != motifs.end(); ++it) {

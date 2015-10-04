@@ -3,16 +3,10 @@
 #include <set>
 #include <memory>
 
-#include <stdio.h>
-#include <stdlib.h>
+#include <cstdio>
+#include <cstdlib>
 
-#if 0
-#include <unistd.h>
-#include <sys/types.h>
-#include <string.h>
-#include <errno.h>
-#include <time.h>
-#endif
+#include "pftwo.h"
 
 #include "../fceulib/emulator.h"
 #include "../fceulib/simplefm2.h"
@@ -22,7 +16,8 @@
 #include "../cc-lib/textsvg.h"
 #include "../cc-lib/stb_image.h"
 
-#include "../cc-lib/base/logging.h"
+#include "motifs.h"
+#include "weighted-objectives.h"
 
 #include "SDL.h"
 
@@ -166,13 +161,32 @@ struct InputStream {
 
 struct Testui {
   std::unique_ptr<Emulator> emu;
-  
+  std::unique_ptr<WeightedObjectives> objectives;
+  std::unique_ptr<Motifs> motifs;
+
   Testui() : rc("testui") {
+    map<string, string> config = Util::ReadFileToMap("config.txt");
+    if (config.empty()) {
+      fprintf(stderr, "Missing config.txt.\n");
+      abort();
+    }
+
+    string game = config["game"];
+    const string moviename = config["movie"];
+    CHECK(!game.empty());
+    CHECK(!moviename.empty());
+
+    // XXX: On 4 Oct 2015 these were hand-written objectives.
+    objectives.reset(WeightedObjectives::LoadFromFile(game + ".objectives"));
+    CHECK(objectives.get());
+    fprintf(stderr, "Loaded %d objective functions\n", (int)objectives->Size());
+
+    motifs.reset(Motifs::LoadFromFile(game + ".motifs"));
+    CHECK(motifs);
+
     screen = sdlutil::makescreen(WIDTH, HEIGHT);
     CHECK(screen);
 
-    string game = "mario";
-    CHECK(!game.empty());
     emu.reset(Emulator::Create(game + ".nes"));
     CHECK(emu.get());
   }

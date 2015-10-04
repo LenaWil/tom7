@@ -7,12 +7,13 @@
 #include <iostream>
 #include <sstream>
 
-#include "tasbot.h"
+#include "pftwo.h"
 #include "../cc-lib/arcfour.h"
 #include "util.h"
 #include "../cc-lib/util.h"
-#include "simplefm2.h"
-#include "motifs-style.h"
+#include "../fceulib/simplefm2.h"
+#include "../cc-lib/randutil.h"
+// #include "motifs-style.h"
 
 Motifs::Motifs() : rc("motifs") {}
 
@@ -115,7 +116,7 @@ const vector<uint8> &Motifs::RandomMotifWith(ArcFour *rrc) {
   CHECK(!motifs.empty());
   for (Weighted::const_iterator it = motifs.begin();
        it != motifs.end(); ++it) {
-    uint32 thisone = RandomInt32(rrc);
+    uint32 thisone = Rand32(rrc);
     if (res == NULL || thisone < best) {
       best = thisone;
       res = &it->first;
@@ -152,7 +153,7 @@ const vector<uint8> &Motifs::RandomWeightedMotifWith(ArcFour *rrc) {
   double totalweight = GetTotalWeight();
 
   // "index" into the continuous bins
-  double sample = RandomDouble(rrc) * totalweight;
+  double sample = RandDouble(rrc) * totalweight;
   
   for (Weighted::const_iterator it = motifs.begin();
        it != motifs.end(); ++it) {
@@ -173,20 +174,6 @@ const vector<uint8> &Motifs::RandomWeightedMotif() {
 }
 
 
-static string ShowRange(int lastframe, double val,
-			int thisframe) {
-  int finframe = thisframe - 1;
-  if (lastframe == finframe) {
-    return StringPrintf("<span class=\"range\">%d:&nbsp;"
-			"<span class=\"value\">%.2f</span></span>", 
-			lastframe, val);
-  } else {
-    return StringPrintf("<span class=\"range\">%d&ndash;%d:&nbsp;"
-			"<span class=\"value\">%.2f</span></span>",
-			lastframe, finframe, val);
-  }
-}
-
 struct Motifs::Resorted {
   Resorted(double w, vector<uint8> i, Motifs::Info info)
     : weight(w), inputs(i), info(info) {}
@@ -197,62 +184,4 @@ struct Motifs::Resorted {
 
 bool Motifs::WeightDescending(const Resorted &a, const Resorted &b) {
   return b.weight < a.weight;
-}
-
-void Motifs::SaveHTML(const string &filename) const {
-  string out = MOTIFS_STYLE;
-  vector<Resorted> resorted;
-  for (Weighted::const_iterator it = motifs.begin();
-       it != motifs.end(); ++it) {
-    resorted.push_back(Resorted(it->second.weight, it->first, it->second));
-  }
-
-  std::sort(resorted.begin(), resorted.end(), WeightDescending);
-
-  for (int r = 0; r < resorted.size(); r++) {
-    const vector<uint8> &inputs = resorted[r].inputs;
-    const Info &info = resorted[r].info;
-    
-    out += "<div class=\"motif\">\n"
-      "<div class=\"inputs\">";
-    string last = "";
-    for (int i = 0; i < inputs.size(); i++) {
-      out += "<span class=\"input\">";
-      string s = SimpleFM2::InputToColorString(inputs[i]);
-      if (s == last) {
-	out += "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;";
-      } else {
-	out += s;
-      }
-      last = s;
-      out += "</span> ";
-    }
-    out += "</div>\n";
-    out += "<div class=\"values\">\n";
-    out += StringPrintf("<span class=\"picked\">%d</span>",
-			info.picked);
-    // XXX this is really garbage code. Probably not even correct.
-    if (!info.history.empty()) {
-      int lastframe = info.history[0].first;
-      double lastval = info.history[0].second;
-      for (int i = 1; i < info.history.size(); i++) {
-	if (lastval != info.history[i].second) {
-	  out += ShowRange(lastframe, lastval,
-			   info.history[i].first);
-	  lastframe = info.history[i].first;
-	  lastval = info.history[i].second;
-	}
-      }
-      if (info.history.size() == 1 ||
-	  lastframe != info.history.back().first) {
-	out += ShowRange(lastframe, lastval, 
-			 info.history.back().first + 1);
-      }
-    }
-    out += "</div>\n";  // values
-    out += "</div>\n";  // motif
-  }
-
-  Util::WriteFile(filename, out);
-  printf("Wrote weighted motifs to %s\n", filename.c_str());
 }

@@ -9,24 +9,16 @@
 #include <string>
 #include <utility>
 
-#include "tasbot.h"
-#include "fceu/types.h"
+#include "pftwo.h"
 
 struct WeightedObjectives {
-  explicit WeightedObjectives(const std::vector< vector<int> > &objs);
+  explicit WeightedObjectives(const std::vector<vector<int>> &objs);
   static WeightedObjectives *LoadFromFile(const std::string &filename);
 
-  void WeightByExamples(const vector< vector<uint8> > &memories);
+  void WeightByExamples(const vector<vector<uint8>> &memories);
 
   // Does not save observations.
   void SaveToFile(const std::string &filename) const;
-
-  // XXX version that uses observations?
-  void SaveSVG(const vector< vector<uint8> > &memories,
-               const string &filename) const;
-
-  // More diagnostics. Only show the n highest-scoring objectives.
-  void SaveLua(int n, const std::string &filename) const;
 
   size_t Size() const;
 
@@ -67,12 +59,12 @@ struct WeightedObjectives {
   vector<double> GetNormalizedValues(const vector<uint8> &memory);
 
   // XXX weighted version, unnormalized version?
-  std::vector< std::pair<const std::vector<int> *, double> > GetAll() const;
+  std::vector<std::pair<const std::vector<int> *, double>> GetAll() const;
 
  private:
   WeightedObjectives();
   struct Info;
-  typedef std::map< std::vector<int>, Info* > Weighted;
+  typedef std::map<std::vector<int>, Info *> Weighted;
   Weighted weighted;
 
   NOT_COPYABLE(WeightedObjectives);
