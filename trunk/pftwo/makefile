@@ -42,7 +42,7 @@ INCLUDES=-I "../cc-lib" -I "../cc-lib/city" -I ../fceulib
 #  -DNOUNZIP -DDUMMY_UI -DHAVE_ASPRINTF  -DNOWINSTUFF -Wno-write-strings
 CPPFLAGS= -DPSS_STYLE=1 -m64 $(OPT) -D__MINGW32__ -DHAVE_ALLOCA $(INCLUDES) $(PROFILE) $(FLTO) --std=c++11
 
-CCLIBOBJECTS=../cc-lib/util.o ../cc-lib/arcfour.o ../cc-lib/base/stringprintf.o ../cc-lib/city/city.o ../cc-lib/textsvg.o ../cc-lib/stb_image.o ../cc-lib/sdl/sdlutil.o ../cc-lib/base/logging.o
+CCLIB_OBJECTS=../cc-lib/util.o ../cc-lib/arcfour.o ../cc-lib/base/stringprintf.o ../cc-lib/city/city.o ../cc-lib/textsvg.o ../cc-lib/stb_image.o ../cc-lib/sdl/sdlutil.o ../cc-lib/base/logging.o
 
 FCEULIB=../fceulib
 MAPPEROBJECTS=$(FCEULIB)/mappers/6.o $(FCEULIB)/mappers/61.o $(FCEULIB)/mappers/24and26.o $(FCEULIB)/mappers/51.o $(FCEULIB)/mappers/69.o $(FCEULIB)/mappers/77.o $(FCEULIB)/mappers/40.o $(FCEULIB)/mappers/mmc2and4.o $(FCEULIB)/mappers/71.o $(FCEULIB)/mappers/79.o $(FCEULIB)/mappers/41.o $(FCEULIB)/mappers/72.o $(FCEULIB)/mappers/80.o $(FCEULIB)/mappers/42.o $(FCEULIB)/mappers/62.o $(FCEULIB)/mappers/73.o $(FCEULIB)/mappers/85.o $(FCEULIB)/mappers/emu2413.o $(FCEULIB)/mappers/46.o $(FCEULIB)/mappers/65.o $(FCEULIB)/mappers/75.o $(FCEULIB)/mappers/50.o $(FCEULIB)/mappers/67.o $(FCEULIB)/mappers/76.o $(FCEULIB)/mappers/tengen.o
@@ -61,9 +61,11 @@ FCEULIB_OBJECTS=$(FCEUOBJECTS) $(MAPPEROBJECTS) $(UTILSOBJECTS) $(PALLETESOBJECT
 LFLAGS=-m64 -Wl,--subsystem,console libz.a $(OPT) $(FLTO) $(PROFILE) $(LINKSDL) -static
 # -Wl,--subsystem,console
 
-testui.exe : $(FCEULIB_OBJECTS) $(SDL_OBJECTS) $(CCLIBOBJECTS) testui.o sdl-win32-main.o
+PFTWO_OBJECTS=motifs.o weighted-objectives.o
+
+testui.exe : $(FCEULIB_OBJECTS) $(SDL_OBJECTS) $(CCLIB_OBJECTS) $(PFTWO_OBJECTS) testui.o sdl-win32-main.o
 	$(CXX) $^ -o $@ $(LFLAGS)
 
 clean :
-	rm -f testui.exe *.o $(FCEULIB_OBJECTS) $(CCLIBOBJECTS) gmon.out
+	rm -f testui.exe *.o $(FCEULIB_OBJECTS) $(CCLIB_OBJECTS) $(PFTWO_OBJECTS) gmon.out
 
