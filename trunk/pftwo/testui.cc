@@ -30,12 +30,40 @@
 #define HEIGHT 1080
 SDL_Surface *screen = 0;
 
-// assumes RGBA, surfaces exactly the same size, etc.
-static void CopyRGBA(const vector<uint8> &rgba, SDL_Surface *surface) {
+// assumes ARGB, surfaces exactly the same size, etc.
+static void CopyARGB(const vector<uint8> &argb, SDL_Surface *surface) {
   // int bpp = surface->format->BytesPerPixel;
   Uint8 * p = (Uint8 *)surface->pixels;
-  memcpy(p, &rgba[0], surface->w * surface->h * 4);
+  memcpy(p, &argb[0], surface->w * surface->h * 4);
 }
+
+static inline constexpr uint8 Mix4(uint8 v1, uint8 v2, uint8 v3, uint8 v4) {
+  return (uint8)(((uint32)v1 + (uint32)v2 + (uint32)v3 + (uint32)v4) >> 2);
+}
+
+static void HalveARGB(const vector<uint8> &argb, int width, int height, SDL_Surface *surface) {
+  // PERF
+  const int halfwidth = width >> 1;
+  const int halfheight = height >> 1;
+  vector<uint8> argb_half;
+  argb_half.resize(halfwidth * halfheight * 4);
+  for (int y = 0; y < halfheight; y++) {
+    for (int x = 0; x < halfwidth; x++) {
+      #define PIXEL(i) \
+	argb_half[(y * halfwidth + x) * 4 + (i)] =	\
+	  Mix4(argb[(y * 2 * width + x * 2) * 4 + (i)], \
+	       argb[(y * 2 * width + x * 2 + 1) * 4 + (i)], \
+	       argb[((y * 2 + 1) * width + x * 2) * 4 + (i)],	\
+	       argb[((y * 2 + 1) * width + x * 2 + 1) * 4 + (i)])
+      PIXEL(0);
+      PIXEL(1);
+      PIXEL(2);
+      PIXEL(3);
+    }
+  }
+  CopyARGB(argb_half, surface);
+}
+
 
 #if 0
 struct Graphic {
@@ -58,7 +86,7 @@ struct Graphic {
 
     surf = sdlutil::makesurface(width, height, true);
     CHECK(surf);
-    CopyRGBA(rgba, surf);
+    CopyARGB(rgba, surf);
   }
 
   // to screen
@@ -151,6 +179,7 @@ struct Testui {
 
   void Play() {
     SDL_Surface *surf = sdlutil::makesurface(256, 256, true);
+    SDL_Surface *surfhalf = sdlutil::makesurface(128, 128, true);
     int frame = 0;
 
     for (uint8 input : InputStream("poo", 9999)) {
@@ -161,21 +190,33 @@ struct Testui {
       switch (event.type) {
       case SDL_QUIT:
 	return;
+      case SDL_KEYDOWN:
+	switch (event.key.keysym.sym) {
+	case SDLK_ESCAPE:
+	  return;
+	default:;
+	}
+	break;
+      default:;
       }
       
-      SDL_Delay(1000.0 / 60.0);
+      // SDL_Delay(1000.0 / 60.0);
       
       emu->StepFull(input);
 
-      vector<uint8> image = emu->GetImage();
-      CopyRGBA(image, surf);
+      if (frame % 1 == 0) {
+	vector<uint8> image = emu->GetImageARGB();
+	CopyARGB(image, surf);
+	HalveARGB(image, 256, 256, surfhalf);
+	
+	sdlutil::clearsurface(screen, 0x00000000);
 
-      sdlutil::clearsurface(screen, 0xFFFFFFFF);
-
-      // Draw pixels to screen...
-      sdlutil::blitall(surf, screen, 0, 0);
-      
-      SDL_Flip(screen);
+	// Draw pixels to screen...
+	sdlutil::blitall(surf, screen, 0, 0);
+	sdlutil::blitall(surfhalf, screen, 260, 0);
+	
+	SDL_Flip(screen);
+      }
     }
   }
   
