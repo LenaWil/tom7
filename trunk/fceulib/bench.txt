@@ -78,6 +78,12 @@ sys 7m18.156s
 
 though utilization shows higher.
 
+with 8 cores, concurrency=12
+
+real 21m19
+user 93m19
+sys 9m14
+
 
 --------------------------------------------------
 

@@ -57,7 +57,10 @@ struct Emulator {
   // 240 pixels high contain anything interesting.
   void GetImage(vector<uint8> *rgba);
   vector<uint8> GetImage();
-
+  // Same, but Alpha, Red, Green, Blue.
+  void GetImageARGB(vector<uint8> *abgr);
+  vector<uint8> GetImageARGB();
+  
   // Get sound. StepFull must have been called to produce this wave.
   // The result is a vector of signed 16-bit samples, mono.
   void GetSound(vector<int16> *wav);

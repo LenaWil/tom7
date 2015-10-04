@@ -230,6 +230,34 @@ vector<uint8> Emulator::GetImage() {
   return ret;
 }
 
+void Emulator::GetImageARGB(vector<uint8> *argb) {
+  if (argb->size() != IMAGE_BYTE_SIZE) {
+    argb->clear();
+    argb->resize(IMAGE_BYTE_SIZE);
+  }
+
+  for (int y = 0; y < 256; y++) {
+    for (int x = 0; x < 256; x++) {
+      uint8 r, g, b;
+
+      // XBackBuf? or XBuf?
+      fc->palette->FCEUD_GetPalette(fc->fceu->XBuf[(y * 256) + x],
+				    &r, &g, &b);
+
+      (*argb)[y * 256 * 4 + x * 4 + 0] = b;
+      (*argb)[y * 256 * 4 + x * 4 + 1] = g;
+      (*argb)[y * 256 * 4 + x * 4 + 2] = r;
+      (*argb)[y * 256 * 4 + x * 4 + 3] = 0xFF;
+    }
+  }
+}
+
+vector<uint8> Emulator::GetImageARGB() {
+  vector<uint8> ret(IMAGE_BYTE_SIZE);
+  GetImageARGB(&ret);
+  return ret;
+}
+
 void Emulator::GetSound(vector<int16> *wav) {
   int32 *buffer = nullptr;
   int samples = fc->sound->GetSoundBuffer(&buffer);

@@ -82,8 +82,6 @@ INPUTOBJECTS=input/arkanoid.o input/ftrainer.o input/oekakids.o input/suborkb.o 
 
 FCEUOBJECTS=cart.o version.o emufile.o fceu.o fds.o file.o filter.o ines.o input.o palette.o ppu.o sound.o state.o unif.o vsuni.o x6502.o git.o fc.o
 
-# DRIVERS_COMMON_OBJECTS=drivers/common/nes_ntsc.o 
-
 #  $(DRIVERS_COMMON_OBJECTS)
 EMUOBJECTS=$(FCEUOBJECTS) $(MAPPEROBJECTS) $(UTILSOBJECTS) $(PALLETESOBJECTS) $(BOARDSOBJECTS) $(INPUTOBJECTS)
 
