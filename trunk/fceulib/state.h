@@ -99,7 +99,7 @@ struct State {
 
   // Tom 7's simplified versions. These should only be used for in-memory saves!
   bool FCEUSS_SaveRAW(std::vector<uint8> *out);
-  bool FCEUSS_LoadRAW(std::vector<uint8> *in);
+  bool FCEUSS_LoadRAW(const std::vector<uint8> &in);
 
   // I think these add additional locations to the set of saved memories.
   void ResetExState(void (*PreSave)(FC *),void (*PostSave)(FC *));

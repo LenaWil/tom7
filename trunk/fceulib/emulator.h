@@ -30,8 +30,7 @@ struct Emulator {
   // with Load. This version may use compression to minimize the
   // state size; for a much faster version, use SaveUncompressed.
   void Save(vector<uint8> *out);
-  // Doesn't modify its argument.
-  void Load(vector<uint8> *in);
+  void Load(const vector<uint8> &in);
 
   // Make one emulator step with the given input.
   // Bits from MSB to LSB are
@@ -39,7 +38,7 @@ struct Emulator {
   //
   // Consider StepFull if you want video or CachingStep if you
   // are doing search and might execute this same step again.
-  void Step(uint8 inputs);
+  void Step(uint8 controller1, uint8 controller2);
 
   // Copy the 0x800 bytes of RAM.
   void GetMemory(vector<uint8> *mem);
@@ -49,7 +48,7 @@ struct Emulator {
 
   // Same, but run the video and sound code as well. This is slower,
   // but allows calling GetImage and GetSound.
-  void StepFull(uint8 inputs);
+  void StepFull(uint8 controller1, uint8 controller2);
 
   // Get image. StepFull must have been called to produce this frame,
   // or else who knows what's in there? Size is 256 x 256 pixels,
@@ -81,14 +80,14 @@ struct Emulator {
   // size (Save and SaveEx may compress, which makes their output
   // significantly smaller), but this is the fastest in terms of CPU.
   void SaveUncompressed(vector<uint8> *out);
-  void LoadUncompressed(vector<uint8> *in);
+  void LoadUncompressed(const vector<uint8> &in);
 
   // Save and load with a basis vector. The vector can contain anything, and
   // doesn't even have to be the same length as an uncompressed save state,
   // but a state needs to be loaded with the same basis as it was saved.
   // basis can be NULL, and then these behave the same as Save/Load.
-  void SaveEx(vector<uint8> *out, const vector<uint8> *basis);
-  void LoadEx(vector<uint8> *in, const vector<uint8> *basis);
+  void SaveEx(const vector<uint8> *basis, vector<uint8> *out);
+  void LoadEx(const vector<uint8> *basis, const vector<uint8> &in);
 
   // XXXXX debugging only.
   FC *GetFC() { return fc; }

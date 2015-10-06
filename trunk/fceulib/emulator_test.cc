@@ -364,7 +364,7 @@ static SerialResult RunGameSerially(std::function<void(const string &)> Update_,
 	     cx,
 	     SimpleFM2::InputToString(b).c_str());
     }
-    emu->StepFull(b);
+    emu->StepFull(b, 0);
   };
 
   int step_counter = 0;
@@ -484,7 +484,7 @@ static SerialResult RunGameSerially(std::function<void(const string &)> Update_,
       const int dist = Rand(5) + 1;
       for (int j = 0; j < dist; j++) {
         if (seekto + j + 1 < saves.size()) {
-          emu->StepFull(inputs[seekto + j]);
+          emu->StepFull(inputs[seekto + j], 0);
           CHECK_RAM(checksums[seekto + j + 1]);
         }
       }
