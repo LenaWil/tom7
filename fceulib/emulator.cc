@@ -180,10 +180,10 @@ Emulator *Emulator::Create(const string &romfile) {
 // Make one emulator step with the given input.
 // Bits from MSB to LSB are
 //    RLDUTSBA (Right, Left, Down, Up, sTart, Select, B, A)
-void Emulator::Step(uint8 inputs) {
+void Emulator::Step(uint8 controller1, uint8 controller2) {
   // The least significant byte is player 0 and
   // the bits are in the same order as in the fm2 file.
-  joydata = (uint32) inputs;
+  joydata = ((uint32)controller2 << 8) | controller1;
 
   // Limited ability to skip video and sound.
   static constexpr int SKIP_VIDEO_AND_SOUND = 2;
@@ -192,8 +192,8 @@ void Emulator::Step(uint8 inputs) {
   fc->fceu->FCEUI_Emulate(SKIP_VIDEO_AND_SOUND);
 }
 
-void Emulator::StepFull(uint8 inputs) {
-  joydata = (uint32) inputs;
+void Emulator::StepFull(uint8 controller1, uint8 controller2) {
+  joydata = ((uint32)controller2 << 8) | controller1;
 
   // Run the video and sound as well.
   static constexpr int DO_VIDEO_AND_SOUND = 0;
@@ -288,15 +288,15 @@ void Emulator::SaveUncompressed(vector<uint8> *out) {
   fc->state->FCEUSS_SaveRAW(out);
 }
 
-void Emulator::LoadUncompressed(vector<uint8> *in) {
+void Emulator::LoadUncompressed(const vector<uint8> &in) {
   if (!fc->state->FCEUSS_LoadRAW(in)) {
     fprintf(stderr, "Couldn't restore from state\n");
     abort();
   }
 }
 
-void Emulator::Load(vector<uint8> *state) {
-  LoadEx(state, nullptr);
+void Emulator::Load(const vector<uint8> &state) {
+  LoadEx(nullptr, state);
 }
 
 // Compression yields 2x slowdown, but states go from ~80kb to 1.4kb
@@ -307,7 +307,7 @@ void Emulator::Load(vector<uint8> *state) {
 
 #if USE_COMPRESSION
 
-void Emulator::SaveEx(vector<uint8> *state, const vector<uint8> *basis) {
+void Emulator::SaveEx(const vector<uint8> *basis, vector<uint8> *state) {
   // TODO PERF
   // Saving is not as efficient as we'd like for a pure in-memory operation
   //  - uses tags to tell you what's next, even though we could already know
@@ -339,22 +339,22 @@ void Emulator::SaveEx(vector<uint8> *state, const vector<uint8> *basis) {
     abort();
   }
 
-  *(uint32*)&(*state)[0] = len;
+  *(uint32*)state->data() = len;
 
   // Trim to what we actually needed.
   state->resize(4 + comprlen);
   state->shrink_to_fit();
 }
 
-void Emulator::LoadEx(vector<uint8> *state, const vector<uint8> *basis) {
+void Emulator::LoadEx(const vector<uint8> *basis, const vector<uint8> &state) {
   // Decompress. First word tells us the decompressed size.
-  int uncomprlen = *(uint32*)&(*state)[0];
+  int uncomprlen = *(const uint32*)state.data();
   vector<uint8> uncompressed;
   uncompressed.resize(uncomprlen);
   uLongf uncomprlenf = uncomprlen;
   
   switch (uncompress(uncompressed.data(), &uncomprlenf,
-		     &(*state)[4], state->size() - 4)) {
+		     &state[4], state.size() - 4)) {
   case Z_OK: break;
   case Z_BUF_ERROR:
     fprintf(stderr, "zlib: Not enough room in output. Uncompressed length\n"
@@ -381,7 +381,7 @@ void Emulator::LoadEx(vector<uint8> *state, const vector<uint8> *basis) {
     uncompressed[i] += (*basis)[i];
   }
 
-  if (!fc->state->FCEUSS_LoadRAW(&uncompressed)) {
+  if (!fc->state->FCEUSS_LoadRAW(uncompressed)) {
     fprintf(stderr, "Couldn't restore from state\n");
     abort();
   }
@@ -396,7 +396,7 @@ void Emulator::SaveEx(vector<uint8> *state, const vector<uint8> *basis) {
 }
 
 void Emulator::LoadEx(vector<uint8> *state, const vector<uint8> *basis) {
-  if (!fc->state->FCEUSS_LoadRAW(state)) {
+  if (!fc->state->FCEUSS_LoadRAW(*state)) {
     fprintf(stderr, "Couldn't restore from state\n");
     abort();
   }

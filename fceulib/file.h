@@ -33,6 +33,9 @@ int FCEU_read32le(uint32 *Bufo, FceuFile*);
 int FCEU_fgetc(FceuFile*);
 uint64 FCEU_fgetsize(FceuFile*);
 
+FILE *FCEUD_UTF8fopen(const char *fn, const char *mode);
+
+
 // XXX This whole thing can probably be deleted. -tom7
 // Broke MakeFName into separate functions where it remained. -tom7
 std::string FCEU_MakeSaveFilename();

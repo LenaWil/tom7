@@ -296,8 +296,8 @@ bool State::FCEUSS_SaveRAW(std::vector<uint8> *out) {
   return true;
 }
 
-bool State::FCEUSS_LoadRAW(std::vector<uint8> *in) {
-  EMUFILE_MEMORY is(in);
+bool State::FCEUSS_LoadRAW(const std::vector<uint8> &in) {
+  EMUFILE_MEMORY_READONLY is{in};
 
   int totalsize = is.size();
   // Assume current version; memory only.
