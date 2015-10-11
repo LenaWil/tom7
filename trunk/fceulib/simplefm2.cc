@@ -7,8 +7,16 @@
 using namespace std;
 
 vector<uint8> SimpleFM2::ReadInputs(const string &filename) {
+  vector<pair<uint8, uint8>> twop = ReadInputs2P(filename);
+  vector<uint8> ret;
+  ret.reserve(twop.size());
+  for (const auto &p : twop) ret.push_back(p.first);
+  return ret;
+}
+
+vector<pair<uint8, uint8>> SimpleFM2::ReadInputs2P(const string &filename) {
   vector<string> contents = Util::ReadFileToLines(filename);
-  vector<uint8> out;
+  vector<pair<uint8, uint8>> out;
   for (int i = 0; i < contents.size(); i++) {
     const string &line = contents[i];
     if (line.empty() || line[0] != '|')
@@ -32,14 +40,18 @@ vector<uint8> SimpleFM2::ReadInputs(const string &filename) {
       |0|....T...|........||
     */
     
-    const string player = line.substr(3, 8);
-    uint8 command = 0;
-    for (int j = 0; j < 8; j++) {
-      if (player[j] != '.') {
-	command |= (1 << (7 - j));
+    const string player1 = line.substr(3, 8);
+    const string player2 = line.substr(12, 8);
+    auto Command = [](const string &s) -> uint8 {
+      uint8 command = 0;
+      for (int j = 0; j < 8; j++) {
+	if (s[j] != '.') {
+	  command |= (1 << (7 - j));
+	}
       }
-    }
-    out.push_back(command);
+      return command;
+    };
+    out.push_back({Command(player1), Command(player2)});
   }
 
   return out;
