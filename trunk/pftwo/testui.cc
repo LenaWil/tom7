@@ -178,7 +178,7 @@ struct Testui {
     CHECK(!game.empty());
     CHECK(!moviename.empty());
 
-    // XXX: On 4 Oct 2015 these were hand-written objectives.
+    // XXX: Note, contra was only trained on 1P inputs.
     objectives.reset(WeightedObjectives::LoadFromFile(game + ".objectives"));
     CHECK(objectives.get());
     fprintf(stderr, "Loaded %d objective functions\n", (int)objectives->Size());
@@ -198,11 +198,13 @@ struct Testui {
     SDL_Surface *surfhalf = sdlutil::makesurface(128, 128, true);
     int frame = 0;
 
+    vector<pair<uint8, uint8>> inputs = SimpleFM2::ReadInputs2P("contra2p.fm2");
     
-    
-    // for (uint8 input : InputStream("poo", 9999)) {
-    uint8 input = 0;
-    for (;;) {
+    for (pair<uint8, uint8> inputp : inputs) {
+      uint8 inputa = inputp.first;
+      uint8 inputb = inputp.second;
+      // uint8 input = 0;
+      //    for (;;) {
       frame++;
       // Ignore events for now
       SDL_Event event;
@@ -210,63 +212,8 @@ struct Testui {
       switch (event.type) {
       case SDL_QUIT:
 	return;
-      case SDL_KEYUP:
-	switch (event.key.keysym.sym) {
-	case SDLK_LEFT:
-	  input &= ~INPUT_L;
-	  break;
-	case SDLK_UP:
-	  input &= ~INPUT_U;
-	  break;
-	case SDLK_RIGHT:
-	  input &= ~INPUT_R;
-	  break;
-	case SDLK_DOWN:
-	  input &= ~INPUT_D;
-	  break;
-	case SDLK_f:
-	  input &= ~INPUT_A;
-	  break;
-	case SDLK_d:
-	  input &= ~INPUT_B;
-	  break;
-	case SDLK_RETURN:
-	  input &= ~INPUT_T;
-	  break;
-	case SDLK_TAB:
-	  input &= ~INPUT_S;
-	  break;
-	default:
-	  break;
-	}
-	break;
-
       case SDL_KEYDOWN:
 	switch (event.key.keysym.sym) {
-	case SDLK_LEFT:
-	  input |= INPUT_L;
-	  break;
-	case SDLK_UP:
-	  input |= INPUT_U;
-	  break;
-	case SDLK_RIGHT:
-	  input |= INPUT_R;
-	  break;
-	case SDLK_DOWN:
-	  input |= INPUT_D;
-	  break;
-	case SDLK_f:
-	  input |= INPUT_A;
-	  break;
-	case SDLK_d:
-	  input |= INPUT_B;
-	  break;
-	case SDLK_RETURN:
-	  input |= INPUT_T;
-	  break;
-	case SDLK_TAB:
-	  input |= INPUT_S;
-	  break;
 	  
 	case SDLK_ESCAPE:
 	  return;
@@ -278,7 +225,7 @@ struct Testui {
       
       SDL_Delay(1000.0 / 60.0);
       
-      emu->StepFull(input, input);
+      emu->StepFull(inputa, inputb);
 
       if (frame % 1 == 0) {
 	vector<uint8> image = emu->GetImageARGB();

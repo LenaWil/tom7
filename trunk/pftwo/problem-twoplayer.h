@@ -3,6 +3,10 @@
 
 #include "pftwo.h"
 
+#include <mutex>
+#include <atomic>
+
+#include "markov-controller.h"
 #include "../fceulib/emulator.h"
 
 struct TwoPlayerProblem {
@@ -21,6 +25,16 @@ struct TwoPlayerProblem {
     // Same game is loaded as parent Problem.
     unique_ptr<Emulator> emu;
 
+    // Get a random input; may depend on the current state
+    // (for example, in Markov models).
+    Input RandomInput(ArcFour *rc) {
+      
+    }
+
+    State Save() {
+      return emu->SaveUncompressed();
+    }
+    
     void Restore(const State &state) {
       emu->LoadUncompressed(state);
     }
@@ -29,20 +43,34 @@ struct TwoPlayerProblem {
     }
 
     void ClearStatus() {
-      status = nullptr;
-      numer = denom = 0;
+      SetStatus(nullptr);
+      SetNumer(0);
+      SetDenom(0);
     }
-    // Current operation. Meant to point to a constant string.
-    const char *status = nullptr;
+    inline void SetStatus(const char *s) {
+      status.store(s, std::memory_order_relaxed);
+    }
+    inline void SetNumer(int n) {
+      numer.store(n, std::memory_order_relaxed);
+    }
+    inline void SetDenom(int d) {
+      denom.store(d, std::memory_order_relaxed);
+    }
+    
+    // Current operation. Should point to a string literal;
+    // other code may hang on to references.
+    std::atomic<const char *> status{nullptr};
     // Fraction complete.
-    int numer = 0, denom = 0;
+    std::atomic<int> numer{0}, denom{0};
   };
 
+  // Must be thread safe.
   Worker *CreateWorker();
 
   TwoPlayerProblem();
 
-
+  vector<pair<uint8, uint8>> original_inputs;
+  unique_ptr<MarkovController> markov1, markov2;
   vector<pair<uint8, uint8>> warmup_inputs;
 };
 
