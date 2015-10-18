@@ -82,5 +82,14 @@ MarkovController::MarkovController(const vector<uint8> &v) {
     }
   }
 
+  // PERF
+  for (const auto &p : matrix) {
+    uint32 sum = 0;
+    for (const auto &q : p.second) {
+      sum += q.first;
+    }
+    CHECK(sum == 0xFFFFFFFF);
+  }
+  
   CHECK(matrix.find(input_in_domain) != matrix.end());
 }
