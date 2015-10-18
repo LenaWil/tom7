@@ -38,19 +38,30 @@ struct TwoPlayerProblem {
     // example, in Markov models). Doesn't execute the input.
     Input RandomInput(ArcFour *rc);
 
+    // Called in the worker thread before anything else, but
+    // the worker's state must be valid before this point.
+    void Init();
+    
     State Save() {
+      MutexLock ml(&mutex);
       return {emu->SaveUncompressed(), previous};
     }
     
     void Restore(const State &state) {
+      MutexLock ml(&mutex);
       emu->LoadUncompressed(state.save);
       previous = state.prev;
     }
     void Exec(Input input) {
+      MutexLock ml(&mutex);
       emu->Step(Player1(input), Player2(input));
       previous = input;
     }
 
+    // XXX: This interface pretty much only works for grabbing a
+    // single NES frame right now.
+    void Visualize(vector<uint8> *argb256x256);
+    
     void ClearStatus() {
       SetStatus(nullptr);
       SetNumer(0);
@@ -72,9 +83,12 @@ struct TwoPlayerProblem {
     // Fraction complete.
     std::atomic<int> numer{0}, denom{0};
     const TwoPlayerProblem *tpp = nullptr;
+
+    // Lock emulator etc.
+    std::mutex mutex;
   };
 
-  // Must be thread safe.
+  // Must be thread safe and leave Worker in a valid state.
   Worker *CreateWorker();
 
   TwoPlayerProblem();
