@@ -4,11 +4,16 @@
 #include "markov-controller.h"
 
 using TPP = TwoPlayerProblem;
-
 using Worker = TPP::Worker;
 
+TPP::Input Worker::RandomInput(ArcFour *rc) {
+  const uint8 p1 = tpp->markov1->RandomNext(Player1(previous), rc);
+  const uint8 p2 = tpp->markov2->RandomNext(Player2(previous), rc);
+  return MakeInput(p1, p2);
+}
+
 // XXX should take config text?
-TwoPlayerProblem::TwoPlayerProblem() {
+TPP::TwoPlayerProblem() {
   original_inputs = SimpleFM2::ReadInputs2P("contra2p.fm2");
 
   vector<uint8> player1, player2;
@@ -26,7 +31,7 @@ TwoPlayerProblem::TwoPlayerProblem() {
 
 Worker *TPP::CreateWorker() {
   CHECK(this);
-  Worker *w = new Worker;
+  Worker *w = new Worker(this);
 
   // XXX no point in setting this stuff since we have
   // exclusive access right now...

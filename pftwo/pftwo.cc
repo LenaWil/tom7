@@ -33,6 +33,7 @@
 
 // "Functor"
 using Problem = TwoPlayerProblem;
+using Worker = Problem::Worker;
 
 struct PF2;
 struct WorkThread;
@@ -136,29 +137,6 @@ struct PF2 {
     DestroyThreads();
     
 #if 0
-    for (pair<uint8, uint8> inputp : inputs) {
-      uint8 inputa = inputp.first;
-      uint8 inputb = inputp.second;
-      // uint8 input = 0;
-      //    for (;;) {
-      frame++;
-      // Ignore events for now
-      SDL_Event event;
-      SDL_PollEvent(&event);
-      switch (event.type) {
-      case SDL_QUIT:
-	return;
-      case SDL_KEYDOWN:
-	switch (event.key.keysym.sym) {
-	  
-	case SDLK_ESCAPE:
-	  return;
-	default:;
-	}
-	break;
-      default:;
-      }
-      
       SDL_Delay(1000.0 / 60.0);
       
       emu->StepFull(inputa, inputb);
@@ -188,13 +166,19 @@ struct WorkThread {
 
   void Run() {
     worker = pftwo->problem->CreateWorker();
-    
+
+    worker->SetDenom(500000);
     for (int i = 0; i < 500000; i++) {
+      worker->SetNumer(i);
+      worker->SetStatus("Random inputs");
+
+      Problem::Input input = worker->RandomInput(&rc);
+      worker->Exec(input);
       
-      
-      if (ReadWithLock(&should_die_m, &should_die))
+      if (ReadWithLock(&should_die_m, &should_die)) {
+	worker->SetStatus("Die");
 	return;
-            
+      }
     }
   }
 
@@ -204,6 +188,8 @@ struct WorkThread {
     th.join();
     Printf("Worker %d done.\n", id);
   }
+
+  const Worker *GetWorker() const { return worker; }
   
 private:
   PF2 *pftwo = nullptr;
@@ -244,14 +230,23 @@ struct UIThread {
       }
       
       SDL_Delay(1000.0 / 60.0);
-      
+
+      sdlutil::clearsurface(screen, 0x33333333);
+      /*
       sdlutil::clearsurface(screen,
 			    (frame * 0xDEADBEEF));
+      */
 
       font->draw(10, 10, StringPrintf("This is frame %d!", frame));
 
       for (int i = 0; i < pftwo->workers.size(); i++) {
-	
+	const Worker *w = pftwo->workers[i]->GetWorker();
+	font->draw(10, 40 + FONTHEIGHT * i,
+		   StringPrintf("[%d] %d/%d %s",
+				i,
+				w->numer.load(std::memory_order_relaxed),
+				w->denom.load(std::memory_order_relaxed),
+				w->status.load(std::memory_order_relaxed)));
       }
 
       SDL_Flip(screen);

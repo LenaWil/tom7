@@ -15,31 +15,40 @@ struct TwoPlayerProblem {
 
   static inline uint8 Player1(Input i) { return (i >> 8) & 255; }
   static inline uint8 Player2(Input i) { return i & 255; }
+  static inline Input MakeInput(uint8 p1, uint8 p2) {
+    return ((uint16)p1 << 8) | (uint16)p2;
+  }
   
   // Save state; these are portable between workers.
-  using State = vector<uint8>;
+  struct State {
+    vector<uint8> save;
+    Input prev;
+  };
 
   // An individual instance of the emulator that can be used to
   // execute steps. We create one of these per thread.
   struct Worker {
+    explicit Worker(TwoPlayerProblem *parent) : tpp(parent) {}
     // Same game is loaded as parent Problem.
     unique_ptr<Emulator> emu;
-
-    // Get a random input; may depend on the current state
-    // (for example, in Markov models).
-    Input RandomInput(ArcFour *rc) {
-      
-    }
+    // Previous input.
+    Input previous;
+    
+    // Sample a random input; may depend on the current state (for
+    // example, in Markov models). Doesn't execute the input.
+    Input RandomInput(ArcFour *rc);
 
     State Save() {
-      return emu->SaveUncompressed();
+      return {emu->SaveUncompressed(), previous};
     }
     
     void Restore(const State &state) {
-      emu->LoadUncompressed(state);
+      emu->LoadUncompressed(state.save);
+      previous = state.prev;
     }
     void Exec(Input input) {
       emu->Step(Player1(input), Player2(input));
+      previous = input;
     }
 
     void ClearStatus() {
@@ -62,6 +71,7 @@ struct TwoPlayerProblem {
     std::atomic<const char *> status{nullptr};
     // Fraction complete.
     std::atomic<int> numer{0}, denom{0};
+    const TwoPlayerProblem *tpp = nullptr;
   };
 
   // Must be thread safe.
