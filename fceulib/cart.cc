@@ -365,7 +365,7 @@ void Cart::FCEU_SaveGameSave(CartInfo *LocalHWInfo) {
     FILE *sp;
 
     std::string f = FCEU_MakeSaveFilename();
-    if ((sp = FCEUD_UTF8fopen(f, "wb")) == nullptr) {
+    if ((sp = FCEUD_UTF8fopen(f.c_str(), "wb")) == nullptr) {
       FCEU_PrintError("WRAM file \"%s\" cannot be written to.\n", f.c_str());
     } else {
       for (int x = 0; x < 4; x++) {
@@ -387,7 +387,7 @@ void Cart::FCEU_LoadGameSave(CartInfo *LocalHWInfo) {
       !disableBatteryLoading) {
     std::string f = FCEU_MakeSaveFilename();
     TRACEF("Save file %s", f.c_str());
-    if (FILE *sp = FCEUD_UTF8fopen(f, "rb")) {
+    if (FILE *sp = FCEUD_UTF8fopen(f.c_str(), "rb")) {
       for (int x = 0; x < 4; x++) {
         if (LocalHWInfo->SaveGame[x]) {
           TRACEF("Doing it");

@@ -288,6 +288,12 @@ void Emulator::SaveUncompressed(vector<uint8> *out) {
   fc->state->FCEUSS_SaveRAW(out);
 }
 
+vector<uint8> Emulator::SaveUncompressed() {
+  vector<uint8> ret;
+  SaveUncompressed(&ret);
+  return ret;
+}
+
 void Emulator::LoadUncompressed(const vector<uint8> &in) {
   if (!fc->state->FCEUSS_LoadRAW(in)) {
     fprintf(stderr, "Couldn't restore from state\n");

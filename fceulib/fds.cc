@@ -646,7 +646,7 @@ int FDS::FDSLoad(const char *name, FceuFile *fp) {
 
   const std::string fn = FCEU_MakeFDSFilename();
 
-  if (!(zp=FCEUD_UTF8fopen(fn, "rb"))) {
+  if (!(zp=FCEUD_UTF8fopen(fn.c_str(), "rb"))) {
     FCEU_PrintError("FDS BIOS ROM image missing: %s", fn.c_str());
     FreeFDSMemory();
     return 0;
@@ -746,7 +746,7 @@ void FDS::FDSClose() {
   if (!DiskWritten) return;
 
   const std::string fn = FCEU_MakeFDSFilename();
-  if (!(fp=FCEUD_UTF8fopen(fn,"wb"))) {
+  if (!(fp=FCEUD_UTF8fopen(fn.c_str(), "wb"))) {
     return;
   }
 

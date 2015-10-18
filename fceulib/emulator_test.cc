@@ -382,7 +382,7 @@ static SerialResult RunGameSerially(std::function<void(const string &)> Update_,
     saves.push_back(std::move(save));
     if (false && FULL) {
       vector<uint8> compressed_save;
-      emu->SaveEx(&compressed_save, &basis);
+      emu->SaveEx(&basis, &compressed_save);
       compressed_saves.push_back(compressed_save);
     }
     inputs.push_back(b);
@@ -428,7 +428,7 @@ static SerialResult RunGameSerially(std::function<void(const string &)> Update_,
     Update("Backwards.");
     // TRACE_SWITCH("backward-trace.bin");
     for (int i = saves.size() - 2; i >= 0; i--) {
-      emu->LoadUncompressed(&saves[i]);
+      emu->LoadUncompressed(saves[i]);
       CHECK_RAM_STEP(i);
       CHECK(i + 1 < saves.size());
       CHECK(i + 1 < inputs.size());
@@ -453,7 +453,7 @@ static SerialResult RunGameSerially(std::function<void(const string &)> Update_,
   auto DoSeekSpan = [&emu, &saves, &checksums, &inputs, 
 		     &actual_rams, &StepMaybeTraced](int seekto, int dist) {
     // fprintf(stderr, "seekto %d dist %d\n", seekto, dist);
-    emu->LoadUncompressed(&saves[seekto]);
+    emu->LoadUncompressed(saves[seekto]);
     CHECK_RAM(checksums[seekto]);
     for (int j = 0; j < dist; j++) {
       if (seekto + j + 1 < saves.size()) {
@@ -479,7 +479,7 @@ static SerialResult RunGameSerially(std::function<void(const string &)> Update_,
     for (int i = 0; i < 500; i++) {
       const int seekto = Rand(saves.size());
       // fprintf(stderr, "iter %d seekto %d\n", i, seekto);
-      emu->LoadEx(&compressed_saves[seekto], &basis);
+      emu->LoadEx(&basis, compressed_saves[seekto]);
       CHECK_RAM(checksums[seekto]);
       const int dist = Rand(5) + 1;
       for (int j = 0; j < dist; j++) {
