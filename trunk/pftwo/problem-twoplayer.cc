@@ -7,6 +7,7 @@ using TPP = TwoPlayerProblem;
 using Worker = TPP::Worker;
 
 TPP::Input Worker::RandomInput(ArcFour *rc) {
+  MutexLock ml(&mutex);
   const uint8 p1 = tpp->markov1->RandomNext(Player1(previous), rc);
   const uint8 p2 = tpp->markov2->RandomNext(Player2(previous), rc);
   return MakeInput(p1, p2);
@@ -32,21 +33,25 @@ TPP::TwoPlayerProblem() {
 Worker *TPP::CreateWorker() {
   CHECK(this);
   Worker *w = new Worker(this);
-
-  // XXX no point in setting this stuff since we have
-  // exclusive access right now...
-  w->SetStatus("Load ROM");
   w->emu.reset(Emulator::Create("contra.nes"));
   CHECK(w->emu.get() != nullptr);
-  
-  w->SetStatus("Warm up");
-  w->SetDenom(warmup_inputs.size());
-  // w->SetDenom((int)warmup_inputs.size());
-  for (int i = 0; i < warmup_inputs.size(); i++) {
-    w->emu->Step(warmup_inputs[i].first, warmup_inputs[i].second);
-    w->SetNumer(i);
-  }
   w->ClearStatus();
-
   return w;
+}
+
+void Worker::Init() {
+  MutexLock ml(&mutex);
+  SetStatus("Warm up");
+  SetDenom(tpp->warmup_inputs.size());
+  for (int i = 0; i < tpp->warmup_inputs.size(); i++) {
+    emu->Step(tpp->warmup_inputs[i].first, tpp->warmup_inputs[i].second);
+    SetNumer(i);
+  }
+  ClearStatus();
+}
+
+void Worker::Visualize(vector<uint8> *argb) {
+  MutexLock ml(&mutex);
+  CHECK(argb->size() == 4 * 256 * 256);
+  emu->GetImageARGB(argb);
 }

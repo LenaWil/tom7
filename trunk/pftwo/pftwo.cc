@@ -53,7 +53,17 @@ static mutex should_die_m;
 static void CopyARGB(const vector<uint8> &argb, SDL_Surface *surface) {
   // int bpp = surface->format->BytesPerPixel;
   Uint8 * p = (Uint8 *)surface->pixels;
-  memcpy(p, &argb[0], surface->w * surface->h * 4);
+  memcpy(p, argb.data(), surface->w * surface->h * 4);
+}
+
+static void BlitARGB(const vector<uint8> &argb, int w, int h,
+		     int x, int y, SDL_Surface *surface) {
+  for (int i = 0; i < h; i++) {
+    int yy = y + i;
+    Uint8 *p = (Uint8 *)surface->pixels +
+      (surface->w * 4 * yy) + x * 4;
+    memcpy(p, argb.data() + (i * w * 4), w * 4);
+  }
 }
 
 static inline constexpr uint8 Mix4(uint8 v1, uint8 v2, uint8 v3, uint8 v4) {
@@ -162,11 +172,11 @@ struct PF2 {
 struct WorkThread {
   WorkThread(PF2 *pftwo, int id) : pftwo(pftwo), id(id),
 				   rc(StringPrintf("worker_%d", id)),
+				   worker(pftwo->problem->CreateWorker()),
 				   th{&WorkThread::Run, this} {}
 
   void Run() {
-    worker = pftwo->problem->CreateWorker();
-
+    worker->Init();
     worker->SetDenom(500000);
     for (int i = 0; i < 500000; i++) {
       worker->SetNumer(i);
@@ -189,15 +199,15 @@ struct WorkThread {
     Printf("Worker %d done.\n", id);
   }
 
-  const Worker *GetWorker() const { return worker; }
+  Worker *GetWorker() const { return worker; }
   
 private:
   PF2 *pftwo = nullptr;
   const int id = 0;
   // Distinct private stream.
   ArcFour rc;
-  std::thread th;
   Problem::Worker *worker = nullptr;
+  std::thread th;
 };
 
 // Note: This is really the main thread.
@@ -211,6 +221,13 @@ struct UIThread {
     (void)surf;
     (void)surfhalf;
 
+    const int num_workers = pftwo->workers.size();
+    vector<vector<uint8>> screenshots;
+    screenshots.resize(num_workers);
+    for (auto &v : screenshots) v.resize(256 * 256 * 4);
+
+    const int64 start = time(nullptr);
+    
     for (;;) {
       frame++;
       SDL_Event event;
@@ -239,16 +256,39 @@ struct UIThread {
 
       font->draw(10, 10, StringPrintf("This is frame %d!", frame));
 
+      int64 total_steps = 0ll;
       for (int i = 0; i < pftwo->workers.size(); i++) {
 	const Worker *w = pftwo->workers[i]->GetWorker();
-	font->draw(10, 40 + FONTHEIGHT * i,
+	int numer = w->numer.load(std::memory_order_relaxed);
+	font->draw(256 * 6 + 10, 40 + FONTHEIGHT * i,
 		   StringPrintf("[%d] %d/%d %s",
 				i,
-				w->numer.load(std::memory_order_relaxed),
+				numer,
 				w->denom.load(std::memory_order_relaxed),
 				w->status.load(std::memory_order_relaxed)));
+	total_steps += numer;
       }
 
+      // Update all screenshots.
+      for (int i = 0; i < num_workers; i++) {
+	Worker *w = pftwo->workers[i]->GetWorker();
+	w->Visualize(&screenshots[i]);
+      }
+
+      for (int i = 0; i < num_workers; i++) {
+	int x = i % 6;
+	int y = i / 6;
+	BlitARGB(screenshots[i], 256, 256,
+		 x * 256, y * 256 + 20, screen);
+      }
+      
+      const int64 now = time(nullptr);
+      double sec = (now - start);
+      font->draw(10, HEIGHT - FONTHEIGHT,
+		 StringPrintf("%lld NES frames in %.0f sec = %.2f NES FPS",
+			      total_steps, sec,
+			      total_steps / sec));
+      
       SDL_Flip(screen);
     }
     
