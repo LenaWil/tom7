@@ -846,7 +846,6 @@ void PPU::Fixit1() {
   }
 }
 
-void MMC5_hb(int);     //Ugh ugh ugh.
 void PPU::DoLine() {
   uint8 *target = fc->fceu->XBuf + (scanline << 8);
 
