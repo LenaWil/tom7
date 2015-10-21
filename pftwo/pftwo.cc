@@ -89,10 +89,69 @@ static void HalveARGB(const vector<uint8> &argb, int width, int height,
       PIXEL(1);
       PIXEL(2);
       PIXEL(3);
+      #undef PIXEL
     }
   }
   CopyARGB(argb_half, surface);
 }
+
+static void BlitARGBHalf(const vector<uint8> &argb, int width, int height,
+			 int xpos, int ypos,
+			 SDL_Surface *surface) {
+  const int halfwidth = width >> 1;
+  const int halfheight = height >> 1;
+  // argb_half.resize(halfwidth * halfheight * 4);
+  for (int y = 0; y < halfheight; y++) {
+    int yy = ypos + y;
+    Uint8 *p = (Uint8 *)surface->pixels +
+      (surface->w * 4 * yy) + xpos * 4;
+
+    for (int x = 0; x < halfwidth; x++) {
+      #define PIXEL(i) \
+	*p = \
+	  Mix4(argb[(y * 2 * width + x * 2) * 4 + (i)], \
+	       argb[(y * 2 * width + x * 2 + 1) * 4 + (i)], \
+	       argb[((y * 2 + 1) * width + x * 2) * 4 + (i)],	\
+	       argb[((y * 2 + 1) * width + x * 2 + 1) * 4 + (i)]); \
+	p++
+      PIXEL(0);
+      PIXEL(1);
+      PIXEL(2);
+      PIXEL(3);
+      #undef PIXEL
+    }
+  }
+  // CopyARGB(argb_half, surface);
+}
+
+// Tree of state exploration.
+struct Tree {
+  using Seq = vector<Problem::Input>;
+
+  struct Node {
+    Node(std::shared_ptr<Problem::State> state, Node *parent) :
+      state(state), parent(parent) {}
+    // Optional, except at the root. This can be recreated by
+    // replaying the path from some ancestor.
+    std::shared_ptr<Problem::State> state;
+
+    // Only null for the root.
+    Node *parent = nullptr;
+
+    // Child nodes. Currently, no guarantee that these don't
+    // share prefixes, but there should not be duplicates.
+    map<Seq, Node *> children;
+  };
+
+  Tree(const Problem::State &state) {
+    root = new Node(std::make_shared<Problem::State>(state), nullptr);
+  }
+
+  // XXX heap...
+  
+  Node *root = nullptr;
+};
+
 
 struct PF2 {
   std::unique_ptr<WeightedObjectives> objectives;
@@ -107,6 +166,15 @@ struct PF2 {
   int num_workers = 0;
 
   UIThread *ui_thread = nullptr;
+
+  // XXX Need to initialize this tree with the save-state for
+  // the very beginning (post warmup), which means designating
+  // a single worker to do that. (Or they can all fight over
+  // it, I guess.)
+  Tree *tree = nullptr;
+  // Coarse locking.
+  std::mutex tree_m;
+
   
   PF2() {
     map<string, string> config = Util::ReadFileToMap("config.txt");
@@ -156,7 +224,7 @@ struct PF2 {
 	CopyARGB(image, surf);
 	HalveARGB(image, 256, 256, surfhalf);
 	
-	sdlutil::clearsurface(screen, 0x00000000);
+	// sdlutil::clearsurface(screen, 0x00000000);
 
 	// Draw pixels to screen...
 	sdlutil::blitall(surf, screen, 0, 0);
@@ -175,16 +243,113 @@ struct WorkThread {
 				   worker(pftwo->problem->CreateWorker()),
 				   th{&WorkThread::Run, this} {}
 
+  // XXX: This is a silly policy. Use a heap or something...
+  pair<Tree::Node *, shared_ptr<Problem::State>> Descend(Tree::Node *n) {
+    MutexLock ml(&pftwo->tree_m);
+    for (;;) {
+      CHECK(n != nullptr);
+      // If a leaf, it must have a state, and we must return it.
+      if (n->children.empty()) {
+	CHECK(n->state.get() != nullptr);
+	return {n, n->state};
+      }
+    
+      if (n->state.get() != nullptr && rc.Byte() < 16)
+	return {n, n->state};
+    
+      int idx = RandTo(&rc, n->children.size());
+      auto it = n->children.begin();
+      while (idx--) ++it;
+      n = it->second;
+    }
+  }
+
+  Tree::Node *Ascend(Tree::Node *n) {
+    MutexLock ml(&pftwo->tree_m);
+    while (n->parent != nullptr && rc.Byte() < 128) {
+      n = n->parent;
+    }
+    return n;
+  }
+
+  Tree::Node *ExtendNode(Tree::Node *n,
+			 const vector<Problem::Input> &step,
+			 shared_ptr<Problem::State> newstate) {
+    CHECK(n != nullptr);
+    Tree::Node *child = new Tree::Node(newstate, n);
+    MutexLock ml(&pftwo->tree_m);
+    auto res = n->children.insert({step, child});
+    if (!res.second) {
+      // By dumb luck, we already have a node with this
+      // exact path. We don't allow replacing it.
+      delete child;
+      // Maintain the invariant that the worker is at the
+      // state of the returned node.
+      Tree::Node *ch = res.first->second;
+      // Just find any descendant with a state. Eventually
+      // we get to a leaf, which must have a state.
+      for (;;) {
+	CHECK(ch != nullptr);
+	if (ch->state.get() != nullptr) {
+	  worker->Restore(*ch->state);
+	  return ch;
+	}
+	CHECK(!ch->children.empty());
+	ch = ch->children.begin()->second;
+      }
+    } else {
+      return child;
+    }
+  }
+  
+  void InitializeTree() {
+    MutexLock ml(&pftwo->tree_m);
+    if (pftwo->tree == nullptr) {
+      // I won the race!
+      pftwo->tree = new Tree(worker->Save());
+    }
+  }
+
   void Run() {
     worker->Init();
-    worker->SetDenom(500000);
-    for (int i = 0; i < 500000; i++) {
-      worker->SetNumer(i);
-      worker->SetStatus("Random inputs");
 
-      Problem::Input input = worker->RandomInput(&rc);
-      worker->Exec(input);
+    InitializeTree();
+
+    Tree::Node *last = pftwo->tree->root;
+    CHECK(last != nullptr);
+
+    static constexpr int FRAMES_PER_STEP = 40;
+    
+    worker->SetDenom(50000 * FRAMES_PER_STEP);
+    for (int i = 0; i < 50000; i++) {
+      worker->SetNumer(i * FRAMES_PER_STEP);
+      worker->SetStatus("Find start node");
+      Tree::Node *next;
+      shared_ptr<Problem::State> state;
+      std::tie(next, state) = Descend(Ascend(last));
+
+      // PERF skip this if it's the same as last?
+      worker->SetStatus("Load");
+      CHECK(next != nullptr);
+      CHECK(state.get() != nullptr);
+      worker->Restore(*state);
       
+      worker->SetStatus("Make inputs");
+      vector<Problem::Input> step;
+      step.reserve(40);
+      for (int num_left = FRAMES_PER_STEP; num_left--;)
+	step.push_back(worker->RandomInput(&rc));
+
+      worker->SetStatus("Execute inputs");
+      for (const Problem::Input &input : step)
+	worker->Exec(input);
+
+      worker->SetStatus("Update tree.");
+      shared_ptr<Problem::State> newstate{
+	new Problem::State(worker->Save())};
+      last = ExtendNode(next, step, newstate);
+
+      worker->SetStatus("Check for death");
       if (ReadWithLock(&should_die_m, &should_die)) {
 	worker->SetStatus("Die");
 	return;
@@ -276,10 +441,10 @@ struct UIThread {
       }
 
       for (int i = 0; i < num_workers; i++) {
-	int x = i % 6;
-	int y = i / 6;
-	BlitARGB(screenshots[i], 256, 256,
-		 x * 256, y * 256 + 20, screen);
+	int x = i % 12;
+	int y = i / 12;
+	BlitARGBHalf(screenshots[i], 256, 256,
+		     x * 128, y * 128 + 20, screen);
       }
       
       const int64 now = time(nullptr);
