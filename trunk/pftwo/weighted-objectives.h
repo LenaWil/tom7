@@ -12,7 +12,7 @@
 #include "pftwo.h"
 
 struct WeightedObjectives {
-  explicit WeightedObjectives(const std::vector<vector<int>> &objs);
+  explicit WeightedObjectives(const vector<vector<int>> &objs);
   static WeightedObjectives *LoadFromFile(const std::string &filename);
 
   void WeightByExamples(const vector<vector<uint8>> &memories);
@@ -59,12 +59,12 @@ struct WeightedObjectives {
   vector<double> GetNormalizedValues(const vector<uint8> &memory);
 
   // XXX weighted version, unnormalized version?
-  std::vector<std::pair<const std::vector<int> *, double>> GetAll() const;
+  vector<std::pair<const vector<int> *, double>> GetAll() const;
 
  private:
   WeightedObjectives();
   struct Info;
-  typedef std::map<std::vector<int>, Info *> Weighted;
+  typedef map<vector<int>, Info *> Weighted;
   Weighted weighted;
 
   NOT_COPYABLE(WeightedObjectives);

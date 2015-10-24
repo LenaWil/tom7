@@ -1,6 +1,11 @@
 
 #include "objective.h"
-#include "tasbot.h"
+
+#include <algorithm>
+#include <vector>
+#include <functional>
+
+#include "pftwo.h"
 
 // Self-check output.
 #define DEBUG_OBJECTIVE 1
@@ -8,11 +13,11 @@
 
 #define VPRINTF if (VERBOSE_OBJECTIVE) printf
 
-Objective::Objective(const vector< vector<uint8> > &mm) :
+Objective::Objective(const vector<vector<uint8>> &mm) :
   memories(mm) {
   CHECK(!memories.empty());
-  VPRINTF("Each memory is size %ld and there are %ld memories.\n",
-	  memories[0].size(), memories.size());
+  VPRINTF("Each memory is size %d and there are %d memories.\n",
+	  (int)memories[0].size(), (int)memories.size());
 }
 
 struct CompareByHash {
@@ -151,7 +156,7 @@ void Objective::EnumeratePartial(const vector<int> &look,
 }
 
 static void CheckOrdering(const vector<int> &look,
-			  const vector< vector<uint8> > &memories,
+			  const vector<vector<uint8>> &memories,
 			  const vector<int> &ordering) {
   VPRINTF("CheckOrdering [");
   for (int i = 0; i < ordering.size(); i++) {
@@ -208,7 +213,7 @@ static void CheckOrdering(const vector<int> &look,
 void Objective::EnumeratePartialRec(const vector<int> &look,
 				    vector<int> *prefix,
 				    const vector<int> &left,
-				    void (*f)(const vector<int> &ordering),
+				    const std::function<void(const vector<int> &ordering)> &f,
 				    int *limit, int seed) {
 #if VERBOSE_OBJECTIVE
   VPRINTF("EPR: [");
@@ -258,7 +263,7 @@ void Objective::EnumeratePartialRec(const vector<int> &look,
     CheckOrdering(look, memories, *prefix);
     // printf("Checked:\n");
 #   endif
-    (*f)(*prefix);
+    f(*prefix);
     if (*limit > 0) --*limit;
   } else {
     prefix->resize(prefix->size() + 1);
@@ -274,9 +279,10 @@ void Objective::EnumeratePartialRec(const vector<int> &look,
   }
 }
 
-void Objective::EnumerateFull(const vector<int> &look,
-			      void (*f)(const vector<int> &ordering),
-			      int limit, int seed) {
+void Objective::EnumerateFull(
+    const vector<int> &look,
+    const std::function<void(const vector<int> &ordering)> &f,
+    int limit, int seed) {
   vector<int> prefix, left;
   for (int i = 0; i < memories[0].size(); i++) {
     left.push_back(i);
@@ -284,8 +290,9 @@ void Objective::EnumerateFull(const vector<int> &look,
   EnumeratePartialRec(look, &prefix, left, f, &limit, seed);
 }
 
-void Objective::EnumerateFullAll(void (*f)(const vector<int> &ordering),
-				 int limit, int seed) {
+void Objective::EnumerateFullAll(
+    const std::function<void(const vector<int> &ordering)> &f,
+    int limit, int seed) {
   vector<int> look;
   for (int i = 0; i < memories.size(); i++) {
     if (i > 0 && memories[i] == memories[i - 1]) {

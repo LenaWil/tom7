@@ -154,7 +154,6 @@ struct Tree {
 
 
 struct PF2 {
-  std::unique_ptr<WeightedObjectives> objectives;
   std::unique_ptr<Motifs> motifs;
 
   // Should not be modified after initialization.
@@ -183,26 +182,13 @@ struct PF2 {
       abort();
     }
 
-    string game = config["game"];
-    const string moviename = config["movie"];
-    CHECK(!game.empty());
-    CHECK(!moviename.empty());
-
-    // XXX: Note, contra was only trained on 1P inputs.
-    objectives.reset(WeightedObjectives::LoadFromFile(game + ".objectives"));
-    CHECK(objectives.get());
-    fprintf(stderr, "Loaded %d objective functions\n", (int)objectives->Size());
-
-    motifs.reset(Motifs::LoadFromFile(game + ".motifs"));
-    CHECK(motifs);
-
     num_workers = atoi(config["workers"].c_str());
     if (num_workers <= 0) {
       fprintf(stderr, "Warning: In config, 'workers' should be set >0.\n");
       num_workers = 1;
     }
 
-    problem.reset(new Problem);
+    problem.reset(new Problem(config));
   }
 
   void StartThreads();

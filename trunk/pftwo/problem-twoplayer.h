@@ -8,6 +8,7 @@
 
 #include "markov-controller.h"
 #include "../fceulib/emulator.h"
+#include "weighted-objectives.h"
 
 struct TwoPlayerProblem {
   // Player 1 and Player 2 controllers.
@@ -91,11 +92,15 @@ struct TwoPlayerProblem {
   // Must be thread safe and leave Worker in a valid state.
   Worker *CreateWorker();
 
-  TwoPlayerProblem();
+  TwoPlayerProblem(const map<string, string> &config);
 
+  string game;
   vector<pair<uint8, uint8>> original_inputs;
   unique_ptr<MarkovController> markov1, markov2;
-  vector<pair<uint8, uint8>> warmup_inputs;
+  // After warmup inputs.
+  State start_state;
+  // For play after warmup.
+  unique_ptr<WeightedObjectives> objectives;
 };
 
 
