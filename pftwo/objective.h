@@ -58,15 +58,16 @@
  */
 
 #include <vector>
+#include <functional>
 
-#include "fceu/types.h"
+#include "pftwo.h"
 
 using namespace std;
 
 struct Objective {
 
   // Matrix of memories must be non-empty and rectangular.
-  explicit Objective(const vector< vector<uint8> > &memories);
+  explicit Objective(const vector<vector<uint8>> &memories);
 
   // TODO: Make it possible to enumerate 10 lex orderings
   // that aren't necessarily the FIRST 10. Just shuffle
@@ -80,11 +81,12 @@ struct Objective {
   // Run the callback on up to limit number of lex orderings.
   // -1 means no limit.
   void EnumerateFull(const vector<int> &look,
-                     void (*f)(const vector<int> &ordering),
+		     const std::function<void(const vector<int> &ordering)> &cb,
                      int limit, int seed);
 
-  void EnumerateFullAll(void (*f)(const vector<int> &ordering),
-                        int limit, int seed);
+  void EnumerateFullAll(
+      const std::function<void(const vector<int> &ordering)> &cb,
+      int limit, int seed);
 
 private:
 
@@ -103,11 +105,12 @@ private:
                         vector<int> *remain,
                         vector<int> *candidates);
 
-  void EnumeratePartialRec(const vector<int> &look,
-                           vector<int> *prefix,
-                           const vector<int> &left,
-                           void (*f)(const vector<int> &ordering),
-                           int *limit, int seed);
-
-  const vector< vector<uint8> > &memories;
+  void EnumeratePartialRec(
+      const vector<int> &look,
+      vector<int> *prefix,
+      const vector<int> &left,
+      const std::function<void(const vector<int> &ordering)> &cb,
+      int *limit, int seed);
+  
+  const vector<vector<uint8>> &memories;
 };

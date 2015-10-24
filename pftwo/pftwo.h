@@ -46,4 +46,20 @@ struct hash<unsigned long long> {
 
 #endif
 
+// e.g. with C = map<int, string>. Third argument is the default.
+template<class K, class C>
+auto GetDefault(const C &container,
+		const K &key,
+		const decltype(container.find(key)->second) &def) ->
+  decltype(container.find(key)->second) {
+  auto it = container.find(key);
+  if (it == container.end()) return def;
+  return it->second;
+}
+
+#define NOT_COPYABLE(classname) \
+  private: \
+  classname(const classname &) = delete; \
+  classname &operator =(const classname &) = delete
+
 #endif
