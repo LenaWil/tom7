@@ -1,4 +1,7 @@
 
+(* TODO: Reimplement this with stb_image_write to avoid
+   dependency on libpng. *)
+
 structure PNGsave :> PNGSAVE =
 struct
 

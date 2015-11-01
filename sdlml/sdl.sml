@@ -1503,16 +1503,15 @@ struct
       si (!!surf, MLton.Pointer.null)
     end
 
-  structure Image =
-  struct
-      fun load s =
+  local val loadimage_ = _import "ml_loadimage" private : string -> ptr ;
+  in
+    fun loadimage f =
       let
-          val lp = _import "IMG_Load" private : string -> ptr ;
-          val p = lp (s ^ "\000")
+        val p = loadimage_ (f ^ "\000")
       in
-          if MLton.Pointer.null = p
-          then NONE
-          else SOME (ref p)
+        if p = MLton.Pointer.null
+        then NONE
+        else SOME (ref p)
       end
   end
 

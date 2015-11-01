@@ -412,14 +412,9 @@ sig
      or makefullscreen. *)
   val seticon : surface -> unit
 
-  (* These are not separate structures because they rely on access to the
-     implementations of surface, color, etc. *)
-  structure Image :
-  sig
-
-    val load : string -> surface option
-
-  end
+  (* Uses internal implementation of PNG, JPG, etc. Does not require
+     SDL_image, which is not recommended. *)
+  val loadimage : string -> surface option
 
   structure Util :
   sig
