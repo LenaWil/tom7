@@ -56,7 +56,7 @@ struct
     val trim = StringUtil.losespecl StringUtil.whitespec o StringUtil.losespecr StringUtil.whitespec
     exception NotFound
     fun req f =
-        case (SDL.Image.load ("items/" ^ trim f)) handle _ => NONE of
+        case (SDL.loadimage ("items/" ^ trim f)) handle _ => NONE of
             NONE => (Hero.messagebox ("couldn't open item graphic " ^ f ^ "\n");
                      raise NotFound)
           | SOME p => p

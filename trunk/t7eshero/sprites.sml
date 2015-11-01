@@ -31,7 +31,7 @@ struct
   val GRAPHICS = "graphics/"
 
   fun requireimage s =
-    case (SDL.Image.load (FSUtil.dirplus GRAPHICS s)) handle _ => NONE of
+    case (SDL.loadimage (FSUtil.dirplus GRAPHICS s)) handle _ => NONE of
       NONE => (Hero.messagebox ("couldn't open " ^ s ^ "\n");
                raise Hero.Hero "couldn't open required file")
     | SOME p => p

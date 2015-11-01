@@ -422,6 +422,7 @@ struct
                                                                   heartbeat = heartbeat,
                                                                   resize = Drawable.don't } } of
                         NONE => ()
+                      | _ => () (* XXX implement! *)
 (*
                       | SOME CreateNew => createnew()
                       | SOME (SelectOld pf) => profile := pf
