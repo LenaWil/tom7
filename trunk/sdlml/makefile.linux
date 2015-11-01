@@ -10,6 +10,7 @@ sdlml_console.o : sdlml.c
 sdlnet.o : sdlnet.c
 	gcc -DLINUX -O `sdl-config --cflags` -c $< -o $@
 
+# Note: Should be able to do without SDL_image, tiff, png, jpeg, maybe lz now. - tom7 1 Nov 2015
 test.exe : test.cm sdlml_console.o sdlnet.o *.sml
 	mlton -link-opt "-lSDL_image -lSDL_net -ltiff -lpng -ljpeg -lz `sdl-config --libs`" -default-ann 'allowFFI true' -output $@ $< sdlml_console.o sdlnet.o
 

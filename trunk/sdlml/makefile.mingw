@@ -25,5 +25,7 @@ win32main.o : win32main.c
 
 # the order of these libraries and object files is really important! Weird things will
 # happen if it's wrong!
+#
+# Note: Should be able to do without SDL_image, tiff, png, jpeg, maybe lz now. - tom7 1 Nov 2015
 test.exe : sdlml.o sdlnet.o sdlmix.o pngsave.o win32main.o *.sml makefile.mingw test.cm
 	mlton @MLton max-heap 512m -- -cc-opt "-I/usr/local/include" -cc-opt "-g -Dmain=SDL_main" -link-opt "--enable-stdcall-fixup" -link-opt "-L/usr/local/lib -lmingw32 -lSDL -mwindows -lSDL_image -ltiff -lpng -ljpeg -lz -lSDL_net -lSDL_mixer -lvorbisfile -lvorbis -logg -lkernel32" -output $@ -default-ann 'allowFFI true' test.cm sdlml.o sdlnet.o sdlmix.o pngsave.o win32main.o

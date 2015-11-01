@@ -1,3 +1,7 @@
+2015-11-01  Tom 7
+
+    * SDL_image is a bummer for multiple reasons. Switch to stb_image.
+
 2007-10-10  Tom 7  <Tom@WARPZONE>
 
     * Since several projects were using different branches of sdlml,

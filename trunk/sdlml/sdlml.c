@@ -1,9 +1,15 @@
 /* Hooks and glue for using SDL through SML. Portable to win32, linux, osx.
    This is incomplete and a little messy. But we try to make it better.
 
-    - Tom                   Last update: 2 Feb 2013
+    - Tom                   Last update: 1 Nov 2015
 */
 #include <SDL.h>
+
+// This actually includes all of the definitions within
+// this compilation unit.
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+
 
 #ifdef USE_DISPLAY_FORMAT
 # if USE_DISPLAY_FORMAT == 0
@@ -562,6 +568,18 @@ SDL_Surface *ml_alphadim(SDL_Surface *src) {
   sulock(src);
   sulock(ret);
 
+  return ret;
+}
+
+SDL_Surface *ml_loadimage(const char *filename) {
+  int width = 0, height = 0, bpp_unused = 0;
+  Uint8 *stb_rgba = stbi_load(filename,
+                              &width, &height, &bpp_unused, 4);
+  if (stb_rgba == 0) return 0;
+  const int bytes = width * height * 4;
+  SDL_Surface *ret = ml_makesurface(width, height, 1);
+  ml_unpixels(ret, stb_rgba);
+  free(stb_rgba);
   return ret;
 }
 
