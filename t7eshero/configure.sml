@@ -27,8 +27,8 @@ struct
   val nexta = ref (0w0 : Word32.word)
   val nextd = ref (0w0 : Word32.word)
 
-  fun heartbeat (loopplay : unit -> unit) () : unit = 
-      let 
+  fun heartbeat (loopplay : unit -> unit) () : unit =
+      let
           val () = Song.update ()
           val () = loopplay ()
           val now = S.getticks ()
@@ -38,15 +38,15 @@ struct
                 nexta := now + Hero.MENUTICKS)
           else ()
       end
-  
+
   and go input draw loopplay =
-      let 
+      let
           val () = heartbeat loopplay ()
           val () = input ()
           val now = S.getticks ()
       in
           (if now > !nextd
-           then (draw (); 
+           then (draw ();
                  nextd := now + Hero.MENUTICKS;
                  S.flip screen)
            else ());
@@ -84,14 +84,14 @@ struct
           (case LM.select { x = 0, y = YOFFSET,
                             width = Sprites.gamewidth,
                             height = HEIGHT,
-                            items = [HGuitar, HDrums] @ (if Womb.already_found () 
+                            items = [HGuitar, HDrums] @ (if Womb.already_found ()
                                                          then [HWomb, HWombBench] else nil),
                             drawitem = drawitem,
                             itemheight = itemheight,
                             bgcolor = SOME LM.DEFAULT_BGCOLOR,
                             selcolor = SOME (S.color (0wx44, 0wx44, 0wx77, 0wxFF)),
                             bordercolor = SOME LM.DEFAULT_BORDERCOLOR,
-                            parent = Drawable.drawable { draw = draw, 
+                            parent = Drawable.drawable { draw = draw,
                                                          heartbeat = heartbeat loopplay,
                                                          resize = Drawable.don't } } of
                NONE => ()
@@ -107,7 +107,7 @@ struct
       let
           (* disable, because it also diddles bits *)
           fun loopplay () = ()
-          val tx = TX.make { x = 0, y = 0, 
+          val tx = TX.make { x = 0, y = 0,
                              width = Sprites.gamewidth, height = Sprites.height,
                              bordercolor = NONE,
                              bgcolor = NONE }
@@ -121,7 +121,7 @@ struct
           val dirty = ref true
           fun accept e = raise FinishConfigure
 
-          fun signal () = 
+          fun signal () =
               let in
                   data := Word32.*(!data, 0w31337);
                   data := Word32.xorb(!data, 0wx9876543);
@@ -130,12 +130,12 @@ struct
                   Womb.signal_raw (!data);
                   nwrites := !nwrites + 1;
                   if (!nwrites mod 200) = 0
-                  then 
+                  then
                       let val now = SDL.getticks()
                           val gap = Word32.toInt (now - starttime)
                       in TX.write tx ("^3" ^ Int.toString (!nwrites) ^ "^0 in " ^
                                       "^3" ^ Int.toString gap ^ "^2ms ^0 =" ^
-                                      "^3" ^ Real.fmt (StringCvt.FIX (SOME 1)) (real gap / real (!nwrites)) ^ 
+                                      "^3" ^ Real.fmt (StringCvt.FIX (SOME 1)) (real gap / real (!nwrites)) ^
                                       "^2ms ^0ea.");
                           dirty := true
                       end
@@ -149,9 +149,9 @@ struct
                 | SOME _ => ()
                 | NONE => ()
 
-          fun draw () = 
+          fun draw () =
               if !dirty
-              then 
+              then
                   let in
                       S.blitall(Sprites.configure, screen, 0, 0);
                       TX.draw screen tx;
@@ -189,7 +189,7 @@ struct
 
           fun accept e = raise FinishConfigure
 
-          fun signal () = 
+          fun signal () =
               let in
                   TX.write tx ("Bit #" ^ Int.toString (!bit));
                   Womb.signal_raw (Word32.<< (0w1, Word.fromInt (!bit)))
@@ -212,7 +212,7 @@ struct
                 | SOME _ => ()
                 | NONE => ()
 
-          fun draw () = 
+          fun draw () =
               let in
                   S.blitall(Sprites.configure, screen, 0, 0);
                   TX.draw screen tx
@@ -273,7 +273,7 @@ struct
                 | SOME E_Quit => raise Hero.Exit
                 | SOME e =>
                       if Input.belongsto e device
-                      then  
+                      then
                           (* we only support these events for "buttons" right now *)
                           (case e of
                                (* ignore up events; these are handled by input *)
@@ -281,8 +281,8 @@ struct
                              | E_KeyUp _ => ()
                              | E_JoyDown { button, which = _ } => accept (Input.JButton button)
                              | E_JoyUp _ => ()
-                             | E_JoyHat { hat, state, which = _ } => 
-                                   if Joystick.hat_centered state 
+                             | E_JoyHat { hat, state, which = _ } =>
+                                   if Joystick.hat_centered state
                                    then ()
                                    else accept (Input.JHat { hat = hat, state = state })
                              | _ => print "Unsupported event during configure.\n")
@@ -311,7 +311,7 @@ struct
 
   (* loopplay is called periodically, to play the background music. *)
   and configure_guitar (loopplay : unit -> unit) device =
-      let         
+      let
           (* configure sub-menu *)
           val configorder = Vector.fromList [Input.C_Button 0,
                                              Input.C_Button 1,
@@ -337,13 +337,13 @@ struct
           (* in case we cancel *)
           val old = Input.getmap device
           val () = Input.clearmap device
-              
+
           val Y_GUITAR = 300
           val Y_PRESS = Y_GUITAR - (57 * 2)
           val Y_OK = Y_GUITAR + (81 * 2)
           val PRESS_OFFSET = 104
-          fun buttonpos x = 
-              (if x <= 4 
+          fun buttonpos x =
+              (if x <= 4
                then x * 28
                else if x = 5 orelse x = 6 then (180 * 2)
                     else raise Hero.Hero "??")
@@ -369,14 +369,14 @@ struct
                    (case !phase of
                      P_Button _ =>
                          if Input.belongsto e device
-                         then  
+                         then
                              (* we only support these events for "buttons" right now *)
                              (case e of
                                   (* ignore up events; these are handled by input *)
                                   E_KeyDown { sym } => accept (Input.Key sym)
                                 | E_JoyDown { button, which = _ } => accept (Input.JButton button)
-                                | E_JoyHat { hat, state, which = _ } => 
-                                      if Joystick.hat_centered state 
+                                | E_JoyHat { hat, state, which = _ } =>
+                                      if Joystick.hat_centered state
                                       then ()
                                       else accept (Input.JHat { hat = hat, state = state })
                                 | _ => print "Unsupported event during configure.\n")
@@ -387,8 +387,8 @@ struct
                          then
                              (* we can only handle axis events here *)
                              (case e of
-                                  E_JoyAxis { which, axis, v } => 
-                                      let 
+                                  E_JoyAxis { which, axis, v } =>
+                                      let
                                           val {min, max} =
                                               if GrowArray.has axes axis
                                               then GrowArray.sub axes axis
@@ -407,13 +407,13 @@ struct
 
                          else print "Foreign event during axes\n"
 
-                    | P_Whammy => 
+                    | P_Whammy =>
                             (* XXX maybe should skip this too if keyboard. *)
                             if Input.belongsto e device
                             then
                                 (* we can only handle axis events here *)
                                 (case e of
-                                     E_JoyAxis { which, axis, v } => 
+                                     E_JoyAxis { which, axis, v } =>
                                          (* must not have been configured already, or be a new axis
                                             if we already started configuring the whammy axis... *)
                                          if GrowArray.has axes axis orelse (case !whammyaxis of
@@ -453,13 +453,13 @@ struct
                                            | _ => Sprites.press, screen, PRESS_OFFSET, Y_PRESS);
                                Util.for 0 (d - 1)
                                (fn x =>
-                                S.blitall(Sprites.press_ok, screen, 
+                                S.blitall(Sprites.press_ok, screen,
                                           (0 - buttonpos d)
                                           + PRESS_OFFSET
                                           + buttonpos x, Y_OK))
                            end
                      | P_Axes =>
-                           let 
+                           let
                                val X_MESSAGE = 10
                                val Y_MESSAGE = 100
                                val y = ref (Y_MESSAGE + Font.height * 3)
@@ -470,7 +470,7 @@ struct
                                Util.for 0 (GrowArray.length axes - 1)
                                (fn a =>
                                 if GrowArray.has axes a
-                                then let 
+                                then let
                                          val {min, max} = GrowArray.sub axes a
                                      in
                                          FontSmall.draw(screen, X_MESSAGE, !y,
@@ -483,7 +483,7 @@ struct
                                ()
                            end
                      | P_Whammy =>
-                           let 
+                           let
                                val X_MESSAGE = 10
                                val Y_MESSAGE = 100
                                val y = Y_MESSAGE + Font.height * 3
@@ -498,7 +498,7 @@ struct
                                                       "^0" ^ Int.toString a ^ "^1: ^3" ^
                                                       Int.toString min ^ "^1 - ^3" ^
                                                       Int.toString max)
-                                 | (NONE, _) => 
+                                 | (NONE, _) =>
                                        FontSmall.draw(screen, X_MESSAGE, y,
                                                       "^2no whammy configured yet ^3 :(")
                            end)
@@ -507,16 +507,16 @@ struct
           nexta := S.getticks();
           nextd := 0w0;
           go input draw loopplay
-          handle FinishConfigure => 
+          handle FinishConfigure =>
               (* XXX should have some titlescreen message fade-out queue *)
-              let 
+              let
                   val uidx = ref 0
               in
                   (* save (unknown) axes. *)
                   Util.for 0 (GrowArray.length axes - 1)
                   (fn a =>
                    if GrowArray.has axes a
-                   then let 
+                   then let
                             val {min, max} = GrowArray.sub axes a
                         in
                             Input.setaxis device { which = a, axis = Input.AxisUnknown (!uidx),
@@ -527,7 +527,7 @@ struct
                   (* save whammy *)
                   case !whammyaxis of
                       NONE => ()
-                    | SOME a => Input.setaxis device { which = a, axis = Input.AxisWhammy, 
+                    | SOME a => Input.setaxis device { which = a, axis = Input.AxisWhammy,
                                                        min = #min (!whammy), max = #max (!whammy) };
 
                   Input.save ()

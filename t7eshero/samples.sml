@@ -2,7 +2,7 @@
 structure Samples :> SAMPLES =
 struct
 
-    (* Load a sample or use its already registered version. 
+    (* Load a sample or use its already registered version.
        Empty string means built-in silence. *)
     val registered = ref [("", Sound.silence)]
     fun registerfromfilename f =
@@ -10,9 +10,9 @@ struct
             NONE =>
                 (let
                      val { samplespersec, frames } = Wave.read (Reader.fromfile f)
-                     val v = 
+                     val v =
                          case frames of
-                             Wave.Bit16 fr => 
+                             Wave.Bit16 fr =>
                                  (if Vector.length fr <> 1
                                   then print ("Warning: More than 1 channel in " ^ f ^ "; using first")
                                   else ();
@@ -194,7 +194,7 @@ struct
        snare comes in kinda late too
        *)
     val default_drumbank = Vector.fromList [38, 42, 45, 49, 14]
-    (* better. basically realistic. like the melodic tom. 
+    (* better. basically realistic. like the melodic tom.
        but too loud...
        *)
     val default_drumbank = Vector.fromList [40, 42, 45, 49, 2]

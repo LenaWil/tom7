@@ -22,7 +22,7 @@ struct
     (* XXX not songs/title.mid because we want the game to function even
        if someone unsubscribes all songs. *)
     val TITLEMIDI = "title.mid"
-        
+
     val PRECURSOR = 180
     val SLOWFACTOR = 5
 
@@ -43,12 +43,12 @@ struct
              dash @ dash @ gap @ gap)
     end
 
-    val profile = 
+    val profile =
         let in
             Profile.load();
             (* ensure that we have at least a profile to use now. *)
             if length (Profile.all ()) = 0
-            then let in 
+            then let in
                 ignore (Profile.add_default());
                 Profile.save()
                  end
@@ -103,7 +103,7 @@ struct
                         end
 
                 in
-                    List.app 
+                    List.app
                     (fn (label, evt) =>
                      (case label of
                           Match.Music (inst, _) =>
@@ -129,7 +129,7 @@ struct
                      then (humpframe := Vector.length Sprites.humps - 1;
                            humprev := true)
                      else ());
-                        
+
                     playstring := "^1Play";
                     confstring := "^1Configure";
                     signstring := "^1Sign in";
@@ -161,7 +161,7 @@ struct
                   | SignIn => signin ()
                   | Configure => Configure.configure loopplay device
                   | Update => Update.update () (* XXX *)
-                  | Wardrobe => 
+                  | Wardrobe =>
                         let in
                             Wardrobe.loop (!profile);
                             Song.init ();
@@ -181,7 +181,7 @@ struct
                          | SOME (_, Input.StrumUp) => move_up ()
                          | SOME (_, Input.StrumDown) => move_down ()
                          | SOME _ => () (* XXX other buttons should do something funny? *)
-                         | NONE => 
+                         | NONE =>
                                (case e of
                                     E_KeyDown { sym = SDLK_UP } => move_up ()
                                   | E_KeyDown { sym = SDLK_DOWN } => move_down ()
@@ -202,7 +202,7 @@ struct
             (* Choose song *)
             and play () =
                 let
-                    datatype playitem = 
+                    datatype playitem =
                         Show of Setlist.showinfo * real
                       (* functions for rendering text, XXX not beautiful *)
                       | OneSong of Setlist.songinfo * (string * (unit -> string))
@@ -229,13 +229,13 @@ struct
 
 
                     fun getrecords (songinfo as { id, ... }) =
-                        case List.find (fn (sid, _) => Setlist.eq(sid, id)) 
+                        case List.find (fn (sid, _) => Setlist.eq(sid, id))
                             (Profile.records (!profile)) of
                             NONE => ("", fn () => "") (* no record. *)
                           | SOME (_, { percent, misses, medals }) =>
-                            let 
+                            let
                                 fun colorp p s =
-                                    if p = 100 
+                                    if p = 100
                                     then Chars.fancy s ^ "^0"
                                     else if p >= 90
                                          then "^5" ^ s ^ "^<"
@@ -251,7 +251,7 @@ struct
                                   then "-" ^ Int.toString misses
                                   else Int.toString percent ^ "%") ^ " " ^
                                      String.concat (map mtostring medals),
-                                     fn () => 
+                                     fn () =>
                                      colorp percent
                                      (if percent = 99 orelse misses > 0 andalso misses <= 3
                                       then  ("-" ^ Int.toString misses)
@@ -263,7 +263,7 @@ struct
                     (* just count the songs. *)
                     fun getlength { name, date, parts } =
                         foldr op+ 0.0
-                        (List.mapPartial 
+                        (List.mapPartial
                          (fn Setlist.Song { song, ... } =>
                           let
                               val { file, slowfactor, ... } =
@@ -273,12 +273,12 @@ struct
                               val divi = divi * slowfactor
                               val PREDELAY = 2 * divi (* ?? *)
 
-                              val (tracks : (int * (Match.label * MIDI.event)) list list) = 
+                              val (tracks : (int * (Match.label * MIDI.event)) list list) =
                                   Game.label PREDELAY slowfactor thetracks
                               val tracks = Game.slow slowfactor (MIDI.merge tracks)
                               val tracks = Game.add_measures divi tracks
                               val tracks = Game.endify tracks
-                              val (tracks : (int * (Match.label * MIDI.event)) list) = 
+                              val (tracks : (int * (Match.label * MIDI.event)) list) =
                                   Game.delay PREDELAY tracks
                           in
                               (* now compute time in ticks = ms *)
@@ -286,41 +286,41 @@ struct
                           end
                        (* Assume 0 for other stuff *)
                        | _ => NONE) parts)
-                         
 
-                    val items : playitem list = 
+
+                    val items : playitem list =
                         map Show (ListUtil.mapto getlength (Setlist.allshows())) @
                         map OneSong (ListUtil.mapto getrecords (Setlist.allsongs()))
 
                     (* For now, use same height. *)
-                    fun itemheight _ = 
+                    fun itemheight _ =
                         FontSmall.height + SmallFont.height + FontSmall.height + 10
 
-                    fun drawitem (i, x, y, sel) = 
-                        let 
+                    fun drawitem (i, x, y, sel) =
+                        let
                             val y2 = y + 2 + FontSmall.height
                             val y3 = y + 4 + FontSmall.height + SmallFont.height
-                            val y4 = y + 4 + FontSmall.height + SmallFont.height + 
+                            val y4 = y + 4 + FontSmall.height + SmallFont.height +
                                              FontSmall.height + 2
 
                         in
                             (case i of
-                                 OneSong ({title, artist, year, ...} : Setlist.songinfo, 
+                                 OneSong ({title, artist, year, ...} : Setlist.songinfo,
                                           (r, rs)) =>
                                  let in
-                                     FontSmall.draw(screen, x + 2, y, 
+                                     FontSmall.draw(screen, x + 2, y,
                                                     if sel then "^3" ^ title
                                                     else title);
-                                     
+
                                      SmallFont.draw(screen, x + 2, y2,
-                                                    "^4by ^0" ^ artist ^ 
+                                                    "^4by ^0" ^ artist ^
                                                     " ^1(" ^ year ^ ")");
-                                     
+
                                      FontSmall.draw(screen, x + 42, y3,
                                                     if sel then rs() else r)
                                  end
                                | Show ({ name, date, parts, ... }, ms) =>
-                                 let 
+                                 let
                                      val s = Real.trunc (ms / 1000.0)
                                      val m = s div 60
                                      val s = s mod 60
@@ -335,7 +335,7 @@ struct
                                                     Int.toString s ^ "^1s)")
                                  end);
                             if not sel
-                            then SDL.fillrect(screen, x + 3, y4, 
+                            then SDL.fillrect(screen, x + 3, y4,
                                               WIDTH - 10, 2,
                                               S.color (0wx22, 0wx22, 0wx27, 0wxFF))
                             else ()
@@ -353,16 +353,16 @@ struct
                                      parent = Drawable.drawable { draw = draw, heartbeat = heartbeat,
                                                                   resize = Drawable.don't } } of
                         NONE => ()
-                      | SOME what => 
+                      | SOME what =>
                             raise Selected
                             { show = (case what of
                                           Show (s, _) => s
                                         (* If single song, make show in place. *)
-                                        | OneSong (song, _) => 
+                                        | OneSong (song, _) =>
                                               { name = #title song,
                                                 date = #year song,
-                                                parts = 
-                                                [Setlist.Song 
+                                                parts =
+                                                [Setlist.Song
                                                  { song = #id song,
                                                    misses = true,
                                                    drumbank = NONE,
@@ -375,7 +375,7 @@ struct
 
             (* FIXME XXX this doesn't do anything useful right now.
                Should let you change the player's name and icon,
-               see and clear statistics, etc. 
+               see and clear statistics, etc.
 
                Move to another module.
                *)
@@ -393,9 +393,9 @@ struct
 
                     val profile_name = "Profile name:"
 
-                    fun drawitem (PlayerName, x, y, sel) = 
+                    fun drawitem (PlayerName, x, y, sel) =
                         let in
-                            FontSmall.draw(screen, x, y, 
+                            FontSmall.draw(screen, x, y,
                                            (if sel then "^3" else "^2") ^
                                                profile_name);
                             if sel
@@ -447,15 +447,15 @@ struct
 
                     fun itemheight CreateNew = Font.height
                       | itemheight (SelectOld _) = 72
-                    fun drawitem (CreateNew, x, y, sel) = Font.draw(screen, x, y, 
+                    fun drawitem (CreateNew, x, y, sel) = Font.draw(screen, x, y,
                                                                     if sel then "^3Create Profile"
                                                                     else "^2Create Profile")
-                      | drawitem (SelectOld p, x, y, sel) = 
+                      | drawitem (SelectOld p, x, y, sel) =
                         let in
                             (* XXX also, draw border for it *)
                             S.fillrect(screen, x + 2, y + 2, 66, 66, S.color (0wxFF, 0wxFF, 0wxFF, 0wxFF));
                             S.blitall(Profile.surface p, screen, x + 4, y + 4);
-                            FontSmall.draw(screen, x + 72, y + 4, 
+                            FontSmall.draw(screen, x + 72, y + 4,
                                            if sel then ("^3" ^ Profile.name p)
                                            else Profile.name p)
                         end
@@ -515,8 +515,8 @@ struct
 
                 end
 
-            and heartbeat () = 
-                let 
+            and heartbeat () =
+                let
                     val () = Song.update ()
                     val () = Womb.maybenext womb_pattern
                     val () = loopplay ()
@@ -530,20 +530,20 @@ struct
 
             val nextd = ref 0w0
             fun go () =
-                let 
+                let
                     val () = heartbeat ()
                     val () = input ()
                     val now = S.getticks ()
                 in
                     (if now > !nextd
-                     then (draw (); 
+                     then (draw ();
                            nextd := now + Hero.MENUTICKS;
                            S.flip screen)
                      else ());
                      go ()
                 end
         in
-            go () handle Selected what => 
+            go () handle Selected what =>
                 let in
                     Sound.all_off ();
                     Womb.signal_raw 0w0;

@@ -15,7 +15,7 @@ struct
       (* XXX control by commandline flag *)
 (*
   val FORCE_FULLSCREEN = true
-  val screen = 
+  val screen =
       case SDL.platform of
           SDL.OSX => SDL.makefullscreen (width, height)
         | _ => if FORCE_FULLSCREEN
@@ -28,7 +28,7 @@ struct
 
   (* distance of nut (on-tempo target bar) from bottom of screen *)
   val NUTOFFSET = 127
-  val GRAPHICS = "graphics/" 
+  val GRAPHICS = "graphics/"
 
   fun requireimage s =
     case (SDL.Image.load (FSUtil.dirplus GRAPHICS s)) handle _ => NONE of
@@ -122,7 +122,7 @@ struct
 
   val missed = requireimage "missed.png"
 
-  val fingers = Vector.tabulate(Hero.FINGERS, 
+  val fingers = Vector.tabulate(Hero.FINGERS,
                                 (fn i =>
                                  requireimage ("finger" ^ Int.toString i ^ ".png")))
 
@@ -144,7 +144,7 @@ struct
   val () = SDL.clearsurface(blackall, SDL.color (0w0, 0w0, 0w0, 0w255))
              handle SDL.SDL s => Hero.messagebox s
 
-  structure SmallFont = 
+  structure SmallFont =
   FontFn (val surf = requireimage "fontsmall.png"
           val charmap =
               " ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789" ^
@@ -155,7 +155,7 @@ struct
           val overlap = 0
           val dims = 3)
 
-  structure SmallFont3x = 
+  structure SmallFont3x =
   FontFn (val surf = requireimage "smallfont3x.png"
           val charmap =
               " ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789" ^
@@ -166,7 +166,7 @@ struct
           val overlap = 0
           val dims = 3)
 
-  structure FontSmall = 
+  structure FontSmall =
   FontFn (val surf = requireimage "font.png"
           val charmap =
               " ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789" ^
@@ -177,7 +177,7 @@ struct
           val overlap = 1
           val dims = 3)
 
-  structure Font = 
+  structure Font =
   FontFn (val surf = requireimage "fontbig.png"
           val charmap =
               " ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789" ^
@@ -188,7 +188,7 @@ struct
           val overlap = 2
           val dims = 3)
 
-  structure FontHuge = 
+  structure FontHuge =
   FontFn (val surf = requireimage "fonthuge.png"
           val charmap =
           " ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789" ^
@@ -200,7 +200,7 @@ struct
           val dims = 3)
 
   (* PERF probably not being used; bigger than I thought *)
-  structure FontMax = 
+  structure FontMax =
   FontFn (val surf = requireimage "fontmax.png"
           val charmap =
           " ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789" ^

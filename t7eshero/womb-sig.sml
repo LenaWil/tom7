@@ -5,7 +5,7 @@
 *)
 signature RAW_WOMB =
 sig
-    
+
     (* Detect the presence of the device and initialize.
        Gotta call this before doing anything else in this structure.
        Returns true if the hardware was detected. *)
@@ -71,7 +71,7 @@ sig
     type pattern
     (* Number of ticks, then a list of sets of lights. *)
     val pattern : Word32.word -> light list list -> pattern
-        
+
     (* Force the next in sequence. *)
     val next : pattern -> unit
 

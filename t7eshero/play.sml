@@ -8,16 +8,16 @@ struct
 
   val itos = Int.toString
 
-  local 
+  local
     val domiss = ref true
     val misstime = ref 0
 
-    fun sf () = 
+    fun sf () =
         if !domiss
         then
-            Sound.setfreq(Sound.MISSCH, Sound.PITCHFACTOR * 4 * !misstime, 
+            Sound.setfreq(Sound.MISSCH, Sound.PITCHFACTOR * 4 * !misstime,
                           Sound.midivel (7000 div 90),
-                          Sound.WAVE_SQUARE) 
+                          Sound.WAVE_SQUARE)
         else ()
   in
 
@@ -25,7 +25,7 @@ struct
     fun maybeunmiss t =
         if !misstime <= 0
         then Sound.setfreq(Sound.MISSCH, Sound.pitchof 60, Sound.midivel 0, Sound.WAVE_NONE)
-        else 
+        else
             let in
                 misstime := !misstime - t;
                 sf ()
@@ -41,13 +41,13 @@ struct
 
     fun setmiss b = domiss := b
   end
-  
+
   exception EarlyExit
 
   (* This is the main loop. There are three mutually recursive functions.
      The loop function checks input and deals with it appropriately.
      The loopplay function plays the notes to the audio subsystem.
-     The loopdraw function displays the score. 
+     The loopdraw function displays the score.
 
      The loopplay function wants to look at the note (event) that's happening next.
      But draw actually wants to see somewhat old events, so that it can show a little
@@ -71,7 +71,7 @@ struct
                   Sound.noteoff (ch, note)
               end
       in
-          List.app 
+          List.app
           (fn (label, evt) =>
            case label of
                Music (inst, track) =>
@@ -80,7 +80,7 @@ struct
                       | MIDI.NOTEON(ch, note, vel) => noteon (ch, note, vel, inst)
                       | MIDI.NOTEOFF(ch, note, _) => noteoff (ch, note)
                       | _ => print ("unknown music event: " ^ MIDI.etos evt ^ "\n"))
-             (* otherwise no sound..? *) 
+             (* otherwise no sound..? *)
              | Control =>
                    (case evt of
                         (* http://jedi.ks.uiuc.edu/~johns/links/music/midifile.html *)
@@ -100,14 +100,14 @@ struct
   val DRAWTICKS = (* 128 *) 12
   fun loopdraw cursor =
       if Song.lag cursor >= DRAWTICKS
-      then 
-        let 
+      then
+        let
           val () = Scene.clear ()
 
           (* We have to keep track of a bit of state for each finger: whether we are
              currently in a span for that one. *)
-          val () = 
-              List.app 
+          val () =
+              List.app
               (fn (label, evt) =>
                (case label of
                     Score _ =>
@@ -144,22 +144,22 @@ struct
               Array.appi (fn (finger, SOME spanstart) => emit_span finger (spanstart, Scene.MAXAHEAD)
                   | _ => ()) spans
 
-            | draw when (track as ((dt, (label, e)) :: rest)) = 
+            | draw when (track as ((dt, (label, e)) :: rest)) =
               if when + dt > Scene.MAXAHEAD
               then draw when nil
-              else 
-                let 
+              else
+                let
                   val tiempo = when + dt
                 in
                   (case label of
                      Music _ => ()
-                   | Score scoreevt => 
+                   | Score scoreevt =>
                          let
-                           fun doevent (MIDI.NOTEON (x, note, 0)) = 
+                           fun doevent (MIDI.NOTEON (x, note, 0)) =
                                  doevent (MIDI.NOTEOFF (x, note, 0))
                              | doevent (MIDI.NOTEOFF (_, note, _)) =
                                  let val finger = note mod 5
-                                 in 
+                                 in
                                      (case Array.sub(spans, finger) of
                                         NONE => (* print "ended span we're not in?!\n" *) ()
                                       | SOME ss => emit_span finger (ss, tiempo));
@@ -211,7 +211,7 @@ struct
                        (case Match.state se of
                              Hero.Hit _ => ()
                            | Hero.Missed => () (* how would we have already decided this? *)
-                           | Hero.Future => 
+                           | Hero.Future =>
                                  let in
                                      Match.endstreak ();
                                      (* play a noise *)
@@ -222,7 +222,7 @@ struct
       end
 
   fun loop (playcursor, drawcursor, failcursor) =
-      let 
+      let
 
           fun polls () =
               case SDL.pollevent () of
@@ -244,12 +244,12 @@ struct
                                   | SOME (_, Input.Axis (Input.AxisUnknown i, r)) => State.dance (i, r)
                                   | SOME (_, Input.Axis (Input.AxisWhammy, r)) => Sound.seteffect r
                                   | SOME (_, Input.Drum d) =>
-                                        Sound.setfreq(Sound.DRUMCH d, 
+                                        Sound.setfreq(Sound.DRUMCH d,
                                                       Vector.sub(Samples.default_drumbank, d),
-                                                      Sound.midivel 127, 
+                                                      Sound.midivel 127,
                                                       Sound.WAVE_SAMPLER Samples.sid)
                                   (* | SOME _ => () *)
-                                  | NONE => 
+                                  | NONE =>
                                       (* only if not mapped *)
                                       (case e of
                                            (SDL.E_KeyDown { sym = SDL.SDLK_i }) => Song.fast_forward 2000

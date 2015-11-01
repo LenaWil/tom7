@@ -71,7 +71,7 @@ sig
        and it's a button with a mapping, return that. *)
     val map : SDL.event -> (device * inevent) option
 
-    (* As best a description of the device (as currently attached) 
+    (* As best a description of the device (as currently attached)
        as we can manage. *)
     val devicename : device -> string
 

@@ -53,15 +53,15 @@ struct
                 let
                     val nows = Song.nowevents cursor
                 in
-                    List.app 
+                    List.app
                     (fn (label, evt) =>
                      (case label of
                           Match.Music (inst, _) =>
                           (case evt of
                                MIDI.NOTEON(ch, note, 0) => Sound.noteoff (ch, note)
-                             | MIDI.NOTEON(ch, note, vel) => Sound.noteon (ch, note, 
-                                                                           Sound.midivel vel, 
-                                                                           inst) 
+                             | MIDI.NOTEON(ch, note, vel) => Sound.noteon (ch, note,
+                                                                           Sound.midivel vel,
+                                                                           inst)
                              | MIDI.NOTEOFF(ch, note, _) => Sound.noteoff (ch, note)
                              | _ => print ("unknown music event: " ^ MIDI.etos evt ^ "\n"))
                              | _ => ()))
@@ -80,7 +80,7 @@ struct
                         end
 
                     val closet = Profile.closet profile
-                        
+
                     val c = ref 100
                 in
                     blitall(background, screen, 0, 0);
@@ -106,13 +106,13 @@ struct
                      then (humpframe := 0; humprev := false)
                      else ());
                     (if !humpframe >= Vector.length Sprites.humps
-                     then (humpframe := (Vector.length Sprites.humps - 1); 
+                     then (humpframe := (Vector.length Sprites.humps - 1);
                            humprev := true)
                      else ())
                 end
 
-            and heartbeat () = 
-                let 
+            and heartbeat () =
+                let
                     val () = Song.update ()
                     val () = Womb.maybenext womb_pattern
                     val () = loopplay ()
@@ -130,7 +130,7 @@ struct
                 let in
                     (case item of
                          NONE => FontSmall.draw(screen, x + (FontSmall.width - FontSmall.overlap) * 3, y, "^1Save outfit")
-                       | SOME item => 
+                       | SOME item =>
                           let in
                              (if Items.has (!outfit) item
                               then FontSmall.draw(screen, x, y, Chars.CHECKMARK)
@@ -154,7 +154,7 @@ struct
                                   } of
                      NONE => raise Abort
                    | SOME NONE => raise Done
-                   | SOME (SOME item) => 
+                   | SOME (SOME item) =>
                          let in
                              (if Items.has (!outfit) item
                               then outfit := Items.remove (!outfit) item
@@ -163,10 +163,10 @@ struct
                                 than jump to the top.*)
                              repeat ()
                          end)
-                
+
         in
-            (repeat () 
-             handle Done => 
+            (repeat ()
+             handle Done =>
                  let in
                      Profile.setoutfit profile (!outfit);
                      Profile.save ()

@@ -11,7 +11,7 @@ struct
     structure SmallFont = Sprites.SmallFont
 
     exception Postmortem of string
-    val background = Sprites.requireimage "postmortem.png"    
+    val background = Sprites.requireimage "postmortem.png"
     val screen = Sprites.screen
 
     val BGMIDI = "postmortem.mid"
@@ -33,12 +33,12 @@ struct
     (* It's hard to calibrate the cutoffs for dancing awards. Here are
        some measurements with the 360 X-Plorer, configured correctly:
 
-       0.056m/s was my normal standing posture for Goog. 
+       0.056m/s was my normal standing posture for Goog.
        0.1 when I was rocking out.
        0.016 when I was trying to stay as still as possible and still play.
        (But on other songs I can get 0.0...)
        I can get 0.0 if I just sit there and don't play anything. *)
-        
+
     datatype medal = datatype Hero.medal
 
     exception Done
@@ -76,15 +76,15 @@ struct
                     then Womb.next womb_pattern
                     else ();
 
-                    List.app 
+                    List.app
                     (fn (label, evt) =>
                      (case label of
                           Match.Music (inst, _) =>
                      (case evt of
                           MIDI.NOTEON(ch, note, 0) => Sound.noteoff (ch, note)
-                        | MIDI.NOTEON(ch, note, vel) => Sound.noteon (ch, note, 
-                                                                      Sound.midivel vel, 
-                                                                      inst) 
+                        | MIDI.NOTEON(ch, note, vel) => Sound.noteon (ch, note,
+                                                                      Sound.midivel vel,
+                                                                      inst)
                         | MIDI.NOTEOFF(ch, note, _) => Sound.noteoff (ch, note)
                         | _ => print ("unknown music event: " ^ MIDI.etos evt ^ "\n"))
                         | _ => ()))
@@ -96,7 +96,7 @@ struct
                     SOME (E_KeyDown { sym = SDLK_ESCAPE }) => raise Done
                   | SOME E_Quit => raise Hero.Exit
                   | SOME (E_KeyDown { sym = SDLK_ENTER }) => exit()
-                  | SOME e => 
+                  | SOME e =>
                         (case Input.map e of
                              SOME (_, Input.ButtonDown b) => exit()
                            | SOME (_, Input.ButtonUp b) => ()
@@ -132,7 +132,7 @@ struct
                     blitall(background, screen, 0, 0);
 
                     FontHuge.draw(screen, X_PERCENT, Y_PERCENT,
-                                  "^3" ^ 
+                                  "^3" ^
                                   Real.fmt (StringCvt.FIX (SOME 1)) percent ^ "^0%");
                     FontSmall.draw(screen, X_COUNT, Y_COUNT,
                                    "^1(^5" ^ Int.toString hit ^ "^1/^5" ^ Int.toString total ^ "^1) notes");
@@ -148,7 +148,7 @@ struct
                                    Int.toString downstrums ^ "^0 down");
 
                     FontSmall.draw(screen, X_TIME, Y_TIME,
-                                   "Time: ^5" ^ Real.fmt (StringCvt.FIX (SOME 1)) 
+                                   "Time: ^5" ^ Real.fmt (StringCvt.FIX (SOME 1))
                                    totalseconds ^ "^0s");
 
                     app
@@ -172,8 +172,8 @@ struct
                     ()
                 end
 
-            and heartbeat () = 
-                let 
+            and heartbeat () =
+                let
                     val () = Song.update ()
                     val () = loopplay ()
                     val now = getticks ()
@@ -186,13 +186,13 @@ struct
 
             val nextd = ref 0w0
             fun go () =
-                let 
+                let
                     val () = heartbeat ()
                     val () = input ()
                     val now = getticks ()
                 in
                     (if now > !nextd
-                     then (draw (); 
+                     then (draw ();
                            nextd := now + MENUTICKS;
                            flip screen)
                      else ());

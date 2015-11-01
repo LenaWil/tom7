@@ -14,7 +14,7 @@
    This is a big hack. The operating system could choose to write to
    this alleged disk pretty much any way it wants, defragging it or
    creating metadata or whatever. But for the tiny FAT16 filesystem
-   that the Womb presents, it has fairly predictable behavior. 
+   that the Womb presents, it has fairly predictable behavior.
 
    Because of the pinout of the chip is not particularly regular, I
    didn't take any care to arrange the bits in any order. Here are the
@@ -81,9 +81,9 @@ struct
     val womb = SOME (let val f = BinIO.openOut "i:\\FILE.TXT"
                      in (f, BinIO.getPosOut f)
                      end) handle _ => NONE
-            
+
     fun detect () = Option.isSome womb
-    
+
     fun signal () =
         case womb of
             NONE => ()
@@ -145,7 +145,7 @@ struct
             SDL.WIN32 => 0w2 (* takes something like 1.7ms on vista *)
           | SDL.OSX => 0w6 (* takes like 5.6 on OSX *)
           | _ => 0w1 (* ?? *)
-        
+
     val cur = ref (0w0 : Word32.word)
     val want = ref (0w0 : Word32.word)
     val lasttime = ref (SDL.getticks())
@@ -165,14 +165,14 @@ struct
     fun heartbeat () = heartbeat_at (SDL.getticks())
 
     fun signal_raw w =
-        let 
+        let
             val now = SDL.getticks ()
         in
             want := w;
             heartbeat_at now
         end
 
-end 
+end
 
 functor WombFn(W : RAW_WOMB where type light = Word32.word) :> WOMB =
 struct
@@ -183,7 +183,7 @@ struct
     (* assume it starts off *)
     val cur = ref (0w0 : Word32.word)
 
-    fun signal_raw w = 
+    fun signal_raw w =
         if !disabled
         then ()
         else (cur := w; W.signal_raw w)
@@ -196,7 +196,7 @@ struct
     fun liteson ls = signal_raw (Word32.orb(!cur, foldr Word32.orb 0w0 ls))
     fun litesoff ls = signal_raw (Word32.andb(!cur, Word32.notb (foldr Word32.orb 0w0 ls)))
 
-    type pattern = 
+    type pattern =
         { (* non-empty. *)
           bits : Word32.word Vector.vector,
           (* in 0 .. bits.length - 1 *)

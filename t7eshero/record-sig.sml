@@ -10,7 +10,7 @@ sig
           (* XXX dance distance.. *)
           medals : Hero.medal list }
 
-    (* Compare records for the same song. 
+    (* Compare records for the same song.
        Lesser means better (i.e. fewer misses) *)
     val cmp : record * record -> order
 

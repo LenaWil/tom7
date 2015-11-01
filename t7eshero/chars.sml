@@ -11,7 +11,7 @@ struct
     val GRAY = GREY
     val GREEN = "^5"
     val POP = "^<"
-    
+
     (* these just have to be any non-ascii chars. *)
     val CHECKMARK = implode [chr 128]
     val ESC = implode [chr 129]

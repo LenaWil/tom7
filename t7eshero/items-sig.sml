@@ -21,7 +21,7 @@ sig
     val add : worn -> item -> worn
     val remove : worn -> item -> worn
     val has : worn -> item -> bool
-        
+
     val name : item -> string
     val frames : item -> (SDL.surface * int * int) Vector.vector
     val id : item -> string
@@ -35,11 +35,11 @@ sig
 
     (* loads the database of items. It is immutable. *)
     val load : unit -> unit
-        
+
     val fromid : string -> item
 
     (* for serialization *)
     val wtostring : worn -> string
     val wfromstring : string -> worn
-        
+
 end

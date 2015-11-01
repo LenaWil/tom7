@@ -22,14 +22,14 @@ struct
           totalseconds : real,
           award : Items.item option }
 
-    type entry = { song : Setlist.songid, 
+    type entry = { song : Setlist.songid,
                    missnum : int ref,
                    start_time : Word32.word,
                    final : final option ref }
 
     val stack = ref nil : entry list ref
 
-    fun head () = 
+    fun head () =
         case !stack of
             nil => raise Stats "asked for stats without starting"
           | h :: _ => h
@@ -63,7 +63,7 @@ struct
             val percent = (real hit * 100.0 / real total)
             val () = if total > 0
                      then print ("At end: " ^ Int.toString hit ^ "/" ^ Int.toString total ^
-                                 " (" ^ Real.fmt (StringCvt.FIX (SOME 1)) percent ^ 
+                                 " (" ^ Real.fmt (StringCvt.FIX (SOME 1)) percent ^
                                  "%) of notes hit\n")
                      else ()
             val { totaldist, totaltime, upstrums, downstrums } = State.stats ()
@@ -76,7 +76,7 @@ struct
                             ^ "m/s)\n")
 
             (* Need 90% to qualify for medals. *)
-            val medals = 
+            val medals =
                 if percent >= 90.0
                 then
                     List.filter

@@ -17,7 +17,7 @@ struct
 
     (* message at top and bottom *)
     type interlude = string * string
-      
+
 
     datatype background =
         BG_SOLID of SDL.color
@@ -82,7 +82,7 @@ struct
 
     val trim = StringUtil.losespecl StringUtil.whitespec o StringUtil.losespecr StringUtil.whitespec
     val songs = List.concat (map (fn (f, d) => map (fn s => (s, d)) (getlines f)) songfiles)
-    val songs = List.mapPartial 
+    val songs = List.mapPartial
         (fn (s, dir) =>
          case String.fields (StringUtil.ischar #"|") s of
              [file, slowfactor, hard, fave, title, artist, year] =>
@@ -92,8 +92,8 @@ struct
                       (NONE, _, _) => (print ("Bad slowfactor: " ^ slowfactor ^ "\n"); NONE)
                     | (_, NONE, _) => (print ("Bad hard: " ^ hard ^ "\n"); NONE)
                     | (_, _, NONE) => (print ("Bad fave: " ^ fave ^ "\n"); NONE)
-                    | (SOME slowfactor, SOME hard, SOME fave) => 
-                          let 
+                    | (SOME slowfactor, SOME hard, SOME fave) =>
+                          let
                               val fileext = FSUtil.dirplus dir (trim file)
                           in
                               case sha1binfile fileext of
@@ -102,9 +102,9 @@ struct
                                       let in
                                           files := SM.insert(!files, trim file, sha);
                                           (* print ("Loaded " ^ file ^ " with " ^ SHA1.bintohex sha ^ "\n"); *)
-                                          SOME { file = fileext, slowfactor = slowfactor, 
+                                          SOME { file = fileext, slowfactor = slowfactor,
                                                  hard = hard, fave = fave,
-                                                 title = trim title, artist = trim artist, 
+                                                 title = trim title, artist = trim artist,
                                                  year = trim year, id = sha }
                                       end
                           end)
@@ -127,13 +127,13 @@ struct
                              (case SM.find (!files, file) of
                                   NONE => (print ("!! couldn't find file: [" ^ file ^ "]\n"); NONE)
                                 | SOME s =>
-                                      let 
+                                      let
                                           val db =
                                           (case drumbank of
                                                "" => NONE
-                                             | _ => (case map Int.fromString 
+                                             | _ => (case map Int.fromString
                                                          (String.fields (StringUtil.ischar #",") drumbank) of
-                                                         [SOME a, SOME b, SOME c, SOME d, SOME e] => 
+                                                         [SOME a, SOME b, SOME c, SOME d, SOME e] =>
                                                              SOME (Vector.fromList [a, b, c, d, e])
                                                        | _ => (print ("!!! bad drumbank: " ^
                                                                       drumbank ^ "\n"); NONE)))
@@ -142,13 +142,13 @@ struct
                                           SOME (Song
                                           { song = s, misses = misses, drumbank = db,
                                             (* XXX parse background. at least colors... *)
-                                            background = 
+                                            background =
                                             (case String.fields (StringUtil.ischar #" ") background of
                                                  ["random", n] =>
                                                      (case Int.fromString n of
                                                           SOME x => BG_RANDOM x
                                                         | NONE => BG_RANDOM 50)
-                                               | _ => 
+                                               | _ =>
                                                  case explode background of
                                                    [#"#", r, rr, g, gg, b, bb] =>
                                                      (case map Word8.fromString [implode [r, rr],

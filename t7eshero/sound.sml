@@ -8,7 +8,7 @@ struct
   val setfreq_ = _import "ml_setfreq" : int * int * int * int -> unit ;
   val () = initaudio_ ()
 
-  local 
+  local
       val sampleroffset_ = _import "ml_sampleroffset" : unit -> int ;
       val total_mix_channels_ = _import "ml_total_mix_channels" : unit -> int ;
   in
@@ -80,7 +80,7 @@ struct
   (* FIXME implement! *)
   type sample = int
   type sampleset = int
-  local 
+  local
       val register_sample_ = _import "ml_register_sample" : int vector * int -> int ;
       val register_sampleset_ = _import "ml_register_sampleset" : int vector * int -> int ;
       fun save r e = (r := e; e)
@@ -95,7 +95,7 @@ struct
   end
 
   val freqs = Array.array(16, 0)
-  fun setfreq (ch, f, vol, inst) = 
+  fun setfreq (ch, f, vol, inst) =
       let in
           if inst >= SAMPLER_OFFSET
           then if f >= 128 orelse f < 0
@@ -125,14 +125,14 @@ struct
       end
 *)
 
-  datatype status = 
+  datatype status =
       OFF
     | PLAYING of int
   (* for each channel, all possible midi notes *)
   val miditable = Vector.tabulate(16, fn _ => Array.array(128, OFF))
 
   val NFREECH = NMIX - 1 - 5
-  fun DRUMCH n = if n < 0 orelse n > 4 
+  fun DRUMCH n = if n < 0 orelse n > 4
                  then raise Sound "there are only drum channels 0-5."
                  else NMIX - 1 - (n + 1)
   val MISSCH = NMIX - 1
@@ -162,13 +162,13 @@ struct
           (case Array.sub(Vector.sub(miditable, ch), n) of
                OFF => (* find channel... *)
                    (case Array.findi (fn (_, b) => not b) mixes of
-                        SOME (i, _) => 
+                        SOME (i, _) =>
                             let in
                                 Array.update(mixes, i, true);
                                 (* If a waveform, use hz. If a sample,
                                    use sample index. *)
                                 if (inst >= SAMPLER_OFFSET)
-                                then 
+                                then
                                     if n <= 0 orelse n >= 128
                                     then raise Sound "sampler index out of range"
                                     else setfreq(i, n, v, inst)
@@ -180,7 +180,7 @@ struct
                             end
                       | NONE => print "No more mix channels.\n")
              (* re-use mix channel... *)
-             | PLAYING i => 
+             | PLAYING i =>
                     if inst >= SAMPLER_OFFSET
                     then setfreq(i, n, v, inst)
                     else setfreq(i, pitchof n, v, inst))
@@ -191,7 +191,7 @@ struct
           (* print ("(noteoff " ^ Int.toString ch ^ " " ^ Int.toString n ^ ")"); *)
           (case Array.sub(Vector.sub(miditable, ch), n) of
                OFF => (* already off *) ()
-             | PLAYING i => 
+             | PLAYING i =>
                    let in
                        Array.update(mixes, i, false);
                        setfreq(i, pitchof 60, 0, INST_NONE);
@@ -219,5 +219,5 @@ struct
           Array.modify (fn _ => false) mixes;
           seteffect 0.0
       end
-      
+
 end
