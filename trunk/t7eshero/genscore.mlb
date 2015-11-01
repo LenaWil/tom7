@@ -1,13 +1,6 @@
-group is
+$(SML_LIB)/basis/basis.mlb
 
-(* to compile with sml/nj *)
-#if (defined(SMLNJ_VERSION))
- $/basis.cm
- ../sml-lib/port/nj.sml
-#else
- (* assume we are using mlton then *)
- ../sml-lib/port/mlton.sml
-#endif
+../sml-lib/port/port-mlton.sml
 
 ../sml-lib/njlib/lib-base-sig.sml
 ../sml-lib/njlib/lib-base.sml
