@@ -6,7 +6,7 @@ struct
   infixr 9 `
   fun a ` b = a b
 
-  datatype scoreevt = 
+  datatype scoreevt =
       SE of { (* audio tracks that are gated by this event *)
               gate : int list,
               state : Hero.state ref,
@@ -36,7 +36,7 @@ struct
     | hammered SE_BOGUS = raise Hero "hammer bogus"
 
   structure GA = GrowArray
-  (* The matching array is 
+  (* The matching array is
 
      song events on this axis; one column per event ......
     |
@@ -65,9 +65,9 @@ struct
       if List.last nl = one then Equal else NotEqual
     | same (Hero.Commit nl, SE { soneme, ... }) = if nl = soneme then Equal else NotEqual
 
-    | same (Hero.FingerDown n, SE { soneme = [one], hammered = true, ... }) = 
+    | same (Hero.FingerDown n, SE { soneme = [one], hammered = true, ... }) =
          if n = one then NeedStreak else NotEqual
-    | same (Hero.FingerUp n, SE { soneme = [one], hammered = true, ... }) = 
+    | same (Hero.FingerUp n, SE { soneme = [one], hammered = true, ... }) =
          if n = one then NeedStreak else NotEqual
 
     | same (_, SE_BOGUS) = raise Hero "bogus same??"
@@ -75,19 +75,19 @@ struct
 
   (* This is the heart of T7esHero. Process a piece of input by adding
      a new row to the matrix. *)
-  fun input (now, input) = 
+  fun input (now, input) =
       let
           val current_length = GA.length matching
-          val prevrow = 
+          val prevrow =
               if current_length = 0
               then (* no inputs, so you've missed this many events *)
                    (fn x => (false, x))
-              else 
+              else
                   let val (_, _, a) = GA.sub matching (current_length - 1)
                   in (fn i => Array.sub(a, i))
                   end
 
-          (* PERF 
+          (* PERF
              This is pretty inefficient. We really only need to look at
              a fraction of it because most of the comparisons are refuted
              by being out of epsilon range. Oh, well. Surprisingly, this
@@ -103,8 +103,8 @@ struct
            let
                val (t, se) = Vector.sub(!song, i)
                val up = prevrow i
-               val (upleft, left) = 
-                   if i > 0 
+               val (upleft, left) =
+                   if i > 0
                    then (prevrow (i - 1), Array.sub(new, i - 1))
                    else ((false, 0), (false, 0))
 
@@ -113,20 +113,20 @@ struct
                   the ith event in the score. First thing is,
                   if the input and the event are not within
                   epsilon of one another, it's definitely a miss. *)
-                   if Int.abs (t - now) <= EPSILON 
+                   if Int.abs (t - now) <= EPSILON
                    then same (input, se)
                    else NotEqual
 
                (* If we ever hit the note, register it as hit. It's
                   possible that this will show too many successes in
                   some cases, but it's just for display purposes. *)
-               val () = if didhit = Equal orelse 
+               val () = if didhit = Equal orelse
                           (didhit = NeedStreak andalso #1 upleft)
-                        then 
+                        then
                             ((* messagebox ("hit! t: " ^ Int.toString t ^
-                                         ", now: " ^ Int.toString now); *) 
+                                         ", now: " ^ Int.toString now); *)
                              case se of
-                                 SE { state, ... } => 
+                                 SE { state, ... } =>
                                      (case !state of
                                           Hero.Hit _ => ()
                                         | _ => (streaksize := !streaksize + 1;
@@ -162,7 +162,7 @@ struct
                                  (false, #2 left + 1),
                                  (false, #2 up + 1))
 
-                 | Hero.FingerDown nl => 
+                 | Hero.FingerDown nl =>
                        if didhit = NeedStreak
                        then min ((* hit! *)
                                  if #1 upleft
@@ -178,7 +178,7 @@ struct
                                  (false, #2 up))
 
                  (* Same as finger down, but doesn't break streak *)
-                 | Hero.FingerUp nl => 
+                 | Hero.FingerUp nl =>
                        if didhit = NeedStreak
                        then min ((* hit! *)
                                  if #1 upleft
@@ -203,7 +203,7 @@ struct
                Array.update(new, i, best)
            end)
       in
-          GA.append matching (now, input, new)              
+          GA.append matching (now, input, new)
       end
 
 
@@ -249,7 +249,7 @@ struct
 
             }
       end
-      
+
 
   (* fun misses t = 0 *)
 
@@ -271,7 +271,7 @@ struct
 
           fun makeabsolute idx total ((d, evt) :: rest) =
               let
-                  fun now ((0, evt) :: more) = 
+                  fun now ((0, evt) :: more) =
                       let val (nows, laters) = now more
                       in (evt :: nows, laters)
                       end
@@ -285,10 +285,10 @@ struct
 
                   val soneme = ListUtil.sort Int.compare ` map get nows
 
-                  val se = SE { gate = gates, 
+                  val se = SE { gate = gates,
                                 state = ref Hero.Future,
                                 idx = idx,
-                                hammered = 
+                                hammered =
                                   (case nows of
                                        [(_, MIDI.NOTEON (_, _, vel))] => vel <= 64
                                      | _ => false),
@@ -301,7 +301,7 @@ struct
                      here too. we need a better treatment of tempo anyway, so we can
                      live with this for now. We also later add a predelay in there...
                      *)
-                  (PREDELAY + SLOWFACTOR * (total + d), se) :: 
+                  (PREDELAY + SLOWFACTOR * (total + d), se) ::
                     makeabsolute (idx + 1) (total + d) laters
               end
             | makeabsolute _ _ nil = nil
@@ -350,15 +350,15 @@ struct
                    val (when, input, arr) = GA.sub matching i
                    val l = Array.foldr op:: nil arr
                in
-                   tab := 
+                   tab :=
                    (intos input :: ("@" ^ Int.toString when) ::
-                    map (fn (b, misses) => 
+                    map (fn (b, misses) =>
                          (if b then "!"
                           else "") ^ Int.toString misses) l) :: !tab
                end)
 
           val fulltab = (s :: rev (!tab))
-          val trunctab = map (fn l => 
+          val trunctab = map (fn l =>
                               if List.length l > 40
                               then List.take(l, 40)
                               else l) fulltab

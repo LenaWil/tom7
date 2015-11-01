@@ -19,7 +19,7 @@ struct
                     List.collate Hero.medal_cmp (meda, medb)
                 end
           | ord => ord
-        
+
     fun mtostring Hero.PerfectMatch = "PM"
       | mtostring Hero.Snakes = "SN"
       | mtostring Hero.Stoic = "ST"

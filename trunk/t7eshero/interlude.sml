@@ -54,15 +54,15 @@ struct
                 let
                     val nows = Song.nowevents cursor
                 in
-                    List.app 
+                    List.app
                     (fn (label, evt) =>
                      (case label of
                           Match.Music (inst, _) =>
                           (case evt of
                                MIDI.NOTEON(ch, note, 0) => Sound.noteoff (ch, note)
                              (* XXX no midi in this interstitial? *)
-                             | MIDI.NOTEON(ch, note, vel) => () (* Sound.noteon (ch, note, 
-                                                                           Sound.midivel vel, 
+                             | MIDI.NOTEON(ch, note, vel) => () (* Sound.noteon (ch, note,
+                                                                           Sound.midivel vel,
                                                                            inst) *)
                              | MIDI.NOTEOFF(ch, note, _) => Sound.noteoff (ch, note)
                              | _ => print ("unknown music event: " ^ MIDI.etos evt ^ "\n"))
@@ -81,7 +81,7 @@ struct
                         end
 
                     val closet = Profile.closet profile
-                        
+
                     val c = ref 100
                 in
                     SDL.fillrect (screen, 0, 0, Sprites.width, Sprites.height,
@@ -99,10 +99,10 @@ struct
                     *)
 
                     (* and messages. *)
-                    FontMax.draw(screen, (Sprites.width - FontMax.sizex_plain message1) div 2, 
+                    FontMax.draw(screen, (Sprites.width - FontMax.sizex_plain message1) div 2,
                                  16, Chars.fancy message1);
                     FontMax.draw(screen, (Sprites.width - FontMax.sizex_plain message2) div 2,
-                                 (Sprites.height - 16) - FontMax.height, 
+                                 (Sprites.height - 16) - FontMax.height,
                                  Chars.fancy message2);
 
                     (* XXX possibly graphic? *)
@@ -119,13 +119,13 @@ struct
                      then (humpframe := 0; humprev := false)
                      else ());
                     (if !humpframe >= Vector.length Sprites.humps
-                     then (humpframe := (Vector.length Sprites.humps - 1); 
+                     then (humpframe := (Vector.length Sprites.humps - 1);
                            humprev := true)
                      else ())
                 end
 
-            and heartbeat () = 
-                let 
+            and heartbeat () =
+                let
                     val () = Song.update ()
                     val () = Womb.maybenext womb_pattern
                     val () = loopplay ()
@@ -142,7 +142,7 @@ struct
                     SOME (E_KeyDown { sym = SDLK_ESCAPE }) => raise Done
                   | SOME E_Quit => raise Hero.Exit
                   | SOME (E_KeyDown { sym = SDLK_ENTER }) => exit()
-                  | SOME e => 
+                  | SOME e =>
                         (case Input.map e of
                              SOME (_, Input.ButtonDown b) => exit()
                            | SOME (_, Input.ButtonUp b) => ()
@@ -153,13 +153,13 @@ struct
 
             val nextd = ref 0w0
             fun go () =
-                let 
+                let
                     val () = heartbeat ()
                     val () = input ()
                     val now = getticks ()
                 in
                     (if now > !nextd
-                     then (draw (); 
+                     then (draw ();
                            nextd := now + MENUTICKS;
                            flip screen)
                      else ());

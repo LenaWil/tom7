@@ -19,14 +19,14 @@ struct
   type rawmidi = int * MIDI.track list
   fun fromfile f =
       let
-          val r = (Reader.fromfile f) handle _ => 
+          val r = (Reader.fromfile f) handle _ =>
               raise Game ("couldn't read " ^ f)
           val m as (ty, divi, thetracks) = MIDI.readmidi r handle MIDI.MIDI s =>
               let in
                   print (s ^ "\n");
                   raise Game ("MIDI error: " ^ s)
               end
-              
+
           val _ = ty = 1
               orelse raise Game ("MIDI file must be type 1 (got type " ^ itos ty ^ ")")
           val () = print ("MIDI division is " ^ itos divi ^ "\n")
@@ -45,14 +45,14 @@ struct
      This uses the track's name to determine its label. *)
   fun label PREDELAY SLOWFACTOR tracks =
       let
-          fun foldin (data, tr) : (int * (Match.label * MIDI.event)) list = 
+          fun foldin (data, tr) : (int * (Match.label * MIDI.event)) list =
               map (fn (d, e) => (d, (data, e))) tr
 
           fun onetrack (tr, i) =
             case findname tr of
                 NONE => SOME ` foldin (Match.Control, tr)
               | SOME "" => SOME ` foldin (Match.Control, tr)
-              | SOME name => 
+              | SOME name =>
                   (case CharVector.sub(name, 0) of
                        #"+" =>
                        SOME `
@@ -75,17 +75,17 @@ struct
                               SOME `
                               Match.initialize
                               (PREDELAY, SLOWFACTOR, (* XXX *)
-                               map (fn i => 
+                               map (fn i =>
                                     case Int.fromString i of
                                         NONE => raise Game "bad tracknum in Score name"
-                                      | SOME i => i) ` 
+                                      | SOME i => i) `
                                String.tokens (StringUtil.ischar #",")
                                ` String.substring(name, 2, size name - 2),
                                tr)
                           | _ => (print "I only support REAL score!"; raise Game "real"))
 
-                     | _ => (print ("confused by named track '" ^ 
-                                    name ^ "'?? expected + or ! ...\n"); 
+                     | _ => (print ("confused by named track '" ^
+                                    name ^ "'?? expected + or ! ...\n");
                              SOME ` foldin (Match.Control, tr))
                        )
       in
@@ -97,15 +97,15 @@ struct
     fun add_measures divi t =
       let
         (* Read through tracks, looking for TIME events in
-           Control tracks. 
+           Control tracks.
            Each TIME event starts a measure, naturally.
            We need to find one at 0 time, otherwise this is
            impossible:
            *)
         fun getstarttime nil = (messagebox "(TIME) no events?"; raise Game "")
-          | getstarttime ((0, (_, MIDI.META (MIDI.TIME (n, d, cpc, bb)))) :: rest) = 
+          | getstarttime ((0, (_, MIDI.META (MIDI.TIME (n, d, cpc, bb)))) :: rest) =
             ((n, d, cpc, bb), rest)
-          | getstarttime ((0, evt) :: t) = 
+          | getstarttime ((0, evt) :: t) =
           let val (x, rest) = getstarttime t
           in (x, (0, evt) :: rest)
           end
@@ -113,7 +113,7 @@ struct
 
         val ((n, d, cpc, bb), rest) = getstarttime t
 
-        val () = if bb <> 8 
+        val () = if bb <> 8
                  then (messagebox ("The MIDI file may not redefine 32nd notes!");
                        raise Game "")
                  else ()
@@ -122,7 +122,7 @@ struct
            though this is ostensibly what we want, the values are fairly
            unpredictable. *)
 
-        (* First we determine the length of a measure in midi ticks. 
+        (* First we determine the length of a measure in midi ticks.
 
            The midi division tells us how many clicks there are in a quarter note.
            The denominator tells us how many beats there are per measure. So we can
@@ -162,10 +162,10 @@ struct
         fun ibars tl nil = nil (* XXX probably should finish out
                                   the measure, draw end bar. *)
 
-          | ibars (ticksleft :: rtl) ((dt, evt) :: rest) = 
+          | ibars (ticksleft :: rtl) ((dt, evt) :: rest) =
           (* Which comes first, the next event or our next bar? *)
           if dt <= ticksleft
-          then 
+          then
             (case evt of
                (* Time change event coming up! *)
                (Match.Control, MIDI.META (MIDI.TIME _)) =>
@@ -173,8 +173,8 @@ struct
                (dt, (Match.Control, DUMMY)) :: add_measures divi ((0, evt) :: rest)
 
              | _ => (dt, evt) :: ibars (ticksleft - dt :: rtl) rest)
-          else 
-            (* if we exhausted the list, then there is a major (measure) bar here. *)       
+          else
+            (* if we exhausted the list, then there is a major (measure) bar here. *)
             (case rtl of
                nil => (ticksleft, (Match.Bar Hero.Measure, DUMMY)) :: ibars ticklist ((dt - ticksleft, evt) :: rest)
              | _   => (ticksleft, (Match.Bar Hero.Beat, DUMMY))    :: ibars rtl      ((dt - ticksleft, evt) :: rest))

@@ -60,7 +60,7 @@ struct
                  delta from 'now' *)
               else (evts := (dt - gap, evt) :: rest; nil)
 
-            | ne gap nil = 
+            | ne gap nil =
                   if loop
                   then (evts := orig; ne gap orig)
                   (* song will end on next trip *)
@@ -88,7 +88,7 @@ struct
      we call that and discard them, our cursor will be at the
      appropriate future position. *)
   fun cursor' l off nil = { lt = ref (now()), evts = ref nil, orig = nil, loop = l }
-    | cursor' l off ((d, e) :: song) = 
+    | cursor' l off ((d, e) :: song) =
       let val c = { lt = ref 0, evts = ref ((d - off, e) :: song), orig = song, loop = l }
       in
           ignore (nowevents c);

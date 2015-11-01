@@ -28,7 +28,7 @@ struct
           bordercolor : color option,
           bgcolor : color option,
           selcolor : color option,
-          
+
           (* must clear the screen, at least *)
           parent : Drawable.drawable
 
@@ -41,7 +41,7 @@ struct
             val selected = ref 0
             val scroll = ref 0
             fun setscroll () =
-                let 
+                let
                     val () = if !selected < !scroll
                              then scroll := !selected
                              else ()
@@ -50,7 +50,7 @@ struct
                     fun doscroll (off, idx) =
                         (* in case no items can fit, don't loop forever *)
                         if !selected = !scroll then ()
-                        else 
+                        else
                             if idx >= Vector.length items then () else (* possible?? *)
                                (* can we fit more? *)
                                let val h = itemheight (Vector.sub(items, idx))
@@ -92,11 +92,11 @@ struct
                                     | E_KeyDown { sym = SDLK_DOWN } => move_down ()
                                     | E_KeyDown { sym = SDLK_KP_ENTER } => select ()
                                     | E_KeyDown { sym = SDLK_RETURN } => select ()
-                                          
+
                                     | E_KeyDown { sym = SDLK_HOME } => selected := 0
                                     | E_KeyDown { sym = SDLK_END } => selected := Vector.length items - 1
 
-                                    (* XXX TODO: 
+                                    (* XXX TODO:
                                        pageup and pagedown are hard to support because items are variable-sized.
                                        This is an ad hoc hack for now.
                                        *)
@@ -120,19 +120,19 @@ struct
                 let
                     fun draws (off, idx) =
                         if idx >= Vector.length items then () else
-                        (* can we fit more? *)  
+                        (* can we fit more? *)
                         let val h = itemheight (Vector.sub(items, idx))
                         in
                             if off + h > height
                             then ()
                             else (if !selected = idx
-                                  then ofillrect(screen, 
+                                  then ofillrect(screen,
                                                  x + SKIP_X, y + SKIP_Y + off,
                                                  width - (SKIP_X * 2), h,
                                                  selcolor)
                                   else ();
-                                  drawitem (Vector.sub(items, idx), 
-                                            x + SKIP_X, y + SKIP_Y + off, 
+                                  drawitem (Vector.sub(items, idx),
+                                            x + SKIP_X, y + SKIP_Y + off,
                                             !selected = idx);
                                   draws (off + h, idx + 1))
                         end
@@ -155,14 +155,14 @@ struct
                 end
 
             fun go next =
-                let 
+                let
                     val () = Drawable.heartbeat parent
                     val () = input ()
                     val now = getticks()
                 in
                     if now > next
                     then (advance();
-                          draw(); 
+                          draw();
                           go (now + TICKS))
                     else go next
                 end

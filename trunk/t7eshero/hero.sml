@@ -22,7 +22,7 @@ struct
     | Commit of int list
 
   (* To earn a medal, you have to get at least 90% on the song. *)
-  datatype medal = 
+  datatype medal =
       (* Got 100% *)
       PerfectMatch
     (* Averaged at least 0.25 m/s dancing *)

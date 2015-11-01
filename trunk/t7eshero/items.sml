@@ -31,7 +31,7 @@ struct
     val id : item -> string = #id
     val zindex : item -> int = #zindex
 
-    fun has (a, b) i = 
+    fun has (a, b) i =
         List.exists (fn x => eq (x, i)) a orelse
         List.exists (fn x => eq (x, i)) b
 
@@ -65,7 +65,7 @@ struct
         let
             val lines = StringUtil.readfile ITEMS_FILE
             val lines = String.tokens (fn #"\n" => true | _ => false) lines
-            val lines = List.mapPartial 
+            val lines = List.mapPartial
                 (fn s =>
                  case String.fields (fn #"|" => true | _ => false) s of
                      [id, class, name, f1, x1, y1, f2, x2, y2, f3, x3, y3, f4, x4, y4, z] =>

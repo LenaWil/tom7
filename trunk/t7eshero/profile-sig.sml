@@ -19,9 +19,9 @@ sig
     (* Get the best records from all local players. Includes the player's
        name, the record, and the last time that player played (which is an
        upper bound on the time the record was set). *)
-    val local_records : unit -> (Setlist.songid * 
+    val local_records : unit -> (Setlist.songid *
                                  (string * Record.record * IntInf.int)) list
-        
+
     (* Create a profile with some random defaults *)
     val add_default : unit -> profile
 
@@ -42,7 +42,7 @@ sig
     (* also updates surface *)
     val setpic  : profile -> string -> unit
     val setrecords : profile -> (Setlist.songid * Record.record) list -> unit
-    val setachievements : profile -> (achievement * 
+    val setachievements : profile -> (achievement *
                                       Setlist.songid option * IntInf.int) list -> unit
     val setlastused : profile -> IntInf.int -> unit
     val setcloset : profile -> Items.item list -> unit

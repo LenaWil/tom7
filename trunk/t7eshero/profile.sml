@@ -49,7 +49,7 @@ struct
     fun rsfromstring ss =
         map (fn s =>
              case String.tokens QQ s of
-                 [song, record] => (expectopt "songid" Setlist.fromstring (une song), 
+                 [song, record] => (expectopt "songid" Setlist.fromstring (une song),
                                     Record.fromstring (une record))
                | _ => error "bad record") (songs_unlist ss)
 
@@ -63,10 +63,10 @@ struct
                     ue (atostring a) ^ "?" ^ ue (uo Setlist.tostring so) ^ "?" ^ IntInf.toString i) achs)
 
     fun achsfromstring a =
-        map (fn s => 
+        map (fn s =>
              case String.tokens QQ s of
-                 [ach, so, when] => 
-                     (afromstring ach, uno (expectopt "ach-songid" Setlist.fromstring) so, 
+                 [ach, so, when] =>
+                     (afromstring ach, uno (expectopt "ach-songid" Setlist.fromstring) so,
                       expectopt "bad achwen" IntInf.fromString when)
                | _ => error "bad achs") (unlist a)
 
@@ -91,7 +91,7 @@ struct
       | _ => error "bad profile"
 
 
-    val (profiles_ulist, profiles_unlist) = 
+    val (profiles_ulist, profiles_unlist) =
         Serialize.list_serializerex (fn #"\r" => false | _ => true) "\n--------\n" #"$"
     fun save () = StringUtil.writefile FILENAME (profiles_ulist (map ptostring (!profiles)))
     fun load () =
@@ -99,12 +99,12 @@ struct
             val s = StringUtil.readfile FILENAME handle _ => profiles_ulist nil
             val ps = profiles_unlist s
             val ps = map pfromstring ps
-            val ps : profile list = 
+            val ps : profile list =
                 ListUtil.sort (fn ({ lastused, ... }, { lastused = lastused', ... }) =>
-                               (ListUtil.Sorted.reverse IntInf.compare) 
+                               (ListUtil.Sorted.reverse IntInf.compare)
                                (!lastused, !lastused')) ps
         in
-            (* XXX LEAK needs to free surface parameters. 
+            (* XXX LEAK needs to free surface parameters.
                But we shouldn't double-load anyway. *)
             profiles := ps
         end handle Record.Record s => (Hero.messagebox ("Record: " ^ s); raise Hero.Exit)
@@ -138,11 +138,11 @@ struct
                     then "Player " ^ Int.toString (i - 100)
                     else BandName.random_name ()
         in
-            if List.exists (fn { name, ... } => s = !name) (!profiles) 
+            if List.exists (fn { name, ... } => s = !name) (!profiles)
             then genplayer (i + 1)
             else s
         end
-    fun add_default () = 
+    fun add_default () =
         let val p = { name = ref (genplayer 1),
                       pic = ref DEFAULT_PROFILE_PIC,
                       picsurf = ref (openpic DEFAULT_PROFILE_PIC),
@@ -151,14 +151,14 @@ struct
                       achievements = ref nil,
                       closet = ref (Items.default_closet()),
                       outfit = ref (Items.default_outfit()) }
-        in 
+        in
             profiles := p :: !profiles;
             p
         end
 
     fun local_records () =
-        let 
-            val alls = 
+        let
+            val alls =
                 List.concat
                 (map (fn p =>
                       let
@@ -174,7 +174,7 @@ struct
             val alls = ListUtil.stratify Setlist.cmp alls
             (* Now get the best one from each. hd can't fail because
                stratify never returns empty inner lists *)
-            val best = ListUtil.mapsecond (hd o ListUtil.sort 
+            val best = ListUtil.mapsecond (hd o ListUtil.sort
                                            (fn ((n, r, t), (nn, rr, tt)) =>
                                             case Record.cmp (r, rr) of
                                                 EQUAL => IntInf.compare (t, tt)

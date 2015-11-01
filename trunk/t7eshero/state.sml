@@ -16,8 +16,8 @@ struct
   val spans = Array.array(Hero.FINGERS, false) (* and not in span *)
 
 
-  fun fingeron n = 
-      let 
+  fun fingeron n =
+      let
           fun highest i =
               if i = Hero.FINGERS
               then Match.input (Song.now (), Hero.FingerDown n)
@@ -27,13 +27,13 @@ struct
                   else highest (i + 1)
       in
           Array.update(fingers, n, true);
-          (* if there are no fingers higher than this, 
+          (* if there are no fingers higher than this,
              then it can be a hammer event. *)
           highest (n + 1)
       end
 
   fun fingeroff n =
-      let 
+      let
           fun belowit i =
               if i < 0
               then ()
@@ -47,7 +47,7 @@ struct
       end
 
   fun commit () =
-      let 
+      let
           fun theevent i =
               if i = Hero.FINGERS
               then nil
@@ -73,7 +73,7 @@ struct
      N ahead of time. We start at the origin. We move by getting an
      update for one axis. When we move we increment dancedist by the
      length of the vector. The configured axes are guaranteed to be
-     dense and small, starting from zero, so we use a growarray. 
+     dense and small, starting from zero, so we use a growarray.
 
      One problem(?) with this is that guitars with more axes have an easier
      time achieving dance distance, since they have more dimensions in which
@@ -99,7 +99,7 @@ struct
           val diff = Real.abs(GA.sub dancept axis - r);
       in
           if diff >= NOISE_FILTER
-          then 
+          then
               let in
                   print ("dance: " ^ Real.fmt (StringCvt.FIX (SOME 2)) (GA.sub dancept axis) ^
                          " -> " ^ Real.fmt (StringCvt.FIX (SOME 2)) r ^ "\n");
@@ -135,7 +135,7 @@ struct
             }
       end
 
-  fun reset () = Util.for 0 (Hero.FINGERS - 1) (fn i => 
+  fun reset () = Util.for 0 (Hero.FINGERS - 1) (fn i =>
                                                 let in
                                                     upstrums := 0;
                                                     downstrums := 0;
