@@ -37,9 +37,9 @@ struct
     val profiles = ref nil : profile list ref
 
     fun openpic s =
-        case SDL.Image.load s of
+        case SDL.loadimage s of
             (* maybe could be error graphic *)
-            NONE => (case SDL.Image.load DEFAULT_PROFILE_PIC of
+            NONE => (case SDL.loadimage DEFAULT_PROFILE_PIC of
                          NONE => error "missing default profile pic?!"
                        | SOME s => s)
           | SOME s => s
