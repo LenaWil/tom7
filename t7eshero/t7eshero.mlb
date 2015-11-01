@@ -1,14 +1,8 @@
-group is
+$(SML_LIB)/basis/basis.mlb
+$(SML_LIB)/basis/mlton.mlb
+$(SML_LIB)/basis/unsafe.mlb
 
-(* to compile with sml/nj.
-   not likely to work! *)
-#if (defined(SMLNJ_VERSION))
- $/basis.cm
- ../sml-lib/port/nj.sml
-#else
- (* assume we are using mlton then *)
- ../sml-lib/port/mlton.sml
-#endif
+../sml-lib/port/mlton.sml
 
 ../sml-lib/njlib/lib-base-sig.sml
 ../sml-lib/njlib/lib-base.sml
