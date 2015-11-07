@@ -62,7 +62,7 @@ FCEULIB_OBJECTS=$(FCEUOBJECTS) $(MAPPEROBJECTS) $(UTILSOBJECTS) $(PALLETESOBJECT
 LFLAGS=-m64 -Wl,--subsystem,console libz.a $(OPT) $(SYMBOLS) $(FLTO) $(PROFILE) $(LINKSDL) -static
 # -Wl,--subsystem,console
 
-PFTWO_OBJECTS=motifs.o weighted-objectives.o problem-twoplayer.o markov-controller.o learnfun.o objective.o
+PFTWO_OBJECTS=motifs.o weighted-objectives.o problem-twoplayer.o markov-controller.o learnfun.o objective-enumerator.o
 
 testui.exe : $(FCEULIB_OBJECTS) $(SDL_OBJECTS) $(CCLIB_OBJECTS) $(PFTWO_OBJECTS) testui.o sdl-win32-main.o
 	$(CXX) $^ -o $@ $(LFLAGS)

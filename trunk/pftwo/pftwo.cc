@@ -299,6 +299,7 @@ struct WorkThread {
   void Run() {
     worker->Init();
 
+    printf("Initialize tree...\n");
     InitializeTree();
 
     Tree::Node *last = pftwo->tree->root;

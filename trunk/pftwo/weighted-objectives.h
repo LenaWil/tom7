@@ -11,16 +11,21 @@
 
 #include "pftwo.h"
 
+// Constant collection of weighted objectives.
 struct WeightedObjectives {
+  // Use flat weights.
   explicit WeightedObjectives(const vector<vector<int>> &objs);
-  static WeightedObjectives *LoadFromFile(const std::string &filename);
-
-  void WeightByExamples(const vector<vector<uint8>> &memories);
-
+  // Use provided weights.
+  explicit WeightedObjectives(vector<pair<vector<int>, double>> w_objs);
+  // Weight using the example memories.
+  WeightedObjectives(const vector<vector<int>> &objs,
+		     const vector<vector<uint8>> &memories);
+  static WeightedObjectives *LoadFromFile(const string &filename);
+  
   // Does not save observations.
-  void SaveToFile(const std::string &filename) const;
+  void SaveToFile(const string &filename) const;
 
-  size_t Size() const;
+  size_t Size() const { return weighted.size(); }
 
   // Scoring function which is just the sum of the weights of
   // objectives where mem1 < mem2.
@@ -28,46 +33,88 @@ struct WeightedObjectives {
                       const vector<uint8> &mem2) const;
 
   // Scoring function which is the count of objectives
-  // that where mem1 < mem2 minus the number where mem1 > mem2.
+  // where mem1 < mem2 minus the number where mem1 > mem2.
   double Evaluate(const vector<uint8> &mem1,
                   const vector<uint8> &mem2) const;
 
-  // Observe a game state. This informs us about the values that
-  // the objective functions can take on, which lets us score the
-  // magnitude of their changes. Not necessary for GetNumLess() or
-  // Evaluate().
+  // XXX weighted version, unnormalized version?
+  const vector<pair<vector<int>, double>> &GetAll() const {
+    return weighted;
+  }
+
+  const pair<vector<int>, double> &Get(int i) const {
+    return weighted[i];
+  }
+
+  static const vector<uint8> Value(const vector<uint8> &memory,
+				   const vector<int> &objective) {
+    vector<uint8> ret;
+    ret.resize(objective.size());
+    for (int i = 0; i < objective.size(); i++)
+      ret[i] = memory[objective[i]];
+    return ret;
+  }
+
+ private:
+  vector<pair<vector<int>, double>> weighted;
+  NOT_COPYABLE(WeightedObjectives);
+};
+
+// Dynamic observations for computing "value fraction"-based metrics.
+// From observing some states during exploration, we can compute an
+// "absolute" score for a memory alone. This absolute score forms a
+// consistent total order on memories. This class separates the "accumulation"
+// of observations from "committing" them, because:
+//   - We expect to use this in a threaded context.
+//   - New observations change the score, but it is often important
+//     for correctness to have a consistent ordering (e.g. when
+//     creating a data structure like a heap based on the scores).
+//   - We want many threads to be able to "accumulate" observations
+//     as they explore without blocking on an expensive operation.
+struct Observations {
+  // Observe a game state. Finishes quickly. Doesn't affect scoring
+  // until Commit is called. Memory use is linear until that point.
   //
-  // Currently, calling this reserves (forever) memory proportional to
-  // the total size (number of positions) of the objective functions.
-  // It postpones a sort of the entire array; the next call to
-  // GetNormalizedValue will incur this cost. It should be called for
-  // "big" state transitions during exploration, not each step of
-  // speculative search.
-  void Observe(const vector<uint8> &memory);
+  // There is not much value to observing a huge number of states,
+  // since we thin this to keep a sample of the observed range.
+  // Observing is a little expensive.
+  virtual void Accumulate(const vector<uint8> &memory) = 0;
+
+  // Rebases values from GetNormalizedValue.
+  virtual void Commit() = 0;
 
   // Get the (current) value of the memory in terms of observations.
   // The value is the unweighted average of the value of each objective
   // function relative to the values we've seen before for it; 1 means
   // that this is the higest value we've ever seen for that objective.
   // Does not observe the memory.
-  // Morally const, but lazily sorts the observations if needed.
-  double GetNormalizedValue(const vector<uint8> &memory);
+  virtual double GetNormalizedValue(const vector<uint8> &memory) = 0;
 
   // As above, but rather than producing a single value for all objectives,
-  // returns one value fraction per objective, in a consistent order.
+  // returns one value fraction per objective, in the same order they
+  // appear within the WeightedObjectives object.
   // Weights are ignored.
-  vector<double> GetNormalizedValues(const vector<uint8> &memory);
+  virtual vector<double> GetNormalizedValues(const vector<uint8> &memory) = 0;
 
-  // XXX weighted version, unnormalized version?
-  vector<std::pair<const vector<int> *, double>> GetAll() const;
+  // Construct concrete instances with different strategies. Caller
+  // owns the new-ly created object.
 
- private:
-  WeightedObjectives();
-  struct Info;
-  typedef map<vector<int>, Info *> Weighted;
-  Weighted weighted;
+  // Keep only a fixed-size sample of observations.
+  static Observations *SampleObservations(const WeightedObjectives &wo,
+					  int max_samples);
 
-  NOT_COPYABLE(WeightedObjectives);
+  // TODO: Some version where we keep only the maximum value ever seen,
+  // then just treat the output as a fraction of that? Maybe we also
+  // need to know the maximum byte value we see for each component
+  // so that we can treat it as a mixed-base number.
+  // static Observations *MaxObservations(const WeightedObjectives &wo);
+
+  virtual ~Observations();
+ protected:
+  // Argument must outlast object.
+  explicit Observations(const WeightedObjectives &wo);
+
+  const WeightedObjectives &wo;
 };
 
 #endif
