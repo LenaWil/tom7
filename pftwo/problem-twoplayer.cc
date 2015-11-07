@@ -5,6 +5,8 @@
 #include "../fceulib/simplefm2.h"
 #include "markov-controller.h"
 #include "weighted-objectives.h"
+#include "learnfun.h"
+
 
 // XXX for contra to enter konami code.
 // should be derived from input.
@@ -43,7 +45,7 @@ TPP::TwoPlayerProblem(const map<string, string> &config) {
   // Now build inputs and memories for learning.
   vector<uint8> player1, player2;
   vector<vector<uint8>> memories;
-  memories.resize(original_inputs.size() - WARMUP_FRAMES);
+  memories.reserve(original_inputs.size() - WARMUP_FRAMES);
   for (int i = WARMUP_FRAMES; i < original_inputs.size(); i++) {
     const auto &p = original_inputs[i];
     player1.push_back(p.first);
@@ -56,6 +58,8 @@ TPP::TwoPlayerProblem(const map<string, string> &config) {
   markov2.reset(new MarkovController(player1));  
   
   // XXX learnfun here.
+  Learnfun learnfun{memories};
+  objectives.reset(learnfun.MakeWeighted());
 }
 
 Worker *TPP::CreateWorker() {
@@ -64,16 +68,23 @@ Worker *TPP::CreateWorker() {
   w->emu.reset(Emulator::Create(game));
   CHECK(w->emu.get() != nullptr);
   w->ClearStatus();
-  w->Restore(start_state);
   return w;
 }
 
 void Worker::Init() {
-
+  // n.b., restore takes lock
+  Restore(tpp->start_state);
 }
 
 void Worker::Visualize(vector<uint8> *argb) {
   MutexLock ml(&mutex);
   CHECK(argb->size() == 4 * 256 * 256);
   emu->GetImageARGB(argb);
+  vector<uint8> xxx = emu->GetMemory();
+  for (int i = 0; i < xxx.size(); i++) {
+    (*argb)[i * 4 + 0] = xxx[i];
+    (*argb)[i * 4 + 1] = xxx[i];
+    (*argb)[i * 4 + 2] = xxx[i];
+    (*argb)[i * 4 + 3] = 0xFF;
+  }
 }

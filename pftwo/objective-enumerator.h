@@ -57,6 +57,9 @@
    This is great easy.
  */
 
+#ifndef __OBJECTIVE_ENUMERATOR_H
+#define __OBJECTIVE_ENUMERATOR_H
+
 #include <vector>
 #include <functional>
 
@@ -64,10 +67,9 @@
 
 using namespace std;
 
-struct Objective {
-
+struct ObjectiveEnumerator {
   // Matrix of memories must be non-empty and rectangular.
-  explicit Objective(const vector<vector<uint8>> &memories);
+  explicit ObjectiveEnumerator(const vector<vector<uint8>> &memories);
 
   // TODO: Make it possible to enumerate 10 lex orderings
   // that aren't necessarily the FIRST 10. Just shuffle
@@ -114,3 +116,5 @@ private:
   
   const vector<vector<uint8>> &memories;
 };
+
+#endif
