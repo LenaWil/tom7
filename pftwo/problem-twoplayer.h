@@ -23,6 +23,8 @@ struct TwoPlayerProblem {
   // Save state; these are portable between workers.
   struct State {
     vector<uint8> save;
+    // PERF This is actually part of save.
+    vector<uint8> mem;
     Input prev;
   };
 
@@ -45,20 +47,24 @@ struct TwoPlayerProblem {
     
     State Save() {
       MutexLock ml(&mutex);
-      return {emu->SaveUncompressed(), previous};
+      return {emu->SaveUncompressed(), emu->GetMemory(), previous};
     }
-    
+
     void Restore(const State &state) {
       MutexLock ml(&mutex);
       emu->LoadUncompressed(state.save);
+      // (Doesn't actually need the memory to restore.)
       previous = state.prev;
     }
     void Exec(Input input) {
       MutexLock ml(&mutex);
       emu->Step(Player1(input), Player2(input));
+      IncrementNESFrames(1);
       previous = input;
     }
 
+    void Observe();
+    
     // XXX: This interface pretty much only works for grabbing a
     // single NES frame right now.
     void Visualize(vector<uint8> *argb256x256);
@@ -77,23 +83,44 @@ struct TwoPlayerProblem {
     inline void SetDenom(int d) {
       denom.store(d, std::memory_order_relaxed);
     }
+    inline void IncrementNESFrames(int d) {
+      nes_frames.fetch_add(d, std::memory_order_relaxed);
+    }
     
     // Current operation. Should point to a string literal;
     // other code may hang on to references.
     std::atomic<const char *> status{nullptr};
     // Fraction complete.
     std::atomic<int> numer{0}, denom{0};
+    // For benchmarking, the total number of NES frames (or
+    // equivalent) executed by this worker. This isn't
+    // all the program does, but it is the main bottleneck,
+    // so we want to make sure we aren't stalling them.
+    std::atomic<int> nes_frames{0};
+    
     const TwoPlayerProblem *tpp = nullptr;
 
     // Lock emulator etc.
     std::mutex mutex;
   };
 
+  // Commits observations.
+  void Commit() {
+    printf("In problem commit.\n");
+    CHECK(observations.get());
+    observations->Commit();
+  }
+  // Score in [0, 1]. Should be stable in-between calls to
+  // Commit.
+  double Score(const State &state) {
+    return observations->GetWeightedValue(state.mem);
+  }
+  
   // Must be thread safe and leave Worker in a valid state.
   Worker *CreateWorker();
 
   TwoPlayerProblem(const map<string, string> &config);
-
+ 
   string game;
   vector<pair<uint8, uint8>> original_inputs;
   unique_ptr<MarkovController> markov1, markov2;
@@ -101,6 +128,7 @@ struct TwoPlayerProblem {
   State start_state;
   // For play after warmup.
   unique_ptr<WeightedObjectives> objectives;
+  unique_ptr<Observations> observations;
 };
 
 
