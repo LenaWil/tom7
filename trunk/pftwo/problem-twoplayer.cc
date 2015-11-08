@@ -6,11 +6,15 @@
 #include "markov-controller.h"
 #include "weighted-objectives.h"
 #include "learnfun.h"
-
+#include "../cc-lib/util.h"
 
 // XXX for contra to enter konami code.
 // should be derived from input.
 static constexpr int WARMUP_FRAMES = 800;
+
+// ??!?
+static constexpr int OBSERVATION_SAMPLES = 32768;
+// static constexpr int OBSERVATION_SAMPLES = 1024;
 
 using TPP = TwoPlayerProblem;
 using Worker = TPP::Worker;
@@ -39,7 +43,7 @@ TPP::TwoPlayerProblem(const map<string, string> &config) {
   }
 
   // Save start state for each worker.
-  start_state = {emu->SaveUncompressed(), last_input};
+  start_state = {emu->SaveUncompressed(), emu->GetMemory(), last_input};
 
   printf("Get memories.\n");
   // Now build inputs and memories for learning.
@@ -57,9 +61,26 @@ TPP::TwoPlayerProblem(const map<string, string> &config) {
   markov1.reset(new MarkovController(player1));
   markov2.reset(new MarkovController(player1));  
   
-  // XXX learnfun here.
-  Learnfun learnfun{memories};
-  objectives.reset(learnfun.MakeWeighted());
+  // See if we have cached learnfun results, since it takes some
+  // time to run.
+
+  // XXX base this on a fingerprint of ROM, FM2, and any other
+  // configuration.
+  string cached_objectives = StringPrintf("%s.objectives", game.c_str());
+  if (Util::ExistsFile(cached_objectives)) {
+    printf("Loading weighted objectives from %s.\n",
+	   cached_objectives.c_str());
+    objectives.reset(WeightedObjectives::LoadFromFile(cached_objectives));
+  } else {
+    Learnfun learnfun{memories};
+    objectives.reset(learnfun.MakeWeighted());
+    printf("Saved objectives to %s.\n", cached_objectives.c_str());
+    objectives->SaveToFile(cached_objectives);
+  }
+  CHECK(objectives.get());
+  observations.reset(Observations::
+		     SampleObservations(*objectives,
+					OBSERVATION_SAMPLES));
 }
 
 Worker *TPP::CreateWorker() {
@@ -87,4 +108,17 @@ void Worker::Visualize(vector<uint8> *argb) {
     (*argb)[i * 4 + 2] = xxx[i];
     (*argb)[i * 4 + 3] = 0xFF;
   }
+}
+
+void Worker::Observe() {
+  // PERF: If we hold the lock, we could just read
+  // directly from RAM.
+  vector<uint8> mem;
+  mem.resize(2048);
+  {
+    MutexLock ml(&mutex);
+    emu->GetMemory(&mem);
+  }
+  
+  tpp->observations->Accumulate(mem);
 }

@@ -166,10 +166,8 @@ struct PF2 {
 
   UIThread *ui_thread = nullptr;
 
-  // XXX Need to initialize this tree with the save-state for
-  // the very beginning (post warmup), which means designating
-  // a single worker to do that. (Or they can all fight over
-  // it, I guess.)
+  // Initialized by one of the workers with the post-warmup
+  // state.
   Tree *tree = nullptr;
   // Coarse locking.
   std::mutex tree_m;
@@ -189,6 +187,7 @@ struct PF2 {
     }
 
     problem.reset(new Problem(config));
+    printf("Problem at %p\n", problem.get());
   }
 
   void StartThreads();
@@ -292,14 +291,29 @@ struct WorkThread {
     MutexLock ml(&pftwo->tree_m);
     if (pftwo->tree == nullptr) {
       // I won the race!
+      printf("Initialize tree...\n");
       pftwo->tree = new Tree(worker->Save());
     }
   }
 
+  #if 0
+  void FixTree() {
+    // XXX: Do this periodically, but only in one thread.
+    if (0 == frame % 60) {
+      Printf("Commit\n");
+      CHECK(pftwo);
+      Printf("(pftwo %p problem %p).\n",
+	       pftwo, pftwo->problem.get());
+      CHECK(pftwo->problem);
+      pftwo->problem->Commit();
+      Printf("Done.\n");
+    }
+  }
+  #endif
+
   void Run() {
     worker->Init();
 
-    printf("Initialize tree...\n");
     InitializeTree();
 
     Tree::Node *last = pftwo->tree->root;
@@ -331,6 +345,9 @@ struct WorkThread {
       for (const Problem::Input &input : step)
 	worker->Exec(input);
 
+      worker->SetStatus("Observe state");
+      worker->Observe();
+      
       worker->SetStatus("Update tree.");
       shared_ptr<Problem::State> newstate{
 	new Problem::State(worker->Save())};
@@ -362,7 +379,9 @@ private:
   std::thread th;
 };
 
-// Note: This is really the main thread.
+// Note: This is really the main thread. SDL really doesn't
+// like being called outside the main thread, even if it's
+// exclusive.
 struct UIThread {
   UIThread(PF2 *pftwo) : pftwo(pftwo) {}
 
@@ -378,7 +397,7 @@ struct UIThread {
     screenshots.resize(num_workers);
     for (auto &v : screenshots) v.resize(256 * 256 * 4);
 
-    const int64 start = time(nullptr);
+    double start = SDL_GetTicks() / 1000.0;
     
     for (;;) {
       frame++;
@@ -398,8 +417,8 @@ struct UIThread {
       default:;
       }
       
-      SDL_Delay(1000.0 / 60.0);
-
+      SDL_Delay(1000.0 / 30.0);
+      
       sdlutil::clearsurface(screen, 0x33333333);
       /*
       sdlutil::clearsurface(screen,
@@ -418,7 +437,7 @@ struct UIThread {
 				numer,
 				w->denom.load(std::memory_order_relaxed),
 				w->status.load(std::memory_order_relaxed)));
-	total_steps += numer;
+	total_steps += w->nes_frames.load(std::memory_order_relaxed);
       }
 
       // Update all screenshots.
@@ -434,12 +453,14 @@ struct UIThread {
 		     x * 128, y * 128 + 20, screen);
       }
       
-      const int64 now = time(nullptr);
-      double sec = (now - start);
+      const double now = SDL_GetTicks() / 1000.0;
+      double sec = now - start;
       font->draw(10, HEIGHT - FONTHEIGHT,
-		 StringPrintf("%lld NES frames in %.0f sec = %.2f NES FPS",
+		 StringPrintf("%lld NES frames in %.1f sec = %.2f NES FPS "
+			      "%.2f UI FPS",
 			      total_steps, sec,
-			      total_steps / sec));
+			      total_steps / sec,
+			      frame / sec));
       
       SDL_Flip(screen);
     }
@@ -498,9 +519,8 @@ void PF2::DestroyThreads() {
   workers.clear();
 }
 
-/**
- * The main loop for the SDL.
- */
+
+// The main loop for SDL.
 int main(int argc, char *argv[]) {
   fprintf(stderr, "Init SDL\n");
 

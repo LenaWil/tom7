@@ -22,7 +22,6 @@ struct WeightedObjectives {
 		     const vector<vector<uint8>> &memories);
   static WeightedObjectives *LoadFromFile(const string &filename);
   
-  // Does not save observations.
   void SaveToFile(const string &filename) const;
 
   size_t Size() const { return weighted.size(); }
@@ -76,30 +75,37 @@ struct Observations {
   // until Commit is called. Memory use is linear until that point.
   //
   // There is not much value to observing a huge number of states,
-  // since we thin this to keep a sample of the observed range.
+  // since we thin this to keep a sample of the observed range. It's
+  // more important to observe a *variety* of states.
   // Observing is a little expensive.
   virtual void Accumulate(const vector<uint8> &memory) = 0;
 
-  // Rebases values from GetNormalizedValue.
+  // Rebases values for GetNormalizedValue.
   virtual void Commit() = 0;
 
   // Get the (current) value of the memory in terms of observations.
   // The value is the unweighted average of the value of each objective
-  // function relative to the values we've seen before for it; 1 means
+  // function relative to the values we've observed and committed; 1 means
   // that this is the higest value we've ever seen for that objective.
   // Does not observe the memory.
   virtual double GetNormalizedValue(const vector<uint8> &memory) = 0;
 
+  // As GetNormalizedValue, but the weighted average of each fraction.
+  // In [0, 1].
+  virtual double GetWeightedValue(const vector<uint8> &memory) = 0;
+  
   // As above, but rather than producing a single value for all objectives,
   // returns one value fraction per objective, in the same order they
   // appear within the WeightedObjectives object.
-  // Weights are ignored.
+  // Weights are ignored. Does not observe the memory.
   virtual vector<double> GetNormalizedValues(const vector<uint8> &memory) = 0;
 
   // Construct concrete instances with different strategies. Caller
   // owns the new-ly created object.
 
   // Keep only a fixed-size sample of observations.
+  // Currently this does not do anything special to keep the highest
+  // value we ever saw, which may be bad if high values are rare.
   static Observations *SampleObservations(const WeightedObjectives &wo,
 					  int max_samples);
 
