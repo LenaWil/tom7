@@ -4,13 +4,13 @@ struct
 
   exception Sound of string
 
-  val initaudio_ = _import "ml_initsound" : unit -> unit ;
-  val setfreq_ = _import "ml_setfreq" : int * int * int * int -> unit ;
+  val initaudio_ = _import "ml_initsound" private : unit -> unit ;
+  val setfreq_ = _import "ml_setfreq" private : int * int * int * int -> unit ;
   val () = initaudio_ ()
 
   local
-      val sampleroffset_ = _import "ml_sampleroffset" : unit -> int ;
-      val total_mix_channels_ = _import "ml_total_mix_channels" : unit -> int ;
+      val sampleroffset_ = _import "ml_sampleroffset" private : unit -> int ;
+      val total_mix_channels_ = _import "ml_total_mix_channels" private : unit -> int ;
   in
       val NMIX = total_mix_channels_ ()
       val SAMPLER_OFFSET = sampleroffset_ ()
@@ -81,8 +81,8 @@ struct
   type sample = int
   type sampleset = int
   local
-      val register_sample_ = _import "ml_register_sample" : int vector * int -> int ;
-      val register_sampleset_ = _import "ml_register_sampleset" : int vector * int -> int ;
+      val register_sample_ = _import "ml_register_sample" private : int vector * int -> int ;
+      val register_sampleset_ = _import "ml_register_sampleset" private : int vector * int -> int ;
       fun save r e = (r := e; e)
   in
       val last_sample = ref 0
@@ -203,7 +203,7 @@ struct
       end
 
   local
-      val seteffect_ = _import "ml_seteffect" : real -> unit ;
+      val seteffect_ = _import "ml_seteffect" private : real -> unit ;
   in
       val seteffect = seteffect_
   end

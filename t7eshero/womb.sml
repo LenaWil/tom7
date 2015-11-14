@@ -120,8 +120,8 @@ struct
     exception Womb of string
     type light = Word32.word
 
-    val openwomb_ = _import "ml_openwomb" : unit -> int ;
-    val signal_ = _import "ml_signal" : Word32.word -> unit ;
+    val openwomb_ = _import "ml_openwomb" private : unit -> int ;
+    val signal_ = _import "ml_signal" private : Word32.word -> unit ;
 
     val found = ref false
     fun already_found () = !found
