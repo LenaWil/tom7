@@ -1,8 +1,8 @@
 #                             -*- makefile -*-
 
-songs : bbcscore.mid ng1score.mid popcornscore.mid 14cheerscore.mid bionic1score.mid
+songs : bbcscore.mid ng1score.mid popcornscore.mid 14cheerscore.mid bionic1score.mid cattlecallscore.mid
 
-ALL = ../genscore.exe
+ALL = ../genscore.exe makefile
 
 # add more...
 bbcscore.mid : bbc-theme.mid $(ALL)
@@ -20,4 +20,8 @@ popcornscore.mid : popcorn.mid $(ALL)
 bionic1score.mid : bionic1.mid $(ALL)
 	../genscore.exe -history 5 -hammertime 42 $< 0 3 8 10 -o $@
 
+cattlecallscore.mid : cattlecall.mid $(ALL)
+	../genscore.exe -history 6 -hammertime 25 $< 0 1 -o $@
+
 # also need bloody3 (or whatever that great one is) from castlevania!
+

@@ -8,7 +8,7 @@ struct
   val () = Port.setTopLevelHandler
       (fn e =>
        let
-           val mb_ = _import "MessageBoxA" : 
+           val mb_ = _import "MessageBoxA" :
                MLton.Pointer.t * string * string * MLton.Pointer.t -> unit ;
        in
            mb_(MLton.Pointer.null,
@@ -17,7 +17,7 @@ struct
            Port.defaultTopLevelHandler e
        end)
 
-  val root = (FSUtil.chdir_excursion 
+  val root = (FSUtil.chdir_excursion
               (CommandLine.name())
               (fn _ =>
                OS.FileSys.getDir ()))
@@ -29,16 +29,16 @@ end
 (* When running without a console on some platforms (e.g. mingw),
    print will raise an exception. Redefine print so that it *)
 
-val print_works = 
+val print_works =
     let
         val v = SDL.version()
     in
         (* unfortunately this cannot be the empty string, or it
            is optimized out *)
-        print "Welcome to Tom 7 Entertainment System Hero.\n"; 
-        print ("SDL version: " ^ 
-               Int.toString (#major v) ^ "." ^ 
-               Int.toString (#minor v) ^ "#" ^ 
+        print "Welcome to Tom 7 Entertainment System Hero.\n";
+        print ("SDL version: " ^
+               Int.toString (#major v) ^ "." ^
+               Int.toString (#minor v) ^ "#" ^
                Int.toString (#patch v) ^ "\n");
         true
     end handle _ => false
@@ -46,7 +46,7 @@ val print_works =
 (*
 val () =
     let
-        val mb_ = _import "MessageBoxA" : 
+        val mb_ = _import "MessageBoxA" :
             MLton.Pointer.t * string * string * MLton.Pointer.t -> unit ;
     in
         mb_(MLton.Pointer.null,

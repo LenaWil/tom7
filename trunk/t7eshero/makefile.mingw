@@ -3,22 +3,28 @@
 
 default : genscore.exe t7eshero.exe songs
 
+
+SDLARCH=x86
+MLTON=/c/mlton/bin/mlton.bat
+CFLAGS=-O2 -ISDL/include -DWIN32=1
+MINGWGCC=/c/mlton/bin/gcc -std=c99 -O1 -fomit-frame-pointer -fno-strict-aliasing -w -fschedule-insns -fschedule-insns2 -malign-functions=5 -malign-jumps=2 -I SDL/include -ISDL_net/include -I/c/mlton/lib/mlton/include
+
 songs : genscore.exe songs/makefile songs-nonfree/makefile
-	make -C songs -j 4
-	make -C songs-nonfree -j 4
+	make -C songs -j 12
+	make -C songs-nonfree -j 12
 
 sdlml.o : ../sdlml/sdlml.c
-	gcc -O `sdl-config --cflags` -c ../sdlml/sdlml.c -o sdlml.o
+	${MINGWGCC} ${CFLAGS} -c ../sdlml/sdlml.c -o sdlml.o
 
 sdlnet.o : ../sdlml/sdlnet.c
-	gcc -O `sdl-config --cflags` -c ../sdlml/sdlnet.c -o sdlnet.o
+	${MINGWGCC} ${CFLAGS} -c ../sdlml/sdlnet.c -o sdlnet.o
 
 sound.o : sound.c
-	gcc -O `sdl-config --cflags` -c sound.c -o sound.o
+	${MINGWGCC} ${CFLAGS} -c sound.c -o sound.o
 
 # not --cflags, that'll redefine main!
 win32main.o : ../sdlml/win32main.c
-	gcc -O -I/usr/local/include/SDL -D_GNU_SOURCE=1 -c $< -o $@
+	${MINGWGCC} ${CFLAGS} -D_GNU_SOURCE=1 -c $< -o $@
 
 # 
 # `SDL/sdl-config --cflags`
@@ -30,12 +36,20 @@ win32main.o : ../sdlml/win32main.c
 # -Wl,--subsystem,windows
 # -verbose 3
 # -keep g -keep o
-# -DDEBUG_X86CODEGEN 
-t7eshero.exe : sdlml.o sdlnet.o sound.o win32main.o title*.sml hero.sml sprites.sml sound*.sml match*.sml song*.sml state.sml scene.sml game.sml t7eshero.sml t7eshero.cm makefile.mingw profile*.sml setlist*.sml record*.sml ../sdlml/*.sml listmenu*.sml input*.sml items*.sml postmortem*.sml wardrobe*.sml prelude.sml serialize*.sml samples*.sml configure*.sml womb*.sml play*.sml sprites*.sml highscores*.sml update*.sml
-	mlton @MLton max-heap 512m -- -cc-opt "-I/usr/local/include" -cc-opt "-g -Dmain=SDL_main" -link-opt "--enable-stdcall-fixup" -link-opt "--enable-stdcall-fixup" -link-opt "-L/usr/local/lib -lmingw32 -lSDL -mwindows -lSDL_image -ltiff -lpng -ljpeg -lz -lSDL_net -lkernel32" -output $@ -default-ann 'allowFFI true' t7eshero.cm sdlml.o sdlnet.o sound.o win32main.o
+# -DDEBUG_X86CODEGEN
+# no longer needed with stb_image:
+#  -lSDL_image -ltiff -lpng -ljpeg -lz
+#  -lmingw32
+t7eshero.exe : sdlml.o sound.o win32main.o sdlnet.o title*.sml hero.sml sprites.sml sound*.sml match*.sml song*.sml state.sml scene.sml game.sml t7eshero.sml t7eshero.mlb makefile.mingw profile*.sml setlist*.sml record*.sml ../sdlml/*.sml listmenu*.sml input*.sml items*.sml postmortem*.sml wardrobe*.sml prelude.sml serialize*.sml samples*.sml configure*.sml womb*.sml play*.sml sprites*.sml highscores*.sml update*.sml
+	${MLTON} -keep g -cc-opt "-I/usr/local/include" -cc-opt "-g -Dmain=SDL_main" -link-opt "-L/usr/local/lib -LSDL_lib/lib/${SDLARCH} -LSDL_net/lib/${SDLARCH} -lSDL -lSDL_net -lkernel32" -output $@ -default-ann 'allowFFI true' t7eshero.mlb sdlml.o sdlnet.o sound.o win32main.o
 
-genscore.exe : genscore.sml genscore.cm
-	mlton @MLton max-heap 400m -- -cc-opt "-I/usr/local/include" -link-opt "-L/usr/local/lib" -output $@ genscore.cm
+# Simple test of linking.
+nohero.exe :  sdlml.o sound.o win32main.o sdlnet.o nohero.sml nohero.mlb
+	${MLTON} -keep g -cc-opt "-I/usr/local/include" -cc-opt "-g -Dmain=SDL_main" -link-opt "-L/usr/local/lib -LSDL_lib/lib/${SDLARCH} -LSDL_net/lib/${SDLARCH} -lSDL -lSDL_net -lkernel32" -output $@ -default-ann 'allowFFI true' nohero.mlb sdlml.o sdlnet.o sound.o win32main.o
+
+
+genscore.exe : genscore.sml genscore.mlb
+	${MLTON} -cc-opt "-I/usr/local/include" -link-opt "-L/usr/local/lib" -output $@ genscore.mlb
 
 wc :
 	wc -l *.sml sound.c
