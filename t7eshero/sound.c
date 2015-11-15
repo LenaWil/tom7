@@ -24,7 +24,11 @@
 #define MAX_MIX (32700)
 #define MIN_MIX (-32700)
 
-#define VOL_FACTOR (0.2)
+
+#define MAX_VOL (127 * 90)
+#define MAX_VOL_INVF (1.0f / (127 * 90))
+
+#define VOL_FACTOR (0.2f)
 
 #define INST_NONE   0
 #define INST_SQUARE 1
@@ -120,7 +124,7 @@ void mixaudio (void * unused, Sint16 * stream, int len) {
       case INST_NONE: break;
       case INST_RHODES: {
         // XXX
-      } 
+      }
         /* FALLTHROUGH */
       case INST_SINE: {
         double cycle = (((double)RATE * HZFACTOR) / EFFECT_FREQ(cur_freq[ch]) );
@@ -160,8 +164,8 @@ void mixaudio (void * unused, Sint16 * stream, int len) {
       case INST_SQUARE: {
         samples[ch] ++;
         /* the frequency is the number of cycles per HZFACTOR seconds.
-           so the length of one cycle in samples is (RATE*HZFACTOR)/cur_freq. 
-           
+           so the length of one cycle in samples is (RATE*HZFACTOR)/cur_freq.
+
            PERF: fmod is pretty slow and it is easy to make square
            waves with other means.
         */
@@ -201,8 +205,8 @@ void mixaudio (void * unused, Sint16 * stream, int len) {
         // FIXME: Multithreading!
         int w = cur_inst[ch] - SAMPLER_OFFSET;
         if (w < 0 || w >= num_sets) {
-          fprintf(stderr, 
-                  "Instrument %d unknown (or sample %d out of range)\n", 
+          fprintf(stderr,
+                  "Instrument %d unknown (or sample %d out of range)\n",
                   cur_inst[ch], w);
           abort();
         } else {
@@ -213,10 +217,8 @@ void mixaudio (void * unused, Sint16 * stream, int len) {
             abort();
           }
           if (samples[ch] < waves[sets[w][cur_freq[ch]]].nsamples) {
-            // XXX volume control!!
-            // Need to modulate for volume...
-            mag += (waves[waveindex].samples[samples[ch]] * 0.5); 
-            // * cur_vol[ch];
+            // Now takes channel volume into account (used to be just 0.5 before 2015).
+            mag += waves[waveindex].samples[samples[ch]] * (cur_vol[ch] * (MAX_VOL_INVF * 2.0f));
             samples[ch]++;
           }
         }
@@ -226,7 +228,7 @@ void mixaudio (void * unused, Sint16 * stream, int len) {
     /* PERF clipping seems to happen automatically in the cast? */
     if (mag > MAX_MIX) mag = MAX_MIX;
     else if (mag < MIN_MIX) mag = MIN_MIX;
-    
+
     last_sample = stream[i] = (Sint16) EFFECT_POST(mag);
   }
 }
@@ -236,7 +238,7 @@ void mixaudio (void * unused, Sint16 * stream, int len) {
    improve performance and also latency for in-frame frequency
    changes. However, it's not clear what memory model is in play here
    (might an update change half a word at a time, creating weird
-   glitches?). Let us be proper.
+   glitches?). Let us be proper.  (Atomics??  -tom7  14 Nov 2015)
 */
 void ml_setfreq(int ch, int nf, int nv, int inst) {
   SDL_LockAudio();
@@ -244,13 +246,13 @@ void ml_setfreq(int ch, int nf, int nv, int inst) {
   // if (inst < SAMPLER_OFFSET) nf += effect * nf; // XXXX
 #if 0
   if (ch < 11 /* && inst >= SAMPLER_OFFSET */) { // || inst != INST_NONE) {
-    printf("(cur inst: %d) Set %d = %d (Hz/10000) %d %d\n", 
+    printf("(cur inst: %d) Set %d = %d (Hz/10000) %d %d\n",
            cur_inst[ch], ch, nf, nv, inst);
       //      if (nf < HZFACTOR * 2000) printf ("BANDPASS.");
     }
 #endif
 
-  if ((nv == 0 || inst == INST_NONE) && 
+  if ((nv == 0 || inst == INST_NONE) &&
       (cur_inst[ch] == INST_SINE || cur_inst[ch] == INST_RHODES)) {
 
     // printf("Made ch %d start fading\n", ch);
@@ -259,12 +261,17 @@ void ml_setfreq(int ch, int nf, int nv, int inst) {
 
   } else {
     cur_vol[ch] = (int)(VOL_FACTOR * (float)nv);
+
+    if (inst >= SAMPLER_OFFSET) {
+      printf("Set sample vol for ch %d to %d\n", ch, cur_vol[ch]);
+    }
+
     // Without lock, this can put the sampler wave way out of
     // the range of the array.
     cur_freq[ch] = nf;
     cur_inst[ch] = inst;
     fades[ch] = -1;
-    
+
     if (inst >= SAMPLER_OFFSET) {
       if (nf >= 128 || nf < 0) {
         fprintf(stderr, "Sampler wave %d out of gamut\n", nf);
@@ -303,7 +310,7 @@ void ml_initsound() {
       for(j = 0; j < 128; j++) {
         sets[i][j] = 0;
       }
-    } 
+    }
     num_sets = 0;
   }
 
@@ -364,7 +371,7 @@ int ml_register_sample (int * v, int n) {
   return num_waves++;
 }
 
-// Here the vector contains 
+// Here the vector contains
 int ml_register_sampleset (int * v, int n) {
   if (n != 128) {
     fprintf(stderr, "Wanted sampler to have size 128, got %d\n", n);
@@ -383,7 +390,7 @@ int ml_register_sampleset (int * v, int n) {
 
 void ml_seteffect (double r) {
   if (r < 0.0) r = 0.0;
-  else if (r > 1.0) r = 1.0; 
+  else if (r > 1.0) r = 1.0;
   effect = r;
 }
 
@@ -412,7 +419,7 @@ int ml_openwomb () {
   wombsector[1] = 'o';
   wombsector[2] = 'm';
   wombsector[3] = 'b';
-  wombfile = CreateFile("i:\\FILE.TXT", 
+  wombfile = CreateFile("i:\\FILE.TXT",
                         GENERIC_READ | GENERIC_WRITE,
                         /* Sharing */
                         FILE_SHARE_READ | FILE_SHARE_WRITE,
@@ -452,7 +459,7 @@ int ml_signal (int w) {
       printf("WRITEFILE FAILED.\n");
       DWORD dw = GetLastError();
       LPVOID message;
-      FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | 
+      FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER |
                     FORMAT_MESSAGE_FROM_SYSTEM |
                     FORMAT_MESSAGE_IGNORE_INSERTS,
                     NULL,
@@ -528,7 +535,7 @@ void ml_signal(int w) {
     wombsector[7] = (w >>  0) & 255;
     // XXX consider pwrite, which takes offset
     // lseek(wombfd, 0, SEEK_SET);
-    if (sizeof(wombsector) != 
+    if (sizeof(wombsector) !=
         //      write(wombfd, &wombsector, sizeof(wombsector))) {
         pwrite(wombfd, &wombsector, sizeof(wombsector), 0)) {
       printf("write failed.\n");
