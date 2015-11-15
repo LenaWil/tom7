@@ -77,7 +77,7 @@ struct
   val WAVE_RHODES = INST_RHODES
   val WAVE_SAMPLER = INST_SAMPLER
 
-  (* FIXME implement! *)
+  (* FIXME implement! (appears to be implmented?? -tom7) *)
   type sample = int
   type sampleset = int
   local

@@ -246,6 +246,7 @@ struct
                                   | SOME (_, Input.Drum d) =>
                                         Sound.setfreq(Sound.DRUMCH d,
                                                       Vector.sub(Samples.default_drumbank, d),
+                                                      (* player drums are always max velocity *)
                                                       Sound.midivel 127,
                                                       Sound.WAVE_SAMPLER Samples.sid)
                                   (* | SOME _ => () *)
