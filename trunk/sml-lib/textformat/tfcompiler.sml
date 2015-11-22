@@ -11,6 +11,7 @@ struct
 
   (* TODO: Improve the way user-visible code looks. *)
   fun typetos D.Int = "int"
+    | typetos D.IntInf = "IntInf.int"
     | typetos D.String = "string"
     | typetos D.Bool = "bool"
     | typetos (D.List t) = postfixtypetos t ^ " list"
@@ -66,10 +67,36 @@ struct
        StringUtil.delimit "\n" (map onestruct l)
     end
 
+  (* Generate the definitions for the integer type and routines.
+     If the description does not have IntInf anywhere in it, then
+     this type will be int. Otherwise, we use IntInf. *)
+  fun genint uses_intinf =
+    let in
+      if uses_intinf
+      then
+        "  (* This output uses IntInf for integers inernally\n" ^
+        "     because there is at least one IntInf field. *)\n" ^
+        "  type int_type = IntInf.int\n" ^
+        "  val negate = IntInf.~\n" ^
+        "  val int_fromstring = IntInf.fromString\n" ^
+        "  fun int_toint ii = Int.fromLarge ii handle Overflow =>\n" ^
+        "    raise Parse (\"integer value too large/small: \" ^\n" ^
+        "                 IntInf.toString ii)\n" ^
+        "  fun int_tobool i = i <> IntInf.fromInt 0\n" ^
+        "\n\n"
+      else
+        "  type int_type = int\n" ^
+        "  val negate = ~\n" ^
+        "  val int_fromstring = Int.fromString\n" ^
+        "  fun int_toint i = i\n" ^
+        "  fun int_tobool i = i <> 0\n" ^
+        "\n\n"
+    end
+
   fun genexns () =
       "  exception Parse of string\n\n"
 
-  fun geninternal () =
+  fun geninternal uses_intinf =
       (* Internal utilities. *)
       "  structure S = Substring\n" ^
       "\n" ^
@@ -150,6 +177,17 @@ struct
       "  fun itos' i = if i < 0\n" ^
       "                then \"-\" ^ Int.toString (~i)\n" ^
       "                else Int.toString i\n" ^
+
+      (* Though ints are always represented as ints (except during parsing),
+         avoid outputting an unused dependency on IntInf if we aren't using
+         it. *)
+      (if uses_intinf
+       then
+         "  fun inftos' i = if i < 0\n" ^
+         "                  then \"-\" ^ IntInf.toString (IntInf.~ i)\n" ^
+         "                  else IntInf.toString i\n"
+       else "") ^
+
       (* PERF Can probably be faster about this. It's pretty
          bad when the input contains lots of characters that
          need to be escaped. *)
@@ -182,13 +220,13 @@ struct
          then use the description to massage it into the concrete
          type. *)
       "  datatype fielddata' =\n" ^
-      "      Int' of int\n" ^
+      "      Int' of int_type\n" ^
       "    | String' of string\n" ^
       "    | List' of fielddata' list\n" ^
       "    | Message' of string * (string * fielddata') list\n" ^
       "  datatype token' =\n" ^
       "      LBRACE' | RBRACE' | LBRACK' | RBRACK'\n" ^
-      "    | COMMA' | INT' of int | STRING' of string\n" ^
+      "    | COMMA' | INT' of int_type | STRING' of string\n" ^
       "    | SYMBOL' of S.substring\n" ^
       "  type field' = string * fielddata'\n" ^
 
@@ -218,11 +256,11 @@ struct
       (* Read an int token. Assumes first character is - or digit. *)
       "      fun readint (s : S.substring) : token' * S.substring =\n" ^
       "        let val (f, s) = case S.sub (s, 0) of\n" ^
-      "               #\"-\" => (~, S.triml 1 s)\n" ^
+      "               #\"-\" => (negate, S.triml 1 s)\n" ^
       (* Assume numeral. *)
       "             | _ => ((fn x => x), s)\n" ^
       "            val (intpart, rest) = S.splitl numeric s\n" ^
-      "        in case Int.fromString (S.string intpart) of\n" ^
+      "        in case int_fromstring (S.string intpart) of\n" ^
       "             NONE => raise Parse (\"Expected integer\")\n" ^
       "           | SOME i => (INT' (f i), rest)\n" ^
       "        end\n" ^
@@ -374,6 +412,7 @@ struct
   fun default_value (t : D.typ) : string =
       case t of
           D.Int => "0"
+        | D.IntInf => "(IntInf.fromInt 0)"
         | D.Bool => "false"
         | D.String => "\"\""
         | D.List _ => "nil"
@@ -435,6 +474,7 @@ struct
                   fun furl i exp typ =
                     case typ of
                       D.Int => "$(itos' " ^ exp ^ ")"
+                    | D.IntInf => "$(inftos' " ^ exp ^ ")"
                     | D.String => "$(stos' " ^ exp ^ ")"
                     | D.Bool => "(if " ^ exp ^ " then $\"1\" else $\"0\")"
 
@@ -540,11 +580,17 @@ struct
         fun makeunfurl i v typ =
             case typ of
                 D.Int =>
-                    "(case " ^ v ^ " of Int' i => i\n" ^
+                    "(case " ^ v ^ " of Int' i => int_toint i\n" ^
                     indent i ^
                     "  | _ => raise Parse \"expected int\")"
               | D.Bool =>
-                    "(case " ^ v ^ " of Int' i => i <> 0\n" ^
+                    "(case " ^ v ^ " of Int' i => int_tobool i\n" ^
+                    indent i ^
+                    "  | _ => raise Parse \"expected int for bool\")"
+              | D.IntInf =>
+                    (* Unless there is an internal bug, int_type will be
+                       IntInf.int here, so explicitly insist on it. *)
+                    "(case " ^ v ^ " of Int' (i : IntInf.int) => i\n" ^
                     indent i ^
                     "  | _ => raise Parse \"expected int for bool\")"
               | D.String =>
@@ -669,10 +715,11 @@ struct
       genexns () ^
       genstructsigs ms
 
-  fun genstruct ms =
+  fun genstruct uses_intinf ms =
       gentypes ms ^
       genexns () ^
-      geninternal () ^
+      genint uses_intinf ^
+      geninternal uses_intinf ^
       gendefaults ms ^
       genfromstrings ms ^
       gentodlls ms ^
@@ -697,6 +744,22 @@ struct
                                                 " the structure name.")
         | _ => raise TFCompiler "The file basename may not be empty (??)"
 
+  fun messages_use_intinf ms =
+    let
+      fun type_uses D.IntInf = true
+        | type_uses D.Int = false
+        | type_uses D.String = false
+        | type_uses D.Bool = false
+        | type_uses (D.List t) = type_uses t
+        | type_uses (D.Tuple l) = List.exists type_uses l
+        | type_uses (D.Option t) = type_uses t
+        | type_uses (D.Message _) = false
+      fun message_uses (D.M { name, token, fields }) =
+        List.exists (fn D.F { typ, ... } => type_uses typ) fields
+    in
+      List.exists message_uses ms
+    end
+
   fun go file =
     let
         val (base, ext) = splitext file
@@ -704,6 +767,8 @@ struct
         val (D.D messages) = D.parse s
 
         val strname = capitalize base
+
+        val uses_intinf = messages_use_intinf messages
 
         val s =
         "(* Generated from " ^ file ^ " by tfcompiler. Do not edit! *)\n\n" ^
@@ -715,7 +780,7 @@ struct
         "(* Implementation follows. You want to read tfcompiler.sml or\n" ^
         "   the README, not this generated, uncommented code. *)\n" ^
         "struct\n" ^
-        genstruct messages ^
+        genstruct uses_intinf messages ^
         "\nend\n"
     in
         StringUtil.writefile (base ^ "-tf.sml") s

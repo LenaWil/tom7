@@ -82,10 +82,12 @@ Description language reference:
    be somewhat heuristic about this in the future, without sacrificing
    performance. It should also indent nested lists properly.
 
-   Not all SML types are supported. Currently allowed are int, string,
-   bool, tuples, lists, and options. It makes sense to add some more base
-   types like char and real. It is not the intention to support all SML
-   types.
+   Not all SML types are supported. Currently allowed are int, intinf,
+   string, bool, tuples, lists, and options. To assuage spotty support
+   in SML implementations, if intinf is never used in the messages,
+   then the generated code will not depend on this type. It makes
+   sense to add some more base types like char and real in the future.
+   It is not the intention to support all SML types.
 
 Design considerations:
 
@@ -183,6 +185,8 @@ Format reference:
    is assumed if the field isn't found.
 
      int         0
+     intinf      0
+     bool        false
      string      ""
      list        []
      option      NONE
@@ -213,7 +217,5 @@ Format reference:
        maybe some limited reflection is possible.
      - Improve the quality of layout, especially with hints. List fields
        should be indented, etc.
-     - More base types like char, intinf, and real. If adding intinf,
-       insist that the generated code does not contain references to
-       intinf unless the tf description does.
+     - More base types like char and real.
 

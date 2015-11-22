@@ -24,7 +24,7 @@ struct
   }
 *)
 
-      val n1 = N { id = 5, x = 10, y = 20, root = NONE,
+      val n1 = N { id = IntInf.fromInt 5, x = 10, y = 20, root = NONE,
                    parent = NONE, awesome = true,
                    name = "tom\n was \\his\\ \"name\" ",
                    triangles = [(1, 2), (3, 4)] }
@@ -37,7 +37,7 @@ struct
                then ()
                else raise Failure "didn't get back the same thing"
 
-      val n2 = N { id = 6, x = 2, y = ~123, root = SOME (0, 0),
+      val n2 = N { id = IntInf.fromInt 6, x = 2, y = ~123, root = SOME (0, 0),
                    parent = NONE, awesome = false, name = "mot",
                    triangles = [(9, 90)] }
       val () = if N.fromstring (N.tostring n2) = n2

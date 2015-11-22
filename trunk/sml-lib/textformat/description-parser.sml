@@ -26,6 +26,7 @@ struct
     | LIST
     | OPTION
     | INT
+    | INTINF
     | STRING
     | BOOL
 
@@ -44,6 +45,7 @@ struct
         | LIST => "LIST"
         | OPTION => "OPTION"
         | INT => "INT"
+        | INTINF => "INTINF"
         | STRING => "STRING"
         | BOOL => "BOOL"
 
@@ -60,6 +62,7 @@ struct
                                   ("*", ASTERISK),
                                   ("list", LIST),
                                   ("int", INT),
+                                  ("intinf", INTINF),
                                   ("bool", BOOL),
                                   ("string", STRING),
                                   ("option", OPTION)]
@@ -72,6 +75,7 @@ struct
 
   datatype typ =
       Int
+    | IntInf
     | String
     | Bool
     | List of typ
@@ -117,13 +121,14 @@ struct
                         `OPTION return Option]
 
     fun innertyp () =
-        alt [`INT return Int,
-             `STRING return String,
-             `BOOL return Bool,
-             symbol wth Message,
-             (* XXX really? This is not SML syntax. *)
-             `LPAREN && `RPAREN return Tuple nil,
-             `LPAREN >> $tupletyp << `RPAREN]
+      alt [`INT return Int,
+           `INTINF return IntInf,
+           `STRING return String,
+           `BOOL return Bool,
+           symbol wth Message,
+           (* XXX really? This is not SML syntax. *)
+           `LPAREN && `RPAREN return Tuple nil,
+           `LPAREN >> $tupletyp << `RPAREN]
 
     and postfixtyp () =
         $innertyp --
@@ -195,6 +200,7 @@ struct
         val messagetokens : unit SM.map ref = ref SM.empty
 
         fun checktype Int = ()
+          | checktype IntInf = ()
           | checktype String = ()
           | checktype Bool = ()
           | checktype (Tuple ts) = app checktype ts
