@@ -14,6 +14,7 @@ struct
 
   (* just enable all joysticks. If there are no joysticks, then you cannot play. *)
   val () = Input.register_all ()
+  (* This restores configuration of joysticks that are plugged in. *)
   val () = Input.load () handle Input.Input s => messagebox ("input file error: " ^ s)
   val () = Items.load ()
 
@@ -28,15 +29,15 @@ struct
     val () = Stats.clear ()
     val () = State.reset ()
 
-    val { show : Setlist.showinfo, 
+    val { show : Setlist.showinfo,
           profile : Profile.profile } = Title.loop ()
 
     val level = ref 0
     val total_levels =
         foldr (fn (Setlist.Song _, n) => n + 1 | (_, n) => n) 0 (#parts show)
-        
+
     fun doshow nil = ()
-      | doshow ((Setlist.Song { song = songid, misses, 
+      | doshow ((Setlist.Song { song = songid, misses,
                                 drumbank, background }) :: rest) =
        (let
             val () = level := !level + 1
@@ -54,12 +55,12 @@ struct
             val divi = divi * SLOWFACTOR
             val PREDELAY = 2 * divi (* ?? *)
 
-            val (tracks : (int * (Match.label * MIDI.event)) list list) = 
+            val (tracks : (int * (Match.label * MIDI.event)) list list) =
                 Game.label PREDELAY SLOWFACTOR thetracks
             val tracks = Game.slow SLOWFACTOR (MIDI.merge tracks)
             val tracks = Game.add_measures divi tracks
             val tracks = Game.endify tracks
-            val (tracks : (int * (Match.label * MIDI.event)) list) = 
+            val (tracks : (int * (Match.label * MIDI.event)) list) =
                 Game.delay PREDELAY tracks
             val () = Song.init ()
             val playcursor = Song.cursor 0 tracks
@@ -67,8 +68,8 @@ struct
             val failcursor = Song.cursor (0 - Match.EPSILON) tracks
 
             (* XXX *)
-            val t = print ("This will take " ^ 
-                           Real.fmt (StringCvt.FIX (SOME 1)) 
+            val t = print ("This will take " ^
+                           Real.fmt (StringCvt.FIX (SOME 1))
                            (real (MIDI.total_ticks tracks) / 1000.0) ^
                            " sec\n")
 
@@ -128,8 +129,8 @@ struct
       Sound.seteffect 0.0;
       print "GAME END.\n";
       (* XXX highscores... *)
-      gameloop () 
-  end 
+      gameloop ()
+  end
 
   (* and, begin. *)
   val () = gameloop ()

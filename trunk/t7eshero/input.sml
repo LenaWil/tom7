@@ -197,7 +197,6 @@ struct
             Joystick.setstate Joystick.ENABLE
         end
 
-    (* XXX drums. *)
     fun input_map e =
         let
             datatype dir = PRESS | RELEASE
@@ -267,85 +266,53 @@ struct
            | _ => NONE)
         end
 
-    (* XXXX HAX *)
-(*
-    val input_map =
-        fn e =>
-        let val r = input_map e
-        in
-            (case r of
-                 SOME(_, StrumUp) => Womb.signal ()
-               | SOME(_, StrumDown) => Womb.signal ()
-               | _ => ());
-            r
-        end
-*)
-
     fun joy n =
         if n < 0 orelse n >= Array.length(!joys)
         then raise Input "joystick out of range"
         else Joy n
 
     fun save () =
-        let
-            val keymap = mtostring (!keymap)
-            val joys = Array.foldr
-                       (fn ({ joy = _, name, naxes, balls, hats, buttons, mapping, axes }, r) =>
-                        let
-                            val id = ue name ^
-                                "?" ^ Int.toString naxes ^
-                                "?" ^ Int.toString balls ^
-                                "?" ^ Int.toString hats ^
-                                "?" ^ Int.toString buttons
-                        in
-                            (ue id ^ "?" ^
-                             ue (atostring axes) ^ "?" ^
-                             ue (mtostring mapping)) :: r
-                        end) nil (!joys)
-        in
-            StringUtil.writefile FILENAME (ue keymap ^ "?" ^ ulist joys)
-        end
+      let
+        fun joytf { joy = _, name, naxes, balls, hats, buttons, mapping, axes } =
+          InputTF.J { name = name, naxes = naxes, balls = balls, hats = hats, buttons = buttons,
+                      mapping = mtostring mapping, axes = atostring axes }
+        val file = InputTF.F { keymap = mtostring (!keymap),
+                               joys = Array.foldr (fn (j, r) => joytf j :: r) nil (!joys) }
+      in
+        InputTF.F.tofile FILENAME file
+      end
+
     fun load () =
         let
-            (* pair of empty lists *)
-            val f = StringUtil.readfile FILENAME handle _ => (ue (mtostring mempty)) ^ "?%25"
+          val InputTF.F { keymap = km, joys = js } =
+            (case InputTF.F.maybefromfile FILENAME of
+               NONE => InputTF.F.default
+             | SOME f => f) handle IO.Io _ => InputTF.F.default
+
+          val js = map (fn InputTF.J { name, naxes, balls, hats, buttons, mapping, axes } =>
+                        { name = name, naxes = naxes, balls = balls,
+                          hats = hats, buttons = buttons,
+                          mapping = mfromstring mapping, axes = afromstring axes }) js
         in
-            case String.tokens QQ f of
-                [k, j] =>
-                    let
-                        fun i s = valOf (Int.fromString s) handle _ => raise Input "bad int"
-                        fun unj s =
-                            case String.tokens QQ s of
-                                [id, a, m] =>
-                                    (case String.tokens QQ (une id) of
-                                         [name, naxes, balls, hats, buttons] =>
-                                             (une name, i naxes, i balls, i hats, i buttons,
-                                              mfromstring (une m),
-                                              afromstring (une a))
-                                       | _ => raise Input ("bad joystick entry in " ^ FILENAME ^ ": " ^ id))
-                              | _ => raise Input ("bad joystick entry in " ^ FILENAME ^ " (2)")
-                        val js = map unj (unlist j)
-                    in
-                        keymap := mfromstring (une k);
-                        (* now configure these joysticks if any are currently activated. *)
-                        Util.for 0 (Array.length (!joys) - 1)
-                        (fn j =>
-                         let val { joy = _, name, naxes, balls, hats, buttons,
-                                   mapping = _, axes = _ } = Array.sub(!joys, j)
-                         in
-                             case List.find (fn (n, a, b, h, u, _, _) =>
-                                             n = name andalso a = naxes andalso b = balls andalso h = hats
-                                             andalso u = buttons) js of
-                                 NONE => print ("Didn't configure joystick " ^ name ^ "\n")
-                               | SOME (_, _, _, _, _, m, x) =>
-                                     let in
-                                         print ("Restoring joystick " ^ name ^ " from saved\n");
-                                         restoremap (Joy j) m;
-                                         setaxes j x
-                                     end
-                         end)
-                    end
-          | _ => raise Input ("corrupted " ^ FILENAME ^ " file?")
+          keymap := mfromstring km;
+
+          (* configure these joysticks if any are currently activated. *)
+          Util.for 0 (Array.length (!joys) - 1)
+          (fn j =>
+           let val { joy = _, name, naxes, balls, hats, buttons,
+                     mapping = _, axes = _ } = Array.sub(!joys, j)
+           in
+             case List.find (fn { name = n, naxes = a, balls = b, hats = h, buttons = u, ... } =>
+                             n = name andalso a = naxes andalso b = balls andalso h = hats
+                             andalso u = buttons) js of
+               NONE => print ("Didn't configure joystick #" ^ Int.toString j ^ " (" ^ name ^ ")\n")
+             | SOME ({ mapping, axes, ... }) =>
+                 let in
+                   print ("Restoring joystick #" ^ Int.toString j ^ " (" ^ name ^ ") from saved\n");
+                   restoremap (Joy j) mapping;
+                   setaxes j axes
+                 end
+           end)
         end
 
     (* export *)

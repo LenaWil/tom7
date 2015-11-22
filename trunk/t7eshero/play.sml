@@ -177,7 +177,12 @@ struct
                                         MIDI files.) *)
                                      Array.update(spans, finger, SOME tiempo)
                                  end
+                             | doevent (MIDI.META (MIDI.LYRIC s)) =
+                                 (* XXX HERE *)
+                                 Scene.addtext(s, tiempo)
+
                              | doevent _ = ()
+
                          in doevent e
                          end
                    | Bar b => Scene.addbar(b, tiempo)
@@ -188,6 +193,10 @@ struct
                                   if size m > 0 andalso String.sub(m, 0) = #"#"
                                   then Scene.addtext(String.substring(m, 1, size m - 1), tiempo)
                                   else ()
+                            | MIDI.META (MIDI.LYRIC s) =>
+                                    (* XXX HERE *)
+                                    Scene.addtext(s, tiempo)
+
                             | _ => ())
 
                          );

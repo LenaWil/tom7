@@ -26,6 +26,13 @@ sound.o : sound.c
 win32main.o : ../sdlml/win32main.c
 	${MINGWGCC} ${CFLAGS} -D_GNU_SOURCE=1 -c $< -o $@
 
+
+tfcompiler.exe : ../sml-lib/textformat/tfcompiler.mlb ../sml-lib/textformat/tfcompiler.sml ../sml-lib/textformat/description-parser.sml
+	${MLTON} -output $@ ../sml-lib/textformat/tfcompiler.mlb
+
+input-tf.sml : input.tfdesc tfcompiler.exe
+	./tfcompiler.exe $<
+
 # 
 # `SDL/sdl-config --cflags`
 
@@ -46,7 +53,6 @@ t7eshero.exe : sdlml.o sound.o win32main.o sdlnet.o title*.sml hero.sml sprites.
 # Simple test of linking.
 nohero.exe :  sdlml.o sound.o win32main.o sdlnet.o nohero.sml nohero.mlb
 	${MLTON} -keep g -cc-opt "-I/usr/local/include" -cc-opt "-g -Dmain=SDL_main" -link-opt "-L/usr/local/lib -LSDL_lib/lib/${SDLARCH} -LSDL_net/lib/${SDLARCH} -lSDL -lSDL_net -lkernel32" -output $@ -default-ann 'allowFFI true' nohero.mlb sdlml.o sdlnet.o sound.o win32main.o
-
 
 genscore.exe : genscore.sml genscore.mlb
 	${MLTON} -cc-opt "-I/usr/local/include" -link-opt "-L/usr/local/lib" -output $@ genscore.mlb
