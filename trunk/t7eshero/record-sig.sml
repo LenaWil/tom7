@@ -15,6 +15,9 @@ sig
     val cmp : record * record -> order
 
     (* serialize *)
-    val tostring : record -> string
-    val fromstring : string -> record
+    (* val tostring : record -> string *)
+    (* val fromstring : string -> record *)
+
+    val totf : record -> ProfileTF.record
+    val fromtf : ProfileTF.record -> record
 end

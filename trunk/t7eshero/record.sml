@@ -37,10 +37,15 @@ struct
       | mfromstring "AH" = Hero.AuthenticHammer
       | mfromstring s = raise Record ("bad medal [" ^ s ^ "]")
 
-    fun tostring { percent, misses, medals } =
-        Int.toString percent ^ "?" ^ Int.toString misses ^ "?" ^
-        Serialize.ue (Serialize.ulist (map mtostring medals))
+    fun totf { percent, misses, medals } =
+      (ProfileTF.R { percent = percent, misses = misses,
+                     medals = map mtostring medals })
 
+    fun fromtf (ProfileTF.R { percent, misses, medals }) =
+      { percent = percent, misses = misses,
+        medals = map mfromstring medals }
+
+      (* XXX bye *)
     fun fromstring s =
         (case String.tokens Serialize.QQ s of
              [p, m, ms] =>
