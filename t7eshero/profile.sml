@@ -1,5 +1,5 @@
 (* A player's profile stores personal records, finished songs, achievements, etc. *)
-structure Profile :(*>*) PROFILE =
+structure Profile :> PROFILE =
 struct
     exception Profile of string
     type songid = Setlist.songid
@@ -46,17 +46,21 @@ struct
 
 
     val (songs_ulist, songs_unlist) = (Serialize.ulistnewline, Serialize.unlistnewline)
+(*
     fun rsfromstring ss =
         map (fn s =>
              case String.tokens QQ s of
                  [song, record] => (expectopt "songid" Setlist.fromstring (une song),
                                     Record.fromstring (une record))
                | _ => error "bad record") (songs_unlist ss)
+*)
 
+    (*
     fun rstostring rs =
         songs_ulist (map (fn (s, r) =>
                           ue (Setlist.tostring s) ^ "?" ^
                           ue (Record.tostring r)) rs)
+        *)
 
     fun achstostring achs =
         ulist (map (fn (a, so, i) =>
@@ -71,12 +75,14 @@ struct
                | _ => error "bad achs") (unlist a)
 
     val (pro_ulist, pro_unlist) = Serialize.list_serializer " " #"#"
+(*
     fun ptostring { name, pic, records, achievements, lastused, picsurf = _, closet, outfit } =
         pro_ulist [!name, !pic, IntInf.toString (!lastused),
                    rstostring (!records), achstostring (!achievements),
                    StringUtil.delimit "," (map Items.id (!closet)),
                    Items.wtostring (!outfit)]
-
+*)
+(*
     fun pfromstring s =
         case pro_unlist s of
             [name, pic, lastused, records, ach, closet, outfit] =>
@@ -89,25 +95,64 @@ struct
                   closet = ref (map Items.fromid (String.tokens (fn #"," => true | _ => false) closet)),
                   outfit = ref (Items.wfromstring outfit) }
       | _ => error "bad profile"
-
+*)
 
     val (profiles_ulist, profiles_unlist) =
         Serialize.list_serializerex (fn #"\r" => false | _ => true) "\n--------\n" #"$"
-    fun save () = StringUtil.writefile FILENAME (profiles_ulist (map ptostring (!profiles)))
+    (* fun save () = StringUtil.writefile FILENAME (profiles_ulist (map ptostring (!profiles))) *)
+
+    fun save () =
+      let
+        fun rtotf (songid, record) =
+          (Setlist.tostring songid, Record.totf record)
+        fun atotf (ach, songid, when) =
+          (atostring ach, Option.map Setlist.tostring songid, when)
+        fun ptotf { name, pic, picsurf = _, records, achievements,
+                    lastused, closet, outfit } =
+          ProfileTF.P { name = !name, pic = !pic,
+                        records = map rtotf (!records),
+                        achievements = map atotf (!achievements),
+                        lastused = !lastused,
+                        closet = map Items.id (!closet),
+                        outfit = Items.wtostring (!outfit) }
+
+        val f = ProfileTF.F { profiles = map ptotf (!profiles) }
+      in
+        ProfileTF.F.tofile FILENAME f
+      end
+
     fun load () =
-        let
-            val s = StringUtil.readfile FILENAME handle _ => profiles_ulist nil
-            val ps = profiles_unlist s
-            val ps = map pfromstring ps
-            val ps : profile list =
-                ListUtil.sort (fn ({ lastused, ... }, { lastused = lastused', ... }) =>
-                               (ListUtil.Sorted.reverse IntInf.compare)
-                               (!lastused, !lastused')) ps
-        in
-            (* XXX LEAK needs to free surface parameters.
-               But we shouldn't double-load anyway. *)
-            profiles := ps
-        end handle Record.Record s => (Hero.messagebox ("Record: " ^ s); raise Hero.Exit)
+      let
+        fun tftor (songid, record) =
+          case Setlist.fromstring songid of
+            NONE => NONE
+          | SOME s => SOME (s, Record.fromtf record)
+        fun tftoa (ach, songid, when) =
+          (afromstring ach, Option.mapPartial Setlist.fromstring songid, when)
+        fun tftop (ProfileTF.P { name, pic, records, achievements,
+                                 lastused, closet, outfit }) =
+          { name = ref name,
+            picsurf = ref (openpic pic),
+            pic = ref pic,
+            lastused = ref lastused,
+            records = ref (List.mapPartial tftor records),
+            achievements = ref (map tftoa achievements),
+            closet = ref (map Items.fromid closet),
+            outfit = ref (Items.wfromstring outfit) }
+
+        val ProfileTF.F { profiles = ps } = ProfileTF.F.fromfile FILENAME
+        val ps : profile list = map tftop ps
+        val ps : profile list =
+            ListUtil.sort (fn ({ lastused, ... },
+                               { lastused = lastused', ... }) =>
+                           (ListUtil.Sorted.reverse IntInf.compare)
+                           (!lastused, !lastused')) ps
+      in
+        (* Don't leak surfaces. *)
+        app (fn { picsurf, ... } => SDL.freesurface (!picsurf)) (!profiles);
+        profiles := ps
+      end handle IO.Io _ => print "No profile file.\n"
+               | ProfileTF.Parse _ => print "Couldn't parse profile.\n"
 
     fun all () = !profiles
 

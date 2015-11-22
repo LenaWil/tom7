@@ -84,11 +84,14 @@ womb.sml
 (* has effect, should be first. *)
 prelude.sml
 
+input-tf.sml
+profile-tf.sml
+
 random.sml
 hero.sml
 bandname.sml
 serialize.sml
-input-tf.sml
+
 input-sig.sml
 input.sml
 chars.sml
