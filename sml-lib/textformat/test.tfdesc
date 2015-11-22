@@ -1,6 +1,6 @@
 
 message N (node) =
-  field id : int
+  field id : intinf
   field x : int
   field y : int
   field n (name) : string
