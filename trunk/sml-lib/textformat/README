@@ -1,5 +1,5 @@
 
-    textformat                Tom 7           18 Jan 2013
+    textformat                Tom 7           22 Nov 2015
 
 textformat is a metautility for generating human-readable and editable
 text files that can be transformed to and from SML data structures. It
@@ -98,7 +98,7 @@ Design considerations:
    Unlike protocol buffers, we don't support round-trip compatibility.
    If you parse it, you discard the fields that you don't understand.
 
- - It's very important that the generated code by completely standalone
+ - It's very important that the generated code be completely standalone
    and not require anything other than the well-supported subset of the
    Standard Basis library. This is so that it can be easily dropped
    into an SML program without adding dependencies or interfering with
