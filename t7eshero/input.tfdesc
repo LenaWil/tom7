@@ -1,0 +1,14 @@
+(* TODO: Use textformat more deeply for this. *)
+
+message F (file) =
+  field keymap : string
+  field joys : joy list
+
+message J (joy) =
+  field n (name) : string
+  field a (naxes) : int
+  field b (balls) : int
+  field h (hats) : int
+  field u (buttons) : int
+  field x (axes) : string
+  field m (mapping) : string

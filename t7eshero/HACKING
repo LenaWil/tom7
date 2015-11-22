@@ -1,0 +1,13 @@
+
+mingw:
+
+For SDL, it's set up so that you can just grab the "devel" libraries
+from SDL.org (1.2 series) and put them in subdirectories "SDL_lib" and
+"SDL_net". They should have subdirectories like include/ and lib/.
+
+I think you need to also put the DLLs in the directory with the output
+executables.
+
+
+ - Tom 7             14 Nov 2015
+ 
