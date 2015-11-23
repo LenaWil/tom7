@@ -1,4 +1,81 @@
 
+Show #2, Fat Baby!!
+
+TODO important:
+ - Finish Cattle call
+ - Resolder womb board
+ - Make sure it compiles and still works on OSX
+ - Make setlist
+
+TODO nice:
+ - Rex Rocket theme
+ - Interlude graphics
+   - Fat Baby "Big Apple, 3am"
+   - Huge Big Boy
+   - Saskrotch
+ - New lights effects, like metronome, all on with beat
+ - Support for lyrics in Scene
+ - Support for 
+
+
+
+Song notes:
+
+Many Happy Returns: Hard, maybe could make easier, great song and good length
+Banshee: Hard but doable! Fun! Very simple song, but easy to like, short
+Continuous Tetris: No
+Econocard: Doable, short, kinda hard. Song is good, a little weird
+Europe: First part is too tricky
+Free: Slow ballad, doable but tricky, not amazing
+Octree: Good song, not long, quite hard
+Duel: Totally playable, but too sleepy of a song
+Gatorade: YES. So fun, good song, impressive
+Proof: Good song, too hard? (Make drums softer)
+TracyFan: Short, easy full combo, thick sound might be nice, but only mediocre song
+Pizza: Too hard at beginning
+F00F: Boring song
+zzzzz: too hard
+blix: a bit too hard, good song though
+standard ml: too boring
+noodle: fun, not too hard, song is cheesy (but catchy)
+title theme: too hard in second part with chords, but that would be fixable
+armistead: mediocre song, a bit hard
+trig: cheesy song, needs drum help
+fneet: almost doable, kinda interesting song...
+rat head: I think I never finished playing this song because it's so boring
+silo: fun song, kinda mediocre though
+kaasdoop: cheesy
+army: dumb
+bottom: dumb
+recanter: dumb
+since: bad
+smite: no
+matrix algebra: Trivial, boring
+niv study bible: maybe ok classic, definitely playable
+lunch: too cheesy
+macros: hard but doable, might want to tune drum sound
+honk honk: too dumb
+original citrus: NO
+mirc: maybe doable, song is OK
+jeff sarnat: OK song, certainly playable
+spinal fluid: song's so good, probably needs to be made easier though
+dnd: ok song, midsection is too hard for me
+devin: too hard
+shaskell: too hard :(
+stdafx.h: bad
+directx: not good enough, too hard
+eyes: maybe! doable, has a good twist in
+ack: no
+alley: no
+castlevania 3: Probably not -- too hard, not mine
+continuous tetris 2: YES. FCable
+vulgar fraction 3/4: Yes, maybe make harder??
+
+
+could be fixed to work: 12%
+death row: is too long, terrible drum noise is constant?
+
+
 TODO:
  * don't die with bad profiles. just ignore them.
  * show album covers
