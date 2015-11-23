@@ -1,6 +1,6 @@
 #                             -*- makefile -*-
 
-songs : googscore.mid ctetrisscore.mid econoscore.mid duelscore.mid tracyfanscore.mid lunchscore.mid foofscore.mid blixscore.mid zzzscore.mid smlscore.mid noodlescore.mid mattascore.mid trigscore.mid fneetscore.mid ackscore.mid ratheadscore.mid siloscore.mid kaasdoopscore.mid octreescore.mid sigscore.mid armyscore.mid bottomscore.mid recanterscore.mid sincescore.mid smitescore.mid matrixscore.mid freescore.mid nivscore.mid macrosscore.mid honkscore.mid originalscore.mid bansheescore.mid mircscore.mid sarnatscore.mid pizzascore.mid proofscore.mid kleescore.mid spinalscore.mid dndscore.mid devinscore.mid shaskellscore.mid gatoradescore.mid vehixscore.mid stdafxscore.mid directxscore.mid europescore.mid eyesscore.mid cupscore.mid alleyscore.mid bahscore.mid anacondascore.mid baldscore.mid chantscore.mid debrascore.mid divisionscore.mid elevscore.mid headcatscore.mid helixscore.mid hgisscore.mid heroscore.mid rt2iscore.mid kaiomaiscore.mid leannescore.mid machinescore.mid nowscore.mid ohioscore.mid passivescore.mid peachanscore.mid photonscore.mid msieglerscore.mid puddinscore.mid trackscore.mid trenchscore.mid worldscore.mid yellowscore.mid 128score.mid aphidscore.mid bowmanscore.mid bpotetzscore.mid candelscore.mid coenzscore.mid colohanscore.mid comcastscore.mid conditionscore.mid ctetris2score.mid customerscore.mid deinoscore.mid foosscore.mid satinscore.mid taxesscore.mid jcreedscore.mid siggraphscore.mid tornadoscore.mid unauthscore.mid samusscore.mid nauseascore.mid ospd3score.mid ghcscore.mid titlescore.mid planarianscore.mid manyhappyscore.mid jlwscore.mid petrolscore.mid gnocciscore.mid michrochronographscore.mid stylebluescore.mid ic5score.mid
+songs : googscore.mid ctetrisscore.mid econoscore.mid duelscore.mid tracyfanscore.mid lunchscore.mid foofscore.mid blixscore.mid zzzscore.mid smlscore.mid noodlescore.mid mattascore.mid trigscore.mid fneetscore.mid ackscore.mid ratheadscore.mid siloscore.mid kaasdoopscore.mid octreescore.mid sigscore.mid armyscore.mid bottomscore.mid recanterscore.mid sincescore.mid smitescore.mid matrixscore.mid freescore.mid nivscore.mid macrosscore.mid honkscore.mid originalscore.mid bansheescore.mid mircscore.mid sarnatscore.mid pizzascore.mid proofscore.mid kleescore.mid spinalscore.mid dndscore.mid devinscore.mid shaskellscore.mid gatoradescore.mid vehixscore.mid stdafxscore.mid directxscore.mid europescore.mid eyesscore.mid cupscore.mid alleyscore.mid bahscore.mid anacondascore.mid baldscore.mid chantscore.mid debrascore.mid divisionscore.mid elevscore.mid headcatscore.mid helixscore.mid hgisscore.mid heroscore.mid rt2iscore.mid kaiomaiscore.mid leannescore.mid machinescore.mid nowscore.mid ohioscore.mid passivescore.mid peachanscore.mid photonscore.mid msieglerscore.mid puddinscore.mid trackscore.mid trenchscore.mid worldscore.mid yellowscore.mid 128score.mid aphidscore.mid bowmanscore.mid bpotetzscore.mid candelscore.mid coenzscore.mid colohanscore.mid comcastscore.mid conditionscore.mid ctetris2score.mid customerscore.mid deinoscore.mid foosscore.mid satinscore.mid taxesscore.mid jcreedscore.mid siggraphscore.mid tornadoscore.mid unauthscore.mid samusscore.mid nauseascore.mid ospd3score.mid ghcscore.mid titlescore.mid planarianscore.mid manyhappyscore.mid jlwscore.mid petrolscore.mid gnocciscore.mid microchronographscore.mid stylebluescore.mid ic5score.mid utsscore.mid vulgar34.mid
 
 ALL = ../genscore.exe
 #  makefile.songs
@@ -353,3 +353,14 @@ stylebluescore.mid : styleblue.mid $(ALL)
 ic5score.mid : icedcoffee5.mid $(ALL)
 	../genscore.exe -history 5 -hammertime 36 $< 0 1 -o $@
 
+utsscore.mid : uts.mid $(ALL)
+	../genscore.exe -history 5 -hammertime 36 $< 0 6 -o $@
+
+12pctscore.mid : 12pct.mid $(ALL)
+	../genscore.exe -history 5 -hammertime 36 $< 0 1 2 -o $@
+
+deathrowscore.mid : deathrow.mid $(ALL)
+	../genscore.exe -history 5 -hammertime 36 $< 0 1 -o $@
+
+vulgar34score.mid : vulgar34.mid $(ALL)
+	../genscore.exe -history 5 -hammertime 56 $< 0 1 3 6 10 -o $@

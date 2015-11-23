@@ -2,22 +2,19 @@
    Profile. *)
 signature RECORD =
 sig
-    exception Record of string
+  exception Record of string
 
-    type record =
-        { percent : int,
-          misses : int,
-          (* XXX dance distance.. *)
-          medals : Hero.medal list }
+  type record =
+      { percent : int,
+        misses : int,
+        (* TODO: dance distance.. *)
+        medals : Hero.medal list }
 
-    (* Compare records for the same song.
-       Lesser means better (i.e. fewer misses) *)
-    val cmp : record * record -> order
+  (* Compare records for the same song.
+     Lesser means better (i.e. fewer misses) *)
+  val cmp : record * record -> order
 
-    (* serialize *)
-    (* val tostring : record -> string *)
-    (* val fromstring : string -> record *)
-
-    val totf : record -> ProfileTF.record
-    val fromtf : ProfileTF.record -> record
+  (* serialize *)
+  val totf : record -> ProfileTF.record
+  val fromtf : ProfileTF.record -> record
 end

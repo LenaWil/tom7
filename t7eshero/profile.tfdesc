@@ -1,0 +1,22 @@
+(* TODO: Would be nice to use textformat for some stuff like the
+   items, closet, and medals, but that would require support for
+   "enums" in textformat (which would be useful) *)
+
+message F (file) =
+  field p (profiles) : profile list
+    hint vertical
+    
+message P (profile) =
+  field n (name) : string
+  field p (pic) : string
+  field r (records) : (string * record) list
+    hint vertical
+  field a (achievements) : (string * string option * intinf) list
+  field u (lastused) : intinf
+  field c (closet) : string list
+  field o (outfit) : string
+
+message R (record) =
+  field p (percent) : int
+  field m (misses) : int
+  field d (medals) : string list
