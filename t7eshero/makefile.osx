@@ -27,9 +27,15 @@ messagebox.o : messagebox_fake.c
 %.o : ../sdlml/%.c
 	gcc -O $(CPPFLAGS) -c $< -o $@
 
+tfcompiler.exe : ../sml-lib/textformat/tfcompiler.mlb ../sml-lib/textformat/tfcompiler.sml ../sml-lib/textformat/description-parser.sml
+	mlton -output $@ ../sml-lib/textformat/tfcompiler.mlb
+
+%-tf.sml : %.tfdesc tfcompiler.exe
+	./tfcompiler.exe $<
+
 #  -arch ppc linkopt won't work, sorry
 #  -verbose 1
-t7eshero.exe : sound.o sdlml.o t7eshero.mlb *.sml ../sdlml/*.sml sdlmain.o sdlnet.o messagebox_fake.o
+t7eshero.exe : sound.o sdlml.o t7eshero.mlb *.sml ../sdlml/*.sml sdlmain.o sdlnet.o messagebox_fake.o input-tf.sml profile-tf.sml
 	export MACOSX_DEPLOYMENT_TARGET=${VERSION_TARGET}
 	mlton -cc-opt "-g -Dmain=SDL_main" -link-opt "${ARCH} -F${FRAMEWORKS} -framework SDL_net -framework SDL_image ${LIBS} -framework SDL -framework OpenGL -framework AGL -framework IOKit -framework Carbon -framework Cocoa ${RPATH}" -default-ann 'allowFFI true' -output $@ t7eshero.mlb sound.o sdlml.o sdlnet.o sdlmain.o messagebox_fake.o
 
