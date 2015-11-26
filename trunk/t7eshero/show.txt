@@ -6,9 +6,11 @@ TODO important:
  - Resolder womb board
  - Make sure it compiles and still works on OSX
  - Make setlist
+ - Remove spurious printouts
 
 TODO nice:
  - Rex Rocket theme
+ - "write failed." continuously on mac os"
  - Interlude graphics
    - Fat Baby "Big Apple, 3am"
    - Huge Big Boy

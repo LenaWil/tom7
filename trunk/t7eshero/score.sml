@@ -1,7 +1,6 @@
-(* XXX Game is not a good name for this.
-   It concerns the reading of MIDI files and translating them
-   into the intenal song format. *)
-structure Game (* XXX :> GAME *) =
+(* Score concerns the reading of MIDI files and translating them
+   into the internal song format. *)
+structure Score :> SCORE =
 struct
 
   infixr 9 `
@@ -11,7 +10,9 @@ struct
 
   val itos = Int.toString
 
-  exception Game of string
+  exception Score of string
+
+  type track = (int * (Match.label * MIDI.event)) list
 
   (* Dummy event, used for bars and stuff *)
   val DUMMY = MIDI.META (MIDI.PROP "dummy")
@@ -20,18 +21,18 @@ struct
   fun fromfile f =
       let
           val r = (Reader.fromfile f) handle _ =>
-              raise Game ("couldn't read " ^ f)
+              raise Score ("couldn't read " ^ f)
           val m as (ty, divi, thetracks) = MIDI.readmidi r handle MIDI.MIDI s =>
               let in
                   print (s ^ "\n");
-                  raise Game ("MIDI error: " ^ s)
+                  raise Score ("MIDI error: " ^ s)
               end
 
           val _ = ty = 1
-              orelse raise Game ("MIDI file must be type 1 (got type " ^ itos ty ^ ")")
+              orelse raise Score ("MIDI file must be type 1 (got type " ^ itos ty ^ ")")
           val () = print ("MIDI division is " ^ itos divi ^ "\n")
           val _ = divi > 0
-              orelse raise Game ("Division must be in PPQN form!\n")
+              orelse raise Score ("Division must be in PPQN form!\n")
       in
           (divi, thetracks)
       end
@@ -64,7 +65,7 @@ struct
                           | #"S" => Match.Music (Sound.INST_SINE, i)
                           | #"R" => Match.Music (Sound.INST_RHODES, i)
                           | #"D" => Match.Music (Sound.INST_SAMPLER Samples.sid, i)
-                          | _ => (messagebox "?? expected R, S, Q, W, N, or D\n"; raise Game ""),
+                          | _ => (messagebox "?? expected R, S, Q, W, N, or D\n"; raise Score ""),
                             tr)
 
                      | #"!" =>
@@ -77,12 +78,12 @@ struct
                               (PREDELAY, SLOWFACTOR, (* XXX *)
                                map (fn i =>
                                     case Int.fromString i of
-                                        NONE => raise Game "bad tracknum in Score name"
+                                        NONE => raise Score "bad tracknum in Score name"
                                       | SOME i => i) `
                                String.tokens (StringUtil.ischar #",")
                                ` String.substring(name, 2, size name - 2),
                                tr)
-                          | _ => (print "I only support REAL score!"; raise Game "real"))
+                          | _ => (print "I only support REAL score!"; raise Score "real"))
 
                      | _ => (print ("confused by named track '" ^
                                     name ^ "'?? expected + or ! ...\n");
@@ -102,20 +103,20 @@ struct
            We need to find one at 0 time, otherwise this is
            impossible:
            *)
-        fun getstarttime nil = (messagebox "(TIME) no events?"; raise Game "")
+        fun getstarttime nil = (messagebox "(TIME) no events?"; raise Score "")
           | getstarttime ((0, (_, MIDI.META (MIDI.TIME (n, d, cpc, bb)))) :: rest) =
             ((n, d, cpc, bb), rest)
           | getstarttime ((0, evt) :: t) =
           let val (x, rest) = getstarttime t
           in (x, (0, evt) :: rest)
           end
-          | getstarttime (_ :: t) = (messagebox ("(TIME) no 0 time events"); raise Game "")
+          | getstarttime (_ :: t) = (messagebox ("(TIME) no 0 time events"); raise Score "")
 
         val ((n, d, cpc, bb), rest) = getstarttime t
 
         val () = if bb <> 8
                  then (messagebox ("The MIDI file may not redefine 32nd notes!");
-                       raise Game "")
+                       raise Score "")
                  else ()
 
         (* We ignore the clocksperclick, which gives the metronome rate. Even
@@ -179,7 +180,7 @@ struct
                nil => (ticksleft, (Match.Bar Hero.Measure, DUMMY)) :: ibars ticklist ((dt - ticksleft, evt) :: rest)
              | _   => (ticksleft, (Match.Bar Hero.Beat, DUMMY))    :: ibars rtl      ((dt - ticksleft, evt) :: rest))
 
-          | ibars nil _ = raise Game "tickslist never nil" (* 0/4 time?? *)
+          | ibars nil _ = raise Score "tickslist never nil" (* 0/4 time?? *)
 
       in
         (0, (Match.Control, MIDI.META (MIDI.TIME (n, d, cpc, bb)))) ::

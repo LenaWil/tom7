@@ -41,7 +41,8 @@ struct
                                 drumbank, background }) :: rest) =
        (let
             val () = level := !level + 1
-            val () = Sound.all_off () (* should be done by conscientious predecessor *)
+            (* should be done by conscientious predecessor *)
+            val () = Sound.all_off ()
             (* Need to have a song in effect. *)
             val () = Stats.push songid
             val song = Setlist.getsong songid
@@ -51,17 +52,17 @@ struct
 
             val SLOWFACTOR = #slowfactor song
 
-            val (divi, thetracks) = Game.fromfile (#file song)
+            val (divi, thetracks) = Score.fromfile (#file song)
             val divi = divi * SLOWFACTOR
             val PREDELAY = 2 * divi (* ?? *)
 
             val (tracks : (int * (Match.label * MIDI.event)) list list) =
-                Game.label PREDELAY SLOWFACTOR thetracks
-            val tracks = Game.slow SLOWFACTOR (MIDI.merge tracks)
-            val tracks = Game.add_measures divi tracks
-            val tracks = Game.endify tracks
+                Score.label PREDELAY SLOWFACTOR thetracks
+            val tracks = Score.slow SLOWFACTOR (MIDI.merge tracks)
+            val tracks = Score.add_measures divi tracks
+            val tracks = Score.endify tracks
             val (tracks : (int * (Match.label * MIDI.event)) list) =
-                Game.delay PREDELAY tracks
+                Score.delay PREDELAY tracks
             val () = Song.init ()
             val playcursor = Song.cursor 0 tracks
             val drawcursor = Song.cursor (0 - Play.Scene.DRAWLAG) tracks
@@ -136,7 +137,7 @@ struct
   val () = gameloop ()
       handle Hero.Hero s => messagebox ("hero error: " ^ s)
            | SDL.SDL s => messagebox ("sdl error: " ^ s)
-           | Game.Game s => messagebox ("sdl error: " ^ s)
+           | Score.Score s => messagebox ("score error: " ^ s)
            | Items.Items s => messagebox ("items database error: " ^ s)
            | Input.Input s => messagebox ("input subsystem error: " ^ s)
            | Postmortem.Postmortem s => messagebox ("postmortem problem: " ^ s)

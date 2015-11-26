@@ -128,7 +128,8 @@ stats-sig.sml
 stats.sml
 
 scene.sml
-game.sml
+score-sig.sml
+score.sml
 wardrobe.sml
 interlude.sml
 highscores-sig.sml

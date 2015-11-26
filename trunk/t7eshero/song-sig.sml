@@ -44,10 +44,12 @@ sig
        non-linearly done that. Implies an update. *)
     val fast_forward : int -> unit
 
-    (* Absolute real-time since calling init *)
+    (* Absolute time between init and last update (including any
+       fast-forwarding). *)
     val now : unit -> int
 
-    (* Reset a cursor to the beginning of the song. Should follow a call to init. *)
+    (* Reset a cursor to the beginning of the song.
+       Should follow a call to init. *)
     val rewind : 'evt cursor -> unit
 
 end

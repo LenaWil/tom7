@@ -33,8 +33,8 @@ struct
         let
             val () = Sound.all_off ()
 
-            val (divi, thetracks) = Game.fromfile BGMIDI
-            val tracks = Game.label PRECURSOR SLOWFACTOR thetracks
+            val (divi, thetracks) = Score.fromfile BGMIDI
+            val tracks = Score.label PRECURSOR SLOWFACTOR thetracks
             fun slow l = map (fn (delta, e) => (delta * SLOWFACTOR, e)) l
             val () = Song.init ()
             val cursor = Song.cursor_loop (0 - PRECURSOR) (slow (MIDI.merge tracks))
