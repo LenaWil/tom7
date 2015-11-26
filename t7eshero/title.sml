@@ -66,8 +66,8 @@ struct
             val humprev = ref false
             val selected = ref 0
 
-            val (divi, thetracks) = Game.fromfile TITLEMIDI
-            val tracks = Game.label PRECURSOR SLOWFACTOR thetracks
+            val (divi, thetracks) = Score.fromfile TITLEMIDI
+            val tracks = Score.label PRECURSOR SLOWFACTOR thetracks
             fun slow l = map (fn (delta, e) => (delta * SLOWFACTOR, e)) l
             val () = Song.init ()
             val cursor = Song.cursor_loop (0 - PRECURSOR) (slow (MIDI.merge tracks))
@@ -259,7 +259,7 @@ struct
                                          String.concat (map mstostring medals))
                             end
 
-                    (* XXX should go in Game? *)
+                    (* XXX should go in Score? *)
                     (* just count the songs. *)
                     fun getlength { name, date, parts } =
                         foldr op+ 0.0
@@ -269,17 +269,17 @@ struct
                               val { file, slowfactor, ... } =
                                   Setlist.getsong song
 
-                              val (divi, thetracks) = Game.fromfile file
+                              val (divi, thetracks) = Score.fromfile file
                               val divi = divi * slowfactor
                               val PREDELAY = 2 * divi (* ?? *)
 
                               val (tracks : (int * (Match.label * MIDI.event)) list list) =
-                                  Game.label PREDELAY slowfactor thetracks
-                              val tracks = Game.slow slowfactor (MIDI.merge tracks)
-                              val tracks = Game.add_measures divi tracks
-                              val tracks = Game.endify tracks
+                                  Score.label PREDELAY slowfactor thetracks
+                              val tracks = Score.slow slowfactor (MIDI.merge tracks)
+                              val tracks = Score.add_measures divi tracks
+                              val tracks = Score.endify tracks
                               val (tracks : (int * (Match.label * MIDI.event)) list) =
-                                  Game.delay PREDELAY tracks
+                                  Score.delay PREDELAY tracks
                           in
                               (* now compute time in ticks = ms *)
                               SOME (real (MIDI.total_ticks tracks))

@@ -36,6 +36,9 @@ struct
       | Interlude of interlude
       | Wardrobe
       | Command of command
+      | Game of { song : songid, misses: bool,
+                  drumbank : int Vector.vector option,
+                  background : background }
 
     type showinfo =
         { name : string,
@@ -116,62 +119,66 @@ struct
             SOME s => s
           | NONE => raise Setlist ("couldn't find song id " ^ id)
 
+    fun parse_songlike Ctor (file, misses, drumbank, background) =
+      (case SM.find (!files, file) of
+         NONE => (print ("!! couldn't find file: [" ^ file ^ "]\n"); NONE)
+       | SOME s =>
+           let
+             val db =
+               (case drumbank of
+                  "" => NONE
+                | _ => (case map Int.fromString
+                          (String.fields (StringUtil.ischar #",") drumbank) of
+                          [SOME a, SOME b, SOME c, SOME d, SOME e] =>
+                            SOME (Vector.fromList [a, b, c, d, e])
+                        | _ => (print ("!!! bad drumbank: " ^
+                                       drumbank ^ "\n"); NONE)))
+             val misses = misses <> "nomiss"
+           in
+             SOME (Ctor
+                   { song = s, misses = misses, drumbank = db,
+                     (* XXX parse background. at least colors... *)
+                     background =
+                     (case String.fields (StringUtil.ischar #" ") background of
+                        ["random", n] =>
+                          (case Int.fromString n of
+                             SOME x => BG_RANDOM x
+                           | NONE => BG_RANDOM 50)
+                      | _ =>
+                             case explode background of
+                               [#"#", r, rr, g, gg, b, bb] =>
+                                 (case map Word8.fromString [implode [r, rr],
+                                                             implode [g, gg],
+                                                             implode [b, bb]] of
+                                    [SOME R, SOME G, SOME B] =>
+                                      BG_SOLID (SDL.color (R, G, B, 0wxFF))
+                                  | _ => BG_SOLID (SDL.color (0wx33, 0wx0, 0wx0, 0wxFF)))
+                             | _ => BG_SOLID (SDL.color (0wx33, 0wx0, 0wx0, 0wxFF)))
+                        })
+           end)
 
     fun parseshow f =
-        case getlines f of
-            header :: lines =>
-                let val parts = List.mapPartial
-                    (fn s =>
-                     case map trim (String.fields (StringUtil.ischar #"|") s) of
-                         ["song", file, misses, drumbank, background] =>
-                             (case SM.find (!files, file) of
-                                  NONE => (print ("!! couldn't find file: [" ^ file ^ "]\n"); NONE)
-                                | SOME s =>
-                                      let
-                                          val db =
-                                          (case drumbank of
-                                               "" => NONE
-                                             | _ => (case map Int.fromString
-                                                         (String.fields (StringUtil.ischar #",") drumbank) of
-                                                         [SOME a, SOME b, SOME c, SOME d, SOME e] =>
-                                                             SOME (Vector.fromList [a, b, c, d, e])
-                                                       | _ => (print ("!!! bad drumbank: " ^
-                                                                      drumbank ^ "\n"); NONE)))
-                                          val misses = misses <> "nomiss"
-                                      in
-                                          SOME (Song
-                                          { song = s, misses = misses, drumbank = db,
-                                            (* XXX parse background. at least colors... *)
-                                            background =
-                                            (case String.fields (StringUtil.ischar #" ") background of
-                                                 ["random", n] =>
-                                                     (case Int.fromString n of
-                                                          SOME x => BG_RANDOM x
-                                                        | NONE => BG_RANDOM 50)
-                                               | _ =>
-                                                 case explode background of
-                                                   [#"#", r, rr, g, gg, b, bb] =>
-                                                     (case map Word8.fromString [implode [r, rr],
-                                                                                 implode [g, gg],
-                                                                                 implode [b, bb]] of
-                                                        [SOME R, SOME G, SOME B] =>
-                                                          BG_SOLID (SDL.color (R, G, B, 0wxFF))
-                                                      | _ => BG_SOLID (SDL.color (0wx33, 0wx0, 0wx0, 0wxFF)))
-                                                 | _ => BG_SOLID (SDL.color (0wx33, 0wx0, 0wx0, 0wxFF)))
-                                                 })
-                                      end)
-                       | ["post"] => SOME Postmortem
-                       | ["ward"] => SOME Wardrobe
-                       | ["command", "wombon"] => SOME (Command WombOn)
-                       | ["command", "womboff"] => SOME (Command WombOff)
-                       | ["interlude", m1, m2] => SOME(Interlude (m1, m2))
-                       | _ => (print ("(" ^ f ^ ") Bad line: " ^ s ^ "\n"); NONE)) lines
-                in
-                    case map trim (String.fields (StringUtil.ischar #"|") header) of
-                        ["show", name, date] => SOME { name = name, date = date, parts = parts }
-                      | _ => (print ("Bad show starting: " ^ header ^ "\n"); NONE)
-                end
-          | nil => (print ("Empty show: " ^ f ^ "\n"); NONE)
+      case getlines f of
+        header :: lines =>
+          let val parts = List.mapPartial
+            (fn s =>
+             case map trim (String.fields (StringUtil.ischar #"|") s) of
+               ["song", file, misses, drumbank, background] =>
+                 parse_songlike Song (file, misses, drumbank, background)
+             | ["game", file, misses, drumbank, background] =>
+                 parse_songlike Game (file, misses, drumbank, background)
+             | ["post"] => SOME Postmortem
+             | ["ward"] => SOME Wardrobe
+             | ["command", "wombon"] => SOME (Command WombOn)
+             | ["command", "womboff"] => SOME (Command WombOff)
+             | ["interlude", m1, m2] => SOME(Interlude (m1, m2))
+             | _ => (print ("(" ^ f ^ ") Bad line: " ^ s ^ "\n"); NONE)) lines
+          in
+            case map trim (String.fields (StringUtil.ischar #"|") header) of
+              ["show", name, date] => SOME { name = name, date = date, parts = parts }
+            | _ => (print ("Bad show starting: " ^ header ^ "\n"); NONE)
+          end
+      | nil => (print ("Empty show: " ^ f ^ "\n"); NONE)
 
     val shows = List.mapPartial parseshow showfiles
 

@@ -36,6 +36,10 @@ sig
       | Interlude of interlude
       | Wardrobe
       | Command of command
+      (* XXX experimental *)
+      | Game of { song : songid, misses: bool,
+                  drumbank : int Vector.vector option,
+                  background : background }
 
     type showinfo =
         { name : string,
