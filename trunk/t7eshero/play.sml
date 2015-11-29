@@ -250,6 +250,7 @@ struct
                         State.dance (i, r)
                     | SOME (_, Input.Axis (Input.AxisWhammy, r)) =>
                         Sound.seteffect r
+                    | SOME (_, Input.Axis (Input.AxisLR, r)) => ()
                     | SOME (_, Input.Drum d) =>
                         Sound.setfreq(Sound.DRUMCH d,
                                       Vector.sub(Samples.default_drumbank, d),

@@ -1,5 +1,4 @@
-
-structure Postmortem (* XXX sig *) =
+structure Postmortem :> POSTMORTEM =
 struct
 
   open SDL
