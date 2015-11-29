@@ -12,10 +12,12 @@ struct
 
   val messagebox = Hero.messagebox
 
-  (* just enable all joysticks. If there are no joysticks, then you cannot play. *)
+  (* Just enable all joysticks. If there are no joysticks, then you
+     cannot play. *)
   val () = Input.register_all ()
   (* This restores configuration of joysticks that are plugged in. *)
-  val () = Input.load () handle Input.Input s => messagebox ("input file error: " ^ s)
+  val () = Input.load ()
+    handle Input.Input s => messagebox ("input file error: " ^ s)
   val () = Items.load ()
 
   structure Title = TitleFn(val screen = Sprites.screen)
@@ -47,6 +49,7 @@ struct
           val () = Stats.push songid
           val song = Setlist.getsong songid
 
+          (* XXX can move a bunch of this into Play itself. *)
           val () = Play.Scene.background := background
           val () = Play.Scene.initfromsong (song, !level, total_levels)
 
