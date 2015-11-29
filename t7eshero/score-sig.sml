@@ -20,4 +20,10 @@ sig
 
   val delay : int -> track -> track
 
+  (* Utility that does the standard stuff for playing a song in
+     T7ESHero. Labels individual tracks and zips them together, adds
+     predelay, measure markers, song end, slows according to the
+     slowfactor, etc. *)
+  val assemble : Setlist.songinfo -> track
+
 end
