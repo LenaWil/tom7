@@ -14,10 +14,36 @@ struct
   end
 
   val itos = Int.toString
+  val rtos = Real.fmt (StringCvt.FIX (SOME 2))
 
   val DRAWTICKS = (* 128 *) 12
 
   exception EarlyExit
+
+  val screen = Sprites.screen
+
+  val GAMEWIDTH = Sprites.gamewidth
+  val paddlewidth = ref 64
+  val paddlex = ref 0.0
+  val paddle_dx = ref 0.0
+  val PADDLEY = Sprites.height - 32
+  val PADDLEHEIGHT = 18
+  (* In pixels per frame *)
+  val MAXSPEED = 1.5
+
+  datatype ballstate =
+    Normal
+  | Disintegrating of int
+  type ball = { x : real, y: real,
+                dx : real, dy: real,
+                c : SDL.color,
+                state : ballstate }
+
+  val balls = ref (nil : ball list)
+
+  val BLACK = SDL.color (0w0, 0w0, 0w0, 0wxFF)
+  val WHITE = SDL.color (0wxFF, 0wxFF, 0wxFF, 0wxFF)
+
 
   (* Like Play, we have some mutually recursive functions. *)
 
@@ -72,7 +98,6 @@ struct
   fun loopemit cursor =
     ()
 
-
   fun doinput () =
     case SDL.pollevent () of
       SOME e =>
@@ -86,8 +111,15 @@ struct
                (* Currently, allow events from any device to be for
                   Player 1, since there is only one player. *)
                (case Input.map e of
-                  SOME (_, Input.ButtonDown b) => State.fingeron b
-                | SOME (_, Input.ButtonUp b) => State.fingeroff b
+                  SOME (_, Input.Axis (Input.AxisLR, r)) =>
+                    let
+                      (* in [-1, 1] *)
+                      (* XXX dead zone near 0.5? *)
+                      val dx = (r - 0.5) * 2.0
+                    in
+                      paddle_dx := dx * MAXSPEED
+                    end
+
                 (* Always allow drums I guess? *)
                 | SOME (_, Input.Drum d) =>
                     Sound.setfreq(Sound.DRUMCH d,
@@ -95,6 +127,8 @@ struct
                                   (* player drums are always max velocity *)
                                   Sound.midivel 127,
                                   Sound.WAVE_SAMPLER Samples.sid)
+                (* Ignore other events *)
+                | SOME _ => ()
                 | NONE =>
                     (* only if not mapped *)
                     (case e of
@@ -108,19 +142,53 @@ struct
     | NONE => ()
 
   fun dodraw () =
-    SDL.flip Sprites.screen
-
-  fun loop cursor =
     let in
+      SDL.fillrect (screen, 0, 0, Sprites.width, Sprites.height, BLACK);
+
+      SDL.fillrect (screen, Real.trunc (!paddlex), PADDLEY,
+                    !paddlewidth, PADDLEHEIGHT,
+                    WHITE);
+
+      SDL.flip screen
+    end
+
+  (* Run once per tick. *)
+  fun dophysics () =
+    let in
+      paddlex := !paddlex + !paddle_dx;
+      (if !paddlex < 0.0 then paddlex := 0.0
+       else if !paddlex + real (!paddlewidth) > real GAMEWIDTH
+            then paddlex := real (GAMEWIDTH - !paddlewidth)
+            else ());
+      (* print ("paddlex: " ^ rtos (!paddlex) ^ "\n") *)
+      ()
+    end
+
+  (* 60 fps *)
+  val TICKS_PER_FRAME = 0w16
+  fun loop (prev, prevframe, cursor) =
+    let
+      val now = SDL.getticks()
+      val ticks = Word32.toIntX (now - prev)
+    in
+      (* print ("Ticks: " ^ itos ticks ^ "\n"); *)
       doinput ();
       Song.update ();
       loopplay cursor;
       Womb.heartbeat ();
-      dodraw ();
 
-      if Song.done cursor
-      then ()
-      else loop cursor
+      Util.for 0 (ticks - 1)
+      (fn _ => dophysics ());
+
+      let val prevframe =
+        (if now - prevframe >= TICKS_PER_FRAME
+         then (dodraw (); now)
+         else prevframe);
+      in
+        if Song.done cursor
+        then ()
+        else loop (now, prevframe, cursor)
+      end
     end handle EarlyExit => ()
 
   fun game song =
@@ -128,8 +196,10 @@ struct
       val tracks = Score.assemble song
       val () = Song.init ()
       val playcursor = Song.cursor 0 tracks
+      val start = SDL.getticks()
     in
-      loop playcursor
+      dodraw ();
+      loop (start, 0w0, playcursor)
     end handle EarlyExit => ()
 
 end
