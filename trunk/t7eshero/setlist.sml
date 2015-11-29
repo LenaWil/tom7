@@ -36,9 +36,9 @@ struct
       | Interlude of interlude
       | Wardrobe
       | Command of command
-      | Game of { song : songid, misses: bool,
-                  drumbank : int Vector.vector option,
-                  background : background }
+      | Minigame of { song : songid, misses: bool,
+                      drumbank : int Vector.vector option,
+                      background : background }
 
     type showinfo =
         { name : string,
@@ -165,8 +165,8 @@ struct
              case map trim (String.fields (StringUtil.ischar #"|") s) of
                ["song", file, misses, drumbank, background] =>
                  parse_songlike Song (file, misses, drumbank, background)
-             | ["game", file, misses, drumbank, background] =>
-                 parse_songlike Game (file, misses, drumbank, background)
+             | ["minigame", file, misses, drumbank, background] =>
+                 parse_songlike Minigame (file, misses, drumbank, background)
              | ["post"] => SOME Postmortem
              | ["ward"] => SOME Wardrobe
              | ["command", "wombon"] => SOME (Command WombOn)
