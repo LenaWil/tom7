@@ -127,9 +127,12 @@ state.sml
 stats-sig.sml
 stats.sml
 
+scene-sig.sml
 scene.sml
+
 score-sig.sml
 score.sml
+
 wardrobe.sml
 interlude.sml
 highscores-sig.sml
