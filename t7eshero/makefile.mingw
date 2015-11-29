@@ -47,7 +47,7 @@ tfcompiler.exe : ../sml-lib/textformat/tfcompiler.mlb ../sml-lib/textformat/tfco
 # no longer needed with stb_image:
 #  -lSDL_image -ltiff -lpng -ljpeg -lz
 #  -lmingw32
-t7eshero.exe : sdlml.o sound.o win32main.o sdlnet.o title*.sml hero.sml sprites.sml sound*.sml match*.sml song*.sml state.sml scene*.sml score*.sml t7eshero.sml t7eshero.mlb makefile.mingw profile*.sml setlist*.sml record*.sml ../sdlml/*.sml listmenu*.sml input*.sml items*.sml postmortem*.sml wardrobe*.sml prelude.sml serialize*.sml samples*.sml configure*.sml womb*.sml play*.sml sprites*.sml highscores*.sml update*.sml input-tf.sml profile-tf.sml
+t7eshero.exe : sdlml.o sound.o win32main.o sdlnet.o title*.sml hero.sml sprites.sml sound*.sml match*.sml song*.sml state.sml scene*.sml score*.sml t7eshero.sml t7eshero.mlb makefile.mingw profile*.sml setlist*.sml record*.sml ../sdlml/*.sml listmenu*.sml input*.sml interlude*.sml items*.sml postmortem*.sml wardrobe*.sml prelude.sml serialize*.sml samples*.sml configure*.sml womb*.sml play*.sml sprites*.sml highscores*.sml update*.sml input-tf.sml profile-tf.sml
 	${MLTON} -cc-opt "-I/usr/local/include" -cc-opt "-g -Dmain=SDL_main" -link-opt "-L/usr/local/lib -LSDL_lib/lib/${SDLARCH} -LSDL_net/lib/${SDLARCH} -lSDL -lSDL_net -lkernel32" -output $@ -default-ann 'allowFFI true' t7eshero.mlb sdlml.o sdlnet.o sound.o win32main.o
 
 # Simple test of linking.

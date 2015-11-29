@@ -111,9 +111,14 @@ struct
           end
       | doshow (Setlist.Minigame { song = songid, misses,
                                    drumbank, background } :: rest) =
-          let in
+          let
+            (* should be done by conscientious predecessor *)
+            val () = Sound.all_off ()
+            (* Need to have a song in effect. *)
+            val song = Setlist.getsong songid
+          in
             (* XXX unimplemented *)
-            ();
+            Minigame.game song;
             doshow rest
           end
 

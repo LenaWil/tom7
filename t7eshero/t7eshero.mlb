@@ -122,27 +122,36 @@ match.sml
 
 song-sig.sml
 song.sml
+
 state.sml
 
 stats-sig.sml
 stats.sml
-
 scene-sig.sml
 scene.sml
-
 score-sig.sml
 score.sml
 
+wardrobe-sig.sml
 wardrobe.sml
+interlude-sig.sml
 interlude.sml
+
 highscores-sig.sml
 highscores.sml
+
 update.sml
 configure.sml
+
 title-sig.sml
 title.sml
+
 postmortem-sig.sml
 postmortem.sml
-(* XXX sig *)
+
+minigame-sig.sml
+minigame.sml
+
 play.sml
+
 t7eshero.sml

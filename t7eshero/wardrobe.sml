@@ -1,5 +1,5 @@
 (* Menu for selecting one's outfit. *)
-structure Wardrobe =
+structure Wardrobe :> WARDROBE =
 struct
 
     open SDL
