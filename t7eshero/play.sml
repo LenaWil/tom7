@@ -284,4 +284,19 @@ struct
       else loop (playcursor, drawcursor, failcursor)
     end handle EarlyExit => ()
 
+  fun play (misses, tracks) =
+    let
+      val () = Song.init ()
+      val playcursor = Song.cursor 0 tracks
+      val drawcursor = Song.cursor (0 - Scene.DRAWLAG) tracks
+      val failcursor = Song.cursor (0 - Match.EPSILON) tracks
+    in
+      print ("This will take " ^
+             Real.fmt (StringCvt.FIX (SOME 1))
+             (real (MIDI.total_ticks tracks) / 1000.0) ^
+             " sec\n");
+      setmiss misses;
+      loop (playcursor, drawcursor, failcursor)
+    end
+
 end

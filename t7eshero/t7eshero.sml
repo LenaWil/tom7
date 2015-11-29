@@ -47,6 +47,7 @@ struct
           val () = Sound.all_off ()
           (* Need to have a song in effect. *)
           val () = Stats.push songid
+
           val song = Setlist.getsong songid
 
           (* XXX can move a bunch of this into Play itself. *)
@@ -55,19 +56,8 @@ struct
 
           val tracks = Score.assemble song
 
-          val () = Song.init ()
-          val playcursor = Song.cursor 0 tracks
-          val drawcursor = Song.cursor (0 - Play.Scene.DRAWLAG) tracks
-          val failcursor = Song.cursor (0 - Match.EPSILON) tracks
+          val () = Play.play (misses, tracks)
 
-          (* XXX *)
-          val t = print ("This will take " ^
-                         Real.fmt (StringCvt.FIX (SOME 1))
-                         (real (MIDI.total_ticks tracks) / 1000.0) ^
-                         " sec\n")
-
-          val () = Play.setmiss misses
-          val () = Play.loop (playcursor, drawcursor, failcursor)
 
           val () = Stats.finish tracks profile
 
