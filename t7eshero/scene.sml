@@ -1,6 +1,6 @@
 (* This is the description of what is currently "displayed", and the
    routine to draw that display to the actual screen. *)
-functor SceneFn(val screen : SDL.surface) (* XXX :> SCENE *) =
+functor SceneFn(val screen : SDL.surface) :> SCENE =
 struct
 
   (* PERF could keep 'lastscene' and only draw changes? *)
@@ -15,9 +15,7 @@ struct
   open SDL
 
   val TICKSPERPIXEL = 2
-  (* how many ticks forward do we look? *)
   val MAXAHEAD = 1200
-  (* how many MIDI ticks in the past do we draw? *)
   val DRAWLAG = S.NUTOFFSET * TICKSPERPIXEL
 
   val BEATCOLOR    = color(0wx77, 0wx77, 0wx77, 0wxFF)
@@ -28,8 +26,9 @@ struct
   val lastcolor = ref(SDL.color (0wx00, 0wx55, 0wx00, 0wxFF))
   val nexttime = ref (SDL.getticks())
 
-  val background = ref (Setlist.BG_SOLID (SDL.color (0wx00, 0wx55, 0wx00, 0wxFF)))
-      : Setlist.background ref
+  val background =
+    ref (Setlist.BG_SOLID (SDL.color (0wx00, 0wx55, 0wx00, 0wxFF)))
+    : Setlist.background ref
 
   val title = ref ""
   val artist = ref ""
@@ -46,27 +45,32 @@ struct
                            allmedals : Hero.medal list,
                            percent : real } option)
 
-  fun settimesig (n, d) = timesig := "^3" ^ Int.toString n ^ "^1/^3" ^ Int.toString d ^ "^1 time"
+  fun settimesig (n, d) =
+    timesig := "^3" ^ Int.toString n ^ "^1/^3" ^ Int.toString d ^ "^1 time"
 
 
-  (* XXX maybe init from stats so we don't get staging of push and this wrong? *)
+  (* XXX maybe init from stats so we don't get staging of
+     push and this wrong? *)
   fun initfromsong ({ artist = aa, year = yy, title = tt, fave, hard, ... } :
                     Setlist.songinfo, thislevel, totallevels) =
-      let in
-          title := tt;
-          artist := aa;
-          year := yy;
-          statstime := (SDL.getticks() + STATSTIME);
-          prev :=
-          (case Stats.prev () of
-               NONE => NONE
-             | SOME { final = ref NONE, ... } => NONE (* ?? *)
-             | SOME { song, final = ref (SOME { percent, allmedals, ... }), ... } =>
-                   SOME { song = #title (Setlist.getsong song),
-                          percent = percent,
-                          allmedals = allmedals });
-          progress := "^2level ^3" ^ Int.toString thislevel ^ "^2/^3" ^ Int.toString totallevels
-      end
+    let in
+      title := tt;
+      artist := aa;
+      year := yy;
+      statstime := (SDL.getticks() + STATSTIME);
+      prev :=
+      (case Stats.prev () of
+         NONE => NONE
+       | SOME { final = ref NONE, ... } => NONE (* ?? *)
+       | SOME { song, final = ref (SOME { percent, allmedals, ... }), ... } =>
+           SOME { song = #title (Setlist.getsong song),
+                  percent = percent,
+                  allmedals = allmedals });
+      if (totallevels > 1)
+      then progress := "^2level ^3" ^ Int.toString thislevel ^ "^2/^3" ^
+               Int.toString totallevels
+      else progress := ""
+    end
 
   (* color, x, y *)
   val stars = ref nil : (int * int * int * Match.scoreevt) list ref
@@ -96,13 +100,12 @@ struct
      (S.STARWIDTH div 4) +
      6 + finger * (S.STARWIDTH + 18),
      (* hit star half way *)
-     (height - (mynut + S.STARHEIGHT div TICKSPERPIXEL)) - (stary div TICKSPERPIXEL),
+     (height - (mynut + S.STARHEIGHT div TICKSPERPIXEL)) -
+         (stary div TICKSPERPIXEL),
      evt) :: !stars
 
   fun addtext (s, t) =
-      let in
-          texts := (s, (height - mynut) - (t div TICKSPERPIXEL)) :: !texts
-      end
+    texts := (s, (height - mynut) - (t div TICKSPERPIXEL)) :: !texts
 
   fun addbar (b, t) =
     let
@@ -110,9 +113,10 @@ struct
         case b of
           Hero.Beat => (BEATCOLOR, "", 2)
         | Hero.Measure => (MEASURECOLOR, "", 5)
-        | Hero.Timesig (n, d) => (TSCOLOR, "^3" ^ Int.toString n ^ "^0/^3" ^ Int.toString d ^ "^4 time", 8)
+        | Hero.Timesig (n, d) => (TSCOLOR, "^3" ^ Int.toString n ^ "^0/^3" ^
+                                  Int.toString d ^ "^4 time", 8)
     in
-        bars := (c, (height - mynut) - (t div TICKSPERPIXEL), s, h) :: !bars
+      bars := (c, (height - mynut) - (t div TICKSPERPIXEL), s, h) :: !bars
     end
 
   fun addspan (finger, spanstart, spanend) =
@@ -124,28 +128,30 @@ struct
 
   fun draw () =
     let
-        val now = SDL.getticks ()
+      val now = SDL.getticks ()
     in
       (* clear non-game area *)
       (case !background of
-           Setlist.BG_SOLID c =>
-        SDL.fillrect (screen, Sprites.gamewidth, 0,
-                      Sprites.width - Sprites.gamewidth, Sprites.height, c)
-         | Setlist.BG_RANDOM ticks =>
+         Setlist.BG_SOLID c =>
+           SDL.fillrect (screen, Sprites.gamewidth, 0,
+                         Sprites.width - Sprites.gamewidth, Sprites.height, c)
+       | Setlist.BG_RANDOM ticks =>
            let in
-               if now >= !nexttime
-               then
-                   let in
-                       lastcolor := SDL.color(Word8.fromInt (Random.random_int() mod 256),
-                                              Word8.fromInt (Random.random_int() mod 256),
-                                              Word8.fromInt (Random.random_int() mod 256),
-                                              0wxFF);
-                       nexttime := now + (Word32.fromInt ticks)
-                   end
-               else ();
-               SDL.fillrect (screen,
-                             Sprites.gamewidth, 0,
-                             Sprites.width - Sprites.gamewidth, Sprites.height, !lastcolor)
+             if now >= !nexttime
+             then
+               let in
+                 lastcolor :=
+                 SDL.color(Word8.fromInt (Random.random_int() mod 256),
+                           Word8.fromInt (Random.random_int() mod 256),
+                           Word8.fromInt (Random.random_int() mod 256),
+                           0wxFF);
+                 nexttime := now + (Word32.fromInt ticks)
+               end
+             else ();
+             SDL.fillrect (screen,
+                           Sprites.gamewidth, 0,
+                           Sprites.width - Sprites.gamewidth, Sprites.height,
+                           !lastcolor)
            end);
 
       (* background image first *)
@@ -160,65 +166,68 @@ struct
 
       (* Prev stats. *)
       (case (now <= !statstime, !prev) of
-           (true, SOME { song, allmedals, percent }) =>
-               let in
-                   FontSmall.draw (screen, Sprites.gamewidth + 16,
-                                   Sprites.height - 128, "^3Last: ^0" ^ song);
-                   ListUtil.appi
-                   (fn (m, i) =>
-                    let
-                        val x = Sprites.gamewidth + 16 + i * 72
-                    in
-                        SDL.blitall(Sprites.medalg m, screen, x, Sprites.height - 100);
-                        FontSmall.draw(screen, x, Sprites.height - 32, Sprites.medal1 m);
-                        FontSmall.draw(screen, x, Sprites.height - 16, Sprites.medal2 m)
-                    end) allmedals;
+         (true, SOME { song, allmedals, percent }) =>
+           let in
+             FontSmall.draw (screen, Sprites.gamewidth + 16,
+                             Sprites.height - 128, "^3Last: ^0" ^ song);
+             ListUtil.appi
+             (fn (m, i) =>
+              let
+                val x = Sprites.gamewidth + 16 + i * 72
+              in
+                SDL.blitall(Sprites.medalg m, screen, x, Sprites.height - 100);
+                FontSmall.draw(screen,
+                               x, Sprites.height - 32, Sprites.medal1 m);
+                FontSmall.draw(screen,
+                               x, Sprites.height - 16, Sprites.medal2 m)
+              end) allmedals;
 
-                   FontHuge.draw(screen, Sprites.width - (FontHuge.width * 4 + 8),
-                                 Sprites.height - 128,
-                                 "^1" ^ Int.toString (Real.trunc percent) ^ "^4%")
-               end
+             FontHuge.draw(screen, Sprites.width - (FontHuge.width * 4 + 8),
+                           Sprites.height - 128,
+                           "^1" ^ Int.toString (Real.trunc percent) ^ "^4%")
+           end
          | _ => ());
 
       (* spans first *)
-      app (fn (x, y, w, h) => blit(S.backlite, x, y, w, h, screen, x, y)) (!spans);
+      app (fn (x, y, w, h) =>
+           blit(S.backlite, x, y, w, h, screen, x, y)) (!spans);
 
       (* tempo *)
       app (fn (c, y, s, h) =>
            if y < (height - S.NUTOFFSET)
            then
-               let in
-                   fillrect(screen, 16, y - (h div 2), width - 32, h, c);
-                   FontHuge.draw(screen, 4, y - (h div 2) - FontHuge.height, s)
-               end
+             let in
+               fillrect(screen, 16, y - (h div 2), width - 32, h, c);
+               FontHuge.draw(screen, 4, y - (h div 2) - FontHuge.height, s)
+             end
            else ()) (!bars);
 
       (* stars on top *)
       app (fn (f, x, y, e) =>
            let
-               fun drawnormal () =
-                   let in
-                       if Match.hammered e
-                       then blitall(Vector.sub(S.hammers, f), screen, x, y)
-                       else blitall(Vector.sub(S.stars, f), screen, x, y)
-                   end
+             fun drawnormal () =
+               let in
+                 if Match.hammered e
+                 then blitall(Vector.sub(S.hammers, f), screen, x, y)
+                 else blitall(Vector.sub(S.stars, f), screen, x, y)
+               end
            in
-               (* blitall(Vector.sub(S.stars, f), screen, x, y); *)
+             (* blitall(Vector.sub(S.stars, f), screen, x, y); *)
 
-               (* plus icon *)
-               (case Match.state e of
-                    Hero.Missed => blitall(S.missed, screen, x, y)
-                  | Hero.Hit n =>
-                        if y >= ((height - S.NUTOFFSET) - (S.STARHEIGHT div 2))
-                        then
-                            (if !n >= Vector.length S.zaps
-                             then ()
-                             else (blitall(Vector.sub(S.zaps, !n), screen,
-                                           x - ((S.ZAPWIDTH - S.STARWIDTH) div 2),
-                                           y - ((S.ZAPHEIGHT - S.STARHEIGHT) div 2));
-                                   n := !n + 1))
-                        else drawnormal ()
-                  | _ => drawnormal ())
+             (* plus icon *)
+             (case Match.state e of
+                Hero.Missed => blitall(S.missed, screen, x, y)
+              | Hero.Hit n =>
+                  if y >= ((height - S.NUTOFFSET) - (S.STARHEIGHT div 2))
+                  then
+                    (if !n >= Vector.length S.zaps
+                     then ()
+                     else (blitall(Vector.sub(S.zaps, !n), screen,
+                                   x - ((S.ZAPWIDTH - S.STARWIDTH) div 2),
+                                   y - ((S.ZAPHEIGHT - S.STARHEIGHT) div 2));
+                           n := !n + 1))
+                  else drawnormal ()
+              | _ => drawnormal ())
            end) (!stars);
 
       (* finger state *)
@@ -232,6 +241,7 @@ struct
 
       app (fn (s, y) =>
            let in
+             (* XXX *)
              print ("Text at y=" ^ Int.toString y ^ ": " ^ s ^ "\n");
              if FontHuge.sizex_plain s > (width - 64)
              then Font.draw(screen, 4, y - Font.height, s)
@@ -243,40 +253,37 @@ struct
                            "^2" ^ Int.toString (Stats.misses()) ^ " ^4 misses")
        else ());
 
-       let
-           val s = Match.streak()
-           val (fd, fh, ff) =
-               if s > 75
-               then (Sprites.FontMax.draw, Sprites.FontMax.height, Chars.fancy)
-               else if s > 50
-                    then (FontHuge.draw, FontHuge.height, Chars.fancy)
-                    else (FontHuge.draw, FontHuge.height, (fn s => "^4" ^ s))
-       in
-           if s > 25
-           then fd (screen, 4, height div 2 - (fh div 2),
-                    ff (Int.toString s ^ " streak!"))
-           else ()
-       end;
+      let
+        val s = Match.streak()
+        val (fd, fh, ff) =
+          if s > 75
+          then (Sprites.FontMax.draw, Sprites.FontMax.height, Chars.fancy)
+          else if s > 50
+               then (FontHuge.draw, FontHuge.height, Chars.fancy)
+               else (FontHuge.draw, FontHuge.height, (fn s => "^4" ^ s))
+      in
+        if s > 25
+        then fd (screen, 4, height div 2 - (fh div 2),
+                 ff (Int.toString s ^ " streak!"))
+        else ()
+      end;
 
-       FontHuge.draw(screen,
+      FontHuge.draw(screen,
+                    Sprites.gamewidth + 16,
+                    height - (FontHuge.height * 4),
+                    !timesig);
+
+      FontHuge.draw(screen,
+                    Sprites.gamewidth + 16,
+                    height - (FontHuge.height * 8),
+                    !progress);
+
+      FontSmall.draw(screen,
                      Sprites.gamewidth + 16,
-                     height - (FontHuge.height * 4),
-                     !timesig);
-
-       FontHuge.draw(screen,
-                     Sprites.gamewidth + 16,
-                     height - (FontHuge.height * 8),
-                     !progress);
-
-
-       FontSmall.draw(screen,
-                      Sprites.gamewidth + 16,
-                      height - (FontHuge.height * 3),
-                      "Dance distance: ^2" ^ Real.fmt (StringCvt.FIX (SOME 3)) (!State.dancedist) ^ "^0m"
-                     (*(" ^
-                     Real.fmt (StringCvt.FIX (SOME 5))
-                       (!State.dancedist / (real (Word32.toInt(SDL.getticks() - !State.dancetime)) / 1000.0))
-                     ^ "m/s)" *))
+                     height - (FontHuge.height * 3),
+                     "Dance distance: ^2" ^
+                     Real.fmt (StringCvt.FIX (SOME 3)) (!State.dancedist) ^
+                     "^0m")
     end
 
 end
