@@ -36,6 +36,7 @@ struct
   | Disintegrating of int
   type ball = { x : real, y: real,
                 dx : real, dy: real,
+                halfwidth : int,
                 c : SDL.color,
                 state : ballstate }
 
@@ -142,12 +143,24 @@ struct
     | NONE => ()
 
   fun dodraw () =
-    let in
+    let
+      fun drawball ({ x, y, c, halfwidth, ... } : ball) =
+        let
+          val x = Real.round x
+          val y = Real.round y
+        in
+          SDL.fillrect (screen, x - halfwidth, y - halfwidth,
+                        halfwidth * 2, halfwidth * 2,
+                        c)
+        end
+    in
       SDL.fillrect (screen, 0, 0, Sprites.width, Sprites.height, BLACK);
 
       SDL.fillrect (screen, Real.trunc (!paddlex), PADDLEY,
                     !paddlewidth, PADDLEHEIGHT,
                     WHITE);
+
+      app drawball (!balls);
 
       SDL.flip screen
     end
@@ -160,7 +173,6 @@ struct
        else if !paddlex + real (!paddlewidth) > real GAMEWIDTH
             then paddlex := real (GAMEWIDTH - !paddlewidth)
             else ());
-      (* print ("paddlex: " ^ rtos (!paddlex) ^ "\n") *)
       ()
     end
 
@@ -171,7 +183,6 @@ struct
       val now = SDL.getticks()
       val ticks = Word32.toIntX (now - prev)
     in
-      (* print ("Ticks: " ^ itos ticks ^ "\n"); *)
       doinput ();
       Song.update ();
       loopplay cursor;
