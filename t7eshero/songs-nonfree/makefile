@@ -21,10 +21,10 @@ bionic1score.mid : bionic1.mid $(ALL)
 	../genscore.exe -history 5 -hammertime 42 $< 0 3 8 10 -o $@
 
 cattlecallscore.mid : cattlecall.mid $(ALL)
-	../genscore.exe -history 5 -hammertime 25 $< 0 1 -o $@
+	../genscore.exe -volscale 1.25 -history 5 -hammertime 25 $< 0 1 -o $@
 
 # also need bloody3 (or whatever that great one is) from castlevania!
 
 rexrocketscore.mid : rexrocket.mid $(ALL)
-	../genscore.exe -history 5 -hammertime 25 $< 0 1 2 -o $@
+	../genscore.exe -volscale 1.25 -history 5 -hammertime 25 $< 0 1 2 -o $@
 

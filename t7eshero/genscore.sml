@@ -76,6 +76,7 @@ struct
                              "this fraction. Notes are still capped to the " ^
                              "maximum and minimum volumes, so this may " ^
                              "reduce (or completely flatten) dynamic range."))
+    "volscale"
 
   (* Dummy event, used for bars and stuff *)
   val DUMMY = MIDI.META (MIDI.PROP "dummy")
@@ -922,9 +923,45 @@ struct
       | next :: rest => next :: watermark rest
     end
 
+  fun scalevel r (tr : (int * MIDI.event) list) =
+    let
+      (* 0 is special; means NOTEOFF to many systems. *)
+      val over = ref 0
+      val under = ref 0
+      fun makevel 0 = 0
+        | makevel v =
+        let val nv = Real.round (r * real v)
+        in
+          if nv < 1 then
+             let in
+               under := 1 + !under;
+               1
+             end
+          else if nv > 127
+               then
+                 let in
+                   over := 1 + !over;
+                   127
+                 end
+               else nv
+        end
+
+      fun oneevent (dt, MIDI.NOTEON(ch, note, vel)) =
+        (dt, MIDI.NOTEON(ch, note, makevel vel))
+        | oneevent other = other
+      val tr = map oneevent tr
+    in
+      if !over > 0 orelse !under > 0
+      then print ("Velocity scale: Capped " ^ itos (!over) ^ " note(s) " ^
+                  "over 127 and " ^ itos (!under) ^ " note(s) under 1.\n")
+      else ();
+      tr
+    end
+
   (* val () = MIDI.writemidi "copy.mid" (1, divi, thetracks) *)
 
   val thetracks = map watermark thetracks
+  val thetracks = map (scalevel (Params.asreal 1.0 volscale)) thetracks
   val tracks = label thetracks
 
   val () = if List.null includes

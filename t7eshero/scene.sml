@@ -105,7 +105,11 @@ struct
      evt) :: !stars
 
   fun addtext (s, t) =
-    texts := (s, (height - mynut) - (t div TICKSPERPIXEL)) :: !texts
+    let in
+      (* XXX *)
+      (* print ("Add text: '" ^ s ^ "' @" ^ Int.toString t ^ "\n"); *)
+      texts := (s, (height - mynut) - (t div TICKSPERPIXEL)) :: !texts
+    end
 
   fun addbar (b, t) =
     let
@@ -242,8 +246,8 @@ struct
       app (fn (s, y) =>
            let in
              (* XXX *)
-             print ("Text at y=" ^ Int.toString y ^ ": " ^ s ^ "\n");
-             if FontHuge.sizex_plain s > (width - 64)
+             (* print ("Text at y=" ^ Int.toString y ^ ": " ^ s ^ "\n"); *)
+             if FontHuge.sizex_plain s > (width - 16)
              then Font.draw(screen, 4, y - Font.height, s)
              else FontHuge.draw(screen, 4, y - FontHuge.height, s)
            end) (!texts);
