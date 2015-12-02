@@ -162,7 +162,7 @@ struct
       Font.draw (screen, Sprites.gamewidth + 16, 4 + Font.height + 2,
                  "^4by ^0" ^ !artist);
       Font.draw (screen, Sprites.gamewidth + 16, 4 + (Font.height + 2) * 2,
-                 " ^1(" ^ !year ^ ")");
+                 "   ^1(" ^ !year ^ ")");
 
       (* Prev stats. *)
       (case (now <= !statstime, !prev) of
