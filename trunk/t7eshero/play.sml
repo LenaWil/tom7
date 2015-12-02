@@ -151,7 +151,17 @@ struct
               val tiempo = when + dt
             in
               (case label of
-                 Music _ => ()
+                 Music musicevt =>
+                   (* XXX these events should really be in the
+                      Control track -- genscore should
+                      move them there? *)
+                   (case e of
+                      MIDI.META (MIDI.LYRIC s) =>
+                        if size s > 0 andalso String.sub(s, 0) <> #"/"
+                        then Scene.addtext(s, tiempo)
+                        else ()
+                    | _ => ())
+
                | Score scoreevt =>
                    let
                      fun doevent (MIDI.NOTEON (x, note, 0)) =
@@ -190,9 +200,13 @@ struct
                         then Scene.addtext(String.substring(m, 1, size m - 1),
                                            tiempo)
                         else ()
-                    | MIDI.META (MIDI.LYRIC s) =>
-                        (* XXX HERE *)
-                        Scene.addtext(s, tiempo)
+                    | MIDI.META (MIDI.TIME (n, d, cpc, bb)) =>
+                        let in
+                          (* XXX not if the beginning of the song. *)
+                          Scene.addtext(itos n ^ "/" ^ itos (Util.pow 2 d),
+                                        tiempo)
+                        end
+
                     | _ => ()));
 
                  draw tiempo rest

@@ -44,49 +44,51 @@ struct
      This uses the track's name to determine its label. *)
   fun label PREDELAY SLOWFACTOR tracks =
     let
-        fun foldin (data, tr) : (int * (Match.label * MIDI.event)) list =
-            map (fn (d, e) => (d, (data, e))) tr
+      fun foldin (data, tr) : (int * (Match.label * MIDI.event)) list =
+          map (fn (d, e) => (d, (data, e))) tr
 
-        fun onetrack (tr, i) =
-          case findname tr of
-              NONE => SOME ` foldin (Match.Control, tr)
-            | SOME "" => SOME ` foldin (Match.Control, tr)
-            | SOME name =>
-                (case CharVector.sub(name, 0) of
-                     #"+" =>
-                     SOME `
-                     foldin
-                     (case CharVector.sub (name, 1) of
-                          #"Q" => Match.Music (Sound.INST_SQUARE, i)
-                        | #"W" => Match.Music (Sound.INST_SAW, i)
-                        | #"N" => Match.Music (Sound.INST_NOISE, i)
-                        | #"S" => Match.Music (Sound.INST_SINE, i)
-                        | #"R" => Match.Music (Sound.INST_RHODES, i)
-                        | #"D" => Match.Music (Sound.INST_SAMPLER Samples.sid, i)
-                        | _ => (messagebox "?? expected R, S, Q, W, N, or D\n"; raise Score ""),
-                          tr)
+      fun onetrack (tr, i) =
+        case findname tr of
+            NONE => SOME ` foldin (Match.Control, tr)
+          | SOME "" => SOME ` foldin (Match.Control, tr)
+          | SOME name =>
+            (case CharVector.sub(name, 0) of
+                 #"+" =>
+                 SOME `
+                 foldin
+                 (case CharVector.sub (name, 1) of
+                      #"Q" => Match.Music (Sound.INST_SQUARE, i)
+                    | #"W" => Match.Music (Sound.INST_SAW, i)
+                    | #"N" => Match.Music (Sound.INST_NOISE, i)
+                    | #"S" => Match.Music (Sound.INST_SINE, i)
+                    | #"R" => Match.Music (Sound.INST_RHODES, i)
+                    | #"D" => Match.Music (Sound.INST_SAMPLER Samples.sid, i)
+                    | _ => (messagebox "?? expected R, S, Q, W, N, or D\n";
+                            raise Score ""),
+                    tr)
 
-                   | #"!" =>
-                     (case CharVector.sub (name, 1) of
-                          #"R" =>
-                            (* XXX only if this is the score we desire.
-                               (Right now we expect there's just one.) *)
-                            SOME `
-                            Match.initialize
-                            (PREDELAY, SLOWFACTOR, (* XXX *)
-                             map (fn i =>
-                                  case Int.fromString i of
-                                      NONE => raise Score "bad tracknum in Score name"
-                                    | SOME i => i) `
-                             String.tokens (StringUtil.ischar #",")
-                             ` String.substring(name, 2, size name - 2),
-                             tr)
-                        | _ => (print "I only support REAL score!"; raise Score "real"))
+               | #"!" =>
+                 (case CharVector.sub (name, 1) of
+                    #"R" =>
+                    (* XXX only if this is the score we desire.
+                       (Right now we expect there's just one.) *)
+                    SOME `
+                    Match.initialize
+                    (PREDELAY, SLOWFACTOR, (* XXX *)
+                     map (fn i =>
+                          case Int.fromString i of
+                            NONE =>
+                              raise Score "bad tracknum in Score name"
+                          | SOME i => i) `
+                     String.tokens (StringUtil.ischar #",")
+                     ` String.substring(name, 2, size name - 2),
+                     tr)
+                  | _ => (print "I only support REAL score!";
+                          raise Score "real"))
 
-                   | _ => (print ("confused by named track '" ^
-                                  name ^ "'?? expected + or ! ...\n");
-                           SOME ` foldin (Match.Control, tr))
-                     )
+               | _ => (print ("confused by named track '" ^
+                              name ^ "'?? expected + or ! ...\n");
+                       SOME ` foldin (Match.Control, tr)))
     in
         List.mapPartial (fn x => x) (ListUtil.mapi onetrack tracks)
     end

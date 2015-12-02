@@ -262,9 +262,9 @@ void ml_setfreq(int ch, int nf, int nv, int inst) {
   } else {
     cur_vol[ch] = (int)(VOL_FACTOR * (float)nv);
 
-    if (inst >= SAMPLER_OFFSET) {
-      printf("Set sample vol for ch %d to %d\n", ch, cur_vol[ch]);
-    }
+    // if (inst >= SAMPLER_OFFSET) {
+    //   printf("Set sample vol for ch %d to %d\n", ch, cur_vol[ch]);
+    // }
 
     // Without lock, this can put the sampler wave way out of
     // the range of the array.
