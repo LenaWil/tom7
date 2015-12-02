@@ -3,18 +3,19 @@ Show #2, Fat Baby!!
 
 TODO important:
  - Finish Cattle call
- - Resolder womb board
  - Make sure it compiles and still works on OSX
  - Make setlist
  - Remove spurious printouts
 
+ - Why isn't text showing in Scene? (Even time sig changes?)
+
+ - Volume levels of new songs!
+
+ - Support for venue / boss graphics in setlist
+
 TODO nice:
  - Rex Rocket theme
  - "write failed." continuously on mac os"
- - Interlude graphics
-   - Fat Baby "Big Apple, 3am"
-   - Huge Big Boy
-   - Saskrotch
  - New lights effects, like metronome, all on with beat
  - Support for lyrics in Scene
  - Support for 
