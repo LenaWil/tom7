@@ -1,7 +1,7 @@
 
 structure SDLNet :> SDLNET =
 struct
-    
+
     exception SDLNet of string
 
     exception Invalid
@@ -45,7 +45,7 @@ struct
     (* val resolvehost : string -> address *)
     fun resolvehost s =
         let
-            val rh_ = _import "ml_resolvehost" : string * Word32.word ref -> int ;
+            val rh_ = _import "ml_resolvehost" private : string * Word32.word ref -> int ;
             val addr = ref 0w0
         in
             if rh_ (s ^ "\000", addr) = 0
@@ -55,7 +55,7 @@ struct
 
     fun resolveip w =
         let
-            val ri_ = _import "ml_resolveip" :
+            val ri_ = _import "ml_resolveip" private :
                 Word32.word * char Array.array * int -> int ;
 
             (* XXX is there word on the longest a DNS entry can be? *)
@@ -82,10 +82,10 @@ struct
     struct
         (* in C, TCPsocket *)
         type sock = MLton.Pointer.t ref
-    
+
         fun connect (a : address) (p : int) =
             let
-                val to_ = _import "ml_tcp_open" : Word32.word * int -> MLton.Pointer.t ;
+                val to_ = _import "ml_tcp_open" private : Word32.word * int -> MLton.Pointer.t ;
 
                 val t = to_ (a, p)
             in
@@ -106,10 +106,10 @@ struct
             let
                 val ar = ref 0w0
                 val pr = ref 0
-                val gp_ = _import "ml_getpeeraddress" : MLton.Pointer.t * Word32.word ref * int ref -> unit ;
+                val gp_ = _import "ml_getpeeraddress" private : MLton.Pointer.t * Word32.word ref * int ref -> unit ;
             in
                 gp_ (!!r, ar, pr);
-                if !ar = 0w0 
+                if !ar = 0w0
                 then raise SDLNet ("Couldn't get peer address: " ^ geterror_ ())
                 else (!ar, !pr)
             end
@@ -136,7 +136,7 @@ struct
                           start : int,
                           num : int option } =
             let
-                val ts_ = _import "ml_send_offset" : MLton.Pointer.t * Word8.word Array.array * int * int -> int ;
+                val ts_ = _import "ml_send_offset" private : MLton.Pointer.t * Word8.word Array.array * int * int -> int ;
                 val n = bounds (Array.length array, start, num)
             in
                 if ts_ (!!r, array, start, n) = n
@@ -148,7 +148,7 @@ struct
                         start : int,
                         num : int option } =
             let
-                val ts_ = _import "ml_send_offset" : MLton.Pointer.t * Word8.word Vector.vector * int * int -> int ;
+                val ts_ = _import "ml_send_offset" private : MLton.Pointer.t * Word8.word Vector.vector * int * int -> int ;
                 val n = bounds (Vector.length vec, start, num)
             in
                 if ts_ (!!r, vec, start, n) = n
@@ -166,7 +166,7 @@ struct
                   | 0 => NONE
                   | _ => raise SDLNet ("Receive error: " ^ geterror_ ())
             end
-        
+
         val readchar = Option.map (chr o Word8.toInt) o readbyte
 
         fun ('elt, 'vec, 'ga) readuntil
@@ -191,14 +191,14 @@ struct
                 loop ()
             end
 
-        val readcharuntil = readuntil GC.empty readchar GC.append 
+        val readcharuntil = readuntil GC.empty readchar GC.append
             (CharArray.vector o GC.finalize) (fn _ => true)
-        val readbyteuntil = readuntil G8.empty readbyte G8.append 
+        val readbyteuntil = readuntil G8.empty readbyte G8.append
             (Word8Array.vector o G8.finalize) (fn _ => true)
 
         fun readline r =
-            case readuntil GC.empty readchar GC.append 
-                (CharArray.vector o GC.finalize) (fn #"\r" => false | _ => true) 
+            case readuntil GC.empty readchar GC.append
+                (CharArray.vector o GC.finalize) (fn #"\r" => false | _ => true)
                 r (fn #"\n" => true | _ => false) of
                  (s, SOME _) => SOME s
                | ("", NONE) => NONE
