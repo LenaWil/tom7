@@ -33,6 +33,11 @@ sig
      if there is a timer edge between the calls. *)
   val now_and_look : 'evt cursor -> 'evt list * (int * 'evt) list
 
+  (* Nondestructive peek at the future. Returns the now time,
+     the base time against which the delta time for future events
+     is measured, and future events. *)
+  val peek : 'evt cursor -> int * int * (int * 'evt) list
+
   (* How many ticks are we behind real time? Always non-negative.
      Always 0 after calling nowevents, look, or cursor, until
      update is called again. *)
