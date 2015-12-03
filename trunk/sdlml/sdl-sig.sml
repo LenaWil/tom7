@@ -328,6 +328,7 @@ sig
 
   val flip : surface -> unit
 
+  (* Return the number of milliseconds since SDL started *)
   val getticks : unit -> Word32.word
   val delay : int -> unit
 
@@ -390,7 +391,7 @@ sig
   (* For f in [0.0, 1.0], we get f * c + (1.0 - f) * cc. *)
   val colormixfrac : color * color * real -> color
 
-  (* Blit a pixel with proper alpha compositing. XXX not implemented *)
+  (* Blit a pixel with proper alpha compositing. *)
   val blitpixel : surface * int * int * color -> unit
 
   (* x, y, width, height *)
@@ -418,6 +419,10 @@ sig
 
   structure Util :
   sig
+
+    (* Given a real between 0 and 1, darken all of the color channels
+       (scalar multiplication) except the alpha one. *)
+    val darken_color : color * real -> color
 
     (* Make an n-pixel border inside a surface *)
     val outline : surface * int * color -> unit

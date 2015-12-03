@@ -1518,6 +1518,16 @@ struct
   structure Util =
   struct
 
+    fun darken_color (c, scalar) =
+      let
+        val (r, g, b, a) = components c
+        val r = Word8.fromInt (Real.round (real (Word8.toInt r) * scalar))
+        val g = Word8.fromInt (Real.round (real (Word8.toInt g) * scalar))
+        val b = Word8.fromInt (Real.round (real (Word8.toInt b) * scalar))
+      in
+        color (r, g, b, a)
+      end
+
     fun surf2x src =
         let
             val dst = makesurface(2 * surface_width src,
@@ -1602,43 +1612,46 @@ struct
         | +  (* inverted / black *)
 
       fun make { w, hot_x, hot_y, pixels } =
-          let val p = Vector.fromList pixels
-              val h = Vector.length p div w
-          in
-              if Vector.length p <> w * h orelse (w mod 8 <> 0)
-              then raise SDL "pixels have to be length w*h"
-              else
-              let
-                  val d = Array.array ((w div 8) * h, 0w0)
-                  val m = Array.array ((w div 8) * h, 0w0)
-                  fun onepixel (x, y) =
-                    let val sh = (Int.-(7, x mod 8))
-                        val i = Int.+(y * (w div 8), x div 8)
-                        fun mask (b : Word8.word) =
-                            Array.update(m, i, Word8.orb (Array.sub (m, i),
-                                                          Word8.<< (b, Word.fromInt sh)))
-                        fun data (b : Word8.word) =
-                            Array.update(d, i, Word8.orb (Array.sub (d, i),
-                                                          Word8.<< (b, Word.fromInt sh)))
-                    in
-                        case Vector.sub (p, Int.+ (y * w, x)) of
-                            op O => (data 0w0; mask 0w1)
-                          | op X => (data 0w1; mask 0w1)
-                          | op - => (data 0w0; mask 0w0)
-                          | op + => (data 0w1; mask 0w0)
-                    end
+        let
+          val p = Vector.fromList pixels
+          val h = Vector.length p div w
+        in
+          if Vector.length p <> w * h orelse (w mod 8 <> 0)
+          then raise SDL "pixels have to be length w*h"
+          else
+          let
+            val d = Array.array ((w div 8) * h, 0w0)
+            val m = Array.array ((w div 8) * h, 0w0)
+            fun onepixel (x, y) =
+              let val sh = (Int.-(7, x mod 8))
+                  val i = Int.+(y * (w div 8), x div 8)
+                  fun mask (b : Word8.word) =
+                    Array.update(m, i,
+                                 Word8.orb (Array.sub (m, i),
+                                            Word8.<< (b, Word.fromInt sh)))
+                  fun data (b : Word8.word) =
+                    Array.update(d, i,
+                                 Word8.orb (Array.sub (d, i),
+                                            Word8.<< (b, Word.fromInt sh)))
               in
-                  Util.for 0 (Int.- (h, 1))
-                  (fn y =>
-                   Util.for 0 (Int.- (w, 1))
-                   (fn x =>
-                    onepixel (x, y)
-                    ));
-                  create_cursor { data = Array.vector d,
-                                  mask = Array.vector m,
-                                  w = w, h = h, hot_x = hot_x, hot_y = hot_y }
+                  case Vector.sub (p, Int.+ (y * w, x)) of
+                      op O => (data 0w0; mask 0w1)
+                    | op X => (data 0w1; mask 0w1)
+                    | op - => (data 0w0; mask 0w0)
+                    | op + => (data 0w1; mask 0w0)
               end
+          in
+            Util.for 0 (Int.- (h, 1))
+            (fn y =>
+             Util.for 0 (Int.- (w, 1))
+             (fn x =>
+              onepixel (x, y)
+              ));
+            create_cursor { data = Array.vector d,
+                            mask = Array.vector m,
+                            w = w, h = h, hot_x = hot_x, hot_y = hot_y }
           end
+        end
      end (* Cursor *)
 
   end (* Util *)
