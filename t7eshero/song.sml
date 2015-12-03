@@ -17,7 +17,9 @@ struct
   type gameevt = Match.label * MIDI.event
   type 'evt cursor = { lt : int ref, evts : (int * 'evt) list ref,
                        orig : (int * 'evt) list, loop : bool }
-  fun lag { lt = ref n, evts = _, orig = _, loop =_ } = now() - n
+  fun lag { lt = ref n, evts = _, orig = _, loop = _ } = now() - n
+
+  fun peek { lt, evts, orig = _, loop = _ } = (now (), !lt, !evts)
 
   (* move the cursor so that lt is now, updating the events as
      needed. *)

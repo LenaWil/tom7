@@ -26,5 +26,5 @@ cattlecallscore.mid : cattlecall.mid $(ALL)
 # also need bloody3 (or whatever that great one is) from castlevania!
 
 rexrocketscore.mid : rexrocket.mid $(ALL)
-	../genscore.exe -volscale 1.25 -history 5 -hammertime 25 $< 0 1 2 -o $@
+	../genscore.exe -volscale 1.25 -history 5 -hammertime 56 $< 0 1 2 5 -o $@
 

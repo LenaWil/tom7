@@ -82,9 +82,9 @@ struct
             Sound.all_off();
             doshow rest
           end
-      | doshow (Setlist.Interlude (m1, m2) :: rest) =
+      | doshow (Setlist.Interlude interlude :: rest) =
           let in
-            Interlude.loop profile (m1, m2);
+            Interlude.loop profile interlude;
             Sound.all_off();
             doshow rest
           end
@@ -107,7 +107,6 @@ struct
             (* Need to have a song in effect. *)
             val song = Setlist.getsong songid
           in
-            (* XXX unimplemented *)
             Minigame.game song;
             doshow rest
           end

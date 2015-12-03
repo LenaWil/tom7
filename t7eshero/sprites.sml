@@ -37,11 +37,15 @@ struct
     | SOME p => p
 
   fun requireimage2x f =
-      let val s = requireimage f
-      in
-          SDL.Util.surf2x s
-          before SDL.freesurface s
-      end
+    let val s = requireimage f
+    in
+      SDL.Util.surf2x s
+      before SDL.freesurface s
+    end
+
+  val hugebig = requireimage2x "hugebig.png"
+  val saskrotch = requireimage2x "saskrotch.png"
+  val fatbaby = requireimage2x "fatbaby.png"
 
   val solid = requireimage "solid.png"
 

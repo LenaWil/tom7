@@ -2,8 +2,6 @@
 Show #2, Fat Baby!!
 
 TODO important:
- - Make cattle call playable
- - Make rex rocket playable
  - Make sure it compiles and still works on OSX
  - Make setlist
  - Remove spurious printouts
@@ -11,18 +9,26 @@ TODO important:
  - Support for venue / boss graphics in setlist
  - On title screen, don't leave crumbs on right
 
- - projector screen
+ - sew luggage
+
+ - improve minigame:
+   - blink balls as they hit, to emphasize that this
+     is timed with the melody
+   - find a good song to use; something with lots
+     going on but a simple loud melody
 
 TODO nice:
  - "write failed." continuously on mac os"
  - New lights effects, like metronome, all on with beat
  - Make flashing background in time with music
- - Minigame
  - Fade out "previous" stats instead of disappearing
    * light patterns when streak, FC, etc.
  - When song is going badly, caption "audience booing"
+ - Extreme streak text
 
  - rutgers.mid!
+ - star crystal journey
+ - credits
 
 Song notes:
 
@@ -76,6 +82,32 @@ castlevania 3: Probably not -- too hard, not mine
 continuous tetris 2: YES. FCable
 vulgar fraction 3/4: Yes, maybe make harder??
 style="color: Good song; needs some volume adjustment. Runs out of mix channels. A bit long...
+jlw: yes, good
+kevin bowman: not good enough, pretty hard
+sensations: so good, but hard. plz fix
+rotor: fine simple song, very playable, different sounding
+agoode: too hard, not good enough
+now: no, too simple, hard to play (chords)
+petrolatum: YES! Great opening
+nausea: decent song, pretty easy to FC, maybe good for drums
+headcat: no. too cheesy and simple. fun to play though.
+hero abuse: no. would need work (too hard, volume issues, speed issues)
+samus: no. too hard, not good enough
+unauthorized: no. too hard, not good enough
+tornado: YES. FCable
+anaconda: NO. ridiculous
+an alley: no, too simple and monotonous
+jcreed: ok, probably not good enough to make cut
+comcast: no, bad
+glasgow haskell compiler: would need to be fixed; good song though
+ospd3: playable. not bad, but also not good enough.
+debra: maybe; pretty good song, playable
+puddin: not good enough song, certainly playable
+track and field: maybe -- different sounding, almost FCable; volume boost?
+ohio: NO
+passive aggressive: no, not interesting enough
+bpotetz: no
+
 
 could be fixed to work: 12%
 death row: is too long, terrible drum noise is constant?

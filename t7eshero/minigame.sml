@@ -2,6 +2,8 @@
 structure Minigame :> MINIGAME =
 struct
 
+  structure Font = Sprites.Font
+
   (* XXX clean up some of these copies that we don't need. *)
   datatype label = datatype Match.label
   exception Abort (* abort gameplay, return to menu *)
@@ -35,13 +37,13 @@ struct
                             val compare = ID.compare)
 
   val itos = Int.toString
-  val rtos = Real.fmt (StringCvt.FIX (SOME 2))
+  val rtos = Real.fmt (StringCvt.FIX (SOME 6))
 
   val DRAWTICKS = (* 128 *) 12
   val DISINTEGRATION_MS = 1000
 
   (* In MIDI ticks *)
-  val EMIT_AHEAD = 256
+  val EMIT_AHEAD = 1024
 
   exception EarlyExit
 
@@ -71,6 +73,9 @@ struct
   (* Pixels per tick per tick *)
   val GRAVITY = 0.0001
 
+  (* Minimum magnitude *)
+  val MIN_DY_TO_BOUNCE = 0.25
+
   val GAMEX = 0
   val GAMEY = 0
 
@@ -92,17 +97,7 @@ struct
       balls := nil;
       paddlex := 0.0;
       paddle_dx := 0.0;
-
-      (* XXX *)
-      balls := [{ x = 10.0, y = 0.0, halfwidth = 10,
-                  dx = 0.01, dy = 0.0,
-                  c = WHITE, state = Normal },
-                { x = 40.0, y = 0.0, halfwidth = 16,
-                  dx = 0.02, dy = 0.0,
-                  c = WHITE, state = Normal },
-                { x = 11.0, y = 0.0, halfwidth = 8,
-                  dx = ~0.02, dy = ~0.01,
-                  c = WHITE, state = Normal }];
+      allocated := IS.empty;
 
       ()
     end
@@ -157,26 +152,90 @@ struct
 
   (* Given a ball moving in this direction that we can reclaim,
      see if we can use it to allocate a note from the emit cursor. *)
-  fun reallocate cursor (x, y, dx, dy, halfwidth) = NONE
+  fun reallocate cursor (x, y, dx, dy, halfwidth) =
+    if Real.abs dy < MIN_DY_TO_BOUNCE
+    then NONE
+    else
+    let
+      val (now, base, evts) = Song.peek cursor
+      val dt_slack = now - base
+
+      val min_damped_dy = Real.abs (0.25 * dy)
+
+      fun findevent totaldt ((dt, (id, label, evt)) :: rest) =
+        let val totaldt = totaldt + dt
+        in
+          case (label, evt) of
+            (* Music (inst, track as 1) *)
+            (Score _, MIDI.NOTEON (ch, note, vel)) =>
+              if vel > 0
+              then
+                let
+                  (* see below:
+                     y = dy - (acc / 2) * time^2 + dy * time
+                     dy = distance/time - (acc/2) * time
+
+                     dy we'd need to hit this note: *)
+                  val dy_to_hit = 0.0 - (GRAVITY / 2.0) * real totaldt
+                in
+                  (* If we would have to speed up the ball, then
+                     no further events will work. *)
+                  if Real.abs dy_to_hit > Real.abs dy
+                  then NONE
+                  else if Real.abs dy_to_hit < min_damped_dy
+                       (* Too much damping; skip *)
+                       then findevent totaldt rest
+                       else
+                         let in
+                           (* Don't let regular emission cursor duplicate
+                              it. *)
+                           allocated := IS.add (!allocated, id);
+                           print ("Bounce with dy_to_hit " ^
+                                  rtos dy_to_hit ^ "\n");
+                           SOME (x, y, dx, dy_to_hit, halfwidth)
+                         end
+                end
+              else findevent totaldt rest
+          | _ => findevent totaldt rest
+        end
+        | findevent _ nil = NONE
+    in
+      findevent (* ~dt_slack *) 0 evts
+    end
 
   val mt = MT.init32 0wxF00D
 
   (* Given a delta time (number of midi ticks), spawn a random
      ball such that it reaches the paddle in time with the music. *)
-  fun allocate (dt, id, ch, note, vel, inst) =
+  fun allocate (dt, id, ch, note, vel) =
     let
       val halfwidth = 2 + vel div 10
-      val dropheight = real (PADDLEY - halfwidth)
-
       val color = Vector.sub (BALLCOLORS, ch mod Vector.length BALLCOLORS)
 
+      (* distance = (acc / 2) * time^2 + dy * time
+
+         acceleration is constant, dropheight is known,
+         and time is known. solve for initial velocity.
+
+         distance - (acc / 2) * time^2 = dy * time
+         (distance - (acc / 2) * time^2) / time = dy
+         distance/time - (acc / 2) * time = dy *)
+      val dropheight_pixels = real (PADDLEY - halfwidth)
+      val time_ticks = real dt
+      val dy_pixels_per_tick =
+        dropheight_pixels / time_ticks - (GRAVITY / 2.0) * time_ticks
     in
+      (*
+      print ("dist " ^ rtos dropheight_pixels ^ ", " ^
+             "time " ^ rtos time_ticks ^ ", " ^
+             "Spawned with dy = " ^ rtos dy_pixels_per_tick ^ "\n");
+      *)
       allocated := IS.add (!allocated, id);
-      (* XXX predict! *)
-      { x = real (MT.random_nat mt GAMEWIDTH),
+      (* XXX predict where the cursor will be and target it *)
+      { x = real GAMEWIDTH * (real (note mod 5) / 5.0),
         y = 0.0, halfwidth = halfwidth,
-        dx = real (MT.random_nat mt 100) / 1000.0,
-        dy = 0.0,
+        dx = real (MT.random_nat mt 100) / 250.0,
+        dy = dy_pixels_per_tick,
         c = color, state = Normal }
     end
 
@@ -192,23 +251,21 @@ struct
       (* XXX also use some future events... *)
       val (nows, future) = Song.now_and_look cursor
 
-      fun noteon (id, ch, note, vel, inst) =
+      fun noteon (id, ch, note, vel) =
         if IS.member (!allocated, id)
         then ()
-        else balls := allocate (EMIT_AHEAD, id, ch, note, vel, inst) :: !balls
+        else balls := allocate (EMIT_AHEAD, id, ch, note, vel) :: !balls
 
     in
       (* XXX use score? *)
       List.app
       (fn (id, label, evt) =>
-       case label of
-         Music (inst, track) =>
-           (case evt of
-              MIDI.NOTEON(ch, note, vel) =>
-                if vel > 0
-                then noteon (id, ch, note, vel, inst)
-                else ()
-            | _ => ())
+       case (label, evt) of
+         (* Music (inst, track as 1), MIDI.NOTEON(ch, note, vel) *)
+         (Score _, MIDI.NOTEON(ch, note, vel)) =>
+           if vel > 0
+           then noteon (id, ch, note, vel)
+           else ()
        | _ => ()) nows
     end
 
@@ -281,6 +338,8 @@ struct
          PERF: Don't need to fill parts that aren't being used...
          *)
       SDL.fillrect (screen, 0, 0, Sprites.width, Sprites.height, BLACK);
+
+      Font.draw (screen, GAMEX + GAMEWIDTH + 16, 4, "^3MINI GAME");
 
       SDL.fillrect (screen, GAMEX + Real.trunc (!paddlex), GAMEY + PADDLEY,
                     !paddlewidth, PADDLEHEIGHT,
