@@ -4,22 +4,25 @@ Show #2, Fat Baby!!
 TODO important:
  - Make cattle call playable
  - Make rex rocket playable
-- Make sure it compiles and still works on OSX
+ - Make sure it compiles and still works on OSX
  - Make setlist
  - Remove spurious printouts
 
  - Support for venue / boss graphics in setlist
  - On title screen, don't leave crumbs on right
 
+ - projector screen
+
 TODO nice:
  - "write failed." continuously on mac os"
  - New lights effects, like metronome, all on with beat
  - Make flashing background in time with music
- - 
+ - Minigame
  - Fade out "previous" stats instead of disappearing
    * light patterns when streak, FC, etc.
  - When song is going badly, caption "audience booing"
 
+ - rutgers.mid!
 
 Song notes:
 
@@ -32,7 +35,7 @@ Free: Slow ballad, doable but tricky, not amazing
 Octree: Good song, not long, quite hard
 Duel: Totally playable, but too sleepy of a song
 Gatorade: YES. So fun, good song, impressive
-Proof: Good song, too hard? (Make drums softer)
+Proof: Good song, too hard?
 TracyFan: Short, easy full combo, thick sound might be nice, but only mediocre song
 Pizza: Too hard at beginning
 F00F: Boring song
@@ -63,7 +66,7 @@ jeff sarnat: OK song, certainly playable
 spinal fluid: song's so good, probably needs to be made easier though
 dnd: ok song, midsection is too hard for me
 devin: too hard
-shaskell: too hard :(
+shaskell: too hard :(   [needs loop, slower, fix drum noise]
 stdafx.h: bad
 directx: not good enough, too hard
 eyes: maybe! doable, has a good twist in
@@ -106,7 +109,7 @@ Good chances:
   Nausea  (DRUMS)                                       79   s
   Spinal Fluid (GUITAR). Good, hard.                    54.1 s
   Silo (GUITAR) so fun!                                 27.6 s
-  I'm a Proof  (GUITAR). Hard but impressive.           36.1 s    (NEED DRUM FIX)
+  I'm a Proof  (GUITAR). Hard but impressive.           36.1 s
   Bloody3        (GUITAR)  Hard but impressive.         54   s   (cover...)
 
 Also consider from my hand:

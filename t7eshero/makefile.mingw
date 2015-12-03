@@ -1,7 +1,8 @@
 #                             -*- makefile -*-
 
-
-default : genscore.exe t7eshero.exe songs
+default : genscore.exe t7eshero.exe
+# songs
+all : genscore.exe t7eshero.exe songs
 
 
 SDLARCH=x86

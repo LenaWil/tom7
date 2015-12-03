@@ -21,8 +21,17 @@ sig
      events. *)
   val nowevents : 'evt cursor -> 'evt list
 
-  (* show the upcoming events from the cursor's perspective. *)
+  (* Discard events that have passed. Show the upcoming events from the
+     cursor's perspective. *)
   val look : 'evt cursor -> (int * 'evt) list
+
+  (* Get all the events, separated into those occurring now
+     and those occurring in the future. Advances the cursor to
+     right between these.
+
+     Note that calling nowevents() and then look() may drop events
+     if there is a timer edge between the calls. *)
+  val now_and_look : 'evt cursor -> 'evt list * (int * 'evt) list
 
   (* How many ticks are we behind real time? Always non-negative.
      Always 0 after calling nowevents, look, or cursor, until
