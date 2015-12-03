@@ -1,88 +1,85 @@
-(* ordset-sig.sml
+(* ord-set-sig.sml
  *
- * COPYRIGHT (c) 1993 by AT&T Bell Laboratories.  See COPYRIGHT file for details.
+ * COPYRIGHT (c) 1993 by AT&T Bell Laboratories.
+ * See COPYRIGHT file for details.
  *
  * Signature for a set of values with an order relation.
  *)
 
 signature ORD_SET =
-  sig
+sig
 
-    structure Key : ORD_KEY
+  structure Key : ORD_KEY
 
-    type item = Key.ord_key
-    type set
+  type item = Key.ord_key
+  type set
 
-    val empty : set
-        (* The empty set *)
+  (* The empty set *)
+  val empty : set
 
-    val singleton : item -> set
-        (* Create a singleton set *)
+  (* Create a singleton set *)
+  val singleton : item -> set
 
-    val add  : set * item -> set
-    val add' : item * set -> set
-        (* Insert an item. *)
+  (* Insert an item. *)
+  val add  : set * item -> set
+  val add' : item * set -> set
 
-    val addList : set * item list -> set
-        (* Insert items from list. *)
+  (* Insert items from list. *)
+  val addList : set * item list -> set
 
-    val delete : set * item -> set
-        (* Remove an item. Raise NotFound if not found. *)
+  (* Remove an item. Raise NotFound if not found. *)
+  val delete : set * item -> set
 
-    val member : set * item -> bool
-        (* Return true if and only if item is an element in the set *)
+  (* Return true if and only if item is an element in the set *)
+  val member : set * item -> bool
 
-    val isEmpty : set -> bool
-        (* Return true if and only if the set is empty *)
+  (* Return true if and only if the set is empty *)
+  val isEmpty : set -> bool
 
-    val equal : (set * set) -> bool
-        (* Return true if and only if the two sets are equal *)
+  (* Return true if and only if the two sets are equal *)
+  val equal : (set * set) -> bool
 
-    val compare : (set * set) -> order
-        (* does a lexical comparison of two sets *)
+  (* does a lexical comparison of two sets *)
+  val compare : (set * set) -> order
 
-    val isSubset : (set * set) -> bool
-        (* Return true if and only if the first set is a subset of the second *)
+  (* Return true if and only if the first set is a subset of the second *)
+  val isSubset : (set * set) -> bool
 
-    val numItems : set ->  int
-        (* Return the number of items in the table *)
+  (* Return the number of items in the table *)
+  val numItems : set ->  int
 
-    val listItems : set -> item list
-        (* Return an ordered list of the items in the set *)
+  (* Return an ordered list of the items in the set *)
+  val listItems : set -> item list
 
-    val union : set * set -> set
-        (* Union *)
+  (* Union *)
+  val union : set * set -> set
 
-    val intersection : set * set -> set
-        (* Intersection *)
+  (* Intersection *)
+  val intersection : set * set -> set
 
-    val difference : set * set -> set
-        (* Difference *)
+  (* Difference *)
+  val difference : set * set -> set
 
-    val map : (item -> item) -> set -> set
-        (* Create a new set by applying a map function to the elements
-         * of the set.
-         *)
-     
-    val app : (item -> unit) -> set -> unit
-        (* Apply a function to the entries of the set 
-         * in decreasing order
-         *)
+  (* Create a new set by applying a map function to the elements
+     of the set. *)
+  val map : (item -> item) -> set -> set
 
-    val foldl : (item * 'b -> 'b) -> 'b -> set -> 'b
-        (* Apply a folding function to the entries of the set 
-         * in increasing order
-         *)
+  (* Apply a function to the entries of the set
+     in decreasing order. *)
+  val app : (item -> unit) -> set -> unit
 
-    val foldr : (item * 'b -> 'b) -> 'b -> set -> 'b
-        (* Apply a folding function to the entries of the set 
-         * in decreasing order
-         *)
+  (* Apply a folding function to the entries of the set
+     in increasing order. *)
+  val foldl : (item * 'b -> 'b) -> 'b -> set -> 'b
 
-    val filter : (item -> bool) -> set -> set
+  (* Apply a folding function to the entries of the set
+     in decreasing order. *)
+  val foldr : (item * 'b -> 'b) -> 'b -> set -> 'b
 
-    val exists : (item -> bool) -> set -> bool
+  val filter : (item -> bool) -> set -> set
 
-    val find : (item -> bool) -> set -> item option
+  val exists : (item -> bool) -> set -> bool
 
-  end (* ORD_SET *)
+  val find : (item -> bool) -> set -> item option
+
+end
