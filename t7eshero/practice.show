@@ -1,4 +1,5 @@
 show | Practice | 1 Nov 2015
+song | msieglerscore.mid | nomiss | | #000000
 song | dramscore.mid | nomiss | | #000000
 song | methodscore.mid | nomiss | | #771991
 # song | rutgersscore.mid | nomis | | #771991
@@ -6,17 +7,17 @@ minigame | europescore.mid | nomiss | | #000000
 minigame | proofscore.mid | nomiss | | #000000
 song | rexrocketscore.mid | nomiss | | #777777
 song | cattlecallscore.mid | nomiss | | #552299
-song | vulgar34score.mid | nomiss | | #102030
-song | freedomscore.mid | nomiss | | #777777
-song | deathrowscore.mid | nomiss | | #CC00CC
-song | 12pctscore.mid | nomiss | | #CC00CC
-song | utsscore.mid | nomiss | | #CC00CC
-song | ic5score.mid | nomiss | | #CC00CC
-song | cupscore.mid | nomiss | | #789ABC
-song | salmonscore.mid | nomiss | | #123456
-song | stylebluescore.mid | nomiss | | random 100
-song | microchronographscore.mid | nomiss | | random 100
-song | manyhappyscore.mid | nomiss | | #000000
-song | gnocciscore.mid | nomiss | | #000000
+# song | vulgar34score.mid | nomiss | | #102030
+# song | freedomscore.mid | nomiss | | #777777
+# song | deathrowscore.mid | nomiss | | #CC00CC
+# song | 12pctscore.mid | nomiss | | #CC00CC
+# song | utsscore.mid | nomiss | | #CC00CC
+# song | ic5score.mid | nomiss | | #CC00CC
+# song | cupscore.mid | nomiss | | #789ABC
+# song | salmonscore.mid | nomiss | | #123456
+# song | stylebluescore.mid | nomiss | | random 100
+# song | microchronographscore.mid | nomiss | | random 100
+# song | manyhappyscore.mid | nomiss | | #000000
+# song | gnocciscore.mid | nomiss | | #000000
 song | tornadoscore.mid | nomiss | | random 70
 
