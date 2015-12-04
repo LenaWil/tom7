@@ -4,16 +4,17 @@ struct
   (* As SHA-1 binary data, 20 chars *)
   type songid = string
 
+  (* TODO: PERF: Cache the song data itself. *)
   (* using midi name for now *)
   type songinfo =
-      { file : string,
-        slowfactor : int,
-        hard : int,
-        fave : int,
-        title : string,
-        artist : string,
-        year : string,
-        id : songid }
+    { file : string,
+      slowfactor : int,
+      hard : int,
+      fave : int,
+      title : string,
+      artist : string,
+      year : string,
+      id : songid }
 
   datatype background =
       BG_SOLID of SDL.color
@@ -45,9 +46,9 @@ struct
                     background : background }
 
   type showinfo =
-      { name : string,
-        date : string,
-        parts : showpart list }
+    { name : string,
+      date : string,
+      parts : showpart list }
 
   (* XXX Should be some better way of indicating what songs are available,
      and updating that list (downloads) *)
@@ -56,7 +57,9 @@ struct
   val songfiles = [SONGS, SONGS_NONFREE]
 
   (* XXXX Definitely should do better than this! *)
-  val showfiles = ["belvederes.show", "practice.show"]
+  val showfiles = ["fatbaby.show",
+                   "practice.show",
+                   "belvederes.show"]
 
   val cmp = String.compare
   val eq = op =
@@ -134,15 +137,15 @@ struct
             SOME x => BG_RANDOM x
           | NONE => BG_RANDOM 50)
      | _ =>
-         case explode background of
-           [#"#", r, rr, g, gg, b, bb] =>
-             (case map Word8.fromString [implode [r, rr],
-                                         implode [g, gg],
-                                         implode [b, bb]] of
-                [SOME R, SOME G, SOME B] =>
-                  BG_SOLID (SDL.color (R, G, B, 0wxFF))
-              | _ => BG_SOLID (SDL.color (0wx33, 0wx0, 0wx0, 0wxFF)))
-         | _ => BG_SOLID (SDL.color (0wx33, 0wx0, 0wx0, 0wxFF)))
+       case explode background of
+         [#"#", r, rr, g, gg, b, bb] =>
+           (case map Word8.fromString [implode [r, rr],
+                                       implode [g, gg],
+                                       implode [b, bb]] of
+              [SOME R, SOME G, SOME B] =>
+                BG_SOLID (SDL.color (R, G, B, 0wxFF))
+            | _ => BG_SOLID (SDL.color (0wx33, 0wx0, 0wx0, 0wxFF)))
+       | _ => BG_SOLID (SDL.color (0wx33, 0wx0, 0wx0, 0wxFF)))
 
   fun parse_songlike Ctor (file, misses, drumbank, background) =
     (case SM.find (!files, file) of
@@ -165,11 +168,28 @@ struct
                    background = parse_background background })
          end)
 
+  (* XXX Maybe this should allow you to just name a file and
+     it will load it, but then we have some ownership and scaling
+     issues. *)
+  fun parse_graphic "" = NONE
+    | parse_graphic "fatbaby.png" = SOME Sprites.fatbaby
+    | parse_graphic "hugebig.png" = SOME Sprites.hugebig
+    | parse_graphic "saskrotch.png" = SOME Sprites.saskrotch
+    | parse_graphic g =
+    let in
+      print ("Unknown graphic " ^ g ^ ". Note it has to be explicitly " ^
+             "added to sprites.sml.\n");
+      NONE
+    end
+
   fun parseshow f =
     case getlines f of
       header :: lines =>
         let val parts = List.mapPartial
           (fn s =>
+           if StringUtil.matchhead "#" s
+           then NONE
+           else
            case map trim (String.fields (StringUtil.ischar #"|") s) of
              ["song", file, misses, drumbank, background] =>
                parse_songlike Song (file, misses, drumbank, background)
@@ -179,16 +199,20 @@ struct
            | ["ward"] => SOME Wardrobe
            | ["command", "wombon"] => SOME (Command WombOn)
            | ["command", "womboff"] => SOME (Command WombOff)
-           | ["interlude", m1, m2, bg] =>
-               SOME(Interlude { message1 = SOME m1,
-                                message2 = SOME m2,
-                                background = parse_background bg,
-                                robot = true,
-                                graphic = NONE })
+           | ["interlude", g, m1, m2, bg] =>
+               let val g = parse_graphic g
+               in
+                 SOME(Interlude { message1 = SOME m1,
+                                  message2 = SOME m2,
+                                  graphic = g,
+                                  background = parse_background bg,
+                                  robot = not (Option.isSome g) })
+               end
            | _ => (print ("(" ^ f ^ ") Bad line: " ^ s ^ "\n"); NONE)) lines
         in
           case map trim (String.fields (StringUtil.ischar #"|") header) of
-            ["show", name, date] => SOME { name = name, date = date, parts = parts }
+            ["show", name, date] =>
+              SOME { name = name, date = date, parts = parts }
           | _ => (print ("Bad show starting: " ^ header ^ "\n"); NONE)
         end
     | nil => (print ("Empty show: " ^ f ^ "\n"); NONE)

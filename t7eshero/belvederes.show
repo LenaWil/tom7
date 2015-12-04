@@ -4,20 +4,20 @@ command | womboff
 song | petrolscore.mid | | | #440000
 post
 command | wombon
-interlude | YOU GOT LASER | SUSPENSION WOMB | #220000
+interlude | | YOU GOT LASER | SUSPENSION WOMB | #220000
 song | gatoradescore.mid | | | #000044
 song | siloscore.mid | | | #440022
 song | jlwscore.mid | | | #123456
 song | ctetris2score.mid | | | #335500
 
 ward
-interlude | YOU GOT | DRUMS | #220000
+interlude | | YOU GOT | DRUMS | #220000
 song | leannescore.mid | nomiss | | #002200
 song | msieglerscore.mid | nomiss | | #110000
 song | nauseascore.mid | nomiss | | #222222
 
 ward
-interlude | DRUMS | WERE KIDNAPPED | #220000
+interlude | | DRUMS | WERE KIDNAPPED | #220000
 song | proofscore.mid | | | #771100
 song | macrosscore.mid | | | #187109
 song | foosscore.mid | | | #D7D7FF
@@ -26,15 +26,15 @@ song | ratheadscore.mid | | | #001100
 song | kakaoscore.mid | | | #110044
 
 post
-interlude | YOU RESCUED | DRUMS! | #220000
+interlude | | YOU RESCUED | DRUMS! | #220000
 song | tornadoscore.mid | nomiss | | #220000
 song | gnocciscore.mid | nomiss | | #000000
 
 ward
-interlude | WELCOME TO | WARP ZONE | #220000
+interlude | | WELCOME TO | WARP ZONE | #220000
 song | sensscore.mid | | | random 100
 song | sarnatscore.mid | | | #112341
 song | manyhappyscore.mid | | | #CCCC00
 song | googscore.mid | | | random 250
 post
-interlude | YOU'RE WINNER | THANK YOU  ;-) | #220000
+interlude | | YOU'RE WINNER | THANK YOU  ;-) | #220000

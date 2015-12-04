@@ -42,7 +42,7 @@ struct
   (* Stats end after this time. *)
   val statstime = ref (0w0 : Word32.word)
   val prev = ref (NONE : { song : string,
-                           allmedals : Hero.medal list,
+                           medals : Hero.medal list,
                            percent : real } option)
 
   fun settimesig (n, d) =
@@ -62,11 +62,11 @@ struct
       (case Stats.prev () of
          NONE => NONE
        | SOME { final = ref NONE, ... } => NONE (* ?? *)
-       | SOME { song, final = ref (SOME { percent, allmedals, ... }), ... } =>
+       | SOME { song, final = ref (SOME { percent, medals, ... }), ... } =>
            SOME { song = #title (Setlist.getsong song),
                   percent = percent,
-                  allmedals = allmedals });
-      if (totallevels > 1)
+                  medals = medals });
+      if totallevels > 1
       then progress := "^2level ^3" ^ Int.toString thislevel ^ "^2/^3" ^
                Int.toString totallevels
       else progress := ""
@@ -170,7 +170,7 @@ struct
 
       (* Prev stats. *)
       (case (now <= !statstime, !prev) of
-         (true, SOME { song, allmedals, percent }) =>
+         (true, SOME { song, medals, percent }) =>
            let in
              FontSmall.draw (screen, Sprites.gamewidth + 16,
                              Sprites.height - 128, "^3Last: ^0" ^ song);
@@ -184,7 +184,7 @@ struct
                                x, Sprites.height - 32, Sprites.medal1 m);
                 FontSmall.draw(screen,
                                x, Sprites.height - 16, Sprites.medal2 m)
-              end) allmedals;
+              end) medals;
 
              FontHuge.draw(screen, Sprites.width - (FontHuge.width * 4 + 8),
                            Sprites.height - 128,

@@ -9,8 +9,7 @@ struct
   structure FontHuge = Sprites.FontHuge
   structure SmallFont3x = Sprites.SmallFont3x
   structure SmallFont = Sprites.SmallFont
-  structure S = SDL
-  structure Joystick = S.Joystick
+  structure Joystick = SDL.Joystick
   datatype sdlk = datatype SDL.sdlk
   datatype event = datatype SDL.event
 
@@ -25,6 +24,7 @@ struct
 
   val PRECURSOR = 180
   val SLOWFACTOR = 5
+  val BLACK = SDL.color (0w0, 0w0, 0w0, 0wxFF)
 
   structure LM = ListMenuFn(val screen = screen)
   structure Configure = ConfigureFn(val screen = screen)
@@ -144,7 +144,7 @@ struct
       val X_ROBOT = 128
       val Y_ROBOT = 333
 
-      val nexta = ref (S.getticks ())
+      val nexta = ref (SDL.getticks ())
 
       (* it depends which device we click with for configuring *)
       fun select device =
@@ -162,7 +162,7 @@ struct
               end
 
       and input () =
-        case S.pollevent () of
+        case SDL.pollevent () of
             (* XXX Escape and cancel button should show a quit prompt *)
             SOME (E_KeyDown { sym = SDLK_ESCAPE }) => raise Hero.Exit
           | SOME E_Quit => raise Hero.Exit
@@ -253,88 +253,78 @@ struct
                            String.concat (map mstostring medals))
                 end
 
+          fun songlength song =
+            let
+              val (tracks : (int * (Match.label * MIDI.event)) list) =
+                Score.assemble (Setlist.getsong song)
+            in
+              (* now compute time in ticks = ms *)
+              real (MIDI.total_ticks tracks)
+            end
+
           (* XXX should go in Score? *)
           (* just count the songs. *)
           fun getlength { name, date, parts } =
             foldr op+ 0.0
             (List.mapPartial
-             (fn Setlist.Song { song, ... } =>
-              let
-                val { file, slowfactor, ... } =
-                    Setlist.getsong song
-
-                val (divi, thetracks) = Score.fromfile file
-                val divi = divi * slowfactor
-                val PREDELAY = 2 * divi (* ?? *)
-
-                val (tracks :
-                     (int * (Match.label * MIDI.event)) list list) =
-                  Score.label PREDELAY slowfactor thetracks
-                val tracks = Score.slow slowfactor (MIDI.merge tracks)
-                val tracks = Score.add_measures divi tracks
-                val tracks = Score.endify tracks
-                val (tracks : (int * (Match.label * MIDI.event)) list) =
-                  Score.delay PREDELAY tracks
-              in
-                (* now compute time in ticks = ms *)
-                SOME (real (MIDI.total_ticks tracks))
-              end
-              (* Assume 0 for other stuff *)
-              | _ => NONE) parts)
+             (fn Setlist.Song { song, ... } => SOME (songlength song)
+               | Setlist.Minigame { song, ... } => SOME (songlength song)
+               (* Assume 0 for other stuff *)
+               | _ => NONE) parts)
 
 
           val items : playitem list =
-              map Show (ListUtil.mapto getlength (Setlist.allshows())) @
-              map OneSong (ListUtil.mapto getrecords (Setlist.allsongs()))
+            map Show (ListUtil.mapto getlength (Setlist.allshows())) @
+            map OneSong (ListUtil.mapto getrecords (Setlist.allsongs()))
 
           (* For now, use same height. *)
           fun itemheight _ =
-              FontSmall.height + SmallFont.height + FontSmall.height + 10
+            FontSmall.height + SmallFont.height + FontSmall.height + 10
 
           fun drawitem (i, x, y, sel) =
-              let
-                  val y2 = y + 2 + FontSmall.height
-                  val y3 = y + 4 + FontSmall.height + SmallFont.height
-                  val y4 = y + 4 + FontSmall.height + SmallFont.height +
-                                   FontSmall.height + 2
+            let
+              val y2 = y + 2 + FontSmall.height
+              val y3 = y + 4 + FontSmall.height + SmallFont.height
+              val y4 = y + 4 + FontSmall.height + SmallFont.height +
+                FontSmall.height + 2
+            in
+              (case i of
+                   OneSong ({title, artist, year, ...} : Setlist.songinfo,
+                            (r, rs)) =>
+                   let in
+                       FontSmall.draw(screen, x + 2, y,
+                                      if sel then "^3" ^ title
+                                      else title);
 
-              in
-                  (case i of
-                       OneSong ({title, artist, year, ...} : Setlist.songinfo,
-                                (r, rs)) =>
-                       let in
-                           FontSmall.draw(screen, x + 2, y,
-                                          if sel then "^3" ^ title
-                                          else title);
+                       SmallFont.draw(screen, x + 2, y2,
+                                      "^4by ^0" ^ artist ^
+                                      " ^1(" ^ year ^ ")");
 
-                           SmallFont.draw(screen, x + 2, y2,
-                                          "^4by ^0" ^ artist ^
-                                          " ^1(" ^ year ^ ")");
+                       FontSmall.draw(screen, x + 42, y3,
+                                      if sel then rs() else r)
+                   end
+                 | Show ({ name, date, parts, ... }, ms) =>
+                   let
+                       val s = Real.trunc (ms / 1000.0)
+                       val m = s div 60
+                       val s = s mod 60
+                   in
+                       Font.draw(screen, x + 2, y,
+                                 if sel then "^3" ^ name
+                                 else name);
+                       FontSmall.draw(screen, x + 2, y2 + 10,
+                                      "^4" ^ date ^
+                                      " ^1(^0" ^
+                                      Int.toString m ^ "^1m^0" ^
+                                      Int.toString s ^ "^1s)")
+                   end);
+              if not sel
+              then SDL.fillrect(screen, x + 3, y4,
+                                WIDTH - 10, 2,
+                                SDL.color (0wx22, 0wx22, 0wx27, 0wxFF))
+              else ()
+            end
 
-                           FontSmall.draw(screen, x + 42, y3,
-                                          if sel then rs() else r)
-                       end
-                     | Show ({ name, date, parts, ... }, ms) =>
-                       let
-                           val s = Real.trunc (ms / 1000.0)
-                           val m = s div 60
-                           val s = s mod 60
-                       in
-                           Font.draw(screen, x + 2, y,
-                                     if sel then "^3" ^ name
-                                     else name);
-                           FontSmall.draw(screen, x + 2, y2 + 10,
-                                          "^4" ^ date ^
-                                          " ^1(^0" ^
-                                          Int.toString m ^ "^1m^0" ^
-                                          Int.toString s ^ "^1s)")
-                       end);
-                  if not sel
-                  then SDL.fillrect(screen, x + 3, y4,
-                                    WIDTH - 10, 2,
-                                    S.color (0wx22, 0wx22, 0wx27, 0wxFF))
-                  else ()
-              end
         in
           case LM.select
             { x = 8, y = 40,
@@ -344,7 +334,7 @@ struct
               drawitem = drawitem,
               itemheight = itemheight,
               bgcolor = SOME LM.DEFAULT_BGCOLOR,
-              selcolor = SOME (S.color (0wx44, 0wx44, 0wx77, 0wxFF)),
+              selcolor = SOME (SDL.color (0wx44, 0wx44, 0wx77, 0wxFF)),
               bordercolor = SOME LM.DEFAULT_BORDERCOLOR,
               parent = Drawable.drawable { draw = draw,
                                            heartbeat = heartbeat,
@@ -455,9 +445,9 @@ struct
             | drawitem (SelectOld p, x, y, sel) =
               let in
                   (* XXX also, draw border for it *)
-                S.fillrect(screen, x + 2, y + 2, 66, 66,
-                           S.color (0wxFF, 0wxFF, 0wxFF, 0wxFF));
-                S.blitall(Profile.surface p, screen, x + 4, y + 4);
+                SDL.fillrect(screen, x + 2, y + 2, 66, 66,
+                             SDL.color (0wxFF, 0wxFF, 0wxFF, 0wxFF));
+                SDL.blitall(Profile.surface p, screen, x + 4, y + 4);
                 FontSmall.draw(screen, x + 72, y + 4,
                                if sel then ("^3" ^ Profile.name p)
                                else Profile.name p)
@@ -474,7 +464,7 @@ struct
                            drawitem = drawitem,
                            itemheight = itemheight,
                            bgcolor = SOME LM.DEFAULT_BGCOLOR,
-                           selcolor = SOME (S.color
+                           selcolor = SOME (SDL.color
                                             (0wx55, 0wx22, 0wx00, 0wxFF)),
                            bordercolor = SOME LM.DEFAULT_BORDERCOLOR,
                            parent = this } of
@@ -489,14 +479,17 @@ struct
         let
           fun drawitem item =
             let val (f, x, y) = Vector.sub(Items.frames item, !humpframe)
-            in S.blitall(f, screen, X_ROBOT + x, Y_ROBOT + y)
+            in SDL.blitall(f, screen, X_ROBOT + x, Y_ROBOT + y)
             end
         in
-          S.blitall(Sprites.title, screen, 0, 0);
+          SDL.fillrect(screen, SDL.surface_width Sprites.title, 0,
+                       Sprites.width - SDL.surface_width Sprites.title,
+                       Sprites.height, BLACK);
+          SDL.blitall(Sprites.title, screen, 0, 0);
 
           Items.app_behind (Profile.outfit (!profile)) drawitem;
-          S.blitall(Vector.sub(Sprites.humps, !humpframe), screen,
-                    X_ROBOT, Y_ROBOT);
+          SDL.blitall(Vector.sub(Sprites.humps, !humpframe), screen,
+                      X_ROBOT, Y_ROBOT);
           Items.app_infront (Profile.outfit (!profile))
           (fn i => if Items.zindex i < 50
                    then drawitem i
@@ -527,7 +520,7 @@ struct
           val () = Song.update ()
           val () = Womb.maybenext womb_pattern
           val () = loopplay ()
-          val now = S.getticks ()
+          val now = SDL.getticks ()
         in
           if now > !nexta
           then (advance();
@@ -540,12 +533,12 @@ struct
         let
           val () = heartbeat ()
           val () = input ()
-          val now = S.getticks ()
+          val now = SDL.getticks ()
         in
           (if now > !nextd
            then (draw ();
                  nextd := now + Hero.MENUTICKS;
-                 S.flip screen)
+                 SDL.flip screen)
            else ());
            go ()
         end
