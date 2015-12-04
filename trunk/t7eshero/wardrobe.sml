@@ -66,8 +66,7 @@ struct
                  | _ => print ("unknown music event: " ^ MIDI.etos evt ^ "\n"))
             | _ => ()))
               nows
-          end
-
+        end
 
       and draw () =
         let
@@ -80,21 +79,12 @@ struct
             end
 
           val closet = Profile.closet profile
-
-          val c = ref 100
         in
           blitall(background, screen, 0, 0);
           Items.app_behind (!outfit) drawitem;
           blitall(Vector.sub(Sprites.humps, !humpframe), screen,
                   X_ROBOT, Y_ROBOT);
           Items.app_infront (!outfit) drawitem;
-
-          (* XXX is this necessary? *)
-          List.app (fn item =>
-                    let in
-                      FontSmall.draw(screen, 10, !c, Items.name item);
-                      c := FontSmall.height + !c
-                    end) closet;
           ()
         end
 

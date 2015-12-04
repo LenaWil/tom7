@@ -4,7 +4,7 @@
 structure Interlude :> INTERLUDE =
 struct
 
-  open SDL
+  (* open SDL *)
   structure FontSmall = Sprites.FontSmall
   structure Font = Sprites.Font
   structure FontMax = Sprites.FontMax
@@ -84,7 +84,7 @@ struct
 
           fun drawitem item =
             let val (f, x, y) = Vector.sub(Items.frames item, !humpframe)
-            in blitall(f, screen, X_ROBOT + x, Y_ROBOT + y)
+            in SDL.blitall(f, screen, X_ROBOT + x, Y_ROBOT + y)
             end
 
           val closet = Profile.closet profile
@@ -95,34 +95,51 @@ struct
                          (Sprites.width - FontMax.sizex_plain msg) div 2,
                          y, Chars.fancy msg);
         in
-          SDL.fillrect (screen, 0, 0, Sprites.width, Sprites.height,
-                        SDL.color (0wx22, 0wx00, 0wx00, 0wxFF));
-          Items.app_behind (!outfit) drawitem;
-          blitall(Vector.sub(Sprites.humps, !humpframe), screen,
-                  X_ROBOT, Y_ROBOT);
-          Items.app_infront (!outfit) drawitem;
+          (case background of
+             Setlist.BG_SOLID c =>
+               SDL.fillrect (screen, 0, 0, Sprites.width, Sprites.height, c)
+           (* XXX procedural backgrounds not supported here... *)
+           | _ =>
+               SDL.fillrect (screen, 0, 0, Sprites.width, Sprites.height,
+                             SDL.color (0wx22, 0wx00, 0wx00, 0wxFF)));
+
+          (if robot
+           then
+             let in
+               Items.app_behind (!outfit) drawitem;
+               SDL.blitall(Vector.sub(Sprites.humps, !humpframe), screen,
+                           X_ROBOT, Y_ROBOT);
+               Items.app_infront (!outfit) drawitem
+             end
+           else ());
+
+          (case graphic of
+             NONE => ()
+           | SOME g =>
+               SDL.blitall (g, screen,
+                            (Sprites.width - SDL.surface_width g) div 2,
+                            (Sprites.height - SDL.surface_height g) div 2));
 
           (* and messages. *)
           drawmsg 16 message1;
           drawmsg ((Sprites.height - 16) - FontMax.height) message2;
 
-          (* XXX possibly graphic? *)
           ()
         end
 
       and advance () =
         let in
-            (* XXX should pause on first, last frames a bit *)
-            (if !humprev
-             then humpframe := !humpframe - 1
-             else humpframe := !humpframe + 1);
-            (if !humpframe < 0
-             then (humpframe := 0; humprev := false)
-             else ());
-            (if !humpframe >= Vector.length Sprites.humps
-             then (humpframe := (Vector.length Sprites.humps - 1);
-                   humprev := true)
-             else ())
+          (* XXX should pause on first, last frames a bit *)
+          (if !humprev
+           then humpframe := !humpframe - 1
+           else humpframe := !humpframe + 1);
+          (if !humpframe < 0
+           then (humpframe := 0; humprev := false)
+           else ());
+          (if !humpframe >= Vector.length Sprites.humps
+           then (humpframe := (Vector.length Sprites.humps - 1);
+                 humprev := true)
+           else ())
         end
 
       and heartbeat () =
@@ -130,7 +147,7 @@ struct
           val () = Song.update ()
           val () = Womb.maybenext womb_pattern
           val () = loopplay ()
-          val now = getticks ()
+          val now = SDL.getticks ()
         in
           if now > !nexta
           then (advance();
@@ -139,10 +156,10 @@ struct
         end
 
       and input () =
-        case pollevent () of
-            SOME (E_KeyDown { sym = SDLK_ESCAPE }) => raise Done
-          | SOME E_Quit => raise Hero.Exit
-          | SOME (E_KeyDown { sym = SDLK_ENTER }) => exit()
+        case SDL.pollevent () of
+            SOME (SDL.E_KeyDown { sym = SDL.SDLK_ESCAPE }) => exit()
+          | SOME SDL.E_Quit => raise Hero.Exit
+          | SOME (SDL.E_KeyDown { sym = SDL.SDLK_RETURN }) => exit()
           | SOME e =>
             (case Input.map e of
                SOME (_, Input.ButtonDown b) => exit()
@@ -157,12 +174,12 @@ struct
         let
           val () = heartbeat ()
           val () = input ()
-          val now = getticks ()
+          val now = SDL.getticks ()
         in
           (if now > !nextd
            then (draw ();
                  nextd := now + MENUTICKS;
-                 flip screen)
+                 SDL.flip screen)
            else ());
            go ()
         end

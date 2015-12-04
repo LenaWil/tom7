@@ -41,31 +41,31 @@ struct
     fun doshow nil = ()
       | doshow ((Setlist.Song { song = songid, misses,
                                 drumbank, background }) :: rest) =
-       (let
-          val () = level := !level + 1
-          (* should be done by conscientious predecessor *)
-          val () = Sound.all_off ()
-          (* Need to have a song in effect. *)
-          val () = Stats.push songid
+      let
+        val () = level := !level + 1
+        (* should be done by conscientious predecessor *)
+        val () = Sound.all_off ()
+        (* Need to have a song in effect. *)
+        val () = Stats.push songid
 
-          val song = Setlist.getsong songid
+        val song = Setlist.getsong songid
 
-          (* XXX can move a bunch of this into Play itself. *)
-          val () = Play.Scene.background := background
-          val () = Play.Scene.initfromsong (song, !level, total_levels)
+        (* XXX can move a bunch of this into Play itself. *)
+        val () = Play.Scene.background := background
+        val () = Play.Scene.initfromsong (song, !level, total_levels)
 
-          val tracks = Score.assemble song
+        val tracks = Score.assemble song
 
-          val () = Play.play (misses, tracks)
+        val () = Play.play (misses, tracks)
 
 
-          val () = Stats.finish tracks profile
+        val () = Stats.finish tracks profile
 
-          val () = Sound.all_off ()
-          val () = Sound.seteffect 0.0
-        in
-          doshow rest
-        end)
+        val () = Sound.all_off ()
+        val () = Sound.seteffect 0.0
+      in
+        doshow rest
+      end
       | doshow (Setlist.Postmortem :: rest) =
           if Stats.has ()
           then

@@ -1,0 +1,87 @@
+show | Fat Baby | 4 Dec 2015
+
+command | womboff
+interlude | fatbaby.png | | | #000000
+song | petrolscore.mid | | | #440000
+post
+
+command | wombon
+interlude | | YOU GOT LASER | SUSPENSION WOMB | #220000
+song | gatoradescore.mid | | | #000044
+
+song | jlwscore.mid | | | #123456
+song | ctetris2score.mid | | | #335500
+
+ward
+interlude | | YOU GOT | DRUMS | #220000
+
+song | msieglerscore.mid | nomiss | | #110000
+
+interlude | | DRUMS | WERE KIDNAPPED | #220000
+song | dramscore.mid | | | #123456
+interlude | saskrotch.png | BOSS FIGHT | SASKROTCH | #000000
+song | rexrocketscore.mid | | | random 250
+
+song | macrosscore.mid | | | #187109
+# cool down
+song | banshee.mid | | | #DDFFDD
+
+# XXX make easier!!
+song | spinalscore.mid | | | #341251
+# cool down
+song | nivscore.mid | | | #668866
+
+song | stylebluescore.mid | | | #898133
+
+# When?
+minigame | proofscore.mid | | | #771100
+# good song, but replaceable.
+song | kakaoscore.mid | | | #110044
+
+# (more songs here)
+
+
+interlude | | YOU RESCUED | DRUMS! | #220000
+# with drums really?
+song | tornadoscore.mid | nomiss | | #220000
+
+
+interlude | hugebig.png | BOSS FIGHT | HUGE BIG BOY | #000000
+song | cattlecallscore.mid | | | #000055
+post
+
+# cool-down
+song | freedomscore.mid | | | #000000
+
+# boss fight self? methodscore.mid
+
+interlude | | WELCOME TO | WARP ZONE | #220000
+song | sensscore.mid | | | random 100
+song | manyhappyscore.mid | | | #CCCC00
+song | googscore.mid | | | random 250
+post
+interlude | | YOU'RE WINNER | THANK YOU  ;-) | #220000
+
+
+# DELETED.
+
+# replaceable
+# song | siloscore.mid | | | #440022
+
+# replaceable
+# song | sarnatscore.mid | | | #112341
+
+# probably replace
+# song | gnocciscore.mid | nomiss | | #000000
+
+# replaceable
+# song | foosscore.mid | | | #D7D7FF
+
+# XXX replace
+# song | leannescore.mid | nomiss | | #002200
+
+# cakewalk, replace
+# song | ratheadscore.mid | | | #001100
+
+# replaceable?
+# song | nauseascore.mid | nomiss | | #222222

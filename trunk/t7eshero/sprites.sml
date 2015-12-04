@@ -43,9 +43,16 @@ struct
       before SDL.freesurface s
     end
 
-  val hugebig = requireimage2x "hugebig.png"
-  val saskrotch = requireimage2x "saskrotch.png"
-  val fatbaby = requireimage2x "fatbaby.png"
+  fun requireimage3x f =
+    let val s = requireimage f
+    in
+      SDL.Util.surf3x s
+      before SDL.freesurface s
+    end
+
+  val hugebig = requireimage3x "hugebig.png"
+  val saskrotch = requireimage3x "saskrotch.png"
+  val fatbaby = requireimage3x "fatbaby.png"
 
   val solid = requireimage "solid.png"
 
@@ -126,9 +133,10 @@ struct
 
   val missed = requireimage "missed.png"
 
-  val fingers = Vector.tabulate(Hero.FINGERS,
-                                (fn i =>
-                                 requireimage ("finger" ^ Int.toString i ^ ".png")))
+  val fingers = Vector.tabulate
+    (Hero.FINGERS,
+     (fn i =>
+      requireimage ("finger" ^ Int.toString i ^ ".png")))
 
   val title = requireimage "title.png"
   val humps = Vector.fromList(map requireimage ["hump1.png",
@@ -151,8 +159,8 @@ struct
   structure SmallFont =
   FontFn (val surf = requireimage "fontsmall.png"
           val charmap =
-              " ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789" ^
-              "`-=[]\\;',./~!@#$%^&*()_+{}|:\"<>?" (* \" *)
+            " ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789" ^
+            "`-=[]\\;',./~!@#$%^&*()_+{}|:\"<>?" (* \" *)
           val width = 6
           val height = 6
           val styles = 6
@@ -162,8 +170,8 @@ struct
   structure SmallFont3x =
   FontFn (val surf = requireimage "smallfont3x.png"
           val charmap =
-              " ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789" ^
-              "`-=[]\\;',./~!@#$%^&*()_+{}|:\"<>?" (* \" *)
+            " ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789" ^
+            "`-=[]\\;',./~!@#$%^&*()_+{}|:\"<>?" (* \" *)
           val width = 18
           val height = 18
           val styles = 6
@@ -173,8 +181,8 @@ struct
   structure FontSmall =
   FontFn (val surf = requireimage "font.png"
           val charmap =
-              " ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789" ^
-              "`-=[]\\;',./~!@#$%^&*()_+{}|:\"<>?" (* \" *) ^ Chars.chars
+            " ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789" ^
+            "`-=[]\\;',./~!@#$%^&*()_+{}|:\"<>?" (* \" *) ^ Chars.chars
           val width = 9
           val height = 16
           val styles = 7
@@ -184,8 +192,8 @@ struct
   structure Font =
   FontFn (val surf = requireimage "fontbig.png"
           val charmap =
-              " ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789" ^
-              "`-=[]\\;',./~!@#$%^&*()_+{}|:\"<>?" (* \" *) ^ Chars.chars
+            " ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789" ^
+            "`-=[]\\;',./~!@#$%^&*()_+{}|:\"<>?" (* \" *) ^ Chars.chars
           val width = 18
           val height = 32
           val styles = 7

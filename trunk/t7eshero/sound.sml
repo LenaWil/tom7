@@ -176,7 +176,7 @@ struct
                                  use sample index. *)
                               if (inst >= SAMPLER_OFFSET)
                               then
-                                  if n <= 0 orelse n >= 128
+                                  if n < 0 orelse n >= 128
                                   then raise Sound "sampler index out of range"
                                   else setfreq(i, n, v, inst)
                               else setfreq(i, pitchof n, v, inst);

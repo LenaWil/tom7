@@ -6,11 +6,6 @@ TODO important:
  - Make setlist
  - Remove spurious printouts
 
- - Support for venue / boss graphics in setlist
- - On title screen, don't leave crumbs on right
-
- - sew luggage
-
  - improve minigame:
    - blink balls as they hit, to emphasize that this
      is timed with the melody
@@ -25,10 +20,14 @@ TODO nice:
    * light patterns when streak, FC, etc.
  - When song is going badly, caption "audience booing"
  - Extreme streak text
+ - more items for wardrobe, relevant to show or attendees
+
+ - bug where spans stick around in scene when song starts?
 
  - rutgers.mid!
  - star crystal journey
  - credits
+
 
 Song notes:
 
