@@ -11,6 +11,9 @@ ALL = ../genscore.exe
 
 # add more...
 
+sensscore.mid : sensations.mid $(ALL)
+	../genscore.exe -history 5 -hammertime 26 $< 0 1 5 -o $@
+
 googscore.mid : goog.mid $(ALL)
 	../genscore.exe -watermark 5 -noxmeasure -history 4 -hammertime 26 $< 0 2 4 5 7 8 -o $@
 # XXXXXX
