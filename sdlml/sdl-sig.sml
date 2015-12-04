@@ -445,6 +445,8 @@ sig
     (* make a surface twice as wide and twice as tall, doing nearest-neighbor
        interpolation. *)
     val surf2x : surface -> surface
+    (* Same, thrice *)
+    val surf3x : surface -> surface
 
     val blit16x : surface * int * int * int * int  * surface * int * int -> unit
 

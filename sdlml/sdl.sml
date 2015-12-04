@@ -1529,19 +1529,34 @@ struct
       end
 
     fun surf2x src =
-        let
-            val dst = makesurface(2 * surface_width src,
-                                  2 * surface_height src)
-        in
-            Util.for 0 (surface_height src - 1)
-            (fn yy =>
-             Util.for 0 (surface_width src - 1)
-             (fn xx =>
-              let val color = getpixel(src, xx, yy)
-              in fillrect(dst, xx * 2, yy * 2, 2, 2, color)
-              end));
-            dst
-        end
+      let
+        val dst = makesurface(2 * surface_width src,
+                              2 * surface_height src)
+      in
+        Util.for 0 (surface_height src - 1)
+        (fn yy =>
+         Util.for 0 (surface_width src - 1)
+         (fn xx =>
+          let val color = getpixel(src, xx, yy)
+          in fillrect(dst, xx * 2, yy * 2, 2, 2, color)
+          end));
+        dst
+      end
+
+    fun surf3x src =
+      let
+        val dst = makesurface(3 * surface_width src,
+                              3 * surface_height src)
+      in
+        Util.for 0 (surface_height src - 1)
+        (fn yy =>
+         Util.for 0 (surface_width src - 1)
+         (fn xx =>
+          let val color = getpixel(src, xx, yy)
+          in fillrect(dst, xx * 3, yy * 3, 3, 3, color)
+          end));
+        dst
+      end
 
     local val ad = _import "ml_alphadim" private : ptr -> ptr ;
     in
