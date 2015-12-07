@@ -1,5 +1,7 @@
 
 (* Serialization utils. Generates and parses strings. *)
+(* XXX This can maybe be removed now that we're using
+   textformat? *)
 structure Serialize (* XXX sig *) =
 struct
 
