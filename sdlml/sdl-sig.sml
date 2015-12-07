@@ -423,6 +423,9 @@ sig
     (* Given a real between 0 and 1, darken all of the color channels
        (scalar multiplication) except the alpha one. *)
     val darken_color : color * real -> color
+    (* Same idea, but mixing with white. Here, 1.0 means totally white
+       and 0.0 means the original color. *)
+    val lighten_color : color * real -> color
 
     (* Make an n-pixel border inside a surface *)
     val outline : surface * int * color -> unit

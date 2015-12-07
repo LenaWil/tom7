@@ -1282,12 +1282,12 @@ struct
   (* PERF don't need bresenham complexity to do this; pretty easy to pre-clip.
      draws corners multiple times *)
   fun drawbox (surf, x0, y0, x1, y1, c) =
-      let in
-          drawline (surf, x0, y0, x1, y0, c);
-          drawline (surf, x1, y0, x1, y1, c);
-          drawline (surf, x0, y1, x1, y1, c);
-          drawline (surf, x0, y0, x0, y1, c)
-      end
+    let in
+      drawline (surf, x0, y0, x1, y0, c);
+      drawline (surf, x1, y0, x1, y1, c);
+      drawline (surf, x0, y1, x1, y1, c);
+      drawline (surf, x0, y0, x0, y1, c)
+    end
 
 
   (* PERF: similar *)
@@ -1526,6 +1526,28 @@ struct
         val b = Word8.fromInt (Real.round (real (Word8.toInt b) * scalar))
       in
         color (r, g, b, a)
+      end
+
+    fun lighten_color (c, scalar) =
+      let
+        val (r, g, b, a) = components c
+        val omscalar = 1.0 - scalar
+        fun one x =
+          let
+            val i = Word8.toInt x
+            val cpart = omscalar * real i
+            val wpart = scalar
+            (* XXX 255 is probably wrong here since only
+               0.5 of the spectrum is allocated to it, but
+               should it really be 255.5? *)
+            val i = Real.round ((cpart + wpart) * 255.0)
+          in
+            if i < 0 then 0w0
+            else if i > 255 then 0wxFF
+                 else Word8.fromInt i
+          end
+      in
+        color (one r, one g, one b, a)
       end
 
     fun surf2x src =
