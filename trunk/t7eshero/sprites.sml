@@ -13,7 +13,7 @@ struct
 
 (*  val screen = SDL.makefullscreen (width, height) *)
       (* XXX control by commandline flag *)
-(*
+
   val FORCE_FULLSCREEN = true
   val screen =
       case SDL.platform of
@@ -21,9 +21,9 @@ struct
         | _ => if FORCE_FULLSCREEN
                then SDL.makefullscreen (width, height)
                else SDL.makescreen (width, height)
-*)
+(*
   val screen = SDL.makescreen (width, height)
-
+*)
   val () = Hero.messagebox (Posix.FileSys.getcwd ())
 
   (* distance of nut (on-tempo target bar) from bottom of screen *)

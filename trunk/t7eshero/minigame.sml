@@ -41,6 +41,8 @@ struct
 
   val DRAWTICKS = (* 128 *) 12
   val DISINTEGRATION_MS = 1000
+  val HIGHLIGHT_MS = 250
+  val BOX_MS = 250
 
   (* In MIDI ticks *)
   val EMIT_AHEAD = 1024
@@ -80,7 +82,9 @@ struct
   val GAMEY = 0
 
   datatype ballstate =
-    Normal
+    (* Frames left until unfiltered color *)
+    Normal of int
+    (* Frames left until disappearing *)
   | Disintegrating of int
   type ball = { x : real, y : real,
                 dx : real, dy : real,
@@ -88,7 +92,12 @@ struct
                 c : SDL.color,
                 state : ballstate }
 
+  type box = { x : real, y : real,
+               halfwidth : real,
+               framesleft : int }
+
   val balls = ref (nil : ball list)
+  val boxes = ref (nil : box list)
 
   val allocated = ref IS.empty
 
@@ -224,6 +233,7 @@ struct
       val time_ticks = real dt
       val dy_pixels_per_tick =
         dropheight_pixels / time_ticks - (GRAVITY / 2.0) * time_ticks
+
     in
       (*
       print ("dist " ^ rtos dropheight_pixels ^ ", " ^
@@ -231,12 +241,15 @@ struct
              "Spawned with dy = " ^ rtos dy_pixels_per_tick ^ "\n");
       *)
       allocated := IS.add (!allocated, id);
+
       (* XXX predict where the cursor will be and target it *)
       { x = real GAMEWIDTH * (real (note mod 5) / 5.0),
         y = 0.0, halfwidth = halfwidth,
         dx = real (MT.random_nat mt 100) / 250.0,
         dy = dy_pixels_per_tick,
-        c = color, state = Normal }
+        c = color,
+        (* Newly spawned balls don't get highlight *)
+        state = Normal 0 }
     end
 
   (* This one emits balls so that they reach the paddle at the
@@ -314,6 +327,20 @@ struct
 
   fun dodraw () =
     let
+      fun drawbox ({ x, y, halfwidth, framesleft, ... } : box) =
+        let
+          val doneness = 1.0 - (real framesleft / real BOX_MS)
+
+          val hw = halfwidth * (1.0 + 2.0 * doneness)
+          val x0 = GAMEX + Real.round (x - hw)
+          val x1 = GAMEX + Real.round (x + hw)
+          val y0 = GAMEY + Real.round (y - hw)
+          val y1 = GAMEY + Real.round (y + hw)
+          val c = SDL.Util.darken_color (WHITE, 1.0 - doneness)
+        in
+          SDL.drawbox (screen, x0, y0, x1, y1, c)
+        end
+
       fun drawball ({ x, y, c, halfwidth, state, ... } : ball) =
         let
           val x = GAMEX + Real.round x
@@ -325,7 +352,11 @@ struct
               SDL.Util.darken_color (c,
                                      0.8 * real n /
                                      real DISINTEGRATION_MS)
-            | _ => c
+          | Normal 0 => c
+          | Normal n =>
+              SDL.Util.lighten_color (c,
+                                      0.95 * real n /
+                                      real HIGHLIGHT_MS)
         in
           (* Note, this doesn't clip on the right edge, and wouldn't
              on other sides if they weren't the same as the screen. *)
@@ -340,6 +371,9 @@ struct
       SDL.fillrect (screen, 0, 0, Sprites.width, Sprites.height, BLACK);
 
       Font.draw (screen, GAMEX + GAMEWIDTH + 16, 4, "^3MINI GAME");
+
+      (* Draws some dark lines so put under the paddle. *)
+      app drawbox (!boxes);
 
       SDL.fillrect (screen, GAMEX + Real.trunc (!paddlex), GAMEY + PADDLEY,
                     !paddlewidth, PADDLEHEIGHT,
@@ -383,25 +417,35 @@ struct
              that timed out above. *)
           val state = case state of
             Disintegrating n => Disintegrating (n - 1)
-          | other => other
+          | Normal 0 => Normal 0
+          | Normal n => Normal (n - 1)
 
           fun bounce (y, dy) =
             (* First, if it's already disintegrating, let it bounce
                but don't resurrect. *)
             case state of
+              (* No corresponding note -- no ripple box! *)
               Disintegrating n =>
                 { x = x, y = y, dx = dx, dy = dy, halfwidth = halfwidth,
                   c = c, state = state } :: runballs rest
-            | Normal =>
-                case reallocate emit_cursor (x, y, dx, dy, halfwidth) of
-                  SOME (x, y, dx, dy, halfwidth) =>
-                    { x = x, y = y, dx = dx, dy = dy, halfwidth = halfwidth,
-                      c = c, state = Normal } :: runballs rest
-                | NONE =>
-                    (* If we can't reallocate it, then it disintegrates. *)
-                    { x = x, y = y, dx = dx, dy = dy, halfwidth = halfwidth,
-                      c = c, state = Disintegrating DISINTEGRATION_MS } ::
-                    runballs rest
+            | Normal _ =>
+                let in
+                  (* Since it was normal, it had a note associated
+                     with it. Draw a ripple box. *)
+                  boxes := { x = x, y = y,
+                             halfwidth = real halfwidth,
+                             framesleft = BOX_MS } :: !boxes;
+                  (* Then see how it lives on. *)
+                  case reallocate emit_cursor (x, y, dx, dy, halfwidth) of
+                    SOME (x, y, dx, dy, halfwidth) =>
+                      { x = x, y = y, dx = dx, dy = dy, halfwidth = halfwidth,
+                        c = c, state = Normal HIGHLIGHT_MS } :: runballs rest
+                  | NONE =>
+                      (* If we can't reallocate it, then it disintegrates. *)
+                      { x = x, y = y, dx = dx, dy = dy, halfwidth = halfwidth,
+                        c = c, state = Disintegrating DISINTEGRATION_MS } ::
+                      runballs rest
+                end
         in
           (* If it's gone off the bottom of the screen, it's
              never coming back. *)
@@ -427,6 +471,10 @@ struct
                    c = c, state = state } :: runballs rest
         end
 
+      fun runbox ({ framesleft = 0, ... } : box) = NONE
+        | runbox { framesleft, x, y, halfwidth } =
+        SOME { framesleft = framesleft - 1,
+               x = x, y = y, halfwidth = halfwidth }
     in
       paddlex := !paddlex + !paddle_dx;
       (if !paddlex < 0.0 then paddlex := 0.0
@@ -434,6 +482,7 @@ struct
             then paddlex := real (GAMEWIDTH - !paddlewidth)
             else ());
       balls := runballs (!balls);
+      boxes := List.mapPartial runbox (!boxes);
       ()
     end
 

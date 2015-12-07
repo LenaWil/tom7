@@ -24,7 +24,9 @@ song | rexrocketscore.mid | | | random 250
 
 song | macrosscore.mid | | | #187109
 # cool down
-song | banshee.mid | | | #DDFFDD
+song | bansheescore.mid | | | #DDFFDD
+
+song | siloscore.mid | | | #440022
 
 # XXX make easier!!
 song | spinalscore.mid | | | #341251
@@ -46,14 +48,19 @@ interlude | | YOU RESCUED | DRUMS! | #220000
 song | tornadoscore.mid | nomiss | | #220000
 
 
+song | ratheadscore.mid | | | #001100
+song | foosscore.mid | | | #D7D7FF
+
+
 interlude | hugebig.png | BOSS FIGHT | HUGE BIG BOY | #000000
 song | cattlecallscore.mid | | | #000055
 post
 
 # cool-down
 song | freedomscore.mid | | | #000000
-
 # boss fight self? methodscore.mid
+song | methodscore.mid | nomiss | | #775522
+
 
 interlude | | WELCOME TO | WARP ZONE | #220000
 song | sensscore.mid | | | random 100
@@ -66,7 +73,6 @@ interlude | | YOU'RE WINNER | THANK YOU  ;-) | #220000
 # DELETED.
 
 # replaceable
-# song | siloscore.mid | | | #440022
 
 # replaceable
 # song | sarnatscore.mid | | | #112341
@@ -75,13 +81,14 @@ interlude | | YOU'RE WINNER | THANK YOU  ;-) | #220000
 # song | gnocciscore.mid | nomiss | | #000000
 
 # replaceable
-# song | foosscore.mid | | | #D7D7FF
 
 # XXX replace
 # song | leannescore.mid | nomiss | | #002200
 
 # cakewalk, replace
-# song | ratheadscore.mid | | | #001100
 
 # replaceable?
 # song | nauseascore.mid | nomiss | | #222222
+
+song | medleyscore.mid | | | #222222
+
