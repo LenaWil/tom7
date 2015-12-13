@@ -127,7 +127,8 @@ static void BlitARGBHalf(const vector<uint8> &argb, int width, int height,
 // Tree of state exploration.
 struct Tree {
   using Seq = vector<Problem::Input>;
-
+  static constexpr int UPDATE_FREQUENCY = 1000;
+  
   struct Node {
     Node(std::shared_ptr<Problem::State> state, Node *parent) :
       state(state), parent(parent) {}
@@ -150,6 +151,13 @@ struct Tree {
   // XXX heap...
   
   Node *root = nullptr;
+  int steps_until_update = UPDATE_FREQUENCY;
+  // If this is true, a thread is updating the tree. It does not
+  // necessarily hold the lock, because some calculations can be
+  // done without the tree (like sorting observations). If set,
+  // another thread should avoid also beginning an update.
+  bool update_in_progress = false;
+  int64 num_nodes = 0;
 };
 
 
@@ -283,6 +291,7 @@ struct WorkThread {
 	ch = ch->children.begin()->second;
       }
     } else {
+      pftwo->tree->num_nodes++;
       return child;
     }
   }
@@ -296,20 +305,41 @@ struct WorkThread {
     }
   }
 
-  #if 0
-  void FixTree() {
-    // XXX: Do this periodically, but only in one thread.
-    if (0 == frame % 60) {
-      Printf("Commit\n");
-      CHECK(pftwo);
-      Printf("(pftwo %p problem %p).\n",
-	       pftwo, pftwo->problem.get());
-      CHECK(pftwo->problem);
-      pftwo->problem->Commit();
-      Printf("Done.\n");
+
+  void MaybeUpdateTree() {
+    Tree *tree = pftwo->tree;
+    {
+      MutexLock ml(&pftwo->tree_m);
+      // No use in decrementing update counter -- when we
+      // finish we reset it to the max value.
+      if (tree->update_in_progress)
+	return;
+      
+      if (tree->steps_until_update == 0) {
+	tree->steps_until_update = Tree::UPDATE_FREQUENCY;
+	tree->update_in_progress = true;
+	// Enter fixup below.
+      } else {
+	tree->steps_until_update--;
+	return;
+      }
+    }
+
+    // This is run every UPDATE_FREQUENCY calls, in some
+    // arbitrary worker thread. We don't hold any locks right
+    // now, but only one thread will enter this section at
+    // a time because of the update_in_progress flag.
+    worker->SetStatus("Tree maintenance");
+
+    pftwo->problem->Commit();
+
+    // XXX re-sort heap, or find min...?
+    
+    {
+      MutexLock ml(&pftwo->tree_m);
+      tree->update_in_progress = false;
     }
   }
-  #endif
 
   void Run() {
     worker->Init();
@@ -320,7 +350,8 @@ struct WorkThread {
     CHECK(last != nullptr);
 
     static constexpr int FRAMES_PER_STEP = 40;
-    
+
+    // XXX don't make this finite
     worker->SetDenom(50000 * FRAMES_PER_STEP);
     for (int i = 0; i < 50000; i++) {
       worker->SetNumer(i * FRAMES_PER_STEP);
@@ -348,11 +379,13 @@ struct WorkThread {
       worker->SetStatus("Observe state");
       worker->Observe();
       
-      worker->SetStatus("Update tree.");
+      worker->SetStatus("Extend tree");
       shared_ptr<Problem::State> newstate{
 	new Problem::State(worker->Save())};
       last = ExtendNode(next, step, newstate);
 
+      MaybeUpdateTree();
+      
       worker->SetStatus("Check for death");
       if (ReadWithLock(&should_die_m, &should_die)) {
 	worker->SetStatus("Die");
@@ -425,7 +458,10 @@ struct UIThread {
 			    (frame * 0xDEADBEEF));
       */
 
-      font->draw(10, 10, StringPrintf("This is frame %d!", frame));
+      int64 tree_size = ReadWithLock(&pftwo->tree_m, &pftwo->tree->num_nodes);
+      
+      font->draw(10, 10, StringPrintf("This is frame %d! %lld tree nodes",
+				      frame, tree_size));
 
       int64 total_steps = 0ll;
       for (int i = 0; i < pftwo->workers.size(); i++) {
