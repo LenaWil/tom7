@@ -373,6 +373,118 @@ struct SampleObservations : public Observations {
   vector<vector<pair<uint32, vector<uint8>>>> acc_values;
   std::mutex obs_mutex, acc_mutex;
 };
+
+
+struct MixedBaseObservations : public Observations {
+  MixedBaseObservations(const WeightedObjectives &wo) :
+    Observations(wo), acc_maxbytes(wo.Size()) {
+    for (int i = 0; i < wo.Size(); i++) {
+      const vector<int> &obj = wo.Get(i).first;
+      // Everything is max byte 0 to start.
+      acc_maxbytes[i].resize(obj.size(), 0);
+      // acc_maxbytes.push_back(vector<uint8>{obj.size(), 0});
+    }
+    obs_maxbytes = acc_maxbytes;
+  }
+  
+  void Accumulate(const vector<uint8> &memory) override {
+    MutexLock ml(&acc_mutex);
+    for (int i = 0; i < wo.Size(); i++) {
+      const vector<int> &obj = wo.Get(i).first;
+      // Now just do pointwise max.
+      for (int j = 0; j < obj.size(); j++) {
+	const uint8 val = memory[obj[j]];
+	uint8 &old = acc_maxbytes[i][j];
+	if (val > old) old = val;
+      }
+    }
+  }
+
+  void Commit() override {
+    MutexLock mlo(&obs_mutex);
+    MutexLock mla(&acc_mutex);
+    obs_maxbytes = acc_maxbytes;
+  }
+
+  vector<double> GetNormalizedValues(const vector<uint8> &mem) override {
+    vector<double> vals;
+    vals.resize(wo.Size());
+    {
+      MutexLock mlo(&obs_mutex);
+      for (int i = 0; i < wo.Size(); i++) {
+	const vector<int> &obj = wo.Get(i).first;
+	// PERF inline
+	vector<uint8> cur = WeightedObjectives::Value(mem, obj);
+
+	// Let's say the max byte observed for each position is
+	// a, b, c, d, ..., y, z.
+	// The largest number that can be represented given our
+	// current understanding of the base would be to place the
+	// max byte in each position; then we have
+	//
+	// 1.0 = (z-1) + (y-1)*z + (x-1)*(z*y) + ...
+	//       (b-1) * (c*d*...*y*z) + (a-1) * (b*c*d*...*y*z)
+	//     = a*b*c*d*...*y*z - 1
+	//
+	// Since this involves factorials it gets big awfully
+	// quickly. For now, doubles maybe give us the sensitivity
+	// we need. (Otherwise: We can compute this as an arbitrary
+	// precision int, as long as we can then do division?)
+	double multiplier = 1.0;
+	double seen = 0.0;
+	for (int j = cur.size() - 1; j >= 0; j--) {
+	  seen += cur[j] * multiplier;
+	  // Radix is largest byte seen but plus one.
+	  multiplier *= ((int)obs_maxbytes[i][j] + 1);
+	}
+
+	vals[i] = seen / multiplier;
+	// This can probably happen for reasonable inputs. Might
+	// need some arbitrary precision thing here.
+	CHECK(!isnan(vals[i])) << "\n" << seen << " " << multiplier;
+	CHECK(vals[i] >= 0.0);
+      }
+    }
+
+    return vals;
+  }
+
+  // PERF the following two could maybe be faster by inlining
+  // the above (not creating the vectors).
+  double GetNormalizedValue(const vector<uint8> &mem) override {
+    double sum = 0.0;
+    for (const double val : GetNormalizedValues(mem))
+      sum += val;
+      
+    sum /= (double)wo.Size();
+    return sum;
+  }
+
+  double GetWeightedValue(const vector<uint8> &mem) override {
+    double numer = 0.0;
+    double total_weight = 0.0;
+
+    const vector<double> vals = GetNormalizedValues(mem);
+    CHECK(vals.size() > 0);
+    for (int i = 0; i < vals.size(); i++) {
+      const double weight = wo.Get(i).second;
+      CHECK(vals[i] >= 0.0);
+      CHECK(weight >= 0.0);
+      CHECK(!isnan(vals[i]));
+      numer += weight * vals[i];
+      total_weight += weight;
+    }
+
+    CHECK(!isnan(numer));
+    CHECK(!isnan(total_weight));
+    CHECK(total_weight != 0);
+    return numer / total_weight;
+  }
+  
+  vector<vector<uint8>> obs_maxbytes, acc_maxbytes;
+  std::mutex obs_mutex, acc_mutex;
+};
+
 }  // namespace
 
 Observations::Observations(const WeightedObjectives &wo) : wo(wo) {}
@@ -381,6 +493,11 @@ Observations::~Observations() {}
 Observations *Observations::SampleObservations(const WeightedObjectives &wo,
 					       int max_samples) {
   return new ::SampleObservations(wo, max_samples);
+}
+
+Observations *Observations::MixedBaseObservations(
+    const WeightedObjectives &wo) {
+  return new ::MixedBaseObservations(wo);
 }
 
 #if 0
