@@ -78,9 +78,12 @@ TPP::TwoPlayerProblem(const map<string, string> &config) {
     objectives->SaveToFile(cached_objectives);
   }
   CHECK(objectives.get());
+  /*
   observations.reset(Observations::
 		     SampleObservations(*objectives,
 					OBSERVATION_SAMPLES));
+  */
+  observations.reset(Observations::MixedBaseObservations(*objectives));
 }
 
 Worker *TPP::CreateWorker() {
@@ -101,12 +104,26 @@ void Worker::Visualize(vector<uint8> *argb) {
   MutexLock ml(&mutex);
   CHECK(argb->size() == 4 * 256 * 256);
   emu->GetImageARGB(argb);
+  #if 0
   vector<uint8> xxx = emu->GetMemory();
   for (int i = 0; i < xxx.size(); i++) {
     (*argb)[i * 4 + 0] = xxx[i];
     (*argb)[i * 4 + 1] = xxx[i];
     (*argb)[i * 4 + 2] = xxx[i];
     (*argb)[i * 4 + 3] = 0xFF;
+  }
+  #endif
+  const double s = tpp->observations->GetWeightedValue(emu->GetMemory());
+  // printf("%f\n", s);
+  for (int y = 250; y < 256; y++) {
+    int len = std::min(256, 5 + (int)(256 * s));
+    for (int x = 0; x < len; x++) {
+      int i = (y * 256 + x) * 4;
+      (*argb)[i + 0] = 0x00;
+      (*argb)[i + 1] = 0x00;
+      (*argb)[i + 2] = 0xFF;
+      (*argb)[i + 3] = 0xFF;
+    }
   }
 }
 

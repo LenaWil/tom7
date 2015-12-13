@@ -61,9 +61,10 @@ struct WeightedObjectives {
 
 // Dynamic observations for computing "value fraction"-based metrics.
 // From observing some states during exploration, we can compute an
-// "absolute" score for a memory alone. This absolute score forms a
-// consistent total order on memories. This class separates the "accumulation"
-// of observations from "committing" them, because:
+// "absolute" score for a memory alone. (This is more flexible than
+// simply a partial or total order because it can be used to compute
+// relative scores.) This class separates the "accumulation" of
+// observations from "committing" them, because:
 //   - We expect to use this in a threaded context.
 //   - New observations change the score, but it is often important
 //     for correctness to have a consistent ordering (e.g. when
@@ -109,10 +110,16 @@ struct Observations {
   static Observations *SampleObservations(const WeightedObjectives &wo,
 					  int max_samples);
 
+  // This is very cheap (constant space and time), but treats each
+  // objective component linearly. Keeps track of the maximum value
+  // found for each component, and then treats this as its radix in a
+  // mixed-base number. The normalized value is then just n / 1.0 in
+  // that representation.
+  static Observations *MixedBaseObservations(const WeightedObjectives &wo);
+  
   // TODO: Some version where we keep only the maximum value ever seen,
-  // then just treat the output as a fraction of that? Maybe we also
-  // need to know the maximum byte value we see for each component
-  // so that we can treat it as a mixed-base number.
+  // then just treat the output as a fraction of that? Simpler than
+  // MixedBase but are there any other advantages?
   // static Observations *MaxObservations(const WeightedObjectives &wo);
 
   virtual ~Observations();
