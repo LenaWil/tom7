@@ -15,39 +15,46 @@
 ; (load "c:\\code\\sitelisp\\lost.el")
 
 (defun frame-settings (f)
-  (if window-system
-    (progn
-      (if (null f) () (select-frame f))
-      (menu-bar-mode -1)
-      (tool-bar-mode -1)
-      (blink-cursor-mode -1)
-      (set-background-color "grey15")
-      (set-foreground-color "grey80")
-      ;; set the font depending on the platform
-      (cond
-       ((eq window-system 'w32)
-	(set-default-font 
-	 ;; windows vista?
-	 ; "-*-FixedSys-*-r-*-*-13-*-*-*-c-*-fontset-standard"
-	 ;; windows 7
-	 "-raster-Fixedsys-normal-normal-normal-mono-15-*-*-*-c-*-iso8859-1"
-	 )
-	 (set-face-attribute 'default nil :font "DejaVu Sans Mono Bold")
-	 ; (set-face-attribute 'default nil :font "DejaVu Sans Mono")
-	 ;; trying this on windows 7 to get unicode support.
-	 ; (set-face-attribute 'default nil :font "Fixedsys Excelsior 3.01")
-	 )
-       ((eq window-system 'x)
-	(set-default-font 
-	 "-misc-fixed-bold-r-normal--13-100-100-100-c-70-iso8859-1"))
-       ((eq window-system 'ns)
-	(set-default-font
-	 ;; Working OS X font: http://spacebar.org/stuff/FixedSys.dfont.zip
-	 ;; Don't use FixedSys Excelsior 2 or 3; they are "anti"-aliased!
-	 "FixedSys-15"))
-       (t t))
-  ;    (modify-frame-parameters f (list '(height . 75)))
-      )))
+  (progn
+    (if (null f) () (select-frame f))
+    (menu-bar-mode -1)
+    (tool-bar-mode -1)
+    (blink-cursor-mode -1)
+    (set-background-color "grey15")
+    (set-foreground-color "grey80")
+    ;; set the font depending on the platform
+    (cond
+     ((eq window-system 'w32)
+      (set-default-font 
+       ;; windows vista?
+       ; "-*-FixedSys-*-r-*-*-13-*-*-*-c-*-fontset-standard"
+       ;; windows 7
+       ;; works great but retired because it's too small and no unicode
+       ;; "-raster-Fixedsys-normal-normal-normal-mono-15-*-*-*-c-*-iso8859-1"
+       (concat "-outline-DejaVu Sans Mono-bold-normal-normal-mono-"
+               "17"
+               "-*-*-*-c-*-iso8859-1")
+       )
+       ; (set-face-attribute 'default nil :font "DejaVu Sans Mono Bold")
+       ; (set-face-attribute 'default nil :font "DejaVu Sans Mono")
+       ;; trying this on windows 7 to get unicode support.
+       ; (set-face-attribute 'default nil :font "Fixedsys Excelsior 3.01")
+       (modify-frame-parameters nil 
+	 (list '(top . 50) '(width . 80) '(height . 99)))
+       ;; to see frame parameters:
+       ;; (insert (concat "\n;; " (prin1-to-string (frame-parameters))))
+       )
+     ((eq window-system 'x)
+      (set-default-font 
+       "-misc-fixed-bold-r-normal--13-100-100-100-c-70-iso8859-1"))
+     ((eq window-system 'ns)
+      (set-default-font
+       ;; Working OS X font: http://spacebar.org/stuff/FixedSys.dfont.zip
+       ;; Don't use FixedSys Excelsior 2 or 3; they are "anti"-aliased!
+       "FixedSys-15"))
+     (t t))
+;    (modify-frame-parameters f (list '(height . 75)))
+    ))
 
 (add-hook 'after-make-frame-functions 'frame-settings)
 
@@ -123,8 +130,8 @@
   (lexical-let ((the-last-command (comint-previous-input-string 0)))
     (message (concat "Key set to: " the-last-command))
     (local-set-key key (lambda (&rest unused)
-			 (interactive "") ;; necessary
-			 (shell-send the-last-command)))
+                         (interactive "") ;; necessary
+                         (shell-send the-last-command)))
     ))
 
 
@@ -269,11 +276,11 @@
   "Inserts a blank ASCII guitar tablature staff."
   (interactive "*")
   (insert "E ------------------------------------------------------------\n"
-	  "a ------------------------------------------------------------\n"
-	  "d ------------------------------------------------------------\n"
-	  "g ------------------------------------------------------------\n"
-	  "b ------------------------------------------------------------\n"
-	  "e ------------------------------------------------------------\n"))
+          "a ------------------------------------------------------------\n"
+          "d ------------------------------------------------------------\n"
+          "g ------------------------------------------------------------\n"
+          "b ------------------------------------------------------------\n"
+          "e ------------------------------------------------------------\n"))
 
 (setq inhibit-startup-echo-area-message "Asterisk")
 (setq inhibit-startup-message t)
@@ -296,33 +303,63 @@
 
 (setq auto-mode-alist
       (append '(("\\.a$" . aphasia-mode)
-		("\\.db$" . aphasia-mode)
-		("\\.ah$" . aphasia-mode)
-		("\\.as$" . c-mode) ;; close enough...
-		("\\.cl$" . c-mode) ;; close enough...
-		("\\.fsh$" . glsl-mode)
-		("\\.vsh$" . glsl-mode)
-		("\\.sml$" . sml-mode)
-		("\\.sig$" . sml-mode)
+                ("\\.db$" . aphasia-mode)
+                ("\\.ah$" . aphasia-mode)
+                ("\\.as$" . c-mode) ;; close enough...
+                ("\\.cl$" . c-mode) ;; close enough...
+                ("\\.fsh$" . glsl-mode)
+                ("\\.vsh$" . glsl-mode)
+                ("\\.sml$" . sml-mode)
+                ("\\.sig$" . sml-mode)
                 ("\\.fun$" . sml-mode)
-		("\\.uml$" . aaph-mode)
-		("\\.uh$" . aaph-mode)
-		("\\.aah?$" . aaph-mode)
-		("\\.hml$" . sml-mode) ;; XXX some day make hemlock-mode
-		("README$" . english-mode)
-		("HACKING$" . english-mode)
-		("\\.txt$" . english-mode)
-		("\\.mli?$" . sml-mode) ;; XXX need caml-mode
-		("\\.mst$" . homework-mode)
-		("\\.wrd$" . homework-mode)
-		("\\.pop$" . c-mode)
-		("\\.proto$" . protobuf-mode)
-		("\\.tfdesc$" . textformat-mode)
-		("\\.sig$" . sml-mode)) auto-mode-alist))
+                ("\\.uml$" . aaph-mode)
+                ("\\.uh$" . aaph-mode)
+                ("\\.aah?$" . aaph-mode)
+                ("\\.hml$" . sml-mode) ;; close enough
+                ("README$" . english-mode)
+                ("HACKING$" . english-mode)
+                ("\\.txt$" . english-mode)
+                ("\\.mli?$" . sml-mode) ;; XXX need caml-mode
+                ("\\.mst$" . homework-mode)
+                ("\\.wrd$" . homework-mode)
+                ("\\.pop$" . c-mode)
+                ("\\.proto$" . protobuf-mode)
+                ("\\.tfdesc$" . textformat-mode)
+                ("\\.sig$" . sml-mode)) auto-mode-alist))
 
 ;; Prefer C++ for .h files. Really just keyword highlighting,
 ;; and you should probably avoid C++ keywords in C anyway.
 (add-to-list 'auto-mode-alist '("\\.h\\'" . c++-mode))
+
+(font-lock-add-keywords 'c++-mode '(
+("\\<\\(static_assert\\|export\\|nullptr\\|constexpr\\|override\\)\\>" . font-lock-keyword-face)
+))
+
+;; (defconst tom7-cc-style
+;; '("cc-mode"
+;;    (c-offsets-alist . ((innamespace . [0])))))
+;; (c-add-style "tom7-cc-mode" tom7-cc-style)
+
+(defun tom7-c-setup ()
+  ;; allow first argument to functions to wrap to next line and
+  ;; indent twice the basic offset.
+  (c-set-offset 'arglist-intro '++)
+  ;; set namespace blocks to be indented 0
+  (c-set-offset 'innamespace [0]))
+(add-hook 'c++-mode-hook 'tom7-c-setup)
+
+(defadvice c-lineup-arglist (around my activate)
+  "Improve indentation of continued C++11 lambda function opened as argument."
+  (setq ad-return-value
+        (if (and (equal major-mode 'c++-mode)
+                 (ignore-errors
+                   (save-excursion
+                     (goto-char (c-langelem-pos langelem))
+                     ;; Detect "[...](" or "[...]{". preceded by "," or "(",
+                     ;;   and with unclosed brace.
+                     (looking-at ".*[(,][ \t]*\\[[^]]*\\][ \t]*[({][^}]*$"))))
+            0                           ; no additional indent
+          ad-do-it)))                   ; default behavior
 
 (defun delete-whitespace-right ()
 "Deletes whitespace to the right of point, until the end of 
@@ -356,8 +393,8 @@
 (setq sentence-end-double-space nil)
 (setq tab-stop-list
         '(2 4 6 8 10 12 14 16 18 20 22 24 26 28 30 32 34 36 38 
-	    40 42 44 46 48 50 52 54 56 58 60 62 64 66 68 70 72 
-	    47 76 78))
+            40 42 44 46 48 50 52 54 56 58 60 62 64 66 68 70 72 
+            47 76 78))
 (setq ids-creator-id "tom7")
 
 (make-empty-face 'tom7-subtle-text)
@@ -426,6 +463,8 @@
 
 ;;; english-mode
 
+;; TODO: Highlight very long sentences.
+
 (make-empty-face 'tom7-article)
 (defvar tom7-article-face       'tom7-article
   "Face name to use for english articles.")
@@ -462,9 +501,9 @@
   (outline-mode)
   (setq mode-name "English")
   (setq major-mode 'english-mode)
-  (flyspell-mode 1)
+  (when ispell-program-name (flyspell-mode 1))
   (turn-on-font-lock)
-  (flyspell-buffer)
+  (when ispell-program-name (flyspell-buffer))
   (run-hooks 'english-mode-hook))
 
 (setq preposition-re "\\([oi]n\\|at\\|of\\|to\\|with\\(in\\)?\\|from\\|near\\|by\\|\\(be\\|a\\)side\\|above\\|below\\|around\\|under\\)")
@@ -641,14 +680,14 @@
                (local-set-key "\M-]" 'send-invisible))))
 
 (add-hook 'font-lock-mode-hook
-	  '(lambda ()
-	     (font-lock-add-keywords
-	      nil
-	      '(("\\(unimplemented\\|TODO\\|PERF\\|FIXME!*\\|XXX*\\|\\<[H][E][R][E]\\>\\)" 1 
-		 font-lock-warning-face t)))
-	     (set-face-foreground (quote font-lock-warning-face)
-				  "red")
-	     ))
+          '(lambda ()
+             (font-lock-add-keywords
+              nil
+              '(("\\(unimplemented\\|0x255\\|TODO\\|PERF\\|FIXME!*\\|XXX*\\|\\<[H][E][R][E]\\>\\)" 1 
+                 font-lock-warning-face t)))
+             (set-face-foreground (quote font-lock-warning-face)
+                                  "red")
+             ))
 
 ;;;;;;;;; fix outline mode levels
 
@@ -683,19 +722,19 @@
 
 (defun set-om-faces ()
   (setq outline-font-lock-keywords
-	'((eval . 
-		  (list (concat "^" outline-regexp ".+")
-			0 '(or (cdr (assq (outline-font-lock-level)
-					  '((1 . outline-mode-one-face)
-					    (2 . outline-mode-two-face)
-					    (3 . outline-mode-three-face)
-					    (4 . outline-mode-four-face)
-					    (5 . outline-mode-five-face)
-					    (6 . outline-mode-six-face)
-					    (7 . outline-mode-seven-face)
-					    (8 . outline-mode-eight-face))))
-			       font-lock-warning-face)
-			nil t)))))
+        '((eval . 
+                  (list (concat "^" outline-regexp ".+")
+                        0 '(or (cdr (assq (outline-font-lock-level)
+                                          '((1 . outline-mode-one-face)
+                                            (2 . outline-mode-two-face)
+                                            (3 . outline-mode-three-face)
+                                            (4 . outline-mode-four-face)
+                                            (5 . outline-mode-five-face)
+                                            (6 . outline-mode-six-face)
+                                            (7 . outline-mode-seven-face)
+                                            (8 . outline-mode-eight-face))))
+                               font-lock-warning-face)
+                        nil t)))))
 
 (add-hook 'outline-mode-hook 'set-om-faces)
 (set-om-faces)
