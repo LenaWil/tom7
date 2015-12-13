@@ -20,8 +20,6 @@
 
 using namespace std;
 
-// WeightedObjectives::WeightedObjectives() {}
-
 WeightedObjectives::WeightedObjectives(const vector<vector<int>> &objs) {
   weighted.clear();
   weighted.reserve(objs.size());
@@ -238,7 +236,10 @@ struct SampleObservations : public Observations {
       // would maybe be better here to avoid re-sorting, but
       // this keeps the space usage bounded at least.
       const uint32 key = Rand32(&rc);
-      if (key < watermark[i]) continue;
+      if (key < watermark[i]) {
+	watermark_discarded++;
+	continue;
+      }
 
       // OK, we'll keep the sample. Compute its value.
       
@@ -257,9 +258,11 @@ struct SampleObservations : public Observations {
     CHECK_EQ(wo.Size(), obs_values.size());
     CHECK_EQ(wo.Size(), watermark.size());
 
-    int64 accumulated = 0ll, dropped = 0ll;
+    int64 accumulated = 0ll, dropped = 0ll, discarded = 0ll, in_mem = 0ll;
     for (int i = 0; i < wo.Size(); i++) {
       acc_mutex.lock();
+      discarded += watermark_discarded;
+      watermark_discarded = 0ll;
       vector<pair<uint32, vector<uint8>>> &av = acc_values[i];
       // For example, all new accumulations were instantly
       // discarded for having keys too small.
@@ -289,9 +292,12 @@ struct SampleObservations : public Observations {
 
       // Now put it in sorted order by value (ascending).
       std::sort(ov.begin(), ov.end(), CompareByValue);
+
+      in_mem += ov.size();
     }
 
-    printf("Committed %lld, dropped %lld\n", accumulated, dropped);
+    printf("Committed %lld, dropped %lld, discarded %lld. Have %lld\n",
+	   accumulated, dropped, discarded, in_mem);
   }
 
   vector<double> GetNormalizedValues(const vector<uint8> &mem) override {
@@ -353,7 +359,8 @@ struct SampleObservations : public Observations {
   // key in the vector. Before that, it is 0 because we want to keep
   // all samples.
   vector<uint32> watermark;
-
+  int64 watermark_discarded = 0;
+  
   // Parallel to the weighted objectives. Sample keys and observed
   // value, sorted by value. No more than max_samples in each vector;
   // keys are all greater than or equal to watermark.
