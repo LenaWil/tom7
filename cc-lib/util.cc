@@ -18,6 +18,12 @@
    /* setclipboard */
 #  include <windows.h>
 
+#if defined(__MINGW32__) || defined(__MINGW64__)
+// This used to be included unconditionally in the header;
+// not sure why? -tom7
+#  include <dirent.h>
+#endif
+
 // Visual studio only.
 #if defined(WIN32) && !defined(__MINGW32__) && !defined(__MINGW64__)
 # pragma warning(disable: 4996)

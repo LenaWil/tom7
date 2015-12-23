@@ -2,12 +2,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string>
+#include <cstdint>
 
 #include "heap.h"
 
 using namespace std;
 
-typedef unsigned long long uint64;
+using uint64 = uint64_t;
 
 struct TestValue : public Heapable {
   TestValue(uint64 i) : i(i) {}
@@ -26,7 +27,7 @@ static uint64 CrapHash(int a) {
 }
 
 int main () {
-  static const int kNumValues = 1000;
+  static constexpr int kNumValues = 1000;
   
   Heap<uint64, TestValue> heap;
   
@@ -50,6 +51,30 @@ int main () {
     last = now;
   }
 
+  for (int i = 0; i < values.size(); i++) {
+    if (values[i].location != -1) {
+      printf("FAIL! %d still in heap at %d\n", i, values[i].location);
+      return -1;
+    }
+  }
+  
+  for (int i = 0; i < values.size() / 2; i++) {
+    heap.Insert(values[i].i, &values[i]);
+  }
+
+  heap.Clear();
+  if (!heap.Empty()) {
+    printf("FAIL: Heap not empty after clear?\n");
+    return -1;
+  }
+
+  for (int i = 0; i < values.size() / 2; i++) {
+    if (values[i].location != -1) {
+      printf("FAIL (B)! %d still in heap at %d\n", i, values[i].location);
+      return -1;
+    }
+  }
+  
   printf("OK\n");
   return 0;
 }

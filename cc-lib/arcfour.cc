@@ -7,8 +7,7 @@
 
 using namespace std;
 
-// Should be easy since C++11.
-typedef uint8_t uint8;
+using uint8 = uint8_t;
 static_assert (sizeof(uint8) == 1, "Char must be one byte.");
 
 static void Initialize(const uint8 (&kk)[256],

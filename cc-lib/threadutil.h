@@ -6,13 +6,15 @@
 #include <thread>
 #include <mutex>
 
+#if 0 // not needed with TDM  - tom7 11 Oct 2015
+
 #ifdef __MINGW32__
 #include "mingw.thread.h"
 #include "mingw.mutex.h"
 // ugh, conflict...
 #undef ARRAYSIZE
 #endif
-
+#endif
 
 
 // Do progress meter.
