@@ -101,7 +101,7 @@ inline uint32 RandTo(ArcFour *rc, uint32 n) {
   // Now, repeatedly generate random numbers, modulo that
   // power of two.
 
-  // PERF: If thet number is small, we only need Rand16, etc.
+  // PERF: If the number is small, we only need Rand16, etc.
   for (;;) {
     const uint32 x = Rand32(rc) & mask;
     if (x < n) return x;

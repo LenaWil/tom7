@@ -9,8 +9,6 @@
 #include <string>
 #include <vector>
 
-#include <dirent.h>
-
 using namespace std;
 
 #ifdef WIN32

@@ -119,6 +119,13 @@ class Heap {
     return cells.size();
   }
 
+  void Clear() {
+    for (Cell &c : cells) {
+      c.value->location = -1;
+    }
+    cells.clear();
+  }
+
  private:
   // Requires that the heap be nonempty.
   Cell RemoveLast() {
