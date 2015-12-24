@@ -23,7 +23,9 @@ struct TwoPlayerProblem {
   // Save state; these are portable between workers.
   struct State {
     vector<uint8> save;
-    // PERF This is actually part of save.
+    // PERF This is actually part of save. But we use it to
+    // compute objective functions without having to restore
+    // the save.
     vector<uint8> mem;
     Input prev;
   };
@@ -106,7 +108,6 @@ struct TwoPlayerProblem {
 
   // Commits observations.
   void Commit() {
-    printf("In problem commit.\n");
     CHECK(observations.get());
     observations->Commit();
   }
