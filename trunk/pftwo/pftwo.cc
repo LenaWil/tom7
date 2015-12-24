@@ -17,7 +17,7 @@
 #include "../cc-lib/stb_image.h"
 #include "../cc-lib/sdl/chars.h"
 #include "../cc-lib/sdl/font.h"
-
+#include "../cc-lib/heap.h"
 
 #include "atom7ic.h"
 
@@ -142,13 +142,19 @@ struct Tree {
     // Child nodes. Currently, no guarantee that these don't
     // share prefixes, but there should not be duplicates.
     map<Seq, Node *> children;
+
+    // For heap.
+    int location = -1;
   };
 
   Tree(const Problem::State &state) {
     root = new Node(std::make_shared<Problem::State>(state), nullptr);
   }
 
-  // XXX heap...
+  // Tree prioritized by negation of score at current epoch. Not all
+  // nodes are guaranteed to be present. Negation is used so that the
+  // minimum node is actually the node with the best score.
+  Heap<double, Node> heap;
   
   Node *root = nullptr;
   int steps_until_update = UPDATE_FREQUENCY;
@@ -206,27 +212,6 @@ struct PF2 {
     StartThreads();
     
     DestroyThreads();
-    
-#if 0
-      SDL_Delay(1000.0 / 60.0);
-      
-      emu->StepFull(inputa, inputb);
-
-      if (frame % 1 == 0) {
-	vector<uint8> image = emu->GetImageARGB();
-	CopyARGB(image, surf);
-	HalveARGB(image, 256, 256, surfhalf);
-	
-	// sdlutil::clearsurface(screen, 0x00000000);
-
-	// Draw pixels to screen...
-	sdlutil::blitall(surf, screen, 0, 0);
-	sdlutil::blitall(surfhalf, screen, 260, 0);
-	
-	SDL_Flip(screen);
-      }
-    }
-    #endif
   }
 };
 
@@ -269,6 +254,7 @@ struct WorkThread {
 			 const vector<Problem::Input> &step,
 			 shared_ptr<Problem::State> newstate) {
     CHECK(n != nullptr);
+    const double newscore = pftwo->problem->Score(*newstate);
     Tree::Node *child = new Tree::Node(newstate, n);
     MutexLock ml(&pftwo->tree_m);
     auto res = n->children.insert({step, child});
@@ -292,6 +278,8 @@ struct WorkThread {
       }
     } else {
       pftwo->tree->num_nodes++;
+      pftwo->tree->heap.Insert(-newscore, child);
+      CHECK(child->location != -1);
       return child;
     }
   }
@@ -329,11 +317,34 @@ struct WorkThread {
     // arbitrary worker thread. We don't hold any locks right
     // now, but only one thread will enter this section at
     // a time because of the update_in_progress flag.
-    worker->SetStatus("Tree maintenance");
+    worker->SetStatus("Tree: Commit observations");
 
     pftwo->problem->Commit();
 
-    // XXX re-sort heap, or find min...?
+    // Re-build heap.
+    worker->SetStatus("Tree: Reheap");
+    {
+      MutexLock ml(&pftwo->tree_m);
+      tree->heap.Clear();
+
+      std::function<void(Tree::Node *)> ReHeapRec =
+	[this, tree, &ReHeapRec](Tree::Node *n) {
+	// Only reheap if it's in the heap. We need there
+	// to be a state to score it, too.
+	if (n->state.get() != nullptr && n->location != -1) {
+	  const double new_score = pftwo->problem->Score(*n->state);
+	  // Note negation of score so that bigger real scores
+	  // are more minimum for the heap ordering.
+	  tree->heap.AdjustPriority(n, -new_score);
+	  CHECK(n->location != -1);
+	}
+	for (pair<const Tree::Seq, Tree::Node *> &child : n->children) {
+	  ReHeapRec(child.second);
+	}
+      };
+      ReHeapRec(tree->root);
+    }
+    
     
     {
       MutexLock ml(&pftwo->tree_m);
