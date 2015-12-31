@@ -80,6 +80,14 @@ class Heap {
     return cells.empty();
   }
 
+  Cell GetMinimum() const {
+    if (cells.empty()) {
+      fprintf(stderr, "Can't GetMinimum on an empty heap.\n");
+      abort();
+    }
+    return cells[0];
+  }
+  
   // May not be empty.
   Cell PopMinimum() {
     if (cells.empty()) {
