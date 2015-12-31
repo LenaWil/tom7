@@ -34,8 +34,9 @@
   const Uint32 rshift = 0;
 #endif
 
-SDL_Surface * sdlutil::resize_canvas(SDL_Surface * s, int w, int h, Uint32 color) {
-  SDL_Surface * m = makesurface(w, h);
+SDL_Surface *sdlutil::resize_canvas(SDL_Surface *s,
+				    int w, int h, Uint32 color) {
+  SDL_Surface *m = makesurface(w, h);
   if (!m) return 0;
 
   for(int y = 0; y < h; y ++)
@@ -96,12 +97,11 @@ SDL_Surface *sdlutil::LoadImage(const char *filename) {
   return surf;
 }
 
-SDL_Surface * sdlutil::duplicate(SDL_Surface * surf) {
+SDL_Surface *sdlutil::duplicate(SDL_Surface *surf) {
   return SDL_ConvertSurface(surf, surf->format, surf->flags);
 }
 
 void sdlutil::eatevents(int ticks, Uint32 mask) {
-
   int now = SDL_GetTicks ();
   int destiny = now + ticks;
 
@@ -125,12 +125,11 @@ bool sdlutil::make_mipmaps(SDL_Surface ** s, int nmips) {
   return make_mipmaps(&s[1], nmips - 1);
 }
 
-void sdlutil::clearsurface(SDL_Surface * s, Uint32 color) {
+void sdlutil::clearsurface(SDL_Surface *s, Uint32 color) {
   SDL_FillRect(s, 0, color);
 }
 
 Uint32 sdlutil::mix2(Uint32 ia, Uint32 ib) {
-
   Uint32 ar = (ia >> rshift) & 0xFF;
   Uint32 br = (ib >> rshift) & 0xFF;
 
@@ -201,7 +200,6 @@ Uint32 sdlutil::mix4(Uint32 a, Uint32 b, Uint32 c, Uint32 d) {
 }
 
 Uint32 sdlutil::mixfrac(Uint32 a, Uint32 b, float f) {
-
   Uint32 factor  = (Uint32) (f * 0x100);
   Uint32 ofactor = 0x100 - factor;
 
@@ -219,11 +217,10 @@ Uint32 sdlutil::mixfrac(Uint32 a, Uint32 b, float f) {
 	      (b & 0xFF) * ofactor) >> (8);
 
   return (o24 << 24) | (o16 << 16) | (o8 << 8) | o;
-
 }
 
 
-Uint32 sdlutil::hsv(SDL_Surface * sur, float h, float s, float v, float a) {
+Uint32 sdlutil::hsv(SDL_Surface *sur, float h, float s, float v, float a) {
   /* XXX equality for floating point? this can't be right. */
   int r, g, b;
   if (s == 0.0f) {
@@ -257,20 +254,20 @@ Uint32 sdlutil::hsv(SDL_Surface * sur, float h, float s, float v, float a) {
 
 }
 
-SDL_Surface * sdlutil::alphadim(SDL_Surface * src) {
+SDL_Surface *sdlutil::alphadim(SDL_Surface *src) {
   /* must be 32 bpp */
   if (src->format->BytesPerPixel != 4) return 0;
 
   int ww = src->w, hh = src->h;
   
-  SDL_Surface * ret = makesurface(ww, hh);
+  SDL_Surface *ret = makesurface(ww, hh);
 
   if (!ret) return 0;
 
   slock(ret);
   slock(src);
 
-  for(int y = 0; y < hh; y ++)
+  for(int y = 0; y < hh; y ++) {
     for(int x = 0; x < ww; x ++) {
       Uint32 color = *((Uint32 *)src->pixels + y*src->pitch/4 + x);
       
@@ -282,18 +279,16 @@ SDL_Surface * sdlutil::alphadim(SDL_Surface * src) {
 	(((color & sdlutil::amask) >> 1) & sdlutil::amask);
   
       *((Uint32 *)ret->pixels + y*ret->pitch/4 + x) = color;
-
     }
-
+  }
+    
   sulock(src);
   sulock(ret);
 
   return ret;
-
 }
 
-SDL_Surface * sdlutil::shrink50(SDL_Surface * src) {
-  
+SDL_Surface *sdlutil::shrink50(SDL_Surface *src) {
   /* must be 32 bpp */
   if (src->format->BytesPerPixel != 4) return 0;
 
@@ -308,7 +303,7 @@ SDL_Surface * sdlutil::shrink50(SDL_Surface * src) {
   if (ww <= 0) return 0;
   if (hh <= 0) return 0;
 
-  SDL_Surface * ret = makesurface(ww/2, hh/2);
+  SDL_Surface *ret = makesurface(ww/2, hh/2);
 
   if (!ret) return 0;
 
@@ -335,15 +330,14 @@ SDL_Surface * sdlutil::shrink50(SDL_Surface * src) {
   return ret;
 }
 
-SDL_Surface * sdlutil::grow2x(SDL_Surface * src) {
-  
+SDL_Surface *sdlutil::grow2x(SDL_Surface *src) {
   /* must be 32 bpp */
   if (src->format->BytesPerPixel != 4) return 0;
 
   int ww = src->w, hh = src->h;
   
 
-  SDL_Surface * ret = makesurface(ww << 1, hh << 1);
+  SDL_Surface *ret = makesurface(ww << 1, hh << 1);
   if (!ret) return 0;
 
   slock(ret);
@@ -375,11 +369,10 @@ SDL_Surface * sdlutil::grow2x(SDL_Surface * src) {
 
 /* try to make a hardware surface, and, failing that,
    make a software surface */
-SDL_Surface * sdlutil::makesurface(int w, int h, bool alpha) {
-
+SDL_Surface *sdlutil::makesurface(int w, int h, bool alpha) {
   /* PERF need to investigate relative performance 
      of sw/hw surfaces */
-  SDL_Surface * ss = 0;
+  SDL_Surface *ss = 0;
 #if 0
     SDL_CreateRGBSurface(SDL_HWSURFACE |
 			 (alpha?SDL_SRCALPHA:0),
@@ -399,7 +392,7 @@ SDL_Surface * sdlutil::makesurface(int w, int h, bool alpha) {
   /* then convert to the display format. */
 # if USE_DISPLAY_FORMAT
   if (ss) {
-    SDL_Surface * rr;
+    SDL_Surface *rr;
     if (alpha) rr = SDL_DisplayFormatAlpha(ss);
     else rr = SDL_DisplayFormat(ss);
     SDL_FreeSurface(ss);
@@ -410,9 +403,8 @@ SDL_Surface * sdlutil::makesurface(int w, int h, bool alpha) {
 # endif
 }
 
-SDL_Surface * sdlutil::makealpharect(int w, int h, int r, int g, int b, int a) {
-
-  SDL_Surface * ret = makesurface(w, h);
+SDL_Surface *sdlutil::makealpharect(int w, int h, int r, int g, int b, int a) {
+  SDL_Surface *ret = makesurface(w, h);
 
   if (!ret) return 0;
 
@@ -423,12 +415,11 @@ SDL_Surface * sdlutil::makealpharect(int w, int h, int r, int g, int b, int a) {
   return ret;
 }
 
-SDL_Surface * sdlutil::makealpharectgrad(int w, int h,
-					 int r1, int b1, int g1, int a1,
-					 int r2, int b2, int g2, int a2,
-					 float bias) {
-
-  SDL_Surface * ret = makesurface(w, h);
+SDL_Surface *sdlutil::makealpharectgrad(int w, int h,
+					int r1, int b1, int g1, int a1,
+					int r2, int b2, int g2, int a2,
+					float bias) {
+  SDL_Surface *ret = makesurface(w, h);
 
   if (!ret) return 0;
 
@@ -452,7 +443,8 @@ SDL_Surface * sdlutil::makealpharectgrad(int w, int h,
   return ret;
 }
 
-void sdlutil::fillrect(SDL_Surface * s, Uint32 color, int x, int y, int w, int h) {
+void sdlutil::fillrect(SDL_Surface *s, Uint32 color,
+		       int x, int y, int w, int h) {
   SDL_Rect dst;
   dst.x = x;
   dst.y = y;
@@ -461,15 +453,14 @@ void sdlutil::fillrect(SDL_Surface * s, Uint32 color, int x, int y, int w, int h
   SDL_FillRect(s, &dst, color);
 }
 
-void sdlutil::blitall(SDL_Surface * src, SDL_Surface * dst, int x, int y) {
+void sdlutil::blitall(SDL_Surface *src, SDL_Surface *dst, int x, int y) {
   SDL_Rect rec;
   rec.x = x;
   rec.y = y;
   SDL_BlitSurface(src, 0, dst, &rec);
 }
 
-void sdlutil::outline(SDL_Surface * s, int n, int r, int g, int b, int a) {
-
+void sdlutil::outline(SDL_Surface *s, int n, int r, int g, int b, int a) {
   Uint32 color = SDL_MapRGBA(s->format, r, g, b, a);
 
   SDL_Rect dst;
@@ -491,8 +482,7 @@ void sdlutil::outline(SDL_Surface * s, int n, int r, int g, int b, int a) {
 
 }
 
-SDL_Surface * sdlutil::makescreen(int w, int h) {
-
+SDL_Surface *sdlutil::makescreen(int w, int h) {
   /* Can't use HWSURFACE here, because not handling this SDL_BlitSurface
      case mentioned in the documentation:
 
@@ -518,9 +508,9 @@ SDL_Surface * sdlutil::makescreen(int w, int h) {
 
 
   /* SDL_DOUBLEBUF only valid with SDL_HWSURFACE! */
-  SDL_Surface * ret = SDL_SetVideoMode(w, h, 32,
-				       SDL_SWSURFACE |
-				       SDL_RESIZABLE);
+  SDL_Surface *ret = SDL_SetVideoMode(w, h, 32,
+				      SDL_SWSURFACE |
+				      SDL_RESIZABLE);
   return ret;
 }
 
@@ -531,41 +521,41 @@ SDL_Surface * sdlutil::makescreen(int w, int h) {
    systems ... */
 
 void sdlutil::slock(SDL_Surface *screen) {
-  if (SDL_MUSTLOCK(screen))
+  if (SDL_MUSTLOCK(screen)) {
     SDL_LockSurface(screen);
+  }
 }
 
 void sdlutil::sulock(SDL_Surface *screen) {
-  if (SDL_MUSTLOCK(screen))
+  if (SDL_MUSTLOCK(screen)) {
     SDL_UnlockSurface(screen);
+  }
 }
 
 
+// XXX There may be strict aliasing problems with this and the
+// next function.
 /* lock before calling */
 /* getpixel function only:
    Copyright (c) 2004 Bill Kendrick, Tom Murphy
    from the GPL "Tux Paint" */
-Uint32 sdlutil::getpixel(SDL_Surface * surface, int x, int y) {
-  int bpp;
-  Uint8 * p;
-  Uint32 pixel;
-
-  pixel = 0;
+Uint32 sdlutil::getpixel(SDL_Surface *surface, int x, int y) {
+  Uint32 pixel = 0;
 
   /* Check that x/y values are within the bounds of this surface... */
-
   if (x >= 0 && y >= 0 && x < surface -> w && y < surface -> h) {
 
     /* Determine bytes-per-pixel for the surface in question: */
 
-    bpp = surface->format->BytesPerPixel;
+    int bpp = surface->format->BytesPerPixel;
 
     /* Set a pointer to the exact location in memory of the pixel
        in question: */
 
-    p = (Uint8 *) (((Uint8 *)surface->pixels) +  /* Start at top of RAM */
-		   (y * surface->pitch) +  /* Go down Y lines */
-		   (x * bpp));             /* Go in X pixels */
+    Uint8 *p =
+      (Uint8 *) (((Uint8 *)surface->pixels) +  /* Start at top of RAM */
+		 (y * surface->pitch) +  /* Go down Y lines */
+		 (x * bpp));             /* Go in X pixels */
 
     /* Return the correctly-sized piece of data containing the
        pixel's value (an 8-bit palette value, or a 16-, 24- or 32-bit
@@ -590,25 +580,21 @@ Uint32 sdlutil::getpixel(SDL_Surface * surface, int x, int y) {
 }
 
 /* based on getpixel above */
-void sdlutil::setpixel(SDL_Surface * surface, int x, int y,
-		       Uint32 px) {
-  int bpp;
-  Uint8 * p;
-
+void sdlutil::setpixel(SDL_Surface *surface, int x, int y, Uint32 px) {
   /* Check that x/y values are within the bounds of this surface... */
 
   if (x >= 0 && y >= 0 && x < surface -> w && y < surface -> h) {
-
     /* Determine bytes-per-pixel for the surface in question: */
 
-    bpp = surface->format->BytesPerPixel;
+    int bpp = surface->format->BytesPerPixel;
 
     /* Set a pointer to the exact location in memory of the pixel
        in question: */
 
-    p = (Uint8 *) (((Uint8 *)surface->pixels) +  /* Start at top of RAM */
-		   (y * surface->pitch) +  /* Go down Y lines */
-		   (x * bpp));             /* Go in X pixels */
+    Uint8 *p =
+      (Uint8 *) (((Uint8 *)surface->pixels) +  /* Start at top of RAM */
+		 (y * surface->pitch) +  /* Go down Y lines */
+		 (x * bpp));             /* Go in X pixels */
 
     /* Return the correctly-sized piece of data containing the
        pixel's value (an 8-bit palette value, or a 16-, 24- or 32-bit
@@ -643,12 +629,11 @@ void sdlutil::setpixel(SDL_Surface * surface, int x, int y,
   }
 }
 
-void sdlutil::drawline(SDL_Surface * screen, int x0, int y0,
+void sdlutil::drawline(SDL_Surface *screen, int x0, int y0,
 		       int x1, int y1, 
 		       Uint8 R, Uint8 G, Uint8 B) {
   /* PERF could maprgb once */
-
-  line * l = line::create(x0, y0, x1, y1);
+  line *l = line::create(x0, y0, x1, y1);
   if (!l) return;
 
   /* direct pixel access */
@@ -662,13 +647,13 @@ void sdlutil::drawline(SDL_Surface * screen, int x0, int y0,
   l->destroy();
 }
 
-void sdlutil::drawclipline(SDL_Surface * screen, int x0, int y0,
+void sdlutil::drawclipline(SDL_Surface *screen, int x0, int y0,
 			   int x1, int y1, 
 			   Uint8 R, Uint8 G, Uint8 B) {
   /* PERF could maprgb once */
   /* PERF clipping can be much more efficient */
 
-  line * l = line::create(x0, y0, x1, y1);
+  line *l = line::create(x0, y0, x1, y1);
   if (!l) return;
 
   /* direct pixel access */
@@ -684,6 +669,19 @@ void sdlutil::drawclipline(SDL_Surface * screen, int x0, int y0,
   l->destroy();
 }
 
+void sdlutil::drawbox(SDL_Surface *s, int x, int y, int w, int h,
+		      Uint8 r, Uint8 g, Uint8 b) {
+  // PERF can unroll a lot of this. Also, straight lines can be
+  // drawn much more easily than with Bresenham.
+  // Top
+  drawclipline(s, x, y, x + w - 1, y, r, g, b);
+  // Left
+  drawclipline(s, x, y, x, y + h - 1, r, g, b);
+  // Right
+  drawclipline(s, x + w - 1, y, x, y + h - 1, r, g, b);
+  // Bottom
+  drawclipline(s, x, y + h - 1, x + w - 1, y + h - 1, r, g, b);
+}
 
 /* XXX change to use function pointer? */
 /* lock before calling */
@@ -738,7 +736,7 @@ void sdlutil::drawclippixel(SDL_Surface *screen, int x, int y,
 }
 
 
-void sdlutil::printsurfaceinfo(SDL_Surface * surf) {
+void sdlutil::printsurfaceinfo(SDL_Surface *surf) {
   int f = surf->flags;
 
 #define INFO(flag, str) \
@@ -763,8 +761,8 @@ void sdlutil::printsurfaceinfo(SDL_Surface * surf) {
 #undef INFO
 }
 
-SDL_Surface * sdlutil::fliphoriz(SDL_Surface * src) {
-  SDL_Surface * dst = makesurface(src->w, src->h);
+SDL_Surface *sdlutil::fliphoriz(SDL_Surface *src) {
+  SDL_Surface *dst = makesurface(src->w, src->h);
   if (!dst) return 0;
 
   slock(src);
