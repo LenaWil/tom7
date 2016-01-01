@@ -480,6 +480,27 @@ struct MixedBaseObservations : public Observations {
     CHECK(total_weight != 0);
     return numer / total_weight;
   }
+
+  virtual void VizText(const vector<uint8> &mem, vector<string> *text) {
+    double numer = 0.0;
+    double total_weight = 0.0;
+
+    const vector<double> vals = GetNormalizedValues(mem);
+    for (int i = 0; i < vals.size(); i++) {
+      text->push_back(StringPrintf("%.2f ~ %.3f", wo.Get(i).second, vals[i]));
+    }
+
+    for (int i = 0; i < vals.size(); i++) {
+      const double weight = wo.Get(i).second;
+      CHECK(vals[i] >= 0.0);
+      CHECK(weight >= 0.0);
+      CHECK(!isnan(vals[i]));
+      numer += weight * vals[i];
+      total_weight += weight;
+    }
+
+    text->push_back(StringPrintf("== %.3f", numer / total_weight));
+  }
   
   vector<vector<uint8>> obs_maxbytes, acc_maxbytes;
   std::mutex obs_mutex, acc_mutex;

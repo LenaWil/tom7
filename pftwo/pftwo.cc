@@ -128,7 +128,7 @@ static void BlitARGBHalf(const vector<uint8> &argb, int width, int height,
 struct Tree {
   using Seq = vector<Problem::Input>;
   static constexpr int UPDATE_FREQUENCY = 1000;
-  
+
   struct Node {
     Node(std::shared_ptr<Problem::State> state, Node *parent) :
       state(state), parent(parent) {}
@@ -143,19 +143,20 @@ struct Tree {
     // share prefixes, but there should not be duplicates.
     map<Seq, Node *> children;
 
-    // For heap.
+    // For heap. Not all nodes will be in the heap.
     int location = -1;
   };
 
-  Tree(const Problem::State &state) {
+  Tree(double score, const Problem::State &state) {
     root = new Node(std::make_shared<Problem::State>(state), nullptr);
+    heap.Insert(-score, root);
   }
 
   // Tree prioritized by negation of score at current epoch. Not all
   // nodes are guaranteed to be present. Negation is used so that the
   // minimum node is actually the node with the best score.
   Heap<double, Node> heap;
-  
+
   Node *root = nullptr;
   int steps_until_update = UPDATE_FREQUENCY;
   // If this is true, a thread is updating the tree. It does not
@@ -186,7 +187,7 @@ struct PF2 {
   // Coarse locking.
   std::mutex tree_m;
 
-  
+
   PF2() {
     map<string, string> config = Util::ReadFileToMap("config.txt");
     if (config.empty()) {
@@ -206,23 +207,32 @@ struct PF2 {
 
   void StartThreads();
   void DestroyThreads();
-  
+
   void Play() {
     // Doesn't return until UI thread exits.
     StartThreads();
-    
+
     DestroyThreads();
   }
 };
 
 struct WorkThread {
+  using Node = Tree::Node;
   WorkThread(PF2 *pftwo, int id) : pftwo(pftwo), id(id),
 				   rc(StringPrintf("worker_%d", id)),
 				   worker(pftwo->problem->CreateWorker()),
 				   th{&WorkThread::Run, this} {}
 
+  // Get the root node of the tree and associated state (which must be
+  // present). Used during initialization.
+  pair<Node *, shared_ptr<Problem::State>> GetRoot() {
+    MutexLock ml(&pftwo->tree_m);
+    Node *n = pftwo->tree->root;
+    return {n, n->state};
+  }
+  
   // XXX: This is a silly policy. Use a heap or something...
-  pair<Tree::Node *, shared_ptr<Problem::State>> Descend(Tree::Node *n) {
+  pair<Node *, shared_ptr<Problem::State>> Descend(Node *n) {
     MutexLock ml(&pftwo->tree_m);
     for (;;) {
       CHECK(n != nullptr);
@@ -231,10 +241,10 @@ struct WorkThread {
 	CHECK(n->state.get() != nullptr);
 	return {n, n->state};
       }
-    
+
       if (n->state.get() != nullptr && rc.Byte() < 16)
 	return {n, n->state};
-    
+
       int idx = RandTo(&rc, n->children.size());
       auto it = n->children.begin();
       while (idx--) ++it;
@@ -242,7 +252,8 @@ struct WorkThread {
     }
   }
 
-  Tree::Node *Ascend(Tree::Node *n) {
+  // Move up the tree a random amount.
+  Node *Ascend(Node *n) {
     MutexLock ml(&pftwo->tree_m);
     while (n->parent != nullptr && rc.Byte() < 128) {
       n = n->parent;
@@ -250,12 +261,36 @@ struct WorkThread {
     return n;
   }
 
-  Tree::Node *ExtendNode(Tree::Node *n,
-			 const vector<Problem::Input> &step,
-			 shared_ptr<Problem::State> newstate) {
+  pair<Node *, shared_ptr<Problem::State>> FindNodeToExtend(Node *n) {
+    MutexLock ml(&pftwo->tree_m);
+
+    // Simple policy: 50% chance of switching to the best node
+    // in the heap; 50% chance of staying with the current node.
+    if (n->state.get() == nullptr || rc.Byte() < 128) {
+      const int size = pftwo->tree->heap.Size();
+      CHECK(size > 0) << "Heap should always have root, at least.";
+
+      // Weight towards the top of the heap, but allow sampling
+      // deeper.
+      int idx = 0;
+      while (idx < size - 1 && rc.Byte() < 128 + 64) {
+	idx++;
+      }
+
+      Heap<double, Node>::Cell cell = pftwo->tree->heap.GetByIndex(idx);
+      CHECK(cell.value->state.get() != nullptr);
+      return {cell.value, cell.value->state};
+    } else {
+      return {n, n->state};
+    }
+  }
+  
+  Node *ExtendNode(Node *n,
+		   const vector<Problem::Input> &step,
+		   shared_ptr<Problem::State> newstate) {
     CHECK(n != nullptr);
     const double newscore = pftwo->problem->Score(*newstate);
-    Tree::Node *child = new Tree::Node(newstate, n);
+    Node *child = new Node(newstate, n);
     MutexLock ml(&pftwo->tree_m);
     auto res = n->children.insert({step, child});
     if (!res.second) {
@@ -264,7 +299,7 @@ struct WorkThread {
       delete child;
       // Maintain the invariant that the worker is at the
       // state of the returned node.
-      Tree::Node *ch = res.first->second;
+      Node *ch = res.first->second;
       // Just find any descendant with a state. Eventually
       // we get to a leaf, which must have a state.
       for (;;) {
@@ -283,13 +318,14 @@ struct WorkThread {
       return child;
     }
   }
-  
+
   void InitializeTree() {
     MutexLock ml(&pftwo->tree_m);
     if (pftwo->tree == nullptr) {
       // I won the race!
       printf("Initialize tree...\n");
-      pftwo->tree = new Tree(worker->Save());
+      Problem::State s = worker->Save();
+      pftwo->tree = new Tree(pftwo->problem->Score(s), s);
     }
   }
 
@@ -302,7 +338,7 @@ struct WorkThread {
       // finish we reset it to the max value.
       if (tree->update_in_progress)
 	return;
-      
+
       if (tree->steps_until_update == 0) {
 	tree->steps_until_update = Tree::UPDATE_FREQUENCY;
 	tree->update_in_progress = true;
@@ -325,58 +361,82 @@ struct WorkThread {
     worker->SetStatus("Tree: Reheap");
     {
       MutexLock ml(&pftwo->tree_m);
-      tree->heap.Clear();
+      printf("Reheap!");
+      // tree->heap.Clear();
 
-      std::function<void(Tree::Node *)> ReHeapRec =
-	[this, tree, &ReHeapRec](Tree::Node *n) {
-	// Only reheap if it's in the heap. We need there
-	// to be a state to score it, too.
-	if (n->state.get() != nullptr && n->location != -1) {
-	  const double new_score = pftwo->problem->Score(*n->state);
-	  // Note negation of score so that bigger real scores
-	  // are more minimum for the heap ordering.
-	  tree->heap.AdjustPriority(n, -new_score);
-	  CHECK(n->location != -1);
+      std::function<void(Node *)> ReHeapRec =
+	[this, tree, &ReHeapRec](Node *n) {
+	// Act on the node if it's in the heap. 
+	if (n->location != -1) {
+	  // We need a state to rescore it.
+	  if (n->state.get() != nullptr) {
+	    const double new_score = pftwo->problem->Score(*n->state);
+	    // Note negation of score so that bigger real scores
+	    // are more minimum for the heap ordering.
+	    tree->heap.AdjustPriority(n, -new_score);
+	    CHECK(n->location != -1);
+	  } else {
+	    // So if no state, remove it.
+	    tree->heap.Delete(n);
+	    CHECK(n->location == -1);
+	  }
 	}
-	for (pair<const Tree::Seq, Tree::Node *> &child : n->children) {
+	for (pair<const Tree::Seq, Node *> &child : n->children) {
 	  ReHeapRec(child.second);
 	}
       };
       ReHeapRec(tree->root);
+      printf("Done!");
     }
-    
-    
+
+
     {
       MutexLock ml(&pftwo->tree_m);
       tree->update_in_progress = false;
     }
   }
 
+ 
   void Run() {
     worker->Init();
 
     InitializeTree();
 
-    Tree::Node *last = pftwo->tree->root;
-    CHECK(last != nullptr);
 
-    static constexpr int FRAMES_PER_STEP = 40;
+    Node *last = nullptr;
+    // Initialize the worker so that its previous state is the root.
+    // With the current setup it should already be in this state, but
+    // it's inexpensive to explicitly establish the invariant.
+    {
+      worker->SetStatus("Load root");
+      shared_ptr<Problem::State> root_state;
+      std::tie(last, root_state) = GetRoot();
+      CHECK(last != nullptr);
+      CHECK(root_state.get() != nullptr);
+      worker->Restore(*root_state);
+    }
+    
+    static constexpr int FRAMES_PER_STEP = 400;
 
     // XXX don't make this finite
     worker->SetDenom(50000 * FRAMES_PER_STEP);
     for (int i = 0; i < 50000; i++) {
+      // Starting this loop, the worker is in some problem state that
+      // corresponds to the node 'last' in the tree. We'll extend this
+      // node or find a different one.
       worker->SetNumer(i * FRAMES_PER_STEP);
       worker->SetStatus("Find start node");
-      Tree::Node *next;
+      Node *next;
       shared_ptr<Problem::State> state;
-      std::tie(next, state) = Descend(Ascend(last));
-
+      std::tie(next, state) = FindNodeToExtend(last);
+      active.store(next, std::memory_order_relaxed);
+      
       // PERF skip this if it's the same as last?
       worker->SetStatus("Load");
       CHECK(next != nullptr);
       CHECK(state.get() != nullptr);
       worker->Restore(*state);
-      
+
       worker->SetStatus("Make inputs");
       vector<Problem::Input> step;
       step.reserve(40);
@@ -389,14 +449,14 @@ struct WorkThread {
 
       worker->SetStatus("Observe state");
       worker->Observe();
-      
+
       worker->SetStatus("Extend tree");
       shared_ptr<Problem::State> newstate{
 	new Problem::State(worker->Save())};
       last = ExtendNode(next, step, newstate);
 
       MaybeUpdateTree();
-      
+
       worker->SetStatus("Check for death");
       if (ReadWithLock(&should_die_m, &should_die)) {
 	worker->SetStatus("Die");
@@ -413,8 +473,15 @@ struct WorkThread {
   }
 
   Worker *GetWorker() const { return worker; }
-  
+
+  bool IsActiveNode(const Node *n) {
+    return n == active.load(std::memory_order_relaxed);
+  }
+   
 private:
+  // Just used for IsActiveNode.
+  std::atomic<Node *> active{nullptr};
+
   PF2 *pftwo = nullptr;
   const int id = 0;
   // Distinct private stream.
@@ -442,7 +509,7 @@ struct UIThread {
     for (auto &v : screenshots) v.resize(256 * 256 * 4);
 
     double start = SDL_GetTicks() / 1000.0;
-    
+
     for (;;) {
       frame++;
       SDL_Event event;
@@ -452,7 +519,7 @@ struct UIThread {
 	return;
       case SDL_KEYDOWN:
 	switch (event.key.keysym.sym) {
-	  
+
 	case SDLK_ESCAPE:
 	  return;
 	default:;
@@ -460,9 +527,9 @@ struct UIThread {
 	break;
       default:;
       }
-      
+
       SDL_Delay(1000.0 / 30.0);
-      
+
       sdlutil::clearsurface(screen, 0x33333333);
       /*
       sdlutil::clearsurface(screen,
@@ -470,7 +537,7 @@ struct UIThread {
       */
 
       int64 tree_size = ReadWithLock(&pftwo->tree_m, &pftwo->tree->num_nodes);
-      
+
       font->draw(10, 10, StringPrintf("This is frame %d! %lld tree nodes",
 				      frame, tree_size));
 
@@ -488,9 +555,12 @@ struct UIThread {
       }
 
       // Update all screenshots.
+      vector<vector<string>> texts;
+      texts.resize(num_workers);
       for (int i = 0; i < num_workers; i++) {
 	Worker *w = pftwo->workers[i]->GetWorker();
 	w->Visualize(&screenshots[i]);
+	w->VizText(&texts[i]);
       }
 
       for (int i = 0; i < num_workers; i++) {
@@ -498,7 +568,54 @@ struct UIThread {
 	int y = i / 12;
 	BlitARGBHalf(screenshots[i], 256, 256,
 		     x * 128, y * 128 + 20, screen);
+
+	for (int t = 0; t < texts[i].size(); t++) {
+	  font->draw(x * 128,
+		     (y + 1) * 128 + 20 + t * FONTHEIGHT,
+		     texts[i][t]);
+	}
       }
+
+      // Draw tree. Must hold lock!
+      #if 0
+      static constexpr int TSTART = 155;
+      static constexpr int THEIGHT = HEIGHT * 0.75;
+      std::function<void(int x, int y, const Tree::Node *)> DrawTreeRec =
+	[this, &DrawTreeRec](int x, int y, const Tree::Node *n) {
+	if (x > WIDTH) return;
+
+	const int height_rest = THEIGHT - y;
+	
+	uint8 rrr = 127, ggg = 127, bbb = 127;
+	for (WorkThread *wt : pftwo->workers) {
+	  if (wt->IsActiveNode(n)) {
+	    rrr = 255;
+	    ggg = 0;
+	    bbb = 0;
+	  }
+	}
+	
+	sdlutil::drawbox(screen, x - 2, TSTART + y - 2, 4, 4, rrr, ggg, bbb);
+	const int children = n->children.size();
+	const int xc = x + 12;
+	for (int i = 0; i < children; i++) {
+	  int yc = (height_rest / (float)children) * i;
+	  sdlutil::drawline(screen, x, TSTART + y, xc, TSTART + yc, 32, 32, 32);
+	}
+	int i = 0;
+	for (const auto &child : n->children) {
+	  int yc = (height_rest / (float)children) * i;
+	  DrawTreeRec(xc, yc, child.second);
+	  i++;
+	}
+	
+      };
+
+      {
+	MutexLock ml(&pftwo->tree_m);
+	DrawTreeRec(2, HEIGHT / 2, pftwo->tree->root);
+      }
+      #endif
       
       const double now = SDL_GetTicks() / 1000.0;
       double sec = now - start;
@@ -508,12 +625,13 @@ struct UIThread {
 			      total_steps, sec,
 			      total_steps / sec,
 			      frame / sec));
-      
+
+     
       SDL_Flip(screen);
     }
-    
+
   }
-  
+
   void Run() {
     screen = sdlutil::makescreen(WIDTH, HEIGHT);
     CHECK(screen);
@@ -524,7 +642,7 @@ struct UIThread {
 			FONTWIDTH, FONTHEIGHT, FONTSTYLES, 1, 3);
     CHECK(font != nullptr) << "Couldn't load font.";
 
-    
+
     Loop();
     Printf("UI shutdown.\n");
     WriteWithLock(&should_die_m, &should_die, true);
@@ -534,7 +652,7 @@ struct UIThread {
     // XXX free screen
     delete font;
   }
-  
+
  private:
   static constexpr int FONTWIDTH = 9;
   static constexpr int FONTHEIGHT = 16;

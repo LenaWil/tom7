@@ -71,6 +71,7 @@ TPP::TwoPlayerProblem(const map<string, string> &config) {
     printf("Loading weighted objectives from %s.\n",
 	   cached_objectives.c_str());
     objectives.reset(WeightedObjectives::LoadFromFile(cached_objectives));
+    printf("There are %d objectives.\n", (int)objectives->Size());
   } else {
     Learnfun learnfun{memories};
     objectives.reset(learnfun.MakeWeighted());
@@ -113,6 +114,7 @@ void Worker::Visualize(vector<uint8> *argb) {
     (*argb)[i * 4 + 3] = 0xFF;
   }
   #endif
+  
   const double s = tpp->observations->GetWeightedValue(emu->GetMemory());
   // printf("%f\n", s);
   for (int y = 250; y < 256; y++) {
@@ -125,6 +127,20 @@ void Worker::Visualize(vector<uint8> *argb) {
       (*argb)[i + 3] = 0xFF;
     }
   }
+}
+
+void Worker::VizText(vector<string> *text) {
+  const vector<uint8> mem = emu->GetMemory();
+
+  static constexpr std::initializer_list<int> kLocations = 
+    { 48, 100, 101, 820, 821, 50, 51, 2019, 2018, 2021, 2020 };
+
+  for (int i : kLocations) {
+    text->push_back(StringPrintf("%d: %d", i, mem[i]));
+  }
+
+  text->push_back("--------");
+  tpp->observations->VizText(mem, text);
 }
 
 void Worker::Observe() {
