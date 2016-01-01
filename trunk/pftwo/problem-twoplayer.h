@@ -66,10 +66,9 @@ struct TwoPlayerProblem {
     }
 
     void Observe();
-    
-    // XXX: This interface pretty much only works for grabbing a
-    // single NES frame right now.
+
     void Visualize(vector<uint8> *argb256x256);
+    void VizText(vector<string> *text);
     
     void ClearStatus() {
       SetStatus(nullptr);

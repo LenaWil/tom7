@@ -101,6 +101,9 @@ struct Observations {
   // Weights are ignored. Does not observe the memory.
   virtual vector<double> GetNormalizedValues(const vector<uint8> &memory) = 0;
 
+  // Write some short strings into the text to describe the memory.
+  virtual void VizText(const vector<uint8> &mem, vector<string> *text) {}
+  
   // Construct concrete instances with different strategies. Caller
   // owns the new-ly created object.
 
