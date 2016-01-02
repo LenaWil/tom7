@@ -30,6 +30,15 @@ struct TwoPlayerProblem {
     Input prev;
   };
 
+  static int64 StateBytes(const State &s) {
+    return s.save.size() + s.mem.size() + sizeof (State);
+  }
+
+  void SaveSolution(const string &filename_part,
+		    const vector<Input> &inputs,
+		    const State &state,
+		    const string &info);
+  
   // An individual instance of the emulator that can be used to
   // execute steps. We create one of these per thread.
   struct Worker {

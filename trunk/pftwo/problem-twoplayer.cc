@@ -26,6 +26,26 @@ TPP::Input Worker::RandomInput(ArcFour *rc) {
   return MakeInput(p1, p2);
 }
 
+void TPP::SaveSolution(const string &filename_part,
+		       const vector<Input> &inputs,
+		       const State &state,
+		       const string &info) {
+  vector<pair<uint8, uint8>> all_inputs;
+  for (int i = 0; i < WARMUP_FRAMES; i++) {
+    all_inputs.push_back(original_inputs[i]);
+  }
+  for (const Input &input : inputs) {
+    all_inputs.push_back({Player1(input), Player2(input)});
+  }
+  SimpleFM2::WriteInputs2P(StringPrintf("%s-%s.fm2", game.c_str(),
+					filename_part.c_str()),
+			   game,
+			   // Take from inputs?
+			   "base64:WlwvTxyvsfVajcDVrUVQ5Q==",
+			   all_inputs);
+}
+
+
 TPP::TwoPlayerProblem(const map<string, string> &config) {
   game = GetDefault(config, "game", "");
   const string movie = GetDefault(config, "movie", "");
