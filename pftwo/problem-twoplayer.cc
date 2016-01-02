@@ -3,10 +3,14 @@
 #include <map>
 
 #include "../fceulib/simplefm2.h"
-#include "markov-controller.h"
+#include "n-markov-controller.h"
 #include "weighted-objectives.h"
 #include "learnfun.h"
 #include "../cc-lib/util.h"
+
+static constexpr int MARKOV_N = 2;
+
+static_assert(MARKOV_N >= 0 && MARKOV_N <= 8, "allowed range");
 
 // XXX for contra to enter konami code.
 // should be derived from input.
@@ -21,8 +25,8 @@ using Worker = TPP::Worker;
 
 TPP::Input Worker::RandomInput(ArcFour *rc) {
   MutexLock ml(&mutex);
-  const uint8 p1 = tpp->markov1->RandomNext(Player1(previous), rc);
-  const uint8 p2 = tpp->markov2->RandomNext(Player2(previous), rc);
+  const uint8 p1 = tpp->markov1->RandomNext(previous1, rc);
+  const uint8 p2 = tpp->markov2->RandomNext(previous2, rc);
   return MakeInput(p1, p2);
 }
 
@@ -55,31 +59,36 @@ TPP::TwoPlayerProblem(const map<string, string> &config) {
   // Throwaway emulator instance for warmup, training.
   printf("Warmup.\n");
   unique_ptr<Emulator> emu(Emulator::Create(game));
-  Input last_input = MakeInput(0, 0);
   for (int i = 0; i < WARMUP_FRAMES; i++) {
     emu->Step(original_inputs[i].first, original_inputs[i].second);
-    last_input = MakeInput(original_inputs[i].first,
-			   original_inputs[i].second);
   }
 
-  // Save start state for each worker.
-  start_state = {emu->SaveUncompressed(), emu->GetMemory(), last_input};
-
-  printf("Get memories.\n");
-  // Now build inputs and memories for learning.
+  printf("Get inputs.\n");
+  // Now build inputs for training markov.
   vector<uint8> player1, player2;
-  vector<vector<uint8>> memories;
-  memories.reserve(original_inputs.size() - WARMUP_FRAMES);
   for (int i = WARMUP_FRAMES; i < original_inputs.size(); i++) {
     const auto &p = original_inputs[i];
     player1.push_back(p.first);
     player2.push_back(p.second);
+  }
+  printf("Build markov controllers.\n");
+  markov1.reset(new NMarkovController(player1, MARKOV_N));
+  markov2.reset(new NMarkovController(player2, MARKOV_N));
+
+  // Save start state for each worker.
+  start_state = {emu->SaveUncompressed(), emu->GetMemory(),
+		 markov1->HistoryInDomain(),
+		 markov2->HistoryInDomain()};
+  
+  // Now execute inputs to get memories for learnfun.
+  printf("Get memories.\n");
+  vector<vector<uint8>> memories;
+  memories.reserve(original_inputs.size() - WARMUP_FRAMES);
+  for (int i = WARMUP_FRAMES; i < original_inputs.size(); i++) {
+    const auto &p = original_inputs[i];
     emu->Step(p.first, p.second);
     memories.push_back(emu->GetMemory());
   }
-  printf("Build markov controllers.\n");
-  markov1.reset(new MarkovController(player1));
-  markov2.reset(new MarkovController(player1));  
   
   // See if we have cached learnfun results, since it takes some
   // time to run.
