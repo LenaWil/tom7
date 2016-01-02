@@ -1,3 +1,7 @@
+// XXX: This is subsumed by NMarkovController, which is a little more
+// complicated but should be just as fast (especially if it were
+// templatized).
+
 #ifndef __MARKOV_CONTROLLER_H
 #define __MARKOV_CONTROLLER_H
 

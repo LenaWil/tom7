@@ -6,14 +6,15 @@
 #include <mutex>
 #include <atomic>
 
-#include "markov-controller.h"
+#include "n-markov-controller.h"
 #include "../fceulib/emulator.h"
 #include "weighted-objectives.h"
 
 struct TwoPlayerProblem {
   // Player 1 and Player 2 controllers.
   using Input = uint16;
-
+  using OneHistory = NMarkovController::History;
+  
   static inline uint8 Player1(Input i) { return (i >> 8) & 255; }
   static inline uint8 Player2(Input i) { return i & 255; }
   static inline Input MakeInput(uint8 p1, uint8 p2) {
@@ -27,7 +28,7 @@ struct TwoPlayerProblem {
     // compute objective functions without having to restore
     // the save.
     vector<uint8> mem;
-    Input prev;
+    OneHistory prev1, prev2;
   };
 
   static int64 StateBytes(const State &s) {
@@ -45,8 +46,8 @@ struct TwoPlayerProblem {
     explicit Worker(TwoPlayerProblem *parent) : tpp(parent) {}
     // Same game is loaded as parent Problem.
     unique_ptr<Emulator> emu;
-    // Previous input.
-    Input previous;
+    // Previous input for the two players.
+    OneHistory previous1, previous2;
     
     // Sample a random input; may depend on the current state (for
     // example, in Markov models). Doesn't execute the input.
@@ -58,20 +59,26 @@ struct TwoPlayerProblem {
     
     State Save() {
       MutexLock ml(&mutex);
-      return {emu->SaveUncompressed(), emu->GetMemory(), previous};
+      return {emu->SaveUncompressed(), emu->GetMemory(), previous1, previous2};
     }
 
     void Restore(const State &state) {
       MutexLock ml(&mutex);
       emu->LoadUncompressed(state.save);
       // (Doesn't actually need the memory to restore.)
-      previous = state.prev;
+      previous1 = state.prev1;
+      previous2 = state.prev2;
     }
     void Exec(Input input) {
       MutexLock ml(&mutex);
-      emu->Step(Player1(input), Player2(input));
+      const uint8 input1 = Player1(input), input2 = Player2(input);
+      emu->Step(input1, input2);
       IncrementNESFrames(1);
-      previous = input;
+      // Here it would be better if we could just use a template
+      // function (nmarkov model templated over n) without referencing
+      // the parent.
+      previous1 = tpp->markov1->Push(previous1, input1);
+      previous2 = tpp->markov2->Push(previous2, input2);
     }
 
     void Observe();
@@ -132,7 +139,7 @@ struct TwoPlayerProblem {
  
   string game;
   vector<pair<uint8, uint8>> original_inputs;
-  unique_ptr<MarkovController> markov1, markov2;
+  unique_ptr<NMarkovController> markov1, markov2;
   // After warmup inputs.
   State start_state;
   // For play after warmup.

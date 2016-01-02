@@ -484,17 +484,26 @@ struct WorkThread {
       CHECK(state.get() != nullptr);
       worker->Restore(*state);
 
-      worker->SetStatus("Make inputs");
+
+
+      // Note: For correctness, we have to exec the inputs
+      // immediately after generating them so that the markov
+      // model follows. We could extend the interface in
+      // Problem to allow the generator to be its own decoupled
+      // state (it's very efficient, just uint64 for markov)
+      // if we wanted to generate candidate inputs without
+      // actually executing them.
+      worker->SetStatus("Gen/exec inputs");
       vector<Problem::Input> step;
       int num_frames = gauss.Next() * 100.0 + 200.0;
       if (num_frames < 1) num_frames = 1;
       step.reserve(num_frames);
-      for (int num_left = num_frames; num_left--;)
-	step.push_back(worker->RandomInput(&rc));
 
-      worker->SetStatus("Execute inputs");
-      for (const Problem::Input &input : step)
+      for (int num_left = num_frames; num_left--;) {
+	Problem::Input input = worker->RandomInput(&rc);
+	step.push_back(input);
 	worker->Exec(input);
+      }
 
       worker->SetStatus("Observe state");
       worker->Observe();
