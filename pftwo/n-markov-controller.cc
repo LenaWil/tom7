@@ -172,3 +172,20 @@ NMarkovController::NMarkovController(const vector<uint8> &v, int n)
   
   CHECK(matrix.find(history_in_domain) != matrix.end());
 }
+
+void NMarkovController::Stats() const {
+  map<int, int> counts;
+  for (const auto &row : matrix) {
+    counts[(int)row.second.size()]++;
+  }
+  
+  fprintf(stderr,
+	  "NMarkovController with n=%d.\n"
+	  "There are %d distinct states of length n.\n"
+	  "Of those, %d are singletons.\n",
+	  n, (int)matrix.size(), counts[1]);
+
+  for (const auto &c : counts) {
+    fprintf(stderr, "%d destinations: %d rows\n", c.first, c.second);
+  }
+}

@@ -8,7 +8,9 @@
 #include "learnfun.h"
 #include "../cc-lib/util.h"
 
-static constexpr int MARKOV_N = 2;
+// Note NMarkovController::Stats; making this large will often
+// make the matrix very sparse.
+static constexpr int MARKOV_N = 3;
 
 static_assert(MARKOV_N >= 0 && MARKOV_N <= 8, "allowed range");
 
@@ -75,6 +77,9 @@ TPP::TwoPlayerProblem(const map<string, string> &config) {
   markov1.reset(new NMarkovController(player1, MARKOV_N));
   markov2.reset(new NMarkovController(player2, MARKOV_N));
 
+  markov1->Stats();
+  markov2->Stats();
+  
   // Save start state for each worker.
   start_state = {emu->SaveUncompressed(), emu->GetMemory(),
 		 markov1->HistoryInDomain(),
