@@ -23,6 +23,9 @@ struct NMarkovController {
   // words).
   NMarkovController(const vector<uint8> &inputs, int n);
 
+  // Log stats to console.
+  void Stats() const;
+  
  private:
   const int n;
   // Any input history that's known to be in the domain.

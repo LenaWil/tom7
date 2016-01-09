@@ -1,7 +1,8 @@
 
-// TODO: Why are scores bigger than 1 until the first reheap?
+// TODO: Bug? Why are scores bigger than 1 until the first reheap?
 // TODO: Norm overall score by length, to prefer shorter routes.
-
+// TODO: Try to deduce that a state is hopeless and stop expanding
+// it.
 
 #include <vector>
 #include <string>
@@ -898,6 +899,11 @@ int main(int argc, char *argv[]) {
   CHECK(SDL_Init(SDL_INIT_VIDEO) >= 0);
   fprintf(stderr, "SDL initialized OK.\n");
 
+  SDL_Surface *icon = SDL_LoadBMP("icon.bmp");
+  if (icon != nullptr) {
+    SDL_WM_SetIcon(icon, nullptr);
+  }
+  
   {
     PF2 pftwo;
     pftwo.Play();
