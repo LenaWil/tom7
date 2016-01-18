@@ -54,7 +54,8 @@ void Palette::FCEUI_SetNTSCTH(int n, int tint, int hue) {
   ResetPalette();
 }
 
-void Palette::FCEUD_GetPalette(uint8 index, uint8 *r, uint8 *g, uint8 *b) {
+void Palette::FCEUD_GetPalette(uint8 index, uint8 *r, uint8 *g, uint8 *b)
+  const {
   *r = s_psdl[index].r;
   *g = s_psdl[index].g;
   *b = s_psdl[index].b;

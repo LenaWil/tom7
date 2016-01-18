@@ -51,14 +51,15 @@ struct Emulator {
   void StepFull(uint8 controller1, uint8 controller2);
 
   // Get image. StepFull must have been called to produce this frame,
-  // or else who knows what's in there? Size is 256 x 256 pixels,
+  // or else who knows what's in there? (Note that restoring a state
+  // will not necessarily restore the image.) Size is 256 x 256 pixels,
   // 4 color channels (bytes) per pixel in RGBA order, though only
   // 240 pixels high contain anything interesting.
-  void GetImage(vector<uint8> *rgba);
-  vector<uint8> GetImage();
+  void GetImage(vector<uint8> *rgba) const;
+  vector<uint8> GetImage() const;
   // Same, but Alpha, Red, Green, Blue.
-  void GetImageARGB(vector<uint8> *abgr);
-  vector<uint8> GetImageARGB();
+  void GetImageARGB(vector<uint8> *abgr) const;
+  vector<uint8> GetImageARGB() const;
   
   // Get sound. StepFull must have been called to produce this wave.
   // The result is a vector of signed 16-bit samples, mono.
