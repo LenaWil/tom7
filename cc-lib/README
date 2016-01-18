@@ -21,6 +21,10 @@ is in APACHE20. Googletest is the "new BSD" license, in gtest/LICENSE.
 Sean Barrett's excellently simple stb_* libraries are in the public
 domain; see the notices at the tops of those files.
 
+Some of the numerical routines in randutil are based on Numpy. If you
+believe that this is a "copy" or "substantial portion", then please
+abide by Numpy's permissive license; see NUMPY.LICENSE.
+
 Currently, everything else is licensed under the GPL, which can be
 found in COPYING.
 
