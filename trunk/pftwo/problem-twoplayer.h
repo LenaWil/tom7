@@ -13,7 +13,7 @@
 struct TwoPlayerProblem {
   // Player 1 and Player 2 controllers.
   using Input = uint16;
-  using OneHistory = NMarkovController::History;
+  using ControllerHistory = NMarkovController::History;
   
   static inline uint8 Player1(Input i) { return (i >> 8) & 255; }
   static inline uint8 Player2(Input i) { return i & 255; }
@@ -27,8 +27,12 @@ struct TwoPlayerProblem {
     // PERF This is actually part of save. But we use it to
     // compute objective functions without having to restore
     // the save.
+    // PERF We could have a TPP-level remapping of indices used
+    // in the objective functions to a dense sequence of integers,
+    // which would usually be much fewer than 2048, and only
+    // store the memory values keyed by those denser indices here.
     vector<uint8> mem;
-    OneHistory prev1, prev2;
+    ControllerHistory prev1, prev2;
   };
 
   static int64 StateBytes(const State &s) {
@@ -47,7 +51,7 @@ struct TwoPlayerProblem {
     // Same game is loaded as parent Problem.
     unique_ptr<Emulator> emu;
     // Previous input for the two players.
-    OneHistory previous1, previous2;
+    ControllerHistory previous1, previous2;
     
     // Sample a random input; may depend on the current state (for
     // example, in Markov models). Doesn't execute the input.
