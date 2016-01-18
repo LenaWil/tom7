@@ -27,7 +27,7 @@ class Heap {
     Value *value;
   };
 
-  bool Valid(Value *v) { return v->location != -1; }
+  bool Valid(const Value *v) { return v->location != -1; }
 
   // With empty cells.
   Heap() {}
@@ -106,7 +106,7 @@ class Heap {
     return PopMinimum().value;
   }
 
-  Cell GetCell(Value *v) const {
+  Cell GetCell(const Value *v) const {
     if (v->location == -1) {
       fprintf(stderr, "Attempt to GetCell on deleted value.\n");
       abort();
@@ -115,6 +115,7 @@ class Heap {
     return cells[v->location];
   }
 
+ 
   void AdjustPriority(Value *v, Priority p) {
     /* PERF this is simple, but we could also test whether this
        is an increase or decrease, and then percolate_up or
@@ -134,6 +135,20 @@ class Heap {
     cells.clear();
   }
 
+
+  // Experimental: Index directly into the heap. The index must be in
+  // range. For any index i, the element at (i >> 1) will have a
+  // smaller weight. (This implies that the smallest weight is at
+  // index 0).
+  Cell GetByIndex(int i) const {
+    if (i < 0 || i >= Size()) {
+      fprintf(stderr, "GetByIndex out of range %d.\n", i);
+      abort();
+    }
+
+    return cells[i];
+  }
+  
  private:
   // Requires that the heap be nonempty.
   Cell RemoveLast() {

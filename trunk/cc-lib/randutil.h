@@ -30,7 +30,7 @@ inline ArcFour *Substream(ArcFour *rc, int n) {
 
 // In [0, 1].
 inline float RandFloat(ArcFour *rc) {
-  uint32 uu = 0u;
+  uint32 uu = 0U;
   uu = rc->Byte() | (uu << 8);
   uu = rc->Byte() | (uu << 8);
   uu = rc->Byte() | (uu << 8);
@@ -40,7 +40,7 @@ inline float RandFloat(ArcFour *rc) {
 };
 
 inline double RandDouble(ArcFour *rc) {
-  uint64 uu = 0u;
+  uint64 uu = 0U;
   uu = rc->Byte() | (uu << 8);
   uu = rc->Byte() | (uu << 8);
   uu = rc->Byte() | (uu << 8);
@@ -52,6 +52,13 @@ inline double RandDouble(ArcFour *rc) {
   return ((uu &   0x3FFFFFFFFFFFFFFFULL) / 
 	  (double)0x3FFFFFFFFFFFFFFFULL);
 };
+
+inline double RandDoubleNot1(ArcFour *rc) {
+  for (;;) {
+    double d = RandDouble(rc);
+    if (d < 1.0) return d;
+  }
+}
 
 inline uint64 Rand64(ArcFour *rc) {
   uint64 uu = 0ULL;
@@ -155,6 +162,99 @@ struct RandomGaussian {
 // If you need many, RandomGaussian will be twice as fast.
 inline double OneRandomGaussian(ArcFour *rc) {
   return RandomGaussian{rc}.Next();
+}
+
+// Adapted from numpy, based on Marsaglia & Tsang's method.
+// Please see NUMPY.LICENSE.
+struct RandomGamma {
+  explicit RandomGamma(ArcFour *rc) : rc(rc), rg(rc) {}
+  static constexpr double one_third = 1.0 / 3.0;
+  
+  double Exponential() {
+    return -log(1.0 - RandDoubleNot1(rc));
+  }
+  
+  double Next(double shape) {
+    if (shape == 1.0) {
+      return Exponential();
+    } else if (shape < 1.0) {
+      const double one_over_shape = 1.0 / shape;
+      for (;;) {
+	const double u = RandDoubleNot1(rc);
+	const double v = Exponential();
+	if (u < 1.0 - shape) {
+	  const double x = pow(u, one_over_shape);
+	  if (x <= v) {
+	    return x;
+	  }
+	} else {
+	  const double y = -log((1.0 - u) / shape);
+	  const double x = pow(1.0 - shape + shape * y, one_over_shape);
+	  if (x <= v + y) {
+	    return x;
+	  }
+	}
+      }
+    } else {
+      const double b = shape - one_third;
+      const double c = 1.0 / sqrt(9.0 * b);
+      for (;;) {
+	double x, v;
+	do {
+	  x = rg.Next();
+	  v = 1.0 + c * x;
+	} while (v <= 0.0);
+
+	const double v_cubed = v * v * v;
+	const double x_squared = x * x;
+	const double u = RandDoubleNot1(rc);
+	if (u < 1.0 - 0.0331 * x_squared * x_squared ||
+	    log(u) < 0.5 * x_squared + b * (1.0 - v_cubed - log(v_cubed))) {
+	  return b * v_cubed;
+	}
+      }
+    }
+  }
+  
+  ArcFour *rc = nullptr;
+  RandomGaussian rg;
+};
+
+inline double OneRandomGamma(ArcFour *rc, double shape) {
+  return RandomGamma(rc).Next(shape);
+}
+
+// Reminder: Beta(a, b) gives the probability distribution
+// when we have 'a' successful trials and 'b' unsuccessful
+// trials. (The most likely value is a/b).
+inline double RandomBeta(ArcFour *rc, double a, double b) {
+  if (a <= 1.0 && b <= 1.0) {
+    for (;;) {
+      const double u = RandDoubleNot1(rc);
+      const double v = RandDoubleNot1(rc);
+      const double x = pow(u, 1.0 / a);
+      const double y = pow(v, 1.0 / b);
+      const double x_plus_y = x + y;
+      if (x_plus_y <= 1.0) {
+	if (x_plus_y > 0.0) {
+	  return x / x_plus_y;
+	} else {
+	  double log_x = log(u) / a;
+	  double log_y = log(v) / b;
+	  const double log_m = log_x > log_y ? log_x : log_y;
+	  log_x -= log_m;
+	  log_y -= log_m;
+
+	  return exp(log_x - log(exp(log_x) + exp(log_y)));
+	}
+      }
+    }
+  } else {
+    RandomGamma rg(rc);
+    const double ga = rg.Next(a);
+    const double gb = rg.Next(b);
+    return ga / (ga + gb);
+  }
 }
 
 #endif
