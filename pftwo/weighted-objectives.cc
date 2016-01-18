@@ -487,7 +487,7 @@ struct MixedBaseObservations : public Observations {
 
     const vector<double> vals = GetNormalizedValues(mem);
     for (int i = 0; i < vals.size(); i++) {
-      text->push_back(StringPrintf("%.2f ~ %.3f", wo.Get(i).second, vals[i]));
+      text->push_back(StringPrintf("%.2f x %.3f", wo.Get(i).second, vals[i]));
     }
 
     for (int i = 0; i < vals.size(); i++) {
@@ -499,7 +499,7 @@ struct MixedBaseObservations : public Observations {
       total_weight += weight;
     }
 
-    text->push_back(StringPrintf("== %.3f", numer / total_weight));
+    text->push_back(StringPrintf("   == %.3f", numer / total_weight));
   }
   
   vector<vector<uint8>> obs_maxbytes, acc_maxbytes;

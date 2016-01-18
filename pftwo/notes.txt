@@ -1,0 +1,262 @@
+
+16 Jan 2016
+Search in Contra is getting stuck in local maxima where death of a
+player is a foregone conclusion. Since lives are the major term in
+the hand-written objectives, it spends all its time exploring nodes
+that have a high value but always lead to low values.
+
+               A         B          C         D1
+                                           [ DEATH ]
+                                          / 
+           [      ]  - [    ]  -  [     ]   ...
+                .                         \   Dn
+                 .                         [ DEATH ]
+                  .      G             H
+                    [       ] ....  [ WIN ]
+
+In this simplified picture, C has the highest score but can only be
+expanded to D1...Dn, which have lower scores (in practice, there are
+like 2^300 possible nodes!). B can only be extended to C or nodes like
+C. But A has a an unexplored path to G (G < B and G < C) but that
+expands to H, which would be a new highest score.
+
+What we'd like to do is spend more time exploring the precursor node A,
+avoiding the C and B. We know the D nodes are all bad, so we'd like
+this to count against C, and since B expands to nodes like C, against
+B, but somehow not against A since it has better alternatives.
+
+Since the number of potential children of a node is ridiculously high;
+it does not work to try to explore all of them before concluding that
+C is a dead end.
+
+Some thoughts:
+
+1. Try to estimate for each node a probability that expanding the node
+   will immediately lead to a worse value. This is pretty easy; we can
+   count the number of times that Di < C = GotWorse(C), and then
+   Beta(GotWorse(C), Expanded(C) - GotWorse(C)) give us a probability
+   distribution that models this probability. (Reminder: The shape
+   parameters in Beta(A, B) can be thought of as A successful trials
+   out of A+B total trials.)
+
+   If we do this, before expanding a node like C we can sample
+   P(failure_C) ~ Beta(GotWorse(C), Expanded(C) - GotWorse(C)), and
+   then use this probability to influence whether we expand C. For
+   example, we pick a uniform variate and if it is less than
+   P(failure_C), we instead try expanding the parent node.
+
+   I think this clearly helps us avoid C (in this example every Di is
+   worse than C) over time. However, expansions of B give nodes
+   similar to C, where C > B and death is not (yet) imminent. We then
+   end up exploring these nodes C', eventually discovering that they
+   are dead ends, and backing off to B again. But we just get stuck at
+   B.
+
+   Even the idea previous idea has a problem with C. Though in this
+   particular example (where we stipulated all expansions of C are
+   bad) we do indeed back off from C. But what if D99 is actually an
+   improvement? The true probability that all expansions of C are
+   worse is 0, because have an actual counter-example.
+
+   Some thoughts to explore:
+
+   a. Model instead simply the probability that the expansion of C
+      will be worse than C. This is what I actually computed above,
+      but in the example we always had Beta(N, 0).
+
+      This of course makes sense, but the average value of C is not
+      really what we're trying to understand, since we are under
+      no obligation to play randomly. We can always play the best
+      move. It may very well be that there is a tight situation
+      starting with C (bullet hell) but that 1 in 1000 sequences
+      makes it through, and we want to find that one.
+
+   b. We could try to model the probability that the max value over
+      all Ds is less than C. I think this expression is just
+
+      Uniformly 0                   if GotWorse(C) < Expanded(C)
+      Beta(GotWorse(C), Expanded(C) - GotWorse(C))    otherwise
+
+      I think this makes sense, though we still have the
+      short-sightedness problem. This is explored in (2).
+
+   c. Note that for probability modeling problems, fancier methods
+      like training a neural network to recognize/predict problem
+      nodes may be useful.
+
+2. Same idea as (1)(b), but try to model the probability that expanding
+   this node will EVENTUALLY lead to a regression. This generalizes
+   the immediate case, so C still looks dead quickly after we expand
+   enough Ds. The deadness of C should hereditarily make B look dead.
+   How do we do this?
+
+   Eventually leading to a regression means the probability that
+   all "leaves" have values worse than the node. This is a strange
+   notion because the tree doesn't really have leaves. Even the
+   [ DEATH ] nodes in the example are expandable; we just postulated
+   here that they always have worse scores than C.
+
+   It's not that we want to say "there are no reachable nodes with
+   higher scores", since C (and its bretheren) are reachable from
+   B and have higher scores. It's that continued play will lead
+   to a score worse than B (even if it has a downstream local
+   maximum in C). What is continued play? 100 steps? Infinite steps?
+
+   a. Maybe one way to grapple with unbounded depth is to do some kind of
+      depth-weighted average. For a path of successors S1, S2, ... you
+      could score this as (S1 * 1/2 + S2 * 1/4 + S3 * 1/8 + S4 * 1/16
+      + ...). This is easily approximated because the terms get
+      insignificant after a moderate depth. So we'd be making some
+      statement about the maximum value of this thing, I guess. It
+      weirdly favors the short term, though, and that seems wrong
+      because ultimately we're looking for long sequences, maybe even
+      ones that play arbitrarily long.
+
+   b. Another idea would be to try to make a statement about the absolute
+      maximum value that we believe exists among all descendant nodes.
+      This seems to have some legs:
+
+       - For the expansions of C, the maximum value would be either C
+         itself or something less than C, depending on whether we use a
+         strict or weak definition of descendant. We would not care to
+         expand C because we wouldn't expect to find a better score by
+         doing so.
+
+       - For B, an accurate estimate of the maximum descendant value
+         would tell us that the value of C is possible (or some similar
+         C'). But if we compare to the global best, which must be at
+         least C, then we see that it's unlikely we'll find a better
+         node by exploring this one. So, if there's any node with a
+         better chance, we'd be more likely to explore that one, which
+         is what we want.
+
+       - In order to increase our confidence that this part of the
+         tree is a local maximum, we do need to do a substantial
+         amount of work, though. And each time we expand B, the new
+         node C' looks good to us until we explore it enough to see
+         that its maximum descendant is probably bounded by C'. (C'
+         would be close to our global maximum, so without other
+         information, it would look like a good node to expand because
+         we'd have no idea what might follow it.) So we would want
+         work failing to improve on C' to substantially reduce the
+         chance of us trying to expand B more.
+
+      But supposing we want to do this, how do we do the estimation?
+
+      First let's just try to model the probability distribution for
+      the statement "A node is reachable with at least the value X".
+      (Note I switched this from a negative to positive statement.)
+      We can do a very basic thing similar to (1)(b) above. Count
+      all of the explored nodes, and then we have 
+
+      Uniformly 1                      if any node is >= X
+      Beta(0, num_descendants)
+
+      This of course ignores anything about the magnitude of the
+      scores or the trajectories. For example, if we have currently
+      expanded
+
+           L          M          N
+        [ 0.5 ] -- [ 0.6 ] -- [ 0.7 ]
+
+      a human would probably assign significant credence to the
+      reachability of a node with 0.8 from N (and thus from L).
+      (Something more like gradient ascent methods would be
+      appropriate here?) But we are trying to do something simple, so
+      ignore this for now.
+
+       - Note that "at least the value X" can be done only by doing
+         lexicographic < on memories; I think we don't need to put
+         these into absolute terms. This is really nice because we
+         don't have to change our representation when reweighting the
+         tree. (Of course, it's not so simple: There are really lots
+         of objective functions, which we currently combine into a
+         single number, and it's not that cheap/straightforward to
+         apply everything discussed here to all the objective
+         functions at once.)
+
+       - Also I'm ignoring LaPlace smoothing / prior in these arguments
+         but of course there would be one.
+
+      For those three nodes and a value of 0.75, the distribution at L
+      would be Beta(0, 3), at M Beta(0, 2), and at N Beta(0, 1). Note
+      something weird about this. The node at L looks like it's less
+      likely to have any expansion greater than 0.75 than N (in the
+      sense that if we generate random variates from their
+      distributions we expect lower values for L), but any expansion
+      of N is also an expansion of L! We're losing something about
+      the "max-ness" over nodes with this definition. (Actually maybe
+      the problem is the count of the denominators.)
+
+      i. Maybe if we counted paths instead of nodes? Then they'd all
+         be 0/1.
+
+      ii. Maybe if we counted leaves instead of nodes? Kind of the
+          same idea.
+
+      iii. Maybe we can simply enforce this by saying the PDF for L
+           must be at least that of M's (what, pointwise? Simply
+           taking max of the two over [0, 1] would not preserve
+           PDFness!).
+
+      iv. Maybe the definition should be adjusted to describe what
+          this actually is? But we came at this from the definition,
+          not the implementation.
+
+      v. I think the problem is taking the whole subtree as the
+         number of trials. Instead, try this. The number of trials
+         is the number of immediate children (this is the number of
+         times it's been expanded). The number of successes at the
+         value X is the number of children whose score exceeds X.
+         (And the node itself? Probably not -- we are trying to
+         model something about the value of expanding a node, which
+         does not count the node itself.)
+
+      So taking (v), the above example (a common thing during wide
+      open play):
+
+           L          M          N
+        [ 0.5 ] -- [ 0.6 ] -- [ 0.7 ]
+
+      Has scores of 0/1, 0/1, and 0/0, which looks fine. In our
+      very first example,
+
+               A         B          C         D1
+                                           [ DEATH ]
+                                          / 
+           [      ]  - [    ]  -  [     ]   ...
+                .                         \   Dn
+                 .                         [ DEATH ]
+                  .      G             H
+                    [       ] ....  [ WIN ]
+
+      (Noting that G has not yet been expanded)
+      using a threshold of >= C's score, we have
+
+      A = 1/1
+      B = 1/1
+      C = 0/n
+
+      This will cause us to expand both A and B, maybe with a
+      preference for B because it has a higher score. Since we
+      stipulated that B's children are all like C, we approach
+
+      A = 1/1
+      B = m/m
+      Ci = 0/ni
+
+      which is not really progress, but at least makes sense
+      if our goal is to maximize discovering scores >= C. But
+      this is a good argument that we should be looking for
+      scores strictly greater. Then we'd get
+
+      A = 0/1
+      B = 0/2
+      Ci = 0/ni
+
+      right away, and A starts looking like a better candidate to
+      explore. (Does this take exponential time to back up to A? Looks
+      like it might. We don't need too much look-ahead to handle video
+      game "imminent death" scenarios though. Probably a second or two
+      of real time at most.)
+

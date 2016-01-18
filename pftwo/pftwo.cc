@@ -2,8 +2,12 @@
 // TODO: Bug? Why are scores bigger than 1 until the first reheap?
 // TODO: Norm overall score by length, to prefer shorter routes.
 // TODO: Try to deduce that a state is hopeless and stop expanding
-// it.
+// it. -or- try to estimate the maximum reachable score from each
+// node using some Bayesian method.
+// 
+// TODO: Super Meat Brothers-style multi future visualization of tree.
 
+#include <algorithm>
 #include <vector>
 #include <string>
 #include <set>
@@ -26,6 +30,7 @@
 #include "../cc-lib/arcfour.h"
 #include "../cc-lib/textsvg.h"
 #include "../cc-lib/stb_image.h"
+#include "../cc-lib/stb_image_write.h"
 #include "../cc-lib/sdl/chars.h"
 #include "../cc-lib/sdl/font.h"
 #include "../cc-lib/heap.h"
@@ -61,6 +66,14 @@ std::mutex print_mutex;
 static bool should_die = false;
 static mutex should_die_m;
 
+static string Rtos(double d) {
+  char out[16];
+  sprintf(out, "%.5f", d);
+  char *o = out;
+  while (*o == '0') o++;
+  return string{o};
+}
+
 // assumes ARGB, surfaces exactly the same size, etc.
 static void CopyARGB(const vector<uint8> &argb, SDL_Surface *surface) {
   // int bpp = surface->format->BytesPerPixel;
@@ -80,6 +93,29 @@ static void BlitARGB(const vector<uint8> &argb, int w, int h,
 
 static inline constexpr uint8 Mix4(uint8 v1, uint8 v2, uint8 v3, uint8 v4) {
   return (uint8)(((uint32)v1 + (uint32)v2 + (uint32)v3 + (uint32)v4) >> 2);
+}
+
+static void SaveARGB(const vector<uint8> &argb, int width, int height,
+		     const string &filename) {
+  CHECK(argb.size() == width * height * 4);
+  vector<uint8> rgba;
+  rgba.resize(width * height * 4);
+  for (int i = 0; i < width * height * 4; i += 4) {
+    // This is all messed up, maybe because I got ARGB wrong in emu
+    // (TODO: fix that) and also stb_ wants little-endian words. But
+    // anyway, it works like this.
+    uint8 b = argb[i + 0];
+    uint8 g = argb[i + 1];
+    uint8 r = argb[i + 2];
+    uint8 a = argb[i + 3];
+    
+    rgba[i + 0] = r;
+    rgba[i + 1] = g;
+    rgba[i + 2] = b;
+    rgba[i + 3] = a;
+    // 3, 2, 1, 0   / 1 2 3 0 has alpha in the right place at least.
+  }
+  stbi_write_png(filename.c_str(), width, height, 4, rgba.data(), 4 * width);
 }
 
 static void HalveARGB(const vector<uint8> &argb, int width, int height,
@@ -159,6 +195,12 @@ struct Tree {
     // be related to the number of children, but can be more
     // in the case that the tree is pruned or children collide.
     int chosen = 0;
+
+    // Number of times that expansion yielded a loss on the
+    // objective function. Used to compute the chance that
+    // a node is hopeless.
+    int was_loss = 0;
+
     // For heap. Not all nodes will be in the heap.
     int location = -1;
   };
@@ -339,9 +381,16 @@ struct WorkThread {
     const double newscore = pftwo->problem->Score(*newstate);
     Node *child = new Node(newstate, n);
     MutexLock ml(&pftwo->tree_m);
+    if (n->state.get() != nullptr) {
+      const double oldscore = pftwo->problem->Score(*n->state);
+      if (oldscore > newscore) {
+	n->was_loss++;
+      }
+    }
     auto res = n->children.insert({step, child});
     if (!res.second) {
-      // By dumb luck, we already have a node with this
+      // By dumb luck (this might not be that rare if the markov
+      // model is sparse), we already have a node with this
       // exact path. We don't allow replacing it.
       delete child;
       // Maintain the invariant that the worker is at the
@@ -485,11 +534,9 @@ struct WorkThread {
       CHECK(state.get() != nullptr);
       worker->Restore(*state);
 
-
-
       // Note: For correctness, we have to exec the inputs
       // immediately after generating them so that the markov
-      // model follows. We could extend the interface in
+      // model follows along. We could extend the interface in
       // Problem to allow the generator to be its own decoupled
       // state (it's very efficient, just uint64 for markov)
       // if we wanted to generate candidate inputs without
@@ -557,6 +604,116 @@ private:
 struct UIThread {
   UIThread(PF2 *pftwo) : pftwo(pftwo) {}
 
+  // Dump the tree to the "tree" subdirectory as some HTML/JSON/PNGs.
+  // Your responsibility to clean this all up and deal with multiple
+  // versions being spit into the same dir.
+  void DumpTree() {
+    MutexLock ml(&pftwo->tree_m);
+    printf("Dumping tree.");
+    Util::makedir("tree");
+
+    std::unique_ptr<Worker> tmp{pftwo->problem->CreateWorker()};
+
+    vector<int> expansion_cutoff;
+    std::function<void(const Tree::Node *)> Count =
+      [this, &expansion_cutoff, &Count](const Tree::Node *node) {
+      if (node->chosen > 0) {
+	expansion_cutoff.push_back(node->chosen);
+      }
+      for (const auto &p : node->children) {
+	Count(p.second);
+      }
+    };
+    Count(pftwo->tree->root);
+    std::sort(expansion_cutoff.begin(), expansion_cutoff.end(),
+	      std::greater<int>());
+
+    static constexpr int kMaxImages = 1000;
+    const int cutoff = expansion_cutoff.size() > kMaxImages ?
+      expansion_cutoff[kMaxImages] : 0;
+    expansion_cutoff.clear();
+    printf("Nodes expanded more than %d times will have images.\n",
+	   cutoff);
+    
+    int images = 0;
+    int node_num = 0;
+    std::function<string(const Tree::Node *)> Rec =
+      [this, &tmp, cutoff, &images, &node_num, &Rec](const Tree::Node *node) {
+      int id = node_num++;
+      string ret = StringPrintf("{i:%d", id);
+      if (node->location != -1) {
+	double score = -pftwo->tree->heap.GetCell(node).priority;
+	ret += StringPrintf(",s:%s", Rtos(score).c_str());
+      }
+      if (node->chosen > 0) {
+	ret += StringPrintf(",e:%d,w:%d", node->chosen, node->was_loss);
+      }
+
+      if (node->chosen > cutoff && node->state.get() != nullptr) {
+	tmp->Restore(*node->state);
+
+	// Piercing the veil here.
+	// We want the X to indicate the actual value before playing
+	// a random move below in order to get a screenshot, so save
+	// a copy of the actual memory.
+	vector<uint8> xxx = tmp->emu->GetMemory();
+
+	// UGH HACK. After restoring a state we don't have an image
+	// unless we make a step. We could replay to here from the parent
+	// node, or be storing these in the state (but they are 260kb each!)
+	tmp->Exec(tmp->RandomInput(&rc));
+	vector<uint8> argb256x256;
+	argb256x256.resize(256 * 256 * 4);
+	tmp->Visualize(&argb256x256);
+
+	// TODO: Move this visualization to Visualize; it's nice.
+	if (xxx[50] < 29) {
+	  for (int y = 0; y < 256; y++) {
+	    int x = y;
+	    // actual color order: b, g, r, a?
+	    argb256x256[y * 256 * 4 + x * 4] = 0xFF;
+	    if (y < 255)
+	      argb256x256[y * 256 * 4 + x * 4 + 4] = 0xFF;
+	  }
+	}
+
+	if (xxx[51] < 29) {
+	  for (int y = 0; y < 256; y++) {
+	    int x = 255 - y;
+	    argb256x256[y * 256 * 4 + x * 4 + 2] = 0xFF;
+	    if (y > 0)
+	      argb256x256[y * 256 * 4 + x * 4 + 4 + 2] = 0xFF;
+	  }
+	}
+
+	SaveARGB(argb256x256, 256, 256, StringPrintf("tree/%d.png", id));
+	images++;
+	ret += ",g:1";
+      }
+	
+      if (!node->children.empty()) {
+	string ch;
+	for (const auto &p : node->children) {
+	  if (!ch.empty()) ch += ",";
+	  // Note, discards sequence.
+	  ch += Rec(p.second);
+	}
+	ret += ",c:[";
+	ret += ch;
+	ret += "]";
+      }
+      ret += "}";
+      return ret;
+    };
+
+    string json = StringPrintf(
+	"/* Generated by pftwo.cc. Do not edit! */\n"
+	"var treedata = %s\n;",
+	Rec(pftwo->tree->root).c_str());
+    printf("Wrote %d images. Writing to tree/tree.js\n", images);
+    Util::WriteFile("tree/tree.js", json);
+  }
+  
   void Loop() {
     SDL_Surface *surf = sdlutil::makesurface(256, 256, true);
     SDL_Surface *surfhalf = sdlutil::makesurface(128, 128, true);
@@ -583,10 +740,16 @@ struct UIThread {
 
 	case SDLK_ESCAPE:
 	  return;
-	default:;
+
+	case SDLK_t:
+	  DumpTree();
+	  break;
+	default:
+	  break;
 	}
 	break;
-      default:;
+      default:
+	break;
       }
 
       SDL_Delay(1000.0 / 30.0);
@@ -761,6 +924,9 @@ struct UIThread {
 				     levels[i].best_score,
 				     w.c_str()));
       }
+
+      // Draw tree new version.
+      
       
       // Draw tree. Must hold lock!
       // This code is junk; it doesn't make space for children nodes
@@ -856,6 +1022,7 @@ struct UIThread {
   
   Font *font = nullptr, *smallfont = nullptr;
 
+  ArcFour rc{"ui_thread"};
   PF2 *pftwo = nullptr;
   SDL_Surface *screen = nullptr;
   int64 frame = 0LL;
@@ -886,7 +1053,8 @@ void PF2::DestroyThreads() {
 int main(int argc, char *argv[]) {
   (void)CopyARGB;
   (void)BlitARGB;
-
+  (void)HalveARGB;
+  
   fprintf(stderr, "Init SDL\n");
 
   #ifdef __MINGW32__
