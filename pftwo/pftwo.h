@@ -62,4 +62,33 @@ auto GetDefault(const C &container,
   classname(const classname &) = delete; \
   classname &operator =(const classname &) = delete
 
+namespace internal {
+template<class... Argtypes>
+struct DisjointBitsC;
+
+template<class T, class ...Argtypes>
+struct DisjointBitsC<T, Argtypes...> {
+  static constexpr bool F(uint64 used, T head, Argtypes... tail) {
+    return !(used & head) &&
+      DisjointBitsC<Argtypes...>::F(used | head, tail...);
+  }
+};
+
+template<>
+struct DisjointBitsC<> {
+  static constexpr bool F(uint64 used_unused) {
+    return true;
+  }
+};
+}
+
+// Compile-time check that the arguments don't have any overlapping
+// bits; used for bitmasks. Assumes the width is no greater than
+// uint64. Intended for static_assert.
+template<class... Argtypes>
+constexpr bool DisjointBits(Argtypes... a) {
+  return internal::DisjointBitsC<Argtypes...>::F(0, a...);
+}
+
+
 #endif

@@ -6,6 +6,10 @@
 // node using some Bayesian method.
 // 
 // TODO: Super Meat Brothers-style multi future visualization of tree.
+//
+// TODO: Get rid of optional states. Just clean up the tree instead.
+// TODO: Always expand nodes 100 times or whatever?
+
 
 #include <algorithm>
 #include <vector>
@@ -177,6 +181,16 @@ struct Tree {
   using Seq = vector<Problem::Input>;
   static constexpr int UPDATE_FREQUENCY = 1000;
 
+  // If set, some worker is expanding this node and it can't
+  // be deleted.
+  static constexpr uint8 FLAG_IN_USE = 1 << 0;
+  static constexpr uint8 FLAG_DELETEME = 1 << 1;
+  static constexpr uint8 FLAG_ANOTHER = 1 << 2;
+
+  static_assert(DisjointBits(FLAG_IN_USE,
+			     FLAG_DELETEME,
+			     FLAG_ANOTHER), "flags share bits??");
+  
   struct Node {
     Node(std::shared_ptr<Problem::State> state, Node *parent) :
       state(state), parent(parent) {}
@@ -203,6 +217,9 @@ struct Tree {
 
     // For heap. Not all nodes will be in the heap.
     int location = -1;
+
+    uint8 num_workers_using = 0;
+    uint8 flags = 0;
   };
 
   Tree(double score, const Problem::State &state) {
@@ -258,6 +275,11 @@ struct PF2 {
       fprintf(stderr, "Warning: In config, 'workers' should be set >0.\n");
       num_workers = 1;
     }
+    // An absurd amount, but we want to not overflow 8-bit ref counts.
+    if (num_workers > 250) {
+      fprintf(stderr, "Warning: In config, 'workers' must be <250.\n");
+      num_workers = 250;
+    }
 
     problem.reset(new Problem(config));
     printf("Problem at %p\n", problem.get());
@@ -287,43 +309,18 @@ struct WorkThread {
   pair<Node *, shared_ptr<Problem::State>> GetRoot() {
     MutexLock ml(&pftwo->tree_m);
     Node *n = pftwo->tree->root;
+    n->num_workers_using++;
     return {n, n->state};
   }
   
-  // XXX: This is a silly policy. Use a heap or something...
-  pair<Node *, shared_ptr<Problem::State>> Descend(Node *n) {
-    MutexLock ml(&pftwo->tree_m);
-    for (;;) {
-      CHECK(n != nullptr);
-      // If a leaf, it must have a state, and we must return it.
-      if (n->children.empty()) {
-	CHECK(n->state.get() != nullptr);
-	return {n, n->state};
-      }
-
-      if (n->state.get() != nullptr && rc.Byte() < 16)
-	return {n, n->state};
-
-      int idx = RandTo(&rc, n->children.size());
-      auto it = n->children.begin();
-      while (idx--) ++it;
-      n = it->second;
-    }
-  }
-
-  // Move up the tree a random amount.
-  Node *Ascend(Node *n) {
-    MutexLock ml(&pftwo->tree_m);
-    while (n->parent != nullptr && rc.Byte() < 128) {
-      n = n->parent;
-    }
-    return n;
-  }
-
   // Pick the next node to explore. Must increment the chosen field.
+  // n is the current node, which may be discarded; this function
+  // also maintains correct reference counts.
   pair<Node *, shared_ptr<Problem::State>> FindNodeToExtend(Node *n) {
     MutexLock ml(&pftwo->tree_m);
 
+    CHECK(n->num_workers_using > 0);
+    
     // Simple policy: 50% chance of switching to the best node
     // in the heap; 50% chance of staying with the current node.
     if (n->state.get() == nullptr || rc.Byte() < 128 + 64 /* XXX */) {
@@ -331,17 +328,10 @@ struct WorkThread {
       CHECK(size > 0) << "Heap should always have root, at least.";
 
       // Gaussian centered on 0; use 0 for anything out of bounds.
-      // (n.b. this doesn't seem to help get unstuck)
+      // (n.b. this doesn't seem to help get unstuck -- evaluate it)
       const int g = (int)(gauss.Next() * (size * 0.25));
       const int idx = (g <= 0 || g >= size) ? 0 : g;
       
-      // Weight towards the top of the heap, but allow sampling
-      // deeper.
-      // int idx = 0;
-      // while (idx < size - 1 && rc.Byte() < 128 + 64) {
-      //  idx++;
-      // }
-
       Heap<double, Node>::Cell cell = pftwo->tree->heap.GetByIndex(idx);
       Node *ret = cell.value;
       CHECK(ret->state.get() != nullptr);
@@ -366,14 +356,22 @@ struct WorkThread {
 	ret = ret->parent;
       }
 
+      // Giving up on n.
+      n->num_workers_using--;
+      ret->num_workers_using++;
+      
       ret->chosen++;
       return {ret, ret->state};
     } else {
       n->chosen++;
+      // Keep reference count.
       return {n, n->state};
     }
   }
-  
+
+  // Holding a reference to n, extend it and return the new
+  // child; drops the reference to n and acquires a reference to
+  // the new child.
   Node *ExtendNode(Node *n,
 		   const vector<Problem::Input> &step,
 		   shared_ptr<Problem::State> newstate) {
@@ -381,6 +379,7 @@ struct WorkThread {
     const double newscore = pftwo->problem->Score(*newstate);
     Node *child = new Node(newstate, n);
     MutexLock ml(&pftwo->tree_m);
+    
     if (n->state.get() != nullptr) {
       const double oldscore = pftwo->problem->Score(*n->state);
       if (oldscore > newscore) {
@@ -388,6 +387,10 @@ struct WorkThread {
       }
     }
     auto res = n->children.insert({step, child});
+
+    CHECK(n->num_workers_using > 0);
+    n->num_workers_using--;
+
     if (!res.second) {
       // By dumb luck (this might not be that rare if the markov
       // model is sparse), we already have a node with this
@@ -402,6 +405,7 @@ struct WorkThread {
 	CHECK(ch != nullptr);
 	if (ch->state.get() != nullptr) {
 	  worker->Restore(*ch->state);
+	  ch->num_workers_using++;
 	  return ch;
 	}
 	CHECK(!ch->children.empty());
@@ -411,6 +415,8 @@ struct WorkThread {
       pftwo->tree->num_nodes++;
       pftwo->tree->heap.Insert(-newscore, child);
       CHECK(child->location != -1);
+
+      child->num_workers_using++;
       return child;
     }
   }
@@ -455,9 +461,10 @@ struct WorkThread {
 
     // Re-build heap.
     worker->SetStatus("Tree: Reheap");
+    const uint32 start_ms = SDL_GetTicks();
     {
       MutexLock ml(&pftwo->tree_m);
-      printf("Reheap!");
+      printf("Reheap ... ");
       // tree->heap.Clear();
 
       std::function<void(Node *)> ReHeapRec =
@@ -482,10 +489,10 @@ struct WorkThread {
 	}
       };
       ReHeapRec(tree->root);
-      printf("Done!");
     }
-
-
+    const uint32 end_ms = SDL_GetTicks();
+    printf("Done in %.4f sec.\n", (end_ms - start_ms) / 1000.0);
+    
     {
       MutexLock ml(&pftwo->tree_m);
       tree->update_in_progress = false;
@@ -499,7 +506,10 @@ struct WorkThread {
     InitializeTree();
 
 
+    // Handle to the last node expanded, which will match the current
+    // state of the worker. Worker has an outstanding reference count.
     Node *last = nullptr;
+
     // Initialize the worker so that its previous state is the root.
     // With the current setup it should already be in this state, but
     // it's inexpensive to explicitly establish the invariant.
@@ -512,23 +522,16 @@ struct WorkThread {
       worker->Restore(*root_state);
     }
 
-    // this is now dynamic. get rid of
-    static constexpr int FRAMES_PER_STEP = 400;
-
-    // XXX don't make this finite
-    worker->SetDenom(50000 * FRAMES_PER_STEP);
-    for (int i = 0; i < 50000; i++) {
+    for (;;) {
       // Starting this loop, the worker is in some problem state that
       // corresponds to the node 'last' in the tree. We'll extend this
       // node or find a different one.
-      worker->SetNumer(i * FRAMES_PER_STEP);
       worker->SetStatus("Find start node");
       Node *next;
       shared_ptr<Problem::State> state;
       std::tie(next, state) = FindNodeToExtend(last);
-      active.store(next, std::memory_order_relaxed);
       
-      // PERF skip this if it's the same as last?
+      // PERF skip this if it's the same as last!
       worker->SetStatus("Load");
       CHECK(next != nullptr);
       CHECK(state.get() != nullptr);
@@ -547,7 +550,9 @@ struct WorkThread {
       if (num_frames < 1) num_frames = 1;
       step.reserve(num_frames);
 
+      worker->SetDenom(num_frames);
       for (int num_left = num_frames; num_left--;) {
+	worker->SetNumer(num_frames - num_left);
 	Problem::Input input = worker->RandomInput(&rc);
 	step.push_back(input);
 	worker->Exec(input);
@@ -562,7 +567,7 @@ struct WorkThread {
       last = ExtendNode(next, step, newstate);
 
       MaybeUpdateTree();
-
+      
       worker->SetStatus("Check for death");
       if (ReadWithLock(&should_die_m, &should_die)) {
 	worker->SetStatus("Die");
@@ -579,15 +584,8 @@ struct WorkThread {
   }
 
   Worker *GetWorker() const { return worker; }
-
-  bool IsActiveNode(const Node *n) {
-    return n == active.load(std::memory_order_relaxed);
-  }
    
 private:
-  // Just used for IsActiveNode.
-  std::atomic<Node *> active{nullptr};
-
   PF2 *pftwo = nullptr;
   const int id = 0;
   // Distinct private stream.
@@ -878,11 +876,7 @@ struct UIThread {
 	if (n->chosen > ls->max_chosen)
 	  ls->max_chosen = n->chosen;
 	
-	for (WorkThread *wt : pftwo->workers) {
-	  if (wt->IsActiveNode(n)) {
-	    ls->workers++;
-	  }
-	}
+	ls->workers += n->num_workers_using;
 
 	if (n->location != -1) {
 	  double score = -pftwo->tree->heap.GetCell(n).priority;
@@ -924,53 +918,6 @@ struct UIThread {
 				     levels[i].best_score,
 				     w.c_str()));
       }
-
-      // Draw tree new version.
-      
-      
-      // Draw tree. Must hold lock!
-      // This code is junk; it doesn't make space for children nodes
-      // and there are way too many nodes to be able to see what's
-      // going on.
-#     if 0
-      static constexpr int TSTART = 155;
-      static constexpr int THEIGHT = HEIGHT * 0.75;
-      std::function<void(int x, int y, const Tree::Node *)> DrawTreeRec =
-	[this, &DrawTreeRec](int x, int y, const Tree::Node *n) {
-	if (x > WIDTH) return;
-
-	const int height_rest = THEIGHT - y;
-	
-	uint8 rrr = 127, ggg = 127, bbb = 127;
-	for (WorkThread *wt : pftwo->workers) {
-	  if (wt->IsActiveNode(n)) {
-	    rrr = 255;
-	    ggg = 0;
-	    bbb = 0;
-	  }
-	}
-	
-	sdlutil::drawbox(screen, x - 2, TSTART + y - 2, 4, 4, rrr, ggg, bbb);
-	const int children = n->children.size();
-	const int xc = x + 12;
-	for (int i = 0; i < children; i++) {
-	  int yc = (height_rest / (float)children) * i;
-	  sdlutil::drawline(screen, x, TSTART + y, xc, TSTART + yc, 32, 32, 32);
-	}
-	int i = 0;
-	for (const auto &child : n->children) {
-	  int yc = (height_rest / (float)children) * i;
-	  DrawTreeRec(xc, yc, child.second);
-	  i++;
-	}
-	
-      };
-
-      {
-	MutexLock ml(&pftwo->tree_m);
-	DrawTreeRec(2, HEIGHT / 2, pftwo->tree->root);
-      }
-#     endif
       
       const double now = SDL_GetTicks() / 1000.0;
       double sec = now - start;

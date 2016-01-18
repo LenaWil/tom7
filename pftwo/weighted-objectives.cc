@@ -499,7 +499,7 @@ struct MixedBaseObservations : public Observations {
       total_weight += weight;
     }
 
-    text->push_back(StringPrintf("   == %.3f", numer / total_weight));
+    text->push_back(StringPrintf("    == %.3f", numer / total_weight));
   }
   
   vector<vector<uint8>> obs_maxbytes, acc_maxbytes;
