@@ -20,7 +20,7 @@ struct Palette {
   void FCEUI_SetNTSCTH(int n, int tint, int hue);
 
   // Gets the color for a particular index in the palette.
-  void FCEUD_GetPalette(uint8 index, uint8 *r, uint8 *g, uint8 *b);
+  void FCEUD_GetPalette(uint8 index, uint8 *r, uint8 *g, uint8 *b) const;
 
  private:
   int ntsccol = 0;

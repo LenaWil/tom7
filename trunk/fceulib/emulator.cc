@@ -202,7 +202,7 @@ void Emulator::StepFull(uint8 controller1, uint8 controller2) {
   fc->fceu->FCEUI_Emulate(DO_VIDEO_AND_SOUND);
 }
 
-void Emulator::GetImage(vector<uint8> *rgba) {
+void Emulator::GetImage(vector<uint8> *rgba) const {
   if (rgba->size() != IMAGE_BYTE_SIZE) {
     rgba->clear();
     rgba->resize(IMAGE_BYTE_SIZE);
@@ -217,20 +217,20 @@ void Emulator::GetImage(vector<uint8> *rgba) {
 				    &r, &g, &b);
 
       (*rgba)[y * 256 * 4 + x * 4 + 0] = r;
-      (*rgba)[y * 256 * 4 + x * 4 + 1] = g; // XBackBuf[(y * 256) + x] << 4;
-      (*rgba)[y * 256 * 4 + x * 4 + 2] = b; // XBuf[(y * 256) + x] << 4;
+      (*rgba)[y * 256 * 4 + x * 4 + 1] = g;
+      (*rgba)[y * 256 * 4 + x * 4 + 2] = b;
       (*rgba)[y * 256 * 4 + x * 4 + 3] = 0xFF;
     }
   }
 }
 
-vector<uint8> Emulator::GetImage() {
+vector<uint8> Emulator::GetImage() const {
   vector<uint8> ret(IMAGE_BYTE_SIZE);
   GetImage(&ret);
   return ret;
 }
 
-void Emulator::GetImageARGB(vector<uint8> *argb) {
+void Emulator::GetImageARGB(vector<uint8> *argb) const {
   if (argb->size() != IMAGE_BYTE_SIZE) {
     argb->clear();
     argb->resize(IMAGE_BYTE_SIZE);
@@ -252,7 +252,7 @@ void Emulator::GetImageARGB(vector<uint8> *argb) {
   }
 }
 
-vector<uint8> Emulator::GetImageARGB() {
+vector<uint8> Emulator::GetImageARGB() const {
   vector<uint8> ret(IMAGE_BYTE_SIZE);
   GetImageARGB(&ret);
   return ret;

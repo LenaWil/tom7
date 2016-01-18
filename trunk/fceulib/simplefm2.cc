@@ -57,21 +57,46 @@ vector<pair<uint8, uint8>> SimpleFM2::ReadInputs2P(const string &filename) {
   return out;
 }
 
+static vector<pair<uint8, uint8>> Dummy2P(const vector<uint8> &inputs) {
+  vector<pair<uint8, uint8>> out;
+  out.reserve(inputs.size());
+  for (uint8 i : inputs) {
+    out.push_back({i, 0});
+  }
+  return out;
+}
+
 void SimpleFM2::WriteInputs(const string &outputfile,
 			    const string &romfilename,
 			    const string &romchecksum,
 			    const vector<uint8> &inputs) {
-  vector<string> empty;
-  WriteInputsWithSubtitles(outputfile, romfilename, romchecksum,
-			   inputs, empty);
+  WriteInputsWithSubtitles2P(outputfile, romfilename, romchecksum,
+			     Dummy2P(inputs), {});
 }
 
+void SimpleFM2::WriteInputs2P(const string &outputfile,
+			      const string &romfilename,
+			      const string &romchecksum,
+			      const vector<pair<uint8, uint8>> &inputs) {
+  WriteInputsWithSubtitles2P(outputfile, romfilename, romchecksum,
+			     inputs, {});
+}
 
 void SimpleFM2::WriteInputsWithSubtitles(const string &outputfile,
 					 const string &romfilename,
 					 const string &romchecksum,
 					 const vector<uint8> &inputs,
 					 const vector<string> &subtitles) {
+  return WriteInputsWithSubtitles2P(outputfile, romfilename, romchecksum,
+				    Dummy2P(inputs), subtitles);
+}
+
+void SimpleFM2::WriteInputsWithSubtitles2P(
+    const string &outputfile,
+    const string &romfilename,
+    const string &romchecksum,
+    const vector<pair<uint8, uint8>> &inputs,
+    const vector<string> &subtitles) {
   // XXX Create one of these by hashing inputs.
   string fakeguid = "FDAEE33C-B32D-B38C-765C-FADEFACE0000";
   FILE *f = fopen(outputfile.c_str(), "wb");
@@ -106,12 +131,20 @@ void SimpleFM2::WriteInputsWithSubtitles(const string &outputfile,
 
   for (int i = 0; i < inputs.size(); i++) {
     fprintf(f, "|%c|", (i == 0) ? '2' : '0');
-    static const char gamepad[] = "RLDUTSBA";
-    for (int j = 0; j < 8; j++) {
-      fprintf(f, "%c",
-	      (inputs[i] & (1 << (7 - j))) ? gamepad[j] : '.');
-    }
-    fprintf(f, "|........||\n");
+    auto Controller = [f](uint8 input) {
+      static constexpr char gamepad[] = "RLDUTSBA";
+      for (int j = 0; j < 8; j++) {
+	fprintf(f, "%c",
+		(input & (1 << (7 - j))) ? gamepad[j] : '.');
+      }
+    };
+    
+    // 1p
+    Controller(inputs[i].first);
+    fprintf(f, "|");
+    // 2p
+    Controller(inputs[i].second);
+    fprintf(f, "||\n");
   }
   fclose(f);
 }
