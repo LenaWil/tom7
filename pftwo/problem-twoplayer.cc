@@ -82,6 +82,7 @@ TPP::TwoPlayerProblem(const map<string, string> &config) {
   
   // Save start state for each worker.
   start_state = {emu->SaveUncompressed(), emu->GetMemory(),
+		 0,
 		 markov1->HistoryInDomain(),
 		 markov2->HistoryInDomain()};
   
@@ -164,6 +165,7 @@ void Worker::Visualize(vector<uint8> *argb) {
 }
 
 void Worker::VizText(vector<string> *text) {
+  text->push_back(StringPrintf("Depth %d", depth));
   const vector<uint8> mem = emu->GetMemory();
 
   static constexpr std::initializer_list<int> kLocations = 

@@ -32,6 +32,7 @@ struct TwoPlayerProblem {
     // which would usually be much fewer than 2048, and only
     // store the memory values keyed by those denser indices here.
     vector<uint8> mem;
+    int depth;
     ControllerHistory prev1, prev2;
   };
 
@@ -50,6 +51,7 @@ struct TwoPlayerProblem {
     explicit Worker(TwoPlayerProblem *parent) : tpp(parent) {}
     // Same game is loaded as parent Problem.
     unique_ptr<Emulator> emu;
+    int depth = 0;
     // Previous input for the two players.
     ControllerHistory previous1, previous2;
     
@@ -63,12 +65,14 @@ struct TwoPlayerProblem {
     
     State Save() {
       MutexLock ml(&mutex);
-      return {emu->SaveUncompressed(), emu->GetMemory(), previous1, previous2};
+      return State{ emu->SaveUncompressed(), emu->GetMemory(), depth,
+                    previous1, previous2 };
     }
 
     void Restore(const State &state) {
       MutexLock ml(&mutex);
       emu->LoadUncompressed(state.save);
+      depth = state.depth;
       // (Doesn't actually need the memory to restore.)
       previous1 = state.prev1;
       previous2 = state.prev2;
@@ -78,6 +82,7 @@ struct TwoPlayerProblem {
       const uint8 input1 = Player1(input), input2 = Player2(input);
       emu->Step(input1, input2);
       IncrementNESFrames(1);
+      depth++;
       // Here it would be better if we could just use a template
       // function (nmarkov model templated over n) without referencing
       // the parent.
@@ -133,7 +138,15 @@ struct TwoPlayerProblem {
   // Score in [0, 1]. Should be stable in-between calls to
   // Commit.
   double Score(const State &state) {
-    return observations->GetWeightedValue(state.mem);
+    // Give a tiny penalty to longer paths to the same value, so
+    // that we prefer to optimize these away.
+    // This is only 4.6 hours of game time, but this is a dirty hack
+    // anyway. XXX FIX HACK!
+    double depth_penalty = 1.0 - (state.depth * (1.0 / 1000000.0));
+    if (depth_penalty > 1.0) depth_penalty = 1.0;
+    else if (depth_penalty < 0.0) depth_penalty = 0.0;
+    return observations->GetWeightedValue(state.mem) *
+      depth_penalty;
   }
   
   // Must be thread safe and leave Worker in a valid state.
