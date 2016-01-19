@@ -54,7 +54,7 @@
 #define HEIGHT 1080
 
 // XXX way too small, but I wanna see it churn!
-#define MAX_NODES 1000
+#define MAX_NODES 100000
 
 // "Functor"
 using Problem = TwoPlayerProblem;
@@ -186,6 +186,7 @@ struct Tree {
   using Seq = vector<Problem::Input>;
   static constexpr int UPDATE_FREQUENCY = 1000;
 
+  #if 0
   // If set, some worker is expanding this node and it can't
   // be deleted.
   static constexpr uint8 FLAG_IN_USE = 1 << 0;
@@ -195,6 +196,7 @@ struct Tree {
   static_assert(DisjointBits(FLAG_IN_USE,
 			     FLAG_DELETEME,
 			     FLAG_ANOTHER), "flags share bits??");
+  #endif
   
   struct Node {
     Node(State state, Node *parent) : state(std::move(state)),
@@ -225,7 +227,6 @@ struct Tree {
     int location = -1;
 
     uint8 num_workers_using = 0;
-    uint8 flags = 0;
   };
 
   Tree(double score, State state) {
@@ -248,6 +249,20 @@ struct Tree {
   int64 num_nodes = 0;
 };
 
+// Lockless counter. Should only be used for reporting stats in
+// the UI since it uses relaxed memory ordering.
+struct Counter {
+  inline void IncrementBy(int d) {
+    value.fetch_add(d, std::memory_order_relaxed);
+  }
+  inline void Increment() {
+    value.fetch_add(1, std::memory_order_relaxed);
+  }
+  inline int Get() {
+    return value.load(std::memory_order_relaxed);
+  }
+  std::atomic<int> value{0};
+};
 
 struct PF2 {
   std::unique_ptr<Motifs> motifs;
@@ -268,6 +283,13 @@ struct PF2 {
   // Coarse locking.
   std::mutex tree_m;
 
+  struct Stats {
+    // Generated the same exact move sequence for a node
+    // more than once.
+    Counter same_expansion;
+  };
+  Stats stats;
+  
 
   PF2() {
     map<string, string> config = Util::ReadFileToMap("config.txt");
@@ -395,8 +417,9 @@ struct WorkThread {
     if (!res.second) {
       // By dumb luck (this might not be that rare if the markov
       // model is sparse), we already have a node with this
-      // exact path. We don't allow replacing it. (XXX count how
-      // often this occurs?)
+      // exact path. We don't allow replacing it.
+      pftwo->stats.same_expansion.Increment();
+      
       delete child;
       // Maintain the invariant that the worker is at the
       // state of the returned node.
@@ -861,8 +884,12 @@ struct UIThread {
 
       int64 tree_size = ReadWithLock(&pftwo->tree_m, &pftwo->tree->num_nodes);
 
-      font->draw(10, 0, StringPrintf("This is frame %d! %lld tree nodes",
-				     frame, tree_size));
+      font->draw(10, 0, StringPrintf("This is frame %d! "
+				     "%lld tree nodes "
+				     "%d collisions ",
+				     frame,
+				     tree_size,
+				     pftwo->stats.same_expansion.Get()));
 
       int64 total_steps = 0ll;
       for (int i = 0; i < pftwo->workers.size(); i++) {
