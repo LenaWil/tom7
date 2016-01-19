@@ -8,6 +8,7 @@
 // TODO: Super Meat Brothers-style multi future visualization of tree.
 //
 // TODO: Get rid of optional states. Just clean up the tree instead.
+// TODO: Get rid of optional heap location? We often need the score.
 // TODO: Always expand nodes 100 times or whatever?
 
 
@@ -51,6 +52,9 @@
 
 #define WIDTH 1920
 #define HEIGHT 1080
+
+// XXX way too small, but I wanna see it churn!
+#define MAX_NODES 1000
 
 // "Functor"
 using Problem = TwoPlayerProblem;
@@ -460,38 +464,117 @@ struct WorkThread {
     pftwo->problem->Commit();
 
     // Re-build heap.
-    worker->SetStatus("Tree: Reheap");
-    const uint32 start_ms = SDL_GetTicks();
+    {
+      worker->SetStatus("Tree: Reheap");
+      const uint32 start_ms = SDL_GetTicks();
+      {
+	MutexLock ml(&pftwo->tree_m);
+	printf("Reheap ... ");
+	// tree->heap.Clear();
+
+	std::function<void(Node *)> ReHeapRec =
+	  [this, tree, &ReHeapRec](Node *n) {
+	  // Act on the node if it's in the heap. 
+	  if (n->location != -1) {
+	    // We need a state to rescore it.
+	    if (n->state.get() != nullptr) {
+	      const double new_score = pftwo->problem->Score(*n->state);
+	      // Note negation of score so that bigger real scores
+	      // are more minimum for the heap ordering.
+	      tree->heap.AdjustPriority(n, -new_score);
+	      CHECK(n->location != -1);
+	    } else {
+	      // So if no state, remove it.
+	      tree->heap.Delete(n);
+	      CHECK(n->location == -1);
+	    }
+	  }
+	  for (pair<const Tree::Seq, Node *> &child : n->children) {
+	    ReHeapRec(child.second);
+	  }
+	};
+	ReHeapRec(tree->root);
+      }
+      const uint32 end_ms = SDL_GetTicks();
+      printf("Done in %.4f sec.\n", (end_ms - start_ms) / 1000.0);
+    }
+      
     {
       MutexLock ml(&pftwo->tree_m);
-      printf("Reheap ... ");
-      // tree->heap.Clear();
+      if (tree->num_nodes > MAX_NODES) {
+	const uint32 start_ms = SDL_GetTicks();
+	uint64 deleted_nodes = 0ULL;
+	printf("Trim tree ...\n");
+	// We can't delete any ancestor of a node that's being
+	// used, including the node itself.
+	// We want to delete the worst scoring nodes.
 
-      std::function<void(Node *)> ReHeapRec =
-	[this, tree, &ReHeapRec](Node *n) {
-	// Act on the node if it's in the heap. 
-	if (n->location != -1) {
-	  // We need a state to rescore it.
-	  if (n->state.get() != nullptr) {
-	    const double new_score = pftwo->problem->Score(*n->state);
-	    // Note negation of score so that bigger real scores
-	    // are more minimum for the heap ordering.
-	    tree->heap.AdjustPriority(n, -new_score);
-	    CHECK(n->location != -1);
-	  } else {
-	    // So if no state, remove it.
-	    tree->heap.Delete(n);
-	    CHECK(n->location == -1);
+	vector<double> cutoffs;
+	cutoffs.reserve(tree->num_nodes);
+	std::function<void(const Node *)> GetScoresRec =
+	  // Returns true if any descendant is in use.
+	  [this, tree, &cutoffs, &GetScoresRec](const Node *n) {
+	  CHECK(n->location != -1);
+	  const double score = -tree->heap.GetCell(n).priority;
+	  cutoffs.push_back(score);
+	  for (const auto &p : n->children) {
+	    GetScoresRec(p.second);
 	  }
-	}
-	for (pair<const Tree::Seq, Node *> &child : n->children) {
-	  ReHeapRec(child.second);
-	}
-      };
-      ReHeapRec(tree->root);
+	};
+	GetScoresRec(tree->root);
+
+	// Find best scores. PERF: This can be done much faster than
+	// sorting the whole array.
+	std::sort(cutoffs.begin(), cutoffs.end(), std::greater<double>());
+	CHECK(cutoffs.size() > MAX_NODES) << "Should have inserted one "
+	  "score for every node in the tree, and we know there are more "
+	  "than MAX_NODES of them now: " << cutoffs.size();
+	
+	const double min_score = cutoffs[MAX_NODES];
+	printf("\n ... Min score is %.4f\n", min_score);
+	cutoffs.clear();
+	
+	std::function<bool(Node *)> CleanRec =
+	  // Returns true if we should keep this node; otherwise,
+	  // the node is deleted.
+	  [this, tree, &deleted_nodes, min_score, &CleanRec](Node *n) -> bool {
+	  CHECK(n->location != -1);
+	  const double score = -tree->heap.GetCell(n).priority;
+	  bool keep = n->num_workers_using > 0 || score >= min_score;
+
+	  map<Tree::Seq, Node *> new_children;
+	  for (auto &p : n->children) {
+	    if (CleanRec(p.second)) {
+	      new_children.insert({p.first, p.second});
+	      keep = true;
+	    }
+	  }
+	  n->children.swap(new_children);
+	  
+	  if (!keep) {
+	    tree->heap.Delete(n);
+	    deleted_nodes++;
+	    tree->num_nodes--;
+	    CHECK(n->location == -1);
+	    delete n;
+	  }
+
+	  return keep;
+	};
+
+	// This should not happen for multiple reasons -- there should
+	// always be a worker working within it, and since it contains
+	// all nodes, one of the MAX_NODES best scores should be beneath
+	// the root!
+	CHECK(CleanRec(tree->root)) << "Uh, the root was deleted.";
+	
+	const uint32 end_ms = SDL_GetTicks();
+	printf(" ... Deleted %llu in %.4f sec. Done.\n",
+	       deleted_nodes,
+	       (end_ms - start_ms) / 1000.0);
+      }
     }
-    const uint32 end_ms = SDL_GetTicks();
-    printf("Done in %.4f sec.\n", (end_ms - start_ms) / 1000.0);
+
     
     {
       MutexLock ml(&pftwo->tree_m);
@@ -796,11 +879,7 @@ struct UIThread {
       }
 
       
-      sdlutil::clearsurface(screen, 0x33333333);
-      /*
-      sdlutil::clearsurface(screen,
-			    (frame * 0xDEADBEEF));
-      */
+      sdlutil::clearsurface(screen, 0x11111111);
 
       int64 tree_size = ReadWithLock(&pftwo->tree_m, &pftwo->tree->num_nodes);
 
