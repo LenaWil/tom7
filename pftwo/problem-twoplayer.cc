@@ -177,6 +177,10 @@ void Worker::VizText(vector<string> *text) {
 
   text->push_back("--------");
   tpp->observations->VizText(mem, text);
+  if (text->size() > 50) {
+    text->resize(50);
+    text->push_back(" (ahem!) ");
+  }
 }
 
 void Worker::Observe() {

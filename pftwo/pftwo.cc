@@ -7,10 +7,10 @@
 // 
 // TODO: Super Meat Brothers-style multi future visualization of tree.
 //
-// TODO: Get rid of optional states. Just clean up the tree instead.
 // TODO: Get rid of optional heap location? We often need the score.
 // TODO: Always expand nodes 100 times or whatever?
-
+//
+// TODO: Serialization of 
 
 #include <algorithm>
 #include <vector>
@@ -182,6 +182,7 @@ static void BlitARGBHalf(const vector<uint8> &argb, int width, int height,
 
 // Tree of state exploration.
 struct Tree {
+  using State = Problem::State;
   using Seq = vector<Problem::Input>;
   static constexpr int UPDATE_FREQUENCY = 1000;
 
@@ -196,11 +197,12 @@ struct Tree {
 			     FLAG_ANOTHER), "flags share bits??");
   
   struct Node {
-    Node(std::shared_ptr<Problem::State> state, Node *parent) :
-      state(state), parent(parent) {}
-    // Optional, except at the root. This can be recreated by
-    // replaying the path from some ancestor.
-    std::shared_ptr<Problem::State> state;
+    Node(State state, Node *parent) : state(std::move(state)),
+				      parent(parent) {}
+    // Note that this can be recreated by replaying the moves from the
+    // root. It once was optional and could be made that way again, at
+    // the cost of many complications.
+    const State state;
 
     // Only null for the root.
     Node *parent = nullptr;
@@ -226,8 +228,8 @@ struct Tree {
     uint8 flags = 0;
   };
 
-  Tree(double score, const Problem::State &state) {
-    root = new Node(std::make_shared<Problem::State>(state), nullptr);
+  Tree(double score, State state) {
+    root = new Node(std::move(state), nullptr);
     heap.Insert(-score, root);
   }
 
@@ -310,24 +312,24 @@ struct WorkThread {
 
   // Get the root node of the tree and associated state (which must be
   // present). Used during initialization.
-  pair<Node *, shared_ptr<Problem::State>> GetRoot() {
+  Node *GetRoot() {
     MutexLock ml(&pftwo->tree_m);
     Node *n = pftwo->tree->root;
     n->num_workers_using++;
-    return {n, n->state};
+    return n;
   }
   
   // Pick the next node to explore. Must increment the chosen field.
   // n is the current node, which may be discarded; this function
   // also maintains correct reference counts.
-  pair<Node *, shared_ptr<Problem::State>> FindNodeToExtend(Node *n) {
+  Node *FindNodeToExtend(Node *n) {
     MutexLock ml(&pftwo->tree_m);
 
     CHECK(n->num_workers_using > 0);
     
     // Simple policy: 50% chance of switching to the best node
     // in the heap; 50% chance of staying with the current node.
-    if (n->state.get() == nullptr || rc.Byte() < 128 + 64 /* XXX */) {
+    if (rc.Byte() < 128 + 64 /* XXX */) {
       const int size = pftwo->tree->heap.Size();
       CHECK(size > 0) << "Heap should always have root, at least.";
 
@@ -338,16 +340,12 @@ struct WorkThread {
       
       Heap<double, Node>::Cell cell = pftwo->tree->heap.GetByIndex(idx);
       Node *ret = cell.value;
-      CHECK(ret->state.get() != nullptr);
 
       // Now ascend up the tree to avoid picking nodes that have high
       // scores but have been explored at lot (this means it's likely
       // that they're dead ends).
       for (;;) {
 	if (ret->parent == nullptr)
-	  break;
-
-	if (ret->parent->state.get() == nullptr)
 	  break;
 
 	double p_to_ascend = 0.1 +
@@ -365,11 +363,11 @@ struct WorkThread {
       ret->num_workers_using++;
       
       ret->chosen++;
-      return {ret, ret->state};
+      return ret;
     } else {
       n->chosen++;
       // Keep reference count.
-      return {n, n->state};
+      return n;
     }
   }
 
@@ -378,18 +376,17 @@ struct WorkThread {
   // the new child.
   Node *ExtendNode(Node *n,
 		   const vector<Problem::Input> &step,
-		   shared_ptr<Problem::State> newstate) {
+		   Problem::State newstate) {
     CHECK(n != nullptr);
-    const double newscore = pftwo->problem->Score(*newstate);
-    Node *child = new Node(newstate, n);
+    const double newscore = pftwo->problem->Score(newstate);
+    Node *child = new Node(std::move(newstate), n);
     MutexLock ml(&pftwo->tree_m);
     
-    if (n->state.get() != nullptr) {
-      const double oldscore = pftwo->problem->Score(*n->state);
-      if (oldscore > newscore) {
-	n->was_loss++;
-      }
+    const double oldscore = pftwo->problem->Score(n->state);
+    if (oldscore > newscore) {
+      n->was_loss++;
     }
+
     auto res = n->children.insert({step, child});
 
     CHECK(n->num_workers_using > 0);
@@ -398,23 +395,18 @@ struct WorkThread {
     if (!res.second) {
       // By dumb luck (this might not be that rare if the markov
       // model is sparse), we already have a node with this
-      // exact path. We don't allow replacing it.
+      // exact path. We don't allow replacing it. (XXX count how
+      // often this occurs?)
       delete child;
       // Maintain the invariant that the worker is at the
       // state of the returned node.
       Node *ch = res.first->second;
-      // Just find any descendant with a state. Eventually
-      // we get to a leaf, which must have a state.
-      for (;;) {
-	CHECK(ch != nullptr);
-	if (ch->state.get() != nullptr) {
-	  worker->Restore(*ch->state);
-	  ch->num_workers_using++;
-	  return ch;
-	}
-	CHECK(!ch->children.empty());
-	ch = ch->children.begin()->second;
-      }
+
+      CHECK(ch != nullptr);
+      worker->Restore(ch->state);
+      ch->num_workers_using++;
+      return ch;
+
     } else {
       pftwo->tree->num_nodes++;
       pftwo->tree->heap.Insert(-newscore, child);
@@ -476,18 +468,11 @@ struct WorkThread {
 	  [this, tree, &ReHeapRec](Node *n) {
 	  // Act on the node if it's in the heap. 
 	  if (n->location != -1) {
-	    // We need a state to rescore it.
-	    if (n->state.get() != nullptr) {
-	      const double new_score = pftwo->problem->Score(*n->state);
-	      // Note negation of score so that bigger real scores
-	      // are more minimum for the heap ordering.
-	      tree->heap.AdjustPriority(n, -new_score);
-	      CHECK(n->location != -1);
-	    } else {
-	      // So if no state, remove it.
-	      tree->heap.Delete(n);
-	      CHECK(n->location == -1);
-	    }
+	    const double new_score = pftwo->problem->Score(n->state);
+	    // Note negation of score so that bigger real scores
+	    // are more minimum for the heap ordering.
+	    tree->heap.AdjustPriority(n, -new_score);
+	    CHECK(n->location != -1);
 	  }
 	  for (pair<const Tree::Seq, Node *> &child : n->children) {
 	    ReHeapRec(child.second);
@@ -598,11 +583,9 @@ struct WorkThread {
     // it's inexpensive to explicitly establish the invariant.
     {
       worker->SetStatus("Load root");
-      shared_ptr<Problem::State> root_state;
-      std::tie(last, root_state) = GetRoot();
+      last = GetRoot();
       CHECK(last != nullptr);
-      CHECK(root_state.get() != nullptr);
-      worker->Restore(*root_state);
+      worker->Restore(last->state);
     }
 
     for (;;) {
@@ -610,15 +593,12 @@ struct WorkThread {
       // corresponds to the node 'last' in the tree. We'll extend this
       // node or find a different one.
       worker->SetStatus("Find start node");
-      Node *next;
-      shared_ptr<Problem::State> state;
-      std::tie(next, state) = FindNodeToExtend(last);
+      Node *next = FindNodeToExtend(last);
       
       // PERF skip this if it's the same as last!
       worker->SetStatus("Load");
       CHECK(next != nullptr);
-      CHECK(state.get() != nullptr);
-      worker->Restore(*state);
+      worker->Restore(next->state);
 
       // Note: For correctness, we have to exec the inputs
       // immediately after generating them so that the markov
@@ -645,9 +625,7 @@ struct WorkThread {
       worker->Observe();
 
       worker->SetStatus("Extend tree");
-      shared_ptr<Problem::State> newstate{
-	new Problem::State(worker->Save())};
-      last = ExtendNode(next, step, newstate);
+      last = ExtendNode(next, step, worker->Save());
 
       MaybeUpdateTree();
       
@@ -730,8 +708,8 @@ struct UIThread {
 	ret += StringPrintf(",e:%d,w:%d", node->chosen, node->was_loss);
       }
 
-      if (node->chosen > cutoff && node->state.get() != nullptr) {
-	tmp->Restore(*node->state);
+      if (node->chosen > cutoff) {
+	tmp->Restore(node->state);
 
 	// Piercing the veil here.
 	// We want the X to indicate the actual value before playing
@@ -874,7 +852,7 @@ struct UIThread {
 	}
 	pftwo->problem->SaveSolution(StringPrintf("frame-%lld", frame),
 				     path,
-				     *best.value->state,
+				     best.value->state,
 				     "info TODO");
       }
 
@@ -945,9 +923,7 @@ struct UIThread {
 	  levels.push_back(LevelStats{});
 
 	treestats.nodes++;
-	if (n->state.get() != nullptr) {
-	  treestats.statebytes += Problem::StateBytes(*n->state);
-	}
+	treestats.statebytes += Problem::StateBytes(n->state);
 	
 	LevelStats *ls = &levels[depth];
 	ls->count++;
