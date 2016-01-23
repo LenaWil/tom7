@@ -40,6 +40,14 @@ struct TwoPlayerProblem {
     return s.save.size() + s.mem.size() + sizeof (State);
   }
 
+  // Generator itself is not thread-safe, but you can create
+  // many of them easily.
+  struct InputGenerator {
+    const TwoPlayerProblem *tpp;
+    ControllerHistory prev1, prev2;
+    Input RandomInput(ArcFour *rc);
+  };
+  
   void SaveSolution(const string &filename_part,
 		    const vector<Input> &inputs,
 		    const State &state,
@@ -59,6 +67,13 @@ struct TwoPlayerProblem {
     // example, in Markov models). Doesn't execute the input.
     Input RandomInput(ArcFour *rc);
 
+    // Make a new input generator at the current state, which allows
+    // generating multiple sequential random inputs without executing
+    // them. Intended to be efficient to create.
+    InputGenerator Generator() {
+      return InputGenerator{tpp, previous1, previous2};
+    }
+    
     // Called in the worker thread before anything else, but
     // the worker's state must be valid before this point.
     void Init();
@@ -142,7 +157,9 @@ struct TwoPlayerProblem {
     // that we prefer to optimize these away.
     // This is only 4.6 hours of game time, but this is a dirty hack
     // anyway. XXX FIX HACK!
-    double depth_penalty = 1.0 - (state.depth * (1.0 / 1000000.0));
+    // I made it one billion, because a millionth was actually causing
+    // problems with lack of progress (I think).
+    double depth_penalty = 1.0 - (state.depth * (1.0 / 1000000000.0));
     if (depth_penalty > 1.0) depth_penalty = 1.0;
     else if (depth_penalty < 0.0) depth_penalty = 0.0;
     return observations->GetWeightedValue(state.mem) *
