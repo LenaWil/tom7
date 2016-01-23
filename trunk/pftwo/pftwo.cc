@@ -1,6 +1,6 @@
 
 // TODO: Bug? Why are scores bigger than 1 until the first reheap?
-// TODO: Norm overall score by length, to prefer shorter routes.
+//
 // TODO: Try to deduce that a state is hopeless and stop expanding
 // it. -or- try to estimate the maximum reachable score from each
 // node using some Bayesian method.
@@ -10,7 +10,11 @@
 // TODO: Get rid of optional heap location? We often need the score.
 // TODO: Always expand nodes 100 times or whatever?
 //
-// TODO: Serialization of 
+// TODO: Serialization of tree state and restarting
+//
+// TODO: Find values we don't want to go down by setting them to 1 or
+// zero as they go down (or something), and testing whether that is
+// really bad.
 
 #include <algorithm>
 #include <vector>
@@ -55,6 +59,7 @@
 
 // XXX way too small, but I wanna see it churn!
 #define MAX_NODES 100000
+#define NUM_NEXTS 10
 
 // "Functor"
 using Problem = TwoPlayerProblem;
@@ -287,6 +292,8 @@ struct PF2 {
     // Generated the same exact move sequence for a node
     // more than once.
     Counter same_expansion;
+    Counter sequences_tried;
+    Counter sequences_improved;
   };
   Stats stats;
   
@@ -398,9 +405,9 @@ struct WorkThread {
   // the new child.
   Node *ExtendNode(Node *n,
 		   const vector<Problem::Input> &step,
-		   Problem::State newstate) {
+		   Problem::State newstate,
+		   double newscore) {
     CHECK(n != nullptr);
-    const double newscore = pftwo->problem->Score(newstate);
     Node *child = new Node(std::move(newstate), n);
     MutexLock ml(&pftwo->tree_m);
     
@@ -616,6 +623,8 @@ struct WorkThread {
       // corresponds to the node 'last' in the tree. We'll extend this
       // node or find a different one.
       worker->SetStatus("Find start node");
+      // XXX too many "Nexts" in this code! Rename to "expand_me" or
+      // something
       Node *next = FindNodeToExtend(last);
       
       // PERF skip this if it's the same as last!
@@ -623,32 +632,62 @@ struct WorkThread {
       CHECK(next != nullptr);
       worker->Restore(next->state);
 
-      // Note: For correctness, we have to exec the inputs
-      // immediately after generating them so that the markov
-      // model follows along. We could extend the interface in
-      // Problem to allow the generator to be its own decoupled
-      // state (it's very efficient, just uint64 for markov)
-      // if we wanted to generate candidate inputs without
-      // actually executing them.
-      worker->SetStatus("Gen/exec inputs");
-      vector<Problem::Input> step;
+      worker->SetStatus("Gen inputs");
       int num_frames = gauss.Next() * 100.0 + 200.0;
       if (num_frames < 1) num_frames = 1;
-      step.reserve(num_frames);
 
-      worker->SetDenom(num_frames);
-      for (int num_left = num_frames; num_left--;) {
-	worker->SetNumer(num_frames - num_left);
-	Problem::Input input = worker->RandomInput(&rc);
-	step.push_back(input);
-	worker->Exec(input);
+      vector<vector<Problem::Input>> nexts;
+      nexts.reserve(NUM_NEXTS);
+      for (int num_left = NUM_NEXTS; num_left--;) {
+	Problem::InputGenerator gen = worker->Generator();
+	vector<Problem::Input> step;
+	step.reserve(num_frames);
+	for (int frames_left = num_frames; frames_left--;) {
+	  step.push_back(gen.RandomInput(&rc));
+	}
+	nexts.push_back(std::move(step));
       }
 
-      worker->SetStatus("Observe state");
-      worker->Observe();
+      // PERF: Should drop duplicates and drop sequences that
+      // are already in the node. Collisions do happen!
+
+      worker->SetDenom(nexts.size());
+      double best_score = -1.0;
+      std::unique_ptr<Problem::State> best;
+      int best_step_idx = -1;
+      for (int i = 0; i < nexts.size(); i++) {
+	pftwo->stats.sequences_tried.Increment();
+	worker->SetStatus("Re-restore");
+	if (i != 0) {
+	  worker->Restore(next->state);
+	}
+
+	worker->SetStatus("Execute");
+	worker->SetNumer(i);
+	const vector<Problem::Input> &step = nexts[i];
+	for (const Problem::Input &input : step) {
+	  worker->Exec(input);
+	}
+
+	worker->SetStatus("Observe");
+	worker->Observe();
+
+	Problem::State state = worker->Save();
+	const double score = pftwo->problem->Score(state);
+	if (best.get() == nullptr || score > best_score) {
+	  if (best.get() != nullptr) {
+	    pftwo->stats.sequences_improved.Increment();
+	  }
+	  best.reset(new Problem::State(std::move(state)));
+	  best_step_idx = i;
+	  best_score = score;
+	}
+      }
 
       worker->SetStatus("Extend tree");
-      last = ExtendNode(next, step, worker->Save());
+      // TODO: Consider inserting nodes other than the best one?
+      // PERF move best?
+      last = ExtendNode(next, nexts[best_step_idx], *best, best_score);
 
       MaybeUpdateTree();
       
@@ -836,9 +875,9 @@ struct UIThread {
 
       SDL_Delay(1000.0 / 30.0);
 
-      // Every thousand frames, write FM2 file.
+      // Every ten thousand frames, write FM2 file.
       // TODO: Superimpose all of the trees at once.
-      if (frame % 1000 == 0) {
+      if (frame % 10000 == 0) {
 	MutexLock ml(&pftwo->tree_m);
 	printf("Saving best.\n");
 	auto best = pftwo->tree->heap.GetByIndex(0);
@@ -886,10 +925,14 @@ struct UIThread {
 
       font->draw(10, 0, StringPrintf("This is frame %d! "
 				     "%lld tree nodes "
-				     "%d collisions ",
+				     "%d collisions "
+				     "%.2f%% improvement ",
 				     frame,
 				     tree_size,
-				     pftwo->stats.same_expansion.Get()));
+				     pftwo->stats.same_expansion.Get(),
+				     (pftwo->stats.sequences_improved.Get() *
+				      100.0) /
+				     pftwo->stats.sequences_tried.Get()));
 
       int64 total_steps = 0ll;
       for (int i = 0; i < pftwo->workers.size(); i++) {
@@ -981,9 +1024,11 @@ struct UIThread {
 
       smallfont->draw(256 * 6 + 10, 220,
 		      StringPrintf("^1Tree: ^3%d^< nodes, ^3%d^< leaves, "
-				   "^3%lld^< state MB",
+				   "^3%lld^< state MB, ^4%.2f^< KB avg",
 				   treestats.nodes, treestats.leaves,
-				   treestats.statebytes / (1024LL * 1024LL)));
+				   treestats.statebytes / (1024LL * 1024LL),
+				   treestats.statebytes / (1024.0 *
+							   treestats.nodes)));
       for (int i = 0; i < levels.size(); i++) {
 	string w;
 	if (levels[i].workers) {
@@ -992,7 +1037,7 @@ struct UIThread {
 	}
 
 	smallfont->draw(256 * 6 + 10, 230 + i * SMALLFONTHEIGHT,
-			StringPrintf("^4%2d^<: ^3%d^< n %lld c %lld mc, "
+			StringPrintf("^4%2d^<: ^3%d^< n %lld c %d mc, "
 				     "%.3f ^5%s",
 				     i, levels[i].count,
 				     levels[i].chosen,
@@ -1004,10 +1049,10 @@ struct UIThread {
       const double now = SDL_GetTicks() / 1000.0;
       double sec = now - start;
       font->draw(10, HEIGHT - FONTHEIGHT,
-		 StringPrintf("%lld NES frames in %.1f sec = %.2f NES FPS "
+		 StringPrintf("%.2f NES Mframes in %.1f sec = %.2f NES kFPS "
 			      "%.2f UI FPS",
-			      total_steps, sec,
-			      total_steps / sec,
+			      total_steps / 1000000.0, sec,
+			      (total_steps / sec) / 1000.0,
 			      frame / sec));
 
      

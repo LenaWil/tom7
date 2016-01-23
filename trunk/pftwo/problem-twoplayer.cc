@@ -10,7 +10,7 @@
 
 // Note NMarkovController::Stats; making this large will often
 // make the matrix very sparse.
-static constexpr int MARKOV_N = 3;
+static constexpr int MARKOV_N = 2;
 
 static_assert(MARKOV_N >= 0 && MARKOV_N <= 8, "allowed range");
 
@@ -26,9 +26,18 @@ using TPP = TwoPlayerProblem;
 using Worker = TPP::Worker;
 
 TPP::Input Worker::RandomInput(ArcFour *rc) {
-  MutexLock ml(&mutex);
+  // These are all const. No lock needed.
+  // MutexLock ml(&mutex);
   const uint8 p1 = tpp->markov1->RandomNext(previous1, rc);
   const uint8 p2 = tpp->markov2->RandomNext(previous2, rc);
+  return MakeInput(p1, p2);
+}
+
+TPP::Input TPP::InputGenerator::RandomInput(ArcFour *rc) {
+  const uint8 p1 = tpp->markov1->RandomNext(prev1, rc);
+  const uint8 p2 = tpp->markov2->RandomNext(prev2, rc);
+  prev1 = tpp->markov1->Push(prev1, p1);
+  prev2 = tpp->markov2->Push(prev2, p2);
   return MakeInput(p1, p2);
 }
 
