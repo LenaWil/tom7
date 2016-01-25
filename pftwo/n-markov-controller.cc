@@ -27,7 +27,7 @@ static string HistoryString(int n, NMarkovController::History h) {
 
   string res;
   for (int i = out.size() - 1; i >= 0; i--) {
-    if (!res.empty()) res += ",";
+    if (!res.empty()) res += ", ";
     res += InputToString(out[i]);
   }
   return res;
@@ -40,9 +40,13 @@ uint8 NMarkovController::RandomNext(History cur, ArcFour *rc) const {
     // XXX We can't just return history_in_domain because it is potentially
     // many sybmols. What we should do is emit symbols that get us back
     // into the history_in_domain state.
-    CHECK(false) << "History " << cur << " is not represented:\n" <<
-      HistoryString(n, cur);
+    // CHECK(false) << "History " << cur << " is not represented:\n" <<
+    // HistoryString(n, cur);
     // return history_in_domain;
+
+    // XXX this assumes 0^n is in the input, which is typical. But
+    // we should do something that guarantees it.
+    return 0;
   }
 
   const auto &row = it->second;
@@ -105,16 +109,19 @@ NMarkovController::NMarkovController(const vector<uint8> &v, int n)
     // This is initialized to have the correct value to observe
     // the first input.
     History h = history_in_domain;
-    // Note we have to go past the end of the array in order to
-    // also treat those as training data.
-    // XXX check off-by-one on +n here
-    for (int i = 0; i < v.size() + n; i++) {
+    // Each input gets trained on exactly once.
+    for (int i = 0; i < v.size(); i++) {
       const uint8 dst = v[i % v.size()];
       transitions[h][dst]++;
       h = Push(h, dst);
     }
     
-    CHECK(h == history_in_domain) << "Bug";
+    CHECK(h == history_in_domain) <<
+      "Bug. Expected h to be the history_in_domain sequence, which "
+      "is the very tail of the input:\n  " <<
+      HistoryString(n, history_in_domain) <<
+      "\nbut h is actually this:\n  " <<
+      HistoryString(n, h) << "\n";
   }
 
   // Total number of transitions in each row.

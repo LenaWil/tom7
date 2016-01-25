@@ -43,6 +43,12 @@ struct TwoPlayerProblem {
   // Generator itself is not thread-safe, but you can create
   // many of them easily.
   struct InputGenerator {
+    enum class Type {
+      MARKOV,
+      JUMP_LEFT,
+    };
+    Type type;
+    int counter;
     const TwoPlayerProblem *tpp;
     ControllerHistory prev1, prev2;
     Input RandomInput(ArcFour *rc);
@@ -70,8 +76,14 @@ struct TwoPlayerProblem {
     // Make a new input generator at the current state, which allows
     // generating multiple sequential random inputs without executing
     // them. Intended to be efficient to create.
-    InputGenerator Generator() {
-      return InputGenerator{tpp, previous1, previous2};
+    InputGenerator Generator(ArcFour *rc) {
+      if (true || rc->Byte() < 220) {
+	return InputGenerator{InputGenerator::Type::MARKOV, 0, tpp,
+	                      previous1, previous2};
+      } else {
+	return InputGenerator{InputGenerator::Type::JUMP_LEFT, 0, tpp,
+	                      previous1, previous2};
+      }
     }
     
     // Called in the worker thread before anything else, but
@@ -159,11 +171,15 @@ struct TwoPlayerProblem {
     // anyway. XXX FIX HACK!
     // I made it one billion, because a millionth was actually causing
     // problems with lack of progress (I think).
+
+    return observations->GetWeightedValue(state.mem);
+    /*
     double depth_penalty = 1.0 - (state.depth * (1.0 / 1000000000.0));
     if (depth_penalty > 1.0) depth_penalty = 1.0;
     else if (depth_penalty < 0.0) depth_penalty = 0.0;
     return observations->GetWeightedValue(state.mem) *
       depth_penalty;
+    */
   }
   
   // Must be thread safe and leave Worker in a valid state.
@@ -172,6 +188,7 @@ struct TwoPlayerProblem {
   TwoPlayerProblem(const map<string, string> &config);
  
   string game;
+  int warmup_frames = -1;
   vector<pair<uint8, uint8>> original_inputs;
   unique_ptr<NMarkovController> markov1, markov2;
   // After warmup inputs.

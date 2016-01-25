@@ -1,4 +1,5 @@
-game contra.nes
-movie contra2p.fm2
+game rampage.nes
+movie rampage2p.fm2
 # workers 11
 workers 11
+warmup 412

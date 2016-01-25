@@ -57,9 +57,8 @@
 #define WIDTH 1920
 #define HEIGHT 1080
 
-// XXX way too small, but I wanna see it churn!
 #define MAX_NODES 100000
-#define NUM_NEXTS 10
+#define NUM_NEXTS 1
 
 // "Functor"
 using Problem = TwoPlayerProblem;
@@ -633,13 +632,16 @@ struct WorkThread {
       worker->Restore(next->state);
 
       worker->SetStatus("Gen inputs");
-      int num_frames = gauss.Next() * 100.0 + 200.0;
+      constexpr double MEAN = 300.0;
+      constexpr double STDDEV = 150.0;
+       
+      int num_frames = gauss.Next() * STDDEV + MEAN;
       if (num_frames < 1) num_frames = 1;
-
+      
       vector<vector<Problem::Input>> nexts;
       nexts.reserve(NUM_NEXTS);
       for (int num_left = NUM_NEXTS; num_left--;) {
-	Problem::InputGenerator gen = worker->Generator();
+	Problem::InputGenerator gen = worker->Generator(&rc);
 	vector<Problem::Input> step;
 	step.reserve(num_frames);
 	for (int frames_left = num_frames; frames_left--;) {
