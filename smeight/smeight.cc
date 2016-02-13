@@ -185,6 +185,9 @@ struct SM {
   void DrawPPU() {
     static constexpr int SHOWY = 0;
     static constexpr int SHOWX = 300;
+
+    vector<uint8> ram = emu->GetMemory();
+    
     uint8 *nametable = emu->GetFC()->ppu->NTARAM;
     for (int y = 0; y < 32; y++) {
       for (int x = 0; x < 32; x++) {
@@ -202,6 +205,38 @@ struct SM {
 		   SHOWY + y * FONTHEIGHT,
 		   StringPrintf("%s%2x", color, tile));
       }
+    }
+
+    uint8 dir = ram[0x98];
+
+    // Link's top-left corner, so add 8,8 to get center.
+    uint8 lx = ram[0x70] + 8, ly = ram[0x84] + 8;
+
+    float fx = lx / 256.0, fy = ly / 256.0;
+    
+    int sx = SHOWX + fx * (32 * FONTWIDTH * 2);
+    int sy = SHOWY + fy * (32 * FONTHEIGHT);
+    sdlutil::drawbox(screen, sx - 4, sy - 4, 8, 8,
+		     255, 0, 0);
+
+    switch (dir) {
+    case 1:
+      // Right
+      sdlutil::drawclipline(screen, sx, sy, sx + 8, sy, 255, 128, 0);
+      break;
+    case 2:
+      // Left
+      sdlutil::drawclipline(screen, sx, sy, sx - 8, sy, 255, 128, 0);
+      break;
+    case 4:
+      // Down
+      sdlutil::drawclipline(screen, sx, sy, sx, sy + 8, 255, 128, 0);
+      break;
+    case 8:
+      // Up
+      sdlutil::drawclipline(screen, sx, sy, sx, sy - 8, 255, 128, 0);
+      break;
+    default:;
     }
   }
   
