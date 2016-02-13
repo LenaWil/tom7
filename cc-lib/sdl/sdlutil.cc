@@ -2,8 +2,11 @@
 #include "SDL.h"
 #include "sdlutil.h"
 #include <string>
-#include "util.h"
+#include <vector>
+
 #include "../stb_image.h"
+
+using namespace std;
 
 /* by default, use display format. but
    when in console mode (for instance)
@@ -19,20 +22,93 @@
   const Uint32 sdlutil::gmask = 0x00ff0000;
   const Uint32 sdlutil::bmask = 0x0000ff00;
   const Uint32 sdlutil::amask = 0x000000ff;
-  const Uint32 rshift = 24;
-  const Uint32 gshift = 16;
-  const Uint32 bshift = 8;
-  const Uint32 ashift = 0;
+  static constexpr Uint32 rshift = 24;
+  static constexpr Uint32 gshift = 16;
+  static constexpr Uint32 bshift = 8;
+  static constexpr Uint32 ashift = 0;
 #else
   const Uint32 sdlutil::rmask = 0x000000ff;
   const Uint32 sdlutil::gmask = 0x0000ff00;
   const Uint32 sdlutil::bmask = 0x00ff0000;
   const Uint32 sdlutil::amask = 0xff000000;
-  const Uint32 ashift = 24;
-  const Uint32 bshift = 16;
-  const Uint32 gshift = 8;
-  const Uint32 rshift = 0;
+  static constexpr Uint32 ashift = 24;
+  static constexpr Uint32 bshift = 16;
+  static constexpr Uint32 gshift = 8;
+  static constexpr Uint32 rshift = 0;
 #endif
+
+// Local copy of util's "line" code, to avoid dependency on that and
+// facilitate inlining in this code. (That old weird interface also
+// does a pointless heap allocation. Inlined as a regular object here
+// was almost twice as fast in a line-heavy benchmark on 13 Feb 2016!)
+namespace {
+struct Line {
+  int x0, y0, x1, y1;
+  int dx, dy;
+  int stepx, stepy;
+  int frac;
+
+  Line(int x0, int y0, int x1, int y1) :
+    x0(x0), y0(y0), x1(x1), y1(y1) {
+
+    dy = y1 - y0;
+    dx = x1 - x0;
+
+    if (dy < 0) {
+      dy = -dy;
+      stepy = -1;
+    } else {
+      stepy = 1;
+    }
+
+    if (dx < 0) {
+      dx = -dx;
+      stepx = -1;
+    } else {
+      stepx = 1;
+    }
+
+    dy <<= 1;
+    dx <<= 1;
+
+    if (dx > dy) {
+      frac = dy - (dx >> 1);
+    } else {
+      frac = dx - (dy >> 1);
+    }
+  }
+
+  bool Next(int &cx, int &cy) {
+    if (dx > dy) {
+      if (x0 == x1) return false;
+      else {
+	if (frac >= 0) {
+	  y0 += stepy;
+	  frac -= dx;
+	}
+	x0 += stepx;
+	frac += dy;
+	cx = x0;
+	cy = y0;
+	return true;
+      }
+    } else {
+      if (y0 == y1) return false;
+      else {
+	if (frac >= 0) {
+	  x0 += stepx;
+	  frac -= dy;
+	}
+	y0 += stepy;
+	frac += dx;
+	cx = x0;
+	cy = y0;
+	return true;
+      }
+    }
+  }
+};
+}  // namespace
 
 SDL_Surface *sdlutil::resize_canvas(SDL_Surface *s,
 				    int w, int h, Uint32 color) {
@@ -632,19 +708,33 @@ void sdlutil::setpixel(SDL_Surface *surface, int x, int y, Uint32 px) {
 void sdlutil::drawline(SDL_Surface *screen, int x0, int y0,
 		       int x1, int y1, 
 		       Uint8 R, Uint8 G, Uint8 B) {
-  /* PERF could maprgb once */
-  line *l = line::create(x0, y0, x1, y1);
-  if (!l) return;
+  Line l{x0, y0, x1, y1};
 
   /* direct pixel access */
   slock(screen);
-  int x, y;
-  drawpixel(screen, x0, y0, R, G, B);
-  while (l->next(x, y)) {
-    drawpixel(screen, x, y, R, G, B);
+
+  if (4 == screen->format->BytesPerPixel) {
+    const Uint32 color = SDL_MapRGB(screen->format, R, G, B);
+    // This is the most common case, so unroll.
+    const Uint32 stride = screen->pitch/4;
+
+    Uint32 *bufp = (Uint32 *)screen->pixels;
+
+    bufp[y0 * stride + x0] = color;
+    int x, y;
+    while (l.Next(x, y))
+      bufp[y * stride + x] = color;
+
+  } else {
+    // General case.
+    int x, y;
+    drawpixel(screen, x0, y0, R, G, B);
+    while (l.Next(x, y)) {
+      drawpixel(screen, x, y, R, G, B);
+    }
   }
+
   sulock(screen);
-  l->destroy();
 }
 
 void sdlutil::drawclipline(SDL_Surface *screen, int x0, int y0,
@@ -668,20 +758,18 @@ void sdlutil::drawclipline(SDL_Surface *screen, int x0, int y0,
   if (y0 >= screen->h && y1 >= screen->h)
     return;
   
-  line *l = line::create(x0, y0, x1, y1);
-  if (!l) return;
+  Line l{x0, y0, x1, y1};
 
   /* direct pixel access */
   slock(screen);
   int x, y;
   if (x0 >= 0 && y0 >= 0 && x0 < screen->w && y0 < screen->h)
     drawpixel(screen, x0, y0, R, G, B);
-  while (l->next(x, y)) {
+  while (l.Next(x, y)) {
     if (x >= 0 && y >= 0 && x < screen->w && y < screen->h)
       drawpixel(screen, x, y, R, G, B);
   }
   sulock(screen);
-  l->destroy();
 }
 
 bool sdlutil::clipsegment(float cx0, float cy0, float cx1, float cy1,
@@ -761,43 +849,43 @@ void sdlutil::drawpixel(SDL_Surface *screen, int x, int y,
 			Uint8 R, Uint8 G, Uint8 B) {
   Uint32 color = SDL_MapRGB(screen->format, R, G, B);
   switch (screen->format->BytesPerPixel) {
-    case 1: // Assuming 8-bpp
-      {
-        Uint8 *bufp;
-        bufp = (Uint8 *)screen->pixels + y*screen->pitch + x;
-        *bufp = color;
-      }
-      break;
-    case 2: // Probably 15-bpp or 16-bpp
-      {
-        Uint16 *bufp;
-        bufp = (Uint16 *)screen->pixels + y*screen->pitch/2 + x;
-        *bufp = color;
-      }
-      break;
-    case 3: // Slow 24-bpp mode, usually not used
-      {
-        Uint8 *bufp;
-        bufp = (Uint8 *)screen->pixels + y*screen->pitch + x * 3;
-        if (SDL_BYTEORDER == SDL_LIL_ENDIAN) {
-	    bufp[0] = color;
-	    bufp[1] = color >> 8;
-	    bufp[2] = color >> 16;
-	  } else {
-	    bufp[2] = color;
-	    bufp[1] = color >> 8;
-	    bufp[0] = color >> 16;
-	  }
-      }
-      break;
-    case 4: // Probably 32-bpp
-      {
-        Uint32 *bufp;
-        bufp = (Uint32 *)screen->pixels + y*screen->pitch/4 + x;
-        *bufp = color;
-      }
-      break;
+  case 1: // Assuming 8-bpp
+    {
+      Uint8 *bufp;
+      bufp = (Uint8 *)screen->pixels + y*screen->pitch + x;
+      *bufp = color;
     }
+    break;
+  case 2: // Probably 15-bpp or 16-bpp
+    {
+      Uint16 *bufp;
+      bufp = (Uint16 *)screen->pixels + y*screen->pitch/2 + x;
+      *bufp = color;
+    }
+    break;
+  case 3: // Slow 24-bpp mode, usually not used
+    {
+      Uint8 *bufp;
+      bufp = (Uint8 *)screen->pixels + y*screen->pitch + x * 3;
+      if (SDL_BYTEORDER == SDL_LIL_ENDIAN) {
+	bufp[0] = color;
+	bufp[1] = color >> 8;
+	bufp[2] = color >> 16;
+      } else {
+	bufp[2] = color;
+	bufp[1] = color >> 8;
+	bufp[0] = color >> 16;
+      }
+    }
+    break;
+  case 4: // Probably 32-bpp
+    {
+      Uint32 *bufp;
+      bufp = (Uint32 *)screen->pixels + y*screen->pitch/4 + x;
+      *bufp = color;
+    }
+    break;
+  }
 }
 
 void sdlutil::drawclippixel(SDL_Surface *screen, int x, int y,
