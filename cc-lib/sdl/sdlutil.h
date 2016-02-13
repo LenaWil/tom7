@@ -43,6 +43,14 @@ struct sdlutil {
   static void drawclipline(SDL_Surface *, int x1, int y1, int x2, int y2,
 			   Uint8 R, Uint8 G, Uint8 B);
 
+  // Efficiently clip the line segment (x0,y0)-(x1,y1) to the rectangle
+  // (cx0,cy0)-(cx1,cy1). Modifies the endpoints to place them on the
+  // rectangle if they exceed its bounds. Returns false if the segment
+  // is completely outside the rectangle, in which case the endpoints
+  // can take on any values.
+  static bool clipsegment(float cx0, float cy0, float cx1, float cy1,
+			  float &x0, float &y0, float &x1, float &y1);
+  
   // With clipping.
   static void drawbox(SDL_Surface *, int x1, int y1, int w, int h,
 		      Uint8 r, Uint8 g, Uint8 b);

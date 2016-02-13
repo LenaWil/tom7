@@ -178,6 +178,12 @@ struct Util {
     else return b;
   }
 
+  // Returns true if c is a hex digit (0-9a-fA-F). "Digit" is of course a
+  // misnomer.
+  static bool IsHexDigit(char c);
+  // Returns 0-15 for valid hex digits (0-9a-fA-F) and arbitrary (really,
+  // it's weird) values for other chars.
+  static int HexDigitValue(char c);
 };
 
 /* drawing lines with Bresenham's algorithm */
