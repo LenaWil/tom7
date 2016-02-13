@@ -1,0 +1,55 @@
+# Tile ids are in hex.
+
+
+# solid
+24 floor
+26 floor
+
+# ladder
+74 floor
+75 floor
+
+# bridge
+76 floor
+77 floor
+
+# desert dots
+84 floor
+85 floor
+86 floor
+87 floor
+
+# shoreline
+8f floor
+
+# ocean
+90 floor
+95 floor
+
+# trees
+c4 wall 
+c5 wall
+c6 wall
+c7 wall
+
+# rock
+c8 wall
+c9 wall
+ca wall
+cb wall
+
+# top border of rocks
+ce wall
+cf wall
+d0 wall
+d1 wall
+
+# rock square
+d8 wall
+d9 wall
+da wall
+db wall
+
+
+# top of cave entrance
+f3 floor   # ?

@@ -1,7 +1,7 @@
 
-default: pftwo.exe
+default: smeight.exe
 
-all: testui.exe pftwo.exe
+all: smeight.exe
 
 CXXFLAGS=-Wall -Wno-deprecated -Wno-sign-compare -I/usr/local/include -I SDL/include
 OPT=-O2
@@ -62,14 +62,11 @@ FCEULIB_OBJECTS=$(FCEUOBJECTS) $(MAPPEROBJECTS) $(UTILSOBJECTS) $(PALLETESOBJECT
 LFLAGS=-m64 -Wl,--subsystem,console libz.a $(OPT) $(SYMBOLS) $(FLTO) $(PROFILE) $(LINKSDL) -static
 # -Wl,--subsystem,console
 
-PFTWO_OBJECTS=motifs.o weighted-objectives.o problem-twoplayer.o n-markov-controller.o markov-controller.o learnfun.o objective-enumerator.o
+PFTWO_OBJECTS=
 
-testui.exe : $(FCEULIB_OBJECTS) $(SDL_OBJECTS) $(CCLIB_OBJECTS) $(PFTWO_OBJECTS) testui.o sdl-win32-main.o
-	$(CXX) $^ -o $@ $(LFLAGS)
-
-pftwo.exe : $(FCEULIB_OBJECTS) $(SDL_OBJECTS) $(CCLIB_OBJECTS) $(PFTWO_OBJECTS) pftwo.o sdl-win32-main.o
+smeight.exe : $(FCEULIB_OBJECTS) $(SDL_OBJECTS) $(CCLIB_OBJECTS) $(PFTWO_OBJECTS) smeight.o sdl-win32-main.o
 	$(CXX) $^ -o $@ $(LFLAGS)
 
 clean :
-	rm -f pftwo.exe testui.exe *.o $(FCEULIB_OBJECTS) $(CCLIB_OBJECTS) $(PFTWO_OBJECTS) gmon.out
+	rm -f smeight.exe *.o $(FCEULIB_OBJECTS) $(CCLIB_OBJECTS) $(PFTWO_OBJECTS) gmon.out
 
