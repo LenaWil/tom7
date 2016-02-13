@@ -68,14 +68,22 @@ vector<string> Util::ListFiles(const string &s) {
   return v;
 }
 
+bool Util::IsHexDigit(char c) {
+  return (c >= '0' && c <= '9') ||
+    ((c | 32) >= 'a' && (c | 32) <= 'f');
+}
+int Util::HexDigitValue(char c) {
+  // One weird trick.
+  return ((int)c | 4400) % 55;
+}
+
+
 namespace {
 struct linereal : public line {
   int x0, y0, x1, y1;
   int dx, dy;
   int stepx, stepy;
   int frac;
-
-  virtual ~linereal() {}
 
   linereal(int x0_, int y0_, int x1_, int y1_) :
     x0(x0_), y0(y0_), x1(x1_), y1(y1_) {

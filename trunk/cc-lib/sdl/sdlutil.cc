@@ -651,8 +651,23 @@ void sdlutil::drawclipline(SDL_Surface *screen, int x0, int y0,
 			   int x1, int y1, 
 			   Uint8 R, Uint8 G, Uint8 B) {
   /* PERF could maprgb once */
-  /* PERF clipping can be much more efficient */
 
+  /* PERF clipping can be much more efficient, but it is a
+     bit tricky to do in integer coordinates, we can not often
+     represent a clipped line exactly with new integer points.
+  */
+
+  // However, if a line completely misses the screen, we can
+  // just draw nothing.
+  if (x0 < 0 && x1 < 0)
+    return;
+  if (x0 >= screen->w && x1 >= screen->w)
+    return;
+  if (y0 < 0 && y1 < 0)
+    return;
+  if (y0 >= screen->h && y1 >= screen->h)
+    return;
+  
   line *l = line::create(x0, y0, x1, y1);
   if (!l) return;
 
@@ -669,16 +684,73 @@ void sdlutil::drawclipline(SDL_Surface *screen, int x0, int y0,
   l->destroy();
 }
 
+bool sdlutil::clipsegment(float cx0, float cy0, float cx1, float cy1,
+			  float &x0, float &y0, float &x1, float &y1) {
+  // Cohen--Sutherland clipping.
+  enum Code : Uint32 {
+    LEFT = 1 << 0,
+    RIGHT = 1 << 1,
+    BOTTOM = 1 << 2,
+    TOP = 1 << 3,
+  };
+
+  auto GetCode = [cx0, cy0, cx1, cy1](float x, float y) {
+    Uint32 code = 0;
+    if (x < cx0) code |= LEFT;
+    else if (x > cx1) code |= RIGHT;
+    if (y < cy0) code |= TOP;
+    else if (y > cy1) code |= BOTTOM;
+    return code;
+  };
+
+  // Line completely misses screen.
+  Uint32 code0 = GetCode(x0, y0), code1 = GetCode(x1, y1);
+  for (;;) {
+    if (0 == (code0 | code1)) {
+      // Both endpoints inside now.
+      return true;
+    }
+
+    // Completely missing the clip rectangle. Draw nothing.
+    if (code0 & code1)
+      return false;
+
+    auto Update = [cx0, cy0, cx1, cy1, x0, y0, x1, y1, &GetCode]
+      (float &x, float &y, Uint32 &code) {
+      // (Beware that x aliases x0 or x1, etc.
+      if (code & TOP) {
+	x = x0 + (x1 - x0) * (cy1 - y0) / (y1 - y0);
+	y = cy1;
+      } else if (code & BOTTOM) {
+	x = x0 + (x1 - x0) * (cy0 - y0) / (y1 - y0);
+	y = cy0;
+      } else if (code & LEFT) {
+	y = y0 + (y1 - y0) * (cx0 - x0) / (x1 - x0);
+	x = cx0;	
+      } else if (code & RIGHT) {
+	y = y0 + (y1 - y0) * (cx1 - x0) / (x1 - x0);
+	x = cx1;
+      }
+      // PERF can probably be rolled into branches above.
+      code = GetCode(x, y);
+    };
+
+    if (code0) Update(x0, y0, code0);
+    else Update(x1, y1, code1);
+  }
+}
+
 void sdlutil::drawbox(SDL_Surface *s, int x, int y, int w, int h,
 		      Uint8 r, Uint8 g, Uint8 b) {
   // PERF can unroll a lot of this. Also, straight lines can be
-  // drawn much more easily than with Bresenham.
+  // drawn much more easily than with Bresenham, and can be clipped
+  // much more easily as well.
   // Top
   drawclipline(s, x, y, x + w - 1, y, r, g, b);
   // Left
   drawclipline(s, x, y, x, y + h - 1, r, g, b);
   // Right
-  drawclipline(s, x + w - 1, y, x, y + h - 1, r, g, b);
+  drawclipline(s, x + w - 1, y, x + w - 1, y + h - 1, r, g, b);
   // Bottom
   drawclipline(s, x, y + h - 1, x + w - 1, y + h - 1, r, g, b);
 }
