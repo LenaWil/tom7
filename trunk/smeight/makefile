@@ -79,7 +79,7 @@ PFTWO_OBJECTS=
 
 # libglew32.a 
 smeight.exe : $(FCEULIB_OBJECTS) $(SDL_OBJECTS) $(CCLIB_OBJECTS) $(PFTWO_OBJECTS) smeight.o sdl-win32-main.o
-	$(CXX) $^ -o $@ $(GLEW_LIBS) $(LFLAGS)
+	$(CXX) $^ -o $@ $(LFLAGS)
 
 clean :
 	rm -f smeight.exe *.o $(FCEULIB_OBJECTS) $(CCLIB_OBJECTS) $(PFTWO_OBJECTS) gmon.out

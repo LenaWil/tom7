@@ -40,6 +40,16 @@ static void GetExtensions() {
   INSTALL(glWindowPos2i);
 }
 
+static GLubyte red[]     = { 255,   0,   0, 255 };
+static GLubyte green[]   = {   0, 255,   0, 255 };
+static GLubyte blue[]    = {   0,   0, 255, 255 };
+static GLubyte white[]   = { 255, 255, 255, 255 };
+static GLubyte cyan[]    = {   0, 255, 255, 255 };
+static GLubyte black[]   = {   0,   0,   0, 255 };
+static GLubyte yellow[]  = { 255, 255,   0, 255 };
+static GLubyte magenta[] = { 255,   0, 255, 255 };
+
+
 enum TileType {
   UNMAPPED = 0,
   FLOOR = 1,
@@ -141,9 +151,10 @@ struct SM {
   }
   
 
-  Vec3 eye{1.0f, 1.0f, 1.0f};
   float roll = 0.0f, pitch = 0.0f, yaw = 0.0f;
 
+  float xlatx = 0.0f, xlaty = 0.0f, xlatz = -50.0;
+  
   void Loop() {
     SDL_Surface *surf = sdlutil::makesurface(256, 256, true);
     (void)surf;
@@ -167,18 +178,23 @@ struct SM {
 	  return;
 	case SDL_KEYDOWN:
 	  switch (event.key.keysym.sym) {
-	  case SDLK_q: roll += 0.001f; break;
-	  case SDLK_a: roll -= 0.001f; break;
-	  case SDLK_w: pitch += 0.001f; break;
-	  case SDLK_s: pitch -= 0.001f; break;
-	  case SDLK_e: yaw += 0.001f; break;
-	  case SDLK_d: yaw -= 0.001f; break;
-	  case SDLK_y: eye.x += 0.01f; break;
-	  case SDLK_h: eye.x -= 0.01f; break;
-	  case SDLK_u: eye.y += 0.01f; break;
-	  case SDLK_j: eye.y -= 0.01f; break;
-	  case SDLK_i: eye.z += 0.005f; break;
-	  case SDLK_k: eye.z -= 0.005f; break;
+	  case SDLK_q: roll += 0.1f; break;
+	  case SDLK_a: roll -= 0.1f; break;
+	  case SDLK_w: pitch += 0.1f; break;
+	  case SDLK_s: pitch -= 0.1f; break;
+	  case SDLK_e: yaw += 0.1f; break;
+	  case SDLK_d: yaw -= 0.1f; break;
+
+	  case SDLK_UP: xlaty += 0.05f; break;
+	  case SDLK_DOWN: xlaty -= 0.05f; break;
+	  case SDLK_LEFT: xlatx -= 0.05f; break;
+	  case SDLK_RIGHT: xlatx += 0.05f; break;
+
+	  case SDLK_KP_MINUS:
+	  case SDLK_MINUS: xlatz -= 0.05; break;
+	  case SDLK_KP_PLUS:
+	  case SDLK_EQUALS:
+	  case SDLK_PLUS: xlatz += 0.05; break;	    
 	    
 	  case SDLK_ESCAPE:
 	    return;
@@ -199,26 +215,16 @@ struct SM {
 	  
 	BlitNESGL(image, 0, HEIGHT);
 
-	// sdlutil::clearsurface(screen, 0x00000000);
-
-	// Draw pixels to screen...
-	// sdlutil::blitall(surf, screen, 0, 0);
+	vector<Vec3> boxes = GetBoxes();
+	DrawScene(boxes);
 
 	// DrawPPU();
 	// DrawScene();
 	// Benchmark();
 
-	/*
-	font->draw(0, HEIGHT - FONTHEIGHT,
-		   StringPrintf("roll ^2%f^<  pitch ^2%f^<  yaw ^2%f^<   "
-				"ex ^3%f^<  ey ^3%f^<  ez ^3%f^<",
-				roll, pitch, yaw, eye.x, eye.y, eye.z));
-	*/
-
 	SDL_GL_SwapBuffers( );
-	// SDL_Flip(screen);
 
-	if (frame % 100 == 0) {
+	if (frame % 1000 == 0) {
 	  int now = SDL_GetTicks();
 	  printf("%d frames in %d ms = %f fps.\n",
 		 frame, (now - start),
@@ -259,66 +265,35 @@ struct SM {
 	float z = 0.0f;
 	if (type == WALL) {
 	  z = 1.0f;
-	  ret.push_back(Vec3{(float)x, (float)y, z});
 	} else if (type == FLOOR) {
 	  z = 0.0f;
+	  continue;
 	} else if (type == UNMAPPED) {
 	  z = 1.0f;
 	}
+	ret.push_back(Vec3{(float)x, (float)y, z});
       }
     }
     return ret;
   }
 
-  #if 0
-  void DrawScene() {
-    vector<Vec3> boxes = GetBoxes();
-    // Transform boxes.
+  void DrawScene(const vector<Vec3> &boxes) {
+    // printf("There are %d boxes.\n", (int)boxes.size());
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
 
-   
-    Mat33 mr = RotRoll(roll);
-    Mat33 mp = RotPitch(pitch);
-    Mat33 my = RotYaw(yaw);
-    Mat33 m = Mul33(mr, Mul33(mp, my));
+    // Move camera.
+    glTranslatef(xlatx, xlaty, xlatz);
 
-    // XXX move to player center first
-    for (Vec3 &v : boxes) {
-      v = Mat33TimesVec3(m, v);
-    }
+    // nb. just picked these names arbitrarily
+    glRotatef(yaw, 0.0, 1.0, 0.0);
+    glRotatef(pitch, 1.0, 0.0, 0.0);
+    glRotatef(roll, 0.0, 0.0, 1.0);
 
-    // Scale
-    // for (Vec3 &v : boxes) {
-    // v = ScaleVec3(v, 32.0f);
-    // }
-
-    
-    // Map to 2D and draw
-    // Now draw vertices.
-    auto Draw = [this](const Vec2 &a, const Vec2 &b) {
-      if (InfiniteVec2(a) || InfiniteVec2(b))
-	return;
-      // printf("DCL %f %f %f %f\n", a.x, a.y, b.x, b.y);
-      // return;
-
-      Vec2 aa = Vec2Plus(ScaleVec2(a, 16.0f), Vec2{WIDTH / 2.0f, HEIGHT / 2.0f});
-      Vec2 bb = Vec2Plus(ScaleVec2(b, 16.0f), Vec2{WIDTH / 2.0f, HEIGHT / 2.0f});
-      
-      if (sdlutil::clipsegment(0, 0, screen->w - 1, screen->h - 1,
-			       aa.x, aa.y, bb.x, bb.y)) {
-	sdlutil::drawclipline(screen, aa.x, aa.y, bb.x, bb.y, 0xFF, 0, 0);
-      }
-    };
-    (void)Draw;
-    
-    auto DrawPt = [this](const Vec2 &a) {
-      if (InfiniteVec2(a))
-	return;
-
-      Vec2 aa = Vec2Plus(ScaleVec2(a, 16.0f), Vec2{WIDTH / 2.0f, HEIGHT / 2.0f});
-      
-      sdlutil::drawclippixel(screen, aa.x, aa.y, 0xFF, 0, 0);
-    };
-    
+    glBegin(GL_TRIANGLES);
+	
+    // Draw boxes as a bunch of triangles.
+    //  {Vec3{1.0, 0.0, 0.0}, Vec3{2.0, 0.0, 0.0}}
     for (const Vec3 &v : boxes) {
       //      a-----b
       //     /:    /|
@@ -328,41 +303,61 @@ struct SM {
       //    |/    |/
       //    g-----h
 
-      Vec2 a = Project2D(v, eye);
-      Vec2 b = Project2D(Vec3Plus(v, Vec3{1.0f, 0.0f, 0.0f}), eye);
-      Vec2 c = Project2D(Vec3Plus(v, Vec3{0.0f, 1.0f, 0.0f}), eye);
-      Vec2 d = Project2D(Vec3Plus(v, Vec3{1.0f, 1.0f, 0.0f}), eye);
-      Vec2 e = Project2D(Vec3Plus(v, Vec3{0.0f, 0.0f, 1.0f}), eye);
-      Vec2 f = Project2D(Vec3Plus(v, Vec3{1.0f, 0.0f, 1.0f}), eye);
-      Vec2 g = Project2D(Vec3Plus(v, Vec3{0.0f, 1.0f, 1.0f}), eye);
-      Vec2 h = Project2D(Vec3Plus(v, Vec3{1.0f, 1.0f, 1.0f}), eye);
-
-      DrawPt(a);
-      DrawPt(b);
-      DrawPt(c);
-      DrawPt(d);
-      DrawPt(e);
-      DrawPt(f);
-      DrawPt(g);
-      DrawPt(h);
+      Vec3 a = v;
+      Vec3 b = Vec3Plus(v, Vec3{1.0f, 0.0f, 0.0f});
+      Vec3 c = Vec3Plus(v, Vec3{0.0f, 1.0f, 0.0f});
+      Vec3 d = Vec3Plus(v, Vec3{1.0f, 1.0f, 0.0f});
+      Vec3 e = Vec3Plus(v, Vec3{0.0f, 0.0f, 1.0f});
+      Vec3 f = Vec3Plus(v, Vec3{1.0f, 0.0f, 1.0f});
+      Vec3 g = Vec3Plus(v, Vec3{0.0f, 1.0f, 1.0f});
+      Vec3 h = Vec3Plus(v, Vec3{1.0f, 1.0f, 1.0f});
       
-      #if 0
-      Draw(a, b);
-      Draw(a, c);
-      Draw(a, e);
-      Draw(c, d);
-      Draw(c, g);
-      Draw(b, d);
-      Draw(b, f);
-      Draw(d, h);
-      Draw(e, f);
-      Draw(e, g);
-      Draw(g, h);
-      Draw(f, h);
-      #endif
+      auto CCWFace = [](const Vec3 &a, const Vec3 &b, const Vec3 &c, const Vec3 &d) {
+	//
+	//  d----c
+	//  | 1 /|
+	//  |  / |
+	//  | /  |
+	//  |/ 2 |
+	//  a----b
+	//
+
+	glVertex3fv(a.Floats());
+	glVertex3fv(c.Floats());
+	glVertex3fv(d.Floats());
+
+	glVertex3fv(a.Floats());
+	glVertex3fv(b.Floats());
+	glVertex3fv(c.Floats());
+      };
+
+      // Top
+      glColor4ubv(red);
+      CCWFace(c, d, b, a);
+
+      // Front
+      glColor4ubv(magenta);
+      CCWFace(g, h, d, c);
+      // Back
+      glColor4ubv(magenta);
+      CCWFace(f, e, a, b);
+
+
+      // Right
+      glColor4ubv(green);
+      CCWFace(h, f, b, d);
+
+      // Left
+      glColor4ubv(green);
+      CCWFace(e, g, c, a);
+
+      // Bottom
+      glColor4ubv(yellow);
+      CCWFace(e, f, h, g);
     }
+
+    glEnd();
   }
-  #endif
   
   #if 0
   // Draws PPU in debug mode.
@@ -448,13 +443,11 @@ static void InitGL() {
   // Pixels!!
   glShadeModel(GL_FLAT);
 
-  // No need for backface culling except perhaps if the camera
-  // gets inside walls. There will typically be just 1024 cubes,
-  // so there shouldn't be any performance issues, and it requires
-  // us to get winding orders corret.
-  // glCullFace(GL_BACK);
-  // glFrontFace(GL_CCW);
-  // glEnable(GL_CULL_FACE);
+  // Probably no need for backface culling except perhaps if the
+  // camera gets inside walls, but turn it on anyway...
+  glCullFace(GL_BACK);
+  glFrontFace(GL_CCW);
+  glEnable(GL_CULL_FACE);
 
   glClearColor(0, 0, 0, 0);
 
@@ -462,6 +455,8 @@ static void InitGL() {
   // not the top-left.
   glViewport(0, 0, WIDTH, HEIGHT);
 
+  glEnable(GL_DEPTH_TEST);
+  
   glMatrixMode(GL_PROJECTION);
   glLoadIdentity();
 
