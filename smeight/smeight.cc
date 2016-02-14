@@ -197,7 +197,7 @@ struct SM {
 
 	glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 	  
-	BlitNESGL(image, 0, 0);
+	BlitNESGL(image, 0, HEIGHT);
 
 	// sdlutil::clearsurface(screen, 0x00000000);
 
@@ -228,10 +228,11 @@ struct SM {
     }
   }
   
+  // Draw the 256x256 NES image at the specified coordinates (0,0 is
+  // bottom left).
   void BlitNESGL(const vector<uint8> &image, int x, int y) {
-    // XXX use x, y
-    // This is an extension; doesn't work...
-    (*glWindowPos2i)(WIDTH / 2, HEIGHT / 2);
+    glPixelZoom(1.0f, -1.0f);
+    (*glWindowPos2i)(x, y);
     glDrawPixels(256, 256, GL_BGRA, GL_UNSIGNED_BYTE, image.data());
   }
   
@@ -467,13 +468,6 @@ static void InitGL() {
   PerspectiveGL(60.0, ASPECT_RATIO, 1.0, 1024.0);
 
   GetExtensions();
-  
-  // Init GLEW too.
-#if 0
-  GLenum glew_result = glewInit();
-  CHECK(glew_result == GLEW_OK) << glewGetErrorString(glew_result);
-  fprintf(stderr, "Status: Using GLEW %s\n", glewGetString(GLEW_VERSION));
-#endif
 }
 
 /**
