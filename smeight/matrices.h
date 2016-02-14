@@ -52,13 +52,17 @@ inline Mat33 RotRoll(float a) {
 
 struct Vec3 {
   Vec3(float x, float y, float z) : x(x), y(y), z(z) {}
+  const float *Floats() const { return (float*)this; }
   float x = 0.0f, y = 0.0f, z = 0.0f;
 };
+static_assert(sizeof (Vec3) == 3 * sizeof (float), "packing");
 
 struct Vec2 {
   Vec2(float x, float y) : x(x), y(y) {}
+  const float *Floats() const { return (float*)this; }
   float x = 0.0f, y = 0.0f;
 };
+static_assert(sizeof (Vec2) == 2 * sizeof (float), "packing");
 
 inline Vec3 Mat33TimesVec3(const Mat33 &m, const Vec3 &v) {
   return Vec3(m.a * v.x + m.b * v.y + m.c * v.z,
