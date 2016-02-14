@@ -23,32 +23,21 @@
 #include "../fceulib/ppu.h"
 
 #include "SDL.h"
-// GL before GLEW, never flew
-// GLEW before GL, never hell
-#include <GL/glew.h>
 #include <GL/gl.h>
+#include <GL/glext.h>
 
 #include "matrices.h"
-
 
 #define WIDTH 1920
 #define HEIGHT 1080
 static constexpr double ASPECT_RATIO = WIDTH / (double)HEIGHT;
 
-// XXX gone with GL?
-SDL_Surface *screen = 0;
-
-
-
-// assumes ARGB, surfaces exactly the same size, etc.
-static void CopyARGB(const vector<uint8> &argb, SDL_Surface *surface) {
-  // int bpp = surface->format->BytesPerPixel;
-  Uint8 * p = (Uint8 *)surface->pixels;
-  memcpy(p, &argb[0], surface->w * surface->h * 4);
-}
-
-static inline constexpr uint8 Mix4(uint8 v1, uint8 v2, uint8 v3, uint8 v4) {
-  return (uint8)(((uint32)v1 + (uint32)v2 + (uint32)v3 + (uint32)v4) >> 2);
+typedef void (APIENTRY *glWindowPos2i_t)(int, int);
+glWindowPos2i_t glWindowPos2i = nullptr;
+static void GetExtensions() {
+  #define INSTALL(s) \
+    CHECK((s = (s ## _t)SDL_GL_GetProcAddress(# s))) << s;
+  INSTALL(glWindowPos2i);
 }
 
 enum TileType {
@@ -242,7 +231,7 @@ struct SM {
   void BlitNESGL(const vector<uint8> &image, int x, int y) {
     // XXX use x, y
     // This is an extension; doesn't work...
-    // glWindowPos2i(WIDTH / 2, HEIGHT / 2);
+    (*glWindowPos2i)(WIDTH / 2, HEIGHT / 2);
     glDrawPixels(256, 256, GL_BGRA, GL_UNSIGNED_BYTE, image.data());
   }
   
@@ -477,10 +466,14 @@ static void InitGL() {
 
   PerspectiveGL(60.0, ASPECT_RATIO, 1.0, 1024.0);
 
+  GetExtensions();
+  
   // Init GLEW too.
+#if 0
   GLenum glew_result = glewInit();
   CHECK(glew_result == GLEW_OK) << glewGetErrorString(glew_result);
   fprintf(stderr, "Status: Using GLEW %s\n", glewGetString(GLEW_VERSION));
+#endif
 }
 
 /**
@@ -496,9 +489,9 @@ int main(int argc, char *argv[]) {
 
   const int bpp = info->vfmt->BitsPerPixel;
 
-  if (bpp != 4) {
+  if (bpp != 32) {
     fprintf(stderr, "This probably won't work unless BPP is "
-	    "4, but I got %d from SDL.\n", bpp);
+	    "32, but I got %d from SDL.\n", bpp);
   }
 
   // Gimme quality.

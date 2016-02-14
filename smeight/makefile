@@ -3,7 +3,8 @@ default: smeight.exe
 
 all: smeight.exe
 
-CXXFLAGS=-Wall -Wno-deprecated -Wno-sign-compare -I/usr/local/include -I SDL/include -I GLEW/include
+#  -I GLEW/include
+CXXFLAGS=-Wall -Wno-deprecated -Wno-sign-compare -I/usr/local/include -I SDL/include
 OPT=-O2
 SYMBOLS=-g
 
@@ -25,14 +26,16 @@ CC=gcc
 	@$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $<
 	@bash -c "echo -n '.'"
 
-GLEW_LIB=GLEW/lib/Release/x64/glew32.lib
-GLEW_DLL=GLEW/bin/Release/x64/glew32.dll
+#  GLEW_LIB=GLEW/lib/Release/x64/glew32.lib
+#  GLEW_DLL=GLEW/bin/Release/x64/glew32.dll
+#  
+#  # make sure this uses TDM-GCC's dlltool!
+#  libglew32.a : $(GLEW_LIB) $(GLEW_DLL) makefile
+#  	dlltool --export-all-symbols -d glew32.def -D $(GLEW_DLL) -mi386:x86-64 -k -a -l $@
+#  
 
-# make sure this uses TDM-GCC's dlltool!
-libglew32.a : $(GLEW_LIB) $(GLEW_DLL) makefile
-	dlltool --export-all-symbols -d glew32.def -D $(GLEW_DLL) -mi386:x86-64 -k -a -l $@
-
-LINKGL=-L. -lopengl32 -lglew32
+# -L. -lglew32
+LINKGL=-lopengl32
 
 # -mno-cygwin 
 LINKSDL=-lm -luser32 -lgdi32 -lwinmm -ldxguid
@@ -68,16 +71,15 @@ FCEUOBJECTS=$(FCEULIB)/cart.o $(FCEULIB)/version.o $(FCEULIB)/emufile.o $(FCEULI
 FCEULIB_OBJECTS=$(FCEUOBJECTS) $(MAPPEROBJECTS) $(UTILSOBJECTS) $(PALLETESOBJECTS) $(BOARDSOBJECTS) $(INPUTOBJECTS) $(FCEULIB)/emulator.o $(FCEULIB)/headless-driver.o $(FCEULIB)/simplefm2.o $(FCEULIB)/stringprintf.o
 
 # without static, can't find lz or lstdcxx maybe?
-LFLAGS=$(LINKGL) -m64 -Wl,--subsystem,console libz.a $(OPT) $(SYMBOLS) $(FLTO) $(PROFILE) $(LINKSDL) # -static
+# (actually seems to work on 14 Feb 2016. but I like static -tom7)
+LFLAGS=$(LINKGL) -m64 -Wl,--subsystem,console libz.a $(OPT) $(SYMBOLS) $(FLTO) $(PROFILE) $(LINKSDL) -static
 # -Wl,--subsystem,console
 
 PFTWO_OBJECTS=
 
-smeight.exe : libglew32.a $(FCEULIB_OBJECTS) $(SDL_OBJECTS) $(CCLIB_OBJECTS) $(PFTWO_OBJECTS) smeight.o sdl-win32-main.o
+# libglew32.a 
+smeight.exe : $(FCEULIB_OBJECTS) $(SDL_OBJECTS) $(CCLIB_OBJECTS) $(PFTWO_OBJECTS) smeight.o sdl-win32-main.o
 	$(CXX) $^ -o $@ $(GLEW_LIBS) $(LFLAGS)
-
-gltest.exe : $(FCEULIB_OBJECTS) $(SDL_OBJECTS) $(CCLIB_OBJECTS) $(PFTWO_OBJECTS) gltest.o sdl-win32-main.o
-	$(CXX) $^ -o $@ -lopengl32 $(LFLAGS)
 
 clean :
 	rm -f smeight.exe *.o $(FCEULIB_OBJECTS) $(CCLIB_OBJECTS) $(PFTWO_OBJECTS) gmon.out
