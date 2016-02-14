@@ -5,6 +5,7 @@
 
 #include <cstdio>
 #include <cstdlib>
+#include <cmath>
 
 #include "smeight.h"
 
@@ -16,6 +17,7 @@
 #include "../cc-lib/stb_image.h"
 #include "../cc-lib/sdl/chars.h"
 #include "../cc-lib/sdl/font.h"
+#include "../cc-lib/randutil.h"
 
 // XXX make part of Emulator interface
 #include "../fceulib/ppu.h"
@@ -27,6 +29,96 @@
 SDL_Surface *screen = 0;
 
 
+struct Mat33 {
+  Mat33(float a, float b, float c,
+	float d, float e, float f,
+	float g, float h, float i) :
+    a(a), b(b), c(c),
+    d(d), e(e), f(f),
+    g(g), h(h), i(i) {}
+  
+  float
+    a = 0.0f, b = 0.0f, c = 0.0f,
+    d = 0.0f, e = 0.0f, f = 0.0f,
+    g = 0.0f, h = 0.0f, i = 0.0f;
+};
+
+static Mat33 Mul33(const Mat33 &m, const Mat33 &n) {
+  return Mat33(
+      m.a*n.a + m.b*n.d + m.c*n.g, m.a*n.b + m.b*n.e + m.c*n.h, m.a*n.c + m.b*n.f + m.c*n.i,
+      m.d*n.a + m.e*n.d + m.f*n.g, m.d*n.b + m.e*n.e + m.f*n.h, m.d*n.c + m.e*n.f + m.f*n.i,
+      m.g*n.a + m.h*n.d + m.i*n.g, m.g*n.b + m.h*n.e + m.i*n.h, m.g*n.c + m.h*n.f + m.i*n.i);
+}
+
+static Mat33 RotYaw(float a) {
+  const float cosa = cosf(a);
+  const float sina = sinf(a);
+  return Mat33(cosa, -sina, 0.0f,
+	       sina, cosa,  0.0f,
+	       0.0f, 0.0f,  1.0f);
+}
+
+static Mat33 RotPitch(float a) {
+  const float cosa = cosf(a);
+  const float sina = sinf(a);
+  return Mat33(cosa,  0.0f, sina,
+	       0.0f,  1.0f, 0.0f,
+	       -sina, 0.0f, cosa);
+}
+
+static Mat33 RotRoll(float a) {
+  const float cosa = cosf(a);
+  const float sina = sinf(a);
+  return Mat33(1.0f, 0.0f, 0.0f,
+	       0.0f, cosa, -sina,
+	       0.0f, sina, cosa);
+}
+
+struct Vec3 {
+  Vec3(float x, float y, float z) : x(x), y(y), z(z) {}
+  float x = 0.0f, y = 0.0f, z = 0.0f;
+};
+
+struct Vec2 {
+  Vec2(float x, float y) : x(x), y(y) {}
+  float x = 0.0f, y = 0.0f;
+};
+
+static Vec3 Mat33TimesVec3(const Mat33 &m, const Vec3 &v) {
+  return Vec3(m.a * v.x + m.b * v.y + m.c * v.z,
+              m.d * v.x + m.e * v.y + m.f * v.z,
+              m.g * v.x + m.h * v.y + m.i * v.z);
+}
+
+static Vec3 Vec3Minus(const Vec3 &a, const Vec3 &b) {
+  return Vec3(a.x - b.x, a.y - b.y, a.z - b.z);
+}
+
+static Vec3 Vec3Plus(const Vec3 &a, const Vec3 &b) {
+  return Vec3(a.x + b.x, a.y + b.y, a.z + b.z);
+}
+
+static Vec2 Vec2Plus(const Vec2 &a, const Vec2 &b) {
+  return Vec2(a.x + b.x, a.y + b.y);
+}
+
+static Vec3 ScaleVec3(const Vec3 &v, float s) {
+  return Vec3(v.x * s, v.y * s, v.x * s);
+}
+
+static Vec2 ScaleVec2(const Vec2 &v, float s) {
+  return Vec2(v.x * s, v.y * s);
+}
+
+// d is the point, e is the eye
+static Vec2 Project2D(const Vec3 &d, const Vec3 &e) {
+  const float f = e.z / d.z;
+  return Vec2(f * d.x - e.x, f * d.y - e.y);
+}
+
+static bool InfiniteVec2(const Vec2 &a) {
+  return isinf(a.x) || isinf(a.y);
+}
 
 // assumes ARGB, surfaces exactly the same size, etc.
 static void CopyARGB(const vector<uint8> &argb, SDL_Surface *surface) {
@@ -137,51 +229,229 @@ struct SM {
     printf("UI shutdown.\n");
   }
   
+
+  Vec3 eye{1.0f, 1.0f, 1.0f};
+  float roll = 0.0f, pitch = 0.0f, yaw = 0.0f;
+
   void Loop() {
     SDL_Surface *surf = sdlutil::makesurface(256, 256, true);
     int frame = 0;
-   
-    for (uint8 input : inputs) {
-      frame++;
 
-      SDL_Event event;
-      SDL_PollEvent(&event);
-      switch (event.type) {
-      case SDL_QUIT:
-	return;
-      case SDL_KEYDOWN:
-	switch (event.key.keysym.sym) {
-	  
-	case SDLK_ESCAPE:
+    int start = SDL_GetTicks();
+    
+    vector<uint8> start_state = emu->SaveUncompressed();
+
+    for (;;) {
+      printf("Start loop!\n");
+      emu->LoadUncompressed(start_state);
+
+      for (uint8 input : inputs) {
+	frame++;
+
+	SDL_Event event;
+	SDL_PollEvent(&event);
+	switch (event.type) {
+	case SDL_QUIT:
 	  return;
+	case SDL_KEYDOWN:
+	  switch (event.key.keysym.sym) {
+	  case SDLK_q: roll += 0.001f; break;
+	  case SDLK_a: roll -= 0.001f; break;
+	  case SDLK_w: pitch += 0.001f; break;
+	  case SDLK_s: pitch -= 0.001f; break;
+	  case SDLK_e: yaw += 0.001f; break;
+	  case SDLK_d: yaw -= 0.001f; break;
+	  case SDLK_y: eye.x += 0.01f; break;
+	  case SDLK_h: eye.x -= 0.01f; break;
+	  case SDLK_u: eye.y += 0.01f; break;
+	  case SDLK_j: eye.y -= 0.01f; break;
+	  case SDLK_i: eye.z += 0.005f; break;
+	  case SDLK_k: eye.z -= 0.005f; break;
+	    
+	  case SDLK_ESCAPE:
+	    return;
+	  default:;
+	  }
+	  break;
 	default:;
 	}
-	break;
-      default:;
-      }
-      
-      SDL_Delay(1000.0 / 60.0);
-      
-      emu->StepFull(input, 0);
 
-      if (frame % 1 == 0) {
-	vector<uint8> image = emu->GetImageARGB();
-	CopyARGB(image, surf);
-	
-	sdlutil::clearsurface(screen, 0x00000000);
+	// SDL_Delay(1000.0 / 60.0);
 
-	// Draw pixels to screen...
-	sdlutil::blitall(surf, screen, 0, 0);
+	emu->StepFull(input, 0);
 
-	// XXX draw PPU, etc.
-	DrawPPU();
+	if (frame % 1 == 0) {
+	  vector<uint8> image = emu->GetImageARGB();
+	  CopyARGB(image, surf);
 
-	
-	SDL_Flip(screen);
+	  sdlutil::clearsurface(screen, 0x00000000);
+
+	  // Draw pixels to screen...
+	  sdlutil::blitall(surf, screen, 0, 0);
+
+	  DrawPPU();
+
+	  DrawScene();
+	  // Benchmark();
+
+	  font->draw(0, HEIGHT - FONTHEIGHT,
+		     StringPrintf("roll ^2%f^<  pitch ^2%f^<  yaw ^2%f^<   "
+				  "ex ^3%f^<  ey ^3%f^<  ez ^3%f^<",
+				  roll, pitch, yaw, eye.x, eye.y, eye.z));
+	  
+	  SDL_Flip(screen);
+	}
+
+	if (frame % 100 == 0) {
+	  int now = SDL_GetTicks();
+	  printf("%d frames in %d ms = %f fps.\n",
+		 frame, (now - start),
+		 frame / ((now - start) / 1000.0f));
+	}
       }
     }
   }
 
+  void Benchmark() {
+    for (int i = 0; i < 1024 * 12; i++) {
+      float x1 = RandDouble(&rc) * 5000 - 2500;
+      float y1 = RandDouble(&rc) * 5000 - 2500;
+      float x2 = RandDouble(&rc) * 5000 - 2500;
+      float y2 = RandDouble(&rc) * 5000 - 2500;
+
+      if (sdlutil::clipsegment(0, 0, screen->w - 1, screen->h - 1,
+			       x1, y1, x2, y2)) {
+	sdlutil::drawline(screen, x1, y1, x2, y2, rc.Byte(), rc.Byte(), rc.Byte());
+      }
+    }
+  }
+  
+  // All boxes are 1x1x1. This returns their "top-left" corners.
+  // All boxes have width 1x1x1.
+  // Native coordinates mimic the standard layout on-screen:
+  //
+  //    x=0,y=0 -----> x = 32
+  //    |
+  //    :
+  //    |
+  //    v
+  //   y=32
+  //
+  //    With z going "up" (towards the viewer, looking top-down.)
+  vector<Vec3> GetBoxes() {
+    vector<Vec3> ret;
+    ret.reserve(32 * 32);
+    const uint8 *nametable = emu->GetFC()->ppu->NTARAM;
+    for (int y = 0; y < 32; y++) {
+      for (int x = 0; x < 32; x++) {
+	const uint8 tile = nametable[y * 32 + x];
+	const TileType type = tilemap.data[tile];
+	float z = 0.0f;
+	if (type == WALL) {
+	  z = 1.0f;
+	  ret.push_back(Vec3{(float)x, (float)y, z});
+	} else if (type == FLOOR) {
+	  z = 0.0f;
+	} else if (type == UNMAPPED) {
+	  z = 1.0f;
+	}
+      }
+    }
+    return ret;
+  }
+
+  void DrawScene() {
+    vector<Vec3> boxes = GetBoxes();
+    // Transform boxes.
+
+   
+    Mat33 mr = RotRoll(roll);
+    Mat33 mp = RotPitch(pitch);
+    Mat33 my = RotYaw(yaw);
+    Mat33 m = Mul33(mr, Mul33(mp, my));
+
+    // XXX move to player center first
+    for (Vec3 &v : boxes) {
+      v = Mat33TimesVec3(m, v);
+    }
+
+    // Scale
+    // for (Vec3 &v : boxes) {
+    // v = ScaleVec3(v, 32.0f);
+    // }
+
+    
+    // Map to 2D and draw
+    // Now draw vertices.
+    auto Draw = [this](const Vec2 &a, const Vec2 &b) {
+      if (InfiniteVec2(a) || InfiniteVec2(b))
+	return;
+      // printf("DCL %f %f %f %f\n", a.x, a.y, b.x, b.y);
+      // return;
+
+      Vec2 aa = Vec2Plus(ScaleVec2(a, 16.0f), Vec2{WIDTH / 2.0f, HEIGHT / 2.0f});
+      Vec2 bb = Vec2Plus(ScaleVec2(b, 16.0f), Vec2{WIDTH / 2.0f, HEIGHT / 2.0f});
+      
+      if (sdlutil::clipsegment(0, 0, screen->w - 1, screen->h - 1,
+			       aa.x, aa.y, bb.x, bb.y)) {
+	sdlutil::drawclipline(screen, aa.x, aa.y, bb.x, bb.y, 0xFF, 0, 0);
+      }
+    };
+
+    auto DrawPt = [this](const Vec2 &a) {
+      if (InfiniteVec2(a))
+	return;
+
+      Vec2 aa = Vec2Plus(ScaleVec2(a, 16.0f), Vec2{WIDTH / 2.0f, HEIGHT / 2.0f});
+      
+      sdlutil::drawclippixel(screen, aa.x, aa.y, 0xFF, 0, 0);
+    };
+    
+    for (const Vec3 &v : boxes) {
+      //      a-----b
+      //     /:    /|
+      //    c-----d |
+      //    | :   | |
+      //    | e---|-f
+      //    |/    |/
+      //    g-----h
+
+      Vec2 a = Project2D(v, eye);
+      Vec2 b = Project2D(Vec3Plus(v, Vec3{1.0f, 0.0f, 0.0f}), eye);
+      Vec2 c = Project2D(Vec3Plus(v, Vec3{0.0f, 1.0f, 0.0f}), eye);
+      Vec2 d = Project2D(Vec3Plus(v, Vec3{1.0f, 1.0f, 0.0f}), eye);
+      Vec2 e = Project2D(Vec3Plus(v, Vec3{0.0f, 0.0f, 1.0f}), eye);
+      Vec2 f = Project2D(Vec3Plus(v, Vec3{1.0f, 0.0f, 1.0f}), eye);
+      Vec2 g = Project2D(Vec3Plus(v, Vec3{0.0f, 1.0f, 1.0f}), eye);
+      Vec2 h = Project2D(Vec3Plus(v, Vec3{1.0f, 1.0f, 1.0f}), eye);
+
+      DrawPt(a);
+      DrawPt(b);
+      DrawPt(c);
+      DrawPt(d);
+      DrawPt(e);
+      DrawPt(f);
+      DrawPt(g);
+      DrawPt(h);
+      
+      #if 0
+      Draw(a, b);
+      Draw(a, c);
+      Draw(a, e);
+      Draw(c, d);
+      Draw(c, g);
+      Draw(b, d);
+      Draw(b, f);
+      Draw(d, h);
+      Draw(e, f);
+      Draw(e, g);
+      Draw(g, h);
+      Draw(f, h);
+      #endif
+    }
+  }
+  
+  // Draws PPU in debug mode.
   void DrawPPU() {
     static constexpr int SHOWY = 0;
     static constexpr int SHOWX = 300;
