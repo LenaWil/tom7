@@ -23,102 +23,22 @@
 #include "../fceulib/ppu.h"
 
 #include "SDL.h"
+// GL before GLEW, never flew
+// GLEW before GL, never hell
+#include <GL/glew.h>
+#include <GL/gl.h>
+
+#include "matrices.h"
+
 
 #define WIDTH 1920
 #define HEIGHT 1080
+static constexpr double ASPECT_RATIO = WIDTH / (double)HEIGHT;
+
+// XXX gone with GL?
 SDL_Surface *screen = 0;
 
 
-struct Mat33 {
-  Mat33(float a, float b, float c,
-	float d, float e, float f,
-	float g, float h, float i) :
-    a(a), b(b), c(c),
-    d(d), e(e), f(f),
-    g(g), h(h), i(i) {}
-  
-  float
-    a = 0.0f, b = 0.0f, c = 0.0f,
-    d = 0.0f, e = 0.0f, f = 0.0f,
-    g = 0.0f, h = 0.0f, i = 0.0f;
-};
-
-static Mat33 Mul33(const Mat33 &m, const Mat33 &n) {
-  return Mat33(
-      m.a*n.a + m.b*n.d + m.c*n.g, m.a*n.b + m.b*n.e + m.c*n.h, m.a*n.c + m.b*n.f + m.c*n.i,
-      m.d*n.a + m.e*n.d + m.f*n.g, m.d*n.b + m.e*n.e + m.f*n.h, m.d*n.c + m.e*n.f + m.f*n.i,
-      m.g*n.a + m.h*n.d + m.i*n.g, m.g*n.b + m.h*n.e + m.i*n.h, m.g*n.c + m.h*n.f + m.i*n.i);
-}
-
-static Mat33 RotYaw(float a) {
-  const float cosa = cosf(a);
-  const float sina = sinf(a);
-  return Mat33(cosa, -sina, 0.0f,
-	       sina, cosa,  0.0f,
-	       0.0f, 0.0f,  1.0f);
-}
-
-static Mat33 RotPitch(float a) {
-  const float cosa = cosf(a);
-  const float sina = sinf(a);
-  return Mat33(cosa,  0.0f, sina,
-	       0.0f,  1.0f, 0.0f,
-	       -sina, 0.0f, cosa);
-}
-
-static Mat33 RotRoll(float a) {
-  const float cosa = cosf(a);
-  const float sina = sinf(a);
-  return Mat33(1.0f, 0.0f, 0.0f,
-	       0.0f, cosa, -sina,
-	       0.0f, sina, cosa);
-}
-
-struct Vec3 {
-  Vec3(float x, float y, float z) : x(x), y(y), z(z) {}
-  float x = 0.0f, y = 0.0f, z = 0.0f;
-};
-
-struct Vec2 {
-  Vec2(float x, float y) : x(x), y(y) {}
-  float x = 0.0f, y = 0.0f;
-};
-
-static Vec3 Mat33TimesVec3(const Mat33 &m, const Vec3 &v) {
-  return Vec3(m.a * v.x + m.b * v.y + m.c * v.z,
-              m.d * v.x + m.e * v.y + m.f * v.z,
-              m.g * v.x + m.h * v.y + m.i * v.z);
-}
-
-static Vec3 Vec3Minus(const Vec3 &a, const Vec3 &b) {
-  return Vec3(a.x - b.x, a.y - b.y, a.z - b.z);
-}
-
-static Vec3 Vec3Plus(const Vec3 &a, const Vec3 &b) {
-  return Vec3(a.x + b.x, a.y + b.y, a.z + b.z);
-}
-
-static Vec2 Vec2Plus(const Vec2 &a, const Vec2 &b) {
-  return Vec2(a.x + b.x, a.y + b.y);
-}
-
-static Vec3 ScaleVec3(const Vec3 &v, float s) {
-  return Vec3(v.x * s, v.y * s, v.x * s);
-}
-
-static Vec2 ScaleVec2(const Vec2 &v, float s) {
-  return Vec2(v.x * s, v.y * s);
-}
-
-// d is the point, e is the eye
-static Vec2 Project2D(const Vec3 &d, const Vec3 &e) {
-  const float f = e.z / d.z;
-  return Vec2(f * d.x - e.x, f * d.y - e.y);
-}
-
-static bool InfiniteVec2(const Vec2 &a) {
-  return isinf(a.x) || isinf(a.y);
-}
 
 // assumes ARGB, surfaces exactly the same size, etc.
 static void CopyARGB(const vector<uint8> &argb, SDL_Surface *surface) {
@@ -190,8 +110,8 @@ struct SM {
     
     tilemap = Tilemap{tilesfile};
 
-    screen = sdlutil::makescreen(WIDTH, HEIGHT);
-    CHECK(screen);
+    // screen = sdlutil::makescreen(WIDTH, HEIGHT);
+    // CHECK(screen);
 
     emu.reset(Emulator::Create(game));
     CHECK(emu.get());
@@ -212,6 +132,7 @@ struct SM {
   }
 
   void Play() {
+    /*
     font = Font::create(screen,
 			"font.png",
 			FONTCHARS,
@@ -224,6 +145,7 @@ struct SM {
 			     SMALLFONTWIDTH, SMALLFONTHEIGHT,
 			     FONTSTYLES, 0, 3);
     CHECK(smallfont != nullptr) << "Couldn't load smallfont.";
+    */
 
     Loop();
     printf("UI shutdown.\n");
@@ -235,6 +157,7 @@ struct SM {
 
   void Loop() {
     SDL_Surface *surf = sdlutil::makesurface(256, 256, true);
+    (void)surf;
     int frame = 0;
 
     int start = SDL_GetTicks();
@@ -280,27 +203,31 @@ struct SM {
 
 	emu->StepFull(input, 0);
 
-	if (frame % 1 == 0) {
-	  vector<uint8> image = emu->GetImageARGB();
-	  CopyARGB(image, surf);
+	vector<uint8> image = emu->GetImageARGB();
+	// CopyARGB(image, surf);
 
-	  sdlutil::clearsurface(screen, 0x00000000);
-
-	  // Draw pixels to screen...
-	  sdlutil::blitall(surf, screen, 0, 0);
-
-	  DrawPPU();
-
-	  DrawScene();
-	  // Benchmark();
-
-	  font->draw(0, HEIGHT - FONTHEIGHT,
-		     StringPrintf("roll ^2%f^<  pitch ^2%f^<  yaw ^2%f^<   "
-				  "ex ^3%f^<  ey ^3%f^<  ez ^3%f^<",
-				  roll, pitch, yaw, eye.x, eye.y, eye.z));
+	glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 	  
-	  SDL_Flip(screen);
-	}
+	BlitNESGL(image, 0, 0);
+
+	// sdlutil::clearsurface(screen, 0x00000000);
+
+	// Draw pixels to screen...
+	// sdlutil::blitall(surf, screen, 0, 0);
+
+	// DrawPPU();
+	// DrawScene();
+	// Benchmark();
+
+	/*
+	font->draw(0, HEIGHT - FONTHEIGHT,
+		   StringPrintf("roll ^2%f^<  pitch ^2%f^<  yaw ^2%f^<   "
+				"ex ^3%f^<  ey ^3%f^<  ez ^3%f^<",
+				roll, pitch, yaw, eye.x, eye.y, eye.z));
+	*/
+
+	SDL_GL_SwapBuffers( );
+	// SDL_Flip(screen);
 
 	if (frame % 100 == 0) {
 	  int now = SDL_GetTicks();
@@ -311,19 +238,12 @@ struct SM {
       }
     }
   }
-
-  void Benchmark() {
-    for (int i = 0; i < 1024 * 12; i++) {
-      float x1 = RandDouble(&rc) * 5000 - 2500;
-      float y1 = RandDouble(&rc) * 5000 - 2500;
-      float x2 = RandDouble(&rc) * 5000 - 2500;
-      float y2 = RandDouble(&rc) * 5000 - 2500;
-
-      if (sdlutil::clipsegment(0, 0, screen->w - 1, screen->h - 1,
-			       x1, y1, x2, y2)) {
-	sdlutil::drawline(screen, x1, y1, x2, y2, rc.Byte(), rc.Byte(), rc.Byte());
-      }
-    }
+  
+  void BlitNESGL(const vector<uint8> &image, int x, int y) {
+    // XXX use x, y
+    // This is an extension; doesn't work...
+    // glWindowPos2i(WIDTH / 2, HEIGHT / 2);
+    glDrawPixels(256, 256, GL_BGRA, GL_UNSIGNED_BYTE, image.data());
   }
   
   // All boxes are 1x1x1. This returns their "top-left" corners.
@@ -360,6 +280,7 @@ struct SM {
     return ret;
   }
 
+  #if 0
   void DrawScene() {
     vector<Vec3> boxes = GetBoxes();
     // Transform boxes.
@@ -397,7 +318,8 @@ struct SM {
 	sdlutil::drawclipline(screen, aa.x, aa.y, bb.x, bb.y, 0xFF, 0, 0);
       }
     };
-
+    (void)Draw;
+    
     auto DrawPt = [this](const Vec2 &a) {
       if (InfiniteVec2(a))
 	return;
@@ -450,7 +372,9 @@ struct SM {
       #endif
     }
   }
+  #endif
   
+  #if 0
   // Draws PPU in debug mode.
   void DrawPPU() {
     static constexpr int SHOWY = 0;
@@ -509,6 +433,7 @@ struct SM {
     default:;
     }
   }
+  #endif
   
  private:
   static constexpr int FONTWIDTH = 9;
@@ -516,10 +441,47 @@ struct SM {
   static constexpr int SMALLFONTWIDTH = 6;
   static constexpr int SMALLFONTHEIGHT = 6;
   
-  Font *font = nullptr, *smallfont = nullptr;
+  // Font *font = nullptr, *smallfont = nullptr;
   ArcFour rc;
   NOT_COPYABLE(SM);
 };
+
+// Same as gluPerspective, but without depending on GLU.
+static void PerspectiveGL(double fovY, double aspect, double zNear, double zFar) {
+  static constexpr double pi = 3.1415926535897932384626433832795;
+  const double fH = tan(fovY / 360.0 * pi) * zNear;
+  const double fW = fH * aspect;
+  glFrustum(-fW, fW, -fH, fH, zNear, zFar);
+}
+
+static void InitGL() {
+  // Pixels!!
+  glShadeModel(GL_FLAT);
+
+  // No need for backface culling except perhaps if the camera
+  // gets inside walls. There will typically be just 1024 cubes,
+  // so there shouldn't be any performance issues, and it requires
+  // us to get winding orders corret.
+  // glCullFace(GL_BACK);
+  // glFrontFace(GL_CCW);
+  // glEnable(GL_CULL_FACE);
+
+  glClearColor(0, 0, 0, 0);
+
+  // Set up the screen. Recall that (0,0) is the bottom-left corner,
+  // not the top-left.
+  glViewport(0, 0, WIDTH, HEIGHT);
+
+  glMatrixMode(GL_PROJECTION);
+  glLoadIdentity();
+
+  PerspectiveGL(60.0, ASPECT_RATIO, 1.0, 1024.0);
+
+  // Init GLEW too.
+  GLenum glew_result = glewInit();
+  CHECK(glew_result == GLEW_OK) << glewGetErrorString(glew_result);
+  fprintf(stderr, "Status: Using GLEW %s\n", glewGetString(GLEW_VERSION));
+}
 
 /**
  * The main loop for the SDL.
@@ -527,10 +489,32 @@ struct SM {
 int main(int argc, char *argv[]) {
   fprintf(stderr, "Init SDL\n");
 
-  /* Initialize SDL and network, if we're using it. */
-  CHECK(SDL_Init(SDL_INIT_VIDEO) >= 0);
-  fprintf(stderr, "SDL initialized OK.\n");
+  CHECK(SDL_Init(SDL_INIT_VIDEO) >= 0) << SDL_GetError();
 
+  const SDL_VideoInfo *info = SDL_GetVideoInfo( );
+  CHECK(info != nullptr) << SDL_GetError();
+
+  const int bpp = info->vfmt->BitsPerPixel;
+
+  if (bpp != 4) {
+    fprintf(stderr, "This probably won't work unless BPP is "
+	    "4, but I got %d from SDL.\n", bpp);
+  }
+
+  // Gimme quality.
+  SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 8);
+  SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 8);
+  SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 8);
+  SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 16);
+  SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+
+  // Can use SDL_FULLSCREEN here for full screen immersive
+  // 8 bit action!!
+  CHECK(SDL_SetVideoMode(WIDTH, HEIGHT, bpp,
+			 SDL_OPENGL)) << SDL_GetError();
+
+  InitGL();
+  
   {
     SM sm;
     sm.Play();
