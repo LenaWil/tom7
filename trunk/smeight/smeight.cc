@@ -340,23 +340,26 @@ struct SM {
 	
     // Draw boxes as a bunch of triangles.
     for (const Vec3 &v : boxes) {
-
       glBindTexture(GL_TEXTURE_2D, texture_id);
 
-      //      a-----b
-      //     /:    /|
-      //    c-----d |
-      //    | :   | |
-      //    | e---|-f
-      //    |/    |/
-      //    g-----h
-
+      // Here, boxes are properly oriented in GL axes, like this. The
+      // input vector is the front bottom left corner, a:
+      //
+      //      g-----h
+      //     /:    /|              ^   7
+      //    d-----c |            + |  / +
+      //    | :   | |            z | / y
+      //    | f---|-e            - |/ -
+      //    |/    |/               0------->
+      //    a-----b                  -x+
+      // (0,0,0)
+      
       Vec3 a = v;
       Vec3 b = Vec3Plus(v, Vec3{1.0f, 0.0f, 0.0f});
-      Vec3 c = Vec3Plus(v, Vec3{0.0f, 1.0f, 0.0f});
-      Vec3 d = Vec3Plus(v, Vec3{1.0f, 1.0f, 0.0f});
-      Vec3 e = Vec3Plus(v, Vec3{0.0f, 0.0f, 1.0f});
-      Vec3 f = Vec3Plus(v, Vec3{1.0f, 0.0f, 1.0f});
+      Vec3 c = Vec3Plus(v, Vec3{1.0f, 0.0f, 1.0f});
+      Vec3 d = Vec3Plus(v, Vec3{0.0f, 0.0f, 1.0f});
+      Vec3 e = Vec3Plus(v, Vec3{1.0f, 1.0f, 0.0f});
+      Vec3 f = Vec3Plus(v, Vec3{0.0f, 1.0f, 0.0f});
       Vec3 g = Vec3Plus(v, Vec3{0.0f, 1.0f, 1.0f});
       Vec3 h = Vec3Plus(v, Vec3{1.0f, 1.0f, 1.0f});
       
@@ -381,28 +384,28 @@ struct SM {
       };
 
       // Top
-      glColor4ubv(red);
-      CCWFace(c, d, b, a);
+      // glColor4ubv(red);
+      CCWFace(d, c, h, g);
 
       // Front
-      glColor4ubv(magenta);
-      CCWFace(g, h, d, c);
-      // Back
-      glColor4ubv(magenta);
-      CCWFace(f, e, a, b);
+      // glColor4ubv(magenta);
+      CCWFace(a, b, c, d);
 
+      // Back
+      // glColor4ubv(magenta);
+      CCWFace(e, f, g, h);
 
       // Right
-      glColor4ubv(green);
-      CCWFace(h, f, b, d);
+      // glColor4ubv(green);
+      CCWFace(b, e, h, c);
 
       // Left
-      glColor4ubv(green);
-      CCWFace(e, g, c, a);
+      // glColor4ubv(green);
+      CCWFace(f, a, d, g);
 
       // Bottom
-      glColor4ubv(yellow);
-      CCWFace(e, f, h, g);
+      // glColor4ubv(yellow);
+      CCWFace(f, e, b, a);
     }
 
     glEnd();
