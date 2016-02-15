@@ -18,6 +18,7 @@
 #include "../cc-lib/sdl/chars.h"
 #include "../cc-lib/sdl/font.h"
 #include "../cc-lib/randutil.h"
+#include "../cc-lib/stb_image_write.h"
 
 // XXX make part of Emulator interface
 #include "../fceulib/ppu.h"
@@ -33,6 +34,7 @@
 #define HEIGHT 1080
 static constexpr double ASPECT_RATIO = WIDTH / (double)HEIGHT;
 
+// Size of NES nametable
 #define TILESW 32
 #define TILESH 30
 
@@ -120,20 +122,6 @@ struct Tilemap {
     
   vector<TileType> data{256, UNMAPPED};
 };
-
-// Get the quadrant of an angle, for the next test.
-static int Quadrant(int angle) {
-  CHECK(angle >= 0 && angle < 360);
-  //     <
-  //   3 | 0
-  // v---+---^
-  //   2 | 1
-  //     >
-  if (angle < 90) return 0;
-  else if (angle < 180) return 1;
-  else if (angle < 270) return 2;
-  else return 3;
-}
 
 //           
 //           15o
@@ -224,10 +212,6 @@ struct SM {
     int texture;
   };
   
-  float roll = 0.0f, pitch = -62.5f, yaw = 0.0f;
-
-  float xlatx = -16.0f, xlaty = -4.85f, xlatz = -19.0;
-  
   void Loop() {
     SDL_Surface *surf = sdlutil::makesurface(256, 256, true);
     (void)surf;
@@ -253,30 +237,11 @@ struct SM {
 	  return;
 	case SDL_KEYDOWN:
 	  switch (event.key.keysym.sym) {
-	  case SDLK_q: roll += 0.1f; break;
-	  case SDLK_a: roll -= 0.1f; break;
-	  case SDLK_w: pitch += 0.1f; break;
-	  case SDLK_s: pitch -= 0.1f; break;
-	  case SDLK_e: yaw += 0.1f; break;
-	  case SDLK_d: yaw -= 0.1f; break;
-
-	  case SDLK_UP: xlaty += 0.05f; break;
-	  case SDLK_DOWN: xlaty -= 0.05f; break;
-	  case SDLK_LEFT: xlatx -= 0.05f; break;
-	  case SDLK_RIGHT: xlatx += 0.05f; break;
-
-	  case SDLK_KP_MINUS:
-	  case SDLK_MINUS: xlatz -= 0.05; break;
-	  case SDLK_KP_PLUS:
-	  case SDLK_EQUALS:
-	  case SDLK_PLUS: xlatz += 0.05; break;	    
 	    
 	  case SDLK_ESCAPE:
 	    return;
 	  default:;
 	  }
-	  printf("y %f p %f r %f, x %f y %f z %f\n",
-		 yaw, pitch, roll, xlatx, xlaty, xlatz);
 	  break;
 	default:;
 	}
@@ -300,6 +265,7 @@ struct SM {
 	int player_angle;
 	std::tie(player_x, player_y, player_angle) = GetLoc();
 
+	#if 0
 	for (int i = 0; i < TILESW * TILESH; i++) {
 	  glBindTexture(GL_TEXTURE_2D, texture_id[i]);
 	  vector<uint8> rando;
@@ -314,7 +280,8 @@ struct SM {
 			  8, 8,
 			  GL_RGB, GL_UNSIGNED_BYTE, rando.data());
 	}
-	  
+	#endif
+	
 	// Smooth angle a bit.
 	// Maximum degrees to turn per frame.
 	static constexpr int MAX_SPIN = 6;
@@ -343,7 +310,9 @@ struct SM {
 	// DrawScene();
 	// Benchmark();
 
-	SDL_GL_SwapBuffers( );
+	SaveImage();
+	
+	SDL_GL_SwapBuffers();
 
 	if (frame % 1000 == 0) {
 	  int now = SDL_GetTicks();
@@ -355,20 +324,32 @@ struct SM {
     }
   }
 
+  int imagenum = 0;
+  bool saving = false;
+  void SaveImage() {
+    if (!saving) return;
+    
+    vector<uint8> pixels;
+    pixels.resize(WIDTH * HEIGHT * 4);
+    glReadPixels(0, 0, WIDTH, HEIGHT, GL_RGBA, GL_UNSIGNED_BYTE, pixels.data());
+    stbi_write_png(StringPrintf("image_%d.png", imagenum).c_str(),
+		   WIDTH, HEIGHT, 4,
+		   // Start on last row.
+		   pixels.data() + (WIDTH * (HEIGHT - 1)) * 4,
+		   // Negative stride to flip during saving.
+		   -4 * WIDTH);
+    imagenum++;
+  }
+  
   void GetTextures() {
-    uint8 *vram = &emu->GetFC()->cart->VPage[0][0];
+    // BG pattern table can be at 0 or 0x1000. For zelda, BG seems
+    // to always be at 0x1000, so this is hardcoded for now...
+    const uint32 addr = 0x1000;
+    const uint8 *vram = &emu->GetFC()->cart->VPage[addr >> 10][addr];
 
     vector<uint8> patterns;
     patterns.resize(256 * 8 * 8 * 4);
-#if 0
-    // 256 8x8 tiles, each color 4 bytes
-    for (int i = 0; i < 256 * 8 * 8; i++) {
-      patterns.push_back(rc.Byte());
-      patterns.push_back(rc.Byte());
-      patterns.push_back(rc.Byte());
-      patterns.push_back(0xFF);
-    }
-#endif
+
     for (int ty = 0; ty < 16; ty++) {
       for (int tx = 0; tx < 16; tx++) {
 	// Each tile is made of 8 bytes giving its low color bits, then
@@ -387,7 +368,8 @@ struct SM {
 	      (((row_high >> (7 - bit)) & 1) << 1);
 	    // XXX: Look up in palette. This just makes
 	    // greyscale:
-	    value <<= 6;
+	    static constexpr int greys[4] = {0, 85, 170, 255};
+	    value = greys[value];
 	    // Put pixel in pattern image:
 
 	    int px = tx * 8 + bit;
@@ -405,6 +387,45 @@ struct SM {
     glPixelZoom(2.0f, -2.0f);
     (*glWindowPos2i)(256, HEIGHT);
     glDrawPixels(16 * 8, 16 * 8, GL_BGRA, GL_UNSIGNED_BYTE, patterns.data());
+
+    for (int ty = 0; ty < 16; ty++) {
+      for (int tx = 0; tx < 16; tx++) {
+	vector<uint8> chr;
+	chr.resize(8 * 8 * 4);
+	for (int y = 0; y < 8; y++) {
+	  for (int x = 0; x < 8; x++) {
+	    // Pixel coordinates in patterns image.
+	    int px = tx * 8 + x;
+	    int py = ty * 8 + y;
+	    for (int c = 0; c < 4; c++) {
+	      // 7 - y to flip vertically.
+	      chr[(y * 8 + x) * 4 + c] =
+		patterns[(py * (16 * 8) + px) * 4 + c];
+	    }
+	  }
+	}
+	
+	glBindTexture(GL_TEXTURE_2D, texture_id[ty * 16 + tx]);
+	glTexSubImage2D(GL_TEXTURE_2D, 0,
+			0, 0, 8, 8,
+			GL_RGBA, GL_UNSIGNED_BYTE,
+			chr.data());
+	#if 0
+	for (int row = 0; row < 8; row++) {
+	  // Pixel offset of row
+	  int px = x * 8;
+	  int py = y * 8 + row;
+	  glTexSubImage2D(GL_TEXTURE_2D, 0,
+			  // offset
+			  0, row,
+			  // width, height		     
+			  8, 1,
+			  GL_RGBA, GL_UNSIGNED_BYTE,
+			  &patterns[(py * (16 * 8) + px) * 4]);
+	}
+	#endif
+      }
+    }
     
     /*
     const uint8 *nametable = emu->GetFC()->ppu->NTARAM;
@@ -451,7 +472,7 @@ struct SM {
 	} else if (type == UNMAPPED) {
 	  z = 2.0f;
 	}
-	ret.push_back(Box{Vec3{(float)x, (float)y, z}, t});
+	ret.push_back(Box{Vec3{(float)x, (float)y, z}, tile});
       }
     }
     return ret;
@@ -482,12 +503,6 @@ struct SM {
     // Move "camera".
     glTranslatef(player_x / -8.0f, ((TILESH * 8 - 1) - player_y) / -8.0f, -2.0f);
 
-   
-    // nb. just picked these names arbitrarily
-    // glRotatef(yaw, 0.0, 1.0, 0.0);
-    // glRotatef(pitch, 1.0, 0.0, 0.0);
-    // glRotatef(roll, 0.0, 0.0, 1.0);
-
     // XXX don't need this
     glBegin(GL_LINE_STRIP);
     glVertex3f(0.0f, 0.0f, 0.0f);
@@ -503,7 +518,7 @@ struct SM {
     // Draw boxes as a bunch of triangles.
     for (const Box &box : boxes) {
       // printf("Bind texture %d\n", box.texture);
-      glBindTexture(GL_TEXTURE_2D, box.texture);
+      glBindTexture(GL_TEXTURE_2D, texture_id[box.texture]); // box.texture);
       glBegin(GL_TRIANGLES);
       
       // Here, boxes are properly oriented in GL axes, like this. The
@@ -598,67 +613,6 @@ struct SM {
     return make_tuple(lx, ly, angle);
   }
   
-  #if 0
-  // Draws PPU in debug mode.
-  void DrawPPU() {
-    static constexpr int SHOWY = 0;
-    static constexpr int SHOWX = 300;
-
-    vector<uint8> ram = emu->GetMemory();
-    
-    uint8 *nametable = emu->GetFC()->ppu->NTARAM;
-    for (int y = 0; y < 32; y++) {
-      for (int x = 0; x < 32; x++) {
-	uint8 tile = nametable[y * 32 + x];
-	const char *color = "^2";
-	TileType type = tilemap.data[tile];
-	if (type == WALL) {
-	  color = "";
-	} else if (type == FLOOR) {
-	  color = "^4";
-	} else if (type == UNMAPPED) {
-	  color = "^3";
-	}
-	font->draw(SHOWX + x * FONTWIDTH * 2,
-		   SHOWY + y * FONTHEIGHT,
-		   StringPrintf("%s%2x", color, tile));
-      }
-    }
-
-    uint8 dir = ram[0x98];
-
-    // Link's top-left corner, so add 8,8 to get center.
-    uint8 lx = ram[0x70] + 8, ly = ram[0x84] + 8;
-
-    float fx = lx / 256.0, fy = ly / 256.0;
-    
-    int sx = SHOWX + fx * (32 * FONTWIDTH * 2);
-    int sy = SHOWY + fy * (32 * FONTHEIGHT);
-    sdlutil::drawbox(screen, sx - 4, sy - 4, 8, 8,
-		     255, 0, 0);
-
-    switch (dir) {
-    case 1:
-      // Right
-      sdlutil::drawclipline(screen, sx, sy, sx + 8, sy, 255, 128, 0);
-      break;
-    case 2:
-      // Left
-      sdlutil::drawclipline(screen, sx, sy, sx - 8, sy, 255, 128, 0);
-      break;
-    case 4:
-      // Down
-      sdlutil::drawclipline(screen, sx, sy, sx, sy + 8, 255, 128, 0);
-      break;
-    case 8:
-      // Up
-      sdlutil::drawclipline(screen, sx, sy, sx, sy - 8, 255, 128, 0);
-      break;
-    default:;
-    }
-  }
-  #endif
-  
  private:
   static constexpr int FONTWIDTH = 9;
   static constexpr int FONTHEIGHT = 16;
@@ -728,13 +682,12 @@ static void InitGL() {
 int main(int argc, char *argv[]) {
   (void)red; (void)green; (void)blue; (void)white;
   (void)cyan; (void)black; (void)yellow; (void)magenta;
-  (void)Quadrant;
   
   fprintf(stderr, "Init SDL\n");
 
   CHECK(SDL_Init(SDL_INIT_VIDEO) >= 0) << SDL_GetError();
 
-  const SDL_VideoInfo *info = SDL_GetVideoInfo( );
+  const SDL_VideoInfo *info = SDL_GetVideoInfo();
   CHECK(info != nullptr) << SDL_GetError();
 
   const int bpp = info->vfmt->BitsPerPixel;
@@ -751,7 +704,9 @@ int main(int argc, char *argv[]) {
   SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 16);
   SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 
-  // 2x MSAA
+  // 2x MSAA -- doesn't do much though since the textures
+  // are still linear interpolation. Should instead render
+  // offscreen and then downsample.
   SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 4);
   
   // Can use SDL_FULLSCREEN here for full screen immersive
