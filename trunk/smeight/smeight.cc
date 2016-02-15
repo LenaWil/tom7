@@ -179,9 +179,9 @@ struct SM {
   }
   
 
-  float roll = 0.0f, pitch = 0.0f, yaw = 0.0f;
+  float roll = 0.0f, pitch = -62.5f, yaw = 0.0f;
 
-  float xlatx = 0.0f, xlaty = 0.0f, xlatz = -50.0;
+  float xlatx = -16.0f, xlaty = -4.85f, xlatz = -19.0;
   
   void Loop() {
     SDL_Surface *surf = sdlutil::makesurface(256, 256, true);
@@ -228,6 +228,8 @@ struct SM {
 	    return;
 	  default:;
 	  }
+	  printf("y %f p %f r %f, x %f y %f z %f\n",
+		 yaw, pitch, roll, xlatx, xlaty, xlatz);
 	  break;
 	default:;
 	}
@@ -270,9 +272,7 @@ struct SM {
     glDrawPixels(256, 256, GL_BGRA, GL_UNSIGNED_BYTE, image.data());
   }
   
-  // All boxes are 1x1x1. This returns their "top-left" corners.
-  // All boxes have width 1x1x1.
-  // Native coordinates mimic the standard layout on-screen:
+  // All boxes are 1x1x1. This returns their "top-left" corners. Larger Z is "up".
   //
   //    x=0,y=0 -----> x = 32
   //    |
@@ -281,7 +281,6 @@ struct SM {
   //    v
   //   y=32
   //
-  //    With z going "up" (towards the viewer, looking top-down.)
   vector<Vec3> GetBoxes() {
     vector<Vec3> ret;
     ret.reserve(32 * 32);
@@ -297,7 +296,7 @@ struct SM {
 	  z = 0.0f;
 	  // continue;
 	} else if (type == UNMAPPED) {
-	  z = 1.0f;
+	  z = 2.0f;
 	}
 	ret.push_back(Vec3{(float)x, (float)y, z});
       }
@@ -305,7 +304,15 @@ struct SM {
     return ret;
   }
 
-  void DrawScene(const vector<Vec3> &boxes) {
+  void DrawScene(const vector<Vec3> &orig_boxes) {
+    // Put boxes in GL space where Y=0 is bottom-left, not top-left.
+    // This also changes the origin of the box itself.
+    vector<Vec3> boxes;
+    boxes.reserve(orig_boxes.size());
+    for (const Vec3 &box : orig_boxes) {
+      boxes.push_back(Vec3{box.x, (32.0f - 1.0f) - box.y, box.z});
+    }
+
     // printf("There are %d boxes.\n", (int)boxes.size());
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
@@ -318,13 +325,20 @@ struct SM {
     glRotatef(pitch, 1.0, 0.0, 0.0);
     glRotatef(roll, 0.0, 0.0, 1.0);
 
+    glBegin(GL_LINE_STRIP);
+    glVertex3f(0.0f, 0.0f, 0.0f);
+    glVertex3f(32.0f, 0.0f, 0.0f);
+    glVertex3f(32.0f, 32.0f, 0.0f);
+    glVertex3f(0.0f, 32.0f, 0.0f);
+    glVertex3f(0.0f, 0.0f, 0.0f);
+    glEnd();
+    
     glEnable(GL_TEXTURE_2D);
     glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL);
-    
+
     glBegin(GL_TRIANGLES);
 	
     // Draw boxes as a bunch of triangles.
-    //  {Vec3{1.0, 0.0, 0.0}, Vec3{2.0, 0.0, 0.0}}
     for (const Vec3 &v : boxes) {
 
       glBindTexture(GL_TEXTURE_2D, texture_id);
