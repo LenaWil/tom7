@@ -32,6 +32,9 @@
 #define HEIGHT 1080
 static constexpr double ASPECT_RATIO = WIDTH / (double)HEIGHT;
 
+#define TILESW 32
+#define TILESH 30
+
 #define X 255,255,255
 #define O 255,0,0
 #define _ 32,32,32
@@ -353,20 +356,20 @@ struct SM {
   
   // All boxes are 1x1x1. This returns their "top-left" corners. Larger Z is "up".
   //
-  //    x=0,y=0 -----> x = 32
+  //    x=0,y=0 -----> x = TILESW-1 = 31
   //    |
   //    :
   //    |
   //    v
-  //   y=32
+  //   y = TILESH - 1 = 29
   //
   vector<Vec3> GetBoxes() {
     vector<Vec3> ret;
-    ret.reserve(32 * 32);
+    ret.reserve(TILESW * TILESH);
     const uint8 *nametable = emu->GetFC()->ppu->NTARAM;
-    for (int y = 0; y < 32; y++) {
-      for (int x = 0; x < 32; x++) {
-	const uint8 tile = nametable[y * 32 + x];
+    for (int y = 0; y < TILESH; y++) {
+      for (int x = 0; x < TILESW; x++) {
+	const uint8 tile = nametable[y * TILESW + x];
 	const TileType type = tilemap.data[tile];
 	float z = 0.0f;
 	if (type == WALL) {
@@ -391,7 +394,7 @@ struct SM {
     vector<Vec3> boxes;
     boxes.reserve(orig_boxes.size());
     for (const Vec3 &box : orig_boxes) {
-      boxes.push_back(Vec3{box.x, (32.0f - 1.0f) - box.y, box.z});
+      boxes.push_back(Vec3{box.x, (float)(TILESH - 1) - box.y, box.z});
     }
 
     // printf("There are %d boxes.\n", (int)boxes.size());
@@ -405,7 +408,7 @@ struct SM {
     glRotatef(player_angle, 0.0, 0.0, 1.0);
     
     // Move "camera".
-    glTranslatef(player_x / -8.0f, (255.0 - player_y) / -8.0f, -2.0f);
+    glTranslatef(player_x / -8.0f, ((TILESH * 8 - 1) - player_y) / -8.0f, -2.0f);
 
    
     // nb. just picked these names arbitrarily
@@ -413,11 +416,12 @@ struct SM {
     // glRotatef(pitch, 1.0, 0.0, 0.0);
     // glRotatef(roll, 0.0, 0.0, 1.0);
 
+    // XXX don't need this
     glBegin(GL_LINE_STRIP);
     glVertex3f(0.0f, 0.0f, 0.0f);
-    glVertex3f(32.0f, 0.0f, 0.0f);
-    glVertex3f(32.0f, 32.0f, 0.0f);
-    glVertex3f(0.0f, 32.0f, 0.0f);
+    glVertex3f((float)TILESW, 0.0f, 0.0f);
+    glVertex3f((float)TILESW, (float)TILESH, 0.0f);
+    glVertex3f(0.0f, (float)TILESH, 0.0f);
     glVertex3f(0.0f, 0.0f, 0.0f);
     glEnd();
     
