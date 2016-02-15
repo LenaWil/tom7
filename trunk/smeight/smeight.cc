@@ -280,7 +280,7 @@ struct SM {
 	vector<uint8> image = emu->GetImageARGB();
 	// CopyARGB(image, surf);
 
-	glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	  
 	BlitNESGL(image, 0, HEIGHT);
 
@@ -290,6 +290,19 @@ struct SM {
 	int player_angle;
 	std::tie(player_x, player_y, player_angle) = GetLoc();
 
+	glBindTexture(GL_TEXTURE_2D, texture_id);
+	vector<uint8> rando;
+	rando.reserve(8 * 8 * 3);
+	for (int i = 0; i < 8 * 8 * 3; i++) {
+	  rando.push_back(rc.Byte());
+	}
+	glTexSubImage2D(GL_TEXTURE_2D, 0,
+			// offset
+			0, 0,
+			// width, height		     
+			8, 8,
+			GL_RGB, GL_UNSIGNED_BYTE, rando.data());
+	
 	// Smooth angle a bit.
 	// Maximum degrees to turn per frame.
 	static constexpr int MAX_SPIN = 6;
@@ -617,12 +630,12 @@ static void InitGL() {
   glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 8, 8, 0,
 	       GL_RGB, GL_UNSIGNED_BYTE, arrow_texture);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  
   // Maybe want something like this, but we should always be using
   // full textures!
-  // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-  // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
   
   PerspectiveGL(60.0, ASPECT_RATIO, 1.0, 1024.0);
 
