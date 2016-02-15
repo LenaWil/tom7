@@ -32,6 +32,34 @@
 #define HEIGHT 1080
 static constexpr double ASPECT_RATIO = WIDTH / (double)HEIGHT;
 
+#define X 255,255,255
+#define O 255,0,0
+#define _ 32,32,32
+static GLubyte arrow_texture[8 * 8 * 3] = {
+  _, _, _, O, O, _, _, _,
+
+  _, _, O, X, X, O, _, _,
+
+  _, O, X, X, X, X, O, _,
+
+  O, O, O, X, X, O, O, O,
+
+  _, _, _, X, X, _, _, _,
+
+  _, _, _, X, X, _, _, _,
+
+  _, _, _, X, X, _, _, _,
+
+  _, _, _, X, X, _, _, _,
+};
+#undef X
+#undef O
+#undef _
+
+// XXX
+GLuint texture_id;
+
+
 typedef void (APIENTRY *glWindowPos2i_t)(int, int);
 glWindowPos2i_t glWindowPos2i = nullptr;
 static void GetExtensions() {
@@ -267,7 +295,7 @@ struct SM {
 	  z = 1.0f;
 	} else if (type == FLOOR) {
 	  z = 0.0f;
-	  continue;
+	  // continue;
 	} else if (type == UNMAPPED) {
 	  z = 1.0f;
 	}
@@ -290,11 +318,17 @@ struct SM {
     glRotatef(pitch, 1.0, 0.0, 0.0);
     glRotatef(roll, 0.0, 0.0, 1.0);
 
+    glEnable(GL_TEXTURE_2D);
+    glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL);
+    
     glBegin(GL_TRIANGLES);
 	
     // Draw boxes as a bunch of triangles.
     //  {Vec3{1.0, 0.0, 0.0}, Vec3{2.0, 0.0, 0.0}}
     for (const Vec3 &v : boxes) {
+
+      glBindTexture(GL_TEXTURE_2D, texture_id);
+
       //      a-----b
       //     /:    /|
       //    c-----d |
@@ -312,23 +346,24 @@ struct SM {
       Vec3 g = Vec3Plus(v, Vec3{0.0f, 1.0f, 1.0f});
       Vec3 h = Vec3Plus(v, Vec3{1.0f, 1.0f, 1.0f});
       
+      // Give bottom left first, and go clockwise.
       auto CCWFace = [](const Vec3 &a, const Vec3 &b, const Vec3 &c, const Vec3 &d) {
-	//
-	//  d----c
-	//  | 1 /|
-	//  |  / |
-	//  | /  |
-	//  |/ 2 |
-	//  a----b
-	//
+	//  (0,0) (1,0)
+	//    d----c
+	//    | 1 /|
+	//    |  / |
+	//    | /  |
+	//    |/ 2 |
+	//    a----b
+	//  (0,1)  (1,1)  texture coordinates
 
-	glVertex3fv(a.Floats());
-	glVertex3fv(c.Floats());
-	glVertex3fv(d.Floats());
+	glTexCoord2f(0.0f, 1.0f); glVertex3fv(a.Floats());
+	glTexCoord2f(1.0f, 0.0f); glVertex3fv(c.Floats());
+	glTexCoord2f(0.0f, 0.0f); glVertex3fv(d.Floats());
 
-	glVertex3fv(a.Floats());
-	glVertex3fv(b.Floats());
-	glVertex3fv(c.Floats());
+	glTexCoord2f(0.0f, 1.0f); glVertex3fv(a.Floats());
+	glTexCoord2f(1.0f, 1.0f); glVertex3fv(b.Floats());
+	glTexCoord2f(1.0f, 0.0f); glVertex3fv(c.Floats());
       };
 
       // Top
@@ -357,6 +392,7 @@ struct SM {
     }
 
     glEnd();
+    glDisable(GL_TEXTURE_2D);
   }
   
   #if 0
@@ -457,9 +493,24 @@ static void InitGL() {
 
   glEnable(GL_DEPTH_TEST);
   
+  glEnable(GL_MULTISAMPLE);
+  
   glMatrixMode(GL_PROJECTION);
   glLoadIdentity();
 
+  // XXX this can't be static; it needs to depend on the CHR RAM
+  glGenTextures(1, &texture_id);
+  glBindTexture(GL_TEXTURE_2D, texture_id);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 8, 8, 0,
+	       GL_RGB, GL_UNSIGNED_BYTE, arrow_texture);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+
+  // Maybe want something like this, but we should always be using
+  // full textures!
+  // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+  // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+  
   PerspectiveGL(60.0, ASPECT_RATIO, 1.0, 1024.0);
 
   GetExtensions();
@@ -490,6 +541,9 @@ int main(int argc, char *argv[]) {
   SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 16);
   SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 
+  // 2x MSAA
+  SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 4);
+  
   // Can use SDL_FULLSCREEN here for full screen immersive
   // 8 bit action!!
   CHECK(SDL_SetVideoMode(WIDTH, HEIGHT, bpp,
