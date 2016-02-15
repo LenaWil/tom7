@@ -21,6 +21,7 @@
 
 // XXX make part of Emulator interface
 #include "../fceulib/ppu.h"
+#include "../fceulib/cart.h"
 
 #include "SDL.h"
 #include <GL/gl.h>
@@ -38,7 +39,7 @@ static constexpr double ASPECT_RATIO = WIDTH / (double)HEIGHT;
 #define X 255,255,255
 #define O 255,0,0
 #define _ 32,32,32
-static GLubyte arrow_texture[8 * 8 * 3] = {
+static const GLubyte arrow_texture[8 * 8 * 3] = {
   _, _, _, O, O, _, _, _,
 
   _, _, O, X, X, O, _, _,
@@ -60,7 +61,7 @@ static GLubyte arrow_texture[8 * 8 * 3] = {
 #undef _
 
 // XXX
-GLuint texture_id;
+static GLuint texture_id[TILESW * TILESH] = {};
 
 
 typedef void (APIENTRY *glWindowPos2i_t)(int, int);
@@ -217,8 +218,12 @@ struct SM {
     Loop();
     printf("UI shutdown.\n");
   }
-  
 
+  struct Box {
+    Vec3 loc;
+    int texture;
+  };
+  
   float roll = 0.0f, pitch = -62.5f, yaw = 0.0f;
 
   float xlatx = -16.0f, xlaty = -4.85f, xlatz = -19.0;
@@ -286,26 +291,30 @@ struct SM {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	  
 	BlitNESGL(image, 0, HEIGHT);
+	GetTextures();
+	
+	vector<Box> boxes = GetBoxes();
 
-	vector<Vec3> boxes = GetBoxes();
 
 	uint8 player_x, player_y;
 	int player_angle;
 	std::tie(player_x, player_y, player_angle) = GetLoc();
 
-	glBindTexture(GL_TEXTURE_2D, texture_id);
-	vector<uint8> rando;
-	rando.reserve(8 * 8 * 3);
-	for (int i = 0; i < 8 * 8 * 3; i++) {
-	  rando.push_back(rc.Byte());
+	for (int i = 0; i < TILESW * TILESH; i++) {
+	  glBindTexture(GL_TEXTURE_2D, texture_id[i]);
+	  vector<uint8> rando;
+	  rando.reserve(8 * 8 * 3);
+	  for (int i = 0; i < 8 * 8 * 3; i++) {
+	    rando.push_back(rc.Byte());
+	  }
+	  glTexSubImage2D(GL_TEXTURE_2D, 0,
+			  // offset
+			  0, 0,
+			  // width, height		     
+			  8, 8,
+			  GL_RGB, GL_UNSIGNED_BYTE, rando.data());
 	}
-	glTexSubImage2D(GL_TEXTURE_2D, 0,
-			// offset
-			0, 0,
-			// width, height		     
-			8, 8,
-			GL_RGB, GL_UNSIGNED_BYTE, rando.data());
-	
+	  
 	// Smooth angle a bit.
 	// Maximum degrees to turn per frame.
 	static constexpr int MAX_SPIN = 6;
@@ -345,6 +354,68 @@ struct SM {
       }
     }
   }
+
+  void GetTextures() {
+    uint8 *vram = &emu->GetFC()->cart->VPage[0][0];
+
+    vector<uint8> patterns;
+    patterns.resize(256 * 8 * 8 * 4);
+#if 0
+    // 256 8x8 tiles, each color 4 bytes
+    for (int i = 0; i < 256 * 8 * 8; i++) {
+      patterns.push_back(rc.Byte());
+      patterns.push_back(rc.Byte());
+      patterns.push_back(rc.Byte());
+      patterns.push_back(0xFF);
+    }
+#endif
+    for (int ty = 0; ty < 16; ty++) {
+      for (int tx = 0; tx < 16; tx++) {
+	// Each tile is made of 8 bytes giving its low color bits, then
+	// 8 bytes giving its high color bits.
+	const int addr = ((ty * 16) + tx) * 16;
+
+	// Decode vram[addr] + vram[addr + 1].
+	for (int row = 0; row < 8; row++) {
+	  uint8 row_low = vram[addr + row];
+	  uint8 row_high = vram[addr + row + 8];
+
+	  // bit from msb to lsb.
+	  for (int bit = 0; bit < 8; bit++) {
+	    uint8 value =
+	      ((row_low >> (7 - bit)) & 1) |
+	      (((row_high >> (7 - bit)) & 1) << 1);
+	    // XXX: Look up in palette. This just makes
+	    // greyscale:
+	    value <<= 6;
+	    // Put pixel in pattern image:
+
+	    int px = tx * 8 + bit;
+	    int py = ty * 8 + row;
+	    int pixel = (py * (16 * 8) + px) * 4;
+	    patterns[pixel + 0] = value;
+	    patterns[pixel + 1] = value;
+	    patterns[pixel + 2] = value;
+	    patterns[pixel + 3] = 0xFF;
+	  }
+	}
+      }
+    }
+
+    glPixelZoom(2.0f, -2.0f);
+    (*glWindowPos2i)(256, HEIGHT);
+    glDrawPixels(16 * 8, 16 * 8, GL_BGRA, GL_UNSIGNED_BYTE, patterns.data());
+    
+    /*
+    const uint8 *nametable = emu->GetFC()->ppu->NTARAM;
+    for (int y = 0; y < TILESH; y++) {
+      for (int x = 0; x < TILESW; x++) {
+	int t = y * TILESW + x;
+	const uint8 tile = nametable[y * TILESW + x];
+      }
+    }
+    */
+  }
   
   // Draw the 256x256 NES image at the specified coordinates (0,0 is
   // bottom left).
@@ -353,7 +424,6 @@ struct SM {
     (*glWindowPos2i)(x, y);
     glDrawPixels(256, 256, GL_BGRA, GL_UNSIGNED_BYTE, image.data());
   }
-  
   // All boxes are 1x1x1. This returns their "top-left" corners. Larger Z is "up".
   //
   //    x=0,y=0 -----> x = TILESW-1 = 31
@@ -363,12 +433,13 @@ struct SM {
   //    v
   //   y = TILESH - 1 = 29
   //
-  vector<Vec3> GetBoxes() {
-    vector<Vec3> ret;
+  vector<Box> GetBoxes() {
+    vector<Box> ret;
     ret.reserve(TILESW * TILESH);
     const uint8 *nametable = emu->GetFC()->ppu->NTARAM;
     for (int y = 0; y < TILESH; y++) {
       for (int x = 0; x < TILESW; x++) {
+	int t = y * TILESW + x;
 	const uint8 tile = nametable[y * TILESW + x];
 	const TileType type = tilemap.data[tile];
 	float z = 0.0f;
@@ -380,21 +451,22 @@ struct SM {
 	} else if (type == UNMAPPED) {
 	  z = 2.0f;
 	}
-	ret.push_back(Vec3{(float)x, (float)y, z});
+	ret.push_back(Box{Vec3{(float)x, (float)y, z}, t});
       }
     }
     return ret;
   }
 
-  void DrawScene(const vector<Vec3> &orig_boxes,
+  void DrawScene(const vector<Box> &orig_boxes,
 		 int player_x, int player_y,
 		 int player_angle) {
     // Put boxes in GL space where Y=0 is bottom-left, not top-left.
     // This also changes the origin of the box itself.
-    vector<Vec3> boxes;
+    vector<Box> boxes;
     boxes.reserve(orig_boxes.size());
-    for (const Vec3 &box : orig_boxes) {
-      boxes.push_back(Vec3{box.x, (float)(TILESH - 1) - box.y, box.z});
+    for (const Box &box : orig_boxes) {
+      boxes.push_back(Box{Vec3{box.loc.x, (float)(TILESH - 1) - box.loc.y, box.loc.z},
+	    box.texture});
     }
 
     // printf("There are %d boxes.\n", (int)boxes.size());
@@ -428,12 +500,12 @@ struct SM {
     glEnable(GL_TEXTURE_2D);
     glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL);
 
-    glBegin(GL_TRIANGLES);
-	
     // Draw boxes as a bunch of triangles.
-    for (const Vec3 &v : boxes) {
-      glBindTexture(GL_TEXTURE_2D, texture_id);
-
+    for (const Box &box : boxes) {
+      // printf("Bind texture %d\n", box.texture);
+      glBindTexture(GL_TEXTURE_2D, box.texture);
+      glBegin(GL_TRIANGLES);
+      
       // Here, boxes are properly oriented in GL axes, like this. The
       // input vector is the front bottom left corner, a:
       //
@@ -446,14 +518,14 @@ struct SM {
       //    a-----b                  -x+
       // (0,0,0)
       
-      Vec3 a = v;
-      Vec3 b = Vec3Plus(v, Vec3{1.0f, 0.0f, 0.0f});
-      Vec3 c = Vec3Plus(v, Vec3{1.0f, 0.0f, 1.0f});
-      Vec3 d = Vec3Plus(v, Vec3{0.0f, 0.0f, 1.0f});
-      Vec3 e = Vec3Plus(v, Vec3{1.0f, 1.0f, 0.0f});
-      Vec3 f = Vec3Plus(v, Vec3{0.0f, 1.0f, 0.0f});
-      Vec3 g = Vec3Plus(v, Vec3{0.0f, 1.0f, 1.0f});
-      Vec3 h = Vec3Plus(v, Vec3{1.0f, 1.0f, 1.0f});
+      Vec3 a = box.loc;
+      Vec3 b = Vec3Plus(a, Vec3{1.0f, 0.0f, 0.0f});
+      Vec3 c = Vec3Plus(a, Vec3{1.0f, 0.0f, 1.0f});
+      Vec3 d = Vec3Plus(a, Vec3{0.0f, 0.0f, 1.0f});
+      Vec3 e = Vec3Plus(a, Vec3{1.0f, 1.0f, 0.0f});
+      Vec3 f = Vec3Plus(a, Vec3{0.0f, 1.0f, 0.0f});
+      Vec3 g = Vec3Plus(a, Vec3{0.0f, 1.0f, 1.0f});
+      Vec3 h = Vec3Plus(a, Vec3{1.0f, 1.0f, 1.0f});
       
       // Give bottom left first, and go clockwise.
       auto CCWFace = [](const Vec3 &a, const Vec3 &b, const Vec3 &c, const Vec3 &d) {
@@ -498,9 +570,10 @@ struct SM {
       // Bottom
       // glColor4ubv(yellow);
       CCWFace(f, e, b, a);
+
+      glEnd();
     }
 
-    glEnd();
     glDisable(GL_TEXTURE_2D);
   }
 
@@ -628,18 +701,21 @@ static void InitGL() {
   glMatrixMode(GL_PROJECTION);
   glLoadIdentity();
 
-  // XXX this can't be static; it needs to depend on the CHR RAM
-  glGenTextures(1, &texture_id);
-  glBindTexture(GL_TEXTURE_2D, texture_id);
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 8, 8, 0,
-	       GL_RGB, GL_UNSIGNED_BYTE, arrow_texture);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  // Allocate all cube textures and initialize with "missing" arrow.
+  glGenTextures(TILESW * TILESH, texture_id);
+
+  for (int i = 0; i < TILESW * TILESH; i++) {
+    glBindTexture(GL_TEXTURE_2D, texture_id[i]);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 8, 8, 0,
+		 GL_RGB, GL_UNSIGNED_BYTE, arrow_texture);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
   
-  // Maybe want something like this, but we should always be using
-  // full textures!
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    // Maybe want something like this, but we should always be using
+    // full textures!
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+  }
   
   PerspectiveGL(60.0, ASPECT_RATIO, 1.0, 1024.0);
 
@@ -650,6 +726,10 @@ static void InitGL() {
  * The main loop for the SDL.
  */
 int main(int argc, char *argv[]) {
+  (void)red; (void)green; (void)blue; (void)white;
+  (void)cyan; (void)black; (void)yellow; (void)magenta;
+  (void)Quadrant;
+  
   fprintf(stderr, "Init SDL\n");
 
   CHECK(SDL_Init(SDL_INIT_VIDEO) >= 0) << SDL_GetError();
