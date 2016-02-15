@@ -46,7 +46,7 @@ static GLubyte arrow_texture[8 * 8 * 3] = {
 
   _, _, _, X, X, _, _, _,
 
-  _, _, _, X, X, _, _, _,
+  _, _, _, X, X, _, O, _,
 
   _, _, _, X, X, _, _, _,
 
@@ -116,6 +116,43 @@ struct Tilemap {
     
   vector<TileType> data{256, UNMAPPED};
 };
+
+// Get the quadrant of an angle, for the next test.
+static int Quadrant(int angle) {
+  CHECK(angle >= 0 && angle < 360);
+  //     <
+  //   3 | 0
+  // v---+---^
+  //   2 | 1
+  //     >
+  if (angle < 90) return 0;
+  else if (angle < 180) return 1;
+  else if (angle < 270) return 2;
+  else return 3;
+}
+
+//           
+//           15o
+//         |/  
+//  270o --+--
+//         |
+//
+// Find the distance (in degrees) to travel clockwise to reach the end
+// angle from the start angle. This will always be positive, and may
+// need to wrap around 0.
+static int CWDistance(int start_angle, int end_angle) {
+  // const int qs = Quadrant(start_angle), qe = Quadrant(end_angle);
+  if (end_angle >= start_angle) {
+    return end_angle - start_angle;
+  } else {
+    return end_angle - start_angle + 360;
+  }
+}
+
+// Again, always positive.
+static int CCWDistance(int start_angle, int end_angle) {
+  return CWDistance(end_angle, start_angle);
+}
 
 struct SM {
   std::unique_ptr<Emulator> emu;
@@ -192,6 +229,8 @@ struct SM {
     
     vector<uint8> start_state = emu->SaveUncompressed();
 
+    int current_angle = 0;
+    
     for (;;) {
       printf("Start loop!\n");
       emu->LoadUncompressed(start_state);
@@ -234,7 +273,7 @@ struct SM {
 	default:;
 	}
 
-	// SDL_Delay(1000.0 / 60.0);
+	SDL_Delay(1000.0 / 60.0);
 
 	emu->StepFull(input, 0);
 
@@ -246,7 +285,34 @@ struct SM {
 	BlitNESGL(image, 0, HEIGHT);
 
 	vector<Vec3> boxes = GetBoxes();
-	DrawScene(boxes);
+
+	uint8 player_x, player_y;
+	int player_angle;
+	std::tie(player_x, player_y, player_angle) = GetLoc();
+
+	// Smooth angle a bit.
+	// Maximum degrees to turn per frame.
+	static constexpr int MAX_SPIN = 6;
+	if (current_angle != player_angle) {
+	  // Find the shortest path, which may involve going
+	  // through zero.
+
+	  int cw = CWDistance(current_angle, player_angle);
+	  int ccw = CCWDistance(current_angle, player_angle);
+
+	  if (cw < ccw) {
+	    // Turn clockwise.
+	    if (cw < MAX_SPIN) current_angle = player_angle;
+	    else current_angle += MAX_SPIN;
+	  } else {
+	    if (ccw < MAX_SPIN) current_angle = player_angle;
+	    else current_angle -= MAX_SPIN;
+	  }
+
+	  while (current_angle < 0) current_angle += 360;
+	  while (current_angle >= 360) current_angle -= 360;
+	}
+	DrawScene(boxes, player_x, player_y, current_angle);
 
 	// DrawPPU();
 	// DrawScene();
@@ -304,7 +370,9 @@ struct SM {
     return ret;
   }
 
-  void DrawScene(const vector<Vec3> &orig_boxes) {
+  void DrawScene(const vector<Vec3> &orig_boxes,
+		 int player_x, int player_y,
+		 int player_angle) {
     // Put boxes in GL space where Y=0 is bottom-left, not top-left.
     // This also changes the origin of the box itself.
     vector<Vec3> boxes;
@@ -317,13 +385,20 @@ struct SM {
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
 
-    // Move camera.
-    glTranslatef(xlatx, xlaty, xlatz);
+    // Put player on ground with top of screen straight ahead.
+    glRotatef(-90.0f, 1.0, 0.0, 0.0);
 
+    // Rotate according to the direction the player is facing.
+    glRotatef(player_angle, 0.0, 0.0, 1.0);
+    
+    // Move "camera".
+    glTranslatef(player_x / -8.0f, (255.0 - player_y) / -8.0f, -2.0f);
+
+   
     // nb. just picked these names arbitrarily
-    glRotatef(yaw, 0.0, 1.0, 0.0);
-    glRotatef(pitch, 1.0, 0.0, 0.0);
-    glRotatef(roll, 0.0, 0.0, 1.0);
+    // glRotatef(yaw, 0.0, 1.0, 0.0);
+    // glRotatef(pitch, 1.0, 0.0, 0.0);
+    // glRotatef(roll, 0.0, 0.0, 1.0);
 
     glBegin(GL_LINE_STRIP);
     glVertex3f(0.0f, 0.0f, 0.0f);
@@ -410,6 +485,27 @@ struct SM {
 
     glEnd();
     glDisable(GL_TEXTURE_2D);
+  }
+
+  // x, y, angle (deg, where 0 is north)
+  std::tuple<uint8, uint8, int> GetLoc() {
+    vector<uint8> ram = emu->GetMemory();
+    
+    uint8 dir = ram[0x98];
+
+    // Link's top-left corner, so add 8,8 to get center.
+    uint8 lx = ram[0x70] + 8, ly = ram[0x84] + 8;
+
+    int angle = 0;
+    switch (dir) {
+    case 1: angle = 90; break;
+    case 2: angle = 270; break;
+    case 4: angle = 180; break;
+    case 8: angle = 0; break;
+    default:;
+    }
+
+    return make_tuple(lx, ly, angle);
   }
   
   #if 0
