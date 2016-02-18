@@ -37,6 +37,10 @@ static constexpr double ASPECT_RATIO = WIDTH / (double)HEIGHT;
 // Size of NES nametable
 #define TILESW 32
 #define TILESH 30
+#define TILEST 32
+static_assert(TILEST >= TILESW, "TILEST must hold TILESW");
+static_assert(TILEST >= TILESW, "TILEST must hold TILESH");
+static_assert(0 == (TILEST & (TILEST - 1)), "TILEST must be power of 2");
 
 #define X 255,255,255
 #define O 255,0,0
@@ -64,7 +68,7 @@ static const GLubyte arrow_texture[8 * 8 * 3] = {
 
 // XXX
 static GLuint texture_id[TILESW * TILESH] = {};
-
+static GLuint bg_texture = 0;
 
 typedef void (APIENTRY *glWindowPos2i_t)(int, int);
 glWindowPos2i_t glWindowPos2i = nullptr;
@@ -209,7 +213,7 @@ struct SM {
 
   struct Box {
     Vec3 loc;
-    int texture;
+    int texture_x, texture_y;
   };
   
   void Loop() {
@@ -246,7 +250,7 @@ struct SM {
 	default:;
 	}
 
-	SDL_Delay(1000.0 / 60.0);
+	// SDL_Delay(1000.0 / 60.0);
 
 	emu->StepFull(input, 0);
 
@@ -256,7 +260,7 @@ struct SM {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	  
 	BlitNESGL(image, 0, HEIGHT);
-	GetTextures();
+	// GetTextures();
 	
 	vector<Box> boxes = GetBoxes();
 
@@ -264,23 +268,6 @@ struct SM {
 	uint8 player_x, player_y;
 	int player_angle;
 	std::tie(player_x, player_y, player_angle) = GetLoc();
-
-	#if 0
-	for (int i = 0; i < TILESW * TILESH; i++) {
-	  glBindTexture(GL_TEXTURE_2D, texture_id[i]);
-	  vector<uint8> rando;
-	  rando.reserve(8 * 8 * 3);
-	  for (int i = 0; i < 8 * 8 * 3; i++) {
-	    rando.push_back(rc.Byte());
-	  }
-	  glTexSubImage2D(GL_TEXTURE_2D, 0,
-			  // offset
-			  0, 0,
-			  // width, height		     
-			  8, 8,
-			  GL_RGB, GL_UNSIGNED_BYTE, rando.data());
-	}
-	#endif
 	
 	// Smooth angle a bit.
 	// Maximum degrees to turn per frame.
@@ -458,6 +445,77 @@ struct SM {
     vector<Box> ret;
     ret.reserve(TILESW * TILESH);
     const uint8 *nametable = emu->GetFC()->ppu->NTARAM;
+
+    // BG pattern table can be at 0 or 0x1000. For zelda, BG seems
+    // to always be at 0x1000, so this is hardcoded for now...
+    const uint32 addr = 0x1000;
+    const uint8 *vram = &emu->GetFC()->cart->VPage[addr >> 10][addr];
+    
+    // The actual BG image, used as a texture for the blocks.
+    vector<uint8> bg;
+    // Don't bother reserving TILEST size; we'll just copy the portion
+    // that might change into the larger texture.
+    bg.resize(TILESW * TILESH * 8 * 8 * 4);
+
+    for (int sy = 0; sy < TILESH; sy++) {
+      for (int sx = 0; sx < TILESW; sx++) {
+	int t = sy * TILESW + sx;
+	const uint8 tile = nametable[sy * TILESW + sx];
+
+	// Coordinates of tile in CHR. This can probably be simplified
+	// with the next line...
+	const uint8 ty = tile >> 4;
+	const uint8 tx = tile & 15;
+	
+	// Draw to BG.
+	// Each tile is made of 8 bytes giving its low color bits, then
+	// 8 bytes giving its high color bits.
+	const int addr = ((ty * 16) + tx) * 16;
+
+	// Decode vram[addr] + vram[addr + 1].
+	for (int row = 0; row < 8; row++) {
+	  uint8 row_low = vram[addr + row];
+	  uint8 row_high = vram[addr + row + 8];
+
+	  // bit from msb to lsb.
+	  for (int bit = 0; bit < 8; bit++) {
+	    uint8 value =
+	      ((row_low >> (7 - bit)) & 1) |
+	      (((row_high >> (7 - bit)) & 1) << 1);
+	    // XXX: Look up in palette. This just makes
+	    // greyscale:
+	    static constexpr int greys[4] = {0, 85, 170, 255};
+	    value = greys[value];
+	    // Put pixel in bg image:
+
+	    const int px = sx * 8 + bit;
+	    const int py = sy * 8 + row;
+	    const int pixel = (py * TILESW * 8 + px) * 4;
+	    bg[pixel + 0] = value;
+	    bg[pixel + 1] = value;
+	    bg[pixel + 2] = value;
+	    bg[pixel + 3] = 0xFF;
+	  }
+	}
+
+	
+	const TileType type = tilemap.data[tile];
+	float z = 0.0f;
+	if (type == WALL) {
+	  z = 1.0f;
+	} else if (type == FLOOR) {
+	  z = 0.0f;
+	  // continue;
+	} else if (type == UNMAPPED) {
+	  z = 2.0f;
+	}
+
+	ret.push_back(Box{Vec3{(float)sx, (float)sy, z}, sx, sy});
+      }
+    }
+    
+    // 1x1 blocks
+#if 0
     for (int y = 0; y < TILESH; y++) {
       for (int x = 0; x < TILESW; x++) {
 	int t = y * TILESW + x;
@@ -475,6 +533,39 @@ struct SM {
 	ret.push_back(Box{Vec3{(float)x, (float)y, z}, tile});
       }
     }
+#endif
+
+    // I think the best plan here is to just render the whole
+    // screen to a single texture, and then use texture coordinates
+    // here (as part of Box) to paint each one. - Tom on night of 15 Feb 2016.
+
+    #if 0
+    for (int y = 0; y < TILESH; y += 2) {
+      for (int x = 0; x < TILESW; x += 2) {
+	int t = y * TILESW + x;
+	const uint8 tile = nametable[y * TILESW + x];
+	const TileType type = tilemap.data[tile];
+	float z = 0.0f;
+	if (type == WALL) {
+	  z = 1.0f;
+	} else if (type == FLOOR) {
+	  z = 0.0f;
+	  // continue;
+	} else if (type == UNMAPPED) {
+	  z = 2.0f;
+	}
+	ret.push_back(Box{Vec3{(float)x, (float)y, z}, tile});
+      }
+    }
+    #endif
+
+    // Copy background image into bg texture.
+    glBindTexture(GL_TEXTURE_2D, bg_texture);
+    glTexSubImage2D(GL_TEXTURE_2D, 0,
+		    0, 0, TILESW * 8, TILESH * 8,
+		    GL_RGBA, GL_UNSIGNED_BYTE,
+		    bg.data());
+    
     return ret;
   }
 
@@ -487,7 +578,7 @@ struct SM {
     boxes.reserve(orig_boxes.size());
     for (const Box &box : orig_boxes) {
       boxes.push_back(Box{Vec3{box.loc.x, (float)(TILESH - 1) - box.loc.y, box.loc.z},
-	    box.texture});
+	    box.texture_x, box.texture_y});
     }
 
     // printf("There are %d boxes.\n", (int)boxes.size());
@@ -515,11 +606,14 @@ struct SM {
     glEnable(GL_TEXTURE_2D);
     glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL);
 
+    glBindTexture(GL_TEXTURE_2D, bg_texture);
+    glBegin(GL_TRIANGLES);
+    
     // Draw boxes as a bunch of triangles.
     for (const Box &box : boxes) {
       // printf("Bind texture %d\n", box.texture);
-      glBindTexture(GL_TEXTURE_2D, texture_id[box.texture]); // box.texture);
-      glBegin(GL_TRIANGLES);
+      // glBindTexture(GL_TEXTURE_2D, texture_id[box.texture]); // box.texture);
+
       
       // Here, boxes are properly oriented in GL axes, like this. The
       // input vector is the front bottom left corner, a:
@@ -541,9 +635,14 @@ struct SM {
       Vec3 f = Vec3Plus(a, Vec3{0.0f, 1.0f, 0.0f});
       Vec3 g = Vec3Plus(a, Vec3{0.0f, 1.0f, 1.0f});
       Vec3 h = Vec3Plus(a, Vec3{1.0f, 1.0f, 1.0f});
+
+      // XXX
+      static constexpr float TD = 8.0f / (8.0f * TILEST);
+      const float tx = box.texture_x * TD;
+      const float ty = box.texture_y * TD;
       
       // Give bottom left first, and go clockwise.
-      auto CCWFace = [](const Vec3 &a, const Vec3 &b, const Vec3 &c, const Vec3 &d) {
+      auto CCWFace = [tx, ty](const Vec3 &a, const Vec3 &b, const Vec3 &c, const Vec3 &d) {
 	//  (0,0) (1,0)
 	//    d----c
 	//    | 1 /|
@@ -553,13 +652,13 @@ struct SM {
 	//    a----b
 	//  (0,1)  (1,1)  texture coordinates
 
-	glTexCoord2f(0.0f, 1.0f); glVertex3fv(a.Floats());
-	glTexCoord2f(1.0f, 0.0f); glVertex3fv(c.Floats());
-	glTexCoord2f(0.0f, 0.0f); glVertex3fv(d.Floats());
+	glTexCoord2f(tx,      ty + TD); glVertex3fv(a.Floats());
+	glTexCoord2f(tx + TD, ty);      glVertex3fv(c.Floats());
+	glTexCoord2f(tx,      ty);      glVertex3fv(d.Floats());
 
-	glTexCoord2f(0.0f, 1.0f); glVertex3fv(a.Floats());
-	glTexCoord2f(1.0f, 1.0f); glVertex3fv(b.Floats());
-	glTexCoord2f(1.0f, 0.0f); glVertex3fv(c.Floats());
+	glTexCoord2f(tx,      ty + TD); glVertex3fv(a.Floats());
+	glTexCoord2f(tx + TD, ty + TD); glVertex3fv(b.Floats());
+	glTexCoord2f(tx + TD, ty);      glVertex3fv(c.Floats());
       };
 
       // Top
@@ -586,9 +685,9 @@ struct SM {
       // glColor4ubv(yellow);
       CCWFace(f, e, b, a);
 
-      glEnd();
     }
 
+    glEnd();
     glDisable(GL_TEXTURE_2D);
   }
 
@@ -670,6 +769,25 @@ static void InitGL() {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
   }
+
+  // This should replace the above array.
+  {
+    glGenTextures(1, &bg_texture);
+    glBindTexture(GL_TEXTURE_2D, bg_texture);
+    vector<uint8> bg;
+    bg.resize(8 * 8 * TILEST * TILEST * 4);
+    // PERF is RGBA a good choice? It aligns better but does it make
+    // blitting much more costly because of the (unused) alpha channel?
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 256, 256, 0,
+		 GL_RGBA, GL_UNSIGNED_BYTE, bg.data());
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+
+    // No good answer here. Just make sure to hit pixels exactly.
+    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+  }
+  
   
   PerspectiveGL(60.0, ASPECT_RATIO, 1.0, 1024.0);
 
