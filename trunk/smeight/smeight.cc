@@ -23,6 +23,7 @@
 // XXX make part of Emulator interface
 #include "../fceulib/ppu.h"
 #include "../fceulib/cart.h"
+#include "../fceulib/palette.h"
 
 #include "SDL.h"
 #include <GL/gl.h>
@@ -41,6 +42,25 @@ static constexpr double ASPECT_RATIO = WIDTH / (double)HEIGHT;
 static_assert(TILEST >= TILESW, "TILEST must hold TILESW");
 static_assert(TILEST >= TILESW, "TILEST must hold TILESH");
 static_assert(0 == (TILEST & (TILEST - 1)), "TILEST must be power of 2");
+
+static constexpr uint8 ntsc_palette[] = {
+  0x80,0x80,0x80, 0x00,0x3D,0xA6, 0x00,0x12,0xB0, 0x44,0x00,0x96,
+  0xA1,0x00,0x5E, 0xC7,0x00,0x28, 0xBA,0x06,0x00, 0x8C,0x17,0x00,
+  0x5C,0x2F,0x00, 0x10,0x45,0x00, 0x05,0x4A,0x00, 0x00,0x47,0x2E,
+  0x00,0x41,0x66, 0x00,0x00,0x00, 0x05,0x05,0x05, 0x05,0x05,0x05,
+  0xC7,0xC7,0xC7, 0x00,0x77,0xFF, 0x21,0x55,0xFF, 0x82,0x37,0xFA,
+  0xEB,0x2F,0xB5, 0xFF,0x29,0x50, 0xFF,0x22,0x00, 0xD6,0x32,0x00,
+  0xC4,0x62,0x00, 0x35,0x80,0x00, 0x05,0x8F,0x00, 0x00,0x8A,0x55,
+  0x00,0x99,0xCC, 0x21,0x21,0x21, 0x09,0x09,0x09, 0x09,0x09,0x09,
+  0xFF,0xFF,0xFF, 0x0F,0xD7,0xFF, 0x69,0xA2,0xFF, 0xD4,0x80,0xFF,
+  0xFF,0x45,0xF3, 0xFF,0x61,0x8B, 0xFF,0x88,0x33, 0xFF,0x9C,0x12,
+  0xFA,0xBC,0x20, 0x9F,0xE3,0x0E, 0x2B,0xF0,0x35, 0x0C,0xF0,0xA4,
+  0x05,0xFB,0xFF, 0x5E,0x5E,0x5E, 0x0D,0x0D,0x0D, 0x0D,0x0D,0x0D,
+  0xFF,0xFF,0xFF, 0xA6,0xFC,0xFF, 0xB3,0xEC,0xFF, 0xDA,0xAB,0xEB,
+  0xFF,0xA8,0xF9, 0xFF,0xAB,0xB3, 0xFF,0xD2,0xB0, 0xFF,0xEF,0xA6,
+  0xFF,0xF7,0x9C, 0xD7,0xE8,0x95, 0xA6,0xED,0xAF, 0xA2,0xF2,0xDA,
+  0x99,0xFF,0xFC, 0xDD,0xDD,0xDD, 0x11,0x11,0x11, 0x11,0x11,0x11,
+};
 
 #define X 255,255,255
 #define O 255,0,0
@@ -67,7 +87,6 @@ static const GLubyte arrow_texture[8 * 8 * 3] = {
 #undef _
 
 // XXX
-static GLuint texture_id[TILESW * TILESH] = {};
 static GLuint bg_texture = 0;
 
 typedef void (APIENTRY *glWindowPos2i_t)(int, int);
@@ -170,9 +189,6 @@ struct SM {
     
     tilemap = Tilemap{tilesfile};
 
-    // screen = sdlutil::makescreen(WIDTH, HEIGHT);
-    // CHECK(screen);
-
     emu.reset(Emulator::Create(game));
     CHECK(emu.get());
 
@@ -192,21 +208,6 @@ struct SM {
   }
 
   void Play() {
-    /*
-    font = Font::create(screen,
-			"font.png",
-			FONTCHARS,
-			FONTWIDTH, FONTHEIGHT, FONTSTYLES, 1, 3);
-    CHECK(font != nullptr) << "Couldn't load font.";
-
-    smallfont = Font::create(screen,
-			     "fontsmall.png",
-			     FONTCHARS,
-			     SMALLFONTWIDTH, SMALLFONTHEIGHT,
-			     FONTSTYLES, 0, 3);
-    CHECK(smallfont != nullptr) << "Couldn't load smallfont.";
-    */
-
     Loop();
     printf("UI shutdown.\n");
   }
@@ -226,6 +227,15 @@ struct SM {
     vector<uint8> start_state = emu->SaveUncompressed();
 
     int current_angle = 0;
+
+    {
+      const Palette *palette = emu->GetFC()->palette;
+      for (int i = 0; i < 256; i++) {
+	uint8 r, g, b;
+	palette->FCEUD_GetPalette(i, &r, &g, &b);
+	printf("%2x: #%02x%02x%02x\n", i, r, g, b);
+      }
+    }
     
     for (;;) {
       printf("Start loop!\n");
@@ -250,20 +260,17 @@ struct SM {
 	default:;
 	}
 
-	// SDL_Delay(1000.0 / 60.0);
+	SDL_Delay(1000.0 / 60.0);
 
 	emu->StepFull(input, 0);
 
 	vector<uint8> image = emu->GetImageARGB();
-	// CopyARGB(image, surf);
 
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	  
 	BlitNESGL(image, 0, HEIGHT);
-	// GetTextures();
 	
 	vector<Box> boxes = GetBoxes();
-
 
 	uint8 player_x, player_y;
 	int player_angle;
@@ -292,10 +299,6 @@ struct SM {
 	  while (current_angle >= 360) current_angle -= 360;
 	}
 	DrawScene(boxes, player_x, player_y, current_angle);
-
-	// DrawPPU();
-	// DrawScene();
-	// Benchmark();
 
 	SaveImage();
 	
@@ -328,103 +331,6 @@ struct SM {
     imagenum++;
   }
   
-  void GetTextures() {
-    // BG pattern table can be at 0 or 0x1000. For zelda, BG seems
-    // to always be at 0x1000, so this is hardcoded for now...
-    const uint32 addr = 0x1000;
-    const uint8 *vram = &emu->GetFC()->cart->VPage[addr >> 10][addr];
-
-    vector<uint8> patterns;
-    patterns.resize(256 * 8 * 8 * 4);
-
-    for (int ty = 0; ty < 16; ty++) {
-      for (int tx = 0; tx < 16; tx++) {
-	// Each tile is made of 8 bytes giving its low color bits, then
-	// 8 bytes giving its high color bits.
-	const int addr = ((ty * 16) + tx) * 16;
-
-	// Decode vram[addr] + vram[addr + 1].
-	for (int row = 0; row < 8; row++) {
-	  uint8 row_low = vram[addr + row];
-	  uint8 row_high = vram[addr + row + 8];
-
-	  // bit from msb to lsb.
-	  for (int bit = 0; bit < 8; bit++) {
-	    uint8 value =
-	      ((row_low >> (7 - bit)) & 1) |
-	      (((row_high >> (7 - bit)) & 1) << 1);
-	    // XXX: Look up in palette. This just makes
-	    // greyscale:
-	    static constexpr int greys[4] = {0, 85, 170, 255};
-	    value = greys[value];
-	    // Put pixel in pattern image:
-
-	    int px = tx * 8 + bit;
-	    int py = ty * 8 + row;
-	    int pixel = (py * (16 * 8) + px) * 4;
-	    patterns[pixel + 0] = value;
-	    patterns[pixel + 1] = value;
-	    patterns[pixel + 2] = value;
-	    patterns[pixel + 3] = 0xFF;
-	  }
-	}
-      }
-    }
-
-    glPixelZoom(2.0f, -2.0f);
-    (*glWindowPos2i)(256, HEIGHT);
-    glDrawPixels(16 * 8, 16 * 8, GL_BGRA, GL_UNSIGNED_BYTE, patterns.data());
-
-    for (int ty = 0; ty < 16; ty++) {
-      for (int tx = 0; tx < 16; tx++) {
-	vector<uint8> chr;
-	chr.resize(8 * 8 * 4);
-	for (int y = 0; y < 8; y++) {
-	  for (int x = 0; x < 8; x++) {
-	    // Pixel coordinates in patterns image.
-	    int px = tx * 8 + x;
-	    int py = ty * 8 + y;
-	    for (int c = 0; c < 4; c++) {
-	      // 7 - y to flip vertically.
-	      chr[(y * 8 + x) * 4 + c] =
-		patterns[(py * (16 * 8) + px) * 4 + c];
-	    }
-	  }
-	}
-	
-	glBindTexture(GL_TEXTURE_2D, texture_id[ty * 16 + tx]);
-	glTexSubImage2D(GL_TEXTURE_2D, 0,
-			0, 0, 8, 8,
-			GL_RGBA, GL_UNSIGNED_BYTE,
-			chr.data());
-	#if 0
-	for (int row = 0; row < 8; row++) {
-	  // Pixel offset of row
-	  int px = x * 8;
-	  int py = y * 8 + row;
-	  glTexSubImage2D(GL_TEXTURE_2D, 0,
-			  // offset
-			  0, row,
-			  // width, height		     
-			  8, 1,
-			  GL_RGBA, GL_UNSIGNED_BYTE,
-			  &patterns[(py * (16 * 8) + px) * 4]);
-	}
-	#endif
-      }
-    }
-    
-    /*
-    const uint8 *nametable = emu->GetFC()->ppu->NTARAM;
-    for (int y = 0; y < TILESH; y++) {
-      for (int x = 0; x < TILESW; x++) {
-	int t = y * TILESW + x;
-	const uint8 tile = nametable[y * TILESW + x];
-      }
-    }
-    */
-  }
-  
   // Draw the 256x256 NES image at the specified coordinates (0,0 is
   // bottom left).
   void BlitNESGL(const vector<uint8> &image, int x, int y) {
@@ -445,12 +351,21 @@ struct SM {
     vector<Box> ret;
     ret.reserve(TILESW * TILESH);
     const uint8 *nametable = emu->GetFC()->ppu->NTARAM;
+    const uint8 *palette_table = emu->GetFC()->ppu->PALRAM;
+    const Palette *palette = emu->GetFC()->palette;
 
+    #if 0
+    for (int i = 0; i < 0x10; i++) {
+      printf("%d=%02x ", i, (int)palette_table[i]);
+    }
+    printf("\n");
+    #endif
+    
     // BG pattern table can be at 0 or 0x1000. For zelda, BG seems
     // to always be at 0x1000, so this is hardcoded for now...
     const uint32 addr = 0x1000;
     const uint8 *vram = &emu->GetFC()->cart->VPage[addr >> 10][addr];
-    
+
     // The actual BG image, used as a texture for the blocks.
     vector<uint8> bg;
     // Don't bother reserving TILEST size; we'll just copy the portion
@@ -459,7 +374,7 @@ struct SM {
 
     for (int sy = 0; sy < TILESH; sy++) {
       for (int sx = 0; sx < TILESW; sx++) {
-	int t = sy * TILESW + sx;
+	// int t = sy * TILESW + sx;
 	const uint8 tile = nametable[sy * TILESW + sx];
 
 	// Coordinates of tile in CHR. This can probably be simplified
@@ -472,6 +387,18 @@ struct SM {
 	// 8 bytes giving its high color bits.
 	const int addr = ((ty * 16) + tx) * 16;
 
+	// Attribute byte starts at attr_addr. First need to figure out
+	// which byte it is, based on which square (4x4 tiles).
+	const int square_x = tx >> 2;
+	const int square_y = ty >> 2;
+	const uint8 attrbyte = nametable[TILESW * TILESH + (square_y * (TILESW >> 2)) + square_x];
+	// XXX now get the two bits out of it.
+	const int sub_x = (tx >> 1) & 1;
+	const int sub_y = (ty >> 1) & 1;
+	const int shift = (sub_y * 2 + sub_x) * 2;
+
+	const uint8 attr = (attrbyte >> shift) & 3;
+	
 	// Decode vram[addr] + vram[addr + 1].
 	for (int row = 0; row < 8; row++) {
 	  uint8 row_low = vram[addr + row];
@@ -485,15 +412,27 @@ struct SM {
 	    // XXX: Look up in palette. This just makes
 	    // greyscale:
 	    static constexpr int greys[4] = {0, 85, 170, 255};
-	    value = greys[value];
+	    // value = greys[value];
+	    
+	    // Offset with palette table.
+	    const uint8 palette_idx = (attr << 2) | value;
+	    // ID of global NES color gamut.
+	    const uint8 color_id = palette_table[palette_idx];
+
+	    // static constexpr int tompal[4] = {0x0f, 0x17, 0x37, 0x12};
+	    // const int color_id = tompal[value];
+	    // uint8 r, g, b;
+	    // palette->FCEUD_GetPalette(color_id, &r, &g, &b);
+
+	    
 	    // Put pixel in bg image:
 
 	    const int px = sx * 8 + bit;
 	    const int py = sy * 8 + row;
 	    const int pixel = (py * TILESW * 8 + px) * 4;
-	    bg[pixel + 0] = value;
-	    bg[pixel + 1] = value;
-	    bg[pixel + 2] = value;
+	    bg[pixel + 0] = ntsc_palette[color_id * 3 + 0];
+	    bg[pixel + 1] = ntsc_palette[color_id * 3 + 1];
+	    bg[pixel + 2] = ntsc_palette[color_id * 3 + 2];
 	    bg[pixel + 3] = 0xFF;
 	  }
 	}
@@ -514,27 +453,6 @@ struct SM {
       }
     }
     
-    // 1x1 blocks
-#if 0
-    for (int y = 0; y < TILESH; y++) {
-      for (int x = 0; x < TILESW; x++) {
-	int t = y * TILESW + x;
-	const uint8 tile = nametable[y * TILESW + x];
-	const TileType type = tilemap.data[tile];
-	float z = 0.0f;
-	if (type == WALL) {
-	  z = 1.0f;
-	} else if (type == FLOOR) {
-	  z = 0.0f;
-	  // continue;
-	} else if (type == UNMAPPED) {
-	  z = 2.0f;
-	}
-	ret.push_back(Box{Vec3{(float)x, (float)y, z}, tile});
-      }
-    }
-#endif
-
     // I think the best plan here is to just render the whole
     // screen to a single texture, and then use texture coordinates
     // here (as part of Box) to paint each one. - Tom on night of 15 Feb 2016.
@@ -606,15 +524,12 @@ struct SM {
     glEnable(GL_TEXTURE_2D);
     glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL);
 
+    // One texture for the whole scene.
     glBindTexture(GL_TEXTURE_2D, bg_texture);
     glBegin(GL_TRIANGLES);
     
     // Draw boxes as a bunch of triangles.
     for (const Box &box : boxes) {
-      // printf("Bind texture %d\n", box.texture);
-      // glBindTexture(GL_TEXTURE_2D, texture_id[box.texture]); // box.texture);
-
-      
       // Here, boxes are properly oriented in GL axes, like this. The
       // input vector is the front bottom left corner, a:
       //
@@ -713,12 +628,6 @@ struct SM {
   }
   
  private:
-  static constexpr int FONTWIDTH = 9;
-  static constexpr int FONTHEIGHT = 16;
-  static constexpr int SMALLFONTWIDTH = 6;
-  static constexpr int SMALLFONTHEIGHT = 6;
-  
-  // Font *font = nullptr, *smallfont = nullptr;
   ArcFour rc;
   NOT_COPYABLE(SM);
 };
@@ -754,23 +663,7 @@ static void InitGL() {
   glMatrixMode(GL_PROJECTION);
   glLoadIdentity();
 
-  // Allocate all cube textures and initialize with "missing" arrow.
-  glGenTextures(TILESW * TILESH, texture_id);
-
-  for (int i = 0; i < TILESW * TILESH; i++) {
-    glBindTexture(GL_TEXTURE_2D, texture_id[i]);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 8, 8, 0,
-		 GL_RGB, GL_UNSIGNED_BYTE, arrow_texture);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-  
-    // Maybe want something like this, but we should always be using
-    // full textures!
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-  }
-
-  // This should replace the above array.
+  // Allocate one bg texture.
   {
     glGenTextures(1, &bg_texture);
     glBindTexture(GL_TEXTURE_2D, bg_texture);
