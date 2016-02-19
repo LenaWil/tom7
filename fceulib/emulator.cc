@@ -154,12 +154,8 @@ Emulator *Emulator::Create(const string &romfile) {
   // Calling FCEUI_SetInputFC ((ESIFC) CurInputType[2], InputDPtr, attrib);
   //   and FCEUI_SetInputFourscore ((eoptions & EO_FOURSCORE) != 0);
 
-  // defaults
-  // TODO(tom7): Make these compile-time constants inside of Palette rather
-  // than state.
-  static constexpr int ntsccol = 0, ntsctint = 56, ntschue = 72;
-  fc->palette->FCEUI_SetNTSCTH(ntsccol, ntsctint, ntschue);
-
+  fc->palette->ResetPalette();
+  
   // Set NTSC (1 = pal)
   fc->fceu->FCEUI_SetVidSystem(GIV_NTSC);
 

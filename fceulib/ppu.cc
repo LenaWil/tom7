@@ -51,8 +51,8 @@
 
 #define VBlankON  (PPU_values[0]&0x80)   //Generate VBlank NMI
 #define Sprite16  (PPU_values[0]&0x20)   //Sprites 8x16/8x8
-#define BGAdrHI   (PPU_values[0]&0x10)   //BG pattern adr $0000/$1000
-#define SpAdrHI   (PPU_values[0]&0x08)   //Sprite pattern adr $0000/$1000
+// #define BGAdrHI   (PPU_values[0]&0x10)   //BG pattern adr $0000/$1000
+// #define SpAdrHI   (PPU_values[0]&0x08)   //Sprite pattern adr $0000/$1000
 #define INC32     (PPU_values[0]&0x04)   //auto increment 1/32
 
 #define SpriteON  (PPU_values[1]&0x10)   //Show Sprite
