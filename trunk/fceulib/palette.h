@@ -17,16 +17,11 @@ struct Palette {
   void ResetPalette();
   void LoadGamePalette();
   void SetNESDeemph(uint8 d, int force);
-  void FCEUI_SetNTSCTH(int n, int tint, int hue);
 
   // Gets the color for a particular index in the palette.
   void FCEUD_GetPalette(uint8 index, uint8 *r, uint8 *g, uint8 *b) const;
 
  private:
-  int ntsccol = 0;
-  int ntsctint = 46+10;
-  int ntschue = 72;
-
   uint8 lastd = 0;
 
   int ipalette = 0;

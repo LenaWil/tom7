@@ -30,7 +30,8 @@ struct PPU {
   void (*GameHBIRQHook)(FC *) = nullptr;
   void (*GameHBIRQHook2)(FC *) = nullptr;
 
-
+  // This is probably nametable ram, palette ram,
+  // sprite ram, and sprite buffer. -tom7
   uint8 NTARAM[0x800] = {}, PALRAM[0x20] = {};
   uint8 SPRAM[0x100] = {}, SPRBUF[0x100] = {};
   // for 0x4/0x8/0xC addresses in palette, the ones in
