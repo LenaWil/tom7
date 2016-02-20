@@ -228,6 +228,7 @@ struct SM {
 
     int current_angle = 0;
 
+    #if 0
     {
       const Palette *palette = emu->GetFC()->palette;
       for (int i = 0; i < 256; i++) {
@@ -236,6 +237,7 @@ struct SM {
 	printf("%2x: #%02x%02x%02x\n", i, r, g, b);
       }
     }
+    #endif
     
     for (;;) {
       printf("Start loop!\n");
@@ -338,6 +340,7 @@ struct SM {
     (*glWindowPos2i)(x, y);
     glDrawPixels(256, 256, GL_BGRA, GL_UNSIGNED_BYTE, image.data());
   }
+
   // All boxes are 1x1x1. This returns their "top-left" corners. Larger Z is "up".
   //
   //    x=0,y=0 -----> x = TILESW-1 = 31
@@ -387,14 +390,15 @@ struct SM {
 	// 8 bytes giving its high color bits.
 	const int addr = ((ty * 16) + tx) * 16;
 
-	// Attribute byte starts at attr_addr. First need to figure out
-	// which byte it is, based on which square (4x4 tiles).
-	const int square_x = tx >> 2;
-	const int square_y = ty >> 2;
+	// Attribute byte starts right after tiles in the nametable.
+	// First need to figure out which byte it is, based on which
+	// square (4x4 tiles).
+	const int square_x = sx >> 2;
+	const int square_y = sy >> 2;
 	const uint8 attrbyte = nametable[TILESW * TILESH + (square_y * (TILESW >> 2)) + square_x];
 	// XXX now get the two bits out of it.
-	const int sub_x = (tx >> 1) & 1;
-	const int sub_y = (ty >> 1) & 1;
+	const int sub_x = (sx >> 1) & 1;
+	const int sub_y = (sy >> 1) & 1;
 	const int shift = (sub_y * 2 + sub_x) * 2;
 
 	const uint8 attr = (attrbyte >> shift) & 3;
