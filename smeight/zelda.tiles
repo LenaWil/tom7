@@ -4,9 +4,56 @@
 #  wall (blocking the player)
 #  rut (a bit below the player's feet)
 
+# letters and numbers
+00 wall
+01 wall
+02 wall
+03 wall
+04 wall
+05 wall
+06 wall
+07 wall
+08 wall
+09 wall
+0a wall
+0b wall
+0c wall
+0d wall
+0e wall
+0f wall
+10 wall
+11 wall
+12 wall
+13 wall
+14 wall
+15 wall
+16 wall
+17 wall
+18 wall
+19 wall
+1a wall
+1b wall
+1c wall
+1d wall
+1e wall
+1f wall
+20 wall
+21 wall
+22 wall
+23 wall
+
 # solid
 24 floor
 26 floor
+
+# punctuation
+28 wall
+29 wall
+2a wall
+2b wall
+2c wall
+2e wall
+2f wall
 
 # ladder
 74 floor
@@ -47,12 +94,27 @@ cf wall
 d0 wall
 d1 wall
 
+# TODO: would look better if we could
+# understand the transparency here
+# (and several others too)
+#
+# bottom-left wall angle
+d4 wall
+d5 wall
+d6 wall
+d7 wall
+
 # rock square
 d8 wall
 d9 wall
 da wall
 db wall
 
+# bottom-right wall angle
+dc wall
+dd wall
+de wall
+df wall
 
 # top of cave entrance
 f3 floor   # ?
