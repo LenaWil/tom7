@@ -26,7 +26,7 @@ CC=gcc
 # (Explicitly invoke bash to get shell builtin, since on OS X echo
 # otherwise treats -n literally.)
 %.o : %.cc
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $<
+	@$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $<
 	@bash -c "echo -n '.'"
 
 #  GLEW_LIB=GLEW/lib/Release/x64/glew32.lib
@@ -82,7 +82,9 @@ PFTWO_OBJECTS=
 
 # libglew32.a 
 smeight.exe : $(FCEULIB_OBJECTS) $(SDL_OBJECTS) $(CCLIB_OBJECTS) $(PFTWO_OBJECTS) smeight.o sdl-win32-main.o
-	$(CXX) $^ -o $@ $(LFLAGS)
+	@$(CXX) $^ -o $@ $(LFLAGS)
+	@bash -c "echo -n '!'"
+	@bash -c "echo ''"
 
 clean :
 	rm -f smeight.exe *.o $(FCEULIB_OBJECTS) $(CCLIB_OBJECTS) $(PFTWO_OBJECTS) gmon.out
