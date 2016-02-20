@@ -393,24 +393,45 @@ struct SM {
 	    bg[pixel + 3] = 0xFF;
 	  }
 	}
+      }
+    }
 
 
-	if (!(tx & 1) && !(ty & 1)) {
-	  const TileType type = tilemap.data[tile];
-	  float z = 0.0f;
-	  if (type == WALL) {
-	    z = 2.0f;
-	  } else if (type == FLOOR) {
-	    z = 0.0f;
-	  // continue;
-	  } else if (type == RUT) {
-	    z = -0.50f;
-	  } else if (type == UNMAPPED) {
-	    z = 4.0f;
+    // Loop over every 4x4 block.
+    for (int ty = 0; ty < TILESH; ty += 2) {
+      for (int tx = 0; tx < TILESW; tx += 2) {
+
+	TileType result = UNMAPPED;
+	for (int by = 0; by < 2; by++) {
+	  for (int bx = 0; bx < 2; bx++) {
+	    const uint8 tile = nametable[(ty + by) * TILESW + (tx + bx)];
+	    const TileType type = tilemap.data[tile];
+
+	    auto Max = [](const TileType &a, const TileType &b) {
+	      if (a == WALL || b == WALL) return WALL;
+	      else if (a == FLOOR || b == FLOOR) return FLOOR;
+	      else if (a == RUT || b == RUT) return RUT;
+	      return UNMAPPED;
+	    };
+	    
+	    result = Max(result, type);
 	  }
-	  
-	  ret.push_back(Box{Vec3{(float)tx, (float)ty, z}, 2, tx, ty});
 	}
+	
+
+	float z = 0.0f;
+	if (result == WALL) {
+	  z = 2.0f;
+	} else if (result == FLOOR) {
+	  z = 0.0f;
+	  // continue;
+	} else if (result == RUT) {
+	  z = -0.50f;
+	} else if (result == UNMAPPED) {
+	  z = 4.0f;
+	}
+	  
+	ret.push_back(Box{Vec3{(float)tx, (float)ty, z}, 2, tx, ty});
       }
     }
     
