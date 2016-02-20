@@ -1,5 +1,8 @@
 # Tile ids are in hex.
-
+# A tile can either be:
+#  floor (below player's feet)
+#  wall (blocking the player)
+#  rut (a bit below the player's feet)
 
 # solid
 24 floor
@@ -20,11 +23,11 @@
 87 floor
 
 # shoreline
-8f floor
+8f rut
 
 # ocean
-90 floor
-95 floor
+90 rut
+95 rut
 
 # trees
 c4 wall 
