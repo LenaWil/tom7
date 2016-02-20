@@ -45,7 +45,7 @@ static_assert(0 == (TILEST & (TILEST - 1)), "TILEST must be power of 2");
 
 // I don't understand why Palette::FCEUD_GetPalette isn't working,
 // but the NES palette is basically constant (emphasis aside), so
-// let's just inline it to save time.
+// let's just inline it to save time. RGB triplets.
 static constexpr uint8 ntsc_palette[] = {
   0x80,0x80,0x80, 0x00,0x3D,0xA6, 0x00,0x12,0xB0, 0x44,0x00,0x96,
   0xA1,0x00,0x5E, 0xC7,0x00,0x28, 0xBA,0x06,0x00, 0x8C,0x17,0x00,
@@ -64,30 +64,6 @@ static constexpr uint8 ntsc_palette[] = {
   0xFF,0xF7,0x9C, 0xD7,0xE8,0x95, 0xA6,0xED,0xAF, 0xA2,0xF2,0xDA,
   0x99,0xFF,0xFC, 0xDD,0xDD,0xDD, 0x11,0x11,0x11, 0x11,0x11,0x11,
 };
-
-#define X 255,255,255
-#define O 255,0,0
-#define _ 32,32,32
-static const GLubyte arrow_texture[8 * 8 * 3] = {
-  _, _, _, O, O, _, _, _,
-
-  _, _, O, X, X, O, _, _,
-
-  _, O, X, X, X, X, O, _,
-
-  O, O, O, X, X, O, O, O,
-
-  _, _, _, X, X, _, _, _,
-
-  _, _, _, X, X, _, O, _,
-
-  _, _, _, X, X, _, _, _,
-
-  _, _, _, X, X, _, _, _,
-};
-#undef X
-#undef O
-#undef _
 
 // XXX
 static GLuint bg_texture = 0;
@@ -209,9 +185,10 @@ struct SM {
 
   struct Box {
     Vec3 loc;
+    int dim;
     int texture_x, texture_y;
   };
-  
+
   void Loop() {
     SDL_Surface *surf = sdlutil::makesurface(256, 256, true);
     (void)surf;
@@ -222,33 +199,49 @@ struct SM {
     vector<uint8> start_state = emu->SaveUncompressed();
 
     int current_angle = 0;
+
+    bool paused = false;
     
     for (;;) {
       printf("Start loop!\n");
       emu->LoadUncompressed(start_state);
 
-      for (uint8 input : inputs) {
+      for (int input_idx = 0; input_idx < inputs.size(); input_idx += !paused) {
+	const uint8 input = inputs[input_idx];
 	frame++;
 
 	SDL_Event event;
-	SDL_PollEvent(&event);
-	switch (event.type) {
-	case SDL_QUIT:
-	  return;
-	case SDL_KEYDOWN:
-	  switch (event.key.keysym.sym) {
-	    
-	  case SDLK_ESCAPE:
+	if (0 != SDL_PollEvent(&event)) {
+	  switch (event.type) {
+	  case SDL_QUIT:
 	    return;
+	  case SDL_KEYUP:
+	    switch (event.key.keysym.sym) {
+	    case SDLK_SPACE:
+	      paused = !paused;
+	      printf("%s.\n", paused ? "paused" : "unpaused");
+	      break;
+	    default:;
+	    }
+	    break;
+
+	  case SDL_KEYDOWN:
+	    switch (event.key.keysym.sym) {
+
+	    case SDLK_ESCAPE:
+	      return;
+	    default:;
+	    }
+	    break;
 	  default:;
 	  }
-	  break;
-	default:;
 	}
-
+	  
 	SDL_Delay(1000.0 / 60.0);
 
-	emu->StepFull(input, 0);
+	if (!paused) {
+	  emu->StepFull(input, 0);
+	}
 
 	vector<uint8> image = emu->GetImageARGB();
 
@@ -352,9 +345,9 @@ struct SM {
     // have power-of-two dimensions, but not the copied area.)
     bg.resize(TILESW * TILESH * 8 * 8 * 4);
 
-    for (int sy = 0; sy < TILESH; sy++) {
-      for (int sx = 0; sx < TILESW; sx++) {
-	const uint8 tile = nametable[sy * TILESW + sx];
+    for (int ty = 0; ty < TILESH; ty++) {
+      for (int tx = 0; tx < TILESW; tx++) {
+	const uint8 tile = nametable[ty * TILESW + tx];
 	
 	// Draw to BG.
 	// Each tile is made of 8 bytes giving its low color bits, then
@@ -364,12 +357,12 @@ struct SM {
 	// Attribute byte starts right after tiles in the nametable.
 	// First need to figure out which byte it is, based on which
 	// square (4x4 tiles).
-	const int square_x = sx >> 2;
-	const int square_y = sy >> 2;
+	const int square_x = tx >> 2;
+	const int square_y = ty >> 2;
 	const uint8 attrbyte = nametable[TILESW * TILESH + (square_y * (TILESW >> 2)) + square_x];
 	// Now get the two bits out of it.
-	const int sub_x = (sx >> 1) & 1;
-	const int sub_y = (sy >> 1) & 1;
+	const int sub_x = (tx >> 1) & 1;
+	const int sub_y = (ty >> 1) & 1;
 	const int shift = (sub_y * 2 + sub_x) * 2;
 
 	const uint8 attr = (attrbyte >> shift) & 3;
@@ -391,8 +384,8 @@ struct SM {
 	    
 	    // Put pixel in bg image:
 
-	    const int px = sx * 8 + bit;
-	    const int py = sy * 8 + row;
+	    const int px = tx * 8 + bit;
+	    const int py = ty * 8 + row;
 	    const int pixel = (py * TILESW * 8 + px) * 4;
 	    bg[pixel + 0] = ntsc_palette[color_id * 3 + 0];
 	    bg[pixel + 1] = ntsc_palette[color_id * 3 + 1];
@@ -401,21 +394,23 @@ struct SM {
 	  }
 	}
 
-	
-	const TileType type = tilemap.data[tile];
-	float z = 0.0f;
-	if (type == WALL) {
-	  z = 1.0f;
-	} else if (type == FLOOR) {
-	  z = 0.0f;
-	  // continue;
-	} else if (type == RUT) {
-	  z = -0.25f;
-	} else if (type == UNMAPPED) {
-	  z = 2.0f;
-	}
 
-	ret.push_back(Box{Vec3{(float)sx, (float)sy, z}, sx, sy});
+	if (!(tx & 1) && !(ty & 1)) {
+	  const TileType type = tilemap.data[tile];
+	  float z = 0.0f;
+	  if (type == WALL) {
+	    z = 2.0f;
+	  } else if (type == FLOOR) {
+	    z = 0.0f;
+	  // continue;
+	  } else if (type == RUT) {
+	    z = -0.50f;
+	  } else if (type == UNMAPPED) {
+	    z = 4.0f;
+	  }
+	  
+	  ret.push_back(Box{Vec3{(float)tx, (float)ty, z}, 2, tx, ty});
+	}
       }
     }
     
@@ -438,6 +433,7 @@ struct SM {
     boxes.reserve(orig_boxes.size());
     for (const Box &box : orig_boxes) {
       boxes.push_back(Box{Vec3{box.loc.x, (float)(TILESH - 1) - box.loc.y, box.loc.z},
+	    box.dim,
 	    box.texture_x, box.texture_y});
     }
 
@@ -452,7 +448,10 @@ struct SM {
     glRotatef(player_angle, 0.0, 0.0, 1.0);
     
     // Move "camera".
-    glTranslatef(player_x / -8.0f, ((TILESH * 8 - 1) - player_y) / -8.0f, -2.0f);
+    glTranslatef(player_x / -8.0f,
+		 ((TILESH * 8 - 1) - player_y) / -8.0f,
+		 // 3/4 of a 4x4 block height
+		 -3.0f);
 
     // XXX don't need this
     glBegin(GL_LINE_STRIP);
@@ -483,23 +482,26 @@ struct SM {
       //    |/    |/               0------->
       //    a-----b                  -x+
       // (0,0,0)
+
+      const float side = (float)box.dim;
       
       Vec3 a = box.loc;
-      Vec3 b = Vec3Plus(a, Vec3{1.0f, 0.0f, 0.0f});
-      Vec3 c = Vec3Plus(a, Vec3{1.0f, 0.0f, 1.0f});
-      Vec3 d = Vec3Plus(a, Vec3{0.0f, 0.0f, 1.0f});
-      Vec3 e = Vec3Plus(a, Vec3{1.0f, 1.0f, 0.0f});
-      Vec3 f = Vec3Plus(a, Vec3{0.0f, 1.0f, 0.0f});
-      Vec3 g = Vec3Plus(a, Vec3{0.0f, 1.0f, 1.0f});
-      Vec3 h = Vec3Plus(a, Vec3{1.0f, 1.0f, 1.0f});
+      Vec3 b = Vec3Plus(a, Vec3{side, 0.0f, 0.0f});
+      Vec3 c = Vec3Plus(a, Vec3{side, 0.0f, side});
+      Vec3 d = Vec3Plus(a, Vec3{0.0f, 0.0f, side});
+      Vec3 e = Vec3Plus(a, Vec3{side, side, 0.0f});
+      Vec3 f = Vec3Plus(a, Vec3{0.0f, side, 0.0f});
+      Vec3 g = Vec3Plus(a, Vec3{0.0f, side, side});
+      Vec3 h = Vec3Plus(a, Vec3{side, side, side});
 
       // XXX
-      static constexpr float TD = 8.0f / (8.0f * TILEST);
+      const float TD = 8.0f / (8.0f * TILEST);
       const float tx = box.texture_x * TD;
       const float ty = box.texture_y * TD;
+      const float tt = box.dim * TD;
       
       // Give bottom left first, and go clockwise.
-      auto CCWFace = [tx, ty](const Vec3 &a, const Vec3 &b, const Vec3 &c, const Vec3 &d) {
+      auto CCWFace = [tx, ty, tt](const Vec3 &a, const Vec3 &b, const Vec3 &c, const Vec3 &d) {
 	//  (0,0) (1,0)
 	//    d----c
 	//    | 1 /|
@@ -509,13 +511,13 @@ struct SM {
 	//    a----b
 	//  (0,1)  (1,1)  texture coordinates
 
-	glTexCoord2f(tx,      ty + TD); glVertex3fv(a.Floats());
-	glTexCoord2f(tx + TD, ty);      glVertex3fv(c.Floats());
+	glTexCoord2f(tx,      ty + tt); glVertex3fv(a.Floats());
+	glTexCoord2f(tx + tt, ty);      glVertex3fv(c.Floats());
 	glTexCoord2f(tx,      ty);      glVertex3fv(d.Floats());
 
-	glTexCoord2f(tx,      ty + TD); glVertex3fv(a.Floats());
-	glTexCoord2f(tx + TD, ty + TD); glVertex3fv(b.Floats());
-	glTexCoord2f(tx + TD, ty);      glVertex3fv(c.Floats());
+	glTexCoord2f(tx,      ty + tt); glVertex3fv(a.Floats());
+	glTexCoord2f(tx + tt, ty + tt); glVertex3fv(b.Floats());
+	glTexCoord2f(tx + tt, ty);      glVertex3fv(c.Floats());
       };
 
       // Top
