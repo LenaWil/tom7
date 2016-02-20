@@ -43,6 +43,9 @@ static_assert(TILEST >= TILESW, "TILEST must hold TILESW");
 static_assert(TILEST >= TILESW, "TILEST must hold TILESH");
 static_assert(0 == (TILEST & (TILEST - 1)), "TILEST must be power of 2");
 
+// I don't understand why Palette::FCEUD_GetPalette isn't working,
+// but the NES palette is basically constant (emphasis aside), so
+// let's just inline it to save time.
 static constexpr uint8 ntsc_palette[] = {
   0x80,0x80,0x80, 0x00,0x3D,0xA6, 0x00,0x12,0xB0, 0x44,0x00,0x96,
   0xA1,0x00,0x5E, 0xC7,0x00,0x28, 0xBA,0x06,0x00, 0x8C,0x17,0x00,
@@ -97,20 +100,11 @@ static void GetExtensions() {
   INSTALL(glWindowPos2i);
 }
 
-static GLubyte red[]     = { 255,   0,   0, 255 };
-static GLubyte green[]   = {   0, 255,   0, 255 };
-static GLubyte blue[]    = {   0,   0, 255, 255 };
-static GLubyte white[]   = { 255, 255, 255, 255 };
-static GLubyte cyan[]    = {   0, 255, 255, 255 };
-static GLubyte black[]   = {   0,   0,   0, 255 };
-static GLubyte yellow[]  = { 255, 255,   0, 255 };
-static GLubyte magenta[] = { 255,   0, 255, 255 };
-
-
 enum TileType {
   UNMAPPED = 0,
   FLOOR = 1,
   WALL = 2,
+  RUT = 3,
 };
 
 struct Tilemap {
@@ -137,6 +131,8 @@ struct Tilemap {
 	data[h] = WALL;
       } else if (value == "floor") {
 	data[h] = FLOOR;
+      } else if (value == "rut") {
+	data[h] = RUT;
       } else {
 	printf("Unknown tilemap value: [%s] for %02x\n", value.c_str(), h);
       }
@@ -153,10 +149,9 @@ struct Tilemap {
 //         |
 //
 // Find the distance (in degrees) to travel clockwise to reach the end
-// angle from the start angle. This will always be positive, and may
+// angle from the start angle. This will always be non-negative, and may
 // need to wrap around 0.
 static int CWDistance(int start_angle, int end_angle) {
-  // const int qs = Quadrant(start_angle), qe = Quadrant(end_angle);
   if (end_angle >= start_angle) {
     return end_angle - start_angle;
   } else {
@@ -227,17 +222,6 @@ struct SM {
     vector<uint8> start_state = emu->SaveUncompressed();
 
     int current_angle = 0;
-
-    #if 0
-    {
-      const Palette *palette = emu->GetFC()->palette;
-      for (int i = 0; i < 256; i++) {
-	uint8 r, g, b;
-	palette->FCEUD_GetPalette(i, &r, &g, &b);
-	printf("%2x: #%02x%02x%02x\n", i, r, g, b);
-      }
-    }
-    #endif
     
     for (;;) {
       printf("Start loop!\n");
@@ -355,40 +339,27 @@ struct SM {
     ret.reserve(TILESW * TILESH);
     const uint8 *nametable = emu->GetFC()->ppu->NTARAM;
     const uint8 *palette_table = emu->GetFC()->ppu->PALRAM;
-    const Palette *palette = emu->GetFC()->palette;
-
-    #if 0
-    for (int i = 0; i < 0x10; i++) {
-      printf("%d=%02x ", i, (int)palette_table[i]);
-    }
-    printf("\n");
-    #endif
     
     // BG pattern table can be at 0 or 0x1000. For zelda, BG seems
     // to always be at 0x1000, so this is hardcoded for now...
-    const uint32 addr = 0x1000;
-    const uint8 *vram = &emu->GetFC()->cart->VPage[addr >> 10][addr];
+    const uint32 pat_addr = 0x1000;
+    const uint8 *vram = &emu->GetFC()->cart->VPage[pat_addr >> 10][pat_addr];
 
     // The actual BG image, used as a texture for the blocks.
     vector<uint8> bg;
     // Don't bother reserving TILEST size; we'll just copy the portion
-    // that might change into the larger texture.
+    // that might change into the larger texture. (The texture has to
+    // have power-of-two dimensions, but not the copied area.)
     bg.resize(TILESW * TILESH * 8 * 8 * 4);
 
     for (int sy = 0; sy < TILESH; sy++) {
       for (int sx = 0; sx < TILESW; sx++) {
-	// int t = sy * TILESW + sx;
 	const uint8 tile = nametable[sy * TILESW + sx];
-
-	// Coordinates of tile in CHR. This can probably be simplified
-	// with the next line...
-	const uint8 ty = tile >> 4;
-	const uint8 tx = tile & 15;
 	
 	// Draw to BG.
 	// Each tile is made of 8 bytes giving its low color bits, then
 	// 8 bytes giving its high color bits.
-	const int addr = ((ty * 16) + tx) * 16;
+	const int addr = tile * 16;
 
 	// Attribute byte starts right after tiles in the nametable.
 	// First need to figure out which byte it is, based on which
@@ -396,7 +367,7 @@ struct SM {
 	const int square_x = sx >> 2;
 	const int square_y = sy >> 2;
 	const uint8 attrbyte = nametable[TILESW * TILESH + (square_y * (TILESW >> 2)) + square_x];
-	// XXX now get the two bits out of it.
+	// Now get the two bits out of it.
 	const int sub_x = (sx >> 1) & 1;
 	const int sub_y = (sy >> 1) & 1;
 	const int shift = (sub_y * 2 + sub_x) * 2;
@@ -405,29 +376,18 @@ struct SM {
 	
 	// Decode vram[addr] + vram[addr + 1].
 	for (int row = 0; row < 8; row++) {
-	  uint8 row_low = vram[addr + row];
-	  uint8 row_high = vram[addr + row + 8];
+	  const uint8 row_low = vram[addr + row];
+	  const uint8 row_high = vram[addr + row + 8];
 
 	  // bit from msb to lsb.
 	  for (int bit = 0; bit < 8; bit++) {
-	    uint8 value =
+	    const uint8 value =
 	      ((row_low >> (7 - bit)) & 1) |
 	      (((row_high >> (7 - bit)) & 1) << 1);
-	    // XXX: Look up in palette. This just makes
-	    // greyscale:
-	    static constexpr int greys[4] = {0, 85, 170, 255};
-	    // value = greys[value];
-	    
 	    // Offset with palette table.
 	    const uint8 palette_idx = (attr << 2) | value;
 	    // ID of global NES color gamut.
 	    const uint8 color_id = palette_table[palette_idx];
-
-	    // static constexpr int tompal[4] = {0x0f, 0x17, 0x37, 0x12};
-	    // const int color_id = tompal[value];
-	    // uint8 r, g, b;
-	    // palette->FCEUD_GetPalette(color_id, &r, &g, &b);
-
 	    
 	    // Put pixel in bg image:
 
@@ -449,6 +409,8 @@ struct SM {
 	} else if (type == FLOOR) {
 	  z = 0.0f;
 	  // continue;
+	} else if (type == RUT) {
+	  z = -0.25f;
 	} else if (type == UNMAPPED) {
 	  z = 2.0f;
 	}
@@ -457,30 +419,6 @@ struct SM {
       }
     }
     
-    // I think the best plan here is to just render the whole
-    // screen to a single texture, and then use texture coordinates
-    // here (as part of Box) to paint each one. - Tom on night of 15 Feb 2016.
-
-    #if 0
-    for (int y = 0; y < TILESH; y += 2) {
-      for (int x = 0; x < TILESW; x += 2) {
-	int t = y * TILESW + x;
-	const uint8 tile = nametable[y * TILESW + x];
-	const TileType type = tilemap.data[tile];
-	float z = 0.0f;
-	if (type == WALL) {
-	  z = 1.0f;
-	} else if (type == FLOOR) {
-	  z = 0.0f;
-	  // continue;
-	} else if (type == UNMAPPED) {
-	  z = 2.0f;
-	}
-	ret.push_back(Box{Vec3{(float)x, (float)y, z}, tile});
-      }
-    }
-    #endif
-
     // Copy background image into bg texture.
     glBindTexture(GL_TEXTURE_2D, bg_texture);
     glTexSubImage2D(GL_TEXTURE_2D, 0,
@@ -695,9 +633,6 @@ static void InitGL() {
  * The main loop for the SDL.
  */
 int main(int argc, char *argv[]) {
-  (void)red; (void)green; (void)blue; (void)white;
-  (void)cyan; (void)black; (void)yellow; (void)magenta;
-  
   fprintf(stderr, "Init SDL\n");
 
   CHECK(SDL_Init(SDL_INIT_VIDEO) >= 0) << SDL_GetError();
