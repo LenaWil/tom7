@@ -189,6 +189,21 @@ struct SM {
     int texture_x, texture_y;
   };
 
+  enum SpriteType {
+    BILLBOARD,
+    IN_PLANE,
+  };
+  
+  struct Sprite {
+    // center of sprite -- different types will treat this
+    // location differently
+    Vec3 loc{0.0f, 0.0f, 0.0f};
+    // Pixels.
+    int width, height;
+    int texture_x, texture_y;
+    SpriteType type;
+  };
+  
   void Loop() {
     SDL_Surface *surf = sdlutil::makesurface(256, 256, true);
     (void)surf;
@@ -251,6 +266,8 @@ struct SM {
 	
 	vector<Box> boxes = GetBoxes();
 
+	vector<Sprite> sprites = GetSprites();
+	
 	uint8 player_x, player_y;
 	int player_angle;
 	std::tie(player_x, player_y, player_angle) = GetLoc();
@@ -277,7 +294,7 @@ struct SM {
 	  while (current_angle < 0) current_angle += 360;
 	  while (current_angle >= 360) current_angle -= 360;
 	}
-	DrawScene(boxes, player_x, player_y, current_angle);
+	DrawScene(boxes, sprites, player_x, player_y, current_angle);
 
 	SaveImage();
 	
@@ -318,6 +335,52 @@ struct SM {
     glDrawPixels(256, 256, GL_BGRA, GL_UNSIGNED_BYTE, image.data());
   }
 
+  vector<Sprite> GetSprites() {
+    vector<Sprite> ret;
+
+    const PPU *ppu = emu->GetFC()->ppu;
+    const uint8 *palette_table = ppu->PALRAM;
+    const uint8 ppu_ctrl1 = ppu->PPU_values[0];
+    const uint8 ppu_ctrl2 = ppu->PPU_values[1];
+    // Are sprites 16 pixels tall?
+    const bool tall_sprites = !!(ppu_ctrl1 & (1 << 5));
+    printf("SPRITES ARE TALL.\n");
+
+    const bool sprites_enabled = !!(ppu_ctrl2 && (1 << 4));  
+    
+    if (!sprites_enabled) return ret;
+
+    const uint32 spr_pat_addr = (ppu_ctrl1 & (1 << 3)) ? 0x1000 : 0x0000;
+    const uint8 *vram = &emu->GetFC()->cart->VPage[spr_pat_addr >> 10][spr_pat_addr];
+    
+    // Each is 0x100 bytes
+    const uint8 *spram = ppu->SPRAM;
+    const uint8 *spbuf = ppu->SPRBUF;
+
+
+    // Shouldn't really matter what order we do them here, but on the NES they
+    // are drawn in decreasing order, so mimic that.
+    for (int n = 63; n >= 0; n--) {
+      const uint8 y = spram[n * 4 + 0];
+      const uint8 num = spram[n * 4 + 1];
+      const uint8 attr = spram[n * 4 + 2];
+      const bool v_flip = !!(attr >> 7);
+      const bool h_flip = !!(attr >> 6);
+      const uint8 colorbits = attr & 3;
+      const uint8 x = spram[n * 4 + 3];
+
+      Sprite s;
+      s.loc.x = (x + 4) / 8.0f;
+      s.loc.y = (y + 4) / 8.0f;
+      s.loc.z = 1.0f;
+      s.type = BILLBOARD;
+      // s.texture_x = 
+      
+      ret.push_back(s); 
+    }
+    return ret;
+  }
+  
   // All boxes are 1x1x1. This returns their "top-left" corners. Larger Z is "up".
   //
   //    x=0,y=0 -----> x = TILESW-1 = 31
@@ -332,11 +395,11 @@ struct SM {
     ret.reserve(TILESW * TILESH);
     const uint8 *nametable = emu->GetFC()->ppu->NTARAM;
     const uint8 *palette_table = emu->GetFC()->ppu->PALRAM;
+    const uint8 ppu_ctrl1 = emu->GetFC()->ppu->PPU_values[0];
     
-    // BG pattern table can be at 0 or 0x1000. For zelda, BG seems
-    // to always be at 0x1000, so this is hardcoded for now...
-    const uint32 pat_addr = 0x1000;
-    const uint8 *vram = &emu->GetFC()->cart->VPage[pat_addr >> 10][pat_addr];
+    // BG pattern table can be at 0 or 0x1000, depending on control bit.
+    const uint32 bg_pat_addr = (ppu_ctrl1 & (1 << 4)) ? 0x1000 : 0x0000;
+    const uint8 *vram = &emu->GetFC()->cart->VPage[bg_pat_addr >> 10][bg_pat_addr];
 
     // The actual BG image, used as a texture for the blocks.
     vector<uint8> bg;
@@ -446,6 +509,7 @@ struct SM {
   }
 
   void DrawScene(const vector<Box> &orig_boxes,
+		 const vector<Sprite> &orig_sprites,
 		 int player_x, int player_y,
 		 int player_angle) {
     // Put boxes in GL space where Y=0 is bottom-left, not top-left.
