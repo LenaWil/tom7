@@ -51,6 +51,59 @@ var RandomGaussian = function() {
   };
 }();
 
+function RandomExponential() {
+  // n.b. JS Math.random() cannot return 1.0 exactly.
+  return -Math.log(1.0 - Math.random());
+}
+
+// Random variables from Gamma(s) distribution, for any
+// shape parameter (scale can be applied by just multiplying
+// the resulting variate by the scale).
+// Adapted from numpy, based on Marsaglia & Tsang's method.
+// Please see NUMPY.LICENSE.
+var RandomGamma = function(shape) {
+  if (shape == 1.0) {
+    return RandomExponential();
+  } else if (shape < 1.0) {
+    var one_over_shape = 1.0 / shape;
+    for (;;) {
+      var u = Math.random();
+      var v = RandomExponential();
+      if (u < 1.0 - shape) {
+	var x = Math.pow(u, one_over_shape);
+	if (x <= v) {
+	  return x;
+	}
+      } else {
+	var y = -Math.log((1.0 - u) / shape);
+	var x = Math.pow(1.0 - shape + shape * y, one_over_shape);
+	if (x <= v + y) {
+	  return x;
+	}
+      }
+    }
+  } else {
+    var b = shape - (1.0 / 3.0);
+    var c = 1.0 / Math.sqrt(9.0 * b);
+    for (;;) {
+      var x, v;
+      do {
+	x = RandomGaussian();
+	v = 1.0 + c * x;
+      } while (v <= 0.0);
+
+      var v_cubed = v * v * v;
+      var x_squared = x * x;
+      var u = Math.random();
+      if (u < 1.0 - 0.0331 * x_squared * x_squared ||
+	  Math.log(u) < 0.5 * x_squared + 
+	  b * (1.0 - v_cubed - Math.log(v_cubed))) {
+	return b * v_cubed;
+      }
+    }
+  }
+}
+
 // Possible policies:
 //  - Always sort all shelves (encountered) in reverse preference
 //    order (does this have to be paired with a selection method?)
@@ -80,6 +133,8 @@ var snacks = [];
 //   depth : int  - number of snacks skipped
 //   eaten : int  - number of snacks consumed
 //   utils : double - total number of snack delection points
+//   next : double - time until next craving. Can be thought of
+//     as seconds but should be scale invariant?
 //   prefs : array(array(double)) - preference function for varieties. 
 //     Outer array is length |snacks|; inner is length
 //     |varieties of that snack|; elements are utility.
@@ -121,7 +176,7 @@ function SortByPreference(stock, pref) {
 // Entry point.
 function Init() {
   for (var i = 0; i < NUM_SHELVES; i++) {
-    var varieties = RandTo(MAX_VARIETY + 1);
+    var varieties = RandTo(MAX_VARIETY) + 1;
     snacks.push({ varieties: varieties });
     var num_stocked = RandTo(MAX_ITEMS - MIN_ITEMS) + MIN_ITEMS;
     // We stock each item uniformly from the varieties, but in
@@ -137,8 +192,13 @@ function Init() {
   }
   
   for (var i = 0; i < NUM_PEOPLE; i++) {
-    // XXX Generate preference function.
-    var prefs = undefined; 
+    // Generate a random preference function for each shelf;
+    // each one is independent.
+    var prefs = [];
+    for (var p = 0; p < NUM_SHELVES; p++) {
+      var pref = [];
+      prefs.push(RandomPreferenceFn(snacks[p].varieties));
+    }
 
     people.push({ policy: 0,
 		  effort: 0,
