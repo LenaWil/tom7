@@ -56,9 +56,10 @@ function RandomExponential() {
   return -Math.log(1.0 - Math.random());
 }
 
-// Random variables from Gamma(s) distribution, for any
-// shape parameter (scale can be applied by just multiplying
+// Random variables from Gamma(s) distribution, for any shape
+// parameter k (scale, aka theta, can be applied by just multiplying
 // the resulting variate by the scale).
+//
 // Adapted from numpy, based on Marsaglia & Tsang's method.
 // Please see NUMPY.LICENSE.
 var RandomGamma = function(shape) {
@@ -133,11 +134,18 @@ var snacks = [];
 //   depth : int  - number of snacks skipped
 //   eaten : int  - number of snacks consumed
 //   utils : double - total number of snack delection points
+//   mean_wait : double - mean time until craving for this person.
+//     Some people crave more often than others.
 //   next : double - time until next craving. Can be thought of
 //     as seconds but should be scale invariant?
 //   prefs : array(array(double)) - preference function for varieties. 
 //     Outer array is length |snacks|; inner is length
 //     |varieties of that snack|; elements are utility.
+//   exrec : array(array(double)) - Outer length is length |snacks|;
+//     inner is length MAX_ITEMS + 1. exrec[s][n] gives the value
+//     of the ExRec(N) function, which is the expected value of
+//     the snack we get for applying the commit-or-discard snack
+//     choosing procedure on N items for snack s.
 var people = [];
 
 // Generate a random preference function for n items. This is
@@ -163,6 +171,52 @@ function RandomPreferenceFn(n) {
   return pref;
 }
 
+// OK, so now we have the situation where the player has some
+// item in hand, with the given value. What we want to know is,
+// do I have a better expected value if I discard it and search
+// the rest? This should only depend on the number of remaining
+// items, N, and the player's preference function. Call this
+// expected value ExRec(N).
+
+// ExRec(0) is 0, because we get no item.
+//
+// ExRec(1) is the expected value of a single item, which (because
+// we assume for simplicity that each item is stocked in equal
+// numbers) is just the mean output value of our preference
+// function. (In fact, not really: we can always discard the snack,
+// so it's really the expectation over max(pref[k], 0) for each k.
+// This turns out to be just a special case of the following:)
+//
+// In the general case for ExRec(N), we will receive one item,
+// and then based on what it is, maybe reroll. So we have a
+// recurrence
+//
+// ExRec(N) = 
+//   P(get item 0) * max(pref(0), ExRec(N - 1))  +
+//   P(get item 1) * max(pref(1), ExRec(N - 1))  +
+//   ...
+//   P(get item k) * max(pref(k), ExRec(N - 1)).
+//
+// Since we already know the values of the preferences and
+// have the values of ExRec(N - 1) inductively, we can simply
+// compute the values up front for each snack type.
+function MakeExRec(pref) {
+  // ExRec[0] is 0, because we get no snack.
+  var ret = [0];
+  for (var i = 1; i <= MAX_ITEMS; i++) {
+    var ex_rec_next = ret[i - 1];
+    var sum = 0.0;
+    for (var s = 0; s < pref.length; s++) {
+      sum += Math.max(ex_rec_next, pref[s]);
+    }
+    // Expectation is the mean of these because we assume
+    // each is equally likely.
+    sum /= pref.length;
+    ret[i] = sum;
+  }
+  return ret;
+}
+
 // Sort all the items by ASCENDING preference, which puts the favored
 // items (positive score) at the end. pref is an array of doubles
 // (snack preference), with length the same as the number of
@@ -182,6 +236,10 @@ function Init() {
     // We stock each item uniformly from the varieties, but in
     // contiguous order. One easy way to do that is to generate a
     // random preference function and sort with it.
+    //
+    // XXX, actually, I think maybe these should just be random,
+    // since players behave as though they are, so we have some kind
+    // of mismatched realism here
     var stock = [];
     for (var s = 0; s < num_stocked; s++) {
       stock.push(RandTo(varieties));
@@ -189,24 +247,175 @@ function Init() {
 
     var rpref = RandomPreferenceFn(num_stocked);
     SortByPreference(stock, rpref);
+    shelves[i] = stock;
   }
   
   for (var i = 0; i < NUM_PEOPLE; i++) {
     // Generate a random preference function for each shelf;
     // each one is independent.
     var prefs = [];
+    var exrecs = [];
     for (var p = 0; p < NUM_SHELVES; p++) {
-      var pref = [];
-      prefs.push(RandomPreferenceFn(snacks[p].varieties));
+      var pref = RandomPreferenceFn(snacks[p].varieties);
+      prefs.push(pref);
+      exrecs.push(MakeExRec(pref));
     }
+
+    // XXX generate from some distribution.
+    // This will be the average number of seconds between
+    // snack events.
+    var mean_wait = 45 * 60;
 
     people.push({ policy: 0,
 		  effort: 0,
 		  depth: 0,
 		  eaten: 0,
+		  mean_wait: mean_wait,
+		  next: NextWait(mean_wait),
 		  utils: 0,
-		  prefs: prefs });
+		  prefs: prefs,
+		  exrec: exrecs });
   }
+
+  Redraw();
+}
+
+var COLORS = [
+  {l: '#770000', h: '#ff9999'},
+  {l: '#777700', h: '#ffff99'},
+  {l: '#770077', h: '#ff99ff'},
+  {l: '#007700', h: '#99ff99'},
+  {l: '#007777', h: '#99ffff'},
+  {l: '#000077', h: '#9999ff'},
+  {l: '#000000', h: '#999999'},
+  {l: '#777777', h: '#eeeeee'},
+];
+
+(function(){ if (COLORS.length < MAX_VARIETY) throw 'not enough colors'; })();
+
+function Redraw() {
+  document.body.innerHTML = '';
+  var d = DIV('shelves', document.body);
+  for (var i = 0; i < snacks.length; i++) {
+    var sh = DIV('shelf', d);
+    for (var v = 0; v < shelves[i].length; v++) {
+      var sn = DIV('snack', sh);
+      sn.style.border = '2px solid ' + COLORS[shelves[i][v]].l;
+      sn.style.background = COLORS[shelves[i][v]].h;
+    }
+  }
+
+  // People
+  for (var i = 0; i < people.length; i++) {
+    var p = people[i];
+    var pp = DIV('person', d);
+    pp.innerHTML = '' + p.eaten + ' for ' + p.utils.toFixed(1) +
+      '<br>next: ' + p.next.toFixed(0) + 's';
+  }
+}
+
+function Step() {
+  // First, find the person with the first 'next' time.
+  // If we kept the people in a heap, this would be much more
+  // efficient. Linear search for now.
+  var best_i = -1, best_next = null;
+  for (var i = 0; i < people.length; i++) {
+    if (best_next === null || people[i].next < best_next) {
+      best_next = people[i].next;
+      best_i = i;
+    }
+  }
+
+  // Fast-forward to this moment, by subtracting from all
+  // people's next-times (including the winner).
+  for (var i = 0; i < people.length; i++) {
+    people[i].next -= best_next;
+  }
+  
+  var player = people[best_i];
+
+  // Eating works like this: The player randomly selects a starting
+  // shelf, then iteratively inspects items in that queue until
+  // eating one, or abandoning the shelf.
+  //
+  // We assume that a player is not "tricked" by hidden items --
+  // the player estimates the distribution of future items as
+  // though they are randomly distributed.
+  //
+  // Note that if the player has not already found her favorite
+  // among the varieties, there is always some positive expected
+  // value to searching the rest, since she gets to apply the
+  // max() operator. Most people are "satisficers" in this scenario,
+  // and this is meaningful to the current problem, since it concerns
+  // moving snacks to the back in order to minimize the chance that
+  // they are selected. We could do this through a few methods, for
+  // example, explicitly modeling the cost of searching the snacks.
+  // Maybe a good way is to pick a simple stochastic method that
+  // has critical properties:
+  //  - The player shouldn't always search through the entire list.
+  //  - The more the player's preference function varies, the more
+  //    willing she should be to explore deeper.
+  //  - If the player already has her favorite snack, she shouldn't
+  //    search any further.
+  //  - ...
+  //
+  // So, one idea is to constrain the player to commit to the snack in
+  // hand, or "discard" it and continue searching. This is not
+  // realistic (of course the player can go back, and indeed we don't
+  // even discard snacks in the model), but it is parameterless, and
+  // appears to have desired properties. It may not have property 2
+  // above -- if the player likes pretty much every snack, then there
+  // is little cost to searching the entire shelf, even if only for
+  // a tiny fraction of a util. This needs some more thought--it may
+  // be okay, or we may simply need to add a small cost to searching,
+  // which is easily integrated into the formula above.
+  //
+  // If the player abandons a shelf, she proceeds to the next one,
+  // up to N times? (XXX todo)
+
+  var shelf_idx = RandTo(shelves.length);
+  console.log('player ' + best_i + ' starts on shelf ' + shelf_idx);
+  var shelf = shelves[shelf_idx];
+  var prefs = player.prefs[shelf_idx];
+  var exrec = player.exrec[shelf_idx];
+  if (shelf.length != 0) {
+    var cur = 0;
+    var cur_value = prefs[shelf[cur]];
+    for (;;) {
+      var num_left = shelf.length - cur;
+      if (num_left > 0 &&
+	  cur_value > 0 &&
+	  cur_value > exrec[num_left]) {
+	// swap for next one
+	cur++;
+	cur_value = prefs[shelf[cur]];
+      } else {
+	// not willing or able to swap.
+	if (cur_value > 0 && cur < shelf.length) {
+	  // Note: Would make sense to allow moving to the
+	  // next shelf here based on an estimate of its
+	  // value?
+	  shelf.splice(cur, 1);
+	} else {
+	  // TODO: Some chance of going to next shelf,
+	  // if it's just a fixed probability it's really
+	  // no different than just waiting for the next
+	  // hunger event.
+	}
+      }
+    }
+    // XXX implement...
+  }
+
+  // Put the eater back in the queue.
+  player.next = NextWait(player.mean_wait);
+}
+
+function NextWait(mean) {
+  // I think the intuition here is that we want the distance
+  // between two hunger events, so shape = 2.0. But should
+  // really justify this.
+  return RandomGamma(2.0) * mean;
 }
 
 function RandFrom(l) {
@@ -260,4 +469,9 @@ function NameSnack(n) {
   }
 
   return ret;
+}
+
+// XXX generate names for people
+function NamePerson() {
+
 }
