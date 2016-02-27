@@ -245,6 +245,7 @@ function Init() {
       stock.push(RandTo(varieties));
     }
 
+    // Bug: Soemtimes we get non-contiguous snacks this way?
     var rpref = RandomPreferenceFn(num_stocked);
     SortByPreference(stock, rpref);
     shelves[i] = stock;
@@ -278,6 +279,14 @@ function Init() {
   }
 
   Redraw();
+
+  // Loop();
+}
+
+function Loop() {
+  Step();
+  Redraw();
+  window.setTimeout(Loop, 10);
 }
 
 var COLORS = [
@@ -374,19 +383,23 @@ function Step() {
   // up to N times? (XXX todo)
 
   var shelf_idx = RandTo(shelves.length);
-  console.log('player ' + best_i + ' starts on shelf ' + shelf_idx);
   var shelf = shelves[shelf_idx];
   var prefs = player.prefs[shelf_idx];
   var exrec = player.exrec[shelf_idx];
+  console.log('player ' + best_i + ' starts on shelf ' + shelf_idx +
+	      ', which has ' + shelf.length + ' snacks of ' +
+	      prefs.length + ' varieties');
   if (shelf.length != 0) {
     var cur = 0;
     var cur_value = prefs[shelf[cur]];
     for (;;) {
       var num_left = shelf.length - cur;
       if (num_left > 0 &&
-	  cur_value > 0 &&
-	  cur_value > exrec[num_left]) {
+	  cur_value < exrec[num_left]) {
 	// swap for next one
+	console.log('Player ' + best_i + ' skips depth ' + cur +
+		    ' because E=' + exrec[num_left].toFixed(2) + 
+		    ' > cur=' + cur_value.toFixed(2));
 	cur++;
 	cur_value = prefs[shelf[cur]];
       } else {
@@ -396,15 +409,22 @@ function Step() {
 	  // next shelf here based on an estimate of its
 	  // value?
 	  shelf.splice(cur, 1);
+	  console.log('Player ' + best_i + ' goes ' + cur +
+		      ' snacks deep, and eats for ' + cur_value.toFixed(2) +
+		      ' utils.');
+	  player.eaten++;
+	  player.utils += cur_value;
+	  break;
 	} else {
-	  // TODO: Some chance of going to next shelf,
+	  console.log('Player ' + best_i + ' gets no snack.');
+	  // TODO: Some chance of going to next shelf--
 	  // if it's just a fixed probability it's really
 	  // no different than just waiting for the next
-	  // hunger event.
+	  // hunger event, though?
+	  break;
 	}
       }
     }
-    // XXX implement...
   }
 
   // Put the eater back in the queue.
