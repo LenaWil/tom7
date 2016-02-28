@@ -227,6 +227,21 @@ function SortByPreference(stock, pref) {
   });
 }
 
+function CheckStock(s) {
+  if (s.length === 0) return;
+  var seen = {};
+  var prev = s[0];
+  for (var i = 0; i < s.length; i++) {
+    if (seen[s[i]]) {
+      throw('non-contiguous ' + s[i] + ' in: ' +
+	    s.join(','));
+    }
+    if (s[i] != prev) {
+      seen[prev] = true;
+    }
+  }
+}
+
 // Entry point.
 function Init() {
   for (var i = 0; i < NUM_SHELVES; i++) {
@@ -245,10 +260,21 @@ function Init() {
       stock.push(RandTo(varieties));
     }
 
-    // Bug: Soemtimes we get non-contiguous snacks this way?
-    var rpref = RandomPreferenceFn(num_stocked);
+    // Bug: Sometimes we get non-contiguous snacks this way?
+    var rpref = RandomPreferenceFn(varieties);
     SortByPreference(stock, rpref);
     shelves[i] = stock;
+
+    // Sanity check
+    try { 
+      CheckStock(stock);
+    } catch (e) {
+      console.log('ns: ' + num_stocked + ' len: ' + stock.length + 
+		  ' pref: ' + rpref.length);
+      console.log(rpref);
+      console.log(e);
+      throw e;
+    }
   }
   
   for (var i = 0; i < NUM_PEOPLE; i++) {
