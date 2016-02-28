@@ -227,7 +227,7 @@ function SortByPreference(stock, pref) {
   });
 }
 
-function CheckStock(s) {
+function CheckStockContiguous(s) {
   if (s.length === 0) return;
   var seen = {};
   var prev = s[0];
@@ -248,33 +248,36 @@ function Init() {
     var varieties = RandTo(MAX_VARIETY) + 1;
     snacks.push({ varieties: varieties });
     var num_stocked = RandTo(MAX_ITEMS - MIN_ITEMS) + MIN_ITEMS;
-    // We stock each item uniformly from the varieties, but in
-    // contiguous order. One easy way to do that is to generate a
-    // random preference function and sort with it.
-    //
-    // XXX, actually, I think maybe these should just be random,
-    // since players behave as though they are, so we have some kind
-    // of mismatched realism here
     var stock = [];
     for (var s = 0; s < num_stocked; s++) {
       stock.push(RandTo(varieties));
     }
 
-    // Bug: Sometimes we get non-contiguous snacks this way?
-    var rpref = RandomPreferenceFn(varieties);
-    SortByPreference(stock, rpref);
-    shelves[i] = stock;
+    // We stock each item uniformly from the varieties, but in
+    // contiguous order. One easy way to do that is to generate a
+    // random preference function and sort with it.
 
-    // Sanity check
-    try { 
-      CheckStock(stock);
-    } catch (e) {
-      console.log('ns: ' + num_stocked + ' len: ' + stock.length + 
-		  ' pref: ' + rpref.length);
-      console.log(rpref);
-      console.log(e);
-      throw e;
-    }
+    /*
+      // Actually, I think maybe these should just be random,
+      // since players behave as though they are, so we have some kind
+      // of mismatched realism here
+
+      // Bug: Sometimes we get non-contiguous snacks this way?
+      var rpref = RandomPreferenceFn(varieties);
+      SortByPreference(stock, rpref);
+
+      // Sanity check
+      try { 
+	CheckStockContiguous(stock);
+      } catch (e) {
+	console.log('ns: ' + num_stocked + ' len: ' + stock.length + 
+		    ' pref: ' + rpref.length);
+	console.log(rpref);
+	console.log(e);
+	throw e;
+      }
+    */
+    shelves[i] = stock;
   }
   
   for (var i = 0; i < NUM_PEOPLE; i++) {
@@ -367,8 +370,6 @@ function Step() {
     people[i].next -= best_next;
   }
   
-  var player = people[best_i];
-
   // Eating works like this: The player randomly selects a starting
   // shelf, then iteratively inspects items in that queue until
   // eating one, or abandoning the shelf.
@@ -408,48 +409,59 @@ function Step() {
   // If the player abandons a shelf, she proceeds to the next one,
   // up to N times? (XXX todo)
 
-  var shelf_idx = RandTo(shelves.length);
-  var shelf = shelves[shelf_idx];
-  var prefs = player.prefs[shelf_idx];
-  var exrec = player.exrec[shelf_idx];
-  console.log('player ' + best_i + ' starts on shelf ' + shelf_idx +
-	      ', which has ' + shelf.length + ' snacks of ' +
-	      prefs.length + ' varieties');
-  if (shelf.length != 0) {
-    var cur = 0;
-    var cur_value = prefs[shelf[cur]];
-    for (;;) {
-      var num_left = shelf.length - cur;
-      if (num_left > 0 &&
-	  cur_value < exrec[num_left]) {
-	// swap for next one
-	console.log('Player ' + best_i + ' skips depth ' + cur +
-		    ' because E=' + exrec[num_left].toFixed(2) + 
-		    ' > cur=' + cur_value.toFixed(2));
-	cur++;
-	cur_value = prefs[shelf[cur]];
-      } else {
-	// not willing or able to swap.
-	if (cur_value > 0 && cur < shelf.length) {
-	  // Note: Would make sense to allow moving to the
-	  // next shelf here based on an estimate of its
-	  // value?
-	  shelf.splice(cur, 1);
-	  console.log('Player ' + best_i + ' goes ' + cur +
-		      ' snacks deep, and eats for ' + cur_value.toFixed(2) +
-		      ' utils.');
-	  player.eaten++;
-	  player.utils += cur_value;
-	  break;
+ 
+  function ChooseSnack(shelf_idx, player_idx) {
+    var player = people[player_idx];
+    var shelf = shelves[shelf_idx];
+    var prefs = player.prefs[shelf_idx];
+    var exrec = player.exrec[shelf_idx];
+    console.log('player ' + player_idx + ' tries shelf ' + shelf_idx +
+		', which has ' + shelf.length + ' snacks of ' +
+		prefs.length + ' possible varieties');
+    if (shelf.length != 0) {
+      var cur = 0;
+      var cur_value = prefs[shelf[cur]];
+      for (;;) {
+	var num_left = shelf.length - cur;
+	if (num_left > 0 &&
+	    cur_value < exrec[num_left]) {
+	  // swap for next one
+	  console.log('Player ' + player_idx + ' skips depth ' + cur +
+		      ' because E=' + exrec[num_left].toFixed(2) + 
+		      ' > cur=' + cur_value.toFixed(2));
+	  cur++;
+	  cur_value = prefs[shelf[cur]];
 	} else {
-	  console.log('Player ' + best_i + ' gets no snack.');
-	  // TODO: Some chance of going to next shelf--
-	  // if it's just a fixed probability it's really
-	  // no different than just waiting for the next
-	  // hunger event, though?
-	  break;
+	  // not willing or able to swap.
+	  if (cur_value > 0 && cur < shelf.length) {
+	    console.log('Player ' + player_idx + ' goes ' + cur +
+			' snacks deep, taking one worth ' + cur_value.toFixed(2) +
+			' utils.');
+	    return {idx: cur, value: cur_value};
+	  } else {
+	    console.log('Player ' + player_idx + ' gets no snack.');
+	    return null;
+	  }
 	}
       }
+    }
+  };
+
+  var start_shelf_idx = RandTo(shelves.length);
+
+  for (var shelf_offset = 0; shelf_offset < shelves.length; shelf_offset++) {
+    var shelf_idx = (start_shelf_idx + shelf_offset) % shelves.length;
+    var res = ChooseSnack(shelf_idx, best_i);
+    if (res) {
+      // XXX chance to switch to next shelf!
+      console.log('player ' + best_i + ' eats snack idx ' +
+		  res.idx + ' from shelf ' + shelf_idx);
+      var shelf = shelves[shelf_idx];
+      var player = people[best_i];
+      shelf.splice(res.idx, 1);
+      player.eaten++;
+      player.utils += res.value;
+      break;
     }
   }
 
