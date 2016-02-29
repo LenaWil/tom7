@@ -111,13 +111,13 @@ var RandomGamma = function(shape) {
 //  - Only put your favorite snack at the back.
 
 // Each shelf holds a different item.
-var NUM_SHELVES = 30;
+var NUM_SHELVES = 10;
 var NUM_PEOPLE = 50;
 // The number of varieties of a snack is uniform in [1, MAX_VARIETY]
 var MAX_VARIETY = 8;
 // TODO: Argument for minimum, based on plurality, etc.
 var MIN_ITEMS = 3;
-var MAX_ITEMS = 100;
+var MAX_ITEMS = 50;
 
 // The current contents of the shelves: An ordered list of
 // variety ints.
@@ -147,6 +147,8 @@ var snacks = [];
 //     the snack we get for applying the commit-or-discard snack
 //     choosing procedure on N items for snack s.
 var people = [];
+
+var time_until_restock = 0;
 
 // Generate a random preference function for n items. This is
 // represented by a length-n array of utilities.
@@ -244,6 +246,23 @@ function CheckStockContiguous(s) {
 
 // Entry point.
 function Init() {
+  Reset();
+  Redraw();
+
+  // Loop();
+}
+
+function Reset() {
+  shelves = [];
+  snacks = [];
+  people = [];
+  time_until_restock =
+    60 * // minutes
+    60 * // seconds
+    24 * // hours
+    3; // days
+
+  var total_snacks = 0;
   for (var i = 0; i < NUM_SHELVES; i++) {
     var varieties = RandTo(MAX_VARIETY) + 1;
     snacks.push({ varieties: varieties });
@@ -252,6 +271,7 @@ function Init() {
     for (var s = 0; s < num_stocked; s++) {
       stock.push(RandTo(varieties));
     }
+    total_snacks += num_stocked;
 
     // We stock each item uniformly from the varieties, but in
     // contiguous order. One easy way to do that is to generate a
@@ -307,24 +327,26 @@ function Init() {
 		  exrec: exrecs });
   }
 
-  Redraw();
-
-  // Loop();
+  // XXX mysterious constant
+  // snacks_until_restock = Math.floor(total_snacks * 0.75);
 }
 
 function Loop() {
+  // XXX this should really be based on time, because it's definitely
+  // possible to end up in a situation where there are no snacks of
+  // positive value to anyone!
   Step();
   Redraw();
   window.setTimeout(Loop, 10);
 }
 
 var COLORS = [
+  {l: '#000077', h: '#9999ff'},
+  {l: '#007700', h: '#99ff99'},
   {l: '#770000', h: '#ff9999'},
   {l: '#777700', h: '#ffff99'},
   {l: '#770077', h: '#ff99ff'},
-  {l: '#007700', h: '#99ff99'},
   {l: '#007777', h: '#99ffff'},
-  {l: '#000077', h: '#9999ff'},
   {l: '#000000', h: '#999999'},
   {l: '#777777', h: '#eeeeee'},
 ];
@@ -338,7 +360,7 @@ function Redraw() {
     var sh = DIV('shelf', d);
     for (var v = 0; v < shelves[i].length; v++) {
       var sn = DIV('snack', sh);
-      sn.style.border = '2px solid ' + COLORS[shelves[i][v]].l;
+      sn.style.border = '1px solid ' + COLORS[shelves[i][v]].l;
       sn.style.background = COLORS[shelves[i][v]].h;
     }
   }
@@ -351,6 +373,83 @@ function Redraw() {
       '<br>next: ' + p.next.toFixed(0) + 's';
   }
 }
+
+// Eating works like this: The player randomly selects a starting
+// shelf, then iteratively inspects items in that queue until
+// eating one, or abandoning the shelf.
+//
+// We assume that a player is not "tricked" by hidden items --
+// the player estimates the distribution of future items as
+// though they are randomly distributed.
+//
+// Note that if the player has not already found her favorite
+// among the varieties, there is always some positive expected
+// value to searching the rest, since she gets to apply the
+// max() operator. Most people are "satisficers" in this scenario,
+// and this is meaningful to the current problem, since it concerns
+// moving snacks to the back in order to minimize the chance that
+// they are selected. We could do this through a few methods, for
+// example, explicitly modeling the cost of searching the snacks.
+// Maybe a good way is to pick a simple stochastic method that
+// has critical properties:
+//  - The player shouldn't always search through the entire list.
+//  - The more the player's preference function varies, the more
+//    willing she should be to explore deeper.
+//  - If the player already has her favorite snack, she shouldn't
+//    search any further.
+//  - ...
+//
+// So, one idea is to constrain the player to commit to the snack in
+// hand, or "discard" it and continue searching. This is not
+// realistic (of course the player can go back, and indeed we don't
+// even discard snacks in the model), but it is parameterless, and
+// appears to have desired properties. It may not have property 2
+// above -- if the player likes pretty much every snack, then there
+// is little cost to searching the entire shelf, even if only for
+// a tiny fraction of a util. This needs some more thought--it may
+// be okay, or we may simply need to add a small cost to searching,
+// which is easily integrated into the formula above.
+//
+// After selecting a snack from a shelf, the player can abandon it in
+// order to search the next shelf, unless that shelf has already been
+// searched.
+
+function ChooseSnack(shelf_idx, player_idx) {
+  var player = people[player_idx];
+  var shelf = shelves[shelf_idx];
+  var prefs = player.prefs[shelf_idx];
+  var exrec = player.exrec[shelf_idx];
+  console.log('player ' + player_idx + ' tries shelf ' + shelf_idx +
+	      ', which has ' + shelf.length + ' snacks of ' +
+	      prefs.length + ' possible varieties');
+  if (shelf.length != 0) {
+    var cur = 0;
+    var cur_value = prefs[shelf[cur]];
+    for (;;) {
+      var num_left = shelf.length - cur;
+      if (num_left > 0 &&
+	  cur_value < exrec[num_left]) {
+	// swap for next one
+	console.log('Player ' + player_idx + ' skips depth ' + cur +
+		    ' because E=' + exrec[num_left].toFixed(2) + 
+		    ' > cur=' + cur_value.toFixed(2));
+	cur++;
+	cur_value = prefs[shelf[cur]];
+      } else {
+	// not willing or able to swap.
+	if (cur_value > 0 && cur < shelf.length) {
+	  console.log('Player ' + player_idx + ' goes ' + cur +
+		      ' snacks deep, taking one worth ' + cur_value.toFixed(2) +
+		      ' utils.');
+	  return {idx: cur, value: cur_value};
+	} else {
+	  console.log('Player ' + player_idx + ' gets no snack.');
+	  return null;
+	}
+      }
+    }
+  }
+};
 
 function Step() {
   // First, find the person with the first 'next' time.
@@ -370,82 +469,8 @@ function Step() {
     people[i].next -= best_next;
   }
   
-  // Eating works like this: The player randomly selects a starting
-  // shelf, then iteratively inspects items in that queue until
-  // eating one, or abandoning the shelf.
-  //
-  // We assume that a player is not "tricked" by hidden items --
-  // the player estimates the distribution of future items as
-  // though they are randomly distributed.
-  //
-  // Note that if the player has not already found her favorite
-  // among the varieties, there is always some positive expected
-  // value to searching the rest, since she gets to apply the
-  // max() operator. Most people are "satisficers" in this scenario,
-  // and this is meaningful to the current problem, since it concerns
-  // moving snacks to the back in order to minimize the chance that
-  // they are selected. We could do this through a few methods, for
-  // example, explicitly modeling the cost of searching the snacks.
-  // Maybe a good way is to pick a simple stochastic method that
-  // has critical properties:
-  //  - The player shouldn't always search through the entire list.
-  //  - The more the player's preference function varies, the more
-  //    willing she should be to explore deeper.
-  //  - If the player already has her favorite snack, she shouldn't
-  //    search any further.
-  //  - ...
-  //
-  // So, one idea is to constrain the player to commit to the snack in
-  // hand, or "discard" it and continue searching. This is not
-  // realistic (of course the player can go back, and indeed we don't
-  // even discard snacks in the model), but it is parameterless, and
-  // appears to have desired properties. It may not have property 2
-  // above -- if the player likes pretty much every snack, then there
-  // is little cost to searching the entire shelf, even if only for
-  // a tiny fraction of a util. This needs some more thought--it may
-  // be okay, or we may simply need to add a small cost to searching,
-  // which is easily integrated into the formula above.
-  //
-  // If the player abandons a shelf, she proceeds to the next one,
-  // up to N times? (XXX todo)
-
- 
-  function ChooseSnack(shelf_idx, player_idx) {
-    var player = people[player_idx];
-    var shelf = shelves[shelf_idx];
-    var prefs = player.prefs[shelf_idx];
-    var exrec = player.exrec[shelf_idx];
-    console.log('player ' + player_idx + ' tries shelf ' + shelf_idx +
-		', which has ' + shelf.length + ' snacks of ' +
-		prefs.length + ' possible varieties');
-    if (shelf.length != 0) {
-      var cur = 0;
-      var cur_value = prefs[shelf[cur]];
-      for (;;) {
-	var num_left = shelf.length - cur;
-	if (num_left > 0 &&
-	    cur_value < exrec[num_left]) {
-	  // swap for next one
-	  console.log('Player ' + player_idx + ' skips depth ' + cur +
-		      ' because E=' + exrec[num_left].toFixed(2) + 
-		      ' > cur=' + cur_value.toFixed(2));
-	  cur++;
-	  cur_value = prefs[shelf[cur]];
-	} else {
-	  // not willing or able to swap.
-	  if (cur_value > 0 && cur < shelf.length) {
-	    console.log('Player ' + player_idx + ' goes ' + cur +
-			' snacks deep, taking one worth ' + cur_value.toFixed(2) +
-			' utils.');
-	    return {idx: cur, value: cur_value};
-	  } else {
-	    console.log('Player ' + player_idx + ' gets no snack.');
-	    return null;
-	  }
-	}
-      }
-    }
-  };
+  // Also advance restocking time.
+  time_until_restock -= best_next;
 
   var start_shelf_idx = RandTo(shelves.length);
 
@@ -453,15 +478,31 @@ function Step() {
     var shelf_idx = (start_shelf_idx + shelf_offset) % shelves.length;
     var res = ChooseSnack(shelf_idx, best_i);
     if (res) {
-      // XXX chance to switch to next shelf!
-      console.log('player ' + best_i + ' eats snack idx ' +
-		  res.idx + ' from shelf ' + shelf_idx);
-      var shelf = shelves[shelf_idx];
+      var next_shelf_idx = (shelf_idx + 1) % shelves.length;
       var player = people[best_i];
-      shelf.splice(res.idx, 1);
-      player.eaten++;
-      player.utils += res.value;
-      break;
+      var next_shelf = shelves[next_shelf_idx];
+      // Expected value of switching to the next shelf.
+      var e_next = player.exrec[next_shelf_idx][next_shelf.length];
+      // We don't allow going back to the first shelf. We also keep
+      // the current snack if it's better than what we expect to
+      // find on the next shelf.
+      if (shelf_offset == shelves.length - 1 ||
+	  res.value >= e_next) {
+	console.log('player ' + best_i + ' eats snack idx ' +
+		    res.idx + ' from shelf ' + shelf_idx + 
+		    ', with value ' + res.value + ' >= E(next)= ' +
+		    e_next);
+	var shelf = shelves[shelf_idx];
+	shelf.splice(res.idx, 1);
+	player.eaten++;
+	player.utils += res.value;
+	// XXX potentially reshuffle shelf.
+	break;
+      } else {
+	console.log('player ' + best_i + ' goes to next shelf #' +
+		    next_shelf_idx + ' because E(next) = ' +
+		    e_next + ' > chosen value = ' + res.value);
+      }
     }
   }
 
