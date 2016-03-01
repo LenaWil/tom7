@@ -1,5 +1,7 @@
 // Snack Simulator 9000
 
+var DEBUG = false;
+
 function makeElement(what, cssclass, elt) {
   var e = document.createElement(what);
   if (cssclass) e.setAttribute('class', cssclass);
@@ -246,10 +248,7 @@ function CheckStockContiguous(s) {
 
 // Entry point.
 function Init() {
-  Reset();
-  Redraw();
-
-  // Loop();
+  Loop();
 }
 
 function Reset() {
@@ -257,12 +256,11 @@ function Reset() {
   snacks = [];
   people = [];
   time_until_restock =
-    60 * // minutes
+//    60 * // minutes
     60 * // seconds
     24 * // hours
     3; // days
 
-  var total_snacks = 0;
   for (var i = 0; i < NUM_SHELVES; i++) {
     var varieties = RandTo(MAX_VARIETY) + 1;
     snacks.push({ varieties: varieties });
@@ -271,32 +269,9 @@ function Reset() {
     for (var s = 0; s < num_stocked; s++) {
       stock.push(RandTo(varieties));
     }
-    total_snacks += num_stocked;
 
-    // We stock each item uniformly from the varieties, but in
-    // contiguous order. One easy way to do that is to generate a
-    // random preference function and sort with it.
-
-    /*
-      // Actually, I think maybe these should just be random,
-      // since players behave as though they are, so we have some kind
-      // of mismatched realism here
-
-      // Bug: Sometimes we get non-contiguous snacks this way?
-      var rpref = RandomPreferenceFn(varieties);
-      SortByPreference(stock, rpref);
-
-      // Sanity check
-      try { 
-	CheckStockContiguous(stock);
-      } catch (e) {
-	console.log('ns: ' + num_stocked + ' len: ' + stock.length + 
-		    ' pref: ' + rpref.length);
-	console.log(rpref);
-	console.log(e);
-	throw e;
-      }
-    */
+    // Each item is just uniformly random. Players behave as though
+    // snacks are randomly distributed.
     shelves[i] = stock;
   }
   
@@ -326,18 +301,129 @@ function Reset() {
 		  prefs: prefs,
 		  exrec: exrecs });
   }
-
-  // XXX mysterious constant
-  // snacks_until_restock = Math.floor(total_snacks * 0.75);
 }
 
-function Loop() {
+function OneSimulation() {
   // XXX this should really be based on time, because it's definitely
   // possible to end up in a situation where there are no snacks of
   // positive value to anyone!
-  Step();
+  Reset();
+  while (time_until_restock > 0) {
+    Step();
+    // Redraw();
+  }
+}
+
+var snacks_at_end = [];
+// Total happiness of all players.
+var total_utils = [];
+// Happiness of the worst-off player.
+var min_utils = [];
+// max utils - min utils
+var inequality = [];
+
+function Loop() {
+  snacks_at_end = [];
+  total_utils = [];
+  min_utils = [];
+  inequality = [];
+
+  for (var i = 0; i < 100; i++) {
+    Frame();
+  }
+}
+
+function Frame() {
+  var start = performance.now();
+  for (var i = 0; i < 10; i++) {
+    OneSimulation();
+
+    var snacks_left = 0;
+    for (var s = 0; s < shelves.length; s++)
+      snacks_left += shelves[s].length;
+    snacks_at_end.push(snacks_left);
+
+    var utils = 0;
+    var min = people[0].utils, max = people[0].utils;
+    for (var p = 0; p < people.length; p++) {
+      utils += people[p].utils;
+      min = Math.min(min, people[p].utils);
+      max = Math.max(max, people[p].utils);
+    }
+    total_utils.push(utils);
+    min_utils.push(min);
+    inequality.push(max - min);
+  }
+
   Redraw();
-  window.setTimeout(Loop, 10);
+  console.log(performance.now() - start);
+  window.setTimeout(Frame, 0);
+}
+
+function GetMinMax(values) {
+  // values.sort(function(a, b) { return a - b; });
+  var min = values[0];
+  var max = values[0];
+  for (var i = 1; i < values.length; i++) {
+    min = Math.min(min, values[i]);
+    max = Math.max(max, values[i]);
+  }
+  return {min: min, max: max};
+}
+
+var HISTOWIDTH = 800;
+var HISTOBINS = 400;
+var HISTOHEIGHT = 200;
+function DrawHistogram(title, values, par) {
+  DIV('htitle', par).innerHTML = title;
+  var elt = DIV('histo', par);
+  elt.style.height = HISTOHEIGHT + 'px';
+  
+  if (values.length == 0) {
+    elt.innerHTML = 'no data';
+    return;
+  }
+
+  for (var i = 0; i < values.length; i++) {
+    if (isNaN(values[i])) {
+      elt.innerHTML = 'idx ' + i + ' contains NaN';
+      return;
+    }
+  }
+  
+  var minmax = GetMinMax(values);
+  var min = minmax.min;
+  var max = minmax.max;
+  var datawidth = max - min;
+  // console.log('min ' + min + ' max ' + max + ' dw ' + datawidth);
+  // var binwidth = datawidth / HISTOBINS;
+
+  var bins = [];
+  for (var i = 0; i < HISTOBINS; i++)
+    bins[i] = 0;
+  for (var i = 0; i < values.length; i++) {
+    var val = values[i] - min;
+    // XXX sloppy to avoid generating b=length for max val.
+    var b = Math.floor((val / datawidth) * (HISTOBINS - 0.5));
+    // console.log(values[i] + ' becomes ' + val + ' then ' + b);
+    bins[b]++;
+  }
+
+  var max_bin = 1;
+  for (var i = 0; i < bins.length; i++) {
+    // console.log(i + ' = ' + bins[i]);
+    max_bin = Math.max(max_bin, bins[i]);
+  }
+  // console.log('max bin: ' + max_bin);
+  
+  for (var i = 0; i < bins.length; i++) {
+    var height = Math.round(bins[i] / max_bin * HISTOHEIGHT);
+    var omheight = HISTOHEIGHT - height;
+    var dd = DIV('hb', elt);
+//    dd.style.left = (i * 2) + 'px';
+    dd.style.top = omheight + 'px';
+    dd.style.height = height + 'px';
+  }
 }
 
 var COLORS = [
@@ -372,6 +458,14 @@ function Redraw() {
     pp.innerHTML = '' + p.eaten + ' for ' + p.utils.toFixed(1) +
       '<br>next: ' + p.next.toFixed(0) + 's';
   }
+
+  // DrawHistogram('snacks at end', snacks_at_end, document.body);
+  // BR('', document.body);
+  DrawHistogram('total utils', total_utils, document.body);
+  BR('', document.body);
+  // DrawHistogram('min utils', min_utils, document.body);
+  // BR('', document.body);
+  // DrawHistogram('inequality', inequality, document.body);
 }
 
 // Eating works like this: The player randomly selects a starting
@@ -419,7 +513,7 @@ function ChooseSnack(shelf_idx, player_idx) {
   var shelf = shelves[shelf_idx];
   var prefs = player.prefs[shelf_idx];
   var exrec = player.exrec[shelf_idx];
-  console.log('player ' + player_idx + ' tries shelf ' + shelf_idx +
+  if (DEBUG) console.log('player ' + player_idx + ' tries shelf ' + shelf_idx +
 	      ', which has ' + shelf.length + ' snacks of ' +
 	      prefs.length + ' possible varieties');
   if (shelf.length != 0) {
@@ -430,7 +524,7 @@ function ChooseSnack(shelf_idx, player_idx) {
       if (num_left > 0 &&
 	  cur_value < exrec[num_left]) {
 	// swap for next one
-	console.log('Player ' + player_idx + ' skips depth ' + cur +
+	if (DEBUG) console.log('Player ' + player_idx + ' skips depth ' + cur +
 		    ' because E=' + exrec[num_left].toFixed(2) + 
 		    ' > cur=' + cur_value.toFixed(2));
 	cur++;
@@ -438,12 +532,12 @@ function ChooseSnack(shelf_idx, player_idx) {
       } else {
 	// not willing or able to swap.
 	if (cur_value > 0 && cur < shelf.length) {
-	  console.log('Player ' + player_idx + ' goes ' + cur +
+	  if (DEBUG) console.log('Player ' + player_idx + ' goes ' + cur +
 		      ' snacks deep, taking one worth ' + cur_value.toFixed(2) +
 		      ' utils.');
 	  return {idx: cur, value: cur_value};
 	} else {
-	  console.log('Player ' + player_idx + ' gets no snack.');
+	  if (DEBUG) console.log('Player ' + player_idx + ' gets no snack.');
 	  return null;
 	}
       }
@@ -471,7 +565,7 @@ function Step() {
   
   // Also advance restocking time.
   time_until_restock -= best_next;
-
+  var player = people[best_i];
   var start_shelf_idx = RandTo(shelves.length);
 
   for (var shelf_offset = 0; shelf_offset < shelves.length; shelf_offset++) {
@@ -479,7 +573,6 @@ function Step() {
     var res = ChooseSnack(shelf_idx, best_i);
     if (res) {
       var next_shelf_idx = (shelf_idx + 1) % shelves.length;
-      var player = people[best_i];
       var next_shelf = shelves[next_shelf_idx];
       // Expected value of switching to the next shelf.
       var e_next = player.exrec[next_shelf_idx][next_shelf.length];
@@ -488,7 +581,7 @@ function Step() {
       // find on the next shelf.
       if (shelf_offset == shelves.length - 1 ||
 	  res.value >= e_next) {
-	console.log('player ' + best_i + ' eats snack idx ' +
+	if (DEBUG) console.log('player ' + best_i + ' eats snack idx ' +
 		    res.idx + ' from shelf ' + shelf_idx + 
 		    ', with value ' + res.value + ' >= E(next)= ' +
 		    e_next);
@@ -499,7 +592,7 @@ function Step() {
 	// XXX potentially reshuffle shelf.
 	break;
       } else {
-	console.log('player ' + best_i + ' goes to next shelf #' +
+	if (DEBUG) console.log('player ' + best_i + ' goes to next shelf #' +
 		    next_shelf_idx + ' because E(next) = ' +
 		    e_next + ' > chosen value = ' + res.value);
       }
