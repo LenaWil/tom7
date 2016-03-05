@@ -2,6 +2,18 @@
 
 var DEBUG = false;
 
+var EXIT = false;
+document.onkeydown = function(e) {
+  e = e || window.event;
+  if (e.ctrlKey) return true;
+
+  // ESC
+  if (e.keyCode == 27)  {
+    // document.body.innerHTML = '(SILENCED. RELOAD TO PLAY)';
+    EXIT = true;
+  }
+}
+    
 function makeElement(what, cssclass, elt) {
   var e = document.createElement(what);
   if (cssclass) e.setAttribute('class', cssclass);
@@ -106,6 +118,9 @@ var RandomGamma = function(shape) {
     }
   }
 }
+
+var frame_number = 0
+var SIMULATIONS_PER_FRAME = 100;
 
 // Possible policies:
 //  - Always sort all shelves (encountered) in reverse preference
@@ -328,14 +343,13 @@ function Loop() {
   min_utils = [];
   inequality = [];
 
-  for (var i = 0; i < 100; i++) {
-    Frame();
-  }
+  Frame();
 }
 
 function Frame() {
   var start = performance.now();
-  for (var i = 0; i < 10; i++) {
+
+  for (var i = 0; i < SIMULATIONS_PER_FRAME; i++) {
     OneSimulation();
 
     var snacks_left = 0;
@@ -351,13 +365,20 @@ function Frame() {
       max = Math.max(max, people[p].utils);
     }
     total_utils.push(utils);
+    // console.log(min);
     min_utils.push(min);
     inequality.push(max - min);
   }
 
-  Redraw();
-  console.log(performance.now() - start);
-  window.setTimeout(Frame, 0);
+  frame_number++;
+  if (frame_number % 10 == 0) {
+    Redraw();
+  }
+  
+  // console.log(performance.now() - start);
+  if (!EXIT) {
+    window.setTimeout(Frame, 0);
+  }
 }
 
 function GetMinMax(values) {
@@ -375,7 +396,7 @@ var HISTOWIDTH = 800;
 var HISTOBINS = 400;
 var HISTOHEIGHT = 200;
 function DrawHistogram(title, values, par) {
-  DIV('htitle', par).innerHTML = title;
+  DIV('htitle', par).innerHTML = title + ' × ' + values.length;
   var elt = DIV('histo', par);
   elt.style.height = HISTOHEIGHT + 'px';
   
@@ -441,7 +462,9 @@ var COLORS = [
 
 function Redraw() {
   document.body.innerHTML = '';
-  var d = DIV('shelves', document.body);
+  var sim = DIV('sim', document.body);
+
+  var d = DIV('shelves', sim);
   for (var i = 0; i < snacks.length; i++) {
     var sh = DIV('shelf', d);
     for (var v = 0; v < shelves[i].length; v++) {
@@ -459,13 +482,20 @@ function Redraw() {
       '<br>next: ' + p.next.toFixed(0) + 's';
   }
 
+  // Stats
+  
   // DrawHistogram('snacks at end', snacks_at_end, document.body);
   // BR('', document.body);
-  DrawHistogram('total utils', total_utils, document.body);
-  BR('', document.body);
-  // DrawHistogram('min utils', min_utils, document.body);
+  // DrawHistogram('total utils', total_utils, document.body);
   // BR('', document.body);
-  // DrawHistogram('inequality', inequality, document.body);
+  // This is basically always zero!
+  // DrawHistogram('min utils', min_utils, document.body);
+  BR('', document.body);
+  DrawHistogram('inequality', inequality, document.body);
+
+  TEXT('sim/s: ' + ((frame_number * SIMULATIONS_PER_FRAME) /
+		    (performance.now() / 1000.0)).toFixed(2),
+       document.body);
 }
 
 // Eating works like this: The player randomly selects a starting
