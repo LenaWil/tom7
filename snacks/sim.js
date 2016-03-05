@@ -22,7 +22,7 @@ function makeElement(what, cssclass, elt) {
 }
 function IMG(cssclass, elt) { return makeElement('IMG', cssclass, elt); }
 function DIV(cssclass, elt) { return makeElement('DIV', cssclass, elt); }
-function DIV(cssclass, elt) { return makeElement('DIV', cssclass, elt); }
+function CANVAS(cssclass, elt) { return makeElement('CANVAS', cssclass, elt); }
 function SPAN(cssclass, elt) { return makeElement('SPAN', cssclass, elt); }
 function BR(cssclass, elt) { return makeElement('BR', cssclass, elt); }
 function TEXT(contents, elt) {
@@ -386,8 +386,13 @@ function GetMinMax(values) {
   var min = values[0];
   var max = values[0];
   for (var i = 1; i < values.length; i++) {
-    min = Math.min(min, values[i]);
-    max = Math.max(max, values[i]);
+    var v = values[i];
+    if (isNaN(v)) {
+      throw ('idx ' + i + ' contains NaN');
+    }
+
+    min = Math.min(min, v);
+    max = Math.max(max, v);
   }
   return {min: min, max: max};
 }
@@ -397,19 +402,17 @@ var HISTOBINS = 400;
 var HISTOHEIGHT = 200;
 function DrawHistogram(title, values, par) {
   DIV('htitle', par).innerHTML = title + ' × ' + values.length;
-  var elt = DIV('histo', par);
-  elt.style.height = HISTOHEIGHT + 'px';
+  var c = CANVAS('chisto', par);
+  c.width = HISTOWIDTH;
+  c.height = HISTOHEIGHT;
+  var ctx = c.getContext('2d');
   
   if (values.length == 0) {
-    elt.innerHTML = 'no data';
+    // no data
+    ctx.fillStyle = '#ff0';
+    // Maybe draw checker pattern or something?
+    ctx.fillRect(20, 20, 80, 80);
     return;
-  }
-
-  for (var i = 0; i < values.length; i++) {
-    if (isNaN(values[i])) {
-      elt.innerHTML = 'idx ' + i + ' contains NaN';
-      return;
-    }
   }
   
   var minmax = GetMinMax(values);
@@ -430,20 +433,25 @@ function DrawHistogram(title, values, par) {
     bins[b]++;
   }
 
+  // Get the maximum value of any bin, for scale. Note: min_bin is
+  // always 0.
   var max_bin = 1;
   for (var i = 0; i < bins.length; i++) {
     // console.log(i + ' = ' + bins[i]);
     max_bin = Math.max(max_bin, bins[i]);
   }
   // console.log('max bin: ' + max_bin);
+
+  ctx.fillStyle = '#000';
   
   for (var i = 0; i < bins.length; i++) {
     var height = Math.round(bins[i] / max_bin * HISTOHEIGHT);
     var omheight = HISTOHEIGHT - height;
-    var dd = DIV('hb', elt);
-//    dd.style.left = (i * 2) + 'px';
-    dd.style.top = omheight + 'px';
-    dd.style.height = height + 'px';
+    // var dd = DIV('hb', elt);
+    ctx.fillRect(i * 2, omheight, 2, height);
+    // dd.style.left = (i * 2) + 'px';
+    // dd.style.top = omheight + 'px';
+    // dd.style.height = height + 'px';
   }
 }
 
@@ -493,6 +501,8 @@ function Redraw() {
   BR('', document.body);
   DrawHistogram('inequality', inequality, document.body);
 
+
+  BR('', document.body);
   TEXT('sim/s: ' + ((frame_number * SIMULATIONS_PER_FRAME) /
 		    (performance.now() / 1000.0)).toFixed(2),
        document.body);

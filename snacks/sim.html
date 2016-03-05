@@ -3,6 +3,10 @@
 <head>
 <script src="sim.js"></script>
 <style>
+  body {
+    font-family: verdana,helvetica,sans-serif;
+  }
+
   .sim {
     height: 250px;
     border-bottom: 2px solid #222;
@@ -27,13 +31,11 @@
     margin: 1px 1px 0 0;
     border-radius: 2px;
     font-size: 10px;
-    font-family: verdana,helvetica,sans-serif;
     color: #000;
   }
 
   .htitle {
     font-weight: bold;
-    font-family: verdana,helvetica,sans-serif;
   }
   .histo {
     border: 1px solid #ccc;
@@ -46,6 +48,12 @@
     background: #000;
     display: table-cell;
   }
+
+  .chisto {
+    border: 1px solid #ccc;
+    image-rendering: pixelated;
+  }
+
 </style>
 </head>
 <body onload="Init()">
