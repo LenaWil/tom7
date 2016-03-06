@@ -1,2 +1,154 @@
+\documentclass[twocolumn]{article}
+\usepackage[top=1.1in, left=0.85in, right=0.85in]{geometry}
 
-Keywords: comestability theory
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{code}
+\usepackage{graphicx}
+\usepackage{fancyvrb}
+\usepackage{url}
+\usepackage{textcomp}
+
+\pagestyle{empty}
+
+\newcommand\comment[1]{}
+
+\newcommand\st{$^{\mathrm{st}}$}
+\newcommand\nd{$^{\mathrm{nd}}$}
+\newcommand\rd{$^{\mathrm{rd}}$}
+\renewcommand\th{$^{\mathrm{th}}$}
+\newcommand\tm{$^{\mbox{\tiny \textsc{tm}}}$}
+
+% nice fractions
+\newcommand\sfrac[2]{{}\,$^{#1}$\!/{}\!$_{#2}$}
+
+\newcommand\citef[1]{\addtocounter{footnote}{1}\footnotetext{\cite{#1}}\ensuremath{^{\mbox{\footnotesize [\thefootnote]}}}}
+
+\usepackage{ulem}
+% go back to italics for emphasis, though
+\normalem
+
+\begin{document} 
+
+\title{Snacking policies}
+\author{Dr.~Tom~Murphy~VII~Ph.D.\thanks{
+    Copyright \copyright\ 2016 the Regents of the Wikiplia Foundation.
+    Appears in SIGBOVIK 2016 with the haunting memory of the
+    Association for Computational Heresy; {\em IEEEEEE!} press,
+    Verlag--Verlag volume no.~0x2016. ANG 0.00} }
+
+\renewcommand\>{$>$}
+\newcommand\<{$<$}
+
+\date{1 April 2016}
+
+\maketitle
+
+\begin{abstract}
+% XXX better abstract
+what do I put here
+\end{abstract}
+
+\vspace{1em}
+{\noindent \small {\bf Keywords}:
+  snacking, consequentialism, comestability theory
+}
+
+\section{Introduction}
+
+Some workplaces of the future
+
+
+
+308000 rounds
+Without reordering, utils: [589.02, 780.55] mean 684.87
+
+Player 0 always sorts from the shelf he takes:
+
+% 315000 rounds
+% utils: [589.57, 792.09] mean 684.96
+% p0: [9.11, 36.71] mean 22.59
+% ineq: [20.34, 41.60] mean 30.60
+
+total: 684.73 mean, 585.76--781.39
+p0: 22.58, 8.82--36.77
+ineq: 30.59, 19.93--41.84
+
+No resorting:
+total: 685.02 mean, 586.49--781.99
+p0: 22.86, 9.50--37.97
+ineq: 30.60, 19.92--41.79
+
+Everyone resorts:
+total: 684.46 mean, 586.26 -- 780.25
+p0: 22.83 mean, 8.96-37.40
+ieq: 30.55 19.94--41.27
+
+
+--------------------
+
+with 0.05 cost to look
+
+total utils: 594.49 mean, 509.82-681.81
+p0: 19.83 mean, 7.22-33.24
+ieq: 28.07, 18.30-38.49
+
+only p0 sorts:
+total utils: 585.52 mean, 499-669
+p0: 18.65 7.07-31.26
+ieq: 27.92 18.33-38.38
+
+
+
+Everyone puts favorite last:
+total: 546.61 [466.36, 626.97]
+p0: 18.24 [6.39, 31.27]
+ieq: 26.92 [17.73, 37.05]
+
+
+--------------------------------------------------
+Now using 100k iterations. everyone puts snack last:
+
+snacks at end × 100000 = Mean: 201.47 [116.62 , 443.72] Median: 208.81
+total utils × 100000 = Mean: 546.75 [466.20 , 625.91] Median: 539.81
+p0 utils × 100000 = Mean: 18.24 [6.06 , 30.91] Median: 16.52
+inequality × 100000 = Mean: 26.91 [17.90 , 37.38] Median: 25.14
+
+nobody sorts:
+snacks at end × 100000 = Mean: 201.65 [116.65 , 421.74] Median: 217.99
+total utils × 100000 = Mean: 594.17 [508.66 , 680.64] Median: 590.98
+p0 utils × 100000 = Mean: 19.82 [7.52 , 33.50] Median: 19.63
+inequality × 100000 = Mean: 28.05 [18.23 , 38.42] Median: 26.23
+
+we eat almost exactly the same number of snacks, but are less happy.
+
+
+nobody sorts; measure snack utils specifically:
+
+snacks at end × 100000 = Mean: 201.26 [116.59 , 417.74] Median: 203.90
+total utils × 100000 = Mean: 594.45 [506.68 , 679.40] Median: 588.88
+p0 utils × 100000 = Mean: 19.83 [7.53 , 33.60] Median: 17.61
+p0 snack utils × 100000 = Mean: 22.30 [8.49 , 36.57] Median: 20.62
+inequality × 100000 = Mean: 28.05 [18.31 , 38.37] Median: 26.00
+
+only p0 sorts:
+
+snacks at end × 100000 = Mean: 201.52 [117.71 , 421.74] Median: 198.99
+total utils × 100000 = Mean: 590.13 [507.03 , 678.05] Median: 590.58
+p0 utils × 100000 = Mean: 18.98 [7.34 , 31.92] Median: 18.44
+p0 snack utils × 100000 = Mean: 22.19 [9.17 , 37.02] Median: 20.87
+inequality × 100000 = Mean: 27.99 [18.52 , 38.53] Median: 25.96
+
+only p0 places outliers:
+
+snacks at end × 100000 = Mean: 201.54 [117.79, 435.73] Median: 198.50
+total utils × 100000 = Mean: 592.27 [509.32, 681.56] Median: 593.03
+p0 utils × 100000 = Mean: 19.48 [7.14, 32.58] Median: 17.97
+p0 snack utils × 100000 = Mean: 22.28 [8.53, 36.59] Median: 19.70
+inequality × 100000 = Mean: 28.01 [18.51, 38.60] Median: 27.01
+
+
+
+Credible interval\cite{krushke2014doing}
+
+\end{document}

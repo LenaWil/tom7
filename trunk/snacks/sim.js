@@ -128,13 +128,17 @@ var SIMULATIONS_PER_FRAME = 100;
 //  - Only put your favorite snack at the back.
 
 // Each shelf holds a different item.
-var NUM_SHELVES = 10;
-var NUM_PEOPLE = 50;
+var NUM_SHELVES = 15;
+var NUM_PEOPLE = 30;
 // The number of varieties of a snack is uniform in [1, MAX_VARIETY]
 var MAX_VARIETY = 8;
 // TODO: Argument for minimum, based on plurality, etc.
 var MIN_ITEMS = 3;
 var MAX_ITEMS = 50;
+
+var OUTLIER_RATIO = 2.0;
+
+var COST_TO_LOOK = 0.05;
 
 // The current contents of the shelves: An ordered list of
 // variety ints.
@@ -158,6 +162,8 @@ var snacks = [];
 //   prefs : array(array(double)) - preference function for varieties. 
 //     Outer array is length |snacks|; inner is length
 //     |varieties of that snack|; elements are utility.
+//   favorite : variety of the favorite snack for each shelf
+//   outlier : true if the favorite snack is an outlier
 //   exrec : array(array(double)) - Outer length is length |snacks|;
 //     inner is length MAX_ITEMS + 1. exrec[s][n] gives the value
 //     of the ExRec(N) function, which is the expected value of
@@ -182,7 +188,7 @@ function RandomPreferenceFn(n) {
   var MEAN = 0.75;
   // Should certainly include negative values to indicate an
   // aversion to a snack.
-  var STDDEV = 1.0;
+  var STDDEV = 2.0;
   var pref = [];
   for (var i = 0; i < n; i++) {
     pref.push(RandomGaussian() * STDDEV + MEAN);
@@ -223,7 +229,8 @@ function MakeExRec(pref) {
   // ExRec[0] is 0, because we get no snack.
   var ret = [0];
   for (var i = 1; i <= MAX_ITEMS; i++) {
-    var ex_rec_next = ret[i - 1];
+    // Discounted because we have to do work to switch.
+    var ex_rec_next = ret[i - 1] - COST_TO_LOOK;
     var sum = 0.0;
     for (var s = 0; s < pref.length; s++) {
       sum += Math.max(ex_rec_next, pref[s]);
@@ -246,6 +253,26 @@ function SortByPreference(stock, pref) {
   });
 }
 
+function PutFavoriteLast(stock, fav) {
+  var dst = 0;
+  var n = 0;
+  for (var src = 0; src < stock.length; src++) {
+    if (stock[src] == fav) {
+      // skip it, count it, don't advance dst
+      n++;
+    } else {
+      stock[dst] = stock[src];
+      dst++;
+    }
+  }
+  
+  // Now put n copies of the favorite at the end.
+  for (var i = 0; i < n; i++) {
+    stock[dst] = fav;
+    dst++;
+  }
+}
+
 function CheckStockContiguous(s) {
   if (s.length === 0) return;
   var seen = {};
@@ -266,15 +293,21 @@ function Init() {
   Loop();
 }
 
+// Policies.
+var ALWAYS_SORT = 1;
+var NO_SORT = 0;
+var FAVORITE_LAST = 2;
+var OUTLIER_LAST = 3;
+
 function Reset() {
   shelves = [];
   snacks = [];
   people = [];
   time_until_restock =
-//    60 * // minutes
-    60 * // seconds
-    24 * // hours
-    3; // days
+      60 * // seconds
+      60 * // minutes
+      8 * // (work) hours
+      3;   // days
 
   for (var i = 0; i < NUM_SHELVES; i++) {
     var varieties = RandTo(MAX_VARIETY) + 1;
@@ -295,26 +328,71 @@ function Reset() {
     // each one is independent.
     var prefs = [];
     var exrecs = [];
+    var favorite = [];
+    var outliers = [];
     for (var p = 0; p < NUM_SHELVES; p++) {
       var pref = RandomPreferenceFn(snacks[p].varieties);
       prefs.push(pref);
+
+      var spref = [];
+      for (var z = 0; z < snacks[p].varieties; z++) {
+	spref.push(z);
+      }
+      SortByPreference(spref, pref);
+
+      // Favorite is at the end.
+      var fav = spref[spref.length - 1];
+      var outlier = false;
+      if (spref.length >= 2) {
+	var fav2 = spref[spref.length - 2];
+	if (pref[fav] > 0 &&
+	    pref[fav] >= pref[fav2] * OUTLIER_RATIO) {
+	  outlier = true;
+	  // console.log('on shelf ' + p + ' snack ' + fav +
+	  // ' is an outlier: ' +
+	  // pref.join(','));
+	}
+      }
+      /*
+      var fav = 0;
+      var bestscore = pref[0];
+      for (var z = 1; z < pref.length; z++) {
+	if (pref[z] > bestscore) {
+	  fav = z;
+	  bestscore = pref[z];
+	}
+      }
+      */
+      favorite.push(fav);
+
+      var fav2 = 0;
+      var bestscore = pref[0];
+
       exrecs.push(MakeExRec(pref));
+      outliers.push(outlier);
     }
 
+    // console.log('favorites: ' + favorite.join(','));
+    
     // XXX generate from some distribution.
     // This will be the average number of seconds between
     // snack events.
-    var mean_wait = 45 * 60;
+    var mean_wait = 2 * 60 * 60;
 
-    people.push({ policy: 0,
-		  effort: 0,
-		  depth: 0,
-		  eaten: 0,
-		  mean_wait: mean_wait,
-		  next: NextWait(mean_wait),
-		  utils: 0,
-		  prefs: prefs,
-		  exrec: exrecs });
+    people.push({ // policy: NO_SORT, // ALWAYS_SORT, //
+      policy: (i == 0) ? OUTLIER_LAST : NO_SORT,
+      // policy: NO_SORT, // FAVORITE_LAST,
+      effort: 0,
+      depth: 0,
+      eaten: 0,
+      mean_wait: mean_wait,
+      next: NextWait(mean_wait),
+      utils: 0,
+      snack_utils: 0,
+      prefs: prefs,
+      favorite: favorite,
+      outlier: outliers,
+      exrec: exrecs });
   }
 }
 
@@ -322,25 +400,33 @@ function OneSimulation() {
   // XXX this should really be based on time, because it's definitely
   // possible to end up in a situation where there are no snacks of
   // positive value to anyone!
-  Reset();
   while (time_until_restock > 0) {
     Step();
     // Redraw();
   }
 }
 
+var NUM_SIMULATIONS = 100000;
+function SimulationDone() {
+  return frame_number * SIMULATIONS_PER_FRAME >= NUM_SIMULATIONS;
+}
+
+var snacks_at_start = [];
 var snacks_at_end = [];
 // Total happiness of all players.
 var total_utils = [];
-// Happiness of the worst-off player.
-var min_utils = [];
+// Happiness from eating, player 0.
+var p0_snack_utils = [];
+// Total happiness of player 0, who may sort.
+var p0_utils = [];
 // max utils - min utils
 var inequality = [];
 
 function Loop() {
   snacks_at_end = [];
   total_utils = [];
-  min_utils = [];
+  p0_utils = [];
+  p0_snack_utils = [];
   inequality = [];
 
   Frame();
@@ -350,6 +436,14 @@ function Frame() {
   var start = performance.now();
 
   for (var i = 0; i < SIMULATIONS_PER_FRAME; i++) {
+    Reset();
+    /*
+    var snacks_start = 0;
+    for (var s = 0; s < shelves.length; s++)
+      snacks_start += shelves[s].length;
+    snacks_at_start.push(snacks_start);
+    */
+    
     OneSimulation();
 
     var snacks_left = 0;
@@ -365,14 +459,19 @@ function Frame() {
       max = Math.max(max, people[p].utils);
     }
     total_utils.push(utils);
+    p0_utils.push(people[0].utils);
+    p0_snack_utils.push(people[0].snack_utils);
     // console.log(min);
-    min_utils.push(min);
     inequality.push(max - min);
   }
 
   frame_number++;
-  if (frame_number % 10 == 0) {
+  if (SimulationDone() || frame_number % 10 == 0) {
     Redraw();
+  }
+
+  if (SimulationDone()) {
+    EXIT = true;
   }
   
   // console.log(performance.now() - start);
@@ -399,13 +498,26 @@ function GetMinMax(values) {
 
 var HISTOWIDTH = 800;
 var HISTOBINS = 400;
-var HISTOHEIGHT = 200;
+var HISTOHEIGHT = 120;
 function DrawHistogram(title, values, par) {
   DIV('htitle', par).innerHTML = title + ' × ' + values.length;
   var c = CANVAS('chisto', par);
   c.width = HISTOWIDTH;
   c.height = HISTOHEIGHT;
   var ctx = c.getContext('2d');
+
+  var histobins = 800;
+  var histowidth = 1;
+  if (values.length < 100) {
+    histobins = 100;
+    histowidth = 8;
+  } else if (values.length < 1000) {
+    histobins = 200;
+    histowidth = 4;
+  } else if (values.length < 10000) {
+    histobins = 400;
+    histowidth = 2;
+  }
   
   if (values.length == 0) {
     // no data
@@ -414,44 +526,117 @@ function DrawHistogram(title, values, par) {
     ctx.fillRect(20, 20, 80, 80);
     return;
   }
-  
+
   var minmax = GetMinMax(values);
   var min = minmax.min;
   var max = minmax.max;
   var datawidth = max - min;
   // console.log('min ' + min + ' max ' + max + ' dw ' + datawidth);
-  // var binwidth = datawidth / HISTOBINS;
-
+  // var binwidth = datawidth / histobins;
+  var sum = 0;
+  
   var bins = [];
-  for (var i = 0; i < HISTOBINS; i++)
+  for (var i = 0; i < histobins; i++)
     bins[i] = 0;
   for (var i = 0; i < values.length; i++) {
-    var val = values[i] - min;
+    var v = values[i];
+    sum += v;
+    var off = v - min;
     // XXX sloppy to avoid generating b=length for max val.
-    var b = Math.floor((val / datawidth) * (HISTOBINS - 0.5));
+    var b = Math.floor((off / datawidth) * (histobins - 0.5));
     // console.log(values[i] + ' becomes ' + val + ' then ' + b);
     bins[b]++;
   }
 
+  var mean = sum / values.length;
+  var bmean = Math.floor(((mean - min) / datawidth) *
+			 (histobins - 0.5));
+  var bmedian = 0;
+  
   // Get the maximum value of any bin, for scale. Note: min_bin is
   // always 0.
   var max_bin = 1;
   for (var i = 0; i < bins.length; i++) {
     // console.log(i + ' = ' + bins[i]);
-    max_bin = Math.max(max_bin, bins[i]);
+    if (bins[i] > max_bin) {
+      max_bin = bins[i];
+      bmedian = i;
+    }
   }
   // console.log('max bin: ' + max_bin);
 
+  var median = (bmedian / (histobins - 0.5)) * datawidth + min;
+
+  // Find the highest density interval, assuming that it is a single
+  // interval. There may be a faster or more accurate way to do this
+  // (intervals that are multimodal can definitely produce incorrect
+  // results here, and this same issue presents a small effect at the
+  // edges of the interval in typical noisy cases).
+
+  // Interval described is [blow, bhigh).
+  var blow = bmedian, bhigh = bmedian;
+  var bmass = bins[bmedian];
+  var target_mass = values.length * 0.95;
+  while (bmass < target_mass) {
+    if (blow == 0) {
+      // Must extend high end.
+      bmass += bins[bhigh];
+      bhigh++;
+    } else if (bhigh == bins.length - 1) {
+      // Must extend low end.
+      blow--;
+      bmass += bins[blow];
+    } else {
+      // Take the bin with more mass.
+      var l = bins[blow - 1], h = bins[bhigh];
+      if (l > h) {
+	blow--;
+	bmass += l;
+      } else {
+	bhigh++;
+	bmass += h;
+      }
+    }
+  }
+
+  var low = (blow / (histobins - 0.5)) * datawidth + min;
+  var high = (bhigh / (histobins - 0.5)) * datawidth + min;
+  
   ctx.fillStyle = '#000';
   
   for (var i = 0; i < bins.length; i++) {
     var height = Math.round(bins[i] / max_bin * HISTOHEIGHT);
     var omheight = HISTOHEIGHT - height;
-    // var dd = DIV('hb', elt);
-    ctx.fillRect(i * 2, omheight, 2, height);
-    // dd.style.left = (i * 2) + 'px';
-    // dd.style.top = omheight + 'px';
-    // dd.style.height = height + 'px';
+    if (i == bmean && i == bmedian) {
+      ctx.fillStyle = '#F0F'
+    } else if (i == bmean) {
+      ctx.fillStyle = '#F00'
+    } else if (i == bmedian) {
+      ctx.fillStyle = '#00F'
+    } else if (i >= blow && i < bhigh) {
+      ctx.fillStyle = '#000';
+    } else {
+      ctx.fillStyle = '#777';
+    }
+    ctx.fillRect(i * histowidth, omheight, histowidth, height);
+  }
+  
+  ctx.font = "10px verdana,helvetica,sans-serif";
+  ctx.fillStyle = '#700';
+  ctx.fillText('Mean: ' + mean.toFixed(2), 4, 10);
+  ctx.fillStyle = '#007';
+  ctx.fillText('Median: ' + median.toFixed(2), 4, 24);
+  ctx.fillStyle = '#000';
+  ctx.fillText('ival: [' +
+	       low.toFixed(2) + ', ' +
+	       high.toFixed(2) + ']',
+	       4, 38);
+
+  if (SimulationDone()) {
+    console.log(title + ' × ' + values.length + ' = ' +
+		'Mean: ' + mean.toFixed(2) + ' [' +
+		low.toFixed(2) + ', ' + high.toFixed(2) + '] ' +
+		'Median: ' + median.toFixed(2));
   }
 }
 
@@ -491,18 +676,57 @@ function Redraw() {
   }
 
   // Stats
+
+
+  /*
+  DrawHistogram('snacks at start', snacks_at_start, document.body);
+  BR('', document.body);
+  */
+
+  if (SimulationDone()) {
+    var policies = [];
+    var last_policy = -1;
+    var same_count = 0;
+    var s = '';
+    function Flush() {
+      if (same_count == 0) return;
+      if (s != '') s += ', ';
+      if (same_count > 1) {
+	s += last_policy + '×' + same_count;
+      } else {
+	s += last_policy;
+      }
+      same_count = 0;
+    }
+    for (var i = 0; i < people.length; i++) {
+      var p = people[i].policy;
+      if (p == last_policy) {
+	same_count++;
+      } else {
+	Flush();
+	last_policy = p;
+	same_count = 1;
+      }
+    }
+    Flush();
+    console.log('Policies: ', s);
+  }
   
-  // DrawHistogram('snacks at end', snacks_at_end, document.body);
-  // BR('', document.body);
-  // DrawHistogram('total utils', total_utils, document.body);
-  // BR('', document.body);
-  // This is basically always zero!
-  // DrawHistogram('min utils', min_utils, document.body);
+  DrawHistogram('snacks at end', snacks_at_end, document.body);
   BR('', document.body);
+
+  DrawHistogram('total utils', total_utils, document.body);
+  BR('', document.body);
+  
+  DrawHistogram('p0 utils', p0_utils, document.body);
+  BR('', document.body);
+
+  DrawHistogram('p0 snack utils', p0_snack_utils, document.body);
+  BR('', document.body);
+
   DrawHistogram('inequality', inequality, document.body);
-
-
   BR('', document.body);
+
   TEXT('sim/s: ' + ((frame_number * SIMULATIONS_PER_FRAME) /
 		    (performance.now() / 1000.0)).toFixed(2),
        document.body);
@@ -562,13 +786,14 @@ function ChooseSnack(shelf_idx, player_idx) {
     for (;;) {
       var num_left = shelf.length - cur;
       if (num_left > 0 &&
-	  cur_value < exrec[num_left]) {
+	  cur_value < exrec[num_left - 1] - COST_TO_LOOK) {
 	// swap for next one
 	if (DEBUG) console.log('Player ' + player_idx + ' skips depth ' + cur +
 		    ' because E=' + exrec[num_left].toFixed(2) + 
 		    ' > cur=' + cur_value.toFixed(2));
 	cur++;
 	cur_value = prefs[shelf[cur]];
+	player.utils -= COST_TO_LOOK;
       } else {
 	// not willing or able to swap.
 	if (cur_value > 0 && cur < shelf.length) {
@@ -602,9 +827,9 @@ function Step() {
   for (var i = 0; i < people.length; i++) {
     people[i].next -= best_next;
   }
-  
   // Also advance restocking time.
   time_until_restock -= best_next;
+
   var player = people[best_i];
   var start_shelf_idx = RandTo(shelves.length);
 
@@ -614,7 +839,8 @@ function Step() {
     if (res) {
       var next_shelf_idx = (shelf_idx + 1) % shelves.length;
       var next_shelf = shelves[next_shelf_idx];
-      // Expected value of switching to the next shelf.
+      // Expected value of switching to the next shelf. We say that
+      // looking to the next shelf is free.
       var e_next = player.exrec[next_shelf_idx][next_shelf.length];
       // We don't allow going back to the first shelf. We also keep
       // the current snack if it's better than what we expect to
@@ -629,7 +855,27 @@ function Step() {
 	shelf.splice(res.idx, 1);
 	player.eaten++;
 	player.utils += res.value;
-	// XXX potentially reshuffle shelf.
+	player.snack_utils += res.value;
+	
+	// Reshuffle shelf if in policy.
+	if (player.policy == ALWAYS_SORT) {
+	  SortByPreference(shelf, player.prefs[shelf_idx]);
+	} else if (player.policy == FAVORITE_LAST) {
+	  if (DEBUG) console.log('player ' + best_i + ' puts his favorite, ' +
+		      player.favorite[shelf_idx] + ' last in ' +
+		      shelf.join(','));
+	  PutFavoriteLast(shelf, player.favorite[shelf_idx]);
+	  if (DEBUG) console.log('and now it is: ' + shelf.join(','));
+	} else if (player.policy == OUTLIER_LAST) {
+	  if (player.outlier[shelf_idx]) {
+	    if (DEBUG) console.log('player ' + best_i + ' puts his favorite, ' +
+				   player.favorite[shelf_idx] + ' last in ' +
+				   shelf.join(','));
+	    PutFavoriteLast(shelf, player.favorite[shelf_idx]);
+	    if (DEBUG) console.log('and now it is: ' + shelf.join(','));
+	  }
+	}
+
 	break;
       } else {
 	if (DEBUG) console.log('player ' + best_i + ' goes to next shelf #' +
