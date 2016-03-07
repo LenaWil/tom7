@@ -1,0 +1,58 @@
+
+function RandFrom(l) {
+  return l[RandTo(l.length)];
+}
+
+function NameBrand() {
+  // One syllable
+  var a = ['Ch', 'Pr', 'S', 'Sp', 'Br', 'Ex', 'Pl', 'P',
+	   'T', 'Th', 'Tr', 'Sl', 'D', 'Dr', 'G', 'Gr',
+	   'Gl', 'K']
+  var b = ['a', 'e', 'o', 'u', 'o', 'oo', 'ee', 'i', 'a', 'ea', 'ie']
+  var c = ['ke', 'rk', 'ck', 'ch', 'ng', 'g', 'd', 'sh', 'sk',
+	   'rg', 'rp', 'p', 'pe', 't', 'tch', 'te', 'ty', 'q',
+	   'b', 'be', 'rb', 'x']
+  return RandFrom(a) + RandFrom(b) + RandFrom(c);
+}
+
+function OneFlavor() {
+  var flavors = ['Cherry', 'Vanilla', 'Grape', 'Coffee', 'Strawberry',
+		 'Orange', 'Mango'];
+  var style_prefix = ['Diet', 'Regular', 'Dr.', 'Mr.', 'Mrs.', 'Caffeine-Free']
+  var style_suffix = ['Black', 'X', 'X-Tra', 'Classic', 'Ultra', 'Lite']
+
+  switch (RandTo(5)) {
+  case 0: return {pre: RandFromList(style_prefix), suf: ''};
+  case 1: return {pre: '', suf: RandFromList(style_suffix)};
+  case 2: return {pre: RandFromList(flavors), suf: ''};
+  case 3: return {pre: RandFromList(style_prefix), 
+		  suf: RandFromList(style_suffix)};
+  case 4: return {pre: RandFromList(style_flavors), 
+		  suf: RandFromList(style_suffix)};
+  }
+}
+
+// Snack naming is very important.
+//
+// Argument is number of varieties.
+function NameSnack(n) {
+  var brand = NameBrand();
+  var ret = {brand: brand, flavors: flavors}
+  var used = {};
+  while (ret.flavors.length < n) {
+    var flav = OneFlavor();
+    var fs = flav.pre + '.' + flav.suf;
+    // Names must be unique.
+    if (used[fs])
+      continue;
+    ret.flavors.push_back(flav);
+    used[fs] = true;
+  }
+
+  return ret;
+}
+
+// XXX generate names for people
+function NamePerson() {
+
+}
