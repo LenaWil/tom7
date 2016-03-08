@@ -130,6 +130,8 @@ function SortByPreference(stock, pref) {
 }
 
 function PutFavoriteLast(stock, fav) {
+  var startlen = stock.length;
+  var sorted = stock.slice();
   var dst = 0;
   var n = 0;
   for (var src = 0; src < stock.length; src++) {
@@ -147,11 +149,19 @@ function PutFavoriteLast(stock, fav) {
     stock[dst] = fav;
     dst++;
   }
+  if (stock.length != startlen) throw 'NO';
+  var res = stock.slice();
+  sorted.sort(function(a, b) { return a - b; });
+  res.sort(function(a, b) { return a - b; });
+  for (var i = 0; i < res.length; i++) {
+    if (sorted[i] != res[i]) throw ('No: ' + sorted.join(',') + ' vs ' +
+				    res.join(','));
+  }
 }
 
 // Policies.
-var ALWAYS_SORT = 1;
 var NO_SORT = 0;
+var ALWAYS_SORT = 1;
 var FAVORITE_LAST = 2;
 var OUTLIER_LAST = 3;
 
@@ -177,7 +187,12 @@ function CloneSimulation(s) {
   for (var i = 0; i < s.people.length; i++) {
     p.push(ClonePerson(s.people[i]));
   }
-  return { shelves: s.shelves.slice(),
+  var h = [];
+  for (var i = 0; i < s.shelves.length; i++) {
+    h.push(s.shelves[i].slice());
+  }
+  return { shelves: h,
+	   // XXX deep clone objects.
 	   snacks: s.snacks.slice(),
 	   people: p,
 	   time_left: s.time_left };
@@ -264,7 +279,7 @@ function NewSimulation() {
       
       exrecs.push(MakeExRec(pref));
     }
-
+    
     people.push({
       policy: NO_SORT,
       eaten: 0,
@@ -296,7 +311,18 @@ function NewStats() {
 }
 
 function NewTask() {
-  // XXX hyper-tune parameters
+  // hyper-tune parameters, globally
+  NUM_SHELVES = RandTo(20) + 2;
+  NUM_PEOPLE = RandTo(40) + 2;
+  MAX_VARIETY = RandTo(12) + 2;
+  MIN_ITEMS = 3;
+  MAX_ITEMS = 5 + RandTo(75);
+  OUTLIER_RATIO = 1.0 + Math.random() * 2.5;
+  COST_TO_LOOK = Math.random() * 0.10;
+  MEAN_WAIT = RandomGamma(2.0) * 2 * 60 * 60;
+  PREF_MEAN = RandomGamma(2.0) * 0.75;
+  PREF_STDDEV = RandomGamma(2.0) * 2.0;
+
   return {
     experiment_sims_left: SIMULATIONS_PER_EXPERIMENT,
     cstats: NewStats(),
@@ -309,6 +335,14 @@ function Init() {
   task = NewTask(); 
   
   Frame();
+}
+
+function Mean(v) {
+  if (v.length == 0) return 0;
+  var sum = 0;
+  for (var i = 0; i < v.length; i++)
+    sum += v[i];
+  return sum / v.length;
 }
 
 function GetStats(sim) {
@@ -368,6 +402,11 @@ function PolicyString(sim) {
 // the state across those callbacks.
 var task = null;
 
+var best = {
+  ratio: 0,
+  params: '(no)'
+};
+
 var draw_ctr = 0;
 function Frame() {
   // We always enter frame with a task that has work to do.
@@ -378,12 +417,12 @@ function Frame() {
        i++) {
     var csim = NewSimulation();
     var esim = CloneSimulation(csim);
-
+    
     // Apply experimental condition.
     esim.people[0].policy = OUTLIER_LAST;
-    
-    while (csim.time_left > 0) Step(csim);
+
     while (esim.time_left > 0) Step(esim);
+    while (csim.time_left > 0) Step(csim);
     simulation_num += 2;
     
     function AccStats(thesim, thestats) {
@@ -393,6 +432,7 @@ function Frame() {
       thestats.p0_utils.push(st.p0_utils);
       thestats.p0_snack_utils.push(st.p0_snack_utils);
       thestats.inequality.push(st.inequality);
+      // if (st.p0_snack_utils
     }
 
     AccStats(csim, task.cstats);
@@ -403,25 +443,43 @@ function Frame() {
 
   if (task.experiment_sims_left == 0) {
     // Done. Draw it.
-
-    console.log('Policies: ' + PolicyString(csim) + ' exp: ' +
-		PolicyString(esim));
-    // XXX more info
-    
+   
     document.body.innerHTML = '';
-    DrawParams(true);
-    DrawStats(task.cstats, true);
-    DrawStats(task.estats, true);
 
     // HERE: check if the outcome favors the experiment
+    var cp0 = Mean(task.cstats.p0_snack_utils);
+    var ep0 = Mean(task.estats.p0_snack_utils);
     
+    if (cp0 > 0 && ep0 > cp0) {
+      var ratio = ep0 / cp0;
+      if (ratio > best.ratio) {
+	best.ratio = ratio;
+	console.log('!!!!!!!!! NEW BEST !!!!!!!!!!!!!');
+	best.params = ParamsString();
+      }
+      console.log('#### Winning! ctrl p0: ' + cp0 + ' < exp p0: ' + ep0);
+      DrawParams(true);
+      console.log('Policies: ctrl: ' + PolicyString(csim) + ' exp: ' +
+		  PolicyString(esim));
+      DrawStats(task.cstats, true);
+      BR('', document.body);
+      BR('', document.body);
+      DrawStats(task.estats, true);
+    } else {
+      DIV('failed', document.body).innerHTML =
+	  'Losing experiment: ctrl p0: ' + cp0 + ' &gt; exp p0: ' + ep0;
+    }
+
     // And now a new experiment.
     task = NewTask();
     if (task.experiment_sims_left == 0) throw 'whaa??';
     
   } else if ((draw_ctr % 10) == 0) {
     document.body.innerHTML = '';
+    DrawParams(false);
     DrawStats(task.cstats, false);
+    BR('', document.body);
+    BR('', document.body);
     DrawStats(task.estats, false);
     draw_ctr = 0;
   }
@@ -623,17 +681,24 @@ function DrawSim(sim) {
   }
 }
 
-function DrawParams(log) {
+function ParamsString() {
   var l = ['NUM_SHELVES', 'NUM_PEOPLE',
 	   'MAX_VARIETY', 'MIN_ITEMS',
 	   'MAX_ITEMS', 'OUTLIER_RATIO',
 	   'COST_TO_LOOK', 'MEAN_WAIT',
 	   'PREF_MEAN', 'PREF_STDDEV'];
-  var d = DIV('params', document.body);
+  var s = '';
   for (var i = 0; i < l.length; i++) {
-    SPAN('param', d).innerHTML = l[i] + ': ' + window[l[i]] + ', ';
-    if (log) console.log(l[i] + ' = ' + window[l[i]]);
+    if (s != '') s += ', ';
+    s += l[i] + ': ' + window[l[i]];
   }
+  return s;
+}
+
+function DrawParams(log) {
+  var s = ParamsString();
+  DIV('params', document.body).innerHTML = s;
+  if (log) console.log(s);
 }
 
 function DrawStats(stats, log) {
