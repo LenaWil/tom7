@@ -300,7 +300,7 @@ function NewSimulation() {
 
 function NewStats() {
   return { snacks_left: [],
-	   // Total happiness of all players.
+	   // Total (snack) happiness of all players.
 	   total_utils: [],
 	   // Total happiness of player 0, who may have a selfish policy.
 	   p0_utils: [],
@@ -323,6 +323,21 @@ function NewTask() {
   PREF_MEAN = RandomGamma(2.0) * 0.75;
   PREF_STDDEV = RandomGamma(2.0) * 2.0;
 
+  // Half the time, average with the current best.
+  // This spends more time searching near local maxima.
+  if (Math.random() < 0.5 && best.num_shelves != undefined) {
+    NUM_SHELVES = Math.round((NUM_SHELVES + best.num_shelves) / 2);
+    NUM_PEOPLE = Math.round((NUM_PEOPLE + best.num_people) / 2);
+    MAX_VARIETY = Math.round((MAX_VARIETY + best.max_variety) / 2);
+    MIN_ITEMS = Math.round((MIN_ITEMS + best.min_items) / 2);
+    MAX_ITEMS = Math.round((MAX_ITEMS + best.max_items) / 2);
+    OUTLIER_RATIO = (OUTLIER_RATIO + best.outlier_ratio) / 2;
+    COST_TO_LOOK = (COST_TO_LOOK + best.cost_to_look) / 2;
+    MEAN_WAIT = (MEAN_WAIT + best.mean_wait) / 2;
+    PREF_MEAN = (PREF_MEAN + best.pref_mean) / 2;
+    PREF_STDDEV = (PREF_STDDEV + best.pref_stddev) / 2;
+  }
+  
   return {
     experiment_sims_left: SIMULATIONS_PER_EXPERIMENT,
     cstats: NewStats(),
@@ -350,16 +365,16 @@ function GetStats(sim) {
   for (var s = 0; s < sim.shelves.length; s++)
     snacks_left += sim.shelves[s].length;
 
-  var utils = 0;
-  var min = sim.people[0].utils, max = sim.people[0].utils;
+  var snack_utils = 0;
+  var min = sim.people[0].snack_utils, max = sim.people[0].snack_utils;
   for (var p = 0; p < sim.people.length; p++) {
-    utils += sim.people[p].utils;
-    min = Math.min(min, sim.people[p].utils);
-    max = Math.max(max, sim.people[p].utils);
+    snack_utils += sim.people[p].snack_utils;
+    min = Math.min(min, sim.people[p].snack_utils);
+    max = Math.max(max, sim.people[p].snack_utils);
   }
 
   return { snacks_left: snacks_left,
-	   utils: utils,
+	   utils: snack_utils,
 	   p0_utils: sim.people[0].utils,
 	   p0_snack_utils: sim.people[0].snack_utils,
 	   inequality: max - min };
@@ -403,8 +418,20 @@ function PolicyString(sim) {
 var task = null;
 
 var best = {
-  ratio: 0,
-  params: '(no)'
+  cost_to_look: 0.0654450536472723,
+  max_items: 17,
+  max_variety: 8,
+  mean_wait: 23638.810553936702,
+  min_items: 3,
+  num_people: 20,
+  num_shelves: 3,
+  outlier_ratio: 3.134223625762388,
+  params: "NUM_SHELVES: 3, NUM_PEOPLE: 20, MAX_VARIETY: 8, MIN_ITEMS: 3, MAX_ITEMS: 17, OUTLIER_RATIO: 3.134223625762388, COST_TO_LOOK: 0.0654450536472723, MEAN_WAIT: 23638.810553936702, PREF_MEAN: 0.6997781433386749, PREF_STDDEV: 4.5844644380407145",
+  pref_mean: 0.6997781433386749,
+  pref_stddev: 4.5844644380407145,
+  ratio: 1.0247744252866777,
+  tratio: 1.0,
+  mratio: 1.0
 };
 
 var draw_ctr = 0;
@@ -449,13 +476,33 @@ function Frame() {
     // HERE: check if the outcome favors the experiment
     var cp0 = Mean(task.cstats.p0_snack_utils);
     var ep0 = Mean(task.estats.p0_snack_utils);
+
+    var ct = Mean(task.cstats.total_utils);
+    var et = Mean(task.estats.total_utils);
+
     
-    if (cp0 > 0 && ep0 > cp0) {
+    if (ct > 0 && cp0 > 0 && ep0 > cp0 && et > ct) {
       var ratio = ep0 / cp0;
-      if (ratio > best.ratio) {
+      var tratio = et / ct;
+      var mratio = Math.min(ratio, tratio);
+      if (mratio > best.mratio) {
 	best.ratio = ratio;
-	console.log('!!!!!!!!! NEW BEST !!!!!!!!!!!!!');
+	best.tratio = tratio;
+	best.mratio = mratio;
+	console.log('!!!!!!!!! NEW BEST: ' +
+		    'p0: ' + ratio.toFixed(3) + ' all: ' +
+		    tratio.toFixed(3) + ' !!!!!!!!!!!!!');
 	best.params = ParamsString();
+	best.num_shelves = NUM_SHELVES;
+	best.num_people = NUM_PEOPLE;
+	best.max_variety = MAX_VARIETY;
+	best.min_items = MIN_ITEMS;
+	best.max_items = MAX_ITEMS;
+	best.outlier_ratio = OUTLIER_RATIO;
+	best.cost_to_look = COST_TO_LOOK;
+	best.mean_wait = MEAN_WAIT;
+	best.pref_mean = PREF_MEAN;
+	best.pref_stddev = PREF_STDDEV;
       }
       console.log('#### Winning! ctrl p0: ' + cp0 + ' < exp p0: ' + ep0);
       DrawParams(true);
