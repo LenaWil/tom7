@@ -24,7 +24,7 @@ function OneFlavor() {
   switch (RandTo(5)) {
   case 0: return {pre: RandFrom(style_prefix), suf: ''};
   case 1: return {pre: '', suf: RandFrom(style_suffix)};
-  case 2: return {pre: RandFrom(flavors), suf: ''};
+  case 2: return {pre: RandFrom(style_flavors), suf: ''};
   case 3: return {pre: RandFrom(style_prefix), 
 		  suf: RandFrom(style_suffix)};
   case 4: return {pre: RandFrom(style_flavors), 
