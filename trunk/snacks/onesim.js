@@ -31,23 +31,39 @@ function TEXT(contents, elt) {
 
 var simulation_num = 0;
 var SIMULATIONS_PER_FRAME = 100;
-var SIMULATIONS_PER_EXPERIMENT = 10000;
+var SIMULATIONS_PER_EXPERIMENT = 10000000;
 
 
+var best = {
+  cost_to_look: 0.0013740099966526031,
+  max_items: 37,
+  max_variety: 4,
+  mean_wait: 36305.715396286374,
+  min_items: 3,
+  mratio: 1.0106439712837496,
+  num_people: 2,
+  num_shelves: 15,
+  outlier_ratio: 2.1996847920818254,
+  params: "NUM_SHELVES: 15, NUM_PEOPLE: 2, MAX_VARIETY: 4, MIN_ITEMS: 3, MAX_ITEMS: 37, OUTLIER_RATIO: 2.1996847920818254, COST_TO_LOOK: 0.0013740099966526031, MEAN_WAIT: 36305.715396286374, PREF_MEAN: 1.3201387708679042, PREF_STDDEV: 5.625407250754956",
+  pref_mean: 1.3201387708679042,
+  pref_stddev: 5.625407250754956,
+  ratio: 1.02090727236298,
+  tratio: 1.0106439712837496
+};
 
 // Each shelf holds a different item.
-var NUM_SHELVES = 15;
-var NUM_PEOPLE = 30;
+var NUM_SHELVES = best.num_shelves;
+var NUM_PEOPLE = best.num_people;
 // The number of varieties of a snack is uniform in [1, MAX_VARIETY]
-var MAX_VARIETY = 8;
+var MAX_VARIETY = best.max_variety;
 // TODO: Argument for minimum, based on plurality, etc.
-var MIN_ITEMS = 3;
-var MAX_ITEMS = 50;
-var OUTLIER_RATIO = 2.0;
-var COST_TO_LOOK = 0.05;
+var MIN_ITEMS = best.min_items;
+var MAX_ITEMS = best.max_items;
+var OUTLIER_RATIO = best.outlier_ratio;
+var COST_TO_LOOK = best.cost_to_look;
 // This will be the average number of seconds between
 // snack events.
-var MEAN_WAIT = 2 * 60 * 60;
+var MEAN_WAIT = best.mean_wait;
 // Maybe should depend on snack type, like assuming that
 // people have similar values for "premium" snacks, based on
 // the idea that some snacks just cost more.
@@ -57,10 +73,10 @@ var MEAN_WAIT = 2 * 60 * 60;
 // intuitive since the variance of the snacks themselves is
 // obviously less between varities than between snacks). Some people
 // just don't like tea or candy but like yogurt.
-var PREF_MEAN = 0.75;
+var PREF_MEAN = best.pref_mean;
 // Should certainly include negative values to indicate an
 // aversion to a snack.
-var PREF_STDDEV = 2.0;
+var PREF_STDDEV = best.pref_stddev;
 
 // Generate a random preference function for n items. This is
 // represented by a length-n array of utilities.
@@ -302,15 +318,15 @@ function NewStats() {
   return { snacks_left: [],
 	   // Total (snack) happiness of all players.
 	   total_utils: [],
-	   // Total happiness of player 0, who may have a selfish policy.
-	   p0_utils: [],
 	   // Happiness only from eating, player 0.
 	   p0_snack_utils: [],
+	   p1_snack_utils: [],
 	   // max utils - min utils
 	   inequality: [] };
 }
 
 function NewTask() {
+/*
   // hyper-tune parameters, globally
   NUM_SHELVES = RandTo(20) + 2;
   NUM_PEOPLE = RandTo(40) + 2;
@@ -318,7 +334,7 @@ function NewTask() {
   MIN_ITEMS = 3;
   MAX_ITEMS = 5 + RandTo(75);
   OUTLIER_RATIO = 1.0 + Math.random() * 2.5;
-  COST_TO_LOOK = Math.random() * 2.00;
+  COST_TO_LOOK = Math.random() * 0.10;
   MEAN_WAIT = RandomGamma(2.0) * 2 * 60 * 60;
   PREF_MEAN = RandomGamma(2.0) * 0.75;
   PREF_STDDEV = RandomGamma(2.0) * 2.0;
@@ -337,6 +353,7 @@ function NewTask() {
     PREF_MEAN = (PREF_MEAN + best.pref_mean) / 2;
     PREF_STDDEV = (PREF_STDDEV + best.pref_stddev) / 2;
   }
+*/
   
   return {
     experiment_sims_left: SIMULATIONS_PER_EXPERIMENT,
@@ -375,8 +392,8 @@ function GetStats(sim) {
 
   return { snacks_left: snacks_left,
 	   utils: snack_utils,
-	   p0_utils: sim.people[0].utils,
 	   p0_snack_utils: sim.people[0].snack_utils,
+	   p1_snack_utils: sim.people[1].snack_utils,	   
 	   inequality: max - min };
 }
 
@@ -456,8 +473,8 @@ function Frame() {
       var st = GetStats(thesim);
       thestats.snacks_left.push(st.snacks_left);
       thestats.total_utils.push(st.utils);
-      thestats.p0_utils.push(st.p0_utils);
       thestats.p0_snack_utils.push(st.p0_snack_utils);
+      thestats.p1_snack_utils.push(st.p1_snack_utils);
       thestats.inequality.push(st.inequality);
       // if (st.p0_snack_utils
     }
@@ -471,8 +488,6 @@ function Frame() {
   if (task.experiment_sims_left == 0) {
     // Done. Draw it.
    
-    document.body.innerHTML = '';
-
     var cp0 = Mean(task.cstats.p0_snack_utils);
     var ep0 = Mean(task.estats.p0_snack_utils);
 
@@ -480,6 +495,8 @@ function Frame() {
     var et = Mean(task.estats.total_utils);
     
     if (ct > 0 && cp0 > 0 && ep0 > cp0 && et > ct) {
+      document.body.innerHTML = '';
+      
       var ratio = ep0 / cp0;
       var tratio = et / ct;
       var mratio = Math.min(ratio, tratio);
@@ -515,6 +532,10 @@ function Frame() {
 	  'Losing experiment: ctrl p0: ' + cp0 + ' &gt; exp p0: ' + ep0;
     }
 
+    // XXxxx..
+    EXIT = true;
+    return;
+    
     // And now a new experiment.
     task = NewTask();
     if (task.experiment_sims_left == 0) throw 'whaa??';
@@ -674,20 +695,20 @@ function DrawHistogram(title, values, par, log) {
   
   ctx.font = "10px verdana,helvetica,sans-serif";
   ctx.fillStyle = '#700';
-  ctx.fillText('Mean: ' + mean.toFixed(2), 4, 10);
+  ctx.fillText('Mean: ' + mean.toFixed(3), 4, 10);
   ctx.fillStyle = '#007';
-  ctx.fillText('Median: ' + median.toFixed(2), 4, 24);
+  ctx.fillText('Median: ' + median.toFixed(3), 4, 24);
   ctx.fillStyle = '#000';
   ctx.fillText('ival: [' +
-	       low.toFixed(2) + ', ' +
-	       high.toFixed(2) + ']',
+	       low.toFixed(3) + ', ' +
+	       high.toFixed(3) + ']',
 	       4, 38);
 
   if (log) {
     console.log(title + ' × ' + values.length + ' = ' +
-		'Mean: ' + mean.toFixed(2) + ' [' +
-		low.toFixed(2) + ', ' + high.toFixed(2) + '] ' +
-		'Median: ' + median.toFixed(2));
+		'Mean: ' + mean.toFixed(5) + ' [' +
+		low.toFixed(5) + ', ' + high.toFixed(5) + '] ' +
+		'Median: ' + median.toFixed(5));
   }
 }
 
@@ -750,14 +771,12 @@ function DrawStats(stats, log) {
   DrawHistogram('total utils', stats.total_utils, document.body, log);
   BR('', document.body);
 
-  /*
-  DrawHistogram('p0 utils', stats.p0_utils, document.body, log);
-  BR('', document.body);
-  */
-
   DrawHistogram('p0 snack utils', stats.p0_snack_utils, document.body, log);
   BR('', document.body);
 
+  DrawHistogram('p1 snack utils', stats.p1_snack_utils, document.body, log);
+  BR('', document.body);
+  
   /*
   DrawHistogram('inequality', stats.inequality, document.body, log);
   BR('', document.body);
@@ -863,7 +882,6 @@ function Step(s) {
   for (var i = 0; i < s.people.length; i++) {
     s.people[i].next -= best_next;
   }
-
   // Also advance restocking time.
   s.time_left -= best_next;
 
