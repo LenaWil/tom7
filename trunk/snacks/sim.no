@@ -16,19 +16,19 @@ function NameBrand() {
 }
 
 function OneFlavor() {
-  var flavors = ['Cherry', 'Vanilla', 'Grape', 'Coffee', 'Strawberry',
-		 'Orange', 'Mango'];
+  var style_flavors = ['Cherry', 'Vanilla', 'Grape', 'Coffee', 'Strawberry',
+		       'Orange', 'Mango'];
   var style_prefix = ['Diet', 'Regular', 'Dr.', 'Mr.', 'Mrs.', 'Caffeine-Free']
   var style_suffix = ['Black', 'X', 'X-Tra', 'Classic', 'Ultra', 'Lite']
 
   switch (RandTo(5)) {
-  case 0: return {pre: RandFromList(style_prefix), suf: ''};
-  case 1: return {pre: '', suf: RandFromList(style_suffix)};
-  case 2: return {pre: RandFromList(flavors), suf: ''};
-  case 3: return {pre: RandFromList(style_prefix), 
-		  suf: RandFromList(style_suffix)};
-  case 4: return {pre: RandFromList(style_flavors), 
-		  suf: RandFromList(style_suffix)};
+  case 0: return {pre: RandFrom(style_prefix), suf: ''};
+  case 1: return {pre: '', suf: RandFrom(style_suffix)};
+  case 2: return {pre: RandFrom(flavors), suf: ''};
+  case 3: return {pre: RandFrom(style_prefix), 
+		  suf: RandFrom(style_suffix)};
+  case 4: return {pre: RandFrom(style_flavors), 
+		  suf: RandFrom(style_suffix)};
   }
 }
 
@@ -55,4 +55,10 @@ function NameSnack(n) {
 // XXX generate names for people
 function NamePerson() {
 
+}
+
+function Namez() {
+  var obj = OneFlavor();
+  var b = NameBrand();
+  console.log(obj.pre + ' ' + b + ' ' + obj.suf);
 }

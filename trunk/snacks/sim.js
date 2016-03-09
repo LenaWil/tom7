@@ -325,7 +325,7 @@ function NewTask() {
 
   // Half the time, average with the current best.
   // This spends more time searching near local maxima.
-  if (Math.random() < 0.5 && best.num_shelves != undefined) {
+  while (Math.random() < 0.5 && best.num_shelves != undefined) {
     NUM_SHELVES = Math.round((NUM_SHELVES + best.num_shelves) / 2);
     NUM_PEOPLE = Math.round((NUM_PEOPLE + best.num_people) / 2);
     MAX_VARIETY = Math.round((MAX_VARIETY + best.max_variety) / 2);
@@ -418,20 +418,20 @@ function PolicyString(sim) {
 var task = null;
 
 var best = {
-  cost_to_look: 0.0654450536472723,
-  max_items: 17,
-  max_variety: 8,
-  mean_wait: 23638.810553936702,
+  cost_to_look: 0.0013740099966526031,
+  max_items: 37,
+  max_variety: 4,
+  mean_wait: 36305.715396286374,
   min_items: 3,
-  num_people: 20,
-  num_shelves: 3,
-  outlier_ratio: 3.134223625762388,
-  params: "NUM_SHELVES: 3, NUM_PEOPLE: 20, MAX_VARIETY: 8, MIN_ITEMS: 3, MAX_ITEMS: 17, OUTLIER_RATIO: 3.134223625762388, COST_TO_LOOK: 0.0654450536472723, MEAN_WAIT: 23638.810553936702, PREF_MEAN: 0.6997781433386749, PREF_STDDEV: 4.5844644380407145",
-  pref_mean: 0.6997781433386749,
-  pref_stddev: 4.5844644380407145,
-  ratio: 1.0247744252866777,
-  tratio: 1.0,
-  mratio: 1.0
+  mratio: 1.0106439712837496,
+  num_people: 2,
+  num_shelves: 15,
+  outlier_ratio: 2.1996847920818254,
+  params: "NUM_SHELVES: 15, NUM_PEOPLE: 2, MAX_VARIETY: 4, MIN_ITEMS: 3, MAX_ITEMS: 37, OUTLIER_RATIO: 2.1996847920818254, COST_TO_LOOK: 0.0013740099966526031, MEAN_WAIT: 36305.715396286374, PREF_MEAN: 1.3201387708679042, PREF_STDDEV: 5.625407250754956",
+  pref_mean: 1.3201387708679042,
+  pref_stddev: 5.625407250754956,
+  ratio: 1.02090727236298,
+  tratio: 1.0106439712837496
 };
 
 var draw_ctr = 0;
@@ -473,13 +473,11 @@ function Frame() {
    
     document.body.innerHTML = '';
 
-    // HERE: check if the outcome favors the experiment
     var cp0 = Mean(task.cstats.p0_snack_utils);
     var ep0 = Mean(task.estats.p0_snack_utils);
 
     var ct = Mean(task.cstats.total_utils);
     var et = Mean(task.estats.total_utils);
-
     
     if (ct > 0 && cp0 > 0 && ep0 > cp0 && et > ct) {
       var ratio = ep0 / cp0;

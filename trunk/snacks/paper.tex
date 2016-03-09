@@ -1,6 +1,7 @@
 \documentclass[twocolumn]{article}
 \usepackage[top=1.1in, left=0.85in, right=0.85in]{geometry}
 
+\usepackage{relsize}
 \usepackage{amsmath}
 \usepackage{amssymb}
 % \usepackage{code}
@@ -56,9 +57,113 @@ what do I put here
 
 \section{Introduction}
 
-Some workplaces of the future now offer a feature called Snacks.
+Some workplaces of the future now offer a feature called Snacks. With Snacks, a kitchenette is provided near workers, which supplies running water and an array of small food packs. These foods are free of (dollar) charge, but various spoken and unspoken rules govern worker interactions with the foods.
 
-Hodgman~\cite{hodgman2016snacks}.
+This presents a challenge, since some foods are more desirable than others. Specifically, say that one yogurt food comes in four varieties: Classic, Diet, Cherry-Vanilla, and Caffeine Free. Furthermore, say that one user \verb+<3+'s Cherry-Vanilla variety yogurt food and \verb+>=3+'s Caffeine Free variety yogurt food. This worker is happiest when he begins his office work while eating Cherry-Vanilla. If there is no Cherry-Vanilla, the worker may resort to Classic yogurt food, reducing his task-ready disposition, and thus performance. If all flavors have been exhausted but Caffeine Free, then the worker may take no yogurt at all, knowing that Caffeine Free brings more displeasure than even hunger. This creates a negative affect, which may cause the worker to actively sabotage the work of his peers. This provides poor Return on Investment (ROI).
+
+One strategy is for this worker, who we will call Sal, to take all of the favored Cherry-Vanilla foods from the kitchenette to his desk at the beginning of the day. This strategy is called hoarding. This ensures that Sal may eat all his Cherry-Vanilla flavors. However, this behavior is considered unfair, for one reason that all other workers are completely deprived of Cherry-Vanilla flavor. It is perceived that Sal and all other workers should have equivalent access to the shared resource, except for the moment that he is selecting a food (for he is "first in line", and lines are fair). Moreover, Sal should take only one food at a time (for it is "Please help yourself. We ask that you take only one piece so that others may enjoy it as well," which is fair). We also perceive that Sal should take food only when he is actually hungry (for it is "waste not, want not," which is fair).
+
+Given these rules, there are still things that Sal can do to influence the chance that he gets the Cherry-Vanilla flavors. In particular, this paper investigates the strategy of Reordering, where Sal selects his favored snack, and also changes the order of the foods in the kitchenette. The thought is that while everyone retains equivalent access to the foods, other workers are less likely to select Cherry-Vanilla due to the decreased visibility and/or increased effort in finding them.
+
+Note that the author does not reorder habitually reorder snacks; this question is of abstract philosophical interest. We consulted the wisdom of Judge John~Hodgman, who wrote~\cite{hodgman2016snacks}:
+
+\begin{quotation}
+  \noindent Why don't you just go out to lunch and buy the food you want with
+  your own money?
+  
+  \noindent \ldots\ Stop with the personal e-mails and get back to work.
+\end{quotation}
+
+We did not find this to be a satisfactory argument.
+
+\smallskip
+In this paper, I first provide a short argument why Sal's behavior may be considered fair, using an unjustifiable but common assumption. I then give a formal model for Snacks, which can be used to conduct controlled experiments. I then show that under suitable conditions, Sal's behavior benefits both him and the workplace, in a Utilitarian sense.
+
+To investigate whether Reordering helps Sal and the rest of the workplace, we could run an experiment. Unfortunately this would be very expensive; we would need to find many work forces that are comparable, with similar food preferences, randomly assign some to the experimental group (where some fraction implement the Reordering policy) and then somehow judge their happiness. This would take a long time, and if the policy or experimental controls turn out to be harmful, might impact real GDP. For the effect sizes we see later, a live experiment is unlikely to show significance.
+
+Instead, we develop a simple model that captures important aspects of the Snacks program, implement this on a computer, and then run millions of simulations.
+
+The simplified model is as follows.
+
+A simulation consists of an array $S$ of shelves, each of which is stocked with different varieties of food. The varieties are just given as integers from 0--$n_i$, where each food type (shelf) may have a different number of varieties. In an early version of the simulation each food and variety is given a name, so we might have a shelf consisting of many sodas, like
+
+\begin{itemize}
+\item Diet Kake 
+\item Diet Thuck Lite
+\item Mango Slooch 
+\item Mr. Sleepe Black
+\item Caffeine-Free Droob Ultra
+\item Caffeine-Free Spask Black
+\item Dr. Drarb Classic
+\item Drorp Lite
+\item Diet Grobe
+\item Strawberry Sad 
+\item Vanilla Grerb
+\item Cherry Prote Lite
+\item Duq Ultra
+\item Dr. Brosh Lite
+\item Caffeine-Free Choq Black
+\item Grape Ding Lite
+\item Mrs. Broop 
+\item Diet Pap 
+\item Grape Drax Classic
+\end{itemize}
+
+We also have an array $W$ of workers. Each worker has a preference function $P_{ij}$, one floating point value for each snack variety. This value may be negative, indicating an aversion to that snack. Nominally, these values are in dollars, for scale.
+
+For simplicity, workers all get hungry at the same rate (although their hunger strikes randomly). When a worker hungers, she
+
+\begin{enumerate}
+\item Selects a shelf at random.
+\item Sets her gaze upon the foremost variety on that shelf. She has some value $v$ for this item, given by $P$. \label{step:start}
+\item She can see the number of items on the shelf, but not what varieties they are. From this number, she estimates what value $v'$ she would get from skipping the current variety (for this round) and setting her gaze upon the next one. \label{step:skip}
+\item If $v' > v$, she does so, and repeats from step \ref{step:skip}.
+\item If not, this is the food provisionally selected for this shelf, with value $v$.
+\item If there are shelves remaining, she estimates the value of abandoning this shelf and trying the next one, $v''$.
+\item If $v'' > v$, she moves to the next shelf and returns to step \ref{step:start}.
+\item If she finishes with a selected food, she may reorder the items on the shelf of that food arbitrarily. She removes the selected food, if any, and eats it.
+\end{enumerate}
+
+No player retains any knowledge of the organization of a shelf between rounds.\footnote{This is not an accurate assumption in reality, but seems to only disadvantage those who reorder snacks from benefiting from their own treachery. A very advanced strategy might rearrange items on the shelf in order to encode information about what has been reordered, for example, by coding a specific unlikely pattern at the front of a shelf (or prior shelf) to foreshadow the hidden booty. Ultra-advanced strategies might place misleading codes to confuse other workers and cause them to make suboptimal choices. Hyper-advanced strategies might use steganographic techniques or cryptographic signatures to hide codes or make them tamper-proof. Of course, this does not matter in a real workplace because workers can remember extremely simple facts themselves.}
+
+We have not yet said how the worker estimates the value of a shelf. But observe the following properties:
+
+\begin{itemize}
+\item If estimates are accurate, workers select a rational choice of food to maximize their own happiness.
+\item If a user has a dramatically favored snack, she is willing to search deep within a shelf for it.
+\item If a user has some snacks she favors and some she does not, she will be less willing to give up a good snack to find her favorite snack, because she might get stuck with a worse snack.
+\end{itemize}
+
+However, it also has an undesirable property:
+
+\begin{itemize}
+\item If a worker has a flat distribution of preferences, she will search the whole shelf. This is because there is no risk of getting stuck with a bad snack; she likes them all. This extends in a soft way to nearly flat distributions.
+\end{itemize}
+
+This does not match our intuitions of how real workers behave. Most of the time, an indifferent worker will just take a food that is "good enough"; this is known as "satisficing."\cite{simon1956rational} To prevent this, a worker's estimate of the value of continuing to search the shelf will include a small cost to search each item. This can be thought of as the cost of the physical labor or the displaced opportunity cost, or an estimate of the risk that an interruption causes her to have to stop searching before she selects a snack.
+
+\medskip
+The above requires an estimate of a shelf's value, both for the case where the worker may continue searching a shelf and the case where she continues to the next shelf. This can be computed with a recurrence relation. Since the worker cannot see beyond the snack her gaze is upon, this only depends on which shelf this is and the number of items on it. The expected value $E_s(n)$ for looking through $n$ items on shelf number $s$ is
+
+$$
+\begin{array}{c}
+E_s(0) = 0 \\
+E_s(n) = \mathlarger{\mathlarger{\sum}}_{i=1}^{V_s}\ \mathrm{P}(\mathrm{item}\ i) \times \mathrm{max}(P_{si}, E_s(n - 1) - c)
+\end{array}
+$$
+
+where $V_s$ is the number varieties for shelf $s$, $\mathrm{P}(\mathrm{item}\ i)$ is the probability of selecting variety $i$ in the next slot, $P_{si}$ is the worker's preference for variety $i$ from shelf $s$, and $c$ is the small cost of looking at all. The content of the recurrence is simple: At each step, for each possible item, the worker can either can take that item with the value given by the preference function $P$, or keep going (but now there will be one fewer item).
+
+Since we stipulate that the worker remembers nothing between rounds, the only probability distribution that makes sense for $\mathrm{P}(\mathrm{item}\ i)$ is the uniform one, so the general case becomes
+
+$$
+E_s(n) = \mathlarger{\mathlarger{\sum}}_{i=1}^{V_s}\ \frac{\mathrm{max}(P_{si}, E_s(n - 1) - c)}{V_s}
+$$
+
+Since this only depends on the preference function, we can compute this when the worker is born and print it on their birth certificate and employee badge.
+
+--------------------------------------------------------------------------------
+
 
 
 308000 rounds
