@@ -1,6 +1,7 @@
 \documentclass[twocolumn]{article}
 \usepackage[top=1.1in, left=0.85in, right=0.85in]{geometry}
 
+\usepackage{supertabular}
 \usepackage{amsthm}
 \usepackage{relsize}
 \usepackage{amsmath}
@@ -32,7 +33,7 @@
 
 \begin{document} 
 
-\title{Snacking policies}
+\title{Reordering snacks is effective and just}
 \author{Dr.~Tom~Murphy~VII~Ph.D.\thanks{
     Copyright \copyright\ 2016 the Regents of the Wikiplia Foundation.
     Appears in SIGBOVIK 2016 with the haunting memory of the
@@ -46,14 +47,12 @@
 
 \maketitle
 
-\begin{abstract}
-% XXX better abstract
-what do I put here
-\end{abstract}
+\section*{Concrete}
+It's time to get serious about {\em snacks} and {\em stats}.
 
 \vspace{1em}
 {\noindent \small {\bf Keywords}:
-  snacking, consequentialism, comestability theory
+  snacking, permutations, comestability theory
 }
 
 \section{Introduction}
@@ -62,11 +61,11 @@ Some workplaces of the future now offer a feature called Snacks. With Snacks, a 
 
 This presents a challenge, since some foods are more desirable than others. Specifically, say that one yogurt food comes in four varieties: Classic, Diet, Cherry-Vanilla, and Caffeine Free. Furthermore, say that one user \verb+<3+'s Cherry-Vanilla variety yogurt food and \verb+>=3+'s Caffeine Free variety yogurt food. This worker is happiest when he begins his office work while eating Cherry-Vanilla. If there is no Cherry-Vanilla, the worker may resort to Classic yogurt food, reducing his task-ready disposition, and thus performance. If all flavors have been exhausted but Caffeine Free, then the worker may take no yogurt at all, knowing that Caffeine Free brings more displeasure than even hunger. This creates a negative affect, which may cause the worker to actively sabotage the work of his peers. This provides poor Return on Investment (ROI).
 
-One strategy is for this worker, who we will call Sal, to take all of the favored Cherry-Vanilla foods from the kitchenette to his desk at the beginning of the day. This strategy is called hoarding. This ensures that Sal may eat all his Cherry-Vanilla flavors. However, this behavior is considered unfair, for one reason that all other workers are completely deprived of Cherry-Vanilla flavor. It is perceived that Sal and all other workers should have equivalent access to the shared resource, except for the moment that he is selecting a food (for he is ``first in line,'' and lines are fair). Moreover, Sal should take only one food at a time (for it is ``Please help yourself. We ask that you take only one piece so that others may enjoy it as well,'' which is fair). We also perceive that Sal should take food only when he is actually hungry (for it is ``waste not, want not,'' and you can't spell ``aphorism'' without ``a fair is,'' mmm?).
+One strategy is for this worker, who we will call Sal, to take all of the favored Cherry-Vanilla foods from the kitchenette to his desk at the beginning of the day. This strategy is called Hoarding. This ensures that Sal may eat all his Cherry-Vanilla flavors. However, this behavior is considered unfair, for one reason that all other workers are completely deprived of Cherry-Vanilla flavor. It is perceived that Sal and all other workers should have equivalent access to the shared resource, except for the moment that he is selecting a food (for he is ``first in line,'' and lines are fair). Moreover, Sal should take only one food at a time (for it is ``Please help yourself. We ask that you take only one piece so that others may enjoy it as well,'' which is fair). We also perceive that Sal should take food only when he is actually hungry (for it is ``waste not, want not,'' and you can't spell ``aphorism'' without ``a fair is,'' mmm?).
 
 Given these rules, there are still things that Sal can do to influence the chance that he gets the Cherry-Vanilla flavors. In particular, this paper investigates the strategy of Reordering, where Sal selects his favored snack, and also changes the order of the foods in the kitchenette. The thought is that while everyone retains equivalent access to the foods, other workers are less likely to select Cherry-Vanilla due to the decreased visibility and/or increased effort in finding them.
 
-Note that the author does not reorder habitually reorder snacks; this question is of abstract philosophical interest. We consulted the wisdom of Judge John~Hodgman, who wrote~\cite{hodgman2016snacks}:
+Note that the author does not reorder habitually reorder snacks; this question is of abstract philosophical interest. We consulted the wisdom of Judge John~Hodgman, who ruled~\cite{hodgman2016snacks}:
 
 \begin{quotation}
   \noindent Why don't you just go out to lunch and buy the food you want with
@@ -80,6 +79,12 @@ We did not find this to be a satisfactory argument.
 \smallskip
 In this paper, I first provide a short argument why Sal's behavior may be considered fair, using an unjustifiable but common assumption. I then give a formal model for Snacks, which can be used to conduct controlled experiments. I then show that under suitable conditions, Sal's behavior benefits both him and the workplace, in a Utilitarian sense.
 
+\subsection{Why Reorder?}
+
+As suggested before, Reordering benefits Sal because his favorite snacks are less likely to be eaten by others. The policy can be thought of as fair because it still provides everyone equivalent access to the snacks. But did Sal make the snacks worse for everyone by putting the good snacks at the back? The problem seems intractible until we consider an unjustifiable but standard simplifying assumption: Each worker's preferences for snacks are independent and identically distributed. This means that Sal's preference for Cherry-Vanilla gives us no information about the rest of the workforce's preferences. Since all preferences are equally likely, reordering the snacks improves access to some snacks and hinders access to others; these effects cancel out. Thus under suitable assumptions, {\it any} reordering of snacks is fair and harmless to other workers. The reason why we believe that this particular policy is beneficial is that other workers may be indifferent among various flavors, and simply take the one that is most convenient. When indifferent, taking a variety that someone else substantially favors is globally sub-optimal. This is similar to the principle of ``decoy beer'', whereby cheap OK beer (e.g. Red Stripe) is placed at the front of the fridge in front of the premium good beer (which may be unsuitable for casual drinkers anyway).
+
+We can go further and demonstrate this scientifically.
+
 \subsection{Game of Scones}
 
 To investigate whether Reordering helps Sal and the rest of the workplace, we could run an experiment. Unfortunately this would be very expensive; we would need to find many workforces that are comparable, with similar food preferences, randomly assign some to the experimental group (where some fraction implement the Reordering policy) and then somehow judge their happiness. This would take a long time, and if the policy or experimental controls turn out to be harmful, might impact real GDP. For the effect sizes we see later, a live experiment is unlikely to show significance.
@@ -88,7 +93,14 @@ Instead, we develop a simple model that captures important aspects of the Snacks
 
 The simplified model is as follows.
 
-A simulation consists of an array $S$ of shelves, each of which is stocked with different varieties of food. The varieties are just given as integers from 0--$n_i$, where each food type (shelf) may have a different number of varieties. In an early version of the simulation each food and variety is given a name, so we might have a shelf consisting of many sodas, like\footnote{All of these brands now Copyright Trademark Patent Pending Dr.~Tom Murphy VII Ph.D., 2016!}
+\begin{figure}[ht]
+\begin{center}
+\includegraphics[width=\linewidth]{shelves}
+\end{center}\vspace{-0.1in}
+\caption{Two shelves with snacks. Shelf~1 has four snacks; potentially different types of Y\"o!gurt brand yogurt. Shelf~2 has six snacks, potentially different types CHIPz brand natural particle chips. I can tell you that the first three on Shelf~1 are Cherry flavor, and the last one is the Diet Cherry variety. All of the CHIPz are different varieties: Dust flavor, Dirt flavor, Sticks flavor, Cobweb flavor, Sand flavor, and Powder flavor. But because of the way snacks are arranged, you can only see the variety of the snack in front.} \label{figure:shelves}
+\end{figure}
+
+A simulation consists of an array $S$ of shelves, each of which is stocked with different varieties of food (Figure~\ref{figure:shelves}). The varieties are just given as integers from 0--$V_i$, where each food type (shelf) may have a different number of varieties. In an early version of the simulation each food and variety is given a name, so we might have a shelf consisting of many sodas, like\footnote{All of these brands now Copyright Trademark Patent Pending Dr.~Tom Murphy VII Ph.D., 2016!}
 
 \begin{itemize}
 \item Diet Kake 
@@ -121,7 +133,7 @@ For simplicity, workers all get hungry at the same rate (although their hunger s
 \item She can see the number of items on the shelf, but not what varieties they are. From this number, she estimates what value $v'$ she would get from skipping the current variety (for this round) and setting her gaze upon the next one. \label{step:skip}
 \item If $v' > v$, she does so, and repeats from step \ref{step:skip}.
 \item If not, this is the food provisionally selected for this shelf, with value $v$.
-\item If there are shelves remaining, she estimates the value of abandoning this shelf and trying the next one, $v''$.
+\item If there are unvisited shelves remaining, she estimates the value of abandoning this shelf and trying the next one, $v''$.
 \item If $v'' > v$, she moves to the next shelf and returns to step \ref{step:start}.
 \item If she finishes with a selected food, she may reorder the items on the shelf of that food arbitrarily. She removes the selected food, if any, and eats it.
 \end{enumerate}
@@ -142,7 +154,7 @@ However, it also has an undesirable property:
 \item If a worker has a flat distribution of preferences, she will search the whole shelf. This is because there is no risk of getting stuck with a bad snack; she likes them all. This extends in a soft way to nearly flat distributions.
 \end{itemize}
 
-This does not match our intuitions of how real workers behave. Most of the time, an indifferent worker will just take a food that is ``good enough;'' this is known as ``satisficing.''\cite{simon1956rational} To prevent this, a worker's estimate of the value of continuing to search the shelf will include a small cost to search each item. This can be thought of as the cost of the physical labor or the displaced opportunity cost, or an estimate of the risk that an interruption causes her to have to stop searching before she selects a snack.
+This does not match our intuitions of how real workers behave. Most of the time, an indifferent worker will just take a food that is ``good enough;'' this is known as ``satisficing.''\cite{simon1956rational} The argument for the global value of Sal reordering hinges on such indifference, in fact. To prevent this, a worker's estimate of the value of continuing to search the shelf will include a small cost to search each item. This can be thought of as the cost of the physical labor or the displaced opportunity cost, or an estimate of the risk that an interruption causes her to have to stop searching before she selects a snack.
 
 \medskip
 The above requires an estimate of a shelf's value, both for the case where the worker may continue searching a shelf and the case where she continues to the next shelf. This can be computed with a recurrence relation. Since the worker cannot see beyond the snack her gaze is upon, this only depends on which shelf this is and the number of items on it. The expected value $E_s(n)$ for looking through $n$ items on shelf number $s$ is
@@ -174,7 +186,7 @@ Some other parameters need to be set: \verb+NUM_SHELVES+, \verb+NUM_PEOPLE+ and 
 I then generated random scenarios and evaluated different snack
 reordering policies. One extreme policy sorts the shelf in reverse
 preference order, so that the worker's favorite snacks are at the
-back. This seems unnecessary (takes $\mathrm{O}(n \mathrm{lg} n)$
+back. This seems unnecessary (takes $\mathrm{O}(n\ \mathrm{lg}\ n)$
 time, unless perhaps using ``radix sort'') and unrealistic. It also
 leads to substantial interference between workers, as one worker's
 resorting completely undoes another's. Another relaxation of this,
@@ -209,13 +221,15 @@ model, seeing as how it fails to have intuitive properties\footnote{I
   good setting of the {\tt COST\_TO\_LOOK} penalty that suitably
   discourages workers from looking through the whole shelf while still
   allowing a resorter to find his deeply-placed favorites.} or (b)
-give up. But owing to Draconian SIGBOVIK deadlines, this heroic
-scientist resorts to another unjustifiable but common technique:
-``Tweaking'' the model parameters until the experiments turn out as
-expected (i.e., positive). Better yet, this process can be automated!
+appeal that ``it seems more work is needed in this fertile area of
+study'' or (c) give up. But owing to Draconian SIGBOVIK deadlines,
+this heroic scientist resorts to another unjustifiable but common
+technique: ``Tweaking'' the model parameters until the experiments
+turn out as expected (i.e., positive). Better yet, this process can be
+automated!
 
 \medskip
-Overnight in 4 separate browser tabs I ran a simple ``hyper-parameter
+{\bf Search}.\ \ \ Overnight in 4 separate browser tabs I ran a simple ``hyper-parameter
 search'' to try to find the best settings of the parameters described
 previously. I selected parameter values uniformly at random, and then
 interpolated against the current local maximum (by averaging the
@@ -226,7 +240,7 @@ snacks eaten by the resorting worker, and the total value of snacks
 eaten across all workers. (Specifically, I maximized the minimum of
 these two). The best settings of the model had these values:
 
-\begin{tabular}{@{\hspace{0.5in}}lr}
+\begin{supertabular}{@{\hspace{0.5in}}lr}
 \verb+COST_TO_LOOK+ & 0.001 \\
 \verb+MAX_ITEMS+ & 37 \\
 \verb+MAX_VARIETY+ & 4 \\
@@ -238,7 +252,7 @@ these two). The best settings of the model had these values:
 \verb+OUTLIER_RATIO+ & 2.199 \\
 \verb+PREF_MEAN+ & 1.320 \\
 \verb+PREF_STDDEV+ & 5.625 \\
-\end{tabular}
+\end{supertabular}
 
 This an interesting instance: There are only two workers, but lots of
 shelves and lots of snacks. Most interestingly, the mean hunger time is very unusually large (in the highest 97th percentile of the probability distribution): 36,305~seconds is over 10~hours! This means that in the course of a three-day simulation, we only expect each player to eat about 2.5~times. There is a very good chance that the workers never interact (never visit the same shelf) and more than a \sfrac{1}{4} chance that a worker never eats anything.
