@@ -44,6 +44,11 @@ static_assert(TILEST >= TILESW, "TILEST must hold TILESW");
 static_assert(TILEST >= TILESW, "TILEST must hold TILESH");
 static_assert(0 == (TILEST & (TILEST - 1)), "TILEST must be power of 2");
 
+#define SPRTEXW 256
+#define SPRTEXH 256
+static_assert(0 == (SPRTEXW & (SPRTEXW - 1)), "SPRTEXW must be a power of 2");
+static_assert(0 == (SPRTEXH & (SPRTEXH - 1)), "SPRTEXH must be a power of 2");
+
 // I don't understand why Palette::FCEUD_GetPalette isn't working,
 // but the NES palette is basically constant (emphasis aside), so
 // let's just inline it to save time. RGB triplets.
@@ -68,6 +73,7 @@ static constexpr uint8 ntsc_palette[] = {
 
 // XXX
 static GLuint bg_texture = 0;
+static GLuint sprite_texture[64] = {};
 
 typedef void (APIENTRY *glWindowPos2i_t)(int, int);
 glWindowPos2i_t glWindowPos2i = nullptr;
@@ -219,9 +225,9 @@ struct SM {
 
     // Just allocate the maximum size that this can ever be.
     // It's only 16MB.
-    sprite_textures.resize(64);
+    sprite_rgba.resize(64);
     for (int i = 0; i < 64; i++) {
-      sprite_textures[i].resize(256 * 256 * 4);
+      sprite_rgba[i].resize(SPRTEXW * SPRTEXH * 4);
     }
     
     int current_angle = 0;
@@ -350,31 +356,31 @@ struct SM {
     vector<Sprite> ret;
 
     const PPU *ppu = emu->GetFC()->ppu;
-    const uint8 *palette_table = ppu->PALRAM;
+
     const uint8 ppu_ctrl1 = ppu->PPU_values[0];
     const uint8 ppu_ctrl2 = ppu->PPU_values[1];
     // Are sprites 16 pixels tall?
     const bool tall_sprites = !!(ppu_ctrl1 & (1 << 5));
     const int sprite_height = tall_sprites ? 16 : 8;
+    #if 0
     if (tall_sprites) {
       printf("SPRITES ARE TALL %x.\n", ppu_ctrl1);
     } else {
       printf("8x8.\n");
     }
-
+    #endif
+    
     const bool sprites_enabled = !!(ppu_ctrl2 && (1 << 4));  
     const bool sprites_clipped = !!(ppu_ctrl2 && (1 << 2));
     
     if (!sprites_enabled) return ret;
 
-    const uint32 spr_pat_addr = (ppu_ctrl1 & (1 << 3)) ? 0x1000 : 0x0000;
-    const uint8 *vram = &emu->GetFC()->cart->
-      VPage[spr_pat_addr >> 10][spr_pat_addr];
+    // Note: This is ignored if sprites are tall (and determined instead
+    // from the tile's low bit).
+    const bool spr_pat_high = !!(ppu_ctrl1 & (1 << 3));
     
     // Each is 0x100 bytes
     const uint8 *spram = ppu->SPRAM;
-    const uint8 *spbuf = ppu->SPRBUF;
-
 
     // Most games use multiple sprites to draw the player and enemy,
     // since sprites are pretty small (8x8 or 8x16). For billboard
@@ -406,12 +412,14 @@ struct SM {
     vector<PreSprite> presprites{64};
 
     auto GetRoot = [&presprites](int a) -> int {
-      printf("----------------\nGetroot(%d)\n", a);
-      for (int i = 0; i < presprites.size(); i++) {
-	printf("%d -> %d   ", i, presprites[i].parent);
-	if (i % 4 == 3) printf("\n");
+      if (0) {
+	printf("----------------\nGetroot(%d)\n", a);
+	for (int i = 0; i < presprites.size(); i++) {
+	  printf("%d -> %d   ", i, presprites[i].parent);
+	  if (i % 4 == 3) printf("\n");
+	}
       }
-
+      
       int root = a;
       while (presprites[root].parent != -1) {
 	CHECK(root != presprites[root].parent);
@@ -424,13 +432,13 @@ struct SM {
       bool changed = false;
       while (a != root) {
 	const int na = presprites[a].parent;
-	printf("Path compression %d -> %d, new root %d\n", a, na, root);
+	// printf("Path compression %d -> %d, new root %d\n", a, na, root);
 	changed = true;
 	presprites[a].parent = root;
 	a = na;
       }
 
-      if (changed) {
+      if (0 && changed) {
 	printf("Now on getroot(%d)\n", a);
 	for (int i = 0; i < presprites.size(); i++) {
 	  printf("%d -> %d   ", i, presprites[i].parent);
@@ -438,7 +446,7 @@ struct SM {
 	}
       }
       
-      printf("Return: %d\n", root);
+      //      printf("Return: %d\n", root);
       return root;
     };
     
@@ -451,9 +459,9 @@ struct SM {
       // back to itself. Can't create cycles!
       if (ra == rb) return;
       CHECK(presprites[rb].parent == -1)
-          << rb << " -> " << presprites[rb].parent;
+      << rb << " -> " << presprites[rb].parent;
       CHECK(presprites[ra].parent == -1)
-          << ra << " -> " << presprites[ra].parent;
+      << ra << " -> " << presprites[ra].parent;
       presprites[rb].parent = ra;
     };
     
@@ -472,7 +480,8 @@ struct SM {
 
     // Note: there are also flags that disable sprite rendering
     // in leftmost 8 pixels of screen. ($2001 = PPUMASK)
-    
+
+    // printf("FIRST PASS:\n");
     for (int n = 63; n >= 0; n--) {
       const uint8 y = spram[n * 4 + 0];      
       const uint8 x = spram[n * 4 + 3];
@@ -485,9 +494,13 @@ struct SM {
       for (int left : *Coord(x - 8, y)) Union(n, left);
       for (int right : *Coord(x + 8, y)) Union(n, right);
       for (int down : *Coord(x, y + sprite_height)) Union(n, down);
+      // XXX Maybe should consider unioning with sprites that are
+      // already right here. Some games draw multiple layers
+      // to get more than 3 colors.
       by_coord[y * 256 + x].push_back(n);
     }
 
+    // printf("SECOND PASS:\n");
     // Now loop over all the sprite bits and complete the information
     // we need to size the fused sprites.
     for (int n = 63; n >= 0; n--) {
@@ -496,7 +509,7 @@ struct SM {
       if (ps.x > rps.max_x) rps.max_x = ps.x;
       if (ps.y > rps.max_y) rps.max_y = ps.y;
       if (ps.x < rps.min_x) rps.min_x = ps.x;
-      if (ps.y < rps.min_y) rps.min_y = ps.x;
+      if (ps.y < rps.min_y) rps.min_y = ps.y;
 
       // Sprite textures gives us a pre-allocated RGBA array for each
       // sprite number, with dimensions capable of holding any fused
@@ -504,17 +517,22 @@ struct SM {
       // may be gibberish in there already. So in this pass, clear
       // any sprites that will be used.
       if (presprites[n].parent == -1) {
-	memset(sprite_textures[n].data(), 0, sprite_textures[n].size());
+	memset(sprite_rgba[n].data(), 0, sprite_rgba[n].size());
       }
     }
 
+    // printf("THIRD PASS:\n");
     // Remember, most of the time, sprites won't fuse. We keep looping
     // over the whole vector of sprites.
-    for (int n = 64; n >= 0; n--) {
+    //
+    // Here, looping from 63 to 0 ensures that higher-priority sprites
+    // draw on top of lower priority sprites. It's possible for sprites
+    // to overlap.
+    for (int n = 63; n >= 0; n--) {
       // We draw all sprite bits into the fused sprite; this applies to
       // the roots and children.
       const uint8 ypos = spram[n * 4 + 0];
-      const uint8 num = spram[n * 4 + 1];
+      const uint8 tile_idx = spram[n * 4 + 1];
       const uint8 attr = spram[n * 4 + 2];
       const bool v_flip = !!(attr >> 7);
       const bool h_flip = !!(attr >> 6);
@@ -525,42 +543,151 @@ struct SM {
       // above.
       int root_idx = GetRoot(n);
       const PreSprite &root = presprites[root_idx];
-      vector<uint8> &rgba = sprite_textures[root_idx];
+      vector<uint8> &rgba = sprite_rgba[root_idx];
       // We draw into the top-left corner of rgba.
 
-      if (tall_sprites) {
-	
-      } else {
-	// ...
-      }
+      const uint8 *palette_table = emu->GetFC()->ppu->PALRAM;
       
+      // Draw one 8x8 sprite tile into rgba, using pattern table $0000
+      // if first arg is false, $1000 if true. The tile index is the
+      // index into that pattern. xdest and ydest are the screen
+      // destination, which will be adjusted to place at the appropriate
+      // place in the texture.
+      auto OneTile = [this, v_flip, h_flip, colorbits,
+		      &root, &rgba, palette_table](
+	  bool patterntable_high, uint8 tile_idx,
+	  int xdest, int ydest) {
+	const uint32 spr_pat_addr = patterntable_high ? 0x1000 : 0x0000;
+	// PERF Really need to keep computing this?
+	const uint8 *vram = &emu->GetFC()->cart->
+	    VPage[spr_pat_addr >> 10][spr_pat_addr];
+
+	// upper-left corner of this tile within the rgba array.
+	const int x0 = xdest - root.min_x;
+	const int y0 = ydest - root.min_y;
+	
+	const int addr = tile_idx * 16;
+	for (int row = 0; row < 8; row++) {
+	  const uint8 row_low = vram[addr + row];
+	  const uint8 row_high = vram[addr + row + 8];
+
+	  // bit from msb to lsb.
+	  for (int bit = 0; bit < 8; bit++) {
+	    const uint8 value =
+	      ((row_low >> (7 - bit)) & 1) |
+	      (((row_high >> (7 - bit)) & 1) << 1);
+
+	    const int px = h_flip ? x0 + (7 - bit) : x0 + row;
+	    const int py = v_flip ? y0 + (7 - row) : y0 + row;
+
+	    CHECK(px >= 0 && py >= 0 && px < SPRTEXW && py < SPRTEXH)
+					     << "px: " << px << " "
+					     << "py: " << py << " "
+					     << "x0: " << x0 << " "
+					     << "y0: " << y0 << " "
+					     << "h_flip: " << h_flip << " "
+					     << "v_flip: " << v_flip << " "
+					     << "row: " << row << " "
+					     << "bit: " << bit << " "
+					     << "xdest: " << xdest << " "
+					     << "ydest: " << ydest << " "
+					     << "root.min_x: " << root.min_x << " "
+					     << "root.min_y: " << root.min_y << " ";
+
+	    
+	    // Clip pixels outside the 
+	    // 	    if (px < 0 || py < 0 || px >= SPRTEXW || py >= SPRTEXH)
+	    // continue;
+
+	    const int pixel = (py * SPRTEXW + px) * 4;
+
+	    // For sprites, transparent pixels need to be drawn with
+	    // alpha 0. The palette doesn't matter; 0 means transparent
+	    // in every palette.
+	    if (value == 0) {
+	      rgba[pixel + 3] = 0x00;
+	    } else {
+	      // Offset with palette table. Sprite palette entries come
+	      // after the bg ones, so add 0x10.
+	      const uint8 palette_idx = 0x10 + ((colorbits << 2) | value);
+	      // ID of global NES color gamut.
+	      const uint8 color_id = palette_table[palette_idx];
+	      
+	      // Put pixel in sprite texture:
+	      rgba[pixel + 0] = ntsc_palette[color_id * 3 + 0];
+	      rgba[pixel + 1] = ntsc_palette[color_id * 3 + 1];
+	      rgba[pixel + 2] = ntsc_palette[color_id * 3 + 2];
+	      rgba[pixel + 3] = 0xFF;
+	    }
+	  }
+	}
+      };
+      
+      if (tall_sprites) {
+	// Odd and even tile numbers are treated differently.
+	if ((tile_idx & 1) == 0) {
+	  // This page:
+	  // http://noelberry.ca/nes
+	  // verifies that tiles t and t+1 are drawn top then bottom.
+	  OneTile(false, tile_idx, xpos, ypos);
+	  // XXX in y-flip scenarios, we probably have to flip the
+	  // y positions here so that the whole 8x16 sprite is flipping,
+	  // rather than its two 8x8 components?
+	  OneTile(false, tile_idx + 1, xpos, ypos + 8);
+	} else {
+	  // XXX I assume this drops the low bit? I don't see that
+	  // documented but it wouldn't really make sense otherwise
+	  // (unless tile 255 wraps to 0?)
+	  OneTile(true, tile_idx - 1, xpos, ypos);
+	  OneTile(true, tile_idx, xpos, ypos + 8);
+	}
+      } else {
+	// this is much easier but not used in zelda
+	// (I think it's needed for mario though)
+	OneTile(spr_pat_high, tile_idx, xpos, ypos);
+      }
+    }
+
+    // OK, now all of the root sprites have their fused data drawn at 0,0
+    // and we also know how big they are and where they are in screen
+    // coordinates. One more pass, only looking at the root sprites.
+    // We copy them to the corresponding sprite textures for GL, and
+    // output the Sprite objects so that the render phase knows where
+    // to draw them.
+    for (int n = 63; n >= 0; n--) {
+      const PreSprite &ps = presprites[n];
+      if (ps.parent == -1) {
+	// Copy sprite texture to GL texture.
+	glBindTexture(GL_TEXTURE_2D, sprite_texture[n]);
+	// PERF: Can just copy the appropriate sub-region, but we
+	// need to deal with the fact that GL coordinates are upside-down.
+	//
+	// RECALL that max_x and max_y are the max coordinates of the top-left
+	// corners, so they need +8 and +sprite_height.
+	glTexSubImage2D(GL_TEXTURE_2D, 0,
+			0, 0, SPRTEXW, SPRTEXH,
+			GL_RGBA, GL_UNSIGNED_BYTE,
+			sprite_rgba[n].data());
+
+	// TODO: Decide on BILLBOARD vs IN_PLANE etc. Probably
+	// should not merge sprites of different types.
+	Sprite s;
+	// Use centroid of fused sprite.
+	float cx = ((ps.max_x + 7) - ps.min_x) * 0.5f;
+	float cy = ((ps.max_y + sprite_height - 1) - ps.min_y) * 0.5f;
+	// These are in tile space, not pixel space.
+	s.loc.x = cx / 8.0f;
+	s.loc.y = cy / 8.0f;
+	// XXX bottom should always be on the floor, yeah?
+	s.loc.z = cy / 8.0f;
+	s.type = BILLBOARD;
+	ret.push_back(s);
+      }
     }
     
-    // Shouldn't really matter what order we do them here, but on the NES they
-    // are drawn in decreasing order, so mimic that.
-    for (int n = 63; n >= 0; n--) {
-      const uint8 y = spram[n * 4 + 0];
-      const uint8 num = spram[n * 4 + 1];
-      const uint8 attr = spram[n * 4 + 2];
-      const bool v_flip = !!(attr >> 7);
-      const bool h_flip = !!(attr >> 6);
-      const uint8 colorbits = attr & 3;
-      const uint8 x = spram[n * 4 + 3];
-
-      Sprite s;
-      s.loc.x = (x + 4) / 8.0f;
-      s.loc.y = (y + 4) / 8.0f;
-      s.loc.z = 1.0f;
-      s.type = BILLBOARD;
-      // s.texture_x = 
-      
-      ret.push_back(s); 
-    }
     return ret;
   }
-
-  vector<vector<uint8>> sprite_textures;
-  
+ 
   // All boxes are 1x1x1. This returns their "top-left" corners.
   // Larger Z is "up".
   //
@@ -842,6 +969,7 @@ struct SM {
   }
   
  private:
+  vector<vector<uint8>> sprite_rgba;
   ArcFour rc;
   NOT_COPYABLE(SM);
 };
@@ -886,7 +1014,7 @@ static void InitGL() {
     bg.resize(8 * 8 * TILEST * TILEST * 4);
     // PERF is RGBA a good choice? It aligns better but does it make
     // blitting much more costly because of the (unused) alpha channel?
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 256, 256, 0,
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, TILEST * 8, TILEST * 8, 0,
 		 GL_RGBA, GL_UNSIGNED_BYTE, bg.data());
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -895,7 +1023,27 @@ static void InitGL() {
     // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
   }
-  
+
+  // Kinda wasteful, but allocate one "huge" fused sprite texture (256x256,
+  // which is as big as it could be) for each sprite slot. No way to use
+  // all of this at once, but it makes it much simpler to allocate and
+  // avoids having to do run-time packing.
+  {
+    glGenTextures(64, sprite_texture);
+    // For initialization, use the same array. Do we even need to initialize?
+    vector<uint8> spr;
+    spr.resize(SPRTEXW * SPRTEXH * 4);
+
+    for (int i = 0; i < 64; i++) {
+      glBindTexture(GL_TEXTURE_2D, sprite_texture[i]);
+      glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, SPRTEXW, SPRTEXH, 0,
+		   GL_RGBA, GL_UNSIGNED_BYTE, spr.data());
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+
+      // XXX Should clamp textures.
+    }
+  }
   
   PerspectiveGL(60.0, ASPECT_RATIO, 1.0, 1024.0);
 
