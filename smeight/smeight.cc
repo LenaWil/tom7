@@ -49,6 +49,8 @@ static_assert(0 == (TILEST & (TILEST - 1)), "TILEST must be power of 2");
 static_assert(0 == (SPRTEXW & (SPRTEXW - 1)), "SPRTEXW must be a power of 2");
 static_assert(0 == (SPRTEXH & (SPRTEXH - 1)), "SPRTEXH must be a power of 2");
 
+#define BOX_DIM 2
+
 // I don't understand why Palette::FCEUD_GetPalette isn't working,
 // but the NES palette is basically constant (emphasis aside), so
 // let's just inline it to save time. RGB triplets.
@@ -70,6 +72,9 @@ static constexpr uint8 ntsc_palette[] = {
   0xFF,0xF7,0x9C, 0xD7,0xE8,0x95, 0xA6,0xED,0xAF, 0xA2,0xF2,0xDA,
   0x99,0xFF,0xFC, 0xDD,0xDD,0xDD, 0x11,0x11,0x11, 0x11,0x11,0x11,
 };
+
+static bool draw_sprites = true;
+static bool draw_boxes = true;
 
 // XXX
 static GLuint bg_texture = 0;
@@ -155,6 +160,8 @@ struct SM {
   Tilemap tilemap;
   
   SM() : rc("sm") {
+    InitTextures();
+
     map<string, string> config = Util::ReadFileToMap("config.txt");
     if (config.empty()) {
       fprintf(stderr, "Missing config.txt.\n");
@@ -205,13 +212,15 @@ struct SM {
   };
   
   struct Sprite {
-    // center of sprite -- different types will treat this
-    // location differently
+    // location of sprite -- different types will treat this
+    // differently
     Vec3 loc{0.0f, 0.0f, 0.0f};
     // Pixels.
-    int width, height;
-    int texture_x, texture_y;
-    SpriteType type;
+    int width = 0, height = 0;
+    int texture_x = 0, texture_y = 0;
+    // The texture id to use, in [0, 63].
+    int texture_num = 0;
+    SpriteType type = IN_PLANE;
   };
   
   void Loop() {
@@ -238,7 +247,16 @@ struct SM {
       printf("Start loop!\n");
       emu->LoadUncompressed(start_state);
 
-      for (int input_idx = 0; input_idx < inputs.size(); input_idx += !paused) {
+      #define START_IDX 550
+      if (START_IDX) {
+	printf("SKIP to %d\n", START_IDX);
+	paused = true;
+	for (int z = 0; z < START_IDX; z++) {
+	  emu->StepFull(inputs[z], 0);
+	}
+      }
+      
+      for (int input_idx = START_IDX; input_idx < inputs.size(); input_idx += !paused) {
 	const uint8 input = inputs[input_idx];
 	frame++;
 
@@ -249,9 +267,13 @@ struct SM {
 	    return;
 	  case SDL_KEYUP:
 	    switch (event.key.keysym.sym) {
+	    case SDLK_b:
+	      draw_boxes = !draw_boxes;
+	      break;
 	    case SDLK_SPACE:
 	      paused = !paused;
-	      printf("%s.\n", paused ? "paused" : "unpaused");
+	      printf("%s at input_idx %d.\n", paused ? "paused" : "unpaused",
+		     input_idx);
 	      break;
 	    default:;
 	    }
@@ -407,6 +429,7 @@ struct SM {
       // Second pass.
       int min_x = 256, min_y = 256;
       int max_x = -1, max_y = -1;
+
       bool rendered = false;
     };
     vector<PreSprite> presprites{64};
@@ -477,7 +500,8 @@ struct SM {
     };
 
     // PERF: Might want to exclude off-screen sprites.
-
+    // (This is now being partially done, below)
+    
     // Note: there are also flags that disable sprite rendering
     // in leftmost 8 pixels of screen. ($2001 = PPUMASK)
 
@@ -485,6 +509,7 @@ struct SM {
     for (int n = 63; n >= 0; n--) {
       const uint8 y = spram[n * 4 + 0];      
       const uint8 x = spram[n * 4 + 3];
+      // printf("Sprite at px: %d,%d.\n", (int)x, (int)y);
       PreSprite &ps = presprites[n];
       ps.x = x;
       ps.y = y;
@@ -494,8 +519,8 @@ struct SM {
       for (int left : *Coord(x - 8, y)) Union(n, left);
       for (int right : *Coord(x + 8, y)) Union(n, right);
       for (int down : *Coord(x, y + sprite_height)) Union(n, down);
-      // XXX Maybe should consider unioning with sprites that are
-      // already right here. Some games draw multiple layers
+      // XXX Maybe should consider also unioning with sprites that are
+      // at this same exact coordinate. Some games draw multiple layers
       // to get more than 3 colors.
       by_coord[y * 256 + x].push_back(n);
     }
@@ -510,17 +535,29 @@ struct SM {
       if (ps.y > rps.max_y) rps.max_y = ps.y;
       if (ps.x < rps.min_x) rps.min_x = ps.x;
       if (ps.y < rps.min_y) rps.min_y = ps.y;
+    }
 
+    // Pass 2.5, decide if we are actually rendering sprites, and prep
+    // sprite memory.
+    for (int n = 63; n >= 0; n--) {
+      PreSprite &ps = presprites[n];
       // Sprite textures gives us a pre-allocated RGBA array for each
       // sprite number, with dimensions capable of holding any fused
       // sprite (256x256). So we can just use these. Note that there
       // may be gibberish in there already. So in this pass, clear
       // any sprites that will be used.
-      if (presprites[n].parent == -1) {
-	memset(sprite_rgba[n].data(), 0, sprite_rgba[n].size());
+      if (ps.parent == -1) {
+	if (ps.min_y < 240) {
+	  // PERF could clear actual area needed
+	  memset(sprite_rgba[n].data(), 0, sprite_rgba[n].size());
+	  ps.rendered = true;
+	} else {
+	  // printf("Not rendered: min_y is %d\n", ps.min_y);
+	  ps.rendered = false;
+	}
       }
     }
-
+    
     // printf("THIRD PASS:\n");
     // Remember, most of the time, sprites won't fuse. We keep looping
     // over the whole vector of sprites.
@@ -529,6 +566,17 @@ struct SM {
     // draw on top of lower priority sprites. It's possible for sprites
     // to overlap.
     for (int n = 63; n >= 0; n--) {
+      // PERF can probably avoid GetRoot since we called it for everything
+      // above.
+      int root_idx = GetRoot(n);
+      const PreSprite &root = presprites[root_idx];
+      // Off-screen fused sprite.
+      if (!root.rendered) continue;
+
+      vector<uint8> &rgba = sprite_rgba[root_idx];
+      // We draw into the top-left corner of rgba.
+
+      
       // We draw all sprite bits into the fused sprite; this applies to
       // the roots and children.
       const uint8 ypos = spram[n * 4 + 0];
@@ -539,12 +587,6 @@ struct SM {
       const uint8 colorbits = attr & 3;
       const uint8 xpos = spram[n * 4 + 3];
 
-      // PERF can probably avoid GetRoot since we called it for everything
-      // above.
-      int root_idx = GetRoot(n);
-      const PreSprite &root = presprites[root_idx];
-      vector<uint8> &rgba = sprite_rgba[root_idx];
-      // We draw into the top-left corner of rgba.
 
       const uint8 *palette_table = emu->GetFC()->ppu->PALRAM;
       
@@ -580,6 +622,8 @@ struct SM {
 	    const int px = h_flip ? x0 + (7 - bit) : x0 + row;
 	    const int py = v_flip ? y0 + (7 - row) : y0 + row;
 
+	    // XXX Might be technically possible? I think you could fuse 17 sprites
+	    // and make something that was 255+16 tall.
 	    CHECK(px >= 0 && py >= 0 && px < SPRTEXW && py < SPRTEXH)
 					     << "px: " << px << " "
 					     << "py: " << py << " "
@@ -594,7 +638,7 @@ struct SM {
 					     << "root.min_x: " << root.min_x << " "
 					     << "root.min_y: " << root.min_y << " ";
 
-	    
+
 	    // Clip pixels outside the 
 	    // 	    if (px < 0 || py < 0 || px >= SPRTEXW || py >= SPRTEXH)
 	    // continue;
@@ -654,9 +698,14 @@ struct SM {
     // We copy them to the corresponding sprite textures for GL, and
     // output the Sprite objects so that the render phase knows where
     // to draw them.
+    //
+    // At this point the order of the sprites shouldn't matter; we've already
+    // drawn these into the rgba vectors. The rendering code may need to
+    // sort them by their physical position in order to get alpha to be correct.
     for (int n = 63; n >= 0; n--) {
       const PreSprite &ps = presprites[n];
-      if (ps.parent == -1) {
+      if (ps.rendered && ps.parent == -1) {
+
 	// Copy sprite texture to GL texture.
 	glBindTexture(GL_TEXTURE_2D, sprite_texture[n]);
 	// PERF: Can just copy the appropriate sub-region, but we
@@ -669,19 +718,40 @@ struct SM {
 			GL_RGBA, GL_UNSIGNED_BYTE,
 			sprite_rgba[n].data());
 
+	
 	// TODO: Decide on BILLBOARD vs IN_PLANE etc. Probably
 	// should not merge sprites of different types.
-	Sprite s;
-	// Use centroid of fused sprite.
-	float cx = ((ps.max_x + 7) - ps.min_x) * 0.5f;
-	float cy = ((ps.max_y + sprite_height - 1) - ps.min_y) * 0.5f;
-	// These are in tile space, not pixel space.
-	s.loc.x = cx / 8.0f;
-	s.loc.y = cy / 8.0f;
-	// XXX bottom should always be on the floor, yeah?
-	s.loc.z = cy / 8.0f;
-	s.type = BILLBOARD;
-	ret.push_back(s);
+	if (false) {
+	  Sprite s;
+	  // Use centroid of fused sprite.
+	  float cx = ((ps.max_x + 8) + ps.min_x) * 0.5f;
+	  float cy = ((ps.max_y + sprite_height) + ps.min_y) * 0.5f;
+	  // These are in tile space, not pixel space.
+	  s.loc.x = cx / 8.0f;
+	  // Since we are using the center, this is 
+	  s.loc.y = cy / 8.0f;
+	  // XXX bottom should always be on the floor, yeah?
+	  s.loc.z = cy / 8.0f;
+	  s.type = BILLBOARD;
+	  s.texture_num = n;
+	  s.width = (ps.max_x + 8) - ps.min_x;
+	  s.height = (ps.max_y + sprite_height) - ps.min_y;
+	  s.texture_x = 0;
+	  s.texture_y = 0;
+	  ret.push_back(s);
+	} else {
+	  Sprite s;
+	  s.loc.x = ps.min_x / 8.0f;
+	  s.loc.y = ps.min_y / 8.0f;
+	  s.loc.z = 0.01f;
+	  s.type = IN_PLANE;
+	  s.texture_num = n;
+	  s.width = (ps.max_x + 8) - ps.min_x;
+	  s.height = (ps.max_y + sprite_height) - ps.min_y;
+	  s.texture_x = 0;
+	  s.texture_y = 0;
+	  ret.push_back(s);
+	}
       }
     }
     
@@ -771,6 +841,7 @@ struct SM {
 
 
     // Loop over every 4x4 block.
+    static_assert(BOX_DIM == 2, "This is hard-coded here.");
     for (int ty = 0; ty < TILESH; ty += 2) {
       for (int tx = 0; tx < TILESW; tx += 2) {
 
@@ -804,7 +875,7 @@ struct SM {
 	  z = 4.0f;
 	}
 	  
-	ret.push_back(Box{Vec3{(float)tx, (float)ty, z}, 2, tx, ty});
+	ret.push_back(Box{Vec3{(float)tx, (float)ty, z}, BOX_DIM, tx, ty});
       }
     }
     
@@ -823,16 +894,30 @@ struct SM {
 		 int player_x, int player_y,
 		 int player_angle) {
     // Put boxes in GL space where Y=0 is bottom-left, not top-left.
-    // This also changes the origin of the box itself.
+    // This also conceptually changes the origin of the box itself. In
+    // this function, 0,0,0 is the "bottom front left" of the box.
     vector<Box> boxes;
     boxes.reserve(orig_boxes.size());
     for (const Box &box : orig_boxes) {
       boxes.push_back(
 	  Box{Vec3{box.loc.x, (float)(TILESH - 1) - box.loc.y, box.loc.z},
 	      box.dim,
-	      box.texture_x, box.texture_y});
+		box.texture_x, box.texture_y});
     }
 
+    // Flip the y location of sprites. Since z = 0 is the "floor", raise
+    // sprite Z values so that they are above the top of the floor boxes.
+    vector<Sprite> sprites;
+    sprites.reserve(orig_sprites.size());
+    for (const Sprite &sprite : orig_sprites) {
+      Sprite s = sprite;
+      s.loc.y = (float)(TILESH - 1) - s.loc.y;
+      // This is a gross hack (and also depends on the box
+      // dimensions). XXX rewrite so that the "floor" is at 0.
+      s.loc.z += BOX_DIM;
+      sprites.push_back(s);
+    }
+    
     // printf("There are %d boxes.\n", (int)boxes.size());
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
@@ -850,6 +935,7 @@ struct SM {
 		 -3.0f);
 
     // XXX don't need this
+#if 0
     glBegin(GL_LINE_STRIP);
     glVertex3f(0.0f, 0.0f, 0.0f);
     glVertex3f((float)TILESW, 0.0f, 0.0f);
@@ -857,93 +943,153 @@ struct SM {
     glVertex3f(0.0f, (float)TILESH, 0.0f);
     glVertex3f(0.0f, 0.0f, 0.0f);
     glEnd();
-    
+#endif
+
     glEnable(GL_TEXTURE_2D);
     glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL);
 
-    // One texture for the whole scene.
-    glBindTexture(GL_TEXTURE_2D, bg_texture);
-    glBegin(GL_TRIANGLES);
-    
-    // Draw boxes as a bunch of triangles.
-    for (const Box &box : boxes) {
-      // Here, boxes are properly oriented in GL axes, like this. The
-      // input vector is the front bottom left corner, a:
-      //
-      //      g-----h
-      //     /:    /|              ^   7
-      //    d-----c |            + |  / +
-      //    | :   | |            z | / y
-      //    | f---|-e            - |/ -
-      //    |/    |/               0------->
-      //    a-----b                  -x+
-      // (0,0,0)
+    if (draw_sprites) {
+      for (const Sprite &sprite : sprites) {
+	glBindTexture(GL_TEXTURE_2D, sprite_texture[sprite.texture_num]);
+	glBegin(GL_TRIANGLES);
 
-      const float side = (float)box.dim;
-      
-      Vec3 a = box.loc;
-      Vec3 b = Vec3Plus(a, Vec3{side, 0.0f, 0.0f});
-      Vec3 c = Vec3Plus(a, Vec3{side, 0.0f, side});
-      Vec3 d = Vec3Plus(a, Vec3{0.0f, 0.0f, side});
-      Vec3 e = Vec3Plus(a, Vec3{side, side, 0.0f});
-      Vec3 f = Vec3Plus(a, Vec3{0.0f, side, 0.0f});
-      Vec3 g = Vec3Plus(a, Vec3{0.0f, side, side});
-      Vec3 h = Vec3Plus(a, Vec3{side, side, side});
+	const float tx = sprite.texture_x / (float)SPRTEXW;
+	const float ty = sprite.texture_y / (float)SPRTEXH;
 
-      // XXX
-      const float TD = 8.0f / (8.0f * TILEST);
-      const float tx = box.texture_x * TD;
-      const float ty = box.texture_y * TD;
-      const float tt = box.dim * TD;
-      
-      // Give bottom left first, and go clockwise.
-      auto CCWFace = [tx, ty, tt](const Vec3 &a, const Vec3 &b,
-				  const Vec3 &c, const Vec3 &d) {
-	//  (0,0) (1,0)
-	//    d----c
-	//    | 1 /|
-	//    |  / |
-	//    | /  |
-	//    |/ 2 |
-	//    a----b
-	//  (0,1)  (1,1)  texture coordinates
+	const float tw = (sprite.width - sprite.texture_x) / (float)SPRTEXW;
+	const float th = (sprite.height - sprite.texture_y) / (float)SPRTEXH;
 
-	glTexCoord2f(tx,      ty + tt); glVertex3fv(a.Floats());
-	glTexCoord2f(tx + tt, ty);      glVertex3fv(c.Floats());
-	glTexCoord2f(tx,      ty);      glVertex3fv(d.Floats());
+	// Give bottom left first, and go clockwise.
+	auto CCWFace = [tx, ty, tw, th](const Vec3 &a, const Vec3 &b,
+					const Vec3 &c, const Vec3 &d) {
+	  //  (0,0) (1,0)
+	  //    d----c
+	  //    | 1 /|
+	  //    |  / |
+	  //    | /  |
+	  //    |/ 2 |
+	  //    a----b
+	  //  (0,1)  (1,1)  texture coordinates
 
-	glTexCoord2f(tx,      ty + tt); glVertex3fv(a.Floats());
-	glTexCoord2f(tx + tt, ty + tt); glVertex3fv(b.Floats());
-	glTexCoord2f(tx + tt, ty);      glVertex3fv(c.Floats());
-      };
+	  glTexCoord2f(tx,      ty + th); glVertex3fv(a.Floats());
+	  glTexCoord2f(tx + tw, ty);      glVertex3fv(c.Floats());
+	  glTexCoord2f(tx,      ty);      glVertex3fv(d.Floats());
 
-      // Top
-      // glColor4ubv(red);
-      CCWFace(d, c, h, g);
+	  glTexCoord2f(tx,      ty + th); glVertex3fv(a.Floats());
+	  glTexCoord2f(tx + tw, ty + th); glVertex3fv(b.Floats());
+	  glTexCoord2f(tx + tw, ty);      glVertex3fv(c.Floats());
+	};
 
-      // Front
-      // glColor4ubv(magenta);
-      CCWFace(a, b, c, d);
+	if (sprite.type == IN_PLANE) {
+	  const float wf = sprite.width / 8.0f;
+	  const float hf = sprite.height / 8.0f;
+	  // printf("Draw sprite tex %d at %f,%f,%f\n",
+	  // sprite.texture_num, sprite.loc.x, sprite.loc.y, sprite.loc.z);
 
-      // Back
-      // glColor4ubv(magenta);
-      CCWFace(e, f, g, h);
-
-      // Right
-      // glColor4ubv(green);
-      CCWFace(b, e, h, c);
-
-      // Left
-      // glColor4ubv(green);
-      CCWFace(f, a, d, g);
-
-      // Bottom
-      // glColor4ubv(yellow);
-      CCWFace(f, e, b, a);
-
+	  Vec3 a = sprite.loc;
+	  Vec3 b = Vec3Plus(a, Vec3{wf, 0.0f, 0.0f});
+	  Vec3 c = Vec3Plus(a, Vec3{wf, hf, 0.0f});
+	  Vec3 d = Vec3Plus(a, Vec3{0.0f, hf, 0.0f});
+	  CCWFace(a, b, c, d);
+	} else {
+	  printf("BILLBOARD unimplemented\n");
+	}
+	glEnd();
+      }
     }
+    
+    if (draw_boxes) {
+      // One texture for the whole scene.
+      glBindTexture(GL_TEXTURE_2D, bg_texture);
+      glBegin(GL_TRIANGLES);
+    
+      // Draw boxes as a bunch of triangles.
+      for (const Box &box : boxes) {
+	// Here, boxes are properly oriented in GL axes, like this. The
+	// input vector is the front bottom left corner, a:
+	//
+	//      g-----h
+	//     /:    /|              ^   7
+	//    d-----c |            + |  / +
+	//    | :   | |            z | / y
+	//    | f---|-e            - |/ -
+	//    |/    |/               0------->
+	//    a-----b                  -x+
+	// (0,0,0)
 
-    glEnd();
+	const float side = (float)box.dim;
+
+	// printf("Draw box at %f,%f,%f\n", box.loc.x, box.loc.y, box.loc.z);
+      
+	Vec3 a = box.loc;
+	Vec3 b = Vec3Plus(a, Vec3{side, 0.0f, 0.0f});
+	Vec3 c = Vec3Plus(a, Vec3{side, 0.0f, side});
+	Vec3 d = Vec3Plus(a, Vec3{0.0f, 0.0f, side});
+	Vec3 e = Vec3Plus(a, Vec3{side, side, 0.0f});
+	Vec3 f = Vec3Plus(a, Vec3{0.0f, side, 0.0f});
+	Vec3 g = Vec3Plus(a, Vec3{0.0f, side, side});
+	Vec3 h = Vec3Plus(a, Vec3{side, side, side});
+
+	// XXX
+	const float TD = 8.0f / (8.0f * TILEST);
+	const float tx = box.texture_x * TD;
+	const float ty = box.texture_y * TD;
+	const float tt = box.dim * TD;
+      
+	// Give bottom left first, and go clockwise.
+	auto CCWFace = [tx, ty, tt](const Vec3 &a, const Vec3 &b,
+				    const Vec3 &c, const Vec3 &d) {
+	  //  (0,0) (1,0)
+	  //    d----c
+	  //    | 1 /|
+	  //    |  / |
+	  //    | /  |
+	  //    |/ 2 |
+	  //    a----b
+	  //  (0,1)  (1,1)  texture coordinates
+
+	  glTexCoord2f(tx,      ty + tt); glVertex3fv(a.Floats());
+	  glTexCoord2f(tx + tt, ty);      glVertex3fv(c.Floats());
+	  glTexCoord2f(tx,      ty);      glVertex3fv(d.Floats());
+
+	  glTexCoord2f(tx,      ty + tt); glVertex3fv(a.Floats());
+	  glTexCoord2f(tx + tt, ty + tt); glVertex3fv(b.Floats());
+	  glTexCoord2f(tx + tt, ty);      glVertex3fv(c.Floats());
+	};
+
+	// Top
+	// glColor4ubv(red);
+	CCWFace(d, c, h, g);
+
+	// Front
+	// glColor4ubv(magenta);
+	CCWFace(a, b, c, d);
+
+	// Back
+	// glColor4ubv(magenta);
+	CCWFace(e, f, g, h);
+
+	// Right
+	// glColor4ubv(green);
+	CCWFace(b, e, h, c);
+
+	// Left
+	// glColor4ubv(green);
+	CCWFace(f, a, d, g);
+
+	// Bottom
+	// glColor4ubv(yellow);
+	CCWFace(f, e, b, a);
+
+      }
+      glEnd();
+    }
+    
+    // Now sprites.
+
+    // printf("---\n");
+    
+    
     glDisable(GL_TEXTURE_2D);
   }
 
@@ -966,6 +1112,53 @@ struct SM {
     }
 
     return make_tuple(lx, ly, angle);
+  }
+
+  void InitTextures() {
+    // Allocate one bg texture.
+    {
+      glGenTextures(1, &bg_texture);
+      glBindTexture(GL_TEXTURE_2D, bg_texture);
+      vector<uint8> bg;
+      bg.resize(8 * 8 * TILEST * TILEST * 4);
+      // PERF is RGBA a good choice? It aligns better but does it make
+      // blitting much more costly because of the (unused) alpha channel?
+      glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, TILEST * 8, TILEST * 8, 0,
+		   GL_RGBA, GL_UNSIGNED_BYTE, bg.data());
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+
+      // No good answer here. Just make sure to hit pixels exactly.
+      // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+      // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    }
+
+    // Kinda wasteful, but allocate one "huge" fused sprite texture (256x256,
+    // which is as big as it could be) for each sprite slot. No way to use
+    // all of this at once, but it makes it much simpler to allocate and
+    // avoids having to do run-time packing.
+    {
+      glGenTextures(64, sprite_texture);
+      // For initialization, use the same array. Do we even need to initialize?
+      vector<uint8> spr;
+      for (int i = 0; i < SPRTEXW * SPRTEXH; i++) {
+	spr.push_back(rc.Byte());
+	spr.push_back(rc.Byte());
+	spr.push_back(rc.Byte());
+	spr.push_back(0xFF);
+      }
+      // spr.resize(SPRTEXW * SPRTEXH * 4);
+
+      for (int i = 0; i < 64; i++) {
+	glBindTexture(GL_TEXTURE_2D, sprite_texture[i]);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, SPRTEXW, SPRTEXH, 0,
+		     GL_RGBA, GL_UNSIGNED_BYTE, spr.data());
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+
+	// XXX Should clamp textures.
+      }
+    }
   }
   
  private:
@@ -1005,45 +1198,6 @@ static void InitGL() {
   
   glMatrixMode(GL_PROJECTION);
   glLoadIdentity();
-
-  // Allocate one bg texture.
-  {
-    glGenTextures(1, &bg_texture);
-    glBindTexture(GL_TEXTURE_2D, bg_texture);
-    vector<uint8> bg;
-    bg.resize(8 * 8 * TILEST * TILEST * 4);
-    // PERF is RGBA a good choice? It aligns better but does it make
-    // blitting much more costly because of the (unused) alpha channel?
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, TILEST * 8, TILEST * 8, 0,
-		 GL_RGBA, GL_UNSIGNED_BYTE, bg.data());
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-
-    // No good answer here. Just make sure to hit pixels exactly.
-    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-  }
-
-  // Kinda wasteful, but allocate one "huge" fused sprite texture (256x256,
-  // which is as big as it could be) for each sprite slot. No way to use
-  // all of this at once, but it makes it much simpler to allocate and
-  // avoids having to do run-time packing.
-  {
-    glGenTextures(64, sprite_texture);
-    // For initialization, use the same array. Do we even need to initialize?
-    vector<uint8> spr;
-    spr.resize(SPRTEXW * SPRTEXH * 4);
-
-    for (int i = 0; i < 64; i++) {
-      glBindTexture(GL_TEXTURE_2D, sprite_texture[i]);
-      glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, SPRTEXW, SPRTEXH, 0,
-		   GL_RGBA, GL_UNSIGNED_BYTE, spr.data());
-      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-
-      // XXX Should clamp textures.
-    }
-  }
   
   PerspectiveGL(60.0, ASPECT_RATIO, 1.0, 1024.0);
 
