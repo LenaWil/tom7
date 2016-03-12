@@ -384,13 +384,6 @@ struct SM {
     // Are sprites 16 pixels tall?
     const bool tall_sprites = !!(ppu_ctrl1 & (1 << 5));
     const int sprite_height = tall_sprites ? 16 : 8;
-    #if 0
-    if (tall_sprites) {
-      printf("SPRITES ARE TALL %x.\n", ppu_ctrl1);
-    } else {
-      printf("8x8.\n");
-    }
-    #endif
     
     const bool sprites_enabled = !!(ppu_ctrl2 && (1 << 4));  
     const bool sprites_clipped = !!(ppu_ctrl2 && (1 << 2));
@@ -434,15 +427,7 @@ struct SM {
     };
     vector<PreSprite> presprites{64};
 
-    auto GetRoot = [&presprites](int a) -> int {
-      if (0) {
-	printf("----------------\nGetroot(%d)\n", a);
-	for (int i = 0; i < presprites.size(); i++) {
-	  printf("%d -> %d   ", i, presprites[i].parent);
-	  if (i % 4 == 3) printf("\n");
-	}
-      }
-      
+    auto GetRoot = [&presprites](int a) -> int {      
       int root = a;
       while (presprites[root].parent != -1) {
 	CHECK(root != presprites[root].parent);
@@ -461,15 +446,6 @@ struct SM {
 	a = na;
       }
 
-      if (0 && changed) {
-	printf("Now on getroot(%d)\n", a);
-	for (int i = 0; i < presprites.size(); i++) {
-	  printf("%d -> %d   ", i, presprites[i].parent);
-	  if (i % 4 == 3) printf("\n");
-	}
-      }
-      
-      //      printf("Return: %d\n", root);
       return root;
     };
     
@@ -482,9 +458,9 @@ struct SM {
       // back to itself. Can't create cycles!
       if (ra == rb) return;
       CHECK(presprites[rb].parent == -1)
-      << rb << " -> " << presprites[rb].parent;
+          << rb << " -> " << presprites[rb].parent;
       CHECK(presprites[ra].parent == -1)
-      << ra << " -> " << presprites[ra].parent;
+          << ra << " -> " << presprites[ra].parent;
       presprites[rb].parent = ra;
     };
     
@@ -505,11 +481,9 @@ struct SM {
     // Note: there are also flags that disable sprite rendering
     // in leftmost 8 pixels of screen. ($2001 = PPUMASK)
 
-    // printf("FIRST PASS:\n");
     for (int n = 63; n >= 0; n--) {
       const uint8 y = spram[n * 4 + 0];      
       const uint8 x = spram[n * 4 + 3];
-      // printf("Sprite at px: %d,%d.\n", (int)x, (int)y);
       PreSprite &ps = presprites[n];
       ps.x = x;
       ps.y = y;
@@ -525,7 +499,6 @@ struct SM {
       by_coord[y * 256 + x].push_back(n);
     }
 
-    // printf("SECOND PASS:\n");
     // Now loop over all the sprite bits and complete the information
     // we need to size the fused sprites.
     for (int n = 63; n >= 0; n--) {
@@ -537,7 +510,7 @@ struct SM {
       if (ps.y < rps.min_y) rps.min_y = ps.y;
     }
 
-    // Pass 2.5, decide if we are actually rendering sprites, and prep
+    // Now, decide if we are actually rendering sprites, and prep
     // sprite memory.
     for (int n = 63; n >= 0; n--) {
       PreSprite &ps = presprites[n];
@@ -552,13 +525,11 @@ struct SM {
 	  memset(sprite_rgba[n].data(), 0, sprite_rgba[n].size());
 	  ps.rendered = true;
 	} else {
-	  // printf("Not rendered: min_y is %d\n", ps.min_y);
 	  ps.rendered = false;
 	}
       }
     }
     
-    // printf("THIRD PASS:\n");
     // Remember, most of the time, sprites won't fuse. We keep looping
     // over the whole vector of sprites.
     //
@@ -575,7 +546,6 @@ struct SM {
 
       vector<uint8> &rgba = sprite_rgba[root_idx];
       // We draw into the top-left corner of rgba.
-
       
       // We draw all sprite bits into the fused sprite; this applies to
       // the roots and children.
@@ -619,7 +589,7 @@ struct SM {
 	      ((row_low >> (7 - bit)) & 1) |
 	      (((row_high >> (7 - bit)) & 1) << 1);
 
-	    const int px = h_flip ? x0 + (7 - bit) : x0 + row;
+	    const int px = h_flip ? x0 + (7 - bit) : x0 + bit;
 	    const int py = v_flip ? y0 + (7 - row) : y0 + row;
 
 	    // XXX Might be technically possible? I think you could fuse 17 sprites
@@ -947,57 +917,7 @@ struct SM {
 
     glEnable(GL_TEXTURE_2D);
     glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL);
-
-    if (draw_sprites) {
-      for (const Sprite &sprite : sprites) {
-	glBindTexture(GL_TEXTURE_2D, sprite_texture[sprite.texture_num]);
-	glBegin(GL_TRIANGLES);
-
-	const float tx = sprite.texture_x / (float)SPRTEXW;
-	const float ty = sprite.texture_y / (float)SPRTEXH;
-
-	const float tw = (sprite.width - sprite.texture_x) / (float)SPRTEXW;
-	const float th = (sprite.height - sprite.texture_y) / (float)SPRTEXH;
-
-	// Give bottom left first, and go clockwise.
-	auto CCWFace = [tx, ty, tw, th](const Vec3 &a, const Vec3 &b,
-					const Vec3 &c, const Vec3 &d) {
-	  //  (0,0) (1,0)
-	  //    d----c
-	  //    | 1 /|
-	  //    |  / |
-	  //    | /  |
-	  //    |/ 2 |
-	  //    a----b
-	  //  (0,1)  (1,1)  texture coordinates
-
-	  glTexCoord2f(tx,      ty + th); glVertex3fv(a.Floats());
-	  glTexCoord2f(tx + tw, ty);      glVertex3fv(c.Floats());
-	  glTexCoord2f(tx,      ty);      glVertex3fv(d.Floats());
-
-	  glTexCoord2f(tx,      ty + th); glVertex3fv(a.Floats());
-	  glTexCoord2f(tx + tw, ty + th); glVertex3fv(b.Floats());
-	  glTexCoord2f(tx + tw, ty);      glVertex3fv(c.Floats());
-	};
-
-	if (sprite.type == IN_PLANE) {
-	  const float wf = sprite.width / 8.0f;
-	  const float hf = sprite.height / 8.0f;
-	  // printf("Draw sprite tex %d at %f,%f,%f\n",
-	  // sprite.texture_num, sprite.loc.x, sprite.loc.y, sprite.loc.z);
-
-	  Vec3 a = sprite.loc;
-	  Vec3 b = Vec3Plus(a, Vec3{wf, 0.0f, 0.0f});
-	  Vec3 c = Vec3Plus(a, Vec3{wf, hf, 0.0f});
-	  Vec3 d = Vec3Plus(a, Vec3{0.0f, hf, 0.0f});
-	  CCWFace(a, b, c, d);
-	} else {
-	  printf("BILLBOARD unimplemented\n");
-	}
-	glEnd();
-      }
-    }
-    
+   
     if (draw_boxes) {
       // One texture for the whole scene.
       glBindTexture(GL_TEXTURE_2D, bg_texture);
@@ -1086,7 +1006,55 @@ struct SM {
     }
     
     // Now sprites.
+    if (draw_sprites) {
+      for (const Sprite &sprite : sprites) {
+	glBindTexture(GL_TEXTURE_2D, sprite_texture[sprite.texture_num]);
+	glBegin(GL_TRIANGLES);
 
+	const float tx = sprite.texture_x / (float)SPRTEXW;
+	const float ty = sprite.texture_y / (float)SPRTEXH;
+
+	const float tw = (sprite.width - sprite.texture_x) / (float)SPRTEXW;
+	const float th = (sprite.height - sprite.texture_y) / (float)SPRTEXH;
+
+	// Give bottom left first, and go clockwise.
+	auto CCWFace = [tx, ty, tw, th](const Vec3 &a, const Vec3 &b,
+					const Vec3 &c, const Vec3 &d) {
+	  //  (0,0) (1,0)
+	  //    d----c
+	  //    | 1 /|
+	  //    |  / |
+	  //    | /  |
+	  //    |/ 2 |
+	  //    a----b
+	  //  (0,1)  (1,1)  texture coordinates
+
+	  glTexCoord2f(tx,      ty + th); glVertex3fv(a.Floats());
+	  glTexCoord2f(tx + tw, ty);      glVertex3fv(c.Floats());
+	  glTexCoord2f(tx,      ty);      glVertex3fv(d.Floats());
+
+	  glTexCoord2f(tx,      ty + th); glVertex3fv(a.Floats());
+	  glTexCoord2f(tx + tw, ty + th); glVertex3fv(b.Floats());
+	  glTexCoord2f(tx + tw, ty);      glVertex3fv(c.Floats());
+	};
+
+	if (sprite.type == IN_PLANE) {
+	  const float wf = sprite.width / 8.0f;
+	  const float hf = sprite.height / 8.0f;
+	  // printf("Draw sprite tex %d at %f,%f,%f\n",
+	  // sprite.texture_num, sprite.loc.x, sprite.loc.y, sprite.loc.z);
+
+	  Vec3 a = sprite.loc;
+	  Vec3 b = Vec3Plus(a, Vec3{wf, 0.0f, 0.0f});
+	  Vec3 c = Vec3Plus(a, Vec3{wf, hf, 0.0f});
+	  Vec3 d = Vec3Plus(a, Vec3{0.0f, hf, 0.0f});
+	  CCWFace(a, b, c, d);
+	} else {
+	  printf("BILLBOARD unimplemented\n");
+	}
+	glEnd();
+      }
+    }
     // printf("---\n");
     
     
