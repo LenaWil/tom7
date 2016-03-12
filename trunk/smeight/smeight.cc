@@ -437,11 +437,9 @@ struct SM {
       CHECK(presprites[root].parent == -1);
       
       // Path compression.
-      bool changed = false;
       while (a != root) {
 	const int na = presprites[a].parent;
 	// printf("Path compression %d -> %d, new root %d\n", a, na, root);
-	changed = true;
 	presprites[a].parent = root;
 	a = na;
       }
@@ -619,7 +617,10 @@ struct SM {
 	    // alpha 0. The palette doesn't matter; 0 means transparent
 	    // in every palette.
 	    if (value == 0) {
-	      rgba[pixel + 3] = 0x00;
+	      rgba[pixel + 0] = rc.Byte();
+	      rgba[pixel + 1] = rc.Byte();
+	      rgba[pixel + 2] = rc.Byte();
+	      rgba[pixel + 3] = 0x20;
 	    } else {
 	      // Offset with palette table. Sprite palette entries come
 	      // after the bg ones, so add 0x10.
@@ -687,7 +688,6 @@ struct SM {
 			0, 0, SPRTEXW, SPRTEXH,
 			GL_RGBA, GL_UNSIGNED_BYTE,
 			sprite_rgba[n].data());
-
 	
 	// TODO: Decide on BILLBOARD vs IN_PLANE etc. Probably
 	// should not merge sprites of different types.
@@ -916,9 +916,13 @@ struct SM {
 #endif
 
     glEnable(GL_TEXTURE_2D);
-    glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL);
+    // glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL);
+    // GL_MODULATE is needed for alpha blending, not sure why.
+    glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
    
     if (draw_boxes) {
+      glDisable(GL_BLEND);
+
       // One texture for the whole scene.
       glBindTexture(GL_TEXTURE_2D, bg_texture);
       glBegin(GL_TRIANGLES);
@@ -1007,6 +1011,11 @@ struct SM {
     
     // Now sprites.
     if (draw_sprites) {
+
+      glEnable(GL_BLEND);
+      // Should only be 1.0 or 0.0.
+      glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
       for (const Sprite &sprite : sprites) {
 	glBindTexture(GL_TEXTURE_2D, sprite_texture[sprite.texture_num]);
 	glBegin(GL_TRIANGLES);
@@ -1113,7 +1122,7 @@ struct SM {
 	spr.push_back(rc.Byte());
 	spr.push_back(rc.Byte());
 	spr.push_back(rc.Byte());
-	spr.push_back(0xFF);
+	spr.push_back(0x20);
       }
       // spr.resize(SPRTEXW * SPRTEXH * 4);
 
