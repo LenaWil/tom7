@@ -2,6 +2,7 @@
 #include <string>
 #include <set>
 #include <memory>
+#include <unordered_map>
 
 #include <cstdio>
 #include <cstdlib>
@@ -91,8 +92,10 @@ struct Tilemap {
       string key = Util::chop(line);
       if (key.empty() || key[0] == '#') continue;
       
-      if (key.size() != 2 || !Util::IsHexDigit(key[0]) || !Util::IsHexDigit(key[1])) {
-	printf("Bad key in tilemap. Should be exactly 2 hex digits: [%s]\n", key.c_str());
+      if (key.size() != 2 || !Util::IsHexDigit(key[0]) ||
+	  !Util::IsHexDigit(key[1])) {
+	printf("Bad key in tilemap. "
+	       "Should be exactly 2 hex digits: [%s]\n", key.c_str());
 	continue;
       }
 
@@ -165,7 +168,8 @@ struct SM {
 
     if (!moviefile.empty()) {
       inputs = SimpleFM2::ReadInputs(moviefile);
-      printf("There are %d inputs in %s.\n", (int)inputs.size(), moviefile.c_str());
+      printf("There are %d inputs in %s.\n",
+	     (int)inputs.size(), moviefile.c_str());
       const int warmup = atoi(config["warmup"].c_str());
       CHECK(inputs.size() >= warmup);
       // If we have warmup, advance to that point and discard them from inputs.
@@ -213,6 +217,13 @@ struct SM {
     
     vector<uint8> start_state = emu->SaveUncompressed();
 
+    // Just allocate the maximum size that this can ever be.
+    // It's only 16MB.
+    sprite_textures.resize(64);
+    for (int i = 0; i < 64; i++) {
+      sprite_textures[i].resize(256 * 256 * 4);
+    }
+    
     int current_angle = 0;
 
     bool paused = false;
@@ -344,20 +355,187 @@ struct SM {
     const uint8 ppu_ctrl2 = ppu->PPU_values[1];
     // Are sprites 16 pixels tall?
     const bool tall_sprites = !!(ppu_ctrl1 & (1 << 5));
-    printf("SPRITES ARE TALL.\n");
+    const int sprite_height = tall_sprites ? 16 : 8;
+    if (tall_sprites) {
+      printf("SPRITES ARE TALL %x.\n", ppu_ctrl1);
+    } else {
+      printf("8x8.\n");
+    }
 
     const bool sprites_enabled = !!(ppu_ctrl2 && (1 << 4));  
+    const bool sprites_clipped = !!(ppu_ctrl2 && (1 << 2));
     
     if (!sprites_enabled) return ret;
 
     const uint32 spr_pat_addr = (ppu_ctrl1 & (1 << 3)) ? 0x1000 : 0x0000;
-    const uint8 *vram = &emu->GetFC()->cart->VPage[spr_pat_addr >> 10][spr_pat_addr];
+    const uint8 *vram = &emu->GetFC()->cart->
+      VPage[spr_pat_addr >> 10][spr_pat_addr];
     
     // Each is 0x100 bytes
     const uint8 *spram = ppu->SPRAM;
     const uint8 *spbuf = ppu->SPRBUF;
 
 
+    // Most games use multiple sprites to draw the player and enemy,
+    // since sprites are pretty small (8x8 or 8x16). For billboard
+    // sprites in particular, we need to know that the sprites must
+    // be drawn adjacent to one another. This is called sprite
+    // fusion.
+    //
+    // We have to use heuristics (or maybe some sprite info file, urgh)
+    // for this. We'll say that two sprites that are exactly lined
+    // up (they share a complete edge) are part of the same sprite.
+    // This of course may occasionally merge two sprites that shouldn't,
+    // but that should at least look.. funny?
+    //
+    // There are 64 sprites, given by index. Since we look for exact
+    // adjacency, we can find sprites using a hash table.
+
+    struct PreSprite {
+      // First pass.
+      int x = 0, y = 0;
+      // Union-find like algorithm. If -1, this is the terminus; otherwise,
+      // it's part of the referenced fused sprite.
+      int parent = -1;
+
+      // Second pass.
+      int min_x = 256, min_y = 256;
+      int max_x = -1, max_y = -1;
+      bool rendered = false;
+    };
+    vector<PreSprite> presprites{64};
+
+    auto GetRoot = [&presprites](int a) -> int {
+      printf("----------------\nGetroot(%d)\n", a);
+      for (int i = 0; i < presprites.size(); i++) {
+	printf("%d -> %d   ", i, presprites[i].parent);
+	if (i % 4 == 3) printf("\n");
+      }
+
+      int root = a;
+      while (presprites[root].parent != -1) {
+	CHECK(root != presprites[root].parent);
+	root = presprites[root].parent;
+      }
+
+      CHECK(presprites[root].parent == -1);
+      
+      // Path compression.
+      bool changed = false;
+      while (a != root) {
+	const int na = presprites[a].parent;
+	printf("Path compression %d -> %d, new root %d\n", a, na, root);
+	changed = true;
+	presprites[a].parent = root;
+	a = na;
+      }
+
+      if (changed) {
+	printf("Now on getroot(%d)\n", a);
+	for (int i = 0; i < presprites.size(); i++) {
+	  printf("%d -> %d   ", i, presprites[i].parent);
+	  if (i % 4 == 3) printf("\n");
+	}
+      }
+      
+      printf("Return: %d\n", root);
+      return root;
+    };
+    
+    // Union two presprite indices.
+    auto Union = [&presprites, &GetRoot](int a, int b) {
+      const int ra = GetRoot(a);
+      const int rb = GetRoot(b);
+      // For example when both arguments are the same, but
+      // this also happens when we link a 2x2 square of tiles
+      // back to itself. Can't create cycles!
+      if (ra == rb) return;
+      CHECK(presprites[rb].parent == -1)
+          << rb << " -> " << presprites[rb].parent;
+      CHECK(presprites[ra].parent == -1)
+          << ra << " -> " << presprites[ra].parent;
+      presprites[rb].parent = ra;
+    };
+    
+    // All the presprite indices at (y * 256 + x).
+    // Max 64k keys.
+    unordered_map<int, vector<int>> by_coord;
+    const vector<int> empty_key;
+    auto Coord = [&by_coord, &empty_key](int x, int y) ->
+      const vector<int> * {
+      auto it = by_coord.find(y * 256 + x);
+      if (it == by_coord.end()) return &empty_key;
+      else return &it->second;
+    };
+
+    // PERF: Might want to exclude off-screen sprites.
+
+    // Note: there are also flags that disable sprite rendering
+    // in leftmost 8 pixels of screen. ($2001 = PPUMASK)
+    
+    for (int n = 63; n >= 0; n--) {
+      const uint8 y = spram[n * 4 + 0];      
+      const uint8 x = spram[n * 4 + 3];
+      PreSprite &ps = presprites[n];
+      ps.x = x;
+      ps.y = y;
+      // Look in each cardinal direction. There's a specific
+      // point where an adjacent sprite would be.
+      for (int up : *Coord(x, y - sprite_height)) Union(n, up);
+      for (int left : *Coord(x - 8, y)) Union(n, left);
+      for (int right : *Coord(x + 8, y)) Union(n, right);
+      for (int down : *Coord(x, y + sprite_height)) Union(n, down);
+      by_coord[y * 256 + x].push_back(n);
+    }
+
+    // Now loop over all the sprite bits and complete the information
+    // we need to size the fused sprites.
+    for (int n = 63; n >= 0; n--) {
+      const PreSprite &ps = presprites[n];
+      PreSprite &rps = presprites[GetRoot(n)];
+      if (ps.x > rps.max_x) rps.max_x = ps.x;
+      if (ps.y > rps.max_y) rps.max_y = ps.y;
+      if (ps.x < rps.min_x) rps.min_x = ps.x;
+      if (ps.y < rps.min_y) rps.min_y = ps.x;
+
+      // Sprite textures gives us a pre-allocated RGBA array for each
+      // sprite number, with dimensions capable of holding any fused
+      // sprite (256x256). So we can just use these. Note that there
+      // may be gibberish in there already. So in this pass, clear
+      // any sprites that will be used.
+      if (presprites[n].parent == -1) {
+	memset(sprite_textures[n].data(), 0, sprite_textures[n].size());
+      }
+    }
+
+    // Remember, most of the time, sprites won't fuse. We keep looping
+    // over the whole vector of sprites.
+    for (int n = 64; n >= 0; n--) {
+      // We draw all sprite bits into the fused sprite; this applies to
+      // the roots and children.
+      const uint8 ypos = spram[n * 4 + 0];
+      const uint8 num = spram[n * 4 + 1];
+      const uint8 attr = spram[n * 4 + 2];
+      const bool v_flip = !!(attr >> 7);
+      const bool h_flip = !!(attr >> 6);
+      const uint8 colorbits = attr & 3;
+      const uint8 xpos = spram[n * 4 + 3];
+
+      // PERF can probably avoid GetRoot since we called it for everything
+      // above.
+      int root_idx = GetRoot(n);
+      const PreSprite &root = presprites[root_idx];
+      vector<uint8> &rgba = sprite_textures[root_idx];
+      // We draw into the top-left corner of rgba.
+
+      if (tall_sprites) {
+	
+      } else {
+	// ...
+      }
+      
+    }
+    
     // Shouldn't really matter what order we do them here, but on the NES they
     // are drawn in decreasing order, so mimic that.
     for (int n = 63; n >= 0; n--) {
@@ -380,8 +558,11 @@ struct SM {
     }
     return ret;
   }
+
+  vector<vector<uint8>> sprite_textures;
   
-  // All boxes are 1x1x1. This returns their "top-left" corners. Larger Z is "up".
+  // All boxes are 1x1x1. This returns their "top-left" corners.
+  // Larger Z is "up".
   //
   //    x=0,y=0 -----> x = TILESW-1 = 31
   //    |
@@ -399,7 +580,8 @@ struct SM {
     
     // BG pattern table can be at 0 or 0x1000, depending on control bit.
     const uint32 bg_pat_addr = (ppu_ctrl1 & (1 << 4)) ? 0x1000 : 0x0000;
-    const uint8 *vram = &emu->GetFC()->cart->VPage[bg_pat_addr >> 10][bg_pat_addr];
+    const uint8 *vram = &emu->GetFC()->cart->
+      VPage[bg_pat_addr >> 10][bg_pat_addr];
 
     // The actual BG image, used as a texture for the blocks.
     vector<uint8> bg;
@@ -422,7 +604,8 @@ struct SM {
 	// square (4x4 tiles).
 	const int square_x = tx >> 2;
 	const int square_y = ty >> 2;
-	const uint8 attrbyte = nametable[TILESW * TILESH + (square_y * (TILESW >> 2)) + square_x];
+	const uint8 attrbyte = nametable[TILESW * TILESH +
+					 (square_y * (TILESW >> 2)) + square_x];
 	// Now get the two bits out of it.
 	const int sub_x = (tx >> 1) & 1;
 	const int sub_y = (ty >> 1) & 1;
@@ -517,9 +700,10 @@ struct SM {
     vector<Box> boxes;
     boxes.reserve(orig_boxes.size());
     for (const Box &box : orig_boxes) {
-      boxes.push_back(Box{Vec3{box.loc.x, (float)(TILESH - 1) - box.loc.y, box.loc.z},
-	    box.dim,
-	    box.texture_x, box.texture_y});
+      boxes.push_back(
+	  Box{Vec3{box.loc.x, (float)(TILESH - 1) - box.loc.y, box.loc.z},
+	      box.dim,
+	      box.texture_x, box.texture_y});
     }
 
     // printf("There are %d boxes.\n", (int)boxes.size());
@@ -586,7 +770,8 @@ struct SM {
       const float tt = box.dim * TD;
       
       // Give bottom left first, and go clockwise.
-      auto CCWFace = [tx, ty, tt](const Vec3 &a, const Vec3 &b, const Vec3 &c, const Vec3 &d) {
+      auto CCWFace = [tx, ty, tt](const Vec3 &a, const Vec3 &b,
+				  const Vec3 &c, const Vec3 &d) {
 	//  (0,0) (1,0)
 	//    d----c
 	//    | 1 /|
@@ -662,7 +847,8 @@ struct SM {
 };
 
 // Same as gluPerspective, but without depending on GLU.
-static void PerspectiveGL(double fovY, double aspect, double zNear, double zFar) {
+static void PerspectiveGL(double fovY, double aspect,
+			  double zNear, double zFar) {
   static constexpr double pi = 3.1415926535897932384626433832795;
   const double fH = tan(fovY / 360.0 * pi) * zNear;
   const double fW = fH * aspect;
