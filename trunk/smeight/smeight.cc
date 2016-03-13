@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <vector>
 #include <string>
 #include <set>
@@ -78,6 +79,7 @@ static constexpr uint8 ntsc_palette[] = {
 
 static bool draw_sprites = true;
 static bool draw_boxes = true;
+static bool draw_nes = true;
 
 // XXX
 static GLuint bg_texture = 0;
@@ -224,6 +226,8 @@ struct SM {
     // The texture id to use, in [0, 63].
     int texture_num = 0;
     SpriteType type = IN_PLANE;
+    // Used temporarily during rendering.
+    float distance = 0.0f;
   };
   
   void Loop() {
@@ -243,14 +247,17 @@ struct SM {
     }
     
     int current_angle = 0;
-
+    int angle_offset = 0;
+    
     bool paused = false, single_step = false;
 
     for (;;) {
       printf("Start loop!\n");
       emu->LoadUncompressed(start_state);
 
-      #define START_IDX 0
+      // still alpha bug?
+      // #define START_IDX 520
+      #define START_IDX 2000
       if (START_IDX) {
 	printf("SKIP to %d\n", START_IDX);
 	paused = true;
@@ -270,11 +277,20 @@ struct SM {
 	    return;
 	  case SDL_KEYUP:
 	    switch (event.key.keysym.sym) {
+	    case SDLK_LEFTBRACKET:
+	      angle_offset += 15;
+	      break;
+	    case SDLK_RIGHTBRACKET:
+	      angle_offset -= 15;
+	      break;
 	    case SDLK_PERIOD:
 	      single_step = true;
 	      break;
 	    case SDLK_b:
 	      draw_boxes = !draw_boxes;
+	      break;
+	    case SDLK_n:
+	      draw_nes = !draw_nes;
 	      break;
 	    case SDLK_SPACE:
 	      paused = !paused;
@@ -310,12 +326,13 @@ struct SM {
 
 	// printf("---\n");
 	
-	// PERF
-	vector<uint8> image = emu->GetImageARGB();
-
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	  
-	BlitNESGL(image, 0, HEIGHT);
+
+	if (draw_nes) {
+	  // PERF
+	  vector<uint8> image = emu->GetImageARGB();
+	  BlitNESGL(image, 0, HEIGHT);
+	}
 	
 	vector<Box> boxes = GetBoxes();
 
@@ -333,6 +350,11 @@ struct SM {
 	uint8 player_x, player_y;
 	int player_angle;
 	std::tie(player_x, player_y, player_angle) = GetLoc();
+
+	// XXX hack
+	player_angle += angle_offset;
+	while (player_angle < 0) player_angle += 360;
+	while (player_angle >= 360) player_angle -= 360;
 	
 	// Smooth angle a bit.
 	// Maximum degrees to turn per frame.
@@ -910,6 +932,11 @@ struct SM {
 		 const vector<Sprite> &orig_sprites,
 		 int player_x, int player_y,
 		 int player_angle) {
+
+    // Put player in GL coordinates.
+    // z is 3/4 of a 4x4 block height
+    const Vec3 player{player_x / 8.0f, ((TILESH * 8 - 1) - player_y) / 8.0f, 3.0f};
+
     // Put boxes in GL space where Y=0 is bottom-left, not top-left.
     // This also conceptually changes the origin of the box itself. In
     // this function, 0,0,0 is the "bottom front left" of the box.
@@ -932,8 +959,14 @@ struct SM {
       // This is a gross hack (and also depends on the box
       // dimensions). XXX rewrite so that the "floor" is at 0.
       s.loc.z += BOX_DIM;
+      s.distance = Vec3Distance(s.loc, player);
       sprites.push_back(s);
     }
+
+    std::sort(sprites.begin(), sprites.end(),
+	      [](const Sprite &a, const Sprite &b) {
+		return b.distance - a.distance;
+	      });
     
     // printf("There are %d boxes.\n", (int)boxes.size());
     glMatrixMode(GL_MODELVIEW);
@@ -946,11 +979,7 @@ struct SM {
     glRotatef(player_angle, 0.0, 0.0, 1.0);
     
     // Move "camera".
-    glTranslatef(player_x / -8.0f,
-		 ((TILESH * 8 - 1) - player_y) / -8.0f,
-		 // 3/4 of a 4x4 block height
-		 -3.0f);
-
+    glTranslatef(-player.x, -player.y, -player.z);
     // XXX don't need this
 #if 0
     glBegin(GL_LINE_STRIP);
