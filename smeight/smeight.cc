@@ -36,6 +36,9 @@
 #define HEIGHT 1080
 static constexpr double ASPECT_RATIO = WIDTH / (double)HEIGHT;
 
+static constexpr float DEGREES_TO_RADS =
+  (1.0f / 360.0f) * 2.0f * 3.1415926535897932384626433832795f;
+
 // Size of NES nametable
 #define TILESW 32
 #define TILESH 30
@@ -241,13 +244,13 @@ struct SM {
     
     int current_angle = 0;
 
-    bool paused = false;
-    
+    bool paused = false, single_step = false;
+
     for (;;) {
       printf("Start loop!\n");
       emu->LoadUncompressed(start_state);
 
-      #define START_IDX 550
+      #define START_IDX 0
       if (START_IDX) {
 	printf("SKIP to %d\n", START_IDX);
 	paused = true;
@@ -256,7 +259,7 @@ struct SM {
 	}
       }
       
-      for (int input_idx = START_IDX; input_idx < inputs.size(); input_idx += !paused) {
+      for (int input_idx = START_IDX; input_idx < inputs.size(); ) {
 	const uint8 input = inputs[input_idx];
 	frame++;
 
@@ -267,6 +270,9 @@ struct SM {
 	    return;
 	  case SDL_KEYUP:
 	    switch (event.key.keysym.sym) {
+	    case SDLK_PERIOD:
+	      single_step = true;
+	      break;
 	    case SDLK_b:
 	      draw_boxes = !draw_boxes;
 	      break;
@@ -291,12 +297,20 @@ struct SM {
 	  }
 	}
 	  
-	SDL_Delay(1000.0 / 60.0);
+	// SDL_Delay(1000.0 / 60.0);
 
-	if (!paused) {
+	if (!paused || single_step) {
+	  if (single_step) {
+	    printf("Frame %d\n", input_idx);
+	    single_step = false;
+	  }
 	  emu->StepFull(input, 0);
+	  input_idx++;
 	}
 
+	// printf("---\n");
+	
+	// PERF
 	vector<uint8> image = emu->GetImageARGB();
 
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -306,6 +320,15 @@ struct SM {
 	vector<Box> boxes = GetBoxes();
 
 	vector<Sprite> sprites = GetSprites();
+
+	// XXX Make optional with key
+	#if 0
+	int z = 240;
+	for (const Sprite &s : sprites) {
+	  BlitSpriteTexGL(sprite_rgba[s.texture_num], 5, z, s.height);
+	  z += s.height + 5;
+	}
+	#endif
 	
 	uint8 player_x, player_y;
 	int player_angle;
@@ -374,6 +397,13 @@ struct SM {
     glDrawPixels(256, 256, GL_BGRA, GL_UNSIGNED_BYTE, image.data());
   }
 
+  void BlitSpriteTexGL(const vector<uint8> &image, int x, int y, int h) {
+    glPixelZoom(1.0f, -1.0f);
+    (*glWindowPos2i)(x, y);
+    glDrawPixels(SPRTEXW, h, GL_RGBA, GL_UNSIGNED_BYTE, image.data());
+  }
+
+  
   vector<Sprite> GetSprites() {
     vector<Sprite> ret;
 
@@ -456,9 +486,9 @@ struct SM {
       // back to itself. Can't create cycles!
       if (ra == rb) return;
       CHECK(presprites[rb].parent == -1)
-          << rb << " -> " << presprites[rb].parent;
+      << rb << " -> " << presprites[rb].parent;
       CHECK(presprites[ra].parent == -1)
-          << ra << " -> " << presprites[ra].parent;
+      << ra << " -> " << presprites[ra].parent;
       presprites[rb].parent = ra;
     };
     
@@ -494,6 +524,7 @@ struct SM {
       // XXX Maybe should consider also unioning with sprites that are
       // at this same exact coordinate. Some games draw multiple layers
       // to get more than 3 colors.
+
       by_coord[y * 256 + x].push_back(n);
     }
 
@@ -550,12 +581,20 @@ struct SM {
       const uint8 ypos = spram[n * 4 + 0];
       const uint8 tile_idx = spram[n * 4 + 1];
       const uint8 attr = spram[n * 4 + 2];
-      const bool v_flip = !!(attr >> 7);
-      const bool h_flip = !!(attr >> 6);
+      const bool v_flip = !!(attr & (1 << 7));
+      const bool h_flip = !!(attr & (1 << 6));
       const uint8 colorbits = attr & 3;
       const uint8 xpos = spram[n * 4 + 3];
 
-
+      /*
+      printf("[For %d, %d,%d to %d,%d] Draw at %d,%d tile %d %s%s\n",
+	     root_idx,
+	     root.min_x, root.min_y, root.max_x, root.max_y,
+	     xpos, ypos, tile_idx,
+	     h_flip ? "hflip " : "",
+	     v_flip ? "vflip " : "");
+      */
+      
       const uint8 *palette_table = emu->GetFC()->ppu->PALRAM;
       
       // Draw one 8x8 sprite tile into rgba, using pattern table $0000
@@ -565,12 +604,12 @@ struct SM {
       // place in the texture.
       auto OneTile = [this, v_flip, h_flip, colorbits,
 		      &root, &rgba, palette_table](
-	  bool patterntable_high, uint8 tile_idx,
-	  int xdest, int ydest) {
+			  bool patterntable_high, uint8 tile_idx,
+			  int xdest, int ydest) {
 	const uint32 spr_pat_addr = patterntable_high ? 0x1000 : 0x0000;
 	// PERF Really need to keep computing this?
 	const uint8 *vram = &emu->GetFC()->cart->
-	    VPage[spr_pat_addr >> 10][spr_pat_addr];
+	VPage[spr_pat_addr >> 10][spr_pat_addr];
 
 	// upper-left corner of this tile within the rgba array.
 	const int x0 = xdest - root.min_x;
@@ -587,8 +626,8 @@ struct SM {
 	      ((row_low >> (7 - bit)) & 1) |
 	      (((row_high >> (7 - bit)) & 1) << 1);
 
-	    const int px = h_flip ? x0 + (7 - bit) : x0 + bit;
-	    const int py = v_flip ? y0 + (7 - row) : y0 + row;
+	    const int px = h_flip ? x0 + (7 - bit) : (x0 + bit);
+	    const int py = v_flip ? y0 + (7 - row) : (y0 + row);
 
 	    // XXX Might be technically possible? I think you could fuse 17 sprites
 	    // and make something that was 255+16 tall.
@@ -617,10 +656,7 @@ struct SM {
 	    // alpha 0. The palette doesn't matter; 0 means transparent
 	    // in every palette.
 	    if (value == 0) {
-	      rgba[pixel + 0] = rc.Byte();
-	      rgba[pixel + 1] = rc.Byte();
-	      rgba[pixel + 2] = rc.Byte();
-	      rgba[pixel + 3] = 0x20;
+	      rgba[pixel + 3] = 0x00;
 	    } else {
 	      // Offset with palette table. Sprite palette entries come
 	      // after the bg ones, so add 0x10.
@@ -644,17 +680,32 @@ struct SM {
 	  // This page:
 	  // http://noelberry.ca/nes
 	  // verifies that tiles t and t+1 are drawn top then bottom.
-	  OneTile(false, tile_idx, xpos, ypos);
-	  // XXX in y-flip scenarios, we probably have to flip the
-	  // y positions here so that the whole 8x16 sprite is flipping,
-	  // rather than its two 8x8 components?
-	  OneTile(false, tile_idx + 1, xpos, ypos + 8);
+	  if (v_flip) {
+	    // in y-flip scenarios, we have to flip the
+	    // y positions here so that the whole 8x16 sprite is flipping,
+	    // rather than its two 8x8 components. So tile_idx actually goes
+	    // on bottom.
+	    OneTile(false, tile_idx, xpos, ypos + 8);
+	    OneTile(false, tile_idx + 1, xpos, ypos);
+	  } else {
+	    OneTile(false, tile_idx, xpos, ypos);
+	    OneTile(false, tile_idx + 1, xpos, ypos + 8);
+	  }
 	} else {
+	  // this does happen in zelda! (during scroll?)
+	  printf("odd tile %d!?\n", tile_idx);
+	  // CHECK(false);
+	  
 	  // XXX I assume this drops the low bit? I don't see that
 	  // documented but it wouldn't really make sense otherwise
 	  // (unless tile 255 wraps to 0?)
-	  OneTile(true, tile_idx - 1, xpos, ypos);
-	  OneTile(true, tile_idx, xpos, ypos + 8);
+	  if (v_flip) {
+	    OneTile(true, tile_idx - 1, xpos, ypos + 8);
+	    OneTile(true, tile_idx, xpos, ypos);
+	  } else {
+	    OneTile(true, tile_idx - 1, xpos, ypos);
+	    OneTile(true, tile_idx, xpos, ypos + 8);
+	  }
 	}
       } else {
 	// this is much easier but not used in zelda
@@ -691,37 +742,33 @@ struct SM {
 	
 	// TODO: Decide on BILLBOARD vs IN_PLANE etc. Probably
 	// should not merge sprites of different types.
-	if (false) {
-	  Sprite s;
+	Sprite s;
+	const int height_px = (ps.max_y + sprite_height) - ps.min_y;
+	if (true) {
 	  // Use centroid of fused sprite.
 	  float cx = ((ps.max_x + 8) + ps.min_x) * 0.5f;
 	  float cy = ((ps.max_y + sprite_height) + ps.min_y) * 0.5f;
 	  // These are in tile space, not pixel space.
 	  s.loc.x = cx / 8.0f;
-	  // Since we are using the center, this is 
 	  s.loc.y = cy / 8.0f;
 	  // XXX bottom should always be on the floor, yeah?
-	  s.loc.z = cy / 8.0f;
+	  s.loc.z = 0.5 * (height_px / 8.0f);
 	  s.type = BILLBOARD;
-	  s.texture_num = n;
-	  s.width = (ps.max_x + 8) - ps.min_x;
-	  s.height = (ps.max_y + sprite_height) - ps.min_y;
-	  s.texture_x = 0;
-	  s.texture_y = 0;
-	  ret.push_back(s);
+
 	} else {
-	  Sprite s;
 	  s.loc.x = ps.min_x / 8.0f;
 	  s.loc.y = ps.min_y / 8.0f;
 	  s.loc.z = 0.01f;
 	  s.type = IN_PLANE;
-	  s.texture_num = n;
-	  s.width = (ps.max_x + 8) - ps.min_x;
-	  s.height = (ps.max_y + sprite_height) - ps.min_y;
-	  s.texture_x = 0;
-	  s.texture_y = 0;
-	  ret.push_back(s);
 	}
+
+	s.texture_num = n;
+	s.width = (ps.max_x + 8) - ps.min_x;
+	s.height = (ps.max_y + sprite_height) - ps.min_y;
+	s.texture_x = 0;
+	s.texture_y = 0;
+
+	ret.push_back(s);
       }
     }
     
@@ -1008,7 +1055,7 @@ struct SM {
       }
       glEnd();
     }
-    
+
     // Now sprites.
     if (draw_sprites) {
 
@@ -1019,7 +1066,7 @@ struct SM {
       for (const Sprite &sprite : sprites) {
 	glBindTexture(GL_TEXTURE_2D, sprite_texture[sprite.texture_num]);
 	glBegin(GL_TRIANGLES);
-
+	
 	const float tx = sprite.texture_x / (float)SPRTEXW;
 	const float ty = sprite.texture_y / (float)SPRTEXH;
 
@@ -1050,16 +1097,51 @@ struct SM {
 	if (sprite.type == IN_PLANE) {
 	  const float wf = sprite.width / 8.0f;
 	  const float hf = sprite.height / 8.0f;
-	  // printf("Draw sprite tex %d at %f,%f,%f\n",
-	  // sprite.texture_num, sprite.loc.x, sprite.loc.y, sprite.loc.z);
 
 	  Vec3 a = sprite.loc;
 	  Vec3 b = Vec3Plus(a, Vec3{wf, 0.0f, 0.0f});
 	  Vec3 c = Vec3Plus(a, Vec3{wf, hf, 0.0f});
 	  Vec3 d = Vec3Plus(a, Vec3{0.0f, hf, 0.0f});
 	  CCWFace(a, b, c, d);
+
 	} else {
-	  printf("BILLBOARD unimplemented\n");
+	  CHECK(sprite.type == BILLBOARD);
+	  /*
+	  printf("Draw billboard tex=%d at %.2f,%.2f,%.2f %dx%d\n",
+		 sprite.texture_num, sprite.loc.x, sprite.loc.y, sprite.loc.z,
+		 sprite.width, sprite.height);
+	  */
+
+	  // Compute transform for this billboard. We can do this manually
+	  // pretty easy.
+
+	  // We're rotating the billboard around the z axis through its
+	  // center point,
+	  //
+ 	  //    -----*-----
+	  //
+	  //  (top down view)
+
+	  const float player_rads = -player_angle * DEGREES_TO_RADS;
+	  // printf("p angle: d = %.2f rads\n", player_angle, player_rads);
+	  
+	  // half-width and half-height from center point.
+	  const float hwf = 0.5f * (sprite.width / 8.0f);
+	  const float hhf = 0.5f * (sprite.height / 8.0f);
+	  // We're rotating the plane within a cylinder.
+	  // looking straight down on the billboard, this is just
+	  // a rotation of a line segment within a circle.
+	  // Angle of 0 should give hyf=0 and hxf=hwf.
+	  const float hxf = cosf(player_rads) * hwf;
+	  const float hyf = sinf(player_rads) * hwf;
+	  
+	  const Vec3 &ctr = sprite.loc;
+	  Vec3 a = Vec3Plus(ctr, Vec3{-hxf, -hyf, -hhf});
+	  Vec3 b = Vec3Plus(ctr, Vec3{+hxf, +hyf, -hhf});
+	  Vec3 c = Vec3Plus(ctr, Vec3{+hxf, +hyf, +hhf});
+	  Vec3 d = Vec3Plus(ctr, Vec3{-hxf, -hyf, +hhf});
+	  CCWFace(a, b, c, d);
+
 	}
 	glEnd();
       }
@@ -1081,10 +1163,10 @@ struct SM {
 
     int angle = 0;
     switch (dir) {
-    case 1: angle = 90; break;
-    case 2: angle = 270; break;
-    case 4: angle = 180; break;
-    case 8: angle = 0; break;
+    case 1: angle = 90; break;  // East
+    case 2: angle = 270; break; // West
+    case 4: angle = 180; break; // South
+    case 8: angle = 0; break;   // North
     default:;
     }
 
@@ -1119,10 +1201,11 @@ struct SM {
       // For initialization, use the same array. Do we even need to initialize?
       vector<uint8> spr;
       for (int i = 0; i < SPRTEXW * SPRTEXH; i++) {
+	// Make uninitialized data shine.
 	spr.push_back(rc.Byte());
 	spr.push_back(rc.Byte());
 	spr.push_back(rc.Byte());
-	spr.push_back(0x20);
+	spr.push_back(0xAA);
       }
       // spr.resize(SPRTEXW * SPRTEXH * 4);
 
@@ -1210,6 +1293,9 @@ int main(int argc, char *argv[]) {
   // are still linear interpolation. Should instead render
   // offscreen and then downsample.
   SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 4);
+
+  // Lock to vsync rate.
+  SDL_GL_SetAttribute(SDL_GL_SWAP_CONTROL, 1);
   
   // Can use SDL_FULLSCREEN here for full screen immersive
   // 8 bit action!!
