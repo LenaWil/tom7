@@ -82,6 +82,11 @@ inline Vec2 Vec2Plus(const Vec2 &a, const Vec2 &b) {
   return Vec2(a.x + b.x, a.y + b.y);
 }
 
+inline float Vec3Distance(const Vec3 &a, const Vec3 &b) {
+  float dx = b.x - a.x, dy = b.y - a.y, dz = b.z - a.z;
+  return sqrt(dx * dx + dy * dy + dz * dz);
+}
+
 inline Vec3 ScaleVec3(const Vec3 &v, float s) {
   return Vec3(v.x * s, v.y * s, v.x * s);
 }
