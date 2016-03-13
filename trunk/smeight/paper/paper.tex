@@ -57,25 +57,185 @@
 
 \section{Introduction}
 
-{\bf 1986. Hyrule.}\quad The Legend of {\it frickin'}~Zelda for the Nintendo {\it freakin'}~Entertainment System. Need I say more? A {\it god damn} \uline{gold cartridge}. Fortunes made just from saving the gold cartridge and melting it down to make gold teeth grilles, after carefully extracting the even more precious ROM inside. A die-cut hole in the box so that you could get a peek of the cartridge and presage that you were getting some solid gold. A die cut little window that you could palpate through the wrapping paper on Christmas~Eve, presaging some epic thumb blisters in store for the coming weeks. Koji {\it freckin'} Kondo. Koji Kondo whipping up a nice 8-bit arrangement of Bol\'ero as the theme music until realizing at the last minute that this music was copyrighted\footnote{Perhaps ironic, since Ravel's {Bol\'ero} itself was composed as a result of Ravel getting cop-blocked.\cite{wikipedia2016bolero} And surely some Zelda knock-off since then has included a Muzak ersatz of the Zelda theme! What is the longest documented sequence of compositions due to Copyright restrictions?} and so instead composing its epic theme in {\it one day}??
+{\bf 1986. Hyrule.}\quad The Legend of {\it frickin'}~Zelda for the
+Nintendo {\it freakin'}~Entertainment System. Need I say more? A {\it
+  god damn} \uline{gold cartridge}. Fortunes made just from melting
+the gold cartridge down to make gold teeth grilles, after carefully
+extracting the even more precious ROM inside. A die-cut hole in the
+box so that you could get a peek of the cartridge and presage that you
+were getting some solid gold. A die cut little window that you could
+palpate through the wrapping paper on Christmas~Eve, presaging some
+epic thumb blisters in store for the coming weeks. Koji {\it freckin'}
+Kondo. Koji Kondo whipping up a nice 8-bit arrangement of Bol\'ero as
+the theme music until realizing at the last minute that this music was
+copyrighted\footnote{Perhaps ironic, since Ravel's {Bol\'ero} itself
+  was composed as a result of Ravel getting
+  cop-blocked.\cite{wikipedia2016bolero} And surely some Zelda
+  knock-off since then has included a Muzak ersatz of the Zelda theme!
+  What is the longest documented sequence of compositions due to
+  Copyright restrictions?} and so instead composing its epic theme in
+{\it one day}??
 
-A gold cartridge that contained ROMs and a little swallowable battery to keep the onboard SRAM powered up so that it could retain your epic save game. A battery designed to last 70~years. Nothing could cause you to lose your save game, even once you were half way through the Second Quest. Unless your little brother starts a completely new game and saves over your slot, earning him one of the most righteously deserved clobberings this side of Inigo Montoya. Saves right on top of your slot with a player called just \verb+A   +. Right over your slot, erasing it, and hasn't even picked up the {\it sword} yet. Saves right over yours even though there are TWO OTHER UNUSED SLOTS and you even wisely put your game in the third slot {\it exactly to avoid this kind of calamity}. 
-
-Need I say more? Shall I say it?
-
-
-technical limitations...
-Like looking at tree people with polyhedra for hands is some kind of ...
-
-\begin{figure*}[p]
+\begin{figure}[ht]
 \begin{center}
-\includegraphics[width=3.5in]{link3d}
+\includegraphics[width=\linewidth]{link3d}
 \end{center}\vspace{-0.1in}
-\caption{Technical diagram of mathematical equations.} \label{figure:link3d}
-\smallskip
+\caption{Technical diagram of mathematical equations.} \label{fig:link3d}
+% \smallskip
 % caption can go here...
 % } 
-\end{figure*}
+\end{figure}
+
+A gold cartridge that contained ROMs and a little swallowable battery
+to keep the onboard SRAM powered up so that it could retain your epic
+save game. A battery designed to last 70~years. Nothing could cause
+you to lose your save game, even once you were half way through the
+Second Quest. Unless your little brother starts a completely new game
+and saves over your slot, earning him one of the most righteously
+deserved clobberings this side of Inigo Montoya. Saves right on top of
+your slot with a player called just \verb+A +. Right over your slot,
+erasing it, and hasn't even picked up the {\it sword} yet. All you
+have to do is step on the black square in the first room and the guy
+gives you the sword and then dies. Jeez pooleaze. Saves right over
+yours with no sword even though there are TWO OTHER UNUSED SLOTS and
+you even wisely put your game in the third slot {\it exactly to avoid
+  this kind of calamity}.
+
+\medskip
+Need I say more? Shall I say it? Apparently so. KIDS THESE DAYS. Kids
+these days and their three dimensions. You can certainly make a
+respectable case that the Zenith of the series was {\it Legend of
+  Zelda III: A Link To The Past}, or even {\it Legend of Game Boy
+  Zelda: I forgot What It's Called}. But there seems to be an
+established consensus that {\it Legend Of Zelda LXIV: The Ocarina of
+  Time} is the true masterpiece; that while the NES Original indeed
+invented the genre, the technical limitations of the system
+handicapped it. You're talking to me about technical {\it frockin'}
+limitations? Like somehow appreciating the subtle wonder of the
+universe and its mechanics requires me to look at tree people with
+tetrahedra clubs for hands. And they say this of the 64\th\ game in
+the series? Please jouize.
+
+A fine game, don't get me wrong. But was its theme song composed in
+one day? Did it come in a gold cartridge?
+
+And the thing is: The original Zelda was built with enough forethought
+that it {\em can} be rendered in first-person 3D. So here I will make
+the game 3D so that it can be enjoyed by these kids and they can get
+off my lawn, tapdancing around playing their titular Ocarinas. I will
+make it possible to play the game in glorious HD, or even 4K
+resolution, and then some (Figure~\ref{fig:link3d}). And while
+we're at it, why not try to do it in a way that can play loads of NES
+games in three {\it fr\"ockin'} dimensions? What's the worst that
+could happen?
+
+
+\section{Technical limitations}
+
+As presaged, the NES does have certain technical limitations, which I
+prefer to think of as constraints. Some basic details are important
+for understanding how this works.
+
+The NES has a modest CPU that executes game logic. It's a little 8-bit
+baby puppy with access to 2 kilobytes of RAM. If you think about it,
+the NES's 256x240 pixel screen is already 61,440 pixels, which if it
+used the entirety of RAM to represent it, we'd have only
+$0.2\overline{6}$ bits of RAM per pixel, which makes no sense. At XXX
+MhZ, and a generous 1 instruction per pixel, we'd only be able to render
+XXX frames per second! This doesn't make sense, and this is because
+the CPU does not render the graphics on a NES.
+
+The NES also contains a custom Picture Processing Unit---PPU---which
+outputs 60 frames of NTSC or PAL video per second. In fact, since the
+PPU also drives a CPU interrupt for each scanline and vblank (XXX
+true?), and most games use this for timing,%
+%
+\footnote{Fun fact: NTSC, used in the Americas, has a ~60Hz frame
+  rate. But PAL, used in Europe and Asia, has a 50Hz refresh rate.
+  This means that many games run 16\% slower in Europe than the US, so
+  if you grew up playing there, you were playing on {\em Easy} mode.
+  {\tt\ ;-)}}
+%
+in many ways the CPU is subservient to the PPU, kind of like the PPU
+is the {\it real} heart of the NES. In the context of this paper, you
+could say that the CPU is the Ocarina of Time and the PPU is the
+Legend of Zelda. It's just an analogy. The PPU is very complicated and
+has tetrahedra for hands, like clubs. But the CPU communicates with
+the PPU not by drawing pixels, but by giving a high-level description
+of the screen (by writing it into PPU memory). The chief insight of
+this work is that the PPU representation can be interpreted and
+rendered in 3D instead of 2D. This allows us to use the exact original
+game logic and only change the way it's viewed. Sometimes this even
+allows us to see aspects of the game that are actually present but
+were not visible on NES hardware. Often it makes the game more
+difficult by making things invisible (enemies behind the player or
+behind walls) or inducing motion sickness.
+
+\subsubsection{Background}
+The PPU has two major drawing facilities: Background and Sprites. Both
+are made of ``tiles'', which are 8x8 graphics that are
+usually\footnote{Some games trick the NES hardware by remapping tile
+memory (e.g. in response to a memory read), even during a scanline. I
+do not allow for such chicanery in this work.} stored in ROM. There
+are two tile sets, each with 256 tiles. Figure~\ref{fig:ppu} shows the
+tile sets for the starting location in the Zelda overworld.
+
+\begin{figure}[ht]
+\begin{center}
+\includegraphics[width=\linewidth]{ppu1} \\
+\vspace{1em}
+\includegraphics[width=\linewidth]{ppu2}
+\end{center}\vspace{-0.1in}
+\caption{Pattern tables for the Zelda overworld. In Zelda, the top tiles
+are used for sprites, and the bottom are used for the background graphics.
+All tiles are 8x8 and use 4 color values (color 0 is transparent). These
+color values index into 4 sprite palettes and 4 background palettes, with
+some limitations.
+} \label{fig:ppu}
+\end{figure}
+
+The NES background is described by the ``nametable'', which is an
+array of 32x30 bytes giving the tile numbers to fill the screen with.
+It's two rows shy of 256 probably for some reason having to do with
+the aspect ratio of TVs or number of actual NTSC scanlines, but also
+to make room for 64 bytes of attribute data. There are just two bits
+per four tiles. These two bits select which of the four palettes to
+use for each 2x2 group of tiles on the screen. It's interesting to
+look for the tricks that artists use to work around the constraint on
+the number of background colors. % XXX figure showing this off?
+
+Because of this array of tiles, NES games have to be built of
+high-level, block-like structures. In Zelda, this structure is
+particularly (but not unusually) regular. Since each 2x2 tile group
+(16x16 pixels) shares the same palette, the screens are built around
+16x16 pixel grid-aligned blocks.
+
+\subsubsection{Sprites}
+
+Sprites, named in honor of the forest pixies whose homes were razed in
+order to make space inside the PPU for them, are more complicated.
+
+There are 64 sprites, which are all turned on or off together. Each
+sprite is described by four bytes: Its $x$ and $y$ coordinates (these
+can be placed at arbitrary integer pixel locations), the index of
+the tile to draw, and an attribute byte:
+
+\begin{tabular}{rrl}
+    & bit \# & bit deets \\
+\hline \\
+MSB & 7      & Vertical flip \\
+    & 6      & Horizontal flip \\
+    & 5      & something weird \\
+    & 4      & I don't know \\
+    & 3      & unused? who can say \\
+    & 2      & bit 2; could be anything \\
+LSB & 1,0    & Palette index \\
+\end{tabular}
+
+Additionally, there are some global sprite settings. But 
+
+Sprite Zero has some special properties. I don't want to tell you
+about the properties, I just wanted to make a soda joke.
 
 \nocite{murphy2013first}
 
