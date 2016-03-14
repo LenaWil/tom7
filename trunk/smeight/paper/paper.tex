@@ -76,7 +76,7 @@ copyrighted\footnote{Perhaps ironic, since Ravel's {Bol\'ero} itself
   Copyright restrictions?} and so instead composing its epic theme in
 {\it one day}??
 
-\begin{figure}[ht]
+\begin{figure}[h!t]
 \begin{center}
 \includegraphics[width=\linewidth]{link3d}
 \end{center}\vspace{-0.1in}
@@ -85,6 +85,7 @@ copyrighted\footnote{Perhaps ironic, since Ravel's {Bol\'ero} itself
 % caption can go here...
 % } 
 \end{figure}
+
 
 A gold cartridge that contained ROMs and a little swallowable battery
 to keep the onboard SRAM powered up so that it could retain your epic
@@ -132,6 +133,20 @@ could happen?
 
 \section{Technical limitations}
 
+\begin{figure}[h!t]
+\begin{center}
+\includegraphics[width= \linewidth]{ppu1} \\
+\vspace{1em}
+\includegraphics[width= \linewidth]{ppu2}
+\end{center}\vspace{-0.1in}
+\caption{Pattern tables for the Zelda overworld. In Zelda, the top tiles
+are used for sprites, and the bottom are used for the background graphics.
+All tiles are 8x8 and use 4 color values (color 0 is transparent). These
+color values index into 4 sprite palettes and 4 background palettes, with
+some limitations.
+} \label{fig:ppu}
+\end{figure}
+
 As presaged, the NES does have certain technical limitations, which I
 prefer to think of as constraints. Some basic details are important
 for understanding how this works.
@@ -140,23 +155,24 @@ The NES has a modest CPU that executes game logic. It's a little 8-bit
 baby puppy with access to 2 kilobytes of RAM. If you think about it,
 the NES's 256x240 pixel screen is already 61,440 pixels, which if it
 used the entire 2k of RAM to represent it, we'd have only
-$0.2\overline{6}$ bits of RAM per pixel, which makes no sense. At XXX
-MhZ, and a generous 1 instruction per pixel, we'd only be able to render
-XXX frames per second! This doesn't make sense, and this is because
-the CPU does not render the graphics on a NES.
+$0.2\overline{6}$ bits of RAM per pixel, which makes no sense. At
+1.7~MhZ, and a generous 1 instruction per pixel, we'd only be able to
+render 28 frames per second! This doesn't make sense, and this is
+because the CPU does not render the graphics on a NES.
+
 
 The NES also contains a custom Picture Processing Unit, or PPU, the
 8-bit baby puppy's baby ppupy brother. This thing outputs 60 frames of
-NTSC or PAL video per second. In fact, since the PPU also drives a CPU
-interrupt for each scanline and vblank (XXX true?), and most games use
+NTSC video per second. In fact, since the PPU also drives a CPU
+interrupt for each scanline and vblank, and most games use
 this for timing,%
 %
-\footnote{Fun fact: NTSC, the video standard used in the Americas, has
-  % XXX how u make ``approx'' symbol
-  a \~60Hz frame rate. But PAL, used in Europe and Asia, has a 50Hz
-  refresh rate. This means that many games run 16\% slower in Europe
-  than the US, so if you grew up playing there, you were playing on
-  {\em Easy} mode. {\tt\ ;-)}}
+\footnote{Fun fact: NTSC (``Never Twice the Same Color''), the video
+  standard used in the Americas, has a $\sim 60$ Hz frame rate. But
+  PAL (``Pointless and Lousy''), used in Europe and Asia, has a $\sim
+  50$ Hz refresh rate. This means that many games run 16\% slower in
+  Europe than the US, so if you grew up playing there, you were
+  playing on {\em Easy} mode. {\tt\ ;-)}}
 %
 in many ways the CPU is subservient to the PPU, kind of like the PPU
 is the {\it true} pure heart of the NES. In the context of this paper, you
@@ -181,20 +197,6 @@ memory (e.g. in response to a memory read), even during a scanline. I
 do not allow for such chicanery in this work.} stored in ROM. There
 are two tile sets, each with 256 tiles. Figure~\ref{fig:ppu} shows the
 tile sets for the starting location in the Zelda overworld.
-
-\begin{figure}[ht]
-\begin{center}
-\includegraphics[width=\linewidth]{ppu1} \\
-\vspace{1em}
-\includegraphics[width=\linewidth]{ppu2}
-\end{center}\vspace{-0.1in}
-\caption{Pattern tables for the Zelda overworld. In Zelda, the top tiles
-are used for sprites, and the bottom are used for the background graphics.
-All tiles are 8x8 and use 4 color values (color 0 is transparent). These
-color values index into 4 sprite palettes and 4 background palettes, with
-some limitations.
-} \label{fig:ppu}
-\end{figure}
 
 The NES background is described by the ``nametable'', which is an
 array of 32x30 bytes giving the tile numbers to fill the screen with.
@@ -250,8 +252,7 @@ about the properties, I just wanted to make a soda joke.
 \section{Three to D---$u$ and $v$}\footnote{Spoiler alert because I think
 this joke may be too abstruse. ``Free to Be You and Me'' was a
 semi-famous kids record (here meaning actual vinyl) by 
-% XXX
-Milo Thomas. D is ``dimensions.'' $u$ and $v$ are common names of
+Marlo~Thomas. D is ``dimensions.'' $u$ and $v$ are common names of
 the axes for texture coordinates in computer graphics.}
 
 The game runs in an emulator, a version of FCEUX\cite{fceux} that I
@@ -370,7 +371,7 @@ all intertwined. The simplified algorithm is
   (initialized to $-1$).
 \item While filling these in, consult a hash-map to see if there are
   already pre-sprites exactly aligned in each of the cardinal
-  directions. If so, use a union-find--like algorithm (XXX cite)
+  directions. If so, use a union-find--like algorithm\cite{tarjan1975efficiency}
   to efficiently update its parent index; each fused sprite has one
   canonical representative whose parent index is $-1$. Add the
   pre-sprite to the hash-map.
@@ -403,25 +404,69 @@ $x$ coordinate is at \verb+0x70+ and $y$ at \verb+0x84+. Since this
 is his top-left corner, we add 8 to each to get to the middle of the
 16x16 pixel boy.
 
-We also have to face in the same direction as link, to make the
-perspective first-person. Link's orientation is at memory location
-\verb+0x98+.
+We also have to face in the camera in the same direction as Link, to
+make the perspective first-person. Link's orientation is at memory
+location \verb+0x98+.
 
 Link moves smoothly (with pixel resolution) around the screen, but
-turns abruptly. This is sickening to watch. I apply some smoothing
-to Link's angle, ...
+turns abruptly. This is sickening to watch. I apply some smoothing to
+Link's angle, by treating the location from memory as a ``target''
+angle and twisting towards it at a limited speed.
 
-(This also involves manual steps..)
+Knowing what memory locations hold the player's position and
+orientation also involves some manual work. You could imagine
+heuristics for trying to determine this, by seeing which bytes tend to
+go up when pressing right on the controller, and so on. It's easy to
+find these values manually or to even look them up for popular games.
 
 \paragraph{Rendering.}
 
+Finally, we can render the scene. I used ``classic'' OpenGL interface,
+even though it is terrible, for the sake of making good on the
+excellent pun that is this paper's title. The final result looks like
+Figure~\ref{fig:alone}.
+
+\begin{figure}[ht]
+\begin{center}
+\includegraphics[width=\linewidth]{alone}
+\end{center}\vspace{-0.1in}
+\caption{The first cave, where this man gives you a sword and then dies,
+rendered in 3D. Letters are rendered as walls so you can see 'em upright,
+but then of course the second line is in front of the first. The 2D NES
+screen is superimposed on the top left for comparison.
+} \label{fig:alone}
+\end{figure}
+
 ......
 
-Note that some of the tiles on screen are used to draw a menu at the
-top, which is not part of the gameplay area. This still gets interpreted
-as 
+\begin{figure}[ht]
+\begin{center}
+\includegraphics[width=\linewidth]{offscreen}
+\end{center}\vspace{-0.1in}
+\caption{
+XXX write description
+} \label{fig:offscreen}
+\end{figure}
 
-Problem with link always hovering behind you
+
+Note that some of the tiles on screen are used to draw a menu at the
+top, which is not part of the gameplay area. This still gets
+interpreted as part of the geometry of the world, of course
+(Figure~\ref{fig:offscreen}). It would be a simple matter to crop the
+region of interest, and natural to even overlay it on a heads-up
+display. But I like it over there. Why shouldn't menus be 3D as well?
+
+Problem with link always hovering behind you (Figure~\ref{fig:megalink}).
+\begin{figure}[ht]
+\begin{center}
+\includegraphics[width=\linewidth]{megalink}
+\end{center}\vspace{-0.1in}
+\caption{look who's behind u
+} \label{fig:megalink}
+\end{figure}
+
+
+\section{Other games}
 
 \section{A Link to the cast} \label{sec:cast}
 
