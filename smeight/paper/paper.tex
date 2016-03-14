@@ -61,7 +61,7 @@
 Nintendo {\it freakin'}~Entertainment System. Need I say more? A {\it
   god damn} \uline{gold cartridge}. Fortunes made just from melting
 the gold cartridge down to make gold teeth grilles, after carefully
-extracting the even more precious ROM inside. A die-cut hole in the
+extracting and preserving the even more precious ROM inside. A die-cut hole in the
 box so that you could get a peek of the cartridge and presage that you
 were getting some solid gold. A die cut little window that you could
 palpate through the wrapping paper on Christmas~Eve, presaging some
@@ -104,16 +104,16 @@ you even wisely put your game in the third slot {\it exactly to avoid
 \medskip
 Need I say more? Shall I say it? Apparently so. KIDS THESE DAYS. Kids
 these days and their three dimensions. You can certainly make a
-respectable case that the Zenith of the series was {\it Legend of
+respectable case that the Zeldest of the series was {\it Legend of
   Zelda III: A Link To The Past}, or even {\it Legend of Game Boy
   Zelda: I forgot What It's Called}. But there seems to be an
-established consensus that {\it Legend Of Zelda LXIV: The Ocarina of
+established consensus that {\it Legend of Zelda LXIV: The Ocarina of
   Time} is the true masterpiece; that while the NES Original indeed
 invented the genre, the technical limitations of the system
 handicapped it. You're talking to me about technical {\it frockin'}
 limitations? Like somehow appreciating the subtle wonder of the
-universe and its mechanics requires me to look at tree people with
-tetrahedra clubs for hands. And they say this of the 64\th\ game in
+universe and its mechanics requires me to look at 3D tree people with
+tetrahedric clubs for hands. And they say this of the 64\th\ game in
 the series? Please jouize.
 
 A fine game, don't get me wrong. But was its theme song composed in
@@ -139,28 +139,30 @@ for understanding how this works.
 The NES has a modest CPU that executes game logic. It's a little 8-bit
 baby puppy with access to 2 kilobytes of RAM. If you think about it,
 the NES's 256x240 pixel screen is already 61,440 pixels, which if it
-used the entirety of RAM to represent it, we'd have only
+used the entire 2k of RAM to represent it, we'd have only
 $0.2\overline{6}$ bits of RAM per pixel, which makes no sense. At XXX
 MhZ, and a generous 1 instruction per pixel, we'd only be able to render
 XXX frames per second! This doesn't make sense, and this is because
 the CPU does not render the graphics on a NES.
 
-The NES also contains a custom Picture Processing Unit---PPU---which
-outputs 60 frames of NTSC or PAL video per second. In fact, since the
-PPU also drives a CPU interrupt for each scanline and vblank (XXX
-true?), and most games use this for timing,%
+The NES also contains a custom Picture Processing Unit, or PPU, the
+8-bit baby puppy's baby ppupy brother. This thing outputs 60 frames of
+NTSC or PAL video per second. In fact, since the PPU also drives a CPU
+interrupt for each scanline and vblank (XXX true?), and most games use
+this for timing,%
 %
-\footnote{Fun fact: NTSC, used in the Americas, has a ~60Hz frame
-  rate. But PAL, used in Europe and Asia, has a 50Hz refresh rate.
-  This means that many games run 16\% slower in Europe than the US, so
-  if you grew up playing there, you were playing on {\em Easy} mode.
-  {\tt\ ;-)}}
+\footnote{Fun fact: NTSC, the video standard used in the Americas, has
+  % XXX how u make ``approx'' symbol
+  a \~60Hz frame rate. But PAL, used in Europe and Asia, has a 50Hz
+  refresh rate. This means that many games run 16\% slower in Europe
+  than the US, so if you grew up playing there, you were playing on
+  {\em Easy} mode. {\tt\ ;-)}}
 %
 in many ways the CPU is subservient to the PPU, kind of like the PPU
-is the {\it real} heart of the NES. In the context of this paper, you
+is the {\it true} pure heart of the NES. In the context of this paper, you
 could say that the CPU is the Ocarina of Time and the PPU is the
 Legend of Zelda. It's just an analogy. The PPU is very complicated and
-has tetrahedra for hands, like clubs. But the CPU communicates with
+has tetrahedra for hands, like clubs. The CPU communicates with
 the PPU not by drawing pixels, but by giving a high-level description
 of the screen (by writing it into PPU memory). The chief insight of
 this work is that the PPU representation can be interpreted and
@@ -169,7 +171,7 @@ game logic and only change the way it's viewed. Sometimes this even
 allows us to see aspects of the game that are actually present but
 were not visible on NES hardware. Often it makes the game more
 difficult by making things invisible (enemies behind the player or
-behind walls) or inducing motion sickness.
+behind walls) and inducing motion sickness.
 
 \subsubsection{Background}
 The PPU has two major drawing facilities: Background and Sprites. Both
@@ -200,7 +202,7 @@ It's two rows shy of 256 probably for some reason having to do with
 the aspect ratio of TVs or number of actual NTSC scanlines, but also
 to make room for 64 bytes of attribute data. There are just two bits
 per four tiles. These two bits select which of the four palettes to
-use for each 2x2 group of tiles on the screen. It's interesting to
+use for each 2x2 group of tiles on the screen. It's an interesting hobby to
 look for the tricks that artists use to work around the constraint on
 the number of background colors. % XXX figure showing this off?
 
@@ -210,7 +212,7 @@ particularly (but not unusually) regular. Since each 2x2 tile group
 (16x16 pixels) shares the same palette, the screens are built around
 16x16 pixel grid-aligned blocks.
 
-\subsubsection{Sprites}
+\subsubsection{Sprites} \label{sec:sprites}
 
 Sprites, named in honor of the forest pixies whose homes were razed in
 order to make space inside the PPU for them, are more complicated.
@@ -232,10 +234,196 @@ MSB & 7      & Vertical flip \\
 LSB & 1,0    & Palette index \\
 \end{tabular}
 
-Additionally, there are some global sprite settings. But 
+Additionally, there are some global sprite settings. The only one that
+is important for this presentation is the ``tall sprites'' flag. If
+it's set, then sprites are 8x16 (drawn of two consecutive tiles)
+instead of 8x8. Sprites are drawn in a particular order. Barring some
+bizarre mischief, all of the sprites are drawn; you can't turn them
+off individually. Instead, you position the ones you don't want off
+the screen or make them be completely transparent. In order to make
+things more challenging, if there are exactly 8 sprites on a
+particular scan line, some really weird stuff happens. % XXX explain
 
 Sprite Zero has some special properties. I don't want to tell you
 about the properties, I just wanted to make a soda joke.
+
+\section{Three to D---$u$ and $v$}\footnote{Spoiler alert because I think
+this joke may be too abstruse. ``Free to Be You and Me'' was a
+semi-famous kids record (here meaning actual vinyl) by 
+% XXX
+Milo Thomas. D is ``dimensions.'' $u$ and $v$ are common names of
+the axes for texture coordinates in computer graphics.}
+
+The game runs in an emulator, a version of FCEUX\cite{fceux} that I
+have hacked up almost beyond recognition. In normal operation, it
+
+\begin{itemize}
+\item Emulates a complete frame of the NES. This includes the CPU and
+  PPU operation for all 240 scanlines. The execution of a frame depends
+  on the current controller input (which doesn't change as it runs);
+\item Extracts scene geometry and textures. This consists of two
+  pieces: Boxes and Sprites;
+\item Extracts the player location and orientation;
+\item Moves texture data to the GPU;
+\item Transforms the scene geometry into a textured model, sets the camera
+  based on the player location, and renders.
+\end{itemize}
+
+I'll describe the interesting parts of these.
+
+\paragraph{Emulation.} 
+Well, this is not that interesting. I give the emulator its controller
+input and it does its thing, modifying the RAM and PPU and CPU state.
+I have been working on improvements to emulator technology but these
+are independent of this paper and better described elsewhere.
+
+\paragraph{Extracting boxes.} 
+Yeah! Okay! Boxes are the three-dimensional version of squares, and
+are what give the game its 3Dness. I read the nametable in chunks of
+2x2 tiles, which is the size of one overworld tree (and the same size
+as Link). Recall that Zelda uses this grid size, probably because
+color attributes can only be set at this scale. These become $2x2x2$
+cubes. The $x$ and $y$ coordinates are obvious (pixel positions
+divided by 16, since each 2x2 tile block is 16x16 pixels), but what
+should $z$ be? Zelda and other games tend to use tiles quite
+consistently to represent walls, obstacles, floor, empty space, and so
+on. This makes sense because a tree graphic, for example, suggests
+something to the player. So we simply build a file,
+\verb+zelda.tiles+, which maps tiles (by index) to one of \verb+wall+,
+\verb+floor+, \verb+rut+, or \verb+unknown+. Floor blocks are placed
+at $z=0$, which will be under the player's feet (we typically only see
+the top face). Walls are placed at $z=2$, so that their bottoms are
+coplanar with the floor. Rut blocks are placed at $z=-0.5$; this is
+used for blocks that are part of the ``floor'' but that can't be
+walked on, like water. Because each box is actually made of 4 tiles,
+we just use the maximum $z$ value for the constituent tiles (they should
+normally be the same). It would make sense to develop heuristics for
+when games use tile-level resolution, even to generate primitives
+other than cubes.
+
+This approach is a bit unsatisfying because it requires us to have
+specific knowledge of the game as well as do some manual labor.
+However, there really aren't that many tiles, and it's kind of fun.
+(In fact, you really only need to pick out a handful of floor tiles
+before the game is totally playable.) There is another problem, which
+is that many games switch tile sets, which may change whether tile
+\verb+0x84+ (``desert dots'' in the overworld) is floor or wall. What
+happens if you go into a dungeon in Zelda, for example? I didn't even
+try that yet but I bet it's nuts! This can easily be fixed by
+identifying distinct tile sets (for example by using the source ROM
+address, or a hash of their content) and mapping them all.
+
+However, there's some hope that this can be done in a much more
+automatic way. I describe an idea in Section~\ref{sec:cast}.
+
+\paragraph{Box textures.}
+The game is pretty understandable with just TRON-cubes, but it is
+better to texture them. We put the same texture on each face of a box;
+that texture is just the 16x16 pixel graphic consisting of the 4 tiles
+that made it, in the appropriate palette. It does {\it not} work to
+generate a bunch of tile-sized boxes (with the individual tile texture
+on all sides); these will only look right on the top face. Indeed, it
+is possible to get weird texture mismatches between these 2x2x2 boxes
+for basically the same reason. It usually looks pretty good, though.
+
+Conceivably, every box on the screen could have a different texture,
+and conceivably these all change every frame. It is inefficient to
+move 960 distinct textures to video memory every frame, so instead we
+actually just move the rendered background (256x240) itself and record
+with each box its texture coordinates within. This is {\it much}
+faster, though it can create artifacts at the edges of boxes as an
+adjacent pixel peeks into the texture. I checked out Ocarina of Time
+and it is {\it loaded} with texture seam issues, so I figure this is
+how they like it.
+
+\paragraph{Extracting sprites.}
+Sprites are the most difficult. Aside from just being more fiddly to
+implement, it is tricky to recover an important high-level structure.
+Although we know the location of each individual sprite and the two tiles
+(Zelda uses ``tall' 8x16 sprites; see Section~\ref{sec:sprites}) that
+make it up, most game objects (like enemies) are in fact drawn with
+{\it two} sprites. These sprites could be in any of the 64 sprite
+slots (it's not at all obvious how Zelda allocates these, or that it
+would be similar for other games). Adding to the complexity, sprites
+like Link's sword or the pulsing balls of plasma that frogmen shoot
+at you from the water {\it just for being an elf} are just a single
+sprite, and bosses can be like XXX sprites (XXX add figure). If we
+promote sprites to 3D without knowing which ones are supposed to be
+part of the same object, then the enemies get cut up along their
+sprite seems and it looks super wrong.
+
+To fix this, we perform {\it sprite fusion}. We say that two sprites
+are part of the same object if they share a complete edge
+(transitively). Since this allows the construction of very tall ($64
+\times 16$) or wide ($64 \times 8$) sprites, we have to make sure that
+our textures are large enough to contain large sprites. Rather than
+try to pack them into a texture at runtime (computationally expensive
+since they can also be weird shapes), we just pre-allocate one texture
+of the maximum size for each sprite slot (16MB video ram; nothing).
+Sprite fusion, computation of the sprite size, drawing the sprites,
+extracting the geometry, and moving the textures to the video card are
+all intertwined. The simplified algorithm is
+
+\begin{itemize}
+\item Create 64 ``pre-sprites'', which are baby sprites. These know
+  their coordinates and have the index of a ``parent'' pre-sprite
+  (initialized to $-1$).
+\item While filling these in, consult a hash-map to see if there are
+  already pre-sprites exactly aligned in each of the cardinal
+  directions. If so, use a union-find--like algorithm (XXX cite)
+  to efficiently update its parent index; each fused sprite has one
+  canonical representative whose parent index is $-1$. Add the
+  pre-sprite to the hash-map.
+\item Another pass pushes the min/max bounds to the canonical representative,
+  so that we know how big the fused sprite is.
+\item Another pass draws all sprites into the texture data for their
+  canonical representative, at the appropriate location. This pass must
+  happen in the same order as on the NES hardware, so that overlay effects
+  are correct.
+\item Finally, create proper sprites to return for each of the fused sprites.
+  Copy the used region of the texture data for these to the video card.
+\end{itemize}
+
+% XXX diagram of this algorithm would be nice
+
+Two types of sprite rendering are supported: in-plane and billboard.
+In-plane just draws the sprites on the floor or some other $xy$ plane
+of your choice. (This does not actually need sprite fusion, but it is
+not harmful.) Billboard sprites are drawn so that they face the
+player, like in Wolfenstein~3D. These are positioned at their $xy$
+centroid and positioned in $z$ so that the bottom of the sprite is
+touching the floor.
+
+\paragraph{Extracting location.}
+
+Most NES games use very simple layouts for their game facts (i.e.,
+global variables at fixed memory locations), since the processor is
+simple and memory light.\cite{murphy2013first} In Zelda, Link's
+$x$ coordinate is at \verb+0x70+ and $y$ at \verb+0x84+. Since this
+is his top-left corner, we add 8 to each to get to the middle of the
+16x16 pixel boy.
+
+We also have to face in the same direction as link, to make the
+perspective first-person. Link's orientation is at memory location
+\verb+0x98+.
+
+Link moves smoothly (with pixel resolution) around the screen, but
+turns abruptly. This is sickening to watch. I apply some smoothing
+to Link's angle, ...
+
+(This also involves manual steps..)
+
+\paragraph{Rendering.}
+
+......
+
+Note that some of the tiles on screen are used to draw a menu at the
+top, which is not part of the gameplay area. This still gets interpreted
+as 
+
+Problem with link always hovering behind you
+
+\section{A Link to the cast} \label{sec:cast}
 
 \nocite{murphy2013first}
 
