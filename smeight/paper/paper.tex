@@ -168,9 +168,9 @@ interrupt for each scanline and vblank, and most games use
 this for timing,%
 %
 \footnote{Fun fact: NTSC (``Never Twice the Same Color''), the video
-  standard used in the Americas, has a $\sim 60$ Hz frame rate. But
-  PAL (``Pointless and Lousy''), used in Europe and Asia, has a $\sim
-  50$ Hz refresh rate. This means that many games run 16\% slower in
+  standard used in the Americas, has a $\sim\!\!60$ Hz frame rate. But
+  PAL (``Pointless and Lousy''), used in Europe and Asia, has a $\sim\!\!50$
+  Hz refresh rate. This means that many games run 16\% slower in
   Europe than the US, so if you grew up playing there, you were
   playing on {\em Easy} mode. {\tt\ ;-)}}
 %
@@ -226,7 +226,7 @@ the tile to draw, and an attribute byte:
 
 \begin{tabular}{rrl}
     & bit \# & bit deets \\
-\hline \\
+\hline
 MSB & 7      & Vertical flip \\
     & 6      & Horizontal flip \\
     & 5      & something weird \\
@@ -249,11 +249,11 @@ particular scan line, some really weird stuff happens. % XXX explain
 Sprite Zero has some special properties. I don't want to tell you
 about the properties, I just wanted to make a soda joke.
 
-\section{Three to D---$u$ and $v$}\footnote{Spoiler alert because I think
+\section[Three to D---$u$ and $v$]{Three to D---$u$ and $v$\footnote{Spoiler alert because I think
 this joke may be too abstruse. ``Free to Be You and Me'' was a
 semi-famous kids record (here meaning actual vinyl) by 
 Marlo~Thomas. D is ``dimensions.'' $u$ and $v$ are common names of
-the axes for texture coordinates in computer graphics.}
+the axes for texture coordinates in computer graphics.}}
 
 The game runs in an emulator, a version of FCEUX\cite{fceux} that I
 have hacked up almost beyond recognition. In normal operation, it
@@ -348,10 +348,19 @@ slots (it's not at all obvious how Zelda allocates these, or that it
 would be similar for other games). Adding to the complexity, sprites
 like Link's sword or the pulsing balls of plasma that frogmen shoot
 at you from the water {\it just for being an elf} are just a single
-sprite, and bosses can be like XXX sprites (XXX add figure). If we
+sprite, and bosses can be like 6 or more sprites (Figure~\ref{fig:spider}). If we
 promote sprites to 3D without knowing which ones are supposed to be
 part of the same object, then the enemies get cut up along their
 sprite seems and it looks super wrong.
+
+\begin{figure}[ht]
+\begin{center}
+\includegraphics[width=\linewidth]{spider}
+\end{center}\vspace{-0.1in}
+\caption{Link's spider nemesis, made of six 8x16 sprites. The sprites
+have adjacent edges, so they end up being fused into one merged sprite.
+} \label{fig:spider}
+\end{figure}
 
 To fix this, we perform {\it sprite fusion}. We say that two sprites
 are part of the same object if they share a complete edge
@@ -411,66 +420,219 @@ location \verb+0x98+.
 Link moves smoothly (with pixel resolution) around the screen, but
 turns abruptly. This is sickening to watch. I apply some smoothing to
 Link's angle, by treating the location from memory as a ``target''
-angle and twisting towards it at a limited speed.
+angle and twisting towards it (along the shortest angular path) at a
+limited speed.
 
 Knowing what memory locations hold the player's position and
 orientation also involves some manual work. You could imagine
 heuristics for trying to determine this, by seeing which bytes tend to
-go up when pressing right on the controller, and so on. It's easy to
-find these values manually or to even look them up for popular games.
+go up when pressing right on the controller, and so on. However, it's
+easy to find these values manually or to even look them up for popular
+games.
 
 \paragraph{Rendering.}
+
+\begin{figure*}[t]
+\begin{center}
+\includegraphics[width=\linewidth]{bridgewide}
+\end{center}\vspace{-0.1in}
+\caption{A representative view of the Legend of Zelda in glorious
+  3D.} \label{fig:bridgewide}
+\end{figure*}
+
 
 Finally, we can render the scene. I used ``classic'' OpenGL interface,
 even though it is terrible, for the sake of making good on the
 excellent pun that is this paper's title. The final result looks like
-Figure~\ref{fig:alone}.
+Figures~\ref{fig:bridgewide} and~\ref{fig:alone}.
 
 \begin{figure}[ht]
 \begin{center}
 \includegraphics[width=\linewidth]{alone}
 \end{center}\vspace{-0.1in}
 \caption{The first cave, where this man gives you a sword and then dies,
-rendered in 3D. Letters are rendered as walls so you can see 'em upright,
+rendered in 3D. Letters are treated as walls so you can see 'em upright,
 but then of course the second line is in front of the first. The 2D NES
 screen is superimposed on the top left for comparison.
 } \label{fig:alone}
 \end{figure}
 
-......
+Rendering with OpenGL is quite straightforward given the geometry
+extracted from the previous sections. I try to preserve the pixel
+aesthetic by using \verb+GL_TEXTURE_MAG_FILTER+ = \verb+GL_NEAREST+,
+but at this point we can use whatever approach to 3D graphics most
+titillates the youth. Full-screen multisample anti-aliasing? Sure.
+Screen Space Ambient Occlusion? I hear that this creates physically
+realistic shadows on the cheap, sure. Stencil buffer shadows?
+Volumetric fog? God rays? Depth-of-field? Lens flares? You got it.
+
+\subsection{Quirks}
+There are some problems or quirks with the current approach.
+
+\paragraph{Extramural geometry.}
+In Zelda, some of the tiles on screen are used to draw a menu at the
+top, which is not part of the gameplay area. This still gets
+interpreted as part of the geometry of the world, of course
+(Figure~\ref{fig:offscreen}). It would be a simple matter to crop the
+region of interest (especially if done manually), and it would even be
+natural to overlay it on a heads-up display. But I like it over there.
+Why shouldn't menus be 3D as well?
 
 \begin{figure}[ht]
 \begin{center}
 \includegraphics[width=\linewidth]{offscreen}
 \end{center}\vspace{-0.1in}
-\caption{
-XXX write description
-} \label{fig:offscreen}
+\caption{ The game menu visible to the North because the ocean does
+  not get in its way. Did you know that if you were able to see beyond
+  the cluttering trees and mountains at the horizon of Earth, you'd
+  see your own status menu in real life? } \label{fig:offscreen}
 \end{figure}
 
+\paragraph{Positive self-image.}
+We place the camera at Link's position and orientation, so that the
+player ``becomes'' Link. However, Link is still represented by a
+sprite in the game, and we do not treat it specially. This means that
+the fused Link billboard is always in the scene geometry right at the
+location of the camera. The upshot is that whenever the camera is
+facing south, an enormous Link graphic fills the entire screen,
+reminding you that he has always been following a few pixels behind
+you, haunting you (Figure~\ref{fig:megalink}). This sprite could be
+rejected by seeing that it is coincident with the player's location
+(which we extract) or by its particular content. We could also set the
+``near plane'' so that nearby sprites are not visible. However, the
+everpresent looming spectre of a ghost mimicking our every move is a
+good reminder of our mortality, so I kept it.
 
-Note that some of the tiles on screen are used to draw a menu at the
-top, which is not part of the gameplay area. This still gets
-interpreted as part of the geometry of the world, of course
-(Figure~\ref{fig:offscreen}). It would be a simple matter to crop the
-region of interest, and natural to even overlay it on a heads-up
-display. But I like it over there. Why shouldn't menus be 3D as well?
-
-Problem with link always hovering behind you (Figure~\ref{fig:megalink}).
 \begin{figure}[ht]
 \begin{center}
 \includegraphics[width=\linewidth]{megalink}
 \end{center}\vspace{-0.1in}
-\caption{look who's behind u
+\caption{Look who's behind you! WE ARE FRIENDS FOREVER {\tt:-) :-)}
 } \label{fig:megalink}
 \end{figure}
 
+\paragraph{Surprising sprite fusion.}
+Sprite fusion works well for merging sprites that are part of the same
+logical object in Zelda. (It may not work as well in other games where
+e.g. a monster's legs are moved independently from its body.) However,
+it occasionally mistakenly fuses two sprites that just incidentally
+share an edge (Figure~\ref{fig:badfusion}). This usually persists for
+just a tiny moment since the sprites are moving. But who's to say that
+as those monsters high-five, they aren't forming a momentary totem?
+Only Shigeru {\it froakin'} Miyamoto can say that isn't what he intended.
 
-\section{Other games}
+\begin{figure}[ht]
+\begin{center}
+\includegraphics[width=\linewidth]{bad-sprite-fusion}
+\end{center}\vspace{-0.1in}
+\caption{Two Octoroks that were incorrectly fused because they have
+constituent sprites that have adjacent edges (the fused sprite shape is
+not rectangular). The formation is a Hexadecirok.
+} \label{fig:badfusion}
+\end{figure}
 
-\section{A Link to the cast} \label{sec:cast}
+\paragraph{Texture orientation.} The textures of both backgrounds and sprites
+often have strange and inconsistent perspective ideas in video games.
+For example, the Octorok points its nose in the direction it's moving,
+because it is always viewed ``from above''. However, when Link is
+facing south, you see his front (not the top of his head facing down),
+and when facing west you see his side. This doesn't make sense, and
+makes it impossible to apply any consistent rule for mapping sprites
+into world orientation. This mostly just produces humorous results,
+like when Link throws his sword and it moves away from him in first
+person view: It may be pointing towards the sky, towards the floor, or
+to either side, but never in the direction it's thrown. Even if we
+were to render the sword ``in plane'', its handle should always be
+oriented towards the camera (which would not be the case). No single
+policy will work for all cases, but perhaps heuristics can look for
+the use of the horizontal and vertical flip bits to figure out what
+sprites are rotatable, and then rotate them relative to the camera.
 
-\nocite{murphy2013first}
+\section{Future work}
+
+This work is literally in progress, and due to Draconian SIGBOVIK
+deadlines, this paper is figuratively already out of date by the time
+you read it. You can check out the project's home page
+
+\medskip
+\begin{center}
+\url{http://tom7.org/zelda}
+\end{center}
+\medskip
+
+and maybe download it and play it, and probably watch a video
+demonstration. There may be some new features. Depends what I
+get to, you know?
+
+\subsection{Control}
+Currently, the game is viewed first person but played with native
+controls; this means that pressing ``up'' always moves link to the
+North, turning the camera if necessary. This is super weird. However,
+it is pretty easy to remap first person controls into native controls,
+as long as there is a way of implementing that intent (for example, it
+is not possible to ``strafe'' in Zelda). We can change the camera
+angle arbitrary, implementing ``mouselook'' or virtual reality
+support. Since the z axis is otherwise unused, we could allow the player
+to jump, though this would do nothing in the game itself.
+
+\subsection{Other games}
+This program was built in such a way that it should take minimal
+effort make other NES games 3D, perhaps with humorous results. There
+are some issues that need to be dealt with. A common type of game is
+the side-scrolling platformer, like Super Mario Bros.. At least two
+important issues are not yet handled: Mario has a different coordinate
+system than Zelda (it is ``side view'' rather than ``top down''), so
+we need to support that rendering style and control/camera scheme. No
+big deal. Second, this game scrolls the screen rather than using
+single-screen layouts; this uses the PPU in a different and somewhat
+more complex way. Many games will use advanced PPU tricks that cannot
+be interpreted in a generic high-level way.
+
+\subsection{A Link to the cast} \label{sec:cast}
+
+One dissatisfying problem with the current approach is that it
+requires some manual effort to map different tile types to geometry.
+One could imagine various heuristics (even a image classifier) to
+provide defaults or to remove the manual input entirely. An exciting
+angle is to use the game's own understanding of these tiles. The main
+thing that differentiates a ``wall'' from a ``floor'' is whether the
+player can walk over it. Clearly somewhere in the game's code it
+``knows'' what is floor and what is wall. We could extract that
+directly, but this would require a different manual step.
+Alternatively, we could determine it experimentally. A simple
+heuristic would keep track of what tiles the player has walked on. But
+we are not limited to what the player actually does; since we are
+emulating, we can also emulate counterfactual scenarios. Imagine that
+as we draw a first person view, we cast lines out from the camera
+towards the geometry, as in a ray tracer. Except that instead of
+tracing light rays until an intersection with scene geometry, we trace
+a hypothetical player path by emulating the player moving in that
+direction, until Link can move no more. This only requires
+understanding the bytes that correspond to the player's location
+(which we already need) and how the controller works.\footnote{Most
+  rays are diagonal. We can implement a north-northwest diagonal by
+  repeatedly moving two pixels north, then one west. We could also set
+  the player's position directly to a putative destination and then
+  move in cardinal directions to test solidness.} Testing contact with
+sprites might give us useful heuristics about how they should be
+rendered as well.
+
+There are many ways we can imagine this going wrong, but probably
+spectacularly so. Interestingly, this would allow us to render parts
+of the game that are not even visible in the PPU yet, since emulating
+the player's path ahead far enough would cause the game to switch
+to future scenes.
+
+\section{Conclusion}
+
+In this paper I made Zelda three-dimensional so that it can be enjoyed
+by the kids. I am fully aware that these ``kids'' are actually also
+full-grown adults who themselves resent a slightly younger generation
+who inexplicably think of Legend of Zelda Twilight Princess HD as the
+canonical episode; these people should get to work at enhancing Ocarina
+of Time to add Amiibo support. While you're at it, get rid of the
+really long section where you have to be a dog. I didn't like that part.
+
 
 \bibliographystyle{IEEEtran}
 % \bibliographycomment{} % nothing
