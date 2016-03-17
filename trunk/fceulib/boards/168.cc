@@ -59,7 +59,7 @@ struct Mapper168 : public CartInterface {
     fc->fceu->SetReadHandler(0x8000, 0xFFFF, Cart::CartBR);
   }
 
-  void Close() {
+  void Close() override {
     free(CHRRAM);
     CHRRAM = nullptr;
   }

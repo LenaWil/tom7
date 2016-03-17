@@ -23,7 +23,7 @@ else
 ifdef LINUX
 CXX=g++
 CC=gcc
-PLATFORMLINK=-lpthread
+PLATFORMLINK=-lpthread -static
 else
 # for 64 bits on windows
 # CXX=x86_64-w64-mingw32-g++
@@ -36,7 +36,7 @@ CC=g++
 
 PLATFORMCFLAGS= -D__MINGW32__ -D_GLIBCXX_HAS_GTHREADS -mthreads
 # without static, can't find lz or lstdcxx maybe?
-PLATFORMLINK=-mthreads -Wl,--subsystem,console -lwinpthread -L.
+PLATFORMLINK=-mthreads -Wl,--subsystem,console -lwinpthread -L. -static
 endif
 endif
 
@@ -93,7 +93,7 @@ FCEULIB_OBJECTS=emulator.o headless-driver.o stringprintf.o trace.o tracing.o
 
 OBJECTS=$(BASEOBJECTS) $(EMUOBJECTS) $(FCEULIB_OBJECTS)
 
-LFLAGS= $(ARCH) $(PLATFORMLINK) $(LINKNETWORKING) -lz $(OPT) $(FLTO) $(PROFILE) -static # -Wl,--subsystem,console
+LFLAGS= $(ARCH) $(PLATFORMLINK) $(LINKNETWORKING) -lz $(OPT) $(FLTO) $(PROFILE) # -Wl,--subsystem,console
 # -static -Wl,--subsystem,console
 # -Wl,--subsystem,console
 # -static -fwhole-program
