@@ -145,7 +145,7 @@ class EMUFILE_MEMORY : public EMUFILE {
     if (ownvec) delete vec;
   }
 
-  virtual void truncate(int32 length) {
+  void truncate(int32 length) override {
     vec->resize(length);
     len = length;
     if (pos > length) pos = length;
