@@ -1,4 +1,0 @@
-game zelda.nes
-tiles zelda.tiles
-movie zelda.fm2
-warmup 450

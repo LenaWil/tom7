@@ -1,0 +1,91 @@
+
+# letters and numbers
+00 floor
+01 floor
+02 floor
+03 floor
+04 floor
+05 floor
+06 floor
+07 floor
+08 floor
+09 floor
+0a floor
+0b floor
+0c floor
+0d floor
+0e floor
+0f floor
+10 floor
+11 floor
+12 floor
+13 floor
+14 floor
+15 floor
+16 floor
+17 floor
+18 floor
+19 floor
+1a floor
+1b floor
+1c floor
+1d floor
+1e floor
+1f floor
+20 floor
+21 floor
+22 floor
+23 floor
+
+# sky
+24 floor
+
+# cloud / bush
+36 floor
+37 floor
+38 floor
+39 floor
+3a floor
+3b floor
+3c floor
+
+# ? block
+
+53 wall
+54 wall
+55 wall
+56 wall
+
+# dead ?
+
+57 wall
+58 wall
+59 wall
+5a wall
+
+# solid, used in pipe
+26 wall
+
+# vertical pipe
+60
+61
+62
+63
+64
+65
+66
+67
+68
+69
+6a
+
+# bricks
+45 wall
+47 wall
+
+# walls
+
+b4 wall
+b5 wall
+b6 wall
+b7 wall

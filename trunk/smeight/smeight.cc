@@ -100,6 +100,14 @@ enum TileType {
   RUT = 3,
 };
 
+static bool ParseByte(const string &s, uint8 *b) {
+  if (s.size() != 2 || !Util::IsHexDigit(s[0]) || !Util::IsHexDigit(s[1]))
+    return false;
+
+  *b = Util::HexDigitValue(s[0]) * 16 + Util::HexDigitValue(s[1]);
+  return true;
+}
+
 struct Tilemap {
   Tilemap() {}
   explicit Tilemap(const string &filename) {
@@ -107,15 +115,14 @@ struct Tilemap {
     for (string line : lines) {
       string key = Util::chop(line);
       if (key.empty() || key[0] == '#') continue;
-      
-      if (key.size() != 2 || !Util::IsHexDigit(key[0]) ||
-	  !Util::IsHexDigit(key[1])) {
+
+      uint8 h = 0;
+      if (!ParseByte(key, &h)) {
 	printf("Bad key in tilemap. "
 	       "Should be exactly 2 hex digits: [%s]\n", key.c_str());
 	continue;
       }
 
-      uint8 h = Util::HexDigitValue(key[0]) * 16 + Util::HexDigitValue(key[1]);
       if (data[h] != UNMAPPED) {
 	printf("Duplicate keys in tilemap: %02x\n", h);
       }
@@ -159,17 +166,35 @@ static int CCWDistance(int start_angle, int end_angle) {
   return CWDistance(end_angle, start_angle);
 }
 
+enum class ViewType {
+  TOP,
+  SIDE,
+};
+
 struct SM {
   std::unique_ptr<Emulator> emu;
   vector<uint8> inputs;
   Tilemap tilemap;
   
-  SM() : rc("sm") {
+  int player_x_mem, player_y_mem;
+  ViewType viewtype;
+  
+  uint8 ConfigByte(const map<string, string> &config, const string &key) {
+    auto it = config.find(key);
+    CHECK(it != config.end()) << "\nExpected " << key << " in config.";
+    uint8 b;
+    CHECK(ParseByte(it->second, &b)) << "Bad hex byte for " << key <<
+      "in config. Should be exactly two hex digits; got [%s]\n" <<
+      it->second;
+    return b;
+  }
+  
+  SM(const string &configfile) : rc("sm") {
     InitTextures();
 
-    map<string, string> config = Util::ReadFileToMap("config.txt");
+    map<string, string> config = Util::ReadFileToMap(configfile);
     if (config.empty()) {
-      fprintf(stderr, "Missing config.txt.\n");
+      fprintf(stderr, "Missing config: %s.\n", configfile.c_str());
       abort();
     }
 
@@ -178,7 +203,19 @@ struct SM {
     const string moviefile = config["movie"];
     CHECK(!game.empty());
     CHECK(!tilesfile.empty());
-    
+
+    player_x_mem = ConfigByte(config, "playerx");
+    player_y_mem = ConfigByte(config, "playery");
+
+    string vt = Util::lcase(config["view"]);
+    if (vt == "top") viewtype = ViewType::TOP;
+    else if (vt == "side") viewtype = ViewType::SIDE;
+    else {
+      fprintf(stderr, "No 'view' given in %s. Defaulting to TOP.",
+	      configfile.c_str());
+      viewtype = ViewType::TOP;
+    }
+
     tilemap = Tilemap{tilesfile};
 
     emu.reset(Emulator::Create(game));
@@ -257,7 +294,7 @@ struct SM {
 
       // still alpha bug?
       // #define START_IDX 520
-      #define START_IDX 2000
+      #define START_IDX 0
       if (START_IDX) {
 	printf("SKIP to %d\n", START_IDX);
 	paused = true;
@@ -277,6 +314,9 @@ struct SM {
 	    return;
 	  case SDL_KEYUP:
 	    switch (event.key.keysym.sym) {
+	    case SDLK_s:
+	      saving = !saving;
+	      break;
 	    case SDLK_LEFTBRACKET:
 	      angle_offset += 15;
 	      break;
@@ -810,9 +850,20 @@ struct SM {
   vector<Box> GetBoxes() {
     vector<Box> ret;
     ret.reserve(TILESW * TILESH);
-    const uint8 *nametable = emu->GetFC()->ppu->NTARAM;
-    const uint8 *palette_table = emu->GetFC()->ppu->PALRAM;
-    const uint8 ppu_ctrl1 = emu->GetFC()->ppu->PPU_values[0];
+    PPU *ppu = emu->GetFC()->ppu;
+    const uint8 *nametable = ppu->NTARAM;
+    const uint8 *palette_table = ppu->PALRAM;
+    const uint8 ppu_ctrl1 = ppu->PPU_values[0];
+
+    const uint32 tmp = ppu->GetTempAddr();
+    const uint8 xoffset = ppu->GetXOffset();
+    const uint8 xtable_select = !!(ppu_ctrl1 & 1);
+    
+    // Combine coarse and fine x scroll
+    uint32 xscroll = (xtable_select << 8) | ((tmp & 31) << 3) | xoffset;
+    
+    printf("Scroll x: %d, tmp: %u, table: %u, together: %u\n",
+	   (int)xoffset, tmp, xtable_select, xscroll);
     
     // BG pattern table can be at 0 or 0x1000, depending on control bit.
     const uint32 bg_pat_addr = (ppu_ctrl1 & (1 << 4)) ? 0x1000 : 0x0000;
@@ -826,29 +877,68 @@ struct SM {
     // have power-of-two dimensions, but not the copied area.)
     bg.resize(TILESW * TILESH * 8 * 8 * 4);
 
+    // Read the tile for the wide tile coordinates (x,y). x may range
+    // from 0 to TILESW*2 - 1.
+    auto WideNametable = [nametable](int x, int y) -> uint8 {
+      static_assert(TILESW == 32, "assumed here.");
+      if (x & 32) {
+	return nametable[0x400 + y * TILESW + (x & 31)];
+      } else {
+	return nametable[y * TILESW + x];
+      }
+    };
+
+    // Read the two attribute (color) bits for the wide tile coordinates
+    // x,y, as above.
+    auto WideAttribute = [nametable](int x_orig, int y) -> uint8 {
+      const uint32 tableoffset = (x_orig & 32) ? 0x400 : 0x0;
+      // Attribute byte starts right after tiles in the nametable.
+      // First need to figure out which byte it is, based on which
+      // square (4x4 tiles).
+      const int x = x_orig & 31;
+      const int square_x = x >> 2;
+      const int square_y = y >> 2;
+      const uint8 attrbyte =
+	  nametable[
+	      // select nametable
+	      tableoffset +
+	      // skip over tiles to attribute table
+	      TILESW * TILESH +
+	      // index within attributes
+	      (square_y * (TILESW >> 2)) + square_x];
+      // Now get the two bits out of it.
+      const int sub_x = (x >> 1) & 1;
+      const int sub_y = (y >> 1) & 1;
+      const int shift = (sub_y * 2 + sub_x) * 2;
+
+      return (attrbyte >> shift) & 3;
+    };
+    
     for (int ty = 0; ty < TILESH; ty++) {
       for (int tx = 0; tx < TILESW; tx++) {
-	const uint8 tile = nametable[ty * TILESW + tx];
+	// tx,ty is the tile offset within the output screen, always
+	// taking on values of [0,TILESW) and [0,TILESH). To implement
+	// scrolling, we need to know the input tile indices to read
+	// from the nametable.
+	//
+	// We only support x scrolling for now, so this is just ty.
+	const int srcty = ty;
+	const int srctx = (tx + (xscroll >> 3)) % (TILESW * 2);
+	CHECK(srctx >= 0 && srctx < TILESW*2)
+	  << tx << " " << xscroll << " " << srctx;
+
+	// nametable[srcty * TILESW + tx];
+	const uint8 tile = WideNametable(srctx, srcty);
 	
 	// Draw to BG.
+
+	// Selects the color palette.
+	const uint8 attr = WideAttribute(srctx, srcty);
+
 	// Each tile is made of 8 bytes giving its low color bits, then
 	// 8 bytes giving its high color bits.
 	const int addr = tile * 16;
 
-	// Attribute byte starts right after tiles in the nametable.
-	// First need to figure out which byte it is, based on which
-	// square (4x4 tiles).
-	const int square_x = tx >> 2;
-	const int square_y = ty >> 2;
-	const uint8 attrbyte = nametable[TILESW * TILESH +
-					 (square_y * (TILESW >> 2)) + square_x];
-	// Now get the two bits out of it.
-	const int sub_x = (tx >> 1) & 1;
-	const int sub_y = (ty >> 1) & 1;
-	const int shift = (sub_y * 2 + sub_x) * 2;
-
-	const uint8 attr = (attrbyte >> shift) & 3;
-	
 	// Decode vram[addr] + vram[addr + 1].
 	for (int row = 0; row < 8; row++) {
 	  const uint8 row_low = vram[addr + row];
@@ -865,7 +955,12 @@ struct SM {
 	    const uint8 color_id = palette_table[palette_idx];
 	    
 	    // Put pixel in bg image:
-
+	    // Normally we would take into account the fine x scroll
+	    // (xoffset) here, but we're not trying to actually draw
+	    // the game's screen---we want everything to be tile-aligned.
+	    // Instead, we'll move the camera and sprites by the fine
+	    // amount.
+	    
 	    const int px = tx * 8 + bit;
 	    const int py = ty * 8 + row;
 	    const int pixel = (py * TILESW * 8 + px) * 4;
@@ -887,7 +982,11 @@ struct SM {
 	TileType result = UNMAPPED;
 	for (int by = 0; by < 2; by++) {
 	  for (int bx = 0; bx < 2; bx++) {
-	    const uint8 tile = nametable[(ty + by) * TILESW + (tx + bx)];
+	    // Take (x) scrolling into account.
+	    const int srcty = ty + by;
+	    const int srctx = (tx + bx + (xscroll >> 3)) % (TILESW * 2);
+	    
+	    const uint8 tile = WideNametable(srctx, srcty);
 	    const TileType type = tilemap.data[tile];
 
 	    auto Max = [](const TileType &a, const TileType &b) {
@@ -901,7 +1000,7 @@ struct SM {
 	  }
 	}
 	
-
+	// XXX support TOP and SIDE viewtypes.
 	float z = 0.0f;
 	if (result == WALL) {
 	  z = 2.0f;
@@ -1185,11 +1284,10 @@ struct SM {
   std::tuple<uint8, uint8, int> GetLoc() {
     vector<uint8> ram = emu->GetMemory();
     
-    uint8 dir = ram[0x98];
-
     // Link's top-left corner, so add 8,8 to get center.
-    uint8 lx = ram[0x70] + 8, ly = ram[0x84] + 8;
+    uint8 lx = ram[player_x_mem] + 8, ly = ram[player_y_mem] + 8;
 
+    const uint8 dir = ram[0x98];
     int angle = 0;
     switch (dir) {
     case 1: angle = 90; break;  // East
@@ -1332,9 +1430,11 @@ int main(int argc, char *argv[]) {
 			 SDL_OPENGL)) << SDL_GetError();
 
   InitGL();
+
+  string configfile = argc > 1 ? argv[1] : "zelda.config";
   
   {
-    SM sm;
+    SM sm{configfile};
     sm.Play();
   }
 
