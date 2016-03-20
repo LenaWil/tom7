@@ -360,9 +360,9 @@ static DECLFW(B2003) {
 // static
 void PPU::B2003_Direct(DECLFW_ARGS) {
   //printf("$%04x:$%02x, %d, %d\n",A,V,timestamp,scanline);
-  PPUGenLatch=V;
-  PPU_values[3]=V;
-  PPUSPL=V&0x7;
+  PPUGenLatch = V;
+  PPU_values[3] = V;
+  PPUSPL = V & 0x7;
 }
 
 static DECLFW(B2004) {
@@ -388,20 +388,38 @@ static DECLFW(B2005) {
 }
 // static
 void PPU::B2005_Direct(DECLFW_ARGS) {
-  uint32 tmp=TempAddr;
+  // http://wiki.nesdev.com/w/index.php/PPU_registers#PPUSCROLL
+  // 2005 is 'PPUSCROLL', which controls the scrolling of the
+  // background. There are two scroll bytes, x, and y, and two
+  // consecutive writes set them (first x, then y). 
+  // (vtoggle keeps track of this state).
+  //
+  // Note that both 2005 and 2006 modify the TempAddr; they
+  // just map the inputs differently.
+
+  // This page is great for understanding all this weird stuff:
+  // http://wiki.nesdev.com/w/index.php/PPU_scrolling
+  uint32 tmp = TempAddr;
   FCEUPPU_LineUpdate();
-  PPUGenLatch=V;
+  PPUGenLatch = V;
   if (!vtoggle) {
-    tmp&=0xFFE0;
-    tmp|=V>>3;
-    XOffset=V&7;
+    // x scroll offset
+    tmp &= 0xFFE0;
+    tmp |= V >> 3;
+    // XOffset is the x position within a tile.
+    XOffset = V & 7;
+    last_x_scroll = V;
   } else {
-    tmp&=0x8C1F;
-    tmp|=((V&~0x7)<<2);
-    tmp|=(V&7)<<12;
+    // y scroll offset
+    tmp &= 0x8C1F;
+    tmp |= (V & ~7) << 2;
+    // Weirdly, the y position within a tile (0-7) is
+    // stored as the top bits 
+    tmp |= (V & 7) << 12;
+    last_y_scroll = V;
   }
-  TempAddr=tmp;
-  vtoggle^=1;
+  TempAddr = tmp;
+  vtoggle ^= 1;
 }
 
 
@@ -410,6 +428,15 @@ static DECLFW(B2006) {
 }
 // static
 void PPU::B2006_Direct(DECLFW_ARGS) {
+  // http://wiki.nesdev.com/w/index.php/PPU_registers#PPUADDR
+  // 2006 is 'PPUADDR', which gives the memory address that
+  // reads/writes to PPUDATA (2007) shall be directed to.
+  // Since this is a 16-bit address, two consecutive writes
+  // are to set the upper byte and then lower byte. (vtoggle
+  // keeps track of this state).
+  //
+  // Note that both 2005 and 2006 modify the TempAddr; they
+  // just map the inputs differently.
   FCEUPPU_LineUpdate();
 
   PPUGenLatch=V;
@@ -869,7 +896,7 @@ void PPU::DoLine() {
 
 
   // What is this?? ORs every byte in the buffer with 0x30 if PPU_values[1]
-  // has its lowest bit set.
+  // has its lowest bit set (this indicates monochrome mode -tom7).
 
   if (ScreenON || SpriteON) {
     // Yes, very el-cheapo.
@@ -928,9 +955,24 @@ void PPU::DoLine() {
 #define SP_BACK 0x20
 
 namespace {
+
+// Four bytes per sprite in SPRAM.
 struct SPR {
-  // no is just a tile number, but
-  uint8 y,no,atr,x;
+  // y coordinate - 1 (upper-left corner of sprite)
+  uint8 y;
+  // Tile index in pattern table.
+  uint8 no;
+  // Sprite attributes:
+  //  vhp000cc | Attributes                           |
+  //           |   v = Vertical Flip   (1=Flip)       |
+  //           |   h = Horizontal Flip (1=Flip)       |
+  //           |   p = Background Priority            |
+  //           |         0 = In front                 |
+  //           |         1 = Behind                   |
+  //           |   c = Upper two (2) bits of colour   |
+  uint8 atr;
+  // x coordinate.
+  uint8 x;
 };
 
 struct SPRB {
@@ -939,7 +981,7 @@ struct SPRB {
   // which is done through the lookup tables ppulut1 and 2.
   // They have to be the actual data (not addresses) because
   // ppulut is a fixed transformation.
-  uint8 ca[2],atr,x;
+  uint8 ca[2], atr, x;
 };
 }  // namespace
 
@@ -958,15 +1000,15 @@ void PPU::FCEUI_DisableSpriteLimitation(int a) {
 // http://wiki.nesdev.com/w/index.php/PPU_OAM
 // where the PPU is looking for sprites for the NEXT scanline.
 void PPU::FetchSpriteData() {
-  uint8 P0 = PPU_values[0];
+  const uint8 P0 = PPU_values[0];
 
-  SPR *spr=(SPR *)SPRAM;
-  uint8 H=8;
+  SPR *spr = (SPR *)SPRAM;
+  // Sprite height -tom7
+  const uint8 H = 8 + ((P0 & 0x20) >> 2);
 
   uint8 ns = 0, sb = 0;
 
-  int vofs=(unsigned int)(P0&0x8&(((P0&0x20)^0x20)>>2))<<9;
-  H+=(P0&0x20)>>2;
+  int vofs = (unsigned int)(P0&0x8&(((P0&0x20)^0x20)>>2))<<9;
 
   DEBUGF(stderr, "FetchSprites @%d\n", scanline);
   if (!PPU_hook) {
@@ -977,25 +1019,25 @@ void PPU::FetchSpriteData() {
         DEBUGF(stderr, "   sp %2d: %d,%d #%d attr %s\n",
                n, spr->x, spr->y, spr->no, attrbits(spr->atr).c_str());
 
-        if (n==63) sb=1;
+        if (n == 63) sb = 1;
 
         {
           SPRB dst;
-          const int t = (int)scanline-(spr->y);
+          const int t = (int)scanline - spr->y;
           // made uint32 from uint -tom7
-          uint32 vadr = 
+          uint32 vadr =
             (Sprite16) ?
             ((spr->no&1)<<12) + ((spr->no&0xFE)<<4) :
             (spr->no<<4)+vofs;
 
           if (spr->atr & V_FLIP) {
-            vadr+=7;
-            vadr-=t;
-            vadr+=(P0&0x20)>>1;
-            vadr-=t&8;
+            vadr += 7;
+            vadr -= t;
+            vadr += (P0&0x20)>>1;
+            vadr -= t&8;
           } else {
-            vadr+=t;
-            vadr+=t&8;
+            vadr += t;
+            vadr += t&8;
           }
 
           const uint8 *C = (MMC5Hack) ?
@@ -1390,13 +1432,6 @@ int PPU::FCEUPPU_Loop(int skip) {
 	   sphitdata);
   }
 
-  /*
-    { NTARAM, 0x800, "NTAR"},
-    { PALRAM, 0x20, "PRAM"},
-    { SPRAM, 0x100, "SPRA"},
-    { PPU_values, 0x4, "PPUR"},
-  */
-  
   // Needed for Knight Rider, possibly others.
   if (ppudead) {
     memset(fc->fceu->XBuf, 0x80, 256*240);
@@ -1519,25 +1554,25 @@ int PPU::FCEUPPU_Loop(int skip) {
 // Why do we need to do this? -tom7
 // Note that weirdly, the T versions are 16-bit.
 void PPU::FCEUPPU_LoadState(int version) {
-  TempAddr=TempAddrT;
-  RefreshAddr=RefreshAddrT;
+  TempAddr = TempAddrT;
+  RefreshAddr = RefreshAddrT;
 }
 
 PPU::PPU(FC *fc) :
   stateinfo {
-    { NTARAM, 0x800, "NTAR"},
-    { PALRAM, 0x20, "PRAM"},
-    { SPRAM, 0x100, "SPRA"},
-    { PPU_values, 0x4, "PPUR"},
-    { &cycle_parity, 1, "PARI"},
-    { &ppudead, 1, "DEAD"},
-    { &PPUSPL, 1, "PSPL"},
-    { &XOffset, 1, "XOFF"},
-    { &vtoggle, 1, "VTOG"},
-    { &RefreshAddrT, 2|FCEUSTATE_RLSB, "RADD"},
-    { &TempAddrT, 2|FCEUSTATE_RLSB, "TADD"},
-    { &VRAMBuffer, 1, "VBUF"},
-    { &PPUGenLatch, 1, "PGEN"},
+    { NTARAM, 0x800, "NTAR" },
+    { PALRAM, 0x20, "PRAM" },
+    { SPRAM, 0x100, "SPRA" },
+    { PPU_values, 0x4, "PPUR" },
+    { &cycle_parity, 1, "PARI" },
+    { &ppudead, 1, "DEAD" },
+    { &PPUSPL, 1, "PSPL" },
+    { &XOffset, 1, "XOFF" },
+    { &vtoggle, 1, "VTOG" },
+    { &RefreshAddrT, 2|FCEUSTATE_RLSB, "RADD" },
+    { &TempAddrT, 2|FCEUSTATE_RLSB, "TADD" },
+    { &VRAMBuffer, 1, "VBUF" },
+    { &PPUGenLatch, 1, "PGEN" },
     { &pshift[0], 4|FCEUSTATE_RLSB, "PSH1" },
     { &pshift[1], 4|FCEUSTATE_RLSB, "PSH2" },
     { &sphitx, 4|FCEUSTATE_RLSB, "Psph" },
