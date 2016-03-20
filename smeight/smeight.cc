@@ -294,7 +294,7 @@ struct SM {
 
       // still alpha bug?
       // #define START_IDX 520
-      #define START_IDX 0
+      #define START_IDX 3300
       if (START_IDX) {
 	printf("SKIP to %d\n", START_IDX);
 	paused = true;
@@ -854,17 +854,7 @@ struct SM {
     const uint8 *nametable = ppu->NTARAM;
     const uint8 *palette_table = ppu->PALRAM;
     const uint8 ppu_ctrl1 = ppu->PPU_values[0];
-
-    const uint32 tmp = ppu->GetTempAddr();
-    const uint8 xoffset = ppu->GetXOffset();
-    const uint8 xtable_select = !!(ppu_ctrl1 & 1);
-    
-    // Combine coarse and fine x scroll
-    uint32 xscroll = (xtable_select << 8) | ((tmp & 31) << 3) | xoffset;
-    
-    printf("Scroll x: %d, tmp: %u, table: %u, together: %u\n",
-	   (int)xoffset, tmp, xtable_select, xscroll);
-    
+   
     // BG pattern table can be at 0 or 0x1000, depending on control bit.
     const uint32 bg_pat_addr = (ppu_ctrl1 & (1 << 4)) ? 0x1000 : 0x0000;
     const uint8 *vram = &emu->GetFC()->cart->
@@ -913,6 +903,9 @@ struct SM {
 
       return (attrbyte >> shift) & 3;
     };
+
+    int coarse_scroll, fine_scroll;
+    std::tie(coarse_scroll, fine_scroll) = XScroll();
     
     for (int ty = 0; ty < TILESH; ty++) {
       for (int tx = 0; tx < TILESW; tx++) {
@@ -923,9 +916,9 @@ struct SM {
 	//
 	// We only support x scrolling for now, so this is just ty.
 	const int srcty = ty;
-	const int srctx = (tx + (xscroll >> 3)) % (TILESW * 2);
-	CHECK(srctx >= 0 && srctx < TILESW*2)
-	  << tx << " " << xscroll << " " << srctx;
+	const int srctx = (tx + (coarse_scroll >> 3)) % (TILESW * 2);
+	CHECK(srctx >= 0 && srctx < TILESW * 2)
+	  << tx << " " << coarse_scroll << " " << srctx;
 
 	// nametable[srcty * TILESW + tx];
 	const uint8 tile = WideNametable(srctx, srcty);
@@ -978,15 +971,20 @@ struct SM {
     static_assert(BOX_DIM == 2, "This is hard-coded here.");
     for (int ty = 0; ty < TILESH; ty += 2) {
       for (int tx = 0; tx < TILESW; tx += 2) {
+	// Take (x) scrolling into account.
+	const int srcty = ty;
+	const int srctx = (tx + (coarse_scroll >> 3)) % (TILESW * 2);
 
+	CHECK(!(srcty & 1)) << srcty;
+	// Here we want to loop over all four tiles inside this
+	// block. But membership in a block is not influenced
+        // by the scroll, so this only works for even coarse_scroll.
+	CHECK(!(srctx & 1)) << srctx << " " << coarse_scroll << " " << tx;
+	
 	TileType result = UNMAPPED;
 	for (int by = 0; by < 2; by++) {
 	  for (int bx = 0; bx < 2; bx++) {
-	    // Take (x) scrolling into account.
-	    const int srcty = ty + by;
-	    const int srctx = (tx + bx + (xscroll >> 3)) % (TILESW * 2);
-	    
-	    const uint8 tile = WideNametable(srctx, srcty);
+	    const uint8 tile = WideNametable(srctx + bx, srcty + by);
 	    const TileType type = tilemap.data[tile];
 
 	    auto Max = [](const TileType &a, const TileType &b) {
@@ -999,7 +997,7 @@ struct SM {
 	    result = Max(result, type);
 	  }
 	}
-	
+
 	// XXX support TOP and SIDE viewtypes.
 	float z = 0.0f;
 	if (result == WALL) {
@@ -1280,6 +1278,25 @@ struct SM {
     glDisable(GL_TEXTURE_2D);
   }
 
+  std::pair<int, int> XScroll() {
+    const PPU *ppu = emu->GetFC()->ppu;
+    const uint8 ppu_ctrl1 = ppu->PPU_values[0];
+    const uint32 tmp = ppu->GetTempAddr();
+    const uint8 xoffset = ppu->GetXOffset();
+    const uint8 xtable_select = !!(ppu_ctrl1 & 1);
+    
+    // Combine coarse and fine x scroll
+    uint32 xscroll = (xtable_select << 8) | ((tmp & 31) << 3) | xoffset;
+
+    printf("Scroll x: %d, tmp: %u, table: %u, together: %u\n",
+	   (int)xoffset, tmp, xtable_select, xscroll);
+
+    // Scroll in two-tile increments.
+    int coarse_scroll = xscroll & ~15;
+    int fine_scroll = xscroll & 15;
+    return { coarse_scroll, fine_scroll };
+  }
+  
   // x, y, angle (deg, where 0 is north)
   std::tuple<uint8, uint8, int> GetLoc() {
     vector<uint8> ram = emu->GetMemory();
@@ -1287,6 +1304,11 @@ struct SM {
     // Link's top-left corner, so add 8,8 to get center.
     uint8 lx = ram[player_x_mem] + 8, ly = ram[player_y_mem] + 8;
 
+    // Take x scroll into account.
+    int coarse_scroll, fine_scroll;
+    std::tie(coarse_scroll, fine_scroll) = XScroll();
+    lx += fine_scroll;
+    
     const uint8 dir = ram[0x98];
     int angle = 0;
     switch (dir) {
