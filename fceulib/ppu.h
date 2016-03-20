@@ -38,6 +38,16 @@ struct PPU {
   // 0x20 are 0 to not break fceu rendering.
   uint8 UPALRAM[0x03] = {};
 
+  // X scroll offset within the first tile (0-7)
+  uint8 GetXOffset() const { return XOffset; }
+
+  uint32 GetTempAddr() const { return TempAddr; }
+  
+  // PPU values are:
+  //  [0] 0x2000  PPU Control Register #1  (PPUCTRL)
+  //  [1] 0x2001  PPU Control Register #2  (PPUMASK)
+  //  [2] 0x2002  PPU Status Register      (PPUSTATUS)
+  //  [3] 0x2003  SPR-RAM Address Register (OAMADDR)
   uint8 PPU_values[4] = {};
 
   int MMC5Hack = 0;
@@ -124,9 +134,25 @@ struct PPU {
   uint8 deemp = 0;
   int deempcnt[8] = {};
 
+  // A few addresses actually take 16-bit values as two consecutive
+  // writes. This has value 0 or 1 to indicate which byte it is.
   uint8 vtoggle = 0;
+  // Low 3 bits of the scroll x offset. Coarse x scroll position is
+  // stored in TempAddr.
   uint8 XOffset = 0;
+
+  // XXX: Saving scroll position so that it can be accessed by
+  // clients. This is not needed for emulation.
+  // XXX note, also not saved in state.
+  uint8 last_x_scroll = 0, last_y_scroll = 0;
   
+  // Current scroll position and PPU memory location for read/write.
+  // See: http://wiki.nesdev.com/w/index.php/PPU_scrolling
+  //
+  // Note that games may modify this during the scan. Also note that
+  // the 0th bit of PPUCTRL can be seen as being the 9th bit (MSB) of
+  // this value, since it selects between two horizontally adjacent
+  // (and cylindrical) nametables.
   uint32 TempAddr = 0;
   uint32 RefreshAddr = 0;
   uint16 TempAddrT = 0, RefreshAddrT = 0;
