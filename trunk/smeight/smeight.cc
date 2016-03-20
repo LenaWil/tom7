@@ -20,6 +20,7 @@
 #include "../cc-lib/sdl/chars.h"
 #include "../cc-lib/sdl/font.h"
 #include "../cc-lib/randutil.h"
+#include "../cc-lib/threadutil.h"
 #include "../cc-lib/stb_image_write.h"
 
 // XXX make part of Emulator interface
@@ -84,6 +85,55 @@ static bool draw_nes = true;
 // XXX
 static GLuint bg_texture = 0;
 static GLuint sprite_texture[64] = {};
+
+// Manages running up to X asynchronous tasks in separate threads. The
+// threads are started for each Run (no thread pool), making this
+// kinda high-overhead but easy to manage. It at least cleans up after
+// itself.
+struct Asynchronously {
+  Asynchronously(int max_threads) : threads_active(0),
+				    max_threads(max_threads) {
+  }
+
+  void Run(std::function<void()> f) {
+    m.lock();
+    if (threads_active < max_threads) {
+      threads_active++;
+      m.unlock();
+      std::thread t{[this, f]() {
+	  printf("(running asynchronously)\n");
+	  f();
+	  printf("(done running asynchronously)\n");
+	  MutexLock ml(&this->m);
+	  threads_active--;
+	}};
+      t.detach();
+      
+    } else {
+      m.unlock();
+      // Run synchronously.
+      printf("%d threads already active, so running synchronously.\n",
+	     max_threads);
+      f();
+    }
+  }
+
+  // Wait until all threads have finished.
+  ~Asynchronously() {
+    printf("Spin-wait until all threads have finished...\n");
+    for (;;) {
+      MutexLock ml(&m);
+      if (threads_active == 0) {
+	printf("... done.\n");
+	return;
+      }
+    }
+  }
+    
+  std::mutex m;
+  int threads_active;
+  const int max_threads;
+};
 
 typedef void (APIENTRY *glWindowPos2i_t)(int, int);
 glWindowPos2i_t glWindowPos2i = nullptr;
@@ -161,7 +211,7 @@ static int CWDistance(int start_angle, int end_angle) {
   }
 }
 
-// Again, always positive.
+// Again, always non-negative.
 static int CCWDistance(int start_angle, int end_angle) {
   return CWDistance(end_angle, start_angle);
 }
@@ -294,7 +344,8 @@ struct SM {
 
       // still alpha bug?
       // #define START_IDX 520
-      #define START_IDX 3300
+      // #define START_IDX 3300  // - zelda scrolling
+      #define START_IDX 0
       if (START_IDX) {
 	printf("SKIP to %d\n", START_IDX);
 	paused = true;
@@ -438,17 +489,22 @@ struct SM {
   bool saving = false;
   void SaveImage() {
     if (!saving) return;
-    
-    vector<uint8> pixels;
-    pixels.resize(WIDTH * HEIGHT * 4);
-    glReadPixels(0, 0, WIDTH, HEIGHT, GL_RGBA, GL_UNSIGNED_BYTE, pixels.data());
-    stbi_write_png(StringPrintf("image_%d.png", imagenum).c_str(),
-		   WIDTH, HEIGHT, 4,
-		   // Start on last row.
-		   pixels.data() + (WIDTH * (HEIGHT - 1)) * 4,
-		   // Negative stride to flip during saving.
-		   -4 * WIDTH);
+
+    uint8 *pixels = (uint8 *)malloc(WIDTH * HEIGHT * 4);
+    glReadPixels(0, 0, WIDTH, HEIGHT, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+
+    const int num = imagenum;
     imagenum++;
+    asynchronously.Run([pixels, num]() {
+      stbi_write_png(StringPrintf("image_%d.png", num).c_str(),
+		     WIDTH, HEIGHT, 4,
+		     // Start on last row.
+		     pixels + (WIDTH * (HEIGHT - 1)) * 4,
+		     // Negative stride to flip during saving.
+		     -4 * WIDTH);
+      free(pixels);
+      printf("Wrote image_%d.\n", num);
+    });
   }
   
   // Draw the 256x256 NES image at the specified coordinates (0,0 is
@@ -488,7 +544,7 @@ struct SM {
     
     // Each is 0x100 bytes
     const uint8 *spram = ppu->SPRAM;
-
+   
     // Most games use multiple sprites to draw the player and enemy,
     // since sprites are pretty small (8x8 or 8x16). For billboard
     // sprites in particular, we need to know that the sprites must
@@ -776,6 +832,13 @@ struct SM {
       }
     }
 
+    // The sprite image and fusion and all that are independent of the
+    // scroll (which only affects the background). But we need to move
+    // their position in space using (only) the fine_scroll, since we
+    // mod out by this in the calculation of the background boxes.
+    int coarse_scroll, fine_scroll;
+    std::tie(coarse_scroll, fine_scroll) = XScroll();
+    
     // OK, now all of the root sprites have their fused data drawn at 0,0
     // and we also know how big they are and where they are in screen
     // coordinates. One more pass, only looking at the root sprites.
@@ -801,14 +864,14 @@ struct SM {
 			0, 0, SPRTEXW, SPRTEXH,
 			GL_RGBA, GL_UNSIGNED_BYTE,
 			sprite_rgba[n].data());
-	
+
 	// TODO: Decide on BILLBOARD vs IN_PLANE etc. Probably
 	// should not merge sprites of different types.
 	Sprite s;
 	const int height_px = (ps.max_y + sprite_height) - ps.min_y;
 	if (true) {
 	  // Use centroid of fused sprite.
-	  float cx = ((ps.max_x + 8) + ps.min_x) * 0.5f;
+	  float cx = ((ps.max_x + 8) + ps.min_x) * 0.5f + fine_scroll;
 	  float cy = ((ps.max_y + sprite_height) + ps.min_y) * 0.5f;
 	  // These are in tile space, not pixel space.
 	  s.loc.x = cx / 8.0f;
@@ -818,7 +881,7 @@ struct SM {
 	  s.type = BILLBOARD;
 
 	} else {
-	  s.loc.x = ps.min_x / 8.0f;
+	  s.loc.x = (ps.min_x + fine_scroll) / 8.0f;
 	  s.loc.y = ps.min_y / 8.0f;
 	  s.loc.z = 0.01f;
 	  s.type = IN_PLANE;
@@ -1278,6 +1341,11 @@ struct SM {
     glDisable(GL_TEXTURE_2D);
   }
 
+  // Get the current X Scroll as a coarse and fine component.
+  // Both are in pixels so that coarse+fine is the actual scroll
+  // amount, but coarse is mod 16 (two tiles) so that we can
+  // work with 2x2 blocks. (If we don't do this, odd amounts of
+  // scroll tiles causes texture misalignment.)
   std::pair<int, int> XScroll() {
     const PPU *ppu = emu->GetFC()->ppu;
     const uint8 ppu_ctrl1 = ppu->PPU_values[0];
@@ -1288,8 +1356,8 @@ struct SM {
     // Combine coarse and fine x scroll
     uint32 xscroll = (xtable_select << 8) | ((tmp & 31) << 3) | xoffset;
 
-    printf("Scroll x: %d, tmp: %u, table: %u, together: %u\n",
-	   (int)xoffset, tmp, xtable_select, xscroll);
+    // printf("Scroll x: %d, tmp: %u, table: %u, together: %u\n",
+    // (int)xoffset, tmp, xtable_select, xscroll);
 
     // Scroll in two-tile increments.
     int coarse_scroll = xscroll & ~15;
@@ -1371,6 +1439,7 @@ struct SM {
   }
   
  private:
+  Asynchronously asynchronously{12};
   vector<vector<uint8>> sprite_rgba;
   ArcFour rc;
   NOT_COPYABLE(SM);
