@@ -335,6 +335,9 @@ struct SM {
     
     int current_angle = 0;
     int angle_offset = 0;
+    int z_offset = 0;
+    int x_offset = 0;
+    int y_offset = 0;
     
     bool paused = false, single_step = false;
 
@@ -374,6 +377,21 @@ struct SM {
 	    case SDLK_RIGHTBRACKET:
 	      angle_offset -= 15;
 	      break;
+	    case SDLK_UP:
+	      z_offset++;
+	      break;
+	    case SDLK_DOWN:
+	      z_offset--;
+	      break;
+	    case SDLK_LEFT:
+	      x_offset--;
+	      break;
+	    case SDLK_RIGHT:
+	      x_offset++;
+	      break;
+	      
+	      // y offset too
+	      
 	    case SDLK_PERIOD:
 	      single_step = true;
 	      break;
@@ -438,10 +456,14 @@ struct SM {
 	}
 	#endif
 	
-	uint8 player_x, player_y;
+	int player_x, player_y, player_z;
 	int player_angle;
-	std::tie(player_x, player_y, player_angle) = GetLoc();
+	std::tie(player_x, player_y, player_z, player_angle) = GetLoc();
 
+	player_x += x_offset;
+	player_y += y_offset;
+	player_z += z_offset;
+	
 	// XXX hack
 	player_angle += angle_offset;
 	while (player_angle < 0) player_angle += 360;
@@ -469,7 +491,7 @@ struct SM {
 	  while (current_angle < 0) current_angle += 360;
 	  while (current_angle >= 360) current_angle -= 360;
 	}
-	DrawScene(boxes, sprites, player_x, player_y, current_angle);
+	DrawScene(boxes, sprites, player_x, player_y, player_z, current_angle);
 
 	SaveImage();
 	
@@ -747,21 +769,22 @@ struct SM {
 	    const int px = h_flip ? x0 + (7 - bit) : (x0 + bit);
 	    const int py = v_flip ? y0 + (7 - row) : (y0 + row);
 
-	    // XXX Might be technically possible? I think you could fuse 17 sprites
-	    // and make something that was 255+16 tall.
+	    // XXX Might be technically possible? I think you could
+	    // fuse 17 sprites and make something that was 255+16
+	    // tall.
 	    CHECK(px >= 0 && py >= 0 && px < SPRTEXW && py < SPRTEXH)
-					     << "px: " << px << " "
-					     << "py: " << py << " "
-					     << "x0: " << x0 << " "
-					     << "y0: " << y0 << " "
-					     << "h_flip: " << h_flip << " "
-					     << "v_flip: " << v_flip << " "
-					     << "row: " << row << " "
-					     << "bit: " << bit << " "
-					     << "xdest: " << xdest << " "
-					     << "ydest: " << ydest << " "
-					     << "root.min_x: " << root.min_x << " "
-					     << "root.min_y: " << root.min_y << " ";
+				     << "px: " << px << " "
+				     << "py: " << py << " "
+				     << "x0: " << x0 << " "
+				     << "y0: " << y0 << " "
+				     << "h_flip: " << h_flip << " "
+				     << "v_flip: " << v_flip << " "
+				     << "row: " << row << " "
+				     << "bit: " << bit << " "
+				     << "xdest: " << xdest << " "
+				     << "ydest: " << ydest << " "
+				     << "root.min_x: " << root.min_x << " "
+				     << "root.min_y: " << root.min_y << " ";
 
 
 	    // Clip pixels outside the 
@@ -869,22 +892,38 @@ struct SM {
 	// should not merge sprites of different types.
 	Sprite s;
 	const int height_px = (ps.max_y + sprite_height) - ps.min_y;
+	const int width_px = (ps.max_x + 8) - ps.min_x;
 	if (true) {
+	  s.type = BILLBOARD;
+	  
 	  // Use centroid of fused sprite.
 	  float cx = ((ps.max_x + 8) + ps.min_x) * 0.5f + fine_scroll;
 	  float cy = ((ps.max_y + sprite_height) + ps.min_y) * 0.5f;
-	  // These are in tile space, not pixel space.
-	  s.loc.x = cx / 8.0f;
-	  s.loc.y = cy / 8.0f;
-	  // XXX bottom should always be on the floor, yeah?
-	  s.loc.z = 0.5 * (height_px / 8.0f);
-	  s.type = BILLBOARD;
+
+	  switch (viewtype) {
+	  case ViewType::TOP:
+	    // These are in tile space, not pixel space.
+	    s.loc.x = cx / 8.0f;
+	    s.loc.y = cy / 8.0f;
+	    // XXX bottom should always be on the floor, yeah?
+	    s.loc.z = 0.5 * (height_px / 8.0f);
+	    break;
+	  case ViewType::SIDE:
+	    // Left side of sprite should always be on the left wall?
+	    s.loc.x = 0.5 * (width_px / 8.0f);
+	    // XXX check
+	    s.loc.y = cx / 8.0f;
+	    s.loc.z = cy / 8.0f;
+	    break;
+	  }
 
 	} else {
+	  s.type = IN_PLANE;
+	  // XXX support IN_PLANE for SIDE sprites.
+
 	  s.loc.x = (ps.min_x + fine_scroll) / 8.0f;
 	  s.loc.y = ps.min_y / 8.0f;
 	  s.loc.z = 0.01f;
-	  s.type = IN_PLANE;
 	}
 
 	s.texture_num = n;
@@ -1062,19 +1101,35 @@ struct SM {
 	}
 
 	// XXX support TOP and SIDE viewtypes.
-	float z = 0.0f;
+	
+	float d = 0.0f;
 	if (result == WALL) {
-	  z = 2.0f;
+	  d = 2.0f;
 	} else if (result == FLOOR) {
-	  z = 0.0f;
+	  d = 0.0f;
 	  // continue;
 	} else if (result == RUT) {
-	  z = -0.50f;
+	  d = -0.50f;
 	} else if (result == UNMAPPED) {
-	  z = 4.0f;
+	  d = 4.0f;
 	}
-	  
-	ret.push_back(Box{Vec3{(float)tx, (float)ty, z}, BOX_DIM, tx, ty});
+
+	switch (viewtype) {
+	case ViewType::TOP:
+	  // "Forward" is the screen y axis, "Down" is 
+	  ret.push_back(Box{Vec3{(float)tx, (float)ty, d}, BOX_DIM, tx, ty});
+	  break;
+	case ViewType::SIDE:
+	  // depth is to the right (floor, a depth of 0.0, is the left wall).
+	  // but since blocks have XXX HERE.
+	  // "Forward" is the screen x axis, "Down" is the screen y axis,
+	  // and depth is to the right (floor, a depth of 0.0, is the
+	  // left wall).
+	  ret.push_back(Box{Vec3{
+		d, (float)tx, (float)(TILESH - 1 - ty)},
+		BOX_DIM, tx, ty});
+	  break;
+	}
       }
     }
     
@@ -1090,12 +1145,18 @@ struct SM {
 
   void DrawScene(const vector<Box> &orig_boxes,
 		 const vector<Sprite> &orig_sprites,
-		 int player_x, int player_y,
+		 int player_x, int player_y, int player_z,
 		 int player_angle) {
 
+    /// XXX HERE: Use z coordinate; try to remove hacks or insert
+    // parallel hacks for SIDE.
     // Put player in GL coordinates.
     // z is 3/4 of a 4x4 block height
-    const Vec3 player{player_x / 8.0f, ((TILESH * 8 - 1) - player_y) / 8.0f, 3.0f};
+    const Vec3 player{player_x / 8.0f,
+	((TILESH * 8 - 1) - player_y) / 8.0f,
+	player_z / 8.0f + 3.0f
+	// 3.0f
+	};
 
     // Put boxes in GL space where Y=0 is bottom-left, not top-left.
     // This also conceptually changes the origin of the box itself. In
@@ -1364,19 +1425,20 @@ struct SM {
     int fine_scroll = xscroll & 15;
     return { coarse_scroll, fine_scroll };
   }
-  
-  // x, y, angle (deg, where 0 is north)
-  std::tuple<uint8, uint8, int> GetLoc() {
+
+  // x, y, z, angle (deg, where 0 is north)
+  std::tuple<int, int, int, int> GetLoc() {
     vector<uint8> ram = emu->GetMemory();
     
     // Link's top-left corner, so add 8,8 to get center.
-    uint8 lx = ram[player_x_mem] + 8, ly = ram[player_y_mem] + 8;
+    uint8 sx = ram[player_x_mem] + 8, sy = ram[player_y_mem] + 8;
 
     // Take x scroll into account.
     int coarse_scroll, fine_scroll;
     std::tie(coarse_scroll, fine_scroll) = XScroll();
-    lx += fine_scroll;
-    
+    sx += fine_scroll;
+
+    // XXX need some way of getting angle for mario
     const uint8 dir = ram[0x98];
     int angle = 0;
     switch (dir) {
@@ -1387,7 +1449,13 @@ struct SM {
     default:;
     }
 
-    return make_tuple(lx, ly, angle);
+    switch (viewtype) {
+    default:
+    case ViewType::TOP:
+      return make_tuple(sx, sy, 0, angle);
+    case ViewType::SIDE:
+      return make_tuple(0, sx, sy, angle);    
+    }
   }
 
   void InitTextures() {
