@@ -911,9 +911,10 @@ struct SM {
 	  case ViewType::SIDE:
 	    // Left side of sprite should always be on the left wall?
 	    s.loc.x = 0.5 * (width_px / 8.0f);
-	    // XXX check
-	    s.loc.y = cx / 8.0f;
-	    s.loc.z = cy / 8.0f;
+	    // XXX don't know why we need -16 and -8 here, but it
+	    // makes them line up.
+	    s.loc.y = (cx - 16) / 8.0f;
+	    s.loc.z = (255 - cy - 8) / 8.0f;
 	    break;
 	  }
 
@@ -1100,18 +1101,21 @@ struct SM {
 	  }
 	}
 
-	// XXX support TOP and SIDE viewtypes.
-	
+	// Boxes have size--position them so that the face we want
+	// to see is at the depth we want. For a floor, for example,
+	// this is not 0.0 but 0.0 - BOX_DIM, since we want the top
+	// of the box to be at 0.0, not its bottom.
+
 	float d = 0.0f;
 	if (result == WALL) {
-	  d = 2.0f;
+	  d = 2.0f - BOX_DIM;
 	} else if (result == FLOOR) {
-	  d = 0.0f;
+	  d = 0.0f - BOX_DIM;
 	  // continue;
 	} else if (result == RUT) {
-	  d = -0.50f;
+	  d = -0.50f - BOX_DIM;
 	} else if (result == UNMAPPED) {
-	  d = 4.0f;
+	  d = 4.0f - BOX_DIM;
 	}
 
 	switch (viewtype) {
@@ -1126,7 +1130,7 @@ struct SM {
 	  // and depth is to the right (floor, a depth of 0.0, is the
 	  // left wall).
 	  ret.push_back(Box{Vec3{
-		d, (float)tx, (float)(TILESH - 1 - ty)},
+		-d, (float)tx, (float)(TILESH - 1 - ty)},
 		BOX_DIM, tx, ty});
 	  break;
 	}
@@ -1154,7 +1158,7 @@ struct SM {
     // z is 3/4 of a 4x4 block height
     const Vec3 player{player_x / 8.0f,
 	((TILESH * 8 - 1) - player_y) / 8.0f,
-	player_z / 8.0f + 3.0f
+	player_z / 8.0f + 1.5f
 	// 3.0f
 	};
 
@@ -1170,16 +1174,12 @@ struct SM {
 		box.texture_x, box.texture_y});
     }
 
-    // Flip the y location of sprites. Since z = 0 is the "floor", raise
-    // sprite Z values so that they are above the top of the floor boxes.
+    // Flip the y location of sprites.
     vector<Sprite> sprites;
     sprites.reserve(orig_sprites.size());
     for (const Sprite &sprite : orig_sprites) {
       Sprite s = sprite;
       s.loc.y = (float)(TILESH - 1) - s.loc.y;
-      // This is a gross hack (and also depends on the box
-      // dimensions). XXX rewrite so that the "floor" is at 0.
-      s.loc.z += BOX_DIM;
       s.distance = Vec3Distance(s.loc, player);
       sprites.push_back(s);
     }
@@ -1202,7 +1202,7 @@ struct SM {
     // Move "camera".
     glTranslatef(-player.x, -player.y, -player.z);
     // XXX don't need this
-#if 0
+#if 1
     glBegin(GL_LINE_STRIP);
     glVertex3f(0.0f, 0.0f, 0.0f);
     glVertex3f((float)TILESW, 0.0f, 0.0f);
