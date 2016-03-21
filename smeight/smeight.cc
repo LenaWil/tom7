@@ -158,6 +158,19 @@ static bool ParseByte(const string &s, uint8 *b) {
   return true;
 }
 
+static bool ParseWord(const string &s, uint16 *w) {
+  if (s.size() != 4 || !Util::IsHexDigit(s[0]) || !Util::IsHexDigit(s[1]) ||
+      !Util::IsHexDigit(s[2]) || !Util::IsHexDigit(s[3]))
+    return false;
+
+  *w = Util::HexDigitValue(s[0]) * 16 * 16 * 16 +
+    Util::HexDigitValue(s[1]) * 16 * 16 +
+    Util::HexDigitValue(s[2]) * 16 +
+    Util::HexDigitValue(s[3]);
+    
+  return true;
+}
+
 struct Tilemap {
   Tilemap() {}
   explicit Tilemap(const string &filename) {
@@ -221,22 +234,62 @@ enum class ViewType {
   SIDE,
 };
 
+struct AngleRule {
+  uint16 memory_location = 0xFFFF;
+  uint8 value = 0;
+  bool Match(const vector<uint8> &mem) {
+    if (memory_location == 0xFFFF)
+      return false;
+
+    CHECK(memory_location < mem.size()) << memory_location;
+    return mem[memory_location] == value;
+  }
+};
+
 struct SM {
   std::unique_ptr<Emulator> emu;
   vector<uint8> inputs;
   Tilemap tilemap;
   
-  int player_x_mem, player_y_mem;
+  uint16 player_x_mem, player_y_mem;
+  AngleRule north, south, east, west;
   ViewType viewtype;
   
-  uint8 ConfigByte(const map<string, string> &config, const string &key) {
+  static uint8 ConfigByte(const map<string, string> &config,
+			  const string &key) {
     auto it = config.find(key);
     CHECK(it != config.end()) << "\nExpected " << key << " in config.";
     uint8 b;
     CHECK(ParseByte(it->second, &b)) << "Bad hex byte for " << key <<
-      "in config. Should be exactly two hex digits; got [%s]\n" <<
-      it->second;
+      " in config. Should be exactly two hex digits; got [" <<
+      it->second << "]";
     return b;
+  }
+
+  static uint16 ConfigWord(const map<string, string> &config,
+			   const string &key) {
+    auto it = config.find(key);
+    CHECK(it != config.end()) << "\nExpected " << key << " in config.";
+    uint16 w;
+    CHECK(ParseWord(it->second, &w)) << "Bad hex word for " << key <<
+      " in config. Should be exactly four hex digits; got [" <<
+      it->second << "]";
+    return w;
+  }
+
+  void ConfigureAngle(const map<string, string> &config,
+		      const string &key, AngleRule *rule) {
+    auto it = config.find(key);
+    if (it == config.end()) return;
+    string line = it->second;
+    string addr = Util::chop(line);
+    CHECK(ParseWord(addr, &rule->memory_location)) << "Bad hex word for " <<
+      key << " (address) -- should be exactly 4 hex digits; got [" <<
+      addr << "]";
+    string val = Util::chop(line);
+    CHECK(ParseByte(val, &rule->value)) << "Bad hex byte for " <<
+      key << " (value) -- should be exactly 2 hex digits; got [" <<
+      val << "]";
   }
   
   SM(const string &configfile) : rc("sm") {
@@ -254,9 +307,15 @@ struct SM {
     CHECK(!game.empty());
     CHECK(!tilesfile.empty());
 
-    player_x_mem = ConfigByte(config, "playerx");
-    player_y_mem = ConfigByte(config, "playery");
+    // XXX actually we should allow 16-bit words here, 0-2048!
+    player_x_mem = ConfigWord(config, "playerx");
+    player_y_mem = ConfigWord(config, "playery");
 
+    ConfigureAngle(config, "east", &east);
+    ConfigureAngle(config, "north", &north);
+    ConfigureAngle(config, "south", &south);
+    ConfigureAngle(config, "west", &west);
+    
     string vt = Util::lcase(config["view"]);
     if (vt == "top") viewtype = ViewType::TOP;
     else if (vt == "side") viewtype = ViewType::SIDE;
@@ -1438,23 +1497,18 @@ struct SM {
     std::tie(coarse_scroll, fine_scroll) = XScroll();
     sx += fine_scroll;
 
-    // XXX need some way of getting angle for mario
-    const uint8 dir = ram[0x98];
     int angle = 0;
-    switch (dir) {
-    case 1: angle = 90; break;  // East
-    case 2: angle = 270; break; // West
-    case 4: angle = 180; break; // South
-    case 8: angle = 0; break;   // North
-    default:;
-    }
-
+    if (north.Match(ram)) angle = 0;
+    else if (east.Match(ram)) angle = 90;
+    else if (south.Match(ram)) angle = 180;
+    else if (west.Match(ram)) angle = 270;
+        
     switch (viewtype) {
     default:
     case ViewType::TOP:
       return make_tuple(sx, sy, 0, angle);
     case ViewType::SIDE:
-      return make_tuple(0, sx, sy, angle);    
+      return make_tuple(0, sx, 256 - sy, angle);    
     }
   }
 

@@ -40,6 +40,17 @@
 # sky
 24 floor
 
+# flagpole top
+2f floor
+3d floor
+
+# lumpy bush
+30 floor
+31 floor
+32 floor
+33 floor
+34 floor
+
 # cloud / bush
 36 floor
 37 floor
@@ -63,25 +74,52 @@
 59 wall
 5a wall
 
-# solid, used in pipe
-26 wall
+# solid, used in both
+# backgrounds (bush) and fore (pipe)
+26 floor
+# solid bg
+27 floor
 
 # vertical pipe
-60
-61
-62
-63
-64
-65
-66
-67
-68
-69
-6a
+60 wall
+61 wall
+62 wall
+63 wall
+64 wall
+65 wall
+66 wall
+67 wall
+68 wall
+69 wall
+6a wall
+
+# castle, crenellations
+9b wall
+9c wall
+9d wall
+9e wall
+a9 wall
+aa wall
+
+# coins
+a5 wall
+a6 wall
+a7 wall
+a8 wall
 
 # bricks
 45 wall
 47 wall
+
+# flagpole
+a2 floor
+a3 floor
+
+# 'escape' brick
+ab wall
+ac wall
+ad wall
+ae wall
 
 # walls
 
