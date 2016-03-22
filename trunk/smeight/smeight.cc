@@ -407,7 +407,7 @@ struct SM {
       // still alpha bug?
       // #define START_IDX 520
       // #define START_IDX 3300  // - zelda scrolling
-      #define START_IDX 0
+      #define START_IDX 440
       if (START_IDX) {
 	printf("SKIP to %d\n", START_IDX);
 	paused = true;
@@ -1234,6 +1234,8 @@ struct SM {
     }
 
     // Flip the y location of sprites.
+    // Set their distance from the player so that we can
+    // sort them back to front for alpha compositing.
     vector<Sprite> sprites;
     sprites.reserve(orig_sprites.size());
     for (const Sprite &sprite : orig_sprites) {
@@ -1245,8 +1247,19 @@ struct SM {
 
     std::sort(sprites.begin(), sprites.end(),
 	      [](const Sprite &a, const Sprite &b) {
-		return b.distance - a.distance;
+		return b.distance < a.distance;
 	      });
+
+    #if 0
+    printf("There are %d sprites:\n", (int)sprites.size());
+    for (int i = 0; i < sprites.size(); i++) {
+      printf("%d. (%.3f, %.3f, %.3f) dist %.3f %dx%d\n",
+	     i,
+	     sprites[i].loc.x, sprites[i].loc.y, sprites[i].loc.z,
+	     sprites[i].distance,
+	     sprites[i].width, sprites[i].height);
+    }
+    #endif
     
     // printf("There are %d boxes.\n", (int)boxes.size());
     glMatrixMode(GL_MODELVIEW);
