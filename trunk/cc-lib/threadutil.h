@@ -168,6 +168,65 @@ auto UnParallelMap(const std::vector<T> &vec,
   return result;
 }
 
+// Manages running up to X asynchronous tasks in separate threads. This
+// is intended for use in situations like compressing and writing a
+// bunch of frames of a movie out to disk. There's substantial parallelism,
+// opportunity, but it can bad if we eaglery generate the frames because
+// they might fill the entire memory. This automatically throttles once
+// the specified level of parallelism is reached, by running further calls
+// synchronously.
+// 
+// The threads are started for each asynchronous Run (no thread pool),
+// making this kinda high-overhead but easy to manage. It at least
+// cleans up after itself.
+struct Asynchronously {
+  Asynchronously(int max_threads) : threads_active(0),
+				    max_threads(max_threads) {
+  }
+
+  // Run the function asynchronously if we haven't exceeded the maximum
+  // number of threads. Otherwise, run it in this thread and don't
+  // return until it's done.
+  void Run(std::function<void()> f) {
+    m.lock();
+    if (threads_active < max_threads) {
+      threads_active++;
+      m.unlock();
+      std::thread t{[this, f]() {
+	  printf("(running asynchronously)\n");
+	  f();
+	  printf("(done running asynchronously)\n");
+	  MutexLock ml(&this->m);
+	  threads_active--;
+	}};
+      t.detach();
+      
+    } else {
+      m.unlock();
+      // Run synchronously.
+      printf("%d threads already active, so running synchronously.\n",
+	     max_threads);
+      f();
+    }
+  }
+
+  // Wait until all threads have finished.
+  ~Asynchronously() {
+    printf("Spin-wait until all threads have finished...\n");
+    for (;;) {
+      MutexLock ml(&m);
+      if (threads_active == 0) {
+	printf("... done.\n");
+	return;
+      }
+    }
+  }
+    
+  std::mutex m;
+  int threads_active;
+  const int max_threads;
+};
+
 struct MutexLock {
   explicit MutexLock(std::mutex *m) : m(m) { m->lock(); }
   ~MutexLock() { m->unlock(); }
