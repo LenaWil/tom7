@@ -28,7 +28,9 @@ struct AutoCamera {
   // Since emulator startup is a little expensive, this keeps
   // around an emulator instance (pass the cartridge filename).
   explicit AutoCamera(const string &game) {
-    emu.reset(Emulator::Create(game));
+    emu1.reset(Emulator::Create(game));
+    emu2.reset(Emulator::Create(game));
+    emu3.reset(Emulator::Create(game));
   }
 
   // TODO: Make the search procedure use multiple threads.
@@ -71,7 +73,7 @@ struct AutoCamera {
   bool GetPlayerSprite(const vector<uint8> &uncompressed_state,
 		       int *sprite_idx);
   
-  std::unique_ptr<Emulator> emu;
+  std::unique_ptr<Emulator> emu1, emu2, emu3;
 };
 
 #endif

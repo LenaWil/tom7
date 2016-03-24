@@ -9,31 +9,35 @@
 
 
 bool AutoCamera::GetPlayerSprite(const vector<uint8> &start, int *sprite_idx) {
-  const PPU *ppu = emu->GetFC()->ppu;
 
   // OAM is Object Attribute Memory, which is sprite data.
-  auto OAM = [ppu]() {
+  auto OAM = [](Emulator *emu) {
+    const PPU *ppu = emu->GetFC()->ppu;
     vector<uint8> oam;
     oam.resize(256);
     memcpy(oam.data(), ppu->SPRAM, 256);
     return oam;
   };
-    
+
+  emu1->LoadUncompressed(start);
+  emu2->LoadUncompressed(start);
+  emu3->LoadUncompressed(start);
+  
   for (int frames = 1; frames < 45; frames++) {
     // Generate three sprite vectors, one where we hold only L for
     // n frames, one where we press nothing, and one where we hold
     // only R for n frames.
-    emu->LoadUncompressed(start);
-    for (int n = 0; n < frames; n++) emu->Step(INPUT_L, 0);
-    vector<uint8> left = OAM();
+    emu1->Step(INPUT_L, 0);
+    // vector<uint8> left = OAM(emu1.get());
+    const uint8 *left = emu1->GetFC()->ppu->SPRAM;
+    
+    emu2->Step(0, 0);
+    // vector<uint8> none = OAM(emu2.get());
+    const uint8 *none = emu2->GetFC()->ppu->SPRAM;
 
-    emu->LoadUncompressed(start);
-    for (int n = 0; n < frames; n++) emu->Step(0, 0);
-    vector<uint8> none = OAM();
-
-    emu->LoadUncompressed(start);
-    for (int n = 0; n < frames; n++) emu->Step(INPUT_R, 0);
-    vector<uint8> right = OAM();
+    emu3->Step(INPUT_R, 0);
+    // vector<uint8> right = OAM(emu3.get());
+    const uint8 *right = emu3->GetFC()->ppu->SPRAM;
 
     // Now, see if any sprite has the property we want, which is
     // that left_x < none_x < right_x.
