@@ -78,14 +78,14 @@ FCEULIB_OBJECTS=$(FCEUOBJECTS) $(MAPPEROBJECTS) $(UTILSOBJECTS) $(PALLETESOBJECT
 LFLAGS=$(LINKGL) -m64 -Wl,--subsystem,console libz.a $(OPT) $(SYMBOLS) $(FLTO) $(PROFILE) $(LINKSDL) -static
 # -Wl,--subsystem,console
 
-PFTWO_OBJECTS=
+SMEIGHT_OBJECTS=autocamera.o
 
 # libglew32.a 
-smeight.exe : $(FCEULIB_OBJECTS) $(SDL_OBJECTS) $(CCLIB_OBJECTS) $(PFTWO_OBJECTS) smeight.o sdl-win32-main.o
+smeight.exe : $(FCEULIB_OBJECTS) $(SDL_OBJECTS) $(CCLIB_OBJECTS) $(SMEIGHT_OBJECTS) smeight.o sdl-win32-main.o
 	@$(CXX) $^ -o $@ $(LFLAGS)
 	@bash -c "echo -n '!'"
 	@bash -c "echo ''"
 
 clean :
-	rm -f smeight.exe *.o $(FCEULIB_OBJECTS) $(CCLIB_OBJECTS) $(PFTWO_OBJECTS) gmon.out
+	rm -f smeight.exe *.o $(FCEULIB_OBJECTS) $(CCLIB_OBJECTS) $(SMEIGHT_OBJECTS) gmon.out
 
