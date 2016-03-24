@@ -16,6 +16,26 @@
 #endif
 #endif
 
+struct MutexLock {
+  explicit MutexLock(std::mutex *m) : m(m) { m->lock(); }
+  ~MutexLock() { m->unlock(); }
+  std::mutex *m;
+};
+
+// Read with the mutex that protects it. T must be copyable,
+// obviously!
+template<class T>
+T ReadWithLock(std::mutex *m, const T *t) {
+  MutexLock ml(m);
+  return *t;
+}
+
+// Write with the mutex that protects it. T must be copyable.
+template<class T>
+void WriteWithLock(std::mutex *m, T *t, const T &val) {
+  MutexLock ml(m);
+  *t = val;
+}
 
 // Do progress meter.
 // It should be thread safe and have a way for a thread to register a sub-meter.
@@ -226,26 +246,5 @@ struct Asynchronously {
   int threads_active;
   const int max_threads;
 };
-
-struct MutexLock {
-  explicit MutexLock(std::mutex *m) : m(m) { m->lock(); }
-  ~MutexLock() { m->unlock(); }
-  std::mutex *m;
-};
-
-// Read with the mutex that protects it. T must be copyable,
-// obviously!
-template<class T>
-T ReadWithLock(std::mutex *m, const T *t) {
-  MutexLock ml(m);
-  return *t;
-}
-
-// Write with the mutex that protects it. T must be copyable.
-template<class T>
-void WriteWithLock(std::mutex *m, T *t, const T &val) {
-  MutexLock ml(m);
-  *t = val;
-}
 
 #endif
