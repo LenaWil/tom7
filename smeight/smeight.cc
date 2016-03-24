@@ -26,13 +26,14 @@
 // XXX make part of Emulator interface
 #include "../fceulib/ppu.h"
 #include "../fceulib/cart.h"
-#include "../fceulib/palette.h"
+// #include "../fceulib/palette.h"
 
 #include "SDL.h"
 #include <GL/gl.h>
 #include <GL/glext.h>
 
 #include "matrices.h"
+#include "autocamera.h"
 
 #define WIDTH 1920
 #define HEIGHT 1080
@@ -85,55 +86,6 @@ static bool draw_nes = true;
 // XXX
 static GLuint bg_texture = 0;
 static GLuint sprite_texture[64] = {};
-
-// Manages running up to X asynchronous tasks in separate threads. The
-// threads are started for each Run (no thread pool), making this
-// kinda high-overhead but easy to manage. It at least cleans up after
-// itself.
-struct Asynchronously {
-  Asynchronously(int max_threads) : threads_active(0),
-				    max_threads(max_threads) {
-  }
-
-  void Run(std::function<void()> f) {
-    m.lock();
-    if (threads_active < max_threads) {
-      threads_active++;
-      m.unlock();
-      std::thread t{[this, f]() {
-	  printf("(running asynchronously)\n");
-	  f();
-	  printf("(done running asynchronously)\n");
-	  MutexLock ml(&this->m);
-	  threads_active--;
-	}};
-      t.detach();
-      
-    } else {
-      m.unlock();
-      // Run synchronously.
-      printf("%d threads already active, so running synchronously.\n",
-	     max_threads);
-      f();
-    }
-  }
-
-  // Wait until all threads have finished.
-  ~Asynchronously() {
-    printf("Spin-wait until all threads have finished...\n");
-    for (;;) {
-      MutexLock ml(&m);
-      if (threads_active == 0) {
-	printf("... done.\n");
-	return;
-      }
-    }
-  }
-    
-  std::mutex m;
-  int threads_active;
-  const int max_threads;
-};
 
 typedef void (APIENTRY *glWindowPos2i_t)(int, int);
 glWindowPos2i_t glWindowPos2i = nullptr;
@@ -248,6 +200,7 @@ struct AngleRule {
 
 struct SM {
   std::unique_ptr<Emulator> emu;
+  std::unique_ptr<AutoCamera> auto_camera;
   vector<uint8> inputs;
   Tilemap tilemap;
   
@@ -330,6 +283,8 @@ struct SM {
     emu.reset(Emulator::Create(game));
     CHECK(emu.get());
 
+    auto_camera.reset(new AutoCamera(game));
+    
     if (!moviefile.empty()) {
       inputs = SimpleFM2::ReadInputs(moviefile);
       printf("There are %d inputs in %s.\n",
@@ -514,6 +469,16 @@ struct SM {
 	  z += s.height + 5;
 	}
 	#endif
+
+	int player_sprite_idx;
+	vector<uint8> save = emu->SaveUncompressed();
+	if (auto_camera->GetPlayerSprite(save, &player_sprite_idx)) {
+	  printf("Auto-camera detected player at sprite idx %d\n",
+		 player_sprite_idx);
+	} else {
+	  printf("Auto-camera failed. :(\n");
+	}
+	 
 	
 	int player_x, player_y, player_z;
 	int player_angle;
@@ -623,7 +588,7 @@ struct SM {
     // from the tile's low bit).
     const bool spr_pat_high = !!(ppu_ctrl1 & (1 << 3));
     
-    // Each is 0x100 bytes
+    // Total 256 bytes.
     const uint8 *spram = ppu->SPRAM;
    
     // Most games use multiple sprites to draw the player and enemy,
@@ -709,7 +674,7 @@ struct SM {
     // in leftmost 8 pixels of screen. ($2001 = PPUMASK)
 
     for (int n = 63; n >= 0; n--) {
-      const uint8 y = spram[n * 4 + 0];      
+      const uint8 y = spram[n * 4 + 0];
       const uint8 x = spram[n * 4 + 3];
       PreSprite &ps = presprites[n];
       ps.x = x;
