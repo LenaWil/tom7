@@ -62,5 +62,24 @@ constexpr bool DisjointBits(Argtypes... a) {
   return internal::DisjointBitsC<Argtypes...>::F(0, a...);
 }
 
+template<int start, int end, class F>
+struct For_ {
+  static void Go(const F &f) {
+    f(start);
+    For_<start + 1, end, F>::Go(f);
+  }
+};
+
+template<int basecase, class F>
+struct For_<basecase, basecase, F> {
+  static void Go(const F &f) {}
+};
+
+// Run the function on start, start+1, start+2, ..., up to but not
+// including end.
+template<int start, int end, class F>
+inline void For(const F &f) {
+  For_<start, end, F>::Go(f);
+}
 
 #endif

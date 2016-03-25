@@ -595,7 +595,7 @@ struct SM {
 	  printf("[%d]  %.2f %.2f %.2f  -->  %.2f %.2f %.2f\n",
 		 current_angle, px, py, pz, lx, ly, lz);
 	  DrawScene(boxes, sprites, px, py, pz, lx, ly, lz,
-		    // "Up" vector is always 0,0,1.
+		    // In 3D mode, "Up" vector is always 0,0,1.
 		    0.0f, 0.0f, 1.0f);
 	} 
 	
@@ -756,12 +756,6 @@ struct SM {
       else return &it->second;
     };
 
-    // PERF: Might want to exclude off-screen sprites.
-    // (This is now being partially done, below)
-    
-    // Note: there are also flags that disable sprite rendering
-    // in leftmost 8 pixels of screen. ($2001 = PPUMASK)
-
     for (int n = 63; n >= 0; n--) {
       const uint8 y = spram[n * 4 + 0];
       const uint8 x = spram[n * 4 + 3];
@@ -838,15 +832,6 @@ struct SM {
       const bool h_flip = !!(attr & (1 << 6));
       const uint8 colorbits = attr & 3;
       const uint8 xpos = spram[n * 4 + 3];
-
-      /*
-      printf("[For %d, %d,%d to %d,%d] Draw at %d,%d tile %d %s%s\n",
-	     root_idx,
-	     root.min_x, root.min_y, root.max_x, root.max_y,
-	     xpos, ypos, tile_idx,
-	     h_flip ? "hflip " : "",
-	     v_flip ? "vflip " : "");
-      */
       
       const uint8 *palette_table = emu->GetFC()->ppu->PALRAM;
       
@@ -862,7 +847,7 @@ struct SM {
 	const uint32 spr_pat_addr = patterntable_high ? 0x1000 : 0x0000;
 	// PERF Really need to keep computing this?
 	const uint8 *vram = &emu->GetFC()->cart->
-	VPage[spr_pat_addr >> 10][spr_pat_addr];
+	    VPage[spr_pat_addr >> 10][spr_pat_addr];
 
 	// upper-left corner of this tile within the rgba array.
 	const int x0 = xdest - root.min_x;
@@ -947,7 +932,7 @@ struct SM {
 	  }
 	} else {
 	  // this does happen in zelda! (during scroll?)
-	  printf("odd tile %d!?\n", tile_idx);
+	  // printf("odd tile %d!?\n", tile_idx);
 	  // CHECK(false);
 	  
 	  // XXX I assume this drops the low bit? I don't see that
@@ -1266,7 +1251,7 @@ struct SM {
 		 float look_x, float look_y, float look_z,
 		 float up_x, float up_y, float up_z) {
 
-    /// XXX HERE: Use z coordinate; try to remove hacks or insert
+    /// XXX: Use z coordinate; try to remove hacks or insert
     // parallel hacks for SIDE.
     // Put player in GL coordinates.
     // z is 3/4 of a 4x4 block height
@@ -1277,7 +1262,7 @@ struct SM {
 	// 3.0f
 	};
 
-    // XXX fix Z hack?
+    // XXX fix Z offset hack?
     const Vec3 look{look_x / 8.0f,
 	((TILESH * 8 - 1) - look_y) / 8.0f,
 	look_z / 8.0f + 1.5f};
@@ -1314,19 +1299,6 @@ struct SM {
     // printf("There are %d boxes.\n", (int)boxes.size());
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
-
-    // This strategy is very "straightforward" (ha ha) but
-    // doesn't allow for interpolation between cameras.
-    #if 0
-    // Put player on ground with top of screen straight ahead.
-    glRotatef(-90.0f, 1.0, 0.0, 0.0);
-
-    // Rotate according to the direction the player is facing.
-    glRotatef(player_angle, 0.0, 0.0, 1.0);
-    
-    // Move "camera".
-    glTranslatef(-player.x, -player.y, -player.z);
-    #endif
 
     LookAtGL(player.x, player.y, player.z,
 	     look.x, look.y, look.z,
@@ -1446,7 +1418,6 @@ struct SM {
 
       for (const Sprite &sprite : sprites) {
 	glBindTexture(GL_TEXTURE_2D, sprite_texture[sprite.texture_num]);
-	glBegin(GL_TRIANGLES);
 	
 	const float tx = sprite.texture_x / (float)SPRTEXW;
 	const float ty = sprite.texture_y / (float)SPRTEXH;
@@ -1476,6 +1447,7 @@ struct SM {
 	};
 
 	if (sprite.type == IN_PLANE) {
+	  glBegin(GL_TRIANGLES);
 	  const float wf = sprite.width / 8.0f;
 	  const float hf = sprite.height / 8.0f;
 
@@ -1484,9 +1456,38 @@ struct SM {
 	  Vec3 c = Vec3Plus(a, Vec3{wf, hf, 0.0f});
 	  Vec3 d = Vec3Plus(a, Vec3{0.0f, hf, 0.0f});
 	  CCWFace(a, b, c, d);
-
+	  glEnd();
+	  
 	} else {
 	  CHECK(sprite.type == BILLBOARD);
+
+	  glPushMatrix();
+
+	  auto Transpose16 = [](float *m) {
+	    For<0, 4>([m](int r) {
+	      For<0, 4>([m, r](int c) {
+		if (r != c) {
+		  float t = m[c * 4 + r];
+		  m[c * 4 + r] = m[r * 4 + c];
+		  m[r * 4 + c] = t;
+		}
+	      });
+	    });
+	  };
+	  
+	  float modelview[16];
+	  glGetFloatv(GL_MODELVIEW_MATRIX, modelview);
+	  Transpose16(modelview);
+	  For<0, 3>([&modelview](int r) {
+	    For<0, 3>([&modelview, r](int c) {
+	      if (r == c) modelview[c * 4 + r] = 1.0f;
+	      else modelview[c * 4 + r] = 0.0f;
+	    });
+	  });
+	  glMultMatrixf(modelview);
+	  
+	  glBegin(GL_TRIANGLES);
+
 	  /*
 	  printf("Draw billboard tex=%d at %.2f,%.2f,%.2f %dx%d\n",
 		 sprite.texture_num, sprite.loc.x, sprite.loc.y, sprite.loc.z,
@@ -1503,6 +1504,7 @@ struct SM {
 	  //
 	  //  (top down view)
 
+	  #if 0
 	  const double player_angle = 45; // XXXXXXX
 	  
 	  const float player_rads = -player_angle * DEGREES_TO_RADS;
@@ -1524,9 +1526,28 @@ struct SM {
 	  Vec3 c = Vec3Plus(ctr, Vec3{+hxf, +hyf, +hhf});
 	  Vec3 d = Vec3Plus(ctr, Vec3{-hxf, -hyf, +hhf});
 	  CCWFace(a, b, c, d);
+	  #endif
 
+	  const float hwf = 0.5f * (sprite.width / 8.0f);
+	  const float hhf = 0.5f * (sprite.height / 8.0f);
+	  // We're rotating the plane within a cylinder.
+	  // looking straight down on the billboard, this is just
+	  // a rotation of a line segment within a circle.
+	  // Angle of 0 should give hyf=0 and hxf=hwf.
+	  const float hxf = hwf;
+	  const float hyf = 0.0;
+	  
+	  const Vec3 &ctr = sprite.loc;
+	  Vec3 a = Vec3Plus(ctr, Vec3{-hxf, -hyf, -hhf});
+	  Vec3 b = Vec3Plus(ctr, Vec3{+hxf, +hyf, -hhf});
+	  Vec3 c = Vec3Plus(ctr, Vec3{+hxf, +hyf, +hhf});
+	  Vec3 d = Vec3Plus(ctr, Vec3{-hxf, -hyf, +hhf});
+	  CCWFace(a, b, c, d);
+	  
+	  glEnd();
+
+	  glPopMatrix();
 	}
-	glEnd();
       }
     }
     // printf("---\n");
