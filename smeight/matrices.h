@@ -64,6 +64,18 @@ struct Vec2 {
 };
 static_assert(sizeof (Vec2) == 2 * sizeof (float), "packing");
 
+inline Vec3 NormVec3(const Vec3 &v) {
+  const float sqmag = v.x * v.x + v.y * v.y + v.z * v.z;
+  const float invmag = 1.0f / sqrtf(sqmag);
+  return Vec3{v.x * invmag, v.y * invmag, v.z * invmag};
+}
+
+inline Vec3 CrossVec3(const Vec3 &a, const Vec3 &b) {
+  return Vec3(a.y * b.z - a.z * b.y,
+	      a.z * b.x - a.x * b.z,
+	      a.x * b.y - a.y * b.x);
+}
+
 inline Vec3 Mat33TimesVec3(const Mat33 &m, const Vec3 &v) {
   return Vec3(m.a * v.x + m.b * v.y + m.c * v.z,
               m.d * v.x + m.e * v.y + m.f * v.z,
