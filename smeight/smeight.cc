@@ -82,6 +82,7 @@ static constexpr uint8 ntsc_palette[] = {
 static bool draw_sprites = true;
 static bool draw_boxes = true;
 static bool draw_nes = true;
+static bool camera_3d = true;
 
 // XXX
 static GLuint bg_texture = 0;
@@ -475,6 +476,13 @@ struct SM {
 	    case SDLK_PERIOD:
 	      single_step = true;
 	      break;
+	    case SDLK_3:
+	      camera_3d = true;
+	      break;
+	    case SDLK_2:
+	      camera_3d = false;
+	      break;
+	      
 	    case SDLK_b:
 	      draw_boxes = !draw_boxes;
 	      break;
@@ -578,7 +586,7 @@ struct SM {
 	  while (current_angle >= 360) current_angle -= 360;
 	}
 
-	if (true) {
+	if (camera_3d) {
 	  // 3D camera.
 	  float px = player_x, py = player_y, pz = player_z;
 	  // Compute "look at" from the player angle.
@@ -594,10 +602,41 @@ struct SM {
 
 	  printf("[%d]  %.2f %.2f %.2f  -->  %.2f %.2f %.2f\n",
 		 current_angle, px, py, pz, lx, ly, lz);
-	  DrawScene(boxes, sprites, px, py, pz, lx, ly, lz,
+	  DrawScene(boxes, sprites,
+		    // In 3d mode, make sprites look right back at you.
+		    -player_angle, false,
+		    px, py, pz, lx, ly, lz,
 		    // In 3D mode, "Up" vector is always 0,0,1.
 		    0.0f, 0.0f, 1.0f);
-	} 
+	} else {
+	  // 2D camera
+	  switch (viewtype) {
+	  case ViewType::SIDE: {
+	    // Move view off to the right, centered in the
+	    // screen.
+	    const float px = -256.0f, py = 128.0f, pz = 120.0f;
+	    const float lx = 0.0f, ly = py, lz = pz;
+	    DrawScene(boxes, sprites,
+		      // sprites should face off to the right
+		      270.0f, false,
+		      px, py, pz, lx, ly, lz,
+		      // 0,0,1 is still "up".
+		      0.0f, 0.0f, 1.0f);
+	    break;
+	  }
+	  case ViewType::TOP:
+	    const float px = 128.0f, py = 120.0f, pz = 256.0f;
+	    const float lx = px, ly = py, lz = 0.0f;
+	    DrawScene(boxes, sprites,
+		      // XXX need to specify different billboarding
+		      // axis.
+		      270.0f, true,
+		      px, py, pz, lx, ly, lz,
+		      // Since we're looking straight "down", "up"
+		      // should be towards y=0.
+		      0.0f, -1.0f, 0.0f);
+	  }
+	}
 	
 
 	SaveImage();
@@ -1213,7 +1252,7 @@ struct SM {
 	} else if (result == RUT) {
 	  d = -0.50f - BOX_DIM;
 	} else if (result == UNMAPPED) {
-	  d = 4.0f - BOX_DIM;
+	  d = -4.0f - BOX_DIM;
 	}
 
 	switch (viewtype) {
@@ -1247,6 +1286,7 @@ struct SM {
 
   void DrawScene(const vector<Box> &orig_boxes,
 		 const vector<Sprite> &orig_sprites,
+		 float billboard_angle, bool billboard_alt_axis,
 		 float player_x, float player_y, float player_z,
 		 float look_x, float look_y, float look_z,
 		 float up_x, float up_y, float up_z) {
@@ -1446,7 +1486,7 @@ struct SM {
 	  glTexCoord2f(tx + tw, ty);      glVertex3fv(c.Floats());
 	};
 
-	if (sprite.type == IN_PLANE) {
+	if (sprite.type == IN_PLANE || billboard_alt_axis) {
 	  glBegin(GL_TRIANGLES);
 	  const float wf = sprite.width / 8.0f;
 	  const float hf = sprite.height / 8.0f;
@@ -1461,31 +1501,6 @@ struct SM {
 	} else {
 	  CHECK(sprite.type == BILLBOARD);
 
-	  glPushMatrix();
-
-	  auto Transpose16 = [](float *m) {
-	    For<0, 4>([m](int r) {
-	      For<0, 4>([m, r](int c) {
-		if (r != c) {
-		  float t = m[c * 4 + r];
-		  m[c * 4 + r] = m[r * 4 + c];
-		  m[r * 4 + c] = t;
-		}
-	      });
-	    });
-	  };
-	  
-	  float modelview[16];
-	  glGetFloatv(GL_MODELVIEW_MATRIX, modelview);
-	  Transpose16(modelview);
-	  For<0, 3>([&modelview](int r) {
-	    For<0, 3>([&modelview, r](int c) {
-	      if (r == c) modelview[c * 4 + r] = 1.0f;
-	      else modelview[c * 4 + r] = 0.0f;
-	    });
-	  });
-	  glMultMatrixf(modelview);
-	  
 	  glBegin(GL_TRIANGLES);
 
 	  /*
@@ -1504,10 +1519,7 @@ struct SM {
 	  //
 	  //  (top down view)
 
-	  #if 0
-	  const double player_angle = 45; // XXXXXXX
-	  
-	  const float player_rads = -player_angle * DEGREES_TO_RADS;
+	  const float player_rads = billboard_angle * DEGREES_TO_RADS;
 	  // printf("p angle: d = %.2f rads\n", player_angle, player_rads);
 	  
 	  // half-width and half-height from center point.
@@ -1526,27 +1538,8 @@ struct SM {
 	  Vec3 c = Vec3Plus(ctr, Vec3{+hxf, +hyf, +hhf});
 	  Vec3 d = Vec3Plus(ctr, Vec3{-hxf, -hyf, +hhf});
 	  CCWFace(a, b, c, d);
-	  #endif
-
-	  const float hwf = 0.5f * (sprite.width / 8.0f);
-	  const float hhf = 0.5f * (sprite.height / 8.0f);
-	  // We're rotating the plane within a cylinder.
-	  // looking straight down on the billboard, this is just
-	  // a rotation of a line segment within a circle.
-	  // Angle of 0 should give hyf=0 and hxf=hwf.
-	  const float hxf = hwf;
-	  const float hyf = 0.0;
-	  
-	  const Vec3 &ctr = sprite.loc;
-	  Vec3 a = Vec3Plus(ctr, Vec3{-hxf, -hyf, -hhf});
-	  Vec3 b = Vec3Plus(ctr, Vec3{+hxf, +hyf, -hhf});
-	  Vec3 c = Vec3Plus(ctr, Vec3{+hxf, +hyf, +hhf});
-	  Vec3 d = Vec3Plus(ctr, Vec3{-hxf, -hyf, +hhf});
-	  CCWFace(a, b, c, d);
 	  
 	  glEnd();
-
-	  glPopMatrix();
 	}
       }
     }
