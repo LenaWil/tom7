@@ -95,6 +95,48 @@ static void GetExtensions() {
   INSTALL(glWindowPos2i);
 }
 
+// Same as gluLookAt, but without depending on GLU.
+// c.f. https://www.opengl.org/sdk/docs/man2/xhtml/gluLookAt.xml
+static void LookAtGL(float eyeX, float eyeY, float eyeZ,
+		     float centerX, float centerY, float centerZ,
+		     float upX, float upY, float upZ) {
+  // Vector from eye to center.
+  const Vec3 f = NormVec3(Vec3{centerX - eyeX, centerY - eyeY, centerZ - eyeZ});
+  const Vec3 normup = NormVec3(Vec3{upX, upY, upZ});
+  const Vec3 s = CrossVec3(f, normup);
+  const Vec3 u = CrossVec3(NormVec3(s), f);
+  
+  // 4x4 matrix. We want
+  //     s.x,    s.y,  s.z,   0.0f
+  //     u.x,    u.y,  u.z,   0.0f
+  //    -f.x,  -f.y,  -f.z,   0.0f
+  //     0.0f,  0.0f,  0.0f,  1.0f
+  // but note that glMultMatrixf takes a matrix in column-major order.
+
+  float m[16]{
+    // column 1
+    s.x, u.x, -f.x, 0.0f,
+    // column 2
+    s.y, u.y, -f.y, 0.0f,
+    // column 3
+    s.z, u.z, -f.z, 0.0f,
+    // column 4
+    0.0f, 0.0f, 0.0f, 1.0f,
+  };
+
+  glMultMatrixf(m);
+  glTranslatef(-eyeX, -eyeY, -eyeZ);
+}
+
+// Same as gluPerspective, but without depending on GLU.
+static void PerspectiveGL(double fovY, double aspect,
+			  double zNear, double zFar) {
+  static constexpr double pi = 3.1415926535897932384626433832795;
+  const double fH = tan(fovY / 360.0 * pi) * zNear;
+  const double fW = fH * aspect;
+  glFrustum(-fW, fW, -fH, fH, zNear, zFar);
+}
+
 enum TileType {
   UNMAPPED = 0,
   FLOOR = 1,
@@ -510,6 +552,11 @@ struct SM {
 	
 	// Smooth angle a bit.
 	// Maximum degrees to turn per frame.
+	//
+	// We don't just do this with camera interpolation because
+	// when we instantly turn 180 degrees (for example), we can't
+	// let the "look at" point enter the player; that produces
+	// an undefined matrix.
 	static constexpr int MAX_SPIN = 6;
 	if (current_angle != player_angle) {
 	  // Find the shortest path, which may involve going
@@ -530,7 +577,28 @@ struct SM {
 	  while (current_angle < 0) current_angle += 360;
 	  while (current_angle >= 360) current_angle -= 360;
 	}
-	DrawScene(boxes, sprites, player_x, player_y, player_z, current_angle);
+
+	if (true) {
+	  // 3D camera.
+	  float px = player_x, py = player_y, pz = player_z;
+	  // Compute "look at" from the player angle.
+
+	  float lx = px, ly = py, lz = pz;
+
+	  // Just look at something a unit vector away, in
+	  // the corresponding angle. This is the same in
+	  // both SIDE and TOP viewtypes.
+	  lx += 8.0f * sinf(current_angle * DEGREES_TO_RADS);
+	  // dunno why this is backwards; add more sign errors, sigh
+	  ly -= 8.0f * cosf(current_angle * DEGREES_TO_RADS);
+
+	  printf("[%d]  %.2f %.2f %.2f  -->  %.2f %.2f %.2f\n",
+		 current_angle, px, py, pz, lx, ly, lz);
+	  DrawScene(boxes, sprites, px, py, pz, lx, ly, lz,
+		    // "Up" vector is always 0,0,1.
+		    0.0f, 0.0f, 1.0f);
+	} 
+	
 
 	SaveImage();
 	
@@ -1194,8 +1262,9 @@ struct SM {
 
   void DrawScene(const vector<Box> &orig_boxes,
 		 const vector<Sprite> &orig_sprites,
-		 int player_x, int player_y, int player_z,
-		 int player_angle) {
+		 float player_x, float player_y, float player_z,
+		 float look_x, float look_y, float look_z,
+		 float up_x, float up_y, float up_z) {
 
     /// XXX HERE: Use z coordinate; try to remove hacks or insert
     // parallel hacks for SIDE.
@@ -1203,10 +1272,16 @@ struct SM {
     // z is 3/4 of a 4x4 block height
     const Vec3 player{player_x / 8.0f,
 	((TILESH * 8 - 1) - player_y) / 8.0f,
+	// XXX fix Z hack
 	player_z / 8.0f + 1.5f
 	// 3.0f
 	};
 
+    // XXX fix Z hack?
+    const Vec3 look{look_x / 8.0f,
+	((TILESH * 8 - 1) - look_y) / 8.0f,
+	look_z / 8.0f + 1.5f};
+    
     // Put boxes in GL space where Y=0 is bottom-left, not top-left.
     // This also conceptually changes the origin of the box itself. In
     // this function, 0,0,0 is the "bottom front left" of the box.
@@ -1242,7 +1317,7 @@ struct SM {
 
     // This strategy is very "straightforward" (ha ha) but
     // doesn't allow for interpolation between cameras.
-    #if 1
+    #if 0
     // Put player on ground with top of screen straight ahead.
     glRotatef(-90.0f, 1.0, 0.0, 0.0);
 
@@ -1253,9 +1328,10 @@ struct SM {
     glTranslatef(-player.x, -player.y, -player.z);
     #endif
 
-    
-    
-    
+    LookAtGL(player.x, player.y, player.z,
+	     look.x, look.y, look.z,
+	     up_x, -up_y, up_z);
+        
 #if 1
     // XXX don't need this
     glBegin(GL_LINE_STRIP);
@@ -1427,6 +1503,8 @@ struct SM {
 	  //
 	  //  (top down view)
 
+	  const double player_angle = 45; // XXXXXXX
+	  
 	  const float player_rads = -player_angle * DEGREES_TO_RADS;
 	  // printf("p angle: d = %.2f rads\n", player_angle, player_rads);
 	  
@@ -1562,49 +1640,6 @@ struct SM {
   ArcFour rc;
   NOT_COPYABLE(SM);
 };
-
-// Same as gluLookAt, but without depending on GLU.
-// c.f. https://www.opengl.org/sdk/docs/man2/xhtml/gluLookAt.xml
-static void LookAtGL(float eyeX, float eyeY, float eyeZ,
-		     float centerX, float centerY, float centerZ,
-		     float upX, float upY, float upZ) {
-  // Vector from eye to center.
-  const Vec3 f = NormVec3(Vec3{centerX - eyeX, centerY - eyeY, centerZ - eyeZ});
-  const Vec3 normup = NormVec3(Vec3{eyeX, eyeY, eyeZ});
-  const Vec3 s = CrossVec3(f, normup);
-  const Vec3 norms = NormVec3(s);
-  const Vec3 u = CrossVec3(norms, f);
-  
-  // 4x4 matrix. We want
-  //     s.x,    s.y,  s.z,   0.0f
-  //     u.x,    u.y,  u.z,   0.0f
-  //    -f.x,  -f.y,  -f.z,   0.0f
-  //     0.0f,  0.0f,  0.0f,  1.0f
-  // but note that glMultMatrixf takes a matrix in column-major order.
-
-  float m[16]{
-    // column 1
-    s.x, u.x, -f.x, 0.0f,
-    // column 2
-    s.y, u.y, -f.y, 0.0f,
-    // column 3
-    s.z, u.z, -f.z, 0.0f,
-    // column 4
-    0.0f, 0.0f, 0.0f, 1.0f,
-  };
-
-  glMultMatrixf(m);
-  glTranslatef(-eyeX, -eyeY, -eyeZ);
-}
-
-// Same as gluPerspective, but without depending on GLU.
-static void PerspectiveGL(double fovY, double aspect,
-			  double zNear, double zFar) {
-  static constexpr double pi = 3.1415926535897932384626433832795;
-  const double fH = tan(fovY / 360.0 * pi) * zNear;
-  const double fW = fH * aspect;
-  glFrustum(-fW, fW, -fH, fH, zNear, zFar);
-}
 
 static void InitGL() {
   // Pixels!!
