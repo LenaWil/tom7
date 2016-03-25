@@ -260,7 +260,7 @@ struct SM {
     CHECK(!game.empty());
     CHECK(!tilesfile.empty());
 
-    // XXX actually we should allow 16-bit words here, 0-2048!
+    // XXX make these optional, and use autocamera
     player_x_mem = ConfigWord(config, "playerx");
     player_y_mem = ConfigWord(config, "playery");
 
@@ -330,7 +330,28 @@ struct SM {
     // Used temporarily during rendering.
     float distance = 0.0f;
   };
+
+  void SetCamera2D() {
+    player_x_mem = 0xFFFF;
+    player_y_mem = 0xFFFF;
+  }
   
+  void DoAutoCamera() {
+    vector<uint8> save = emu->SaveUncompressed();
+    int nframes = 0;
+    vector<AutoCamera::XSprite> cams =
+      auto_camera->GetXSprite(save, &nframes);
+    if (!cams.empty()) {
+      printf("Auto-camera detected player [%d frames]:", nframes);
+      for (const auto &s : cams) printf(" %d", s.sprite_idx);
+      printf("\n");
+      CHECK(!cams[0].xmems.empty());
+      player_x_mem = cams[0].xmems[0];
+    } else {
+      printf("Auto-camera failed. :(\n");
+    }
+  }
+
   void Loop() {
     SDL_Surface *surf = sdlutil::makesurface(256, 256, true);
     (void)surf;
@@ -362,7 +383,7 @@ struct SM {
       // still alpha bug?
       // #define START_IDX 520
       // #define START_IDX 3300  // - zelda scrolling
-      #define START_IDX 440
+      #define START_IDX 0
       if (START_IDX) {
 	printf("SKIP to %d\n", START_IDX);
 	paused = true;
@@ -403,7 +424,10 @@ struct SM {
 	    case SDLK_RIGHT:
 	      x_offset++;
 	      break;
-	      
+
+	    case SDLK_c:
+	      DoAutoCamera();
+	      break;
 	      // y offset too
 	      
 	    case SDLK_PERIOD:
@@ -469,16 +493,7 @@ struct SM {
 	  z += s.height + 5;
 	}
 	#endif
-
-	int player_sprite_idx;
-	vector<uint8> save = emu->SaveUncompressed();
-	if (auto_camera->GetPlayerSprite(save, &player_sprite_idx)) {
-	  printf("Auto-camera detected player at sprite idx %d\n",
-		 player_sprite_idx);
-	} else {
-	  printf("Auto-camera failed. :(\n");
-	}
-	 
+ 
 	
 	int player_x, player_y, player_z;
 	int player_angle;
@@ -573,20 +588,26 @@ struct SM {
 
     const PPU *ppu = emu->GetFC()->ppu;
 
-    const uint8 ppu_ctrl1 = ppu->PPU_values[0];
-    const uint8 ppu_ctrl2 = ppu->PPU_values[1];
+    const uint8 ppu_ctrl = ppu->PPU_values[0];
+    const uint8 ppu_mask = ppu->PPU_values[1];
     // Are sprites 16 pixels tall?
-    const bool tall_sprites = !!(ppu_ctrl1 & (1 << 5));
+    const bool tall_sprites = !!(ppu_ctrl & (1 << 5));
     const int sprite_height = tall_sprites ? 16 : 8;
     
-    const bool sprites_enabled = !!(ppu_ctrl2 && (1 << 4));  
-    const bool sprites_clipped = !!(ppu_ctrl2 && (1 << 2));
+    const bool sprites_enabled = !!(ppu_mask && (1 << 4));  
+    // I think there's nothing to do with this flag. We could avoid
+    // drawing sprites that are into the clip region, but I think
+    // most of the time, we'll just be able to draw a more complete
+    // billboard by ignoring it. OTOH, maybe a sprite at x=0 should
+    // be ignored since it would be completely invisible, and maybe
+    // some games use that fact.
+    // const bool sprites_clipped = !!(ppu_mask && (1 << 2));
     
     if (!sprites_enabled) return ret;
 
     // Note: This is ignored if sprites are tall (and determined instead
     // from the tile's low bit).
-    const bool spr_pat_high = !!(ppu_ctrl1 & (1 << 3));
+    const bool spr_pat_high = !!(ppu_ctrl & (1 << 3));
     
     // Total 256 bytes.
     const uint8 *spram = ppu->SPRAM;
@@ -980,10 +1001,10 @@ struct SM {
     PPU *ppu = emu->GetFC()->ppu;
     const uint8 *nametable = ppu->NTARAM;
     const uint8 *palette_table = ppu->PALRAM;
-    const uint8 ppu_ctrl1 = ppu->PPU_values[0];
+    const uint8 ppu_ctrl = ppu->PPU_values[0];
    
     // BG pattern table can be at 0 or 0x1000, depending on control bit.
-    const uint32 bg_pat_addr = (ppu_ctrl1 & (1 << 4)) ? 0x1000 : 0x0000;
+    const uint32 bg_pat_addr = (ppu_ctrl & (1 << 4)) ? 0x1000 : 0x0000;
     const uint8 *vram = &emu->GetFC()->cart->
       VPage[bg_pat_addr >> 10][bg_pat_addr];
 
@@ -1215,21 +1236,13 @@ struct SM {
 		return b.distance < a.distance;
 	      });
 
-    #if 0
-    printf("There are %d sprites:\n", (int)sprites.size());
-    for (int i = 0; i < sprites.size(); i++) {
-      printf("%d. (%.3f, %.3f, %.3f) dist %.3f %dx%d\n",
-	     i,
-	     sprites[i].loc.x, sprites[i].loc.y, sprites[i].loc.z,
-	     sprites[i].distance,
-	     sprites[i].width, sprites[i].height);
-    }
-    #endif
-    
     // printf("There are %d boxes.\n", (int)boxes.size());
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
 
+    // This strategy is very "straightforward" (ha ha) but
+    // doesn't allow for interpolation between cameras.
+    #if 1
     // Put player on ground with top of screen straight ahead.
     glRotatef(-90.0f, 1.0, 0.0, 0.0);
 
@@ -1238,8 +1251,13 @@ struct SM {
     
     // Move "camera".
     glTranslatef(-player.x, -player.y, -player.z);
-    // XXX don't need this
+    #endif
+
+    
+    
+    
 #if 1
+    // XXX don't need this
     glBegin(GL_LINE_STRIP);
     glVertex3f(0.0f, 0.0f, 0.0f);
     glVertex3f((float)TILESW, 0.0f, 0.0f);
@@ -1446,10 +1464,10 @@ struct SM {
   // scroll tiles causes texture misalignment.)
   std::pair<int, int> XScroll() {
     const PPU *ppu = emu->GetFC()->ppu;
-    const uint8 ppu_ctrl1 = ppu->PPU_values[0];
+    const uint8 ppu_ctrl = ppu->PPU_values[0];
     const uint32 tmp = ppu->GetTempAddr();
     const uint8 xoffset = ppu->GetXOffset();
-    const uint8 xtable_select = !!(ppu_ctrl1 & 1);
+    const uint8 xtable_select = !!(ppu_ctrl & 1);
     
     // Combine coarse and fine x scroll
     uint32 xscroll = (xtable_select << 8) | ((tmp & 31) << 3) | xoffset;
@@ -1467,7 +1485,7 @@ struct SM {
   std::tuple<int, int, int, int> GetLoc() {
     vector<uint8> ram = emu->GetMemory();
     
-    // Link's top-left corner, so add 8,8 to get center.
+    // Player's top-left corner, so add 8,8 to get center.
     uint8 sx = ram[player_x_mem] + 8, sy = ram[player_y_mem] + 8;
 
     // Take x scroll into account.
@@ -1544,6 +1562,40 @@ struct SM {
   ArcFour rc;
   NOT_COPYABLE(SM);
 };
+
+// Same as gluLookAt, but without depending on GLU.
+// c.f. https://www.opengl.org/sdk/docs/man2/xhtml/gluLookAt.xml
+static void LookAtGL(float eyeX, float eyeY, float eyeZ,
+		     float centerX, float centerY, float centerZ,
+		     float upX, float upY, float upZ) {
+  // Vector from eye to center.
+  const Vec3 f = NormVec3(Vec3{centerX - eyeX, centerY - eyeY, centerZ - eyeZ});
+  const Vec3 normup = NormVec3(Vec3{eyeX, eyeY, eyeZ});
+  const Vec3 s = CrossVec3(f, normup);
+  const Vec3 norms = NormVec3(s);
+  const Vec3 u = CrossVec3(norms, f);
+  
+  // 4x4 matrix. We want
+  //     s.x,    s.y,  s.z,   0.0f
+  //     u.x,    u.y,  u.z,   0.0f
+  //    -f.x,  -f.y,  -f.z,   0.0f
+  //     0.0f,  0.0f,  0.0f,  1.0f
+  // but note that glMultMatrixf takes a matrix in column-major order.
+
+  float m[16]{
+    // column 1
+    s.x, u.x, -f.x, 0.0f,
+    // column 2
+    s.y, u.y, -f.y, 0.0f,
+    // column 3
+    s.z, u.z, -f.z, 0.0f,
+    // column 4
+    0.0f, 0.0f, 0.0f, 1.0f,
+  };
+
+  glMultMatrixf(m);
+  glTranslatef(-eyeX, -eyeY, -eyeZ);
+}
 
 // Same as gluPerspective, but without depending on GLU.
 static void PerspectiveGL(double fovY, double aspect,

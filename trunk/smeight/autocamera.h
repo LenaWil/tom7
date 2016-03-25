@@ -70,8 +70,21 @@ struct AutoCamera {
   // pressing left may not immediately move left. So, we iteratively
   // try left/right for one frame, two frames, three frames, etc.
 
-  bool GetPlayerSprite(const vector<uint8> &uncompressed_state,
-		       int *sprite_idx);
+  // Sprite that may be under control of the player.
+  struct XSprite {
+    // Index of the sprite that this appears to be.
+    int sprite_idx;
+    // If true, then sprite location lags the memory location
+    // by one frame (this seems typical).
+    bool oldmem;
+    // Memory locations that had the same x value as the sprite,
+    // perhaps lagged by a frame.
+    vector<int> xmems;
+  };
+
+  // Returns a vector of sprite indices that meet the criteria.
+  vector<XSprite> GetXSprite(const vector<uint8> &uncompressed_state,
+			     int *num_frames);
   
   std::unique_ptr<Emulator> emu1, emu2, emu3;
 };
