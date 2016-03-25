@@ -586,12 +586,17 @@ struct SM {
 	  while (current_angle >= 360) current_angle -= 360;
 	}
 
+	float px = 0.0f, py = 0.0f, pz = 0.0f;
+	float lx = 0.0f, ly = 0.0f, lz = 0.0f;
+	float ex = 0.0f, ey = 0.0f, ez = 0.0f;
+	float billboard_angle = 0.0f;
+	bool billboard_alt_axis = false;
+	
 	if (camera_3d) {
 	  // 3D camera.
-	  float px = player_x, py = player_y, pz = player_z;
+	  px = player_x; py = player_y; pz = player_z;
 	  // Compute "look at" from the player angle.
-
-	  float lx = px, ly = py, lz = pz;
+	  lx = px; ly = py; lz = pz;
 
 	  // Just look at something a unit vector away, in
 	  // the corresponding angle. This is the same in
@@ -600,44 +605,47 @@ struct SM {
 	  // dunno why this is backwards; add more sign errors, sigh
 	  ly -= 8.0f * cosf(current_angle * DEGREES_TO_RADS);
 
-	  printf("[%d]  %.2f %.2f %.2f  -->  %.2f %.2f %.2f\n",
-		 current_angle, px, py, pz, lx, ly, lz);
-	  DrawScene(boxes, sprites,
-		    // In 3d mode, make sprites look right back at you.
-		    -player_angle, false,
-		    px, py, pz, lx, ly, lz,
-		    // In 3D mode, "Up" vector is always 0,0,1.
-		    0.0f, 0.0f, 1.0f);
+	  // In 3d mode, make sprites look right back at you.
+	  billboard_angle = -player_angle;
+	  billboard_alt_axis = false;
+
+	  // In 3D mode, "Up" vector is always 0,0,1.
+	  ex = 0.0f; ey = 0.0f; ez = 1.0f;
+
 	} else {
 	  // 2D camera
 	  switch (viewtype) {
 	  case ViewType::SIDE: {
 	    // Move view off to the right, centered in the
 	    // screen.
-	    const float px = -256.0f, py = 128.0f, pz = 120.0f;
-	    const float lx = 0.0f, ly = py, lz = pz;
-	    DrawScene(boxes, sprites,
-		      // sprites should face off to the right
-		      270.0f, false,
-		      px, py, pz, lx, ly, lz,
-		      // 0,0,1 is still "up".
-		      0.0f, 0.0f, 1.0f);
+	    px = -256.0f; py = 128.0f; pz = 120.0f;
+	    lx = 0.0f; ly = py; lz = pz;
+
+	    // sprites should face off to the right
+	    billboard_angle = 270.0f;
+	    billboard_alt_axis = false;
+
+	    // 0,0,1 is still "up".
+	    ex = 0.0f; ey = 0.0f; ez = 1.0f;
 	    break;
 	  }
 	  case ViewType::TOP:
-	    const float px = 128.0f, py = 120.0f, pz = 256.0f;
-	    const float lx = px, ly = py, lz = 0.0f;
-	    DrawScene(boxes, sprites,
-		      // XXX need to specify different billboarding
-		      // axis.
-		      270.0f, true,
-		      px, py, pz, lx, ly, lz,
-		      // Since we're looking straight "down", "up"
-		      // should be towards y=0.
-		      0.0f, -1.0f, 0.0f);
+	    px = 128.0f; py = 120.0f; pz = 256.0f;
+	    lx = px; ly = py; lz = 0.0f;
+	    // ignored
+	    billboard_angle = 270.0f;
+	    billboard_alt_axis = true;
+	    // Since we're looking straight "down", "up"
+	    // should be towards y=0.
+	    ex = 0.0f; ey = -1.0f; ez = 0.0f;
+	    break;
 	  }
 	}
-	
+
+	DrawScene(boxes, sprites,
+		  billboard_angle, billboard_alt_axis,
+		  px, py, pz, lx, ly, lz, ex, ey, ez);
+
 
 	SaveImage();
 	
