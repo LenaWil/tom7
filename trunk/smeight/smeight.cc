@@ -34,28 +34,38 @@
 
 #include "matrices.h"
 #include "autocamera.h"
+#include "wave.h"
 
-#define WIDTH 1920
-#define HEIGHT 1080
+static constexpr int WIDTH = 1920;
+static constexpr int HEIGHT = 1080;
+
 static constexpr double ASPECT_RATIO = WIDTH / (double)HEIGHT;
 
-static constexpr float DEGREES_TO_RADS =
-  (1.0f / 360.0f) * 2.0f * 3.1415926535897932384626433832795f;
+static constexpr float PI = 3.1415926535897932384626433832795f;
+static constexpr float DEGREES_TO_RADS = (1.0f / 360.0f) * 2.0f * PI;
+
+// XXX just ref directly?
+static constexpr int AUDIO_SAMPLE_RATE = Emulator::AUDIO_SAMPLE_RATE;
 
 // Size of NES nametable
-#define TILESW 32
-#define TILESH 30
-#define TILEST 32
+static constexpr int TILESW = 32;
+static constexpr int TILESH = 30;
+static constexpr int TILEST = 32;
+
 static_assert(TILEST >= TILESW, "TILEST must hold TILESW");
 static_assert(TILEST >= TILESW, "TILEST must hold TILESH");
 static_assert(0 == (TILEST & (TILEST - 1)), "TILEST must be power of 2");
 
-#define SPRTEXW 256
-#define SPRTEXH 256
+// Dimensions of fused sprite texture. Must be powers of two.
+static constexpr int SPRTEXW = 256;
+static constexpr int SPRTEXH = 256;
+
 static_assert(0 == (SPRTEXW & (SPRTEXW - 1)), "SPRTEXW must be a power of 2");
 static_assert(0 == (SPRTEXH & (SPRTEXH - 1)), "SPRTEXH must be a power of 2");
 
 #define BOX_DIM 2
+
+static constexpr int CAM_INTER_FRAMES = 45;
 
 // I don't understand why Palette::FCEUD_GetPalette isn't working,
 // but the NES palette is basically constant (emphasis aside), so
@@ -78,11 +88,6 @@ static constexpr uint8 ntsc_palette[] = {
   0xFF,0xF7,0x9C, 0xD7,0xE8,0x95, 0xA6,0xED,0xAF, 0xA2,0xF2,0xDA,
   0x99,0xFF,0xFC, 0xDD,0xDD,0xDD, 0x11,0x11,0x11, 0x11,0x11,0x11,
 };
-
-static bool draw_sprites = true;
-static bool draw_boxes = true;
-static bool draw_nes = true;
-static bool camera_3d = true;
 
 // XXX
 static GLuint bg_texture = 0;
@@ -244,12 +249,25 @@ struct AngleRule {
 struct SM {
   std::unique_ptr<Emulator> emu;
   std::unique_ptr<AutoCamera> auto_camera;
+  std::unique_ptr<WaveFile> wavefile;
   vector<uint8> inputs;
   Tilemap tilemap;
+
+  // Flags toggled by keyboard.
+  bool draw_sprites = true;
+  bool draw_boxes = true;
+  bool draw_nes = true;
+  bool camera_3d = true;
   
   uint16 player_x_mem, player_y_mem;
   AngleRule north, south, east, west;
   ViewType viewtype;
+
+  int cam_inter_pos = CAM_INTER_FRAMES;
+  float opx = 0.0f, opy = 0.0f, opz = 0.0f;
+  float olx = 0.0f, oly = 0.0f, olz = 1.0f;
+  float oex = 0.0f, oey = 0.0f, oez = 1.0f;
+  float obillboard_angle = 0.0f;
   
   static uint8 ConfigByte(const map<string, string> &config,
 			  const string &key) {
@@ -399,7 +417,8 @@ struct SM {
     SDL_Surface *surf = sdlutil::makesurface(256, 256, true);
     (void)surf;
     int frame = 0;
-
+    int fastforward = 0;
+    
     int start = SDL_GetTicks();
     
     vector<uint8> start_state = emu->SaveUncompressed();
@@ -426,7 +445,7 @@ struct SM {
       // still alpha bug?
       // #define START_IDX 520
       // #define START_IDX 3300  // - zelda scrolling
-      #define START_IDX 0
+      #define START_IDX 340
       if (START_IDX) {
 	printf("SKIP to %d\n", START_IDX);
 	paused = true;
@@ -447,7 +466,15 @@ struct SM {
 	  case SDL_KEYUP:
 	    switch (event.key.keysym.sym) {
 	    case SDLK_s:
-	      saving = !saving;
+	      if (!saving) {
+		wavefile.reset(
+		    new WaveFile(StringPrintf("audio-%d.wav", imagenum),
+				 AUDIO_SAMPLE_RATE));
+		saving = true;
+	      } else {
+		wavefile.reset(nullptr);
+		saving = false;
+	      }
 	      break;
 	    case SDLK_LEFTBRACKET:
 	      angle_offset += 15;
@@ -472,17 +499,23 @@ struct SM {
 	      DoAutoCamera();
 	      break;
 	      // y offset too
+
+	    case SDLK_SLASH:
+	      fastforward = 60;
+	      break;
 	      
 	    case SDLK_PERIOD:
 	      single_step = true;
 	      break;
 	    case SDLK_3:
 	      camera_3d = true;
+	      cam_inter_pos = 0;
 	      break;
 	    case SDLK_2:
 	      camera_3d = false;
+	      cam_inter_pos = 0;
 	      break;
-	      
+
 	    case SDLK_b:
 	      draw_boxes = !draw_boxes;
 	      break;
@@ -512,7 +545,17 @@ struct SM {
 	  
 	// SDL_Delay(1000.0 / 60.0);
 
-	if (!paused || single_step) {
+	if (!paused && fastforward > 0) {
+	  printf("Fast forward %d.\n", fastforward);
+	  while (fastforward > 0 && input_idx < inputs.size()) {
+	    uint8 input = inputs[input_idx];
+	    emu->StepFull(input, 0);
+	    fastforward--;
+	    input_idx++;
+	  }
+
+	  fastforward = 0;
+	} else if (!paused || single_step) {
 	  if (single_step) {
 	    printf("Frame %d\n", input_idx);
 	    single_step = false;
@@ -601,9 +644,9 @@ struct SM {
 	  // Just look at something a unit vector away, in
 	  // the corresponding angle. This is the same in
 	  // both SIDE and TOP viewtypes.
-	  lx += 8.0f * sinf(current_angle * DEGREES_TO_RADS);
+	  lx += 128.0f * sinf(current_angle * DEGREES_TO_RADS);
 	  // dunno why this is backwards; add more sign errors, sigh
-	  ly -= 8.0f * cosf(current_angle * DEGREES_TO_RADS);
+	  ly -= 128.0f * cosf(current_angle * DEGREES_TO_RADS);
 
 	  // In 3d mode, make sprites look right back at you.
 	  billboard_angle = -player_angle;
@@ -642,12 +685,75 @@ struct SM {
 	  }
 	}
 
-	DrawScene(boxes, sprites,
-		  billboard_angle, billboard_alt_axis,
-		  px, py, pz, lx, ly, lz, ex, ey, ez);
+	if (cam_inter_pos < CAM_INTER_FRAMES) {
+	
+	  float f = cam_inter_pos / (float)CAM_INTER_FRAMES;
+	  float omf = 1.0f - f;
 
+	  // Positions can just be straight interpolated.
+	  const float ipx = px * f + omf * opx;
+	  const float ipy = py * f + omf * opy;
+	  const float ipz = pz * f + omf * opz;
 
-	SaveImage();
+	  // XXX this hack here prevents the "up" direction
+	  // from becoming parallel the "look" direction when
+	  // transitioning from 3d to 2d while facing south.
+	  // The problem is that we need to flip the screen
+	  // upside down, so move the look point off to one
+	  // side and then back so that our camera has some
+	  // direction to tilt instead of doing some weird
+	  // inversion.
+	  // TODO: This makes some of the other transitions
+	  // less natural. Would be good if it only happened
+	  // when needed, or if we had a better way to do this.
+	  //
+	  // I think this is the right thing:
+	  //   https://en.wikipedia.org/wiki/Slerp
+	  const float ilx = 128.0f * sinf(f * PI) + 
+	    lx * f + omf * olx;
+	  const float ily = ly * f + omf * oly;
+	  const float ilz = lz * f + omf * olz;
+
+	  // Eye vector doesn't need to be normalized, so we
+	  // can even just interpolate that.
+	  const float iex = ex * f + omf * oex;
+	  const float iey = ey * f + omf * oey;
+	  const float iez = ez * f + omf * oez;
+
+	  #if 0
+	  printf("------\n"
+		 "old %.2f %.2f %.2f  %.2f %.2f %.2f  %.2f %.2f %.2f\n"
+		 "new %.2f %.2f %.2f  %.2f %.2f %.2f  %.2f %.2f %.2f\n"
+		 "int %.2f %.2f %.2f  %.2f %.2f %.2f  %.2f %.2f %.2f\n",
+		 opx, opy, opz, olx, oly, olz, oex, oey, oez,
+		 px, py, pz, lx, ly, lz, ex, ey, ez,
+		 ipx, ipy, ipz, ilx, ily, ilz, iex, iey, iez);
+	  #endif
+	  
+	  // Billboard angle should use CCWangle, etc.
+	  const float ibillboard_angle = billboard_angle;
+	  
+	  DrawScene(boxes, sprites,
+		    ibillboard_angle, billboard_alt_axis,
+		    ipx, ipy, ipz, ilx, ily, ilz,
+		    iex, iey, iez);
+
+	  cam_inter_pos++;
+	  // But DON'T overwrite old camera while interpolating.
+
+	} else {
+	  // Only use current camera.
+	  DrawScene(boxes, sprites,
+		    billboard_angle, billboard_alt_axis,
+		    px, py, pz, lx, ly, lz, ex, ey, ez);
+	  // But save into old camera.
+	  opx = px; opy = py; opz = pz;
+	  olx = lx; oly = ly; olz = lz;
+	  oex = ex; oey = ey; oez = ez;
+	  obillboard_angle = billboard_angle;
+	}
+
+	SaveImageAndAudio();
 	
 	SDL_GL_SwapBuffers();
 
@@ -663,13 +769,19 @@ struct SM {
 
   int imagenum = 0;
   bool saving = false;
-  void SaveImage() {
+  void SaveImageAndAudio() {
     if (!saving) return;
 
     uint8 *pixels = (uint8 *)malloc(WIDTH * HEIGHT * 4);
     glReadPixels(0, 0, WIDTH, HEIGHT, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
 
     const int num = imagenum;
+
+    // XXX if paused, save silence
+    vector<int16> sound;
+    emu->GetSound(&sound);
+    wavefile->Write(sound);
+    
     imagenum++;
     asynchronously.Run([pixels, num]() {
       stbi_write_png(StringPrintf("image_%d.png", num).c_str(),

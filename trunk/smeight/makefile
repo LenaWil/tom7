@@ -78,7 +78,7 @@ FCEULIB_OBJECTS=$(FCEUOBJECTS) $(MAPPEROBJECTS) $(UTILSOBJECTS) $(PALLETESOBJECT
 LFLAGS=$(LINKGL) -m64 -Wl,--subsystem,console libz.a $(OPT) $(SYMBOLS) $(FLTO) $(PROFILE) $(LINKSDL) -static
 # -Wl,--subsystem,console
 
-SMEIGHT_OBJECTS=autocamera.o
+SMEIGHT_OBJECTS=autocamera.o wave.o
 
 # libglew32.a 
 smeight.exe : $(FCEULIB_OBJECTS) $(SDL_OBJECTS) $(CCLIB_OBJECTS) $(SMEIGHT_OBJECTS) smeight.o sdl-win32-main.o

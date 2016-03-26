@@ -53,30 +53,6 @@ vector<AutoCamera::XSprite> AutoCamera::GetXSprite(
     vector<uint8> lmem = emu1->GetMemory();
     vector<uint8> nmem = emu2->GetMemory();
     vector<uint8> rmem = emu3->GetMemory();
-
-#if 0
-    vector<int> diff;
-    for (int i = 0; i < lmem.size(); i++) {
-      if (lmem[i] != nmem[i] && lmem[i] != rmem[i] &&
-	  rmem[i] != nmem[i])
-	diff.push_back(i);
-    }
-
-    for (int i : diff) {
-      printf("[%d] diff mem[%d] = %d, %d, %d\n",
-	     frames, i, lmem[i], nmem[i], rmem[i]);
-    }
-#endif
-
-#if 0
-    // I decided that the sprite clipping isn't a good way to reject
-    // sprites that might be the player, since it would be fairly normal
-    // for the left column to be clipped but yet let the player walk
-    // off that side of the screen.
-    const uint8 lppu_mask = emu->GetFC()->ppu->PPU_values[1];
-    const uint8 nppu_mask = emu->GetFC()->ppu->PPU_values[1];
-    const uint8 rppu_mask = emu->GetFC()->ppu->PPU_values[1];
-#endif
     
     vector<XSprite> ret;
     for (int s = 0; s < 64; s++) {
@@ -118,10 +94,10 @@ vector<AutoCamera::XSprite> AutoCamera::GetXSprite(
 	  return mems;
 	};
 
-	// XXX do ANY games work this way? See if we can simplify
-	// it away.
 	vector<int> mems = FindMems(lmem, nmem, rmem);
 	if (!mems.empty()) {
+	  // XXX do ANY games work this way? See if we can simplify
+	  // it away.
 	  printf("[%d]    Good! Now mems:", frames);
 	  for (int m : mems) printf(" %d", m);
 	  printf("\n");
