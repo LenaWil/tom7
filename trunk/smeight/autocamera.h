@@ -99,10 +99,29 @@ struct AutoCamera {
 
   // Upgrade a set of sprites with only x coordinates to ones with
   // both x and y coordinates. 
-  void FindYCoordinates(const vector<uint8> &uncompressed_state,
-			int x_num_frames,
-			vector<XYSprite> *xsprites);
-    
+  vector<XYSprite> FindYCoordinates(const vector<uint8> &uncompressed_state,
+				    int x_num_frames,
+				    const vector<XYSprite> &xsprites);
+
+  // Must have x and y coordinates filled in, i.e. after FindYCoordinates.
+  //
+  // Filter memory locations for consequentiality. Some memory locations
+  // are derived from others, perhaps without even reading their values.
+  // This coarse check tries modifying the values at the addresses to
+  // see if that even does anything. If resulting sprite data and memories
+  // are the same as if we didn't modify them, then these can't be the
+  // "real" representation of the player's location.
+  //
+  // Returns only sprites that still have both x and y memory candidates.
+  // This can remove all sprites if we failed to find consequential
+  // coordinates in RAM (for example, we may have found a screen position
+  // that is derived from some "real" physical position by adding the
+  // scroll offset?)
+  vector<XYSprite> FilterForConsequentiality(
+      const vector<uint8> &uncompressed_state,
+      int x_num_frames,
+      const vector<XYSprite> &xysprites);
+  
 #if 0  
   // Follow up GetXSprite for side-view games with gravity.
   vector<XYSprite> GetYSpriteGravity(const vector<uint8> &uncompressed_state,
