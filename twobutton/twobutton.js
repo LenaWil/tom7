@@ -9,6 +9,15 @@ function Init() {
 
 var theta = 0;
 
+// These are 0xAABBGGRR.
+
+var EMPTY = 0x00000000;
+var FRONTIER = 0xFF004400;
+var CORE = 0xFF00FFFF;
+var SUBSTRATE = 0xFF003333;
+
+var PADDLE = 0xFF0000FF;
+    
 var PI2 = Math.PI * 2;
 function Physics() {
   if (holdingLeft) theta -= (Math.PI / 20);
@@ -64,19 +73,20 @@ function Physics() {
 	x < WIDTH - 1 && (h = src32[x + 1 + (y + 1) * WIDTH]);
       }
 
-      var ct = !!a + !!b + !!c +
-	       !!d +       !!e +
-	       !!f + !!g + !!h;
-
       var distsq = (x - WIDTH / 2) * (x - WIDTH / 2) +
 	(y - WIDTH / 2) * (y - WIDTH / 2);
 
       if (distsq > 30 * 30 && distsq < 40 * 40 && 
 	  inAngle(Math.atan2(y - HEIGHT / 2, x - WIDTH / 2))) {
-	dst32[x + y * WIDTH] = 0xFF0000FF;
+	dst32[x + y * WIDTH] = PADDLE;
       } else if (frames < 10 && x > 60 && x < 70 && y > 60 && y < 70) {
 	dst32[x + y * WIDTH] = 0xFFFF00FF;
       } else {
+
+	var ct = !!a + !!b + !!c +
+		 !!d +       !!e +
+		 !!f + !!g + !!h;
+
 	if (ct > 2 && ct < 7) {
 	  var i = ct - 2;
 	  dst32[x + y * WIDTH] = [0xFF00FFFF, 0xFF00DDDD,
