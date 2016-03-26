@@ -1842,6 +1842,13 @@ int main(int argc, char *argv[]) {
 	    "32, but I got %d from SDL.\n", bpp);
   }
 
+  SDL_Surface *icon = SDL_LoadBMP("icon.bmp");
+  if (icon != nullptr) {
+    SDL_WM_SetIcon(icon, nullptr);
+  } else {
+    printf("icon.bmp is missing??\n");
+  }
+  
   // Gimme quality.
   SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 8);
   SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 8);
