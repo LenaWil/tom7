@@ -85,10 +85,11 @@ struct AutoCamera {
     // by one frame (this seems typical).
     bool oldmem;
     // Memory locations that had the same x value as the sprite,
-    // perhaps lagged by a frame. Always nonempty.
-    vector<int> xmems;
-    // Memory locations that had the same y value as the sprite.
-    vector<int> ymems;
+    // perhaps lagged by a frame, along with the offset (mem[addr] +
+    // offset = sprite_x). Always nonempty.
+    vector<pair<uint16, int>> xmems;
+    // Same, but for y coordinates.
+    vector<pair<uint16, int>> ymems;
   };
   
   // Returns a vector of sprite indices that meet the criteria. Only
