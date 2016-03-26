@@ -323,7 +323,6 @@ struct SM {
     const string tilesfile = config["tiles"];
     const string moviefile = config["movie"];
     CHECK(!game.empty());
-    CHECK(!tilesfile.empty());
 
     // XXX make these optional, and use autocamera
     player_x_mem = ConfigWord(config, "playerx");
@@ -343,7 +342,9 @@ struct SM {
       viewtype = ViewType::TOP;
     }
 
-    tilemap = Tilemap{tilesfile};
+    if (!tilesfile.empty()) {
+      tilemap = Tilemap{tilesfile};
+    }
 
     emu.reset(Emulator::Create(game));
     CHECK(emu.get());
@@ -412,15 +413,22 @@ struct SM {
       for (const auto &s : cams) printf(" %d", s.sprite_idx);
       printf("\n");
 
-      auto_camera->FindYCoordinates(save, nframes, &cams);
+      cams = auto_camera->FindYCoordinates(save, nframes, cams);
       if (!cams.empty()) {
-	printf("And succeeded for some x,y pairs:\n");
-	// XXX print 'em?
-	CHECK(!cams[0].xmems.empty());
-	CHECK(!cams[0].ymems.empty());
-	// XXX use offsets
-	player_x_mem = cams[0].xmems[0].first;
-	player_y_mem = cams[0].ymems[0].first;
+	printf("And succeeded for some x,y pairs...\n");
+	cams = auto_camera->FilterForConsequentiality(save, nframes, cams);
+	if (!cams.empty()) {
+	  printf("And consequential.\n");
+	  // XXX print 'em?
+	  CHECK(!cams[0].xmems.empty());
+	  CHECK(!cams[0].ymems.empty());
+	  // XXX use offsets
+	  player_x_mem = cams[0].xmems[0].first;
+	  player_y_mem = cams[0].ymems[0].first;
+	} else {
+	  // Could keep old cameras in this case?
+	  printf("[consequential] Auto-camera failed. :(\n");
+	}
       } else {
 	printf("[y coords] Auto-camera failed. :(\n");
       }
@@ -440,6 +448,7 @@ struct SM {
     int fastforward = 0;
     
     int start = SDL_GetTicks();
+    (void)start;
     
     vector<uint8> start_state = emu->SaveUncompressed();
 

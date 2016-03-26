@@ -1,6 +1,8 @@
 
 #include "autocamera.h"
 
+#include <unordered_set>
+
 #include "../fceulib/emulator.h"
 #include "../fceulib/simplefm2.h"
 
@@ -24,6 +26,49 @@ static string AddrOffset(pair<uint16, int> p) {
   } else {
     return StringPrintf("%04x", p.first);
   }
+}
+
+namespace {
+struct InputGenerator {
+  explicit InputGenerator(int id) : id(id) {}
+
+  uint8 Next() {
+    i++;
+    switch (id) {
+    case 0: return 0;
+    case 1: return INPUT_L;
+    case 2: return INPUT_R;
+    case 3: return INPUT_U;
+    case 4: return INPUT_D;
+    case 5: return INPUT_A;
+    case 6: return INPUT_B;
+    case 7: return (i >> 2) & 1 ? INPUT_A : 0;
+    case 8: return (i >> 3) & 1 ? 0 : INPUT_A;
+    case 9: return INPUT_L | INPUT_U | ((i >> 3) & 1 ? INPUT_A : INPUT_B);
+    case 10: return INPUT_R | INPUT_U | ((i >> 3) & 1 ? INPUT_B : INPUT_A);
+    case 11: return ((i >> 3) & 1 ? INPUT_L : INPUT_R) |
+	((i >> 2) & 1 ? INPUT_U : INPUT_D);
+    default: {
+      int x = id - 10;
+      // In the general case, randomly combine some streams based on
+      // input bits.
+      uint8 out = 0;
+      if (x & 1) out |= (i % 6 < 3) ? INPUT_L : 0;
+      if (x & 2) out |= (i % 10 < 5) ? INPUT_R : 0;
+      if (x & 4) out |= (i % 8 < 4) ? INPUT_U : 0;
+      if (x & 8) out |= (i % 8 > 4) ? INPUT_D : 0;
+      if (x & 16) out |= (i % 3 > 1) ? INPUT_A : 0;
+      if (x & 32) out |= (i % 5 > 2) ? INPUT_B : 0;
+      if (x & 64) out ^= INPUT_B;
+      if (x & 128) out ^= INPUT_A;
+      return out;
+    }
+    }
+  }
+  
+  const int id;
+  uint32 i = 0;
+};
 }
 
 vector<AutoCamera::XYSprite> AutoCamera::GetXSprites(
@@ -148,9 +193,10 @@ vector<AutoCamera::XYSprite> AutoCamera::GetXSprites(
   return {};
 }
 
-void AutoCamera::FindYCoordinates(const vector<uint8> &uncompressed_state,
-				  int x_num_frames,
-				  vector<XYSprite> *sprites) {
+vector<AutoCamera::XYSprite> AutoCamera::FindYCoordinates(
+    const vector<uint8> &uncompressed_state,
+    int x_num_frames,
+    const vector<XYSprite> &sprites) {
 
   // make parameter, or decide that this can always be assumed.
   const bool lagmem = true;
@@ -216,71 +262,8 @@ void AutoCamera::FindYCoordinates(const vector<uint8> &uncompressed_state,
     Emulator *emu = emus[seq];
     emu->LoadUncompressed(uncompressed_state);
     Stepper stepper(lagmem, sciences, SEQ_LEN, emu, seq);
-
-    switch (seq) {
-    case 0:
-      // Do nothing.
-      for (int i = 0; i < SEQ_LEN; i++) stepper.Step(0);
-      break;
-    case 1:
-      // Left only
-      for (int i = 0; i < SEQ_LEN; i++) stepper.Step(INPUT_L);
-      break;
-    case 2:
-      // Right only
-      for (int i = 0; i < SEQ_LEN; i++) stepper.Step(INPUT_R);
-      break;
-    case 3:
-      // Up only
-      for (int i = 0; i < SEQ_LEN; i++) stepper.Step(INPUT_U);
-      break;
-    case 4:
-      // Down only
-      for (int i = 0; i < SEQ_LEN; i++) stepper.Step(INPUT_D);
-      break;
-
-    case 5:
-      // A only
-      for (int i = 0; i < SEQ_LEN; i++) stepper.Step(INPUT_A);
-      break;
-
-    case 6:
-      // B only
-      for (int i = 0; i < SEQ_LEN; i++) stepper.Step(INPUT_B);
-      break;
-
-    case 7:
-      // Alternate A and nothing, 4 frame period
-      for (int i = 0; i < SEQ_LEN; i++)
-	stepper.Step((i >> 2) & 1 ? INPUT_A : 0);
-      break;
-
-    case 8:
-      // Alternate A and nothing, 8 frame period, offset
-      for (int i = 0; i < SEQ_LEN; i++)
-	stepper.Step((i >> 3) & 1 ? 0 : INPUT_A);
-      break;
-
-    case 9:
-      // Crazy 1
-      for (int i = 0; i < SEQ_LEN; i++)
-	stepper.Step(INPUT_L | INPUT_U | ((i >> 3) & 1 ? INPUT_A : INPUT_B));
-      break;
-
-    case 10:
-      // Crazy 2
-      for (int i = 0; i < SEQ_LEN; i++)
-	stepper.Step(INPUT_R | INPUT_U | ((i >> 3) & 1 ? INPUT_B : INPUT_A));
-      break;
-
-    default:
-    case 11:
-      // Alternate up and down, left and right
-      for (int i = 0; i < SEQ_LEN; i++)
-	stepper.Step(((i >> 3) & 1 ? INPUT_L : INPUT_R) |
-		     ((i >> 2) & 1 ? INPUT_U : INPUT_D));
-      break;
-    }
+    InputGenerator gen{seq};
+    for (int i = 0; i < SEQ_LEN; i++) stepper.Step(gen.Next());
   };
 
   // PERF parallelize.
@@ -296,9 +279,9 @@ void AutoCamera::FindYCoordinates(const vector<uint8> &uncompressed_state,
 	 (int)sciences.size(),
 	 (sciences.size() * (2048 + 256)) / (1024.0 * 1024.0));
   
-  vector<XYSprite> ret;
+  vector<XYSprite> withy;
   // Now whittle down x memory locations.
-  for (const XYSprite &sprite : *sprites) {
+  for (const XYSprite &sprite : sprites) {
     int s = sprite.sprite_idx;
     XYSprite newsprite;
     for (const pair<uint16, int> xaddr : sprite.xmems) {
@@ -349,12 +332,10 @@ void AutoCamera::FindYCoordinates(const vector<uint8> &uncompressed_state,
 		     actual_mem_y, sprite_y, this_offset);
 	    }
 	    goto fail_yaddr;
-	    // eliminated = true;
 	  }
 	}
 
-	// if (!eliminated)
-	  newsprite.ymems.push_back({yaddr, offset});
+	newsprite.ymems.push_back({yaddr, offset});
 
       fail_yaddr:;
       }
@@ -369,7 +350,7 @@ void AutoCamera::FindYCoordinates(const vector<uint8> &uncompressed_state,
 	printf("\n");
 	newsprite.sprite_idx = s;
 	newsprite.oldmem = lagmem;
-	ret.push_back(newsprite);
+	withy.push_back(newsprite);
       } else {
 	printf("Sprite %d eliminted since there are no ymems left.\n", s);
       }
@@ -378,8 +359,233 @@ void AutoCamera::FindYCoordinates(const vector<uint8> &uncompressed_state,
     }
   }
   
-  sprites->swap(ret);
+  vector<XYSprite> ret;
+  // Next, filter memory locations that are just source data for
+  // the OAMDMA copy. Because the DMA has to be from a source address
+  // of the form 0x##00-0x##FF.
+  // (Note, we could actually intercept the OAMDMA write in the emulator;
+  // it's not hard. But maybe prettier to do it this way?)
+
+  for (const XYSprite &sprite : withy) {
+    XYSprite newsprite;
+    auto FilterByOAM = [&sciences, &sprite](
+	const vector<pair<uint16, int>> &addrs,
+	int oam_byte,
+	vector<pair<uint16, int>> *out) {
+
+      // Test a single addr.
+      auto OK = [&sciences, &sprite, oam_byte](pair<uint16, int> addr) {
+	// Wouldn't make sense for it to have an offset; OAMDMA doesn't
+	// modify anything.
+	if (addr.second != 0) return true;
+	// Quick filter: The address would have to match the corresponding
+	// coordinate in sprite data. Also, computes the DMA root address,
+	// which we need for the full check anyway.
+	uint16 dma_root = addr.first & ~0xFF;
+	if (addr.first != dma_root + sprite.sprite_idx * 4 + oam_byte) {
+	  // This coordinate of this sprite could not have come from
+	  // a DMA involving this address.
+	  return true;
+	}
+
+	printf("%s-coord at addr %04x for sprite %d may be from DMA "
+	       "starting at %04x?\n", oam_byte ? "x" : "y",
+	       addr.first, sprite.sprite_idx, dma_root);
+
+	// If it aligns with potential DMA, check if sprite data
+	// matches a DMA at that address. If so, reject.
+	for (const Science &science : sciences) {
+	  for (int i = 0; i < 256; i++) {
+	    // PERF memcmp
+	    if (science.mem[dma_root + i] != science.oam[i]) {
+	      printf("But mem[%04x] = %2x whereas oam[%2x] = %2x.\n",
+		     dma_root + i, science.mem[dma_root + i],
+		     i, science.oam[i]);
+	      return true;
+	    }
+	  }
+	}
+
+	// All science is consistent.
+	printf("Rejected %s-coord for sprite %d at %04x because it "
+	       "is consistent with just being DMA.\n",
+	       oam_byte ? "x" : "y", sprite.sprite_idx, addr.first);
+	return false;
+      };
+
+      for (const auto addr : addrs)
+	if (OK(addr))
+	  out->push_back(addr);
+    };
+
+    FilterByOAM(sprite.xmems, 3, &newsprite.xmems);
+    FilterByOAM(sprite.ymems, 0, &newsprite.ymems);
+
+    if (!newsprite.xmems.empty() && !newsprite.ymems.empty()) {
+      printf("Sprite %d has x candidates:", sprite.sprite_idx);
+      for (auto xaddr : newsprite.xmems)
+	printf(" %s", AddrOffset(xaddr).c_str());
+      printf("\n          and y candidates:");
+      for (auto yaddr : newsprite.ymems)
+	printf(" %s", AddrOffset(yaddr).c_str());
+      printf("\n");
+
+      newsprite.sprite_idx = sprite.sprite_idx;
+      newsprite.oldmem = lagmem;
+      ret.push_back(newsprite);
+    }
+  }
+  
+  return ret;
 }
+
+vector<AutoCamera::XYSprite> AutoCamera::FilterForCausality(
+    const vector<uint8> &uncompressed_state,
+    int x_num_frames,
+    const vector<XYSprite> &sprites) {
+
+  // To do this, we'll pick a memory location m and try to
+  // eliminate it because it is "caused" by other memory
+  // locations. We'll do that by modifying (only) it, then
+  // emulating a frame and seeing that it does not have the
+  // modified value (i.e., that its value is the same as
+  // if we did not modify it).
+  //
+  // This procedure can eliminate a sprite, by proving that its
+  // position is actually derived from other memory locations.
+
+  // To start, we want to generate a bunch of emulator states
+  // so that we can run the experiments above in a bunch of
+  // different scenarios.
+
+  static constexpr int NUM_EXPERIMENTS = NUM_EMULATORS;
+  static_assert(NUM_EXPERIMENTS <= NUM_EMULATORS, "assumed exclusive emu");
+  
+  vector<vector<uint8>> savestates;
+  savestates.resize(NUM_EXPERIMENTS);
+  
+  auto OneExperiment =
+    [this, &uncompressed_state, x_num_frames, &savestates](int id) {
+    Emulator *emu = emus[id];
+    emu->LoadUncompressed(uncompressed_state);
+    const int nframes = x_num_frames + 12;
+    InputGenerator gen{id};
+    for (int i = 0; i < nframes; i++) emu->StepFull(gen.Next(), 0);
+    emu->SaveUncompressed(&savestates[id]);
+  };
+  
+  UnParallelComp(NUM_EXPERIMENTS, OneExperiment, 4);
+
+  vector<bool> known_consequential(2048, false);
+  vector<bool> known_inconsequential(2048, false);
+  
+  // PERF this could be parallelized..
+  // Now, pick candidate memory locations.
+  for (const XYSprite &sprite : sprites) {
+    auto Consequential = [this, &savestates, &sprite,
+			  &known_consequential, &known_inconsequential](
+	pair<uint16, int> addr) {
+      if (known_consequential[addr.first]) {
+	printf("Already decided %04x is consequential.\n", addr.first);
+	return true;
+      }
+      if (known_inconsequential[addr.first]) {
+	printf("Already decided %04x is inconsequential.\n", addr.first);
+	return false;
+      }
+      for (const vector<uint8> &save : savestates) {
+	Emulator *emu = emus[0];
+	// Perform the experiment.
+	
+	// First, the control:
+	emu->LoadUncompressed(save);
+	// Run with no input. The stimulus is the changing of
+	// the memory location.
+	emu->StepFull(0, 0);
+	emu->StepFull(0, 0);
+
+	// PERF The control OAM will be the same every time;
+	// compute it when computing savestates.
+	vector<uint8> ctrl_oam = OAM(emu);
+	vector<uint8> ctrl_mem = emu->GetMemory();
+	
+	// Same, but modifying the memory location:
+	emu->LoadUncompressed(save);
+	// How to pick the value to set? We should avoid
+	// putting it off screen, or generally near the edges
+	// of the screen, because that could trigger issues.
+	uint8 *ram = emu->GetFC()->fceu->RAM;
+	const uint8 oldval = ram[addr.first];
+	const uint8 newval = (oldval <= 128) ? oldval + 64 : oldval - 64;
+
+	// Note this bypasses any RAM hooks, but I think that's
+	// the right thing to do.
+	ram[addr.first] = newval;
+	
+	emu->StepFull(0, 0);
+	emu->StepFull(0, 0);
+	vector<uint8> expt_oam = OAM(emu);
+	vector<uint8> expt_mem = emu->GetMemory();
+
+	if (ctrl_oam != expt_oam ||
+	    ctrl_mem != expt_mem) {
+	  known_consequential[addr.first] = true;
+	  return true;
+	}
+      }
+      known_inconsequential[addr.first] = true;
+      return false;
+    };
+    
+    for (pair<uint16, int> xaddr : sprite.xmems) {
+      if (!Consequential(xaddr)) {
+	printf("sprite %d: x address %s is inconsequential\n",
+	       sprite.sprite_idx, AddrOffset(xaddr).c_str());
+      }
+    }
+      
+    for (pair<uint16, int> yaddr : sprite.ymems) {
+      if (!Consequential(yaddr)) {
+	printf("sprite %d: y address %s is inconsequential\n",
+	       sprite.sprite_idx, AddrOffset(yaddr).c_str());
+      }
+    }
+  }
+  
+  vector<XYSprite> ret;
+  for (const XYSprite &sprite : sprites) {
+    XYSprite newsprite;
+    newsprite.sprite_idx = sprite.sprite_idx;
+    newsprite.oldmem = sprite.oldmem;
+    for (auto addr : sprite.xmems) {
+      if (!known_inconsequential[addr.first]) {
+	newsprite.xmems.push_back(addr);
+      }
+    }
+    for (auto addr : sprite.ymems) {
+      if (!known_inconsequential[addr.first]) {
+	newsprite.ymems.push_back(addr);
+      }
+    }
+
+    if (!newsprite.xmems.empty() &&
+	!newsprite.ymems.empty()) {
+      printf("Sprite %d survived consequentiality.\n"
+	     "   x:", newsprite.sprite_idx);
+      for (const auto addr : newsprite.xmems)
+	printf(" %s", AddrOffset(addr).c_str());
+      printf("\n   y:");
+      for (const auto addr : newsprite.ymems)
+	printf(" %s", AddrOffset(addr).c_str());
+      printf("\n");
+      
+      ret.push_back(newsprite);
+    }
+  }
+
+  return ret;
+}
+
 
 
 #if 0
