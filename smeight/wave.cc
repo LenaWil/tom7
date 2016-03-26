@@ -1,14 +1,14 @@
-#include <stdio.h>
-#include <stdlib.h>
-
-#include "fceu/types.h"
-// #include "fceu/fceu.h"
-
-// #include "fceu/driver.h"
-// #include "fceu/sound.h"
 #include "wave.h"
 
-WaveFile::WaveFile(const string &filename) : wsize(0) {
+#include <cstdio>
+#include <cstdlib>
+
+#include "base/logging.h"
+
+using uint16 = uint16_t;
+using int16 = int16_t;
+
+WaveFile::WaveFile(const string &filename, int r) : wsize(0) {
   outfile = fopen(filename.c_str(), "wb");
   CHECK(outfile);
 
@@ -28,7 +28,6 @@ WaveFile::WaveFile(const string &filename) : wsize(0) {
   fputc(1, outfile);     // Monophonic
   fputc(0, outfile);
 
-  int r = TASBOT_SAMPLE_RATE;
   fputc(r&0xFF, outfile);
   fputc((r>>8)&0xFF, outfile);
   fputc((r>>16)&0xFF, outfile);
