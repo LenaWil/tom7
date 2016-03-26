@@ -415,11 +415,12 @@ struct SM {
       auto_camera->FindYCoordinates(save, nframes, &cams);
       if (!cams.empty()) {
 	printf("And succeeded for some x,y pairs:\n");
-	// XXXX.
+	// XXX print 'em?
 	CHECK(!cams[0].xmems.empty());
 	CHECK(!cams[0].ymems.empty());
-	player_x_mem = cams[0].xmems[0];
-	player_y_mem = cams[0].ymems[0];
+	// XXX use offsets
+	player_x_mem = cams[0].xmems[0].first;
+	player_y_mem = cams[0].ymems[0].first;
       } else {
 	printf("[y coords] Auto-camera failed. :(\n");
       }

@@ -16,6 +16,16 @@ static vector<uint8> OAM(Emulator *emu) {
   return oam;
 };
 
+static string AddrOffset(pair<uint16, int> p) {
+  if (p.second > 0) {
+    return StringPrintf("%04x+%d", p.first, p.second);
+  } else if (p.second < 0) {
+    return StringPrintf("%04x-%d", p.first, -p.second);
+  } else {
+    return StringPrintf("%04x", p.first);
+  }
+}
+
 vector<AutoCamera::XYSprite> AutoCamera::GetXSprites(
     const vector<uint8> &start, int *num_frames) { 
 
@@ -86,35 +96,37 @@ vector<AutoCamera::XYSprite> AutoCamera::GetXSprites(
 	// Also insist that there is memory address for which
 	// the sprite x value matches in all three branches.
 
+	// Maybe allow constant offsets here?
 	auto FindMems = [left_x, none_x, right_x](const vector<uint8> &lm,
 						  const vector<uint8> &nm,
 						  const vector<uint8> &rm) {
-	  vector<int> mems;
-	  for (int i = 0; i < lm.size(); i++) {
+	  vector<pair<uint16, int>> mems;
+	  for (uint16 i = 0; i < lm.size(); i++) {
 	    if (left_x == lm[i] && none_x == nm[i] && right_x == rm[i]) {
-	      mems.push_back(i);
+	      // Note: Always using offset of zero here.
+	      mems.push_back({i, 0});
 	    }
 	  }
 	  return mems;
 	};
 
-	vector<int> mems = FindMems(lmem, nmem, rmem);
+	vector<pair<uint16, int>> mems = FindMems(lmem, nmem, rmem);
 	if (false && !mems.empty()) {
 	  // XXX do ANY games work this way? See if we can simplify
 	  // it away. (This can cause false positives, too, in cases
 	  // where we just "luck into" two consecutive frames with the
 	  // same pixel values?)
 	  printf("[%d]    Good! Now mems:", frames);
-	  for (int m : mems) printf(" %d", m);
+	  for (pair<uint16, int> m : mems) printf(" %d", m.first);
 	  printf("\n");
 	  ret.push_back(XYSprite{s, false, mems, {}});
 	  
 	} else {
-	  vector<int> omems = FindMems(lomem, nomem, romem);
+	  vector<pair<uint16, int>> omems = FindMems(lomem, nomem, romem);
 
 	  if (!omems.empty()) {
 	    printf("[%d]    Good! Old mems:", frames);
-	    for (int m : omems) printf(" %d", m);
+	    for (pair<uint16, int> m : omems) printf(" %d", m.first);
 	    printf("\n");
 	    ret.push_back(XYSprite{s, true, omems, {}});
 	  }
@@ -289,15 +301,15 @@ void AutoCamera::FindYCoordinates(const vector<uint8> &uncompressed_state,
   for (const XYSprite &sprite : *sprites) {
     int s = sprite.sprite_idx;
     XYSprite newsprite;
-    for (int xaddr : sprite.xmems) {
+    for (const pair<uint16, int> xaddr : sprite.xmems) {
       // Check every science.
       for (const Science &science : sciences) {
-	const uint8 mem_x = science.mem[xaddr];
-	const uint8 sprite_x = science.oam[s * 4 + 3];
+	int mem_x = (int)science.mem[xaddr.first] + xaddr.second;
+	int sprite_x = science.oam[s * 4 + 3];
 	if (mem_x != sprite_x) {
 	  printf("Sprite %d xmem %d eliminated since "
-		 "mem_x = %02x and sprite_x = %02x\n", s, xaddr,
-		 mem_x, sprite_x);
+		 "mem_x+%d = %d and sprite_x = %d\n", s, xaddr.first,
+		 xaddr.second, mem_x, sprite_x);
 	  goto fail_xaddr;
 	}
       }
@@ -311,33 +323,49 @@ void AutoCamera::FindYCoordinates(const vector<uint8> &uncompressed_state,
     if (!newsprite.xmems.empty()) {
       // Try y locations too...
 
-      for (int yaddr = 0; yaddr < 2048; yaddr++) {
-	bool eliminated = false;
+      for (uint16 yaddr = 0; yaddr < 2048; yaddr++) {
+	// We're solving for offset such that mem[yaddr] + offset = sprite.
+	// Offset may be signed. We don't have a candidate offset until
+	// our first comparison.
+	bool have_offset = false;
+	int offset = 0;
 	for (const Science &science : sciences) {
-	  const uint8 mem_y = science.mem[yaddr];
-	  const uint8 sprite_y = science.oam[s * 4 + 0];
-	  if (mem_y != sprite_y) {
-	    if (false && yaddr == 0x84) { // Known zelda y
-	      printf("Sprite %d ymem %d eliminated since "
-		     "mem_y = %02x and sprite_y = %02x\n", s, yaddr,
-		     mem_y, sprite_y);
+	  // Promote to integer from uint8 so that w can do signed
+	  // comparison.
+	  const int actual_mem_y = science.mem[yaddr];
+	  const int sprite_y = science.oam[s * 4 + 0];
+
+	  const int this_offset = sprite_y - actual_mem_y;
+	  if (!have_offset) {
+	    have_offset = true;
+	    offset = this_offset;
+	  }
+	  
+	  if (this_offset != offset) {
+	    if (true && yaddr == 0x84) { // Known zelda y
+	      printf("Sprite %d ymem %d (offset %d) eliminated since "
+		     "mem_y = %02x and sprite_y = %02x (so offset %d)\n",
+		     s, yaddr, offset,
+		     actual_mem_y, sprite_y, this_offset);
 	    }
-	    // goto fail_yaddr;
-	    eliminated = true;
+	    goto fail_yaddr;
+	    // eliminated = true;
 	  }
 	}
 
-	if (!eliminated)
-	  newsprite.ymems.push_back(yaddr);
+	// if (!eliminated)
+	  newsprite.ymems.push_back({yaddr, offset});
 
       fail_yaddr:;
       }
 
       if (!newsprite.ymems.empty()) {
 	printf("Sprite %d has x candidates:", s);
-	for (int xaddr : newsprite.xmems) printf(" %d", xaddr);
+	for (auto xaddr : newsprite.xmems)
+	  printf(" %s", AddrOffset(xaddr).c_str());
 	printf("\n          and y candidates:");
-	for (int yaddr : newsprite.ymems) printf(" %d", yaddr);
+	for (auto yaddr : newsprite.ymems)
+	  printf(" %s", AddrOffset(yaddr).c_str());
 	printf("\n");
 	newsprite.sprite_idx = s;
 	newsprite.oldmem = lagmem;
