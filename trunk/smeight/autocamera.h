@@ -25,14 +25,21 @@
 //    a third view type for this? PPU scrolling may be the
 //    right way to distinguish.
 struct AutoCamera {
+  static constexpr int NUM_EMULATORS = 16;
+  
   // Since emulator startup is a little expensive, this keeps
   // around an emulator instance (pass the cartridge filename).
   explicit AutoCamera(const string &game) {
-    emu1.reset(Emulator::Create(game));
-    emu2.reset(Emulator::Create(game));
-    emu3.reset(Emulator::Create(game));
+    printf("Creating %d emulators for AutoCamera...\n", NUM_EMULATORS);
+    for (int i = 0; i < NUM_EMULATORS; i++) {
+      emus.push_back(Emulator::Create(game));
+    }
   }
 
+  ~AutoCamera() {
+    for (Emulator *emu : emus) delete emu;
+  }
+  
   // TODO: Make the search procedure use multiple threads.
   //
   // All of this is predicated on the idea that there should
@@ -71,22 +78,38 @@ struct AutoCamera {
   // try left/right for one frame, two frames, three frames, etc.
 
   // Sprite that may be under control of the player.
-  struct XSprite {
+  struct XYSprite {
     // Index of the sprite that this appears to be.
     int sprite_idx;
     // If true, then sprite location lags the memory location
     // by one frame (this seems typical).
     bool oldmem;
     // Memory locations that had the same x value as the sprite,
-    // perhaps lagged by a frame.
+    // perhaps lagged by a frame. Always nonempty.
     vector<int> xmems;
+    // Memory locations that had the same y value as the sprite.
+    vector<int> ymems;
   };
-
-  // Returns a vector of sprite indices that meet the criteria.
-  vector<XSprite> GetXSprite(const vector<uint8> &uncompressed_state,
-			     int *num_frames);
   
-  std::unique_ptr<Emulator> emu1, emu2, emu3;
+  // Returns a vector of sprite indices that meet the criteria. Only
+  // xmems will be filled in.
+  vector<XYSprite> GetXSprites(const vector<uint8> &uncompressed_state,
+			       int *num_frames);
+
+  // Upgrade a set of sprites with only x coordinates to ones with
+  // both x and y coordinates. 
+  void FindYCoordinates(const vector<uint8> &uncompressed_state,
+			int x_num_frames,
+			vector<XYSprite> *xsprites);
+    
+#if 0  
+  // Follow up GetXSprite for side-view games with gravity.
+  vector<XYSprite> GetYSpriteGravity(const vector<uint8> &uncompressed_state,
+				     int x_num_frames,
+				     const vector<XSprite> &xsprites);
+#endif
+
+  vector<Emulator *> emus;
 };
 
 #endif

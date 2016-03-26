@@ -258,11 +258,15 @@ struct SM {
   bool draw_boxes = true;
   bool draw_nes = true;
   bool camera_3d = true;
-  
+
+  // Extracted or specified camera.
   uint16 player_x_mem, player_y_mem;
   AngleRule north, south, east, west;
   ViewType viewtype;
 
+  // Used for interpolating camera position during transitions.
+  // When < CAM_INTER_FRAMES, interpolate between old (o- prefix
+  // variables) and current camera.
   int cam_inter_pos = CAM_INTER_FRAMES;
   float opx = 0.0f, opy = 0.0f, opz = 0.0f;
   float olx = 0.0f, oly = 0.0f, olz = 1.0f;
@@ -398,19 +402,34 @@ struct SM {
   }
   
   void DoAutoCamera() {
+    int start_ms = SDL_GetTicks();    
     vector<uint8> save = emu->SaveUncompressed();
     int nframes = 0;
-    vector<AutoCamera::XSprite> cams =
-      auto_camera->GetXSprite(save, &nframes);
+    vector<AutoCamera::XYSprite> cams =
+      auto_camera->GetXSprites(save, &nframes);
     if (!cams.empty()) {
-      printf("Auto-camera detected player [%d frames]:", nframes);
+      printf("Auto-camera detected x-player [%d frames]:", nframes);
       for (const auto &s : cams) printf(" %d", s.sprite_idx);
       printf("\n");
-      CHECK(!cams[0].xmems.empty());
-      player_x_mem = cams[0].xmems[0];
+
+      auto_camera->FindYCoordinates(save, nframes, &cams);
+      if (!cams.empty()) {
+	printf("And succeeded for some x,y pairs:\n");
+	// XXXX.
+	CHECK(!cams[0].xmems.empty());
+	CHECK(!cams[0].ymems.empty());
+	player_x_mem = cams[0].xmems[0];
+	player_y_mem = cams[0].ymems[0];
+      } else {
+	printf("[y coords] Auto-camera failed. :(\n");
+      }
+	
     } else {
-      printf("Auto-camera failed. :(\n");
+      printf("[x coords] Auto-camera failed. :(\n");
     }
+
+    int end_ms = SDL_GetTicks();
+    printf("Autocamera took %.3f sec.\n", (end_ms - start_ms) / 1000.0);
   }
 
   void Loop() {
@@ -757,12 +776,14 @@ struct SM {
 	
 	SDL_GL_SwapBuffers();
 
+	#if 0
 	if (frame % 1000 == 0) {
 	  int now = SDL_GetTicks();
 	  printf("%d frames in %d ms = %f fps.\n",
 		 frame, (now - start),
 		 frame / ((now - start) / 1000.0f));
 	}
+	#endif
       }
     }
   }
