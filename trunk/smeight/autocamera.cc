@@ -2,6 +2,8 @@
 #include "autocamera.h"
 
 #include <unordered_set>
+#include <mutex>
+#include <atomic>
 
 #include "../fceulib/emulator.h"
 #include "../fceulib/simplefm2.h"
@@ -439,7 +441,7 @@ vector<AutoCamera::XYSprite> AutoCamera::FindYCoordinates(
   return ret;
 }
 
-vector<AutoCamera::XYSprite> AutoCamera::FilterForCausality(
+vector<AutoCamera::XYSprite> AutoCamera::FilterForConsequentiality(
     const vector<uint8> &uncompressed_state,
     int x_num_frames,
     const vector<XYSprite> &sprites) {
@@ -458,23 +460,12 @@ vector<AutoCamera::XYSprite> AutoCamera::FilterForCausality(
   // so that we can run the experiments above in a bunch of
   // different scenarios.
 
+  // PERF share with other steps
   static constexpr int NUM_EXPERIMENTS = NUM_EMULATORS;
   static_assert(NUM_EXPERIMENTS <= NUM_EMULATORS, "assumed exclusive emu");
-  
+
   vector<vector<uint8>> savestates;
-  savestates.resize(NUM_EXPERIMENTS);
-  
-  auto OneExperiment =
-    [this, &uncompressed_state, x_num_frames, &savestates](int id) {
-    Emulator *emu = emus[id];
-    emu->LoadUncompressed(uncompressed_state);
-    const int nframes = x_num_frames + 12;
-    InputGenerator gen{id};
-    for (int i = 0; i < nframes; i++) emu->StepFull(gen.Next(), 0);
-    emu->SaveUncompressed(&savestates[id]);
-  };
-  
-  UnParallelComp(NUM_EXPERIMENTS, OneExperiment, 4);
+  GetSavestates(uncompressed_state, NUM_EXPERIMENTS, x_num_frames, &savestates);
 
   vector<bool> known_consequential(2048, false);
   vector<bool> known_inconsequential(2048, false);
@@ -586,6 +577,132 @@ vector<AutoCamera::XYSprite> AutoCamera::FilterForCausality(
   return ret;
 }
 
+bool AutoCamera::DetectViewType(const vector<uint8> &uncompressed_state,
+				int x_num_frames,
+				const vector<XYSprite> &sprites,
+				bool *is_top) {
+  // We guess the view type as follows:
+  //   - If moving the sprites up on the screen (by writing to their
+  //     x,y coordinates) results in downward motion due to "gravity",
+  //     then this is side view. Top view games just don't have gravity.
+  //     We do this first because there are side view games (e.g. Double
+  //     Dragon) where up and down do change some kind of y coordinate.
+  //     (This kind of game may be very difficult to model, let alone
+  //     deduce the physics of.)
+
+  //   - If pressing up and down reliably changes the y coordinate,
+  //     then we guess this is top view. (Note that there exist side
+  //     view games that this would confuse, like Gradius.)
+
+  // To distinguish gradius from zelda, we may need to mix this with
+  // the camera angle detection. In most side view games, the player
+  // graphic cannot "face up" or down.
+
+  // PERF: Should reuse savestates from previous steps!
+  static constexpr int NUM_EXPERIMENTS = NUM_EMULATORS;
+  static_assert(NUM_EXPERIMENTS <= NUM_EMULATORS, "assumed exclusive emu");
+
+  vector<vector<uint8>> savestates;
+  GetSavestates(uncompressed_state, NUM_EXPERIMENTS, x_num_frames, &savestates);
+
+  // Protects the following two variables.
+  std::mutex m;
+  int experiments = 0, successes = 0;
+  
+  auto OneEmu = [this, &sprites, &savestates,
+		 &m, &experiments, &successes](int idx) {
+    Emulator *emu = emus[idx];
+    int this_experiments = 0, this_successes = 0;
+    static constexpr int DROP_TIME = 24;
+    for (const XYSprite &sprite : sprites) {
+      for (uint8 x : {65, 128, 190}) {
+	for (uint8 y : {40, 120, 157}) {
+	  this_experiments++;
+	  emu->LoadUncompressed(savestates[idx]);
+	  uint8 *ram = emu->GetFC()->fceu->RAM;
+
+	  // Set ALL the memory locations.
+	  // Since mem[addr] + offset = loc,
+	  // subtract the offset from the desired location.
+	  for (const auto xaddr : sprite.xmems)
+	    ram[xaddr.first] = x - xaddr.second;
+	  for (const auto yaddr : sprite.ymems)
+	    ram[yaddr.first] = y - yaddr.second;
+
+	  // Let the location soak in.
+	  emu->Step(0, 0);
+	  emu->Step(0, 0);
+
+	  const uint8 start_y =
+	    emu->GetFC()->ppu->SPRAM[sprite.sprite_idx * 4 + 0];
+	  // start y should be near the value we set.
+	  if (abs((int)start_y - (int)y) > 8) {
+	    printf("sprite %d expt %d,%d: "
+		   "Failed to influence y coordinate (it's %02x).\n",
+		   sprite.sprite_idx,
+		   // (Could print addresses here)
+		   x, y, start_y);
+	    continue;
+	  }
+	  
+	  // Now see if the sprite drops.
+	  for (int i = 0; i < DROP_TIME; i++) {
+	    emu->Step(0, 0);	    
+	  }
+	  const uint8 now_y =
+	    emu->GetFC()->ppu->SPRAM[sprite.sprite_idx * 4 + 0];
+	  // XXX maybe should set a lower bound on this; for zelda
+	  // we do see a few sprites increase by a few pixels. (Maybe
+	  // the player is being ejected from some block?)
+	  if (now_y > start_y) {
+	    printf("sprite %d expt %d,%d: "
+		   "Success dropping %02x to %02x.\n",
+		   sprite.sprite_idx,
+		   x, y, start_y, now_y);
+	    this_successes++;
+	  }
+	}
+      }
+      MutexLock ml(&m);
+      experiments += this_experiments;
+      successes += this_successes;
+    }
+  };
+
+  ParallelComp(NUM_EXPERIMENTS, OneEmu, 12);
+  
+  printf("Overall: %d successes of %d experiments = %.3f success rate.\n",
+	 successes, experiments, (double)successes / experiments);
+
+  if (successes * 2 > experiments) {
+    *is_top = false;
+    return true;
+  }
+ 
+  return false;
+}
+
+void AutoCamera::GetSavestates(const vector<uint8> &uncompressed_state,
+			       int num_experiments,
+			       int x_num_frames,
+			       vector<vector<uint8>> *savestates) {
+  CHECK(num_experiments <= NUM_EMULATORS);
+
+  savestates->resize(num_experiments);
+  
+  auto OneExperiment =
+    [this, &uncompressed_state, x_num_frames, savestates](int id) {
+    Emulator *emu = emus[id];
+    emu->LoadUncompressed(uncompressed_state);
+    const int nframes = x_num_frames + 12;
+    InputGenerator gen{id};
+    for (int i = 0; i < nframes; i++) emu->StepFull(gen.Next(), 0);
+    emu->SaveUncompressed(&(*savestates)[id]);
+  };
+
+  // PERF PARALLEL
+  UnParallelComp(num_experiments, OneExperiment, 4);
+}
 
 
 #if 0
