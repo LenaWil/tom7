@@ -26,7 +26,6 @@
 // XXX make part of Emulator interface
 #include "../fceulib/ppu.h"
 #include "../fceulib/cart.h"
-// #include "../fceulib/palette.h"
 
 #include "SDL.h"
 #include <GL/gl.h>
@@ -88,10 +87,6 @@ static constexpr uint8 ntsc_palette[] = {
   0xFF,0xF7,0x9C, 0xD7,0xE8,0x95, 0xA6,0xED,0xAF, 0xA2,0xF2,0xDA,
   0x99,0xFF,0xFC, 0xDD,0xDD,0xDD, 0x11,0x11,0x11, 0x11,0x11,0x11,
 };
-
-// XXX
-static GLuint bg_texture = 0;
-static GLuint sprite_texture[64] = {};
 
 typedef void (APIENTRY *glWindowPos2i_t)(int, int);
 glWindowPos2i_t glWindowPos2i = nullptr;
@@ -253,6 +248,10 @@ struct SM {
   vector<uint8> inputs;
   Tilemap tilemap;
 
+  // XXX
+  GLuint bg_texture = 0;
+  GLuint sprite_texture[64] = {};
+  
   // Flags toggled by keyboard.
   bool draw_sprites = true;
   bool draw_boxes = true;
@@ -260,7 +259,7 @@ struct SM {
   bool camera_3d = true;
 
   // Extracted or specified camera.
-  uint16 player_x_mem, player_y_mem;
+  uint16 player_x_mem = 0, player_y_mem = 0;
   AngleRule north, south, east, west;
   ViewType viewtype;
 
@@ -313,10 +312,17 @@ struct SM {
   SM(const string &configfile) : rc("sm") {
     InitTextures();
 
-    map<string, string> config = Util::ReadFileToMap(configfile);
-    if (config.empty()) {
-      fprintf(stderr, "Missing config: %s.\n", configfile.c_str());
-      abort();
+    map<string, string> config;
+
+    if (Util::endswith(configfile, ".nes")) {
+      config["game"] = configfile;
+      // And everything else auto...
+    } else {
+      config = Util::ReadFileToMap(configfile);
+      if (config.empty()) {
+	fprintf(stderr, "Missing config: %s.\n", configfile.c_str());
+	abort();
+      }
     }
 
     const string game = config["game"];
@@ -325,8 +331,10 @@ struct SM {
     CHECK(!game.empty());
 
     // XXX make these optional, and use autocamera
-    player_x_mem = ConfigWord(config, "playerx");
-    player_y_mem = ConfigWord(config, "playery");
+    if (ContainsKey(config, "playerx"))
+      player_x_mem = ConfigWord(config, "playerx");
+    if (ContainsKey(config, "playery"))
+      player_y_mem = ConfigWord(config, "playery");
 
     ConfigureAngle(config, "east", &east);
     ConfigureAngle(config, "north", &north);
@@ -337,7 +345,7 @@ struct SM {
     if (vt == "top") viewtype = ViewType::TOP;
     else if (vt == "side") viewtype = ViewType::SIDE;
     else {
-      fprintf(stderr, "No 'view' given in %s. Defaulting to TOP.",
+      fprintf(stderr, "No 'view' given in %s. Defaulting to TOP.\n",
 	      configfile.c_str());
       viewtype = ViewType::TOP;
     }
@@ -499,9 +507,32 @@ struct SM {
     printf("Autocamera took %.3f sec.\n", (end_ms - start_ms) / 1000.0);
   }
 
+  bool holding_up = false, holding_down = false, holding_left = false,
+    holding_right = false, holding_b = false, holding_a = false,
+    holding_select = false, holding_start = false;
+
+  int movie_idx = 0;
+  uint8 NextInput() {
+    // If we have movie, use that.
+    if (movie_idx < inputs.size()) {
+      const uint8 input = inputs[movie_idx];
+      movie_idx++;
+      return input;
+    }
+
+    uint8 input = 0;
+    if (holding_up) input |= INPUT_U;
+    if (holding_down) input |= INPUT_D;
+    if (holding_left) input |= INPUT_L;
+    if (holding_right) input |= INPUT_R;
+    if (holding_b) input |= INPUT_B;
+    if (holding_a) input |= INPUT_A;
+    if (holding_select) input |= INPUT_S;
+    if (holding_start) input |= INPUT_T;
+    return input;
+  }
+  
   void Loop() {
-    SDL_Surface *surf = sdlutil::makesurface(256, 256, true);
-    (void)surf;
     int frame = 0;
     int fastforward = 0;
     
@@ -516,7 +547,7 @@ struct SM {
     for (int i = 0; i < 64; i++) {
       sprite_rgba[i].resize(SPRTEXW * SPRTEXH * 4);
     }
-    
+   
     int current_angle = 0;
     int angle_offset = 0;
     int z_offset = 0;
@@ -526,333 +557,314 @@ struct SM {
     bool paused = false, single_step = false;
 
     for (;;) {
-      printf("Start loop!\n");
-      emu->LoadUncompressed(start_state);
-
-      // still alpha bug?
-      // #define START_IDX 520
-      // #define START_IDX 3300  // - zelda scrolling
-      #define START_IDX 340
-      if (START_IDX) {
-	printf("SKIP to %d\n", START_IDX);
-	paused = true;
-	for (int z = 0; z < START_IDX; z++) {
-	  emu->StepFull(inputs[z], 0);
-	}
-      }
+      // Frame counter advances even when paused.
+      frame++;
       
-      for (int input_idx = START_IDX; input_idx < inputs.size(); ) {
-	const uint8 input = inputs[input_idx];
-	frame++;
+      // Also do event loop when paused.
+      SDL_Event event;
+      if (0 != SDL_PollEvent(&event)) {
+	switch (event.type) {
+	case SDL_QUIT:
+	  return;
+	case SDL_KEYDOWN:
+	  switch (event.key.keysym.sym) {
+	  case SDLK_ESCAPE: return;
+	  case SDLK_UP: holding_up = true; break;
+	  case SDLK_DOWN: holding_down = true; break;
+	  case SDLK_LEFT: holding_left = true; break;
+	  case SDLK_RIGHT: holding_right = true; break;
+	  case SDLK_RETURN: holding_start = true; break;
+	  case SDLK_d: holding_b = true; break;
+	  case SDLK_f: holding_a = true; break;
+	  case SDLK_TAB: holding_select = true; break;
+	  default:;
+	  }
+	  break;
 
-	SDL_Event event;
-	if (0 != SDL_PollEvent(&event)) {
-	  switch (event.type) {
-	  case SDL_QUIT:
-	    return;
-	  case SDL_KEYUP:
-	    switch (event.key.keysym.sym) {
-	    case SDLK_s:
-	      if (!saving) {
-		wavefile.reset(
-		    new WaveFile(StringPrintf("audio-%d.wav", imagenum),
-				 AUDIO_SAMPLE_RATE));
-		saving = true;
-	      } else {
-		wavefile.reset(nullptr);
-		saving = false;
-	      }
-	      break;
-	    case SDLK_LEFTBRACKET:
-	      angle_offset += 15;
-	      break;
-	    case SDLK_RIGHTBRACKET:
-	      angle_offset -= 15;
-	      break;
-	    case SDLK_UP:
-	      z_offset++;
-	      break;
-	    case SDLK_DOWN:
-	      z_offset--;
-	      break;
-	    case SDLK_LEFT:
-	      x_offset--;
-	      break;
-	    case SDLK_RIGHT:
-	      x_offset++;
-	      break;
+	case SDL_KEYUP:
+	  switch (event.key.keysym.sym) {
+	  case SDLK_UP: holding_up = false; break;
+	  case SDLK_DOWN: holding_down = false; break;
+	  case SDLK_LEFT: holding_left = false; break;
+	  case SDLK_RIGHT: holding_right = false; break;
+	  case SDLK_RETURN: holding_start = false; break;
+	  case SDLK_d: holding_b = false; break;
+	  case SDLK_f: holding_a = false; break;
+	  case SDLK_TAB: holding_select = false; break;
 
-	    case SDLK_c:
-	      DoAutoCamera();
-	      break;
-	      // y offset too
-
-	    case SDLK_SLASH:
-	      fastforward = 60;
-	      break;
-	      
-	    case SDLK_PERIOD:
-	      single_step = true;
-	      break;
-	    case SDLK_3:
-	      camera_3d = true;
-	      cam_inter_pos = 0;
-	      break;
-	    case SDLK_2:
-	      camera_3d = false;
-	      cam_inter_pos = 0;
-	      break;
-
-	    case SDLK_b:
-	      draw_boxes = !draw_boxes;
-	      break;
-	    case SDLK_n:
-	      draw_nes = !draw_nes;
-	      break;
-	    case SDLK_SPACE:
-	      paused = !paused;
-	      printf("%s at input_idx %d.\n", paused ? "paused" : "unpaused",
-		     input_idx);
-	      break;
-	    default:;
+	  case SDLK_s:
+	    if (!saving) {
+	      wavefile.reset(
+		  new WaveFile(StringPrintf("audio-%d.wav", imagenum),
+			       AUDIO_SAMPLE_RATE));
+	      saving = true;
+	    } else {
+	      wavefile.reset(nullptr);
+	      saving = false;
 	    }
 	    break;
+	  case SDLK_LEFTBRACKET:
+	    angle_offset += 15;
+	    break;
+	  case SDLK_RIGHTBRACKET:
+	    angle_offset -= 15;
+	    break;
+	    #if 0
+	  case SDLK_UP:
+	    z_offset++;
+	    break;
+	  case SDLK_DOWN:
+	    z_offset--;
+	    break;
+	  case SDLK_LEFT:
+	    x_offset--;
+	    break;
+	  case SDLK_RIGHT:
+	    x_offset++;
+	    break;
+	    #endif
 
-	  case SDL_KEYDOWN:
-	    switch (event.key.keysym.sym) {
+	  case SDLK_c:
+	    DoAutoCamera();
+	    break;
+	    // y offset too
 
-	    case SDLK_ESCAPE:
-	      return;
-	    default:;
-	    }
+	  case SDLK_SLASH:
+	    fastforward = 60;
+	    break;
+
+	  case SDLK_PERIOD:
+	    single_step = true;
+	    break;
+	  case SDLK_3:
+	    camera_3d = true;
+	    cam_inter_pos = 0;
+	    break;
+	  case SDLK_2:
+	    camera_3d = false;
+	    cam_inter_pos = 0;
+	    break;
+
+	  case SDLK_b:
+	    draw_boxes = !draw_boxes;
+	    break;
+	  case SDLK_n:
+	    draw_nes = !draw_nes;
+	    break;
+	  case SDLK_SPACE:
+	    paused = !paused;
 	    break;
 	  default:;
 	  }
-	}
-	  
-	// SDL_Delay(1000.0 / 60.0);
+	  break;
 
-	if (!paused && fastforward > 0) {
-	  printf("Fast forward %d.\n", fastforward);
-	  while (fastforward > 0 && input_idx < inputs.size()) {
-	    uint8 input = inputs[input_idx];
+	default:;
+	}
+      }
+
+      if (!paused) {
+	if (fastforward > 0) {
+	  while (fastforward--) {
+	    const uint8 input = NextInput();
 	    emu->StepFull(input, 0);
-	    fastforward--;
-	    input_idx++;
 	  }
-
-	  fastforward = 0;
-	} else if (!paused || single_step) {
-	  if (single_step) {
-	    printf("Frame %d\n", input_idx);
-	    single_step = false;
-	  }
+	} else {
+	  const uint8 input = NextInput();
 	  emu->StepFull(input, 0);
-	  input_idx++;
+	}
+      }
+      
+      // XXX implement single-step.
+	
+      glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+      if (draw_nes) {
+	// PERF
+	vector<uint8> image = emu->GetImageARGB();
+	BlitNESGL(image, 0, HEIGHT);
+      }
+	
+      vector<Box> boxes = GetBoxes();
+	
+      vector<Sprite> sprites = GetSprites();
+
+      // XXX Make optional with key
+#if 0
+      int z = 240;
+      for (const Sprite &s : sprites) {
+	BlitSpriteTexGL(sprite_rgba[s.texture_num], 5, z, s.height);
+	z += s.height + 5;
+      }
+#endif
+
+      int player_x, player_y, player_z;
+      int player_angle;
+      std::tie(player_x, player_y, player_z, player_angle) = GetLoc();
+
+      player_x += x_offset;
+      player_y += y_offset;
+      player_z += z_offset;
+
+      // XXX hack
+      player_angle += angle_offset;
+      while (player_angle < 0) player_angle += 360;
+      while (player_angle >= 360) player_angle -= 360;
+
+      // Smooth angle a bit.
+      // Maximum degrees to turn per frame.
+      //
+      // We don't just do this with camera interpolation because
+      // when we instantly turn 180 degrees (for example), we can't
+      // let the "look at" point enter the player; that produces
+      // an undefined matrix.
+      static constexpr int MAX_SPIN = 6;
+      if (current_angle != player_angle) {
+	// Find the shortest path, which may involve going
+	// through zero.
+
+	int cw = CWDistance(current_angle, player_angle);
+	int ccw = CCWDistance(current_angle, player_angle);
+
+	if (cw < ccw) {
+	  // Turn clockwise.
+	  if (cw < MAX_SPIN) current_angle = player_angle;
+	  else current_angle += MAX_SPIN;
+	} else {
+	  if (ccw < MAX_SPIN) current_angle = player_angle;
+	  else current_angle -= MAX_SPIN;
 	}
 
-	// printf("---\n");
-	
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	while (current_angle < 0) current_angle += 360;
+	while (current_angle >= 360) current_angle -= 360;
+      }
 
-	if (draw_nes) {
-	  // PERF
-	  vector<uint8> image = emu->GetImageARGB();
-	  BlitNESGL(image, 0, HEIGHT);
-	}
-	
-	vector<Box> boxes = GetBoxes();
+      float px = 0.0f, py = 0.0f, pz = 0.0f;
+      float lx = 0.0f, ly = 0.0f, lz = 0.0f;
+      float ex = 0.0f, ey = 0.0f, ez = 0.0f;
+      float billboard_angle = 0.0f;
+      bool billboard_alt_axis = false;
 
-	vector<Sprite> sprites = GetSprites();
+      if (camera_3d) {
+	// 3D camera.
+	px = player_x; py = player_y; pz = player_z;
+	// Compute "look at" from the player angle.
+	lx = px; ly = py; lz = pz;
 
-	// XXX Make optional with key
-	#if 0
-	int z = 240;
-	for (const Sprite &s : sprites) {
-	  BlitSpriteTexGL(sprite_rgba[s.texture_num], 5, z, s.height);
-	  z += s.height + 5;
-	}
-	#endif
- 
-	
-	int player_x, player_y, player_z;
-	int player_angle;
-	std::tie(player_x, player_y, player_z, player_angle) = GetLoc();
+	// Just look at something a unit vector away, in
+	// the corresponding angle. This is the same in
+	// both SIDE and TOP viewtypes.
+	lx += 128.0f * sinf(current_angle * DEGREES_TO_RADS);
+	// dunno why this is backwards; add more sign errors, sigh
+	ly -= 128.0f * cosf(current_angle * DEGREES_TO_RADS);
 
-	player_x += x_offset;
-	player_y += y_offset;
-	player_z += z_offset;
-	
-	// XXX hack
-	player_angle += angle_offset;
-	while (player_angle < 0) player_angle += 360;
-	while (player_angle >= 360) player_angle -= 360;
-	
-	// Smooth angle a bit.
-	// Maximum degrees to turn per frame.
-	//
-	// We don't just do this with camera interpolation because
-	// when we instantly turn 180 degrees (for example), we can't
-	// let the "look at" point enter the player; that produces
-	// an undefined matrix.
-	static constexpr int MAX_SPIN = 6;
-	if (current_angle != player_angle) {
-	  // Find the shortest path, which may involve going
-	  // through zero.
+	// In 3d mode, make sprites look right back at you.
+	billboard_angle = -player_angle;
+	billboard_alt_axis = false;
 
-	  int cw = CWDistance(current_angle, player_angle);
-	  int ccw = CCWDistance(current_angle, player_angle);
+	// In 3D mode, "Up" vector is always 0,0,1.
+	ex = 0.0f; ey = 0.0f; ez = 1.0f;
 
-	  if (cw < ccw) {
-	    // Turn clockwise.
-	    if (cw < MAX_SPIN) current_angle = player_angle;
-	    else current_angle += MAX_SPIN;
-	  } else {
-	    if (ccw < MAX_SPIN) current_angle = player_angle;
-	    else current_angle -= MAX_SPIN;
-	  }
+      } else {
+	// 2D camera
+	switch (viewtype) {
+	case ViewType::SIDE: {
+	  // Move view off to the right, centered in the
+	  // screen.
+	  px = -256.0f; py = 128.0f; pz = 120.0f;
+	  lx = 0.0f; ly = py; lz = pz;
 
-	  while (current_angle < 0) current_angle += 360;
-	  while (current_angle >= 360) current_angle -= 360;
-	}
-
-	float px = 0.0f, py = 0.0f, pz = 0.0f;
-	float lx = 0.0f, ly = 0.0f, lz = 0.0f;
-	float ex = 0.0f, ey = 0.0f, ez = 0.0f;
-	float billboard_angle = 0.0f;
-	bool billboard_alt_axis = false;
-	
-	if (camera_3d) {
-	  // 3D camera.
-	  px = player_x; py = player_y; pz = player_z;
-	  // Compute "look at" from the player angle.
-	  lx = px; ly = py; lz = pz;
-
-	  // Just look at something a unit vector away, in
-	  // the corresponding angle. This is the same in
-	  // both SIDE and TOP viewtypes.
-	  lx += 128.0f * sinf(current_angle * DEGREES_TO_RADS);
-	  // dunno why this is backwards; add more sign errors, sigh
-	  ly -= 128.0f * cosf(current_angle * DEGREES_TO_RADS);
-
-	  // In 3d mode, make sprites look right back at you.
-	  billboard_angle = -player_angle;
+	  // sprites should face off to the right
+	  billboard_angle = 270.0f;
 	  billboard_alt_axis = false;
 
-	  // In 3D mode, "Up" vector is always 0,0,1.
+	  // 0,0,1 is still "up".
 	  ex = 0.0f; ey = 0.0f; ez = 1.0f;
-
-	} else {
-	  // 2D camera
-	  switch (viewtype) {
-	  case ViewType::SIDE: {
-	    // Move view off to the right, centered in the
-	    // screen.
-	    px = -256.0f; py = 128.0f; pz = 120.0f;
-	    lx = 0.0f; ly = py; lz = pz;
-
-	    // sprites should face off to the right
-	    billboard_angle = 270.0f;
-	    billboard_alt_axis = false;
-
-	    // 0,0,1 is still "up".
-	    ex = 0.0f; ey = 0.0f; ez = 1.0f;
-	    break;
-	  }
-	  case ViewType::TOP:
-	    px = 128.0f; py = 120.0f; pz = 256.0f;
-	    lx = px; ly = py; lz = 0.0f;
-	    // ignored
-	    billboard_angle = 270.0f;
-	    billboard_alt_axis = true;
-	    // Since we're looking straight "down", "up"
-	    // should be towards y=0.
-	    ex = 0.0f; ey = -1.0f; ez = 0.0f;
-	    break;
-	  }
+	  break;
 	}
-
-	if (cam_inter_pos < CAM_INTER_FRAMES) {
-	
-	  float f = cam_inter_pos / (float)CAM_INTER_FRAMES;
-	  float omf = 1.0f - f;
-
-	  // Positions can just be straight interpolated.
-	  const float ipx = px * f + omf * opx;
-	  const float ipy = py * f + omf * opy;
-	  const float ipz = pz * f + omf * opz;
-
-	  // XXX this hack here prevents the "up" direction
-	  // from becoming parallel the "look" direction when
-	  // transitioning from 3d to 2d while facing south.
-	  // The problem is that we need to flip the screen
-	  // upside down, so move the look point off to one
-	  // side and then back so that our camera has some
-	  // direction to tilt instead of doing some weird
-	  // inversion.
-	  // TODO: This makes some of the other transitions
-	  // less natural. Would be good if it only happened
-	  // when needed, or if we had a better way to do this.
-	  //
-	  // I think this is the right thing:
-	  //   https://en.wikipedia.org/wiki/Slerp
-	  const float ilx = 128.0f * sinf(f * PI) + 
-	    lx * f + omf * olx;
-	  const float ily = ly * f + omf * oly;
-	  const float ilz = lz * f + omf * olz;
-
-	  // Eye vector doesn't need to be normalized, so we
-	  // can even just interpolate that.
-	  const float iex = ex * f + omf * oex;
-	  const float iey = ey * f + omf * oey;
-	  const float iez = ez * f + omf * oez;
-
-	  #if 0
-	  printf("------\n"
-		 "old %.2f %.2f %.2f  %.2f %.2f %.2f  %.2f %.2f %.2f\n"
-		 "new %.2f %.2f %.2f  %.2f %.2f %.2f  %.2f %.2f %.2f\n"
-		 "int %.2f %.2f %.2f  %.2f %.2f %.2f  %.2f %.2f %.2f\n",
-		 opx, opy, opz, olx, oly, olz, oex, oey, oez,
-		 px, py, pz, lx, ly, lz, ex, ey, ez,
-		 ipx, ipy, ipz, ilx, ily, ilz, iex, iey, iez);
-	  #endif
-	  
-	  // Billboard angle should use CCWangle, etc.
-	  const float ibillboard_angle = billboard_angle;
-	  
-	  DrawScene(boxes, sprites,
-		    ibillboard_angle, billboard_alt_axis,
-		    ipx, ipy, ipz, ilx, ily, ilz,
-		    iex, iey, iez);
-
-	  cam_inter_pos++;
-	  // But DON'T overwrite old camera while interpolating.
-
-	} else {
-	  // Only use current camera.
-	  DrawScene(boxes, sprites,
-		    billboard_angle, billboard_alt_axis,
-		    px, py, pz, lx, ly, lz, ex, ey, ez);
-	  // But save into old camera.
-	  opx = px; opy = py; opz = pz;
-	  olx = lx; oly = ly; olz = lz;
-	  oex = ex; oey = ey; oez = ez;
-	  obillboard_angle = billboard_angle;
+	case ViewType::TOP:
+	  px = 128.0f; py = 120.0f; pz = 256.0f;
+	  lx = px; ly = py; lz = 0.0f;
+	  // ignored
+	  billboard_angle = 270.0f;
+	  billboard_alt_axis = true;
+	  // Since we're looking straight "down", "up"
+	  // should be towards y=0.
+	  ex = 0.0f; ey = -1.0f; ez = 0.0f;
+	  break;
 	}
+      }
 
-	SaveImageAndAudio();
-	
-	SDL_GL_SwapBuffers();
+      if (cam_inter_pos < CAM_INTER_FRAMES) {
+
+	float f = cam_inter_pos / (float)CAM_INTER_FRAMES;
+	float omf = 1.0f - f;
+
+	// Positions can just be straight interpolated.
+	const float ipx = px * f + omf * opx;
+	const float ipy = py * f + omf * opy;
+	const float ipz = pz * f + omf * opz;
+
+	// XXX this hack here prevents the "up" direction
+	// from becoming parallel the "look" direction when
+	// transitioning from 3d to 2d while facing south.
+	// The problem is that we need to flip the screen
+	// upside down, so move the look point off to one
+	// side and then back so that our camera has some
+	// direction to tilt instead of doing some weird
+	// inversion.
+	// TODO: This makes some of the other transitions
+	// less natural. Would be good if it only happened
+	// when needed, or if we had a better way to do this.
+	//
+	// I think this is the right thing:
+	//   https://en.wikipedia.org/wiki/Slerp
+	const float ilx = 128.0f * sinf(f * PI) + 
+	  lx * f + omf * olx;
+	const float ily = ly * f + omf * oly;
+	const float ilz = lz * f + omf * olz;
+
+	// Eye vector doesn't need to be normalized, so we
+	// can even just interpolate that.
+	const float iex = ex * f + omf * oex;
+	const float iey = ey * f + omf * oey;
+	const float iez = ez * f + omf * oez;
 
 	#if 0
-	if (frame % 1000 == 0) {
-	  int now = SDL_GetTicks();
-	  printf("%d frames in %d ms = %f fps.\n",
-		 frame, (now - start),
-		 frame / ((now - start) / 1000.0f));
-	}
+	printf("------\n"
+	       "old %.2f %.2f %.2f  %.2f %.2f %.2f  %.2f %.2f %.2f\n"
+	       "new %.2f %.2f %.2f  %.2f %.2f %.2f  %.2f %.2f %.2f\n"
+	       "int %.2f %.2f %.2f  %.2f %.2f %.2f  %.2f %.2f %.2f\n",
+	       opx, opy, opz, olx, oly, olz, oex, oey, oez,
+	       px, py, pz, lx, ly, lz, ex, ey, ez,
+	       ipx, ipy, ipz, ilx, ily, ilz, iex, iey, iez);
 	#endif
+
+	// Billboard angle should use CCWangle, etc.
+	const float ibillboard_angle = billboard_angle;
+
+	DrawScene(boxes, sprites,
+		  ibillboard_angle, billboard_alt_axis,
+		  ipx, ipy, ipz, ilx, ily, ilz,
+		  iex, iey, iez);
+
+	cam_inter_pos++;
+	// But DON'T overwrite old camera while interpolating.
+
+      } else {
+	// Only use current camera.
+	DrawScene(boxes, sprites,
+		  billboard_angle, billboard_alt_axis,
+		  px, py, pz, lx, ly, lz, ex, ey, ez);
+	// But save into old camera.
+	opx = px; opy = py; opz = pz;
+	olx = lx; oly = ly; olz = lz;
+	oex = ex; oey = ey; oez = ez;
+	obillboard_angle = billboard_angle;
       }
+
+      SaveImageAndAudio();
+
+      SDL_GL_SwapBuffers();
     }
   }
 

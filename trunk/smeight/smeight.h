@@ -82,4 +82,9 @@ inline void For(const F &f) {
   For_<start, end, F>::Go(f);
 }
 
+template<class T, class K>
+bool ContainsKey(const T &t, const K &k) {
+  return t.find(k) != t.end();
+}
+
 #endif
