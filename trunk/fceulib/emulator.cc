@@ -301,6 +301,18 @@ void Emulator::Load(const vector<uint8> &state) {
   LoadEx(nullptr, state);
 }
 
+uint32 Emulator::GetXScroll() const {
+  const PPU *ppu = fc->ppu;
+  const uint8 ppu_ctrl = ppu->PPU_values[0];
+  const uint32 tmp = ppu->GetTempAddr();
+  const uint8 xoffset = ppu->GetXOffset();
+  const uint8 xtable_select = !!(ppu_ctrl & 1);
+    
+  // Combine coarse and fine x scroll
+  return (xtable_select << 8) | ((tmp & 31) << 3) | xoffset;
+}
+
+
 // Compression yields 2x slowdown, but states go from ~80kb to 1.4kb
 // Without screenshot, ~1.3kb and only 40% slowdown
 // XXX External interface now allows client to specify, so maybe just

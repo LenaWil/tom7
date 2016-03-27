@@ -20,6 +20,8 @@ using namespace std;
 
 struct FCEUGI;
 struct Emulator {
+  static constexpr int AUDIO_SAMPLE_RATE = 44100;
+
   // Returns nullptr (or aborts) on error. Upon success, returns
   // a new-ly allocated instance.
   static Emulator *Create(const string &romfile);
@@ -91,6 +93,12 @@ struct Emulator {
   void SaveEx(const vector<uint8> *basis, vector<uint8> *out);
   void LoadEx(const vector<uint8> *basis, const vector<uint8> &in);
 
+  // Get the X Scroll offset from the PPU.
+  // This may be confused by games that are not actuall horizontally
+  // scrolling or that do something funny like change the scroll position
+  // during scanlines.
+  uint32 GetXScroll() const;
+  
   // XXXXX debugging only.
   FC *GetFC() { return fc; }
   
