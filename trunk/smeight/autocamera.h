@@ -128,17 +128,24 @@ struct AutoCamera {
   // accordingly.
   bool DetectViewType(const vector<uint8> &uncompressed_state,
 		      int x_num_frames,
-		      const vector<XYSprite> &xysprites,
+		      const vector<XYSprite> &consequential_sprites,
 		      bool *is_top);
 
-#if 0  
-  // Follow up GetXSprite for side-view games with gravity.
-  vector<XYSprite> GetYSpriteGravity(const vector<uint8> &uncompressed_state,
-				     int x_num_frames,
-				     const vector<XSprite> &xsprites);
-#endif
+  // Detect the camera angle address. This is assumed to be a single
+  // byte in memory that takes different values depending on whether
+  // the player is facing up, down, left, right. For most side-view
+  // games, there are no up and down angles (returns CAMERA_LR).
+  //
+  // Sprites do not have to be consequential.
+  enum CameraStatus { CAMERA_ALL, CAMERA_LR, CAMERA_FAILED };
+  CameraStatus DetectCameraAngle(const vector<uint8> &uncompressed_state,
+				 int x_num_frames,
+				 const vector<XYSprite> &xysprites,
+				 uint16 *addr,
+				 uint8 *up, uint8 *down,
+				 uint8 *left, uint8 *right);
 
-private:
+ private:
   void GetSavestates(const vector<uint8> &uncompressed_state,
 		     int num_experiments,
 		     int x_num_frames,

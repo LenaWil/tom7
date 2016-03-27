@@ -430,6 +430,14 @@ struct SM {
 	  printf("Detected view type: %s\n", is_top ? "TOP" : "SIDE");
 	  viewtype = is_top ? ViewType::TOP : ViewType::SIDE;
 	}
+
+	uint16 angle_addr;
+	uint8 up, down, left, right;
+	AutoCamera::CameraStatus cs =
+	  auto_camera->DetectCameraAngle(save, nframes, cams,
+					 &angle_addr,
+					 &up, &down, &left, &right);
+	// XXX do something with angle...
 	
 	// XXX print 'em?
 	CHECK(!cams[0].xmems.empty());
@@ -1715,18 +1723,7 @@ struct SM {
   // work with 2x2 blocks. (If we don't do this, odd amounts of
   // scroll tiles causes texture misalignment.)
   std::pair<int, int> XScroll() {
-    const PPU *ppu = emu->GetFC()->ppu;
-    const uint8 ppu_ctrl = ppu->PPU_values[0];
-    const uint32 tmp = ppu->GetTempAddr();
-    const uint8 xoffset = ppu->GetXOffset();
-    const uint8 xtable_select = !!(ppu_ctrl & 1);
-    
-    // Combine coarse and fine x scroll
-    uint32 xscroll = (xtable_select << 8) | ((tmp & 31) << 3) | xoffset;
-
-    // printf("Scroll x: %d, tmp: %u, table: %u, together: %u\n",
-    // (int)xoffset, tmp, xtable_select, xscroll);
-
+    const uint32 xscroll = emu->GetXScroll();
     // Scroll in two-tile increments.
     int coarse_scroll = xscroll & ~15;
     int fine_scroll = xscroll & 15;

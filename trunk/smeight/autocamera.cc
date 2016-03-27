@@ -11,6 +11,9 @@
 #include "../cc-lib/threadutil.h"
 #include "../fceulib/ppu.h"
 
+// XXX
+#include "../cc-lib/stb_image_write.h"
+
 // OAM is Object Attribute Memory, which is sprite data.
 static vector<uint8> OAM(Emulator *emu) {
   const PPU *ppu = emu->GetFC()->ppu;
@@ -28,6 +31,17 @@ static string AddrOffset(pair<uint16, int> p) {
   } else {
     return StringPrintf("%04x", p.first);
   }
+}
+
+// XXX Move to utilities
+static void SaveEmulatorImage(const Emulator *emu,
+			      const string &filename) {
+  vector<uint8> rgba = emu->GetImage();
+  stbi_write_png(filename.c_str(),
+		 256, 240, 4,
+		 rgba.data(),
+		 256 * 4);
+  printf("Wrote %s.\n", filename.c_str());
 }
 
 namespace {
@@ -682,6 +696,171 @@ bool AutoCamera::DetectViewType(const vector<uint8> &uncompressed_state,
   return false;
 }
 
+// Attempt to stop the player in both x/y. The player must be still
+// for stop_frames frames in a row, and max_stoptime is the maximum
+// number of frames to try for.
+static bool BrakePlayer(Emulator *emu,
+			const AutoCamera::XYSprite &sprite,
+			int stop_frames, int max_stoptime) {
+  CHECK(stop_frames > 0);
+  uint8 lastx = emu->GetFC()->ppu->SPRAM[sprite.sprite_idx * 4 + 3];
+  uint8 lasty = emu->GetFC()->ppu->SPRAM[sprite.sprite_idx * 4 + 0];
+  uint32 lastscroll = emu->GetXScroll();
+    
+  uint8 brake_input = 0;
+  int current_stop_frames = stop_frames;
+  for (int i = 0; i < max_stoptime; i++) {
+    emu->StepFull(brake_input, 0);
+    const uint8 nowx = emu->GetFC()->ppu->SPRAM[sprite.sprite_idx * 4 + 3];
+    const uint8 nowy = emu->GetFC()->ppu->SPRAM[sprite.sprite_idx * 4 + 0];
+    const uint32 nowscroll = emu->GetXScroll();
+
+    if (nowx == lastx && nowy == lasty && nowscroll == lastscroll) {
+      current_stop_frames--;
+      if (current_stop_frames == 0) {
+	return true;
+      }
+    } else {
+      current_stop_frames = stop_frames;
+    }
+
+    // Rapidly tap the opposite direction to try to slow us. But beware
+    // of holding it too long. Allow holding it for the first 1/4, then
+    // for the next 1/4, strobing it.
+    if (i < (max_stoptime >> 2) ||
+	(i < (max_stoptime >> 1) && brake_input == 0)) {
+      // Moving right.
+      if (nowx >= lastx + 1) brake_input = INPUT_L;
+      else if (nowx <= lastx - 1) brake_input = INPUT_R;
+      else brake_input = 0;
+    } else {
+      brake_input = 0;
+    }
+
+    lastx = nowx;
+    lasty = nowy;
+    lastscroll = nowscroll;
+  }
+
+  return false;
+}
+
+AutoCamera::CameraStatus
+AutoCamera::DetectCameraAngle(const vector<uint8> &uncompressed_state,
+			      int x_num_frames,
+			      const vector<XYSprite> &sprites,
+			      uint16 *addr,
+			      uint8 *up, uint8 *down,
+			      uint8 *left, uint8 *right) {
+
+  if (sprites.empty())
+    return CAMERA_FAILED;
+
+  const XYSprite &sprite = sprites[0];
+  
+  static constexpr int MAX_STOPTIME = 60;
+
+  // Right now just doing this for one state (the current one) and
+  // sprite. (The first one, arbitrarily). But, could run it over some
+  // speculative savestates and intersect the results if there are too
+  // many. It wouldn't be that strange for multiple bytes to predict
+  // the direction with different values.
+  auto FindCameraLRBytes = [this, &uncompressed_state,
+			    x_num_frames, &sprite]() {
+    Emulator *lemu = emus[0];
+    lemu->LoadUncompressed(uncompressed_state);
+
+    // In most games, the player can turn around even if he's stuck and
+    // can't move. However, we do need to worry about momentum in games
+    // like Mario where the player can't immediately turn around when
+    // has has x velocity.
+    if (!BrakePlayer(lemu, sprite, 3, MAX_STOPTIME)) {
+      printf("Couldn't brake player.\n");
+      return;
+    }
+
+    SaveEmulatorImage(lemu, "brake.png");
+    
+    const vector<uint8> stopped = lemu->SaveUncompressed();
+    Emulator *remu = emus[1];
+    remu->LoadUncompressed(stopped);
+
+    // Player should be stopped (in both emulators, which have the same
+    // state now). Tap left and right.
+
+    for (int i = 0; i < 3; i++) {
+      lemu->StepFull(INPUT_L, 0);
+      remu->StepFull(INPUT_R, 0);
+    }
+
+    SaveEmulatorImage(lemu, "left.png");
+    SaveEmulatorImage(remu, "right.png");
+    
+    // Find bytes where they're different.
+    uint8 *lram = lemu->GetFC()->fceu->RAM;
+    uint8 *rram = remu->GetFC()->fceu->RAM;
+
+    vector<int> candaddr;
+    vector<uint8> candl, candr;
+    for (int i = 0; i < 2048; i++) {
+      if (lram[i] != rram[i]) {
+	candaddr.push_back(i);
+	candl.push_back(lram[i]);
+	candr.push_back(rram[i]);
+      }
+    }
+
+    printf("After tap, %d candidates differences: ", (int)candaddr.size());
+    for (int i = 0; i < candaddr.size(); i++) {
+      printf(" %04x (%02x/%02x)", candaddr[i], candl[i], candr[i]);
+    }
+
+    // Now, don't tap. Assume that we keep the same facing direction,
+    // but for example that we stop animating.
+    for (int i = 0; i < 12; i++) {
+      lemu->StepFull(0, 0);
+      remu->StepFull(0, 0);
+
+      uint8 *lram = lemu->GetFC()->fceu->RAM;
+      uint8 *rram = remu->GetFC()->fceu->RAM;
+
+      vector<int> newcand;
+      vector<uint8> newl, newr;
+
+      for (int a = 0; a < candaddr.size(); a++) {
+	// By invariant, candl[a] != candr[a].
+	int addr = candaddr[a];
+	if (lram[addr] != candl[a] ||
+	    rram[addr] != candr[a]) {
+	  printf("Eliminated %04x because wanted %02x/%02x but got %02x/%02x\n",
+		 addr, candl[a], candr[a], lram[addr], rram[addr]);
+	} else {
+	  newcand.push_back(addr);
+	  newl.push_back(candl[a]);
+	  newr.push_back(candr[a]);
+	}
+      }
+
+      candaddr.swap(newcand);
+      candl.swap(newl);
+      candr.swap(newr);
+    }
+    
+    // Now, we're looking for a single address that's different in the
+    // two emulators.
+
+    printf("After filter, %d candidates differences: ", (int)candaddr.size());
+    for (int i = 0; i < candaddr.size(); i++) {
+      printf(" %04x (%02x/%02x)", candaddr[i], candl[i], candr[i]);
+    }
+    
+  };
+
+  FindCameraLRBytes();
+  
+  return CAMERA_FAILED;
+}
+
 void AutoCamera::GetSavestates(const vector<uint8> &uncompressed_state,
 			       int num_experiments,
 			       int x_num_frames,
@@ -703,26 +882,3 @@ void AutoCamera::GetSavestates(const vector<uint8> &uncompressed_state,
   // PERF PARALLEL
   UnParallelComp(num_experiments, OneExperiment, 4);
 }
-
-
-#if 0
-vector<AutoCamera::XSprite> AutoCamera::GetXYSpriteGravity(
-    const vector<uint8> &uncompressed_state,
-    int x_num_frames,
-    const vector<XSprite> &xsprites) {
-
-  // We need some candidate sprites to do this.
-  if (xsprites.empty()) return {};
-
-  // We assume a side-scrolling game with gravity. This time,
-  // we take sprites that appear to be under the control of the
-  // player, and try to find their y coordinates in RAM (by value).
-  // 
-  // We then  ... move the player and drop him
-  
-  lemu->LoadUncompressed(start);
-  nemu->LoadUncompressed(start);
-  remu->LoadUncompressed(start);
-  
-}
-#endif
