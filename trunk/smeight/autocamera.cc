@@ -669,10 +669,12 @@ bool AutoCamera::DetectViewType(const vector<uint8> &uncompressed_state,
 	  // we do see a few sprites increase by a few pixels. (Maybe
 	  // the player is being ejected from some block?)
 	  if (now_y > start_y) {
+	    #if 0
 	    printf("sprite %d expt %d,%d: "
 		   "Success dropping %02x to %02x.\n",
 		   sprite.sprite_idx,
 		   x, y, start_y, now_y);
+	    #endif
 	    this_successes++;
 	  }
 	}
@@ -765,100 +767,203 @@ AutoCamera::DetectCameraAngle(const vector<uint8> &uncompressed_state,
   // speculative savestates and intersect the results if there are too
   // many. It wouldn't be that strange for multiple bytes to predict
   // the direction with different values.
-  auto FindCameraLRBytes = [this, &uncompressed_state,
-			    x_num_frames, &sprite]() {
-    Emulator *lemu = emus[0];
-    lemu->LoadUncompressed(uncompressed_state);
+  Emulator *emu = emus[0];
+  emu->LoadUncompressed(uncompressed_state);
 
-    // In most games, the player can turn around even if he's stuck and
-    // can't move. However, we do need to worry about momentum in games
-    // like Mario where the player can't immediately turn around when
-    // has has x velocity.
-    if (!BrakePlayer(lemu, sprite, 3, MAX_STOPTIME)) {
-      printf("Couldn't brake player.\n");
-      return;
-    }
+  // In most games, the player can turn around even if he's stuck and
+  // can't move. However, we do need to worry about momentum in games
+  // like Mario where the player can't immediately turn around when
+  // has has x velocity.
+  if (!BrakePlayer(emu, sprite, 3, MAX_STOPTIME)) {
+    printf("Couldn't brake player.\n");
+    return CAMERA_FAILED;
+  }
 
-    SaveEmulatorImage(lemu, "brake.png");
+  SaveEmulatorImage(emu, "brake.png");
     
-    const vector<uint8> stopped = lemu->SaveUncompressed();
+  const vector<uint8> stopped = emu->SaveUncompressed();
+
+  // Test the L/R (X) axis or U/D (Y) axis. This was written with left
+  // and right in mind, but works the same when called with up and down
+  // below.
+  auto TestAxis = [this, &stopped](
+      uint8 input_less, uint8 input_more,
+      const char *less, const char *more,
+      vector<int> *candaddr, vector<uint8> *candl, vector<uint8> *candr) {
+    Emulator *lemu = emus[0];
     Emulator *remu = emus[1];
+    lemu->LoadUncompressed(stopped);
     remu->LoadUncompressed(stopped);
 
     // Player should be stopped (in both emulators, which have the same
     // state now). Tap left and right.
 
     for (int i = 0; i < 3; i++) {
-      lemu->StepFull(INPUT_L, 0);
-      remu->StepFull(INPUT_R, 0);
+      lemu->StepFull(input_less, 0);
+      remu->StepFull(input_more, 0);
     }
 
-    SaveEmulatorImage(lemu, "left.png");
-    SaveEmulatorImage(remu, "right.png");
+    SaveEmulatorImage(lemu, StringPrintf("%s.png", less));
+    SaveEmulatorImage(remu, StringPrintf("%s.png", more));
     
     // Find bytes where they're different.
-    uint8 *lram = lemu->GetFC()->fceu->RAM;
-    uint8 *rram = remu->GetFC()->fceu->RAM;
+    const uint8 *lram = lemu->GetFC()->fceu->RAM;
+    const uint8 *rram = remu->GetFC()->fceu->RAM;
 
-    vector<int> candaddr;
-    vector<uint8> candl, candr;
+    // Now, we're looking for a single address that's different in the
+    // two emulators. Three parallel vectors; the first contains the
+    // candidate address, the other two are the value at that address
+    // when pressing left, right.
     for (int i = 0; i < 2048; i++) {
       if (lram[i] != rram[i]) {
-	candaddr.push_back(i);
-	candl.push_back(lram[i]);
-	candr.push_back(rram[i]);
+	candaddr->push_back(i);
+	candl->push_back(lram[i]);
+	candr->push_back(rram[i]);
       }
     }
 
-    printf("After tap, %d candidates differences: ", (int)candaddr.size());
-    for (int i = 0; i < candaddr.size(); i++) {
-      printf(" %04x (%02x/%02x)", candaddr[i], candl[i], candr[i]);
-    }
+    auto PrintCand = [less, more, candaddr, candl, candr](const char *when) {
+      printf("%s-%s  After %s, %d candidates differences: ",
+	     less, more, when,
+	     (int)candaddr->size());
+      for (int i = 0; i < candaddr->size(); i++) {
+	printf(" %04x (%02x/%02x)", (*candaddr)[i], (*candl)[i], (*candr)[i]);
+      }
+      printf("\n");
+    };
 
+    PrintCand("tap");
+
+    auto Filter = [less, more, candaddr, candl, candr](
+	Emulator *facing_left, Emulator *facing_right) {
+      uint8 *lram = facing_left->GetFC()->fceu->RAM;
+      uint8 *rram = facing_right->GetFC()->fceu->RAM;
+
+      vector<int> newcand;
+      vector<uint8> newl, newr;
+
+      for (int a = 0; a < candaddr->size(); a++) {
+	// By invariant, candl[a] != candr[a].
+	int addr = (*candaddr)[a];
+	if (lram[addr] != (*candl)[a] ||
+	    rram[addr] != (*candr)[a]) {
+	  printf("%s-%s  Eliminated %04x because wanted %02x/%02x "
+		 "but got %02x/%02x\n", less, more,
+		 addr, (*candl)[a], (*candr)[a], lram[addr], rram[addr]);
+	} else {
+	  newcand.push_back(addr);
+	  newl.push_back((*candl)[a]);
+	  newr.push_back((*candr)[a]);
+	}
+      }
+
+      candaddr->swap(newcand);
+      candl->swap(newl);
+      candr->swap(newr);
+    };
+ 
+    // Savestate after executing a few steps of nothing.
+    vector<uint8> savel, saver;
+    
     // Now, don't tap. Assume that we keep the same facing direction,
     // but for example that we stop animating.
     for (int i = 0; i < 12; i++) {
       lemu->StepFull(0, 0);
       remu->StepFull(0, 0);
 
-      uint8 *lram = lemu->GetFC()->fceu->RAM;
-      uint8 *rram = remu->GetFC()->fceu->RAM;
-
-      vector<int> newcand;
-      vector<uint8> newl, newr;
-
-      for (int a = 0; a < candaddr.size(); a++) {
-	// By invariant, candl[a] != candr[a].
-	int addr = candaddr[a];
-	if (lram[addr] != candl[a] ||
-	    rram[addr] != candr[a]) {
-	  printf("Eliminated %04x because wanted %02x/%02x but got %02x/%02x\n",
-		 addr, candl[a], candr[a], lram[addr], rram[addr]);
-	} else {
-	  newcand.push_back(addr);
-	  newl.push_back(candl[a]);
-	  newr.push_back(candr[a]);
-	}
+      if (i == 3) {
+	lemu->SaveUncompressed(&savel);
+	remu->SaveUncompressed(&saver);
       }
 
-      candaddr.swap(newcand);
-      candl.swap(newl);
-      candr.swap(newr);
+      Filter(lemu, remu);
     }
-    
-    // Now, we're looking for a single address that's different in the
-    // two emulators.
 
-    printf("After filter, %d candidates differences: ", (int)candaddr.size());
-    for (int i = 0; i < candaddr.size(); i++) {
-      printf(" %04x (%02x/%02x)", candaddr[i], candl[i], candr[i]);
+    SaveEmulatorImage(lemu, StringPrintf("%swait.png", less));
+    SaveEmulatorImage(remu, StringPrintf("%swait.png", more));
+
+    PrintCand("wait filter");
+
+    // One more filter pass. Move right on the left emu and left on
+    // the right emu.
+    lemu->LoadUncompressed(savel);
+    remu->LoadUncompressed(saver);
+    for (int i = 0; i < 3; i++) {
+      // Note swapped directions.
+      lemu->StepFull(input_more, 0);
+      remu->StepFull(input_less, 0);
     }
-    
+    SaveEmulatorImage(lemu, StringPrintf("%s%s.png", less, more));
+    SaveEmulatorImage(remu, StringPrintf("%s%s.png", more, less));
+
+    // Note swapped filter. The right emu should now have the player
+    // facing left, etc.
+    Filter(remu, lemu);
+
+    PrintCand("rev filter");
+
+    for (int i = 0; i < 9; i++) {
+      lemu->StepFull(0, 0);
+      remu->StepFull(0, 0);
+      // Note, still swapped.
+      Filter(remu, lemu);
+    }
+
+    PrintCand("rev-wait filter");
   };
 
-  FindCameraLRBytes();
-  
-  return CAMERA_FAILED;
+  vector<int> xcand, ycand;
+  vector<uint8> xlval, xrval, yuval, ydval;
+  TestAxis(INPUT_L, INPUT_R, "left", "right", &xcand, &xlval, &xrval);
+
+  if (xcand.empty()) {
+    printf("No x candidates, camera angle failed. :(\n");
+    return CAMERA_FAILED;
+  }
+
+  TestAxis(INPUT_U, INPUT_D, "up", "down", &ycand, &yuval, &ydval);
+
+  // We'll succeed in both directions if there's a valid intersection,
+  // and we pick the lowest one. They're sorted from lowest to highest,
+  // so we can do a "merge"-style intersection.
+  int x = 0, y = 0;
+  while (x < xcand.size() && y < ycand.size()) {
+    // A valid intersection if it's the same memory location, and it
+    // has distinct values for the four directions.
+    int xaddr = xcand[x], yaddr = ycand[y];
+    printf("Merge %04x vs %04x.\n", xaddr, yaddr);
+    if (xaddr == yaddr) {
+      // We already know xlval and xrval are distinct (and likewise for
+      // yvals) by invariant.
+      if (xlval[x] != yuval[y] && xlval[x] != ydval[y] &&
+	  xrval[x] != yuval[y] && xrval[x] != ydval[y]) {
+	*addr = xaddr;
+	*up = yuval[y];
+	*down = ydval[y];
+	*left = xlval[x];
+	*right = xrval[x];
+	printf("Success! %04x udlr: %02x %02x %02x %02x :)\n",
+	       *addr, *up, *down, *left, *right);
+	return CAMERA_ALL;
+      } else {
+	// Skip both; addresses only appear once.
+	x++;
+	y++;
+      }
+    } else if (xaddr < yaddr) {
+      // Advance left side until maybe equal.
+      x++;
+    } else {
+      // xaddr > yaddr
+      y++;
+    }
+  }
+
+  printf("No valid intersection. Taking LR camera only.\n");
+  *addr = xcand[0];
+  *left = xlval[0];
+  *right = xrval[0];
+  return CAMERA_LR;
 }
 
 void AutoCamera::GetSavestates(const vector<uint8> &uncompressed_state,

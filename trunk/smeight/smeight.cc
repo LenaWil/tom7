@@ -425,24 +425,65 @@ struct SM {
 	  printf("No consequential cams. :(\n");
 	}
 
-	bool is_top = false;
-	if (auto_camera->DetectViewType(save, nframes, cams, &is_top)) {
-	  printf("Detected view type: %s\n", is_top ? "TOP" : "SIDE");
-	  viewtype = is_top ? ViewType::TOP : ViewType::SIDE;
-	}
-
+	// XXX print 'em?
+	CHECK(!cams[0].xmems.empty());
+	CHECK(!cams[0].ymems.empty());
+	
 	uint16 angle_addr;
 	uint8 up, down, left, right;
 	AutoCamera::CameraStatus cs =
 	  auto_camera->DetectCameraAngle(save, nframes, cams,
 					 &angle_addr,
 					 &up, &down, &left, &right);
-	// XXX do something with angle...
+
+	bool got_view_type = false;
+	switch (cs) {
+	case AutoCamera::CAMERA_ALL:
+	  got_view_type = true;
+	  viewtype = ViewType::TOP;
+
+	  north.memory_location = angle_addr;
+	  south.memory_location = angle_addr;
+	  west.memory_location = angle_addr;
+	  east.memory_location = angle_addr;
+	  
+	  north.value = up;
+	  south.value = down;
+	  west.value = left;
+	  east.value = right;
+	  break;
+
+        case AutoCamera::CAMERA_LR:
+	  // Assume SIDE viewtype?
+	  // got_view_type = true;
+	  viewtype = ViewType::SIDE;
+	  
+	  // 0xFFFF means unsatisfiable rule.
+	  north.memory_location = 0xFFFF;
+	  south.memory_location = 0xFFFF;
+	  west.memory_location = angle_addr;
+	  east.memory_location = angle_addr;
+	  
+	  west.value = left;
+	  east.value = right;
+	  break;
+
+	case AutoCamera::CAMERA_FAILED:
+	  break;
+	}
+
+	if (!got_view_type) {
+	  bool is_top = false;
+	  if (auto_camera->DetectViewType(save, nframes, cams, &is_top)) {
+	    printf("Detected view type: %s\n", is_top ? "TOP" : "SIDE");
+	    got_view_type = true;
+	    viewtype = is_top ? ViewType::TOP : ViewType::SIDE;
+	  }
+	}
 	
-	// XXX print 'em?
-	CHECK(!cams[0].xmems.empty());
-	CHECK(!cams[0].ymems.empty());
 	// XXX use offsets
+	// XXX maybe average all sprite positions, or take center
+	// of bounding box?
 	player_x_mem = cams[0].xmems[0].first;
 	player_y_mem = cams[0].ymems[0].first;
 
@@ -1753,7 +1794,7 @@ struct SM {
     case ViewType::TOP:
       return make_tuple(sx, sy, 0, angle);
     case ViewType::SIDE:
-      return make_tuple(0, sx, 256 - sy, angle);    
+      return make_tuple(0, sx, 256 - sy, (angle + 90) % 360);    
     }
   }
 
