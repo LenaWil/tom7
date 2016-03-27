@@ -359,7 +359,7 @@ void Cart::SetupCartMirroring(int m, int hard, uint8 *extra) {
 void Cart::FCEU_SaveGameSave(CartInfo *LocalHWInfo) {
   // XXX TODO: Make this part of the savestate system (if it's not,
   // already). Don't write to disk.
-  fprintf(stderr, "CART Tried to save game state. Blocked.\n");
+  // fprintf(stderr, "CART Tried to save game state. Blocked.\n");
   return;
   if (LocalHWInfo->battery && LocalHWInfo->SaveGame[0]) {
     FILE *sp;
@@ -380,7 +380,7 @@ void Cart::FCEU_SaveGameSave(CartInfo *LocalHWInfo) {
 
 void Cart::FCEU_LoadGameSave(CartInfo *LocalHWInfo) {
   FCEU_ClearGameSave(LocalHWInfo);
-  fprintf(stderr, "Blocked cart from loading save game state.\n");
+  // fprintf(stderr, "Blocked cart from loading save game state.\n");
   return;
   TRACEF("LoadSaveGame");
   if (LocalHWInfo->battery && LocalHWInfo->SaveGame[0] &&

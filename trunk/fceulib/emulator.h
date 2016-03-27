@@ -101,6 +101,7 @@ struct Emulator {
   
   // XXXXX debugging only.
   FC *GetFC() { return fc; }
+  const FC *GetFC() const { return fc; }
   
  protected:
   // Use factory method.
