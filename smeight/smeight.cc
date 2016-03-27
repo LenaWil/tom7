@@ -416,19 +416,28 @@ struct SM {
       cams = auto_camera->FindYCoordinates(save, nframes, cams);
       if (!cams.empty()) {
 	printf("And succeeded for some x,y pairs...\n");
-	cams = auto_camera->FilterForConsequentiality(save, nframes, cams);
-	if (!cams.empty()) {
-	  printf("And consequential.\n");
-	  // XXX print 'em?
-	  CHECK(!cams[0].xmems.empty());
-	  CHECK(!cams[0].ymems.empty());
-	  // XXX use offsets
-	  player_x_mem = cams[0].xmems[0].first;
-	  player_y_mem = cams[0].ymems[0].first;
+	vector<AutoCamera::XYSprite> concams =
+	  auto_camera->FilterForConsequentiality(save, nframes, cams);
+	if (!concams.empty()) {
+	  printf("Consequential!\n");
+	  cams = concams;
 	} else {
-	  // Could keep old cameras in this case?
-	  printf("[consequential] Auto-camera failed. :(\n");
+	  printf("No consequential cams. :(\n");
 	}
+
+	bool is_top = false;
+	if (auto_camera->DetectViewType(save, nframes, cams, &is_top)) {
+	  printf("Detected view type: %s\n", is_top ? "TOP" : "SIDE");
+	  viewtype = is_top ? ViewType::TOP : ViewType::SIDE;
+	}
+	
+	// XXX print 'em?
+	CHECK(!cams[0].xmems.empty());
+	CHECK(!cams[0].ymems.empty());
+	// XXX use offsets
+	player_x_mem = cams[0].xmems[0].first;
+	player_y_mem = cams[0].ymems[0].first;
+
       } else {
 	printf("[y coords] Auto-camera failed. :(\n");
       }

@@ -121,7 +121,16 @@ struct AutoCamera {
       const vector<uint8> &uncompressed_state,
       int x_num_frames,
       const vector<XYSprite> &xysprites);
-  
+
+  // Detect ViewType (SIDE or TOP) using xysprites, which are expected
+  // to have consequential memory locations (it conducts experiments writing
+  // into these locations). Returns true if successful, and sets is_top
+  // accordingly.
+  bool DetectViewType(const vector<uint8> &uncompressed_state,
+		      int x_num_frames,
+		      const vector<XYSprite> &xysprites,
+		      bool *is_top);
+
 #if 0  
   // Follow up GetXSprite for side-view games with gravity.
   vector<XYSprite> GetYSpriteGravity(const vector<uint8> &uncompressed_state,
@@ -129,6 +138,12 @@ struct AutoCamera {
 				     const vector<XSprite> &xsprites);
 #endif
 
+private:
+  void GetSavestates(const vector<uint8> &uncompressed_state,
+		     int num_experiments,
+		     int x_num_frames,
+		     vector<vector<uint8>> *savestates);
+  
   vector<Emulator *> emus;
 };
 
