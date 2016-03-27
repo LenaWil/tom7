@@ -9,10 +9,6 @@
 #include <vector>
 
 #include "../fceulib/emulator.h"
-#include "../fceulib/simplefm2.h"
-
-#include "../cc-lib/threadutil.h"
-#include "../fceulib/ppu.h"
 
 // Tries to automatically determine the camera, which is the
 // set of memory locations that determine the player's position

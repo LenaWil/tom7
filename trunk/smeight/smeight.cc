@@ -248,6 +248,8 @@ struct SM {
   vector<uint8> inputs;
   Tilemap tilemap;
 
+  vector<AutoCamera::XYSprite> cams;
+  
   // XXX
   GLuint bg_texture = 0;
   GLuint sprite_texture[64] = {};
@@ -414,8 +416,7 @@ struct SM {
     int start_ms = SDL_GetTicks();    
     vector<uint8> save = emu->SaveUncompressed();
     int nframes = 0;
-    vector<AutoCamera::XYSprite> cams =
-      auto_camera->GetXSprites(save, &nframes);
+    cams = auto_camera->GetXSprites(save, &nframes);
     if (!cams.empty()) {
       printf("Auto-camera detected x-player [%d frames]:", nframes);
       for (const auto &s : cams) printf(" %d", s.sprite_idx);
@@ -556,6 +557,22 @@ struct SM {
     
     bool paused = false, single_step = false;
 
+    auto ForceMove = [this](int dx, int dy) {
+      printf("Force move %d,%d\n", dx, dy);
+      if (cams.empty()) {
+	printf("No cameras!!\n");
+      }
+      uint8 *ram = emu->GetFC()->fceu->RAM;
+      for (const AutoCamera::XYSprite &sprite : cams) {
+	// OK to ignore offsets here because the movement
+	// is relative already.
+	for (pair<uint16, int> xaddr : sprite.xmems)
+	  ram[xaddr.first] += dx;
+	for (pair<uint16, int> yaddr : sprite.ymems)
+	  ram[yaddr.first] += dy;
+      }
+    };
+    
     for (;;) {
       // Frame counter advances even when paused.
       frame++;
@@ -566,21 +583,34 @@ struct SM {
 	switch (event.type) {
 	case SDL_QUIT:
 	  return;
-	case SDL_KEYDOWN:
-	  switch (event.key.keysym.sym) {
-	  case SDLK_ESCAPE: return;
-	  case SDLK_UP: holding_up = true; break;
-	  case SDLK_DOWN: holding_down = true; break;
-	  case SDLK_LEFT: holding_left = true; break;
-	  case SDLK_RIGHT: holding_right = true; break;
-	  case SDLK_RETURN: holding_start = true; break;
-	  case SDLK_d: holding_b = true; break;
-	  case SDLK_f: holding_a = true; break;
-	  case SDLK_TAB: holding_select = true; break;
-	  default:;
-	  }
-	  break;
 
+	case SDL_KEYDOWN:
+
+	  if (event.key.keysym.mod & KMOD_CTRL) {
+	    int mag = event.key.keysym.mod & KMOD_SHIFT ? 31 : 1;
+	    switch (event.key.keysym.sym) {
+	    case SDLK_UP: ForceMove(0, -mag); break;
+	    case SDLK_DOWN: ForceMove(0, mag); break;
+	    case SDLK_LEFT: ForceMove(-mag, 0); break;
+	    case SDLK_RIGHT: ForceMove(mag, 0); break;
+	    default:;
+	    }
+	  } else {
+	    switch (event.key.keysym.sym) {
+	    case SDLK_ESCAPE: return;
+	    case SDLK_UP: holding_up = true; break;
+	    case SDLK_DOWN: holding_down = true; break;
+	    case SDLK_LEFT: holding_left = true; break;
+	    case SDLK_RIGHT: holding_right = true; break;
+	    case SDLK_RETURN: holding_start = true; break;
+	    case SDLK_d: holding_b = true; break;
+	    case SDLK_f: holding_a = true; break;
+	    case SDLK_TAB: holding_select = true; break;
+	    default:;
+	    }
+	    break;
+	  }
+	    
 	case SDL_KEYUP:
 	  switch (event.key.keysym.sym) {
 	  case SDLK_UP: holding_up = false; break;
@@ -624,6 +654,11 @@ struct SM {
 	    break;
 	    #endif
 
+	  case SDLK_e:
+	    printf("End movie.\n");
+	    inputs.clear();
+	    break;
+	    
 	  case SDLK_c:
 	    DoAutoCamera();
 	    break;
