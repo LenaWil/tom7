@@ -33,6 +33,7 @@
 
 #include "matrices.h"
 #include "autocamera.h"
+#include "autotiles.h"
 #include "wave.h"
 
 static constexpr int WIDTH = 1920;
@@ -244,10 +245,14 @@ struct AngleRule {
 struct SM {
   std::unique_ptr<Emulator> emu;
   std::unique_ptr<AutoCamera> auto_camera;
+  std::unique_ptr<AutoTiles> auto_tiles;
   std::unique_ptr<WaveFile> wavefile;
   vector<uint8> inputs;
   Tilemap tilemap;
 
+  // Any sprite indices (as determined by autocamera) that are
+  // controlled by the player.
+  vector<int> player_sprites;
   vector<AutoCamera::XYSprite> cams;
   
   // XXX
@@ -360,6 +365,7 @@ struct SM {
     CHECK(emu.get());
 
     auto_camera.reset(new AutoCamera(game));
+    auto_tiles.reset(new AutoTiles(game));
     
     if (!moviefile.empty()) {
       inputs = SimpleFM2::ReadInputs(moviefile);
@@ -411,6 +417,13 @@ struct SM {
     player_x_mem = 0xFFFF;
     player_y_mem = 0xFFFF;
   }
+
+  #if 0
+  void DoAutoTiles() {
+    uint64 cxsum = auto_tiles->TilesCRC(emu.get());
+    printf("Checksum: %llx\n", cxsum);
+  }
+  #endif
   
   void DoAutoCamera() {
     int start_ms = SDL_GetTicks();    
@@ -422,8 +435,14 @@ struct SM {
       for (const auto &s : cams) printf(" %d", s.sprite_idx);
       printf("\n");
 
-      cams = auto_camera->FindYCoordinates(save, nframes, cams);
+      cams = auto_camera->FindYCoordinates(save, nframes, cams,
+					   &player_sprites);
       if (!cams.empty()) {
+	for (const AutoCamera::XYSprite &sprite : cams) {
+	  printf("Player sprite: %d\n", sprite.sprite_idx);
+	  player_sprites.push_back(sprite.sprite_idx);
+	}
+	
 	printf("And succeeded for some x,y pairs...\n");
 	vector<AutoCamera::XYSprite> concams =
 	  auto_camera->FilterForConsequentiality(save, nframes, cams);
@@ -658,6 +677,12 @@ struct SM {
 	    printf("End movie.\n");
 	    inputs.clear();
 	    break;
+
+	    #if 0
+	  case SDLK_t:
+	    DoAutoTiles();
+	    break;
+	    #endif
 	    
 	  case SDLK_c:
 	    DoAutoCamera();
@@ -974,7 +999,17 @@ struct SM {
     
     // Total 256 bytes.
     const uint8 *spram = ppu->SPRAM;
-   
+
+    // When in 3d mode (and not during interpolation, because there
+    // it's very nice to see the player sprite), ignore the player
+    // sprite.
+    vector<bool> is_self(64, false);
+    if (camera_3d && cam_inter_pos == CAM_INTER_FRAMES) {
+      for (int sidx : player_sprites) {
+	is_self[sidx] = true;
+      }
+    }
+    
     // Most games use multiple sprites to draw the player and enemy,
     // since sprites are pretty small (8x8 or 8x16). For billboard
     // sprites in particular, we need to know that the sprites must
@@ -1057,6 +1092,13 @@ struct SM {
       PreSprite &ps = presprites[n];
       ps.x = x;
       ps.y = y;
+
+      // Avoid even fusing ignored sprites. This causes oddities when
+      // the player steps adjacent to stuff anyway, and would make
+      // such sprites invisible if they got fused into us.
+      if (is_self[n])
+	continue;
+      
       // Look in each cardinal direction. There's a specific
       // point where an adjacent sprite would be.
       for (int up : *Coord(x, y - sprite_height)) Union(n, up);
@@ -1091,7 +1133,7 @@ struct SM {
       // may be gibberish in there already. So in this pass, clear
       // any sprites that will be used.
       if (ps.parent == -1) {
-	if (ps.min_y < 240) {
+	if (ps.min_y < 240 && !is_self[n]) {
 	  // PERF could clear actual area needed
 	  memset(sprite_rgba[n].data(), 0, sprite_rgba[n].size());
 	  ps.rendered = true;
@@ -1363,6 +1405,9 @@ struct SM {
     // have power-of-two dimensions, but not the copied area.)
     bg.resize(TILESW * TILESH * 8 * 8 * 4);
 
+    vector<AutoTiles::Tile> bigtiles = auto_tiles->GetTileInfo(
+	emu.get(), viewtype == ViewType::TOP, cams);
+    
     // Read the tile for the wide tile coordinates (x,y). x may range
     // from 0 to TILESW*2 - 1.
     auto WideNametable = [nametable](int x, int y) -> uint8 {
