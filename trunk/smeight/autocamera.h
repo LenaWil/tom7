@@ -97,7 +97,8 @@ struct AutoCamera {
   // both x and y coordinates. 
   vector<XYSprite> FindYCoordinates(const vector<uint8> &uncompressed_state,
 				    int x_num_frames,
-				    const vector<XYSprite> &xsprites);
+				    const vector<XYSprite> &xsprites,
+				    vector<int> *player_sprites);
 
   // Must have x and y coordinates filled in, i.e. after FindYCoordinates.
   //

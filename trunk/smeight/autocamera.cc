@@ -212,7 +212,8 @@ vector<AutoCamera::XYSprite> AutoCamera::GetXSprites(
 vector<AutoCamera::XYSprite> AutoCamera::FindYCoordinates(
     const vector<uint8> &uncompressed_state,
     int x_num_frames,
-    const vector<XYSprite> &sprites) {
+    const vector<XYSprite> &sprites,
+    vector<int> *player_sprites) {
 
   // make parameter, or decide that this can always be assumed.
   const bool lagmem = true;
@@ -372,6 +373,17 @@ vector<AutoCamera::XYSprite> AutoCamera::FindYCoordinates(
       }
     } else {
       printf("Sprite %d eliminated since there are no xmems left.\n", s);
+    }
+  }
+
+  // For sprite rejection in 3D mode, it's useful to know all the sprite
+  // indices that are under player control, even if we don't have source
+  // memory indices for them (because e.g. they are only stored in the
+  // OAMDMA src. So save these.
+  if (player_sprites != nullptr) {
+    player_sprites->clear();
+    for (const XYSprite &sprite : withy) {
+      player_sprites->push_back(sprite.sprite_idx);
     }
   }
   
