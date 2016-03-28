@@ -130,10 +130,10 @@ static bool HaveLRControl(Emulator *emu,
   // XXX consider scroll pos!
   
   // Face right.
-  ram[right_angle.memory_location] = right_angle.value;
+  // ram[right_angle.memory_location] = right_angle.value;
   // Try walking right.
   auto WalkRight = [emu, startx, &sprite]() {
-    for (int i = 0; i < 6; i++) {
+    for (int i = 0; i < 12; i++) {
       emu->StepFull(INPUT_R, 0);
       const uint8 *spram = emu->GetFC()->ppu->SPRAM;
       const uint8 nowx = spram[sprite.sprite_idx * 4 + 3];
@@ -152,10 +152,10 @@ static bool HaveLRControl(Emulator *emu,
   emu->LoadUncompressed(start);
   
   // Face left.
-  ram[left_angle.memory_location] = left_angle.value;
+  // ram[left_angle.memory_location] = left_angle.value;
   // Try walking left.
   auto WalkLeft = [emu, startx, &sprite]() {
-    for (int i = 0; i < 6; i++) {
+    for (int i = 0; i < 12; i++) {
       emu->StepFull(INPUT_L, 0);
       const uint8 *spram = emu->GetFC()->ppu->SPRAM;
       const uint8 nowx = spram[sprite.sprite_idx * 4 + 3];
@@ -221,7 +221,7 @@ static void TestSolidity(Emulator *emu,
   // Want to be slightly outside the tile, since some games check the
   // collision as you first start to touch the tile (and push you
   // back?) rather than once you are inside it.
-  const int next_column = tile_px + 16 + 1;
+  const int next_column = tile_px + 16; // + 1;
 
   // We just fail the experiment for now. Good chance that this quadtile
   // is covered elsewhere on the screen, in fact.
@@ -232,7 +232,7 @@ static void TestSolidity(Emulator *emu,
   uint8 *spram = emu->GetFC()->ppu->SPRAM;
   
   // Face left.
-  ram[left_angle.memory_location] = left_angle.value;
+  // ram[left_angle.memory_location] = left_angle.value;
 
   // Place player at the desired location.
   // Might as well set the sprite location (?).
@@ -251,7 +251,7 @@ static void TestSolidity(Emulator *emu,
   }
 
   for (const pair<uint16, int> yaddr : sprite.ymems) {
-    int offset_val = tile_py - yaddr.second;
+    int offset_val = tile_py; // - yaddr.second;
     if (offset_val < 0 || offset_val > 255)
       return;
     ram[yaddr.first] = offset_val;
@@ -271,17 +271,13 @@ static void TestSolidity(Emulator *emu,
 
   
   if (spram[sprite.sprite_idx * 4 + 3] < xmiddle) {
-    #if 0
-    printf("%d,%d Not solid! %2x < %2x ?< %02x\n", expt->x, expt->y,
-	   spram[sprite.sprite_idx * 4 + 3], xmiddle, next_column);
-    SaveEmulatorImage(emu, StringPrintf("open-%d-%d.png", expt->x, expt->y));
-    #endif
+    // printf("%d,%d Not solid! %2x < %2x ?< %02x\n", expt->x, expt->y,
+    // spram[sprite.sprite_idx * 4 + 3], xmiddle, next_column);
+    // SaveEmulatorImage(emu, StringPrintf("open-%d-%d.png", expt->x, expt->y));
     expt->result = AutoTiles::OPEN;
   } else {
-    #if 0
-    printf("%d,%d Solid!\n", expt->x, expt->y);
-    SaveEmulatorImage(emu, StringPrintf("solid-%d-%d.png", expt->x, expt->y));
-    #endif
+    // printf("%d,%d Solid!\n", expt->x, expt->y);
+    // SaveEmulatorImage(emu, StringPrintf("solid-%d-%d.png", expt->x, expt->y));
     expt->result = AutoTiles::SOLID;
   }
 }
@@ -360,12 +356,23 @@ GetTileInfo(Emulator *emu,
     printf("%d experiments to do.\n", (int)experiments.size());
     // Choose the 0th sprite arbitrarily.
     const XYSprite &sprite = sprites[0];
+
+    uint8 *ram = emu->GetFC()->fceu->RAM;
+    uint8 *spram = emu->GetFC()->ppu->SPRAM;
+    int xloc = ram[sprite.xmems[0].first];
+    int yloc = ram[sprite.ymems[0].first];
+    int xsloc = spram[sprite.sprite_idx * 4 + 3];
+    int ysloc = spram[sprite.sprite_idx * 4 + 0];
+    printf("mem: %d,%d  spr: %d,%d\n", xloc, yloc, xsloc, ysloc);
+
+    // if (xloc % 8 != 0) return ret;
     
     // First of all, we need to be in a state where we have
     // control of the player. If we're not, there's no
     // point in trying experiments.
     vector<uint8> save = emu->SaveUncompressed();
 
+    
     int nframes;
     if (HaveLRControl(emus[0], save, left_angle, right_angle,
 		      &nframes, sprite)) {
@@ -387,8 +394,35 @@ GetTileInfo(Emulator *emu,
       if (experiments.size() < 20) {
 	UnParallelIdx(experiments.size(), DoExperiment, NUM_EMULATORS);
       } else {
+	// PERF can use fewer emulators when fewer tiles...
 	ParallelIdx(experiments.size(), DoExperiment, NUM_EMULATORS);
       }
+
+      int num_solid = 0, num_open = 0;
+      
+      // Now promote the experiments into the cache.
+      for (const Experiment &expt : experiments) {
+	if (expt.result != UNKNOWN) {
+	  const int idx = expt.y * (TILESW >> 1) + expt.x;
+	  ret[idx].solidity = expt.result;
+	  // There may be many results for the tile. Maybe get
+	  // consensus?
+	  // tileset->is_solid[expt.tileval] = expt.result == SOLID;
+	  if (expt.result == SOLID) num_solid++;
+	  else if (expt.result == OPEN) num_open++;
+	}
+      }
+
+      // (If we remapped a bunch of tiles, write out an image.)
+      if (experiments.size() > 120) {
+	vector<uint8> rgba;
+	rgba.resize((TILESW >> 1) * (TILESH >> 1) * 4);
+	// XXX do!
+      }
+
+      printf("In this experiment, %d solid, %d open.\n",
+	     num_solid, num_open);
+      printf("mem: %d,%d  spr: %d,%d\n", xloc, yloc, xsloc, ysloc);
       
     } else {
       printf("Can't experiment; no control.\n");

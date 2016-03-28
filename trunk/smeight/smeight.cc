@@ -1418,6 +1418,7 @@ struct SM {
 	emu.get(),
 	west, east,
 	viewtype == ViewType::TOP, cams);
+    CHECK(bigtiles.size() == (TILESW >> 1) * (TILESH >> 1)) << bigtiles.size();
     
     // Read the tile for the wide tile coordinates (x,y). x may range
     // from 0 to TILESW*2 - 1.
@@ -1523,33 +1524,53 @@ struct SM {
     static_assert(BOX_DIM == 2, "This is hard-coded here.");
     for (int ty = 0; ty < TILESH; ty += 2) {
       for (int tx = 0; tx < TILESW; tx += 2) {
-	// Take (x) scrolling into account.
-	const int srcty = ty;
-	const int srctx = (tx + (coarse_scroll >> 3)) % (TILESW * 2);
-
-	CHECK(!(srcty & 1)) << srcty;
-	// Here we want to loop over all four tiles inside this
-	// block. But membership in a block is not influenced
-        // by the scroll, so this only works for even coarse_scroll.
-	CHECK(!(srctx & 1)) << srctx << " " << coarse_scroll << " " << tx;
-	
 	TileType result = UNMAPPED;
-	for (int by = 0; by < 2; by++) {
-	  for (int bx = 0; bx < 2; bx++) {
-	    const uint8 tile = WideNametable(srctx + bx, srcty + by);
-	    const TileType type = tilemap.data[tile];
 
-	    auto Max = [](const TileType &a, const TileType &b) {
-	      if (a == WALL || b == WALL) return WALL;
-	      else if (a == FLOOR || b == FLOOR) return FLOOR;
-	      else if (a == RUT || b == RUT) return RUT;
-	      return UNMAPPED;
-	    };
-	    
-	    result = Max(result, type);
-	  }
+	const AutoTiles::Tile &autotile =
+	  bigtiles[(ty >> 1) * (TILESW >> 1) + (tx >> 1)];
+	if (false && autotile.solidity != AutoTiles::UNKNOWN) {
+	  printf("Bigtile %d,%d %08x: %d\n", tx, ty, autotile.fourtiles,
+		 (int)autotile.solidity);
+	}
+	switch (autotile.solidity) {
+	case AutoTiles::SOLID:
+	  // printf("SOLID.\n");
+	  result = WALL; break;
+	case AutoTiles::OPEN:
+	  // printf("OPEN.\n");
+	  result = FLOOR; break;
+	default: result = UNMAPPED; break;
 	}
 
+	// If we don't have autotiles, "resort to" tilemap.
+	if (result == UNMAPPED) {
+	  // Take (x) scrolling into account.
+	  const int srcty = ty;
+	  const int srctx = (tx + (coarse_scroll >> 3)) % (TILESW * 2);
+
+	  CHECK(!(srcty & 1)) << srcty;
+	  // Here we want to loop over all four tiles inside this
+	  // block. But membership in a block is not influenced
+	  // by the scroll, so this only works for even coarse_scroll.
+	  CHECK(!(srctx & 1)) << srctx << " " << coarse_scroll << " " << tx;
+
+	  for (int by = 0; by < 2; by++) {
+	    for (int bx = 0; bx < 2; bx++) {
+	      const uint8 tile = WideNametable(srctx + bx, srcty + by);
+	      const TileType type = tilemap.data[tile];
+
+	      auto Max = [](const TileType &a, const TileType &b) {
+		if (a == WALL || b == WALL) return WALL;
+		else if (a == FLOOR || b == FLOOR) return FLOOR;
+		else if (a == RUT || b == RUT) return RUT;
+		return UNMAPPED;
+	      };
+
+	      result = Max(result, type);
+	    }
+	  }
+	}
+	  
 	// Boxes have size--position them so that the face we want
 	// to see is at the depth we want. For a floor, for example,
 	// this is not 0.0 but 0.0 - BOX_DIM, since we want the top
@@ -1880,7 +1901,8 @@ struct SM {
     vector<uint8> ram = emu->GetMemory();
     
     // Player's top-left corner, so add 8,8 to get center.
-    uint8 sx = ram[player_x_mem] + 8, sy = ram[player_y_mem] + 8;
+    uint8 sx = ram[player_x_mem] + 8,
+      sy = ram[player_y_mem];
 
     // Take x scroll into account.
     int coarse_scroll, fine_scroll;
