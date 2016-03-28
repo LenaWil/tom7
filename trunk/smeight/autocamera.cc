@@ -1,5 +1,6 @@
 
 #include "autocamera.h"
+#include "smeight.h"
 
 #include <unordered_set>
 #include <mutex>
@@ -10,9 +11,6 @@
 
 #include "../cc-lib/threadutil.h"
 #include "../fceulib/ppu.h"
-
-// XXX
-#include "../cc-lib/stb_image_write.h"
 
 // OAM is Object Attribute Memory, which is sprite data.
 static vector<uint8> OAM(Emulator *emu) {
@@ -31,17 +29,6 @@ static string AddrOffset(pair<uint16, int> p) {
   } else {
     return StringPrintf("%04x", p.first);
   }
-}
-
-// XXX Move to utilities
-static void SaveEmulatorImage(const Emulator *emu,
-			      const string &filename) {
-  vector<uint8> rgba = emu->GetImage();
-  stbi_write_png(filename.c_str(),
-		 256, 240, 4,
-		 rgba.data(),
-		 256 * 4);
-  printf("Wrote %s.\n", filename.c_str());
 }
 
 namespace {

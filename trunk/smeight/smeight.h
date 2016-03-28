@@ -18,6 +18,9 @@ using namespace std;
 #include "../cc-lib/base/logging.h"
 #include "../cc-lib/threadutil.h"
 
+#include "../cc-lib/stb_image_write.h"
+#include "../fceulib/emulator.h"
+
 // e.g. with C = map<int, string>. Third argument is the default.
 template<class K, class C>
 auto GetDefault(const C &container,
@@ -102,6 +105,18 @@ struct AngleRule {
   }
   bool Valid() const { return memory_location < 2048; }
 };
+
+
+// XXX Move to utilities
+inline void SaveEmulatorImage(const Emulator *emu,
+			      const string &filename) {
+  vector<uint8> rgba = emu->GetImage();
+  stbi_write_png(filename.c_str(),
+		 256, 240, 4,
+		 rgba.data(),
+		 256 * 4);
+  printf("Wrote %s.\n", filename.c_str());
+}
 
 
 #endif

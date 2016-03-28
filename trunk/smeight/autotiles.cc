@@ -182,6 +182,7 @@ struct Experiment {
   int x;
   int y;
   uint32 tileval;
+  AutoTiles::Solidity result;
 };
 }
 
@@ -200,9 +201,89 @@ static void TestSolidity(Emulator *emu,
   // and assume that the sprite has consequential memory locations,
   // so we can warp it around.
 
-  // There are lots of ways to do this, because clipping can work
-  
+  // There are lots of ways to do this, because clipping works
+  // differently in different games. Should perhaps try several methods
+  // and vote, but the simplest is to place the player (assume 16x16)
+  // exactly adjacent to the tile, facing it, and try to walk into the
+  // tile.
 
+  // Complications! Walking to the left is easiest, because we can assume
+  // more about the tile grid than sprites (so we put the sprite's 0 column
+  // against the tile's right edge). But this is no good for the right
+  // column of tiles on the screen, so we need to support both.
+
+  const int tile_8x8x = expt->x << 1;
+  const int tile_8x8y = expt->y << 1;
+  // Upper-left corner (pixel) of this tile on the screen.
+  const int tile_px = tile_8x8x << 3;
+  const int tile_py = tile_8x8y << 3;
+
+  // Want to be slightly outside the tile, since some games check the
+  // collision as you first start to touch the tile (and push you
+  // back?) rather than once you are inside it.
+  const int next_column = tile_px + 16 + 1;
+
+  // We just fail the experiment for now. Good chance that this quadtile
+  // is covered elsewhere on the screen, in fact.
+  if (next_column >= 256)
+    return;
+
+  uint8 *ram = emu->GetFC()->fceu->RAM;
+  uint8 *spram = emu->GetFC()->ppu->SPRAM;
+  
+  // Face left.
+  ram[left_angle.memory_location] = left_angle.value;
+
+  // Place player at the desired location.
+  // Might as well set the sprite location (?).
+  // Would maybe be useful to set the oam dma src as well,
+  // though it should probably get overwritten from the memory
+  // location?
+  // spram[sprite.sprite_idx * 4 + 3] = next_column;
+  // spram[sprite.sprite_idx * 4 + 3] = tile_py;
+  for (const pair<uint16, int> xaddr : sprite.xmems) {
+    int offset_val = next_column - xaddr.second;
+    // Can't do the experiment if the offset memory can't
+    // place us in this location.
+    if (offset_val < 0 || offset_val > 255)
+      return;
+    ram[xaddr.first] = offset_val;
+  }
+
+  for (const pair<uint16, int> yaddr : sprite.ymems) {
+    int offset_val = tile_py - yaddr.second;
+    if (offset_val < 0 || offset_val > 255)
+      return;
+    ram[yaddr.first] = offset_val;
+  }
+
+  // Now try walking left (establishes baseline).
+  for (int i = 0; i < nframes; i++) {
+    emu->StepFull(INPUT_L, 0);
+  }
+
+  const uint8 xmiddle = spram[sprite.sprite_idx * 4 + 3];
+
+  // Now keep walking left to see if we can keep going.
+  for (int i = 0; i < nframes; i++) {
+    emu->StepFull(INPUT_L, 0);
+  }
+
+  
+  if (spram[sprite.sprite_idx * 4 + 3] < xmiddle) {
+    #if 0
+    printf("%d,%d Not solid! %2x < %2x ?< %02x\n", expt->x, expt->y,
+	   spram[sprite.sprite_idx * 4 + 3], xmiddle, next_column);
+    SaveEmulatorImage(emu, StringPrintf("open-%d-%d.png", expt->x, expt->y));
+    #endif
+    expt->result = AutoTiles::OPEN;
+  } else {
+    #if 0
+    printf("%d,%d Solid!\n", expt->x, expt->y);
+    SaveEmulatorImage(emu, StringPrintf("solid-%d-%d.png", expt->x, expt->y));
+    #endif
+    expt->result = AutoTiles::SOLID;
+  }
 }
 
 vector<AutoTiles::Tile> AutoTiles::
@@ -261,7 +342,7 @@ GetTileInfo(Emulator *emu,
 
       auto it = tileset->is_solid.find(tileval);
       if (it == tileset->is_solid.end()) {
-	experiments.push_back(Experiment{x, y, tileval});
+	experiments.push_back(Experiment{x, y, tileval, UNKNOWN});
 	// Should come back and fill this one in, but mark it
 	// as unknown since that is its current status.
 	ret[idx].solidity = UNKNOWN;
@@ -303,7 +384,7 @@ GetTileInfo(Emulator *emu,
 		     left_angle, right_angle, sprite, nframes);
       };
 
-      if (true || experiments.size() < 20) {
+      if (experiments.size() < 20) {
 	UnParallelIdx(experiments.size(), DoExperiment, NUM_EMULATORS);
       } else {
 	ParallelIdx(experiments.size(), DoExperiment, NUM_EMULATORS);
