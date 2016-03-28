@@ -48,6 +48,9 @@ struct AutoTiles {
   // blocks). If there are unknown tiles, pauses to experiment on them
   // (but may not succeed!).
   vector<Tile> GetTileInfo(Emulator *emu,
+			   // Need to know how to make the player face
+			   // left and right.
+			   const AngleRule &left, const AngleRule &right,
 			   bool is_top,
 			   const vector<AutoCamera::XYSprite> &cams);
   
