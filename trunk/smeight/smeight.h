@@ -87,4 +87,21 @@ bool ContainsKey(const T &t, const K &k) {
   return t.find(k) != t.end();
 }
 
+
+
+
+struct AngleRule {
+  uint16 memory_location = 0xFFFF;
+  uint8 value = 0;
+  bool Match(const vector<uint8> &mem) {
+    if (memory_location == 0xFFFF)
+      return false;
+
+    CHECK(memory_location < mem.size()) << memory_location;
+    return mem[memory_location] == value;
+  }
+  bool Valid() const { return memory_location < 2048; }
+};
+
+
 #endif

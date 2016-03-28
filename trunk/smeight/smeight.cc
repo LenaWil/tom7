@@ -230,18 +230,6 @@ enum class ViewType {
   SIDE,
 };
 
-struct AngleRule {
-  uint16 memory_location = 0xFFFF;
-  uint8 value = 0;
-  bool Match(const vector<uint8> &mem) {
-    if (memory_location == 0xFFFF)
-      return false;
-
-    CHECK(memory_location < mem.size()) << memory_location;
-    return mem[memory_location] == value;
-  }
-};
-
 struct SM {
   std::unique_ptr<Emulator> emu;
   std::unique_ptr<AutoCamera> auto_camera;
@@ -574,7 +562,7 @@ struct SM {
     int x_offset = 0;
     int y_offset = 0;
     
-    bool paused = false, single_step = false;
+    bool paused = false, frozen_for_command = false, single_step = false;
 
     auto ForceMove = [this](int dx, int dy) {
       printf("Force move %d,%d\n", dx, dy);
@@ -583,6 +571,15 @@ struct SM {
       }
       uint8 *ram = emu->GetFC()->fceu->RAM;
       for (const AutoCamera::XYSprite &sprite : cams) {
+	// Update the sprite itself since the emulator may be
+	// frozen and not redrawing.
+	uint8 *spram = emu->GetFC()->ppu->SPRAM;
+	spram[sprite.sprite_idx * 4 + 3] += dx;
+	spram[sprite.sprite_idx * 4 + 0] += dy;
+	printf("Sprite at %d,%d.\n",
+	       (int)spram[sprite.sprite_idx * 4 + 3],
+	       (int)spram[sprite.sprite_idx * 4 + 0]);
+	
 	// OK to ignore offsets here because the movement
 	// is relative already.
 	for (pair<uint16, int> xaddr : sprite.xmems)
@@ -605,8 +602,12 @@ struct SM {
 
 	case SDL_KEYDOWN:
 
+	  if (event.key.keysym.sym == SDLK_LCTRL) {
+	    frozen_for_command = true;
+	  }
+	  
 	  if (event.key.keysym.mod & KMOD_CTRL) {
-	    int mag = event.key.keysym.mod & KMOD_SHIFT ? 31 : 1;
+	    int mag = event.key.keysym.mod & KMOD_SHIFT ? 16 : 1;
 	    switch (event.key.keysym.sym) {
 	    case SDLK_UP: ForceMove(0, -mag); break;
 	    case SDLK_DOWN: ForceMove(0, mag); break;
@@ -631,6 +632,11 @@ struct SM {
 	  }
 	    
 	case SDL_KEYUP:
+
+	  if (event.key.keysym.sym == SDLK_LCTRL) {
+	    frozen_for_command = false;
+	  }
+
 	  switch (event.key.keysym.sym) {
 	  case SDLK_UP: holding_up = false; break;
 	  case SDLK_DOWN: holding_down = false; break;
@@ -722,7 +728,7 @@ struct SM {
 	}
       }
 
-      if (!paused) {
+      if (!paused && !frozen_for_command) {
 	if (fastforward > 0) {
 	  while (fastforward--) {
 	    const uint8 input = NextInput();
@@ -1338,8 +1344,9 @@ struct SM {
 	  switch (viewtype) {
 	  case ViewType::TOP:
 	    // These are in tile space, not pixel space.
-	    s.loc.x = cx / 8.0f;
-	    s.loc.y = cy / 8.0f;
+	    // Tom added -8 to both of these. wtf.
+	    s.loc.x = (cx - 8) / 8.0f;
+	    s.loc.y = (cy - 8) / 8.0f;
 	    // XXX bottom should always be on the floor, yeah?
 	    s.loc.z = 0.5 * (height_px / 8.0f);
 	    break;
@@ -1405,8 +1412,12 @@ struct SM {
     // have power-of-two dimensions, but not the copied area.)
     bg.resize(TILESW * TILESH * 8 * 8 * 4);
 
+    #if 0
     vector<AutoTiles::Tile> bigtiles = auto_tiles->GetTileInfo(
-	emu.get(), viewtype == ViewType::TOP, cams);
+	emu.get(),
+	west, east,
+	viewtype == ViewType::TOP, cams);
+    #endif
     
     // Read the tile for the wide tile coordinates (x,y). x may range
     // from 0 to TILESW*2 - 1.
@@ -1553,7 +1564,8 @@ struct SM {
 	} else if (result == RUT) {
 	  d = -0.50f - BOX_DIM;
 	} else if (result == UNMAPPED) {
-	  d = -4.0f - BOX_DIM;
+	  // d = -4.0f - BOX_DIM;
+	  d = 0.0f - BOX_DIM; // XXX?
 	}
 
 	switch (viewtype) {
