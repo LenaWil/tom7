@@ -1344,10 +1344,12 @@ struct SM {
 	  switch (viewtype) {
 	  case ViewType::TOP:
 	    // These are in tile space, not pixel space.
-	    // Tom added -8 to both of these. wtf.
+	    // Tom added -8 to both of these. wtf. There are some
+	    // canceling-out hacks throughout this code, perhaps.
+	    // XXX
 	    s.loc.x = (cx - 8) / 8.0f;
 	    s.loc.y = (cy - 8) / 8.0f;
-	    // XXX bottom should always be on the floor, yeah?
+	    // bottom should always be on the floor, yeah?
 	    s.loc.z = 0.5 * (height_px / 8.0f);
 	    break;
 	  case ViewType::SIDE:
@@ -1412,12 +1414,10 @@ struct SM {
     // have power-of-two dimensions, but not the copied area.)
     bg.resize(TILESW * TILESH * 8 * 8 * 4);
 
-    #if 0
     vector<AutoTiles::Tile> bigtiles = auto_tiles->GetTileInfo(
 	emu.get(),
 	west, east,
 	viewtype == ViewType::TOP, cams);
-    #endif
     
     // Read the tile for the wide tile coordinates (x,y). x may range
     // from 0 to TILESW*2 - 1.
