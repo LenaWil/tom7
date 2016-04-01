@@ -47,6 +47,8 @@ static constexpr float DEGREES_TO_RADS = (1.0f / 360.0f) * 2.0f * PI;
 // XXX just ref directly?
 static constexpr int AUDIO_SAMPLE_RATE = Emulator::AUDIO_SAMPLE_RATE;
 
+static constexpr int MAX_GLITCHFRAMES = 256;
+
 // Size of NES nametable
 static constexpr int TILESW = 32;
 static constexpr int TILESH = 30;
@@ -66,6 +68,63 @@ static_assert(0 == (SPRTEXH & (SPRTEXH - 1)), "SPRTEXH must be a power of 2");
 #define BOX_DIM 2
 
 static constexpr int CAM_INTER_FRAMES = 45;
+
+struct VideoSaver {
+  // Takes ownership of pixels (malloc).
+  void Save(int num, uint8 *pixels) {
+    MutexLock ml(&m);
+    CHECK(!should_die) << "Can't call save after destructor...??";
+    todo.push_back({num, pixels});
+  }
+  
+  void Run() {
+    for (;;) {
+      m.lock();
+      if (todo.empty()) {
+	if (should_die) {
+	  m.unlock();
+	  return;
+	}
+	m.unlock();
+      } else {
+	int num;
+	uint8 *pixels;
+	std::tie(num, pixels) = todo.back();
+	todo.pop_back();
+	m.unlock();
+	
+	stbi_write_png(StringPrintf("image_%d.png", num).c_str(),
+		       WIDTH, HEIGHT, 4,
+		       // Start on last row.
+		       pixels + (WIDTH * (HEIGHT - 1)) * 4,
+		       // Negative stride to flip during saving.
+		       -4 * WIDTH);
+	free(pixels);
+	printf("Wrote image_%d.\n", num);
+      }
+    }
+  }
+  
+  explicit VideoSaver(int num_threads) {
+    for (int i = 0; i < num_threads; i++) {
+      threads.emplace_back(&VideoSaver::Run, this);
+    }
+  }
+
+  ~VideoSaver() {
+    {
+      MutexLock ml(&m);
+      should_die = true;
+    }
+    for (std::thread &t : threads) t.join();
+  }
+  
+private:
+  std::mutex m;
+  bool should_die = false;
+  vector<pair<int, uint8 *>> todo;
+  vector<std::thread> threads;
+};
 
 // I don't understand why Palette::FCEUD_GetPalette isn't working,
 // but the NES palette is basically constant (emphasis aside), so
@@ -169,12 +228,36 @@ static bool ParseWord(const string &s, uint16 *w) {
 
 struct Tilemap {
   Tilemap() {}
+
+  TileType Parse(const string &value) {
+    if (value == "wall") {
+      return WALL;
+    } else if (value == "floor") {
+      return FLOOR;
+    } else if (value == "rut") {
+      return RUT;
+    } else {
+      printf("Unknown tilemap value: [%s]\n", value.c_str());
+      return UNMAPPED;
+    }
+  }
+  
   explicit Tilemap(const string &filename) {
     vector<string> lines = Util::ReadFileToLines(filename);
     for (string line : lines) {
       string key = Util::chop(line);
       if (key.empty() || key[0] == '#') continue;
 
+      if (key == "*") {
+	string value = Util::chop(line);
+	TileType tt = Parse(value);
+	printf("Set all tiles in tilemap to %s...\n", value.c_str());
+	for (int i = 0; i < 256; i++) {
+	  data[i] = tt;
+	}
+	continue;
+      }
+      
       uint8 h = 0;
       if (!ParseByte(key, &h)) {
 	printf("Bad key in tilemap. "
@@ -187,16 +270,7 @@ struct Tilemap {
       }
 
       string value = Util::chop(line);
-
-      if (value == "wall") {
-	data[h] = WALL;
-      } else if (value == "floor") {
-	data[h] = FLOOR;
-      } else if (value == "rut") {
-	data[h] = RUT;
-      } else {
-	printf("Unknown tilemap value: [%s] for %02x\n", value.c_str(), h);
-      }
+      data[h] = Parse(value);
     }
   }
     
@@ -234,7 +308,6 @@ struct SM {
   std::unique_ptr<Emulator> emu;
   std::unique_ptr<AutoCamera> auto_camera;
   std::unique_ptr<AutoTiles> auto_tiles;
-  std::unique_ptr<WaveFile> wavefile;
   vector<uint8> inputs;
   Tilemap tilemap;
 
@@ -250,14 +323,25 @@ struct SM {
   // Flags toggled by keyboard.
   bool draw_sprites = true;
   bool draw_boxes = true;
-  bool draw_nes = true;
-  bool camera_3d = true;
+  bool draw_nes = false;
+  bool disable_sprite_fusion = false;
+  bool camera_3d = false;
 
+  // Note: Can't just set saving true from start, as the key itself
+  // does some initialization.
+  int imagenum = 0;
+  bool saving = false;
+  std::unique_ptr<VideoSaver> videosaver;
+  std::unique_ptr<WaveFile> wavefile;  
+  
   // Extracted or specified camera.
   uint16 player_x_mem = 0, player_y_mem = 0;
   AngleRule north, south, east, west;
   ViewType viewtype;
 
+  // Joystick camera control, in screen space. Range -1 to 1.
+  float look_x = 0.0, look_z = 0.0;
+  
   // Used for interpolating camera position during transitions.
   // When < CAM_INTER_FRAMES, interpolate between old (o- prefix
   // variables) and current camera.
@@ -369,8 +453,23 @@ struct SM {
     }
 
     printf("There are %d inputs left after warmup.\n", (int)inputs.size());
+
+    if (SDL_NumJoysticks() > 0) {
+      joy = SDL_JoystickOpen(0);
+      printf("Enabled Joystick 0: %s\n", SDL_JoystickName(0));
+    } else {
+      printf("NO JOY   T_T\n");
+    }
   }
 
+  SDL_Joystick *joy = nullptr;
+
+  ~SM() {
+    if (joy != nullptr) {
+      SDL_JoystickClose(joy);
+    }
+  }
+  
   void Play() {
     Loop();
     printf("UI shutdown.\n");
@@ -595,11 +694,80 @@ struct SM {
       
       // Also do event loop when paused.
       SDL_Event event;
-      if (0 != SDL_PollEvent(&event)) {
+      // Consume all active events right now.
+      while (0 != SDL_PollEvent(&event)) {
 	switch (event.type) {
 	case SDL_QUIT:
 	  return;
 
+	case SDL_JOYAXISMOTION:
+	  // printf("axis %d: %d\n", event.jaxis.axis, (int)event.jaxis.value);
+	  if (event.jaxis.axis == 0) {
+	    look_x = event.jaxis.value / 32768.0f;
+	  } else if (event.jaxis.axis == 1) {
+	    look_z = event.jaxis.value / 32768.0f;	    
+	  }
+
+	  printf("Look +%.3f %.3f\n", look_x, look_z);
+	  
+	  break;
+	  // case SDL_JOYBALLMOTION:
+	  // printf("jball\n"); break;
+	case SDL_JOYHATMOTION:
+	  // printf("hat %d val %d\n", event.jhat.hat, event.jhat.value);
+	  switch (event.jhat.value) {
+	  case SDL_HAT_LEFTUP:
+	    holding_up = true; holding_left = true;
+	    holding_right = false; holding_down = false;
+	    break;
+	  case SDL_HAT_UP:
+	    holding_up = true; holding_left = false;
+	    holding_right = false; holding_down = false;
+	    break;
+	  case SDL_HAT_RIGHTUP:
+	    holding_up = true; holding_left = false;
+	    holding_right = true; holding_down = false;
+	    break;
+	  case SDL_HAT_LEFT:
+	    holding_up = false; holding_left = true;
+	    holding_right = false; holding_down = false;
+	    break;
+	  case SDL_HAT_CENTERED:
+	    holding_up = false; holding_left = false;
+	    holding_right = false; holding_down = false;
+	    break;
+	  case SDL_HAT_RIGHT:
+	    holding_up = false; holding_left = false;
+	    holding_right = true; holding_down = false;
+	    break;
+	  case SDL_HAT_LEFTDOWN:
+	    holding_up = false; holding_left = true;
+	    holding_right = false; holding_down = true;
+	    break;
+	  case SDL_HAT_DOWN:
+	    holding_up = false; holding_left = false;
+	    holding_right = false; holding_down = true;
+	    break;
+	  case SDL_HAT_RIGHTDOWN:
+	    holding_up = false; holding_left = false;
+	    holding_right = true; holding_down = true;
+	    break;
+	  default:;
+	  }
+	  break;
+	case SDL_JOYBUTTONDOWN: 
+	case SDL_JOYBUTTONUP:
+	  switch (event.jbutton.button) {
+	  case 0: holding_a = event.jbutton.state == SDL_PRESSED; break;
+	  case 2: holding_b = event.jbutton.state == SDL_PRESSED; break;
+	  case 6: holding_select = event.jbutton.state == SDL_PRESSED; break;
+	  case 7: holding_start = event.jbutton.state == SDL_PRESSED; break;
+	  default:
+	    printf("Unsupported button %d.\n", event.jbutton.button);
+	    break;
+	  };
+	  break;
+	  
 	case SDL_KEYDOWN:
 
 	  if (event.key.keysym.sym == SDLK_LCTRL) {
@@ -652,9 +820,11 @@ struct SM {
 	      wavefile.reset(
 		  new WaveFile(StringPrintf("audio-%d.wav", imagenum),
 			       AUDIO_SAMPLE_RATE));
+	      videosaver.reset(new VideoSaver{10});
 	      saving = true;
 	    } else {
 	      wavefile.reset(nullptr);
+	      videosaver.reset(nullptr);
 	      saving = false;
 	    }
 	    break;
@@ -695,6 +865,14 @@ struct SM {
 	    break;
 	    // y offset too
 
+	  case SDLK_p:
+	    draw_sprites = !draw_sprites;
+	    break;
+	  case SDLK_u:
+	    disable_sprite_fusion = !disable_sprite_fusion;
+	    break;
+
+	    
 	  case SDLK_SLASH:
 	    fastforward = 60;
 	    break;
@@ -711,6 +889,10 @@ struct SM {
 	    cam_inter_pos = 0;
 	    break;
 
+	  case SDLK_g:
+	    glitchframes = MAX_GLITCHFRAMES;
+	    break;
+	    
 	  case SDLK_b:
 	    draw_boxes = !draw_boxes;
 	    break;
@@ -751,7 +933,8 @@ struct SM {
       }
 	
       vector<Box> boxes = GetBoxes();
-	
+      if (glitchframes > 0) glitchframes--;
+      
       vector<Sprite> sprites = GetSprites();
 
       // XXX Make optional with key
@@ -816,13 +999,17 @@ struct SM {
 	// Compute "look at" from the player angle.
 	lx = px; ly = py; lz = pz;
 
-	// Just look at something a unit vector away, in
+	// Just look at something a 128-length vector away, in
 	// the corresponding angle. This is the same in
 	// both SIDE and TOP viewtypes.
 	lx += 128.0f * sinf(current_angle * DEGREES_TO_RADS);
 	// dunno why this is backwards; add more sign errors, sigh
 	ly -= 128.0f * cosf(current_angle * DEGREES_TO_RADS);
 
+	// Take joystick look into account.
+	lx += 64.0f * cosf(current_angle * DEGREES_TO_RADS) * look_x;
+	lz += 64.0f * look_z;
+	
 	// In 3d mode, make sprites look right back at you.
 	billboard_angle = -player_angle;
 	billboard_alt_axis = false;
@@ -934,8 +1121,6 @@ struct SM {
     }
   }
 
-  int imagenum = 0;
-  bool saving = false;
   void SaveImageAndAudio() {
     if (!saving) return;
 
@@ -950,6 +1135,7 @@ struct SM {
     wavefile->Write(sound);
     
     imagenum++;
+    #if 0
     asynchronously.Run([pixels, num]() {
       stbi_write_png(StringPrintf("image_%d.png", num).c_str(),
 		     WIDTH, HEIGHT, 4,
@@ -960,6 +1146,8 @@ struct SM {
       free(pixels);
       printf("Wrote image_%d.\n", num);
     });
+    #endif
+    videosaver->Save(num, pixels);
   }
   
   // Draw the 256x256 NES image at the specified coordinates (0,0 is
@@ -976,7 +1164,9 @@ struct SM {
     glDrawPixels(SPRTEXW, h, GL_RGBA, GL_UNSIGNED_BYTE, image.data());
   }
 
-  
+  int glitchframes = 0;
+
+
   vector<Sprite> GetSprites() {
     vector<Sprite> ret;
 
@@ -1115,7 +1305,8 @@ struct SM {
       // at this same exact coordinate. Some games draw multiple layers
       // to get more than 3 colors.
 
-      by_coord[y * 256 + x].push_back(n);
+      if (!disable_sprite_fusion)
+	by_coord[y * 256 + x].push_back(n);
     }
 
     // Now loop over all the sprite bits and complete the information
@@ -1474,7 +1665,9 @@ struct SM {
 	  << tx << " " << coarse_scroll << " " << srctx;
 
 	// nametable[srcty * TILESW + tx];
-	const uint8 tile = WideNametable(srctx, srcty);
+	const uint8 tile = WideNametable(srctx, srcty) +
+	  // XXX
+	  (rc.Byte() < glitchframes ? 16 : 0);
 	
 	// Draw to BG.
 
@@ -1532,6 +1725,7 @@ struct SM {
 	  printf("Bigtile %d,%d %08x: %d\n", tx, ty, autotile.fourtiles,
 		 (int)autotile.solidity);
 	}
+
 	switch (autotile.solidity) {
 	case AutoTiles::SOLID:
 	  // printf("SOLID.\n");
@@ -1541,7 +1735,7 @@ struct SM {
 	  result = FLOOR; break;
 	default: result = UNMAPPED; break;
 	}
-
+	
 	// If we don't have autotiles, "resort to" tilemap.
 	if (result == UNMAPPED) {
 	  // Take (x) scrolling into account.
@@ -1678,7 +1872,7 @@ struct SM {
 	     look.x, look.y, look.z,
 	     up_x, -up_y, up_z);
         
-#if 1
+#if 0
     // XXX don't need this
     glBegin(GL_LINE_STRIP);
     glVertex3f(0.0f, 0.0f, 0.0f);
@@ -1689,18 +1883,23 @@ struct SM {
     glEnd();
 #endif
 
+    // #define DRAW_WIREFRAME
+
+#ifndef DRAW_WIREFRAME
     glEnable(GL_TEXTURE_2D);
     // glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL);
     // GL_MODULATE is needed for alpha blending, not sure why.
     glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
-   
+#endif
+    
     if (draw_boxes) {
+      #ifndef DRAW_WIREFRAME
       glDisable(GL_BLEND);
-
       // One texture for the whole scene.
       glBindTexture(GL_TEXTURE_2D, bg_texture);
       glBegin(GL_TRIANGLES);
-    
+      #endif
+      
       // Draw boxes as a bunch of triangles.
       for (const Box &box : boxes) {
 	// Here, boxes are properly oriented in GL axes, like this. The
@@ -1746,6 +1945,14 @@ struct SM {
 	  //    a----b
 	  //  (0,1)  (1,1)  texture coordinates
 
+	  #ifdef DRAW_WIREFRAME
+	  glBegin(GL_LINE_STRIP);
+	  glVertex3fv(a.Floats());
+	  glVertex3fv(b.Floats());
+	  glVertex3fv(c.Floats());
+	  glVertex3fv(d.Floats());
+	  glEnd();
+	  #else
 	  glTexCoord2f(tx,      ty + tt); glVertex3fv(a.Floats());
 	  glTexCoord2f(tx + tt, ty);      glVertex3fv(c.Floats());
 	  glTexCoord2f(tx,      ty);      glVertex3fv(d.Floats());
@@ -1753,6 +1960,7 @@ struct SM {
 	  glTexCoord2f(tx,      ty + tt); glVertex3fv(a.Floats());
 	  glTexCoord2f(tx + tt, ty + tt); glVertex3fv(b.Floats());
 	  glTexCoord2f(tx + tt, ty);      glVertex3fv(c.Floats());
+          #endif
 	};
 
 	// Top
@@ -1780,7 +1988,10 @@ struct SM {
 	CCWFace(f, e, b, a);
 
       }
+      #ifndef DRAW_WIREFRAME
       glEnd();
+      #endif
+
     }
 
     // Now sprites.
@@ -1898,7 +2109,14 @@ struct SM {
 
   // x, y, z, angle (deg, where 0 is north)
   std::tuple<int, int, int, int> GetLoc() {
+    // PERF
     vector<uint8> ram = emu->GetMemory();
+
+    const PPU *ppu = emu->GetFC()->ppu;
+
+    const uint8 ppu_ctrl = ppu->PPU_values[0];
+    const bool tall_sprites = !!(ppu_ctrl & (1 << 5));
+    const int sprite_height = tall_sprites ? 16 : 8;
     
     // Player's top-left corner, so add 8,8 to get center.
     uint8 sx = ram[player_x_mem] + 8,
@@ -1920,7 +2138,8 @@ struct SM {
     case ViewType::TOP:
       return make_tuple(sx, sy, 0, angle);
     case ViewType::SIDE:
-      return make_tuple(0, sx, 256 - sy, (angle + 90) % 360);    
+      return make_tuple(0 + 4, sx, 256 - (sy + (sprite_height >> 1)),
+			(angle + 90) % 360);    
     }
   }
 
@@ -1973,7 +2192,7 @@ struct SM {
   }
   
  private:
-  Asynchronously asynchronously{12};
+  Asynchronously asynchronously{32};
   vector<vector<uint8>> sprite_rgba;
   ArcFour rc;
   NOT_COPYABLE(SM);
@@ -2001,7 +2220,8 @@ static void InitGL() {
   
   glMatrixMode(GL_PROJECTION);
   glLoadIdentity();
-  
+
+  // was 60, 1.0
   PerspectiveGL(60.0, ASPECT_RATIO, 1.0, 1024.0);
 
   GetExtensions();
@@ -2013,7 +2233,7 @@ static void InitGL() {
 int main(int argc, char *argv[]) {
   fprintf(stderr, "Init SDL\n");
 
-  CHECK(SDL_Init(SDL_INIT_VIDEO) >= 0) << SDL_GetError();
+  CHECK(SDL_Init(SDL_INIT_VIDEO | SDL_INIT_JOYSTICK) >= 0) << SDL_GetError();
 
   const SDL_VideoInfo *info = SDL_GetVideoInfo();
   CHECK(info != nullptr) << SDL_GetError();
